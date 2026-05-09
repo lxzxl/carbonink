@@ -775,7 +775,7 @@ git commit -m "Phase 0/Task 5: Vitest + ULID utility"
 **Files:**
 - Create: `src/main/db/connection.ts`
 - Create: `tests/main/db/connection.test.ts`
-- Modify: `package.json` (加 rebuild script + postinstall hook)
+- Modify: `package.json` (加 rebuild scripts + predev/prebuild hooks——**不**用 postinstall)
 
 per spec §3 关键约束 0：`PRAGMA foreign_keys = ON` 是强制启动配置，未生效则 abort。
 
@@ -1698,9 +1698,11 @@ git commit -m "Phase 0/Task 13: migration 006 (audit_event + append-only trigger
 ### Task 14: zod schemas (organization + site + reporting_period) + 共享类型
 
 **Files:**
+- Create: `src/shared/schemas/_helpers.ts`
 - Create: `src/shared/schemas/organization.ts`
 - Create: `src/shared/schemas/site.ts`
 - Create: `src/shared/schemas/reporting-period.ts`
+- Create: `src/shared/schemas/complete-onboarding.ts`
 - Create: `src/shared/types.ts`
 
 - [ ] **Step 1: 装 zod**
@@ -1709,17 +1711,46 @@ git commit -m "Phase 0/Task 13: migration 006 (audit_event + append-only trigger
 pnpm add zod
 ```
 
-- [ ] **Step 2: 写 src/shared/schemas/organization.ts**
+- [ ] **Step 2: 写 src/shared/schemas/_helpers.ts（共享 helper：空字符串归一化）**
 
 ```ts
 import { z } from 'zod';
 
+/**
+ * Optional string field that:
+ *   1. Treats '', '   ', null as undefined (用户没填等同于不填)
+ *   2. Then applies length constraints if a real value remains
+ *
+ * 解决 wizard 表单的常见 pitfall：text input 默认值是 ''，原样传给
+ * z.string().min(1).optional() 会报"too small"——因为 `''` 不是 `undefined`。
+ */
+export function optionalString(opts: { max: number }): z.ZodType<string | undefined, z.ZodTypeDef, unknown> {
+  return z.preprocess(
+    (val) => {
+      if (val === null || val === undefined) return undefined;
+      if (typeof val === 'string') {
+        const trimmed = val.trim();
+        return trimmed === '' ? undefined : trimmed;
+      }
+      return val;
+    },
+    z.string().min(1).max(opts.max).optional(),
+  );
+}
+```
+
+- [ ] **Step 3: 写 src/shared/schemas/organization.ts**
+
+```ts
+import { z } from 'zod';
+import { optionalString } from './_helpers.js';
+
 export const organizationKindEnum = z.enum(['equity_share', 'operational_control']);
 
 export const organizationCreateInput = z.object({
-  name_zh: z.string().min(1).max(255).optional(),
-  name_en: z.string().min(1).max(255).optional(),
-  industry: z.string().max(100).optional(),
+  name_zh: optionalString({ max: 255 }),
+  name_en: optionalString({ max: 255 }),
+  industry: optionalString({ max: 100 }),
   country_code: z.string().min(2).max(3),
   boundary_kind: organizationKindEnum,
 }).refine((v) => v.name_zh || v.name_en, { message: 'At least one of name_zh / name_en is required' });
@@ -1739,16 +1770,17 @@ export type Organization = z.infer<typeof organization>;
 export type OrganizationCreateInput = z.infer<typeof organizationCreateInput>;
 ```
 
-- [ ] **Step 3: 写 src/shared/schemas/site.ts**
+- [ ] **Step 4: 写 src/shared/schemas/site.ts**
 
 ```ts
 import { z } from 'zod';
+import { optionalString } from './_helpers.js';
 
 export const siteCreateInput = z.object({
   organization_id: z.string(),
-  name_zh: z.string().min(1).max(255).optional(),
-  name_en: z.string().min(1).max(255).optional(),
-  address: z.string().max(500).optional(),
+  name_zh: optionalString({ max: 255 }),
+  name_en: optionalString({ max: 255 }),
+  address: optionalString({ max: 500 }),
   country_code: z.string().min(2).max(3),
 }).refine((v) => v.name_zh || v.name_en, { message: 'At least one of name_zh / name_en is required' });
 
@@ -1768,7 +1800,7 @@ export type Site = z.infer<typeof site>;
 export type SiteCreateInput = z.infer<typeof siteCreateInput>;
 ```
 
-- [ ] **Step 4: 写 src/shared/schemas/reporting-period.ts**
+- [ ] **Step 5: 写 src/shared/schemas/reporting-period.ts**
 
 ```ts
 import { z } from 'zod';
@@ -1799,7 +1831,7 @@ export type ReportingPeriod = z.infer<typeof reportingPeriod>;
 export type ReportingPeriodCreateInput = z.infer<typeof reportingPeriodCreateInput>;
 ```
 
-- [ ] **Step 5: 写 src/shared/schemas/complete-onboarding.ts**
+- [ ] **Step 6: 写 src/shared/schemas/complete-onboarding.ts**
 
 ```ts
 import { z } from 'zod';
@@ -1817,7 +1849,7 @@ export const completeOnboardingInput = z.object({
 export type CompleteOnboardingInput = z.infer<typeof completeOnboardingInput>;
 ```
 
-- [ ] **Step 6: 写 src/shared/types.ts (re-export 集中)**
+- [ ] **Step 7: 写 src/shared/types.ts (re-export 集中)**
 
 ```ts
 export * from './schemas/organization.js';
@@ -1826,16 +1858,16 @@ export * from './schemas/reporting-period.js';
 export * from './schemas/complete-onboarding.js';
 ```
 
-- [ ] **Step 7: 跑 typecheck**
+- [ ] **Step 8: 跑 typecheck**
 
 Run: `pnpm typecheck`
 Expected: 通过，无类型错误
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
 git add src/shared/ package.json pnpm-lock.yaml
-git commit -m "Phase 0/Task 14: zod schemas + types (organization/site/reporting_period/complete_onboarding)"
+git commit -m "Phase 0/Task 14: zod schemas + types (organization/site/reporting_period/complete_onboarding) with optionalString preprocess"
 ```
 
 ---
@@ -1976,6 +2008,19 @@ describe('OrganizationService', () => {
     expect(result.site.organization_id).toBe(result.organization.id);
     expect(result.reporting_period.organization_id).toBe(result.organization.id);
     expect(result.reporting_period.year).toBe(2025);
+  });
+
+  it('completeOnboarding accepts empty string for one of the bilingual name fields (treats as NULL)', () => {
+    // Wizard 表单默认值是 ''；optionalString preprocess 应把空串转 undefined → DB 存 NULL
+    const result = svc.completeOnboarding({
+      organization: { name_zh: '中山钢铁', name_en: '   ', country_code: 'CN', boundary_kind: 'operational_control' },
+      first_site: { name_zh: '主厂区', name_en: '', country_code: 'CN' },
+      reporting_period: { year: 2025, granularity: 'annual' },
+    });
+    expect(result.organization.name_zh).toBe('中山钢铁');
+    expect(result.organization.name_en).toBeNull();
+    expect(result.site.name_zh).toBe('主厂区');
+    expect(result.site.name_en).toBeNull();
   });
 
   it('completeOnboarding rolls back when reporting_period is invalid (no half state)', () => {
@@ -2158,7 +2203,7 @@ export class OrganizationService {
 - [ ] **Step 5: 跑测试确认通过**
 
 Run: `pnpm test tests/main/services/organization-service.test.ts`
-Expected: PASS (9 tests — 含基础 4 + singleton 1 + reporting_period 创建/UNIQUE/列表 3 + completeOnboarding 事务回滚 1，详见 Step 4 实现 + 后续 P1 transaction fix)
+Expected: 全部 PASS（含基础 org/site CRUD + singleton 拒绝 + reporting_period 创建/UNIQUE/列表 + completeOnboarding 原子写入/回滚 + 空字符串归一化为 NULL 等覆盖；不锁定具体数字以减少后续维护噪音）
 
 - [ ] **Step 6: Commit**
 
@@ -3776,41 +3821,44 @@ git commit -m "Phase 0/Task 26: renderer integration test for onboarding step 1"
 
 **Files:** (无新代码，纯构建产物验证)
 
+> ⚠️ **顺序很关键**：先跑 typecheck/test（要 Node ABI），再 rebuild 切到 Electron ABI 跑 build/preview。反过来跑会让 vitest 在 Electron ABI binding 下失败。
+
 - [ ] **Step 0 (clean install 重现性验证)**：
 
 ```bash
 rm -rf node_modules out
 pnpm install
 # clean install 后 better-sqlite3 是 Node ABI binding —— vitest 可直接跑
-pnpm typecheck
-pnpm test
-# 然后切到 Electron ABI 跑 dev/build
+```
+
+Expected: `pnpm install` 不触发任何 native rebuild（无 postinstall hook）→ 装上后 binding 是 Node ABI。
+
+- [ ] **Step 1: 跑 typecheck + 全部测试（Node ABI 阶段）**
+
+Run: `pnpm typecheck && pnpm test`
+Expected: 全部通过（vitest 用 Node ABI 的 better-sqlite3）。
+
+- [ ] **Step 2: 跑 lint**
+
+Run: `pnpm lint`
+Expected: 通过（Biome 全绿）。
+
+- [ ] **Step 3: 切到 Electron ABI + 跑 production build**
+
+```bash
 pnpm rebuild:native
 pnpm build
 ```
-
-Expected: 
-- `pnpm install` 不触发任何 native rebuild（无 postinstall hook）→ 装上后 binding 是 Node ABI
-- `pnpm test` 跑 vitest 全绿（用 Node ABI 的 better-sqlite3）
-- `pnpm rebuild:native` 后 binding 是 Electron ABI
-- `pnpm build` 三个 out/ 产物齐全；之后再跑 vitest 会报 native ABI 错，需要 `pnpm rebuild:node` 切回（这是预期行为，不是 plan 失败）
-
-- [ ] **Step 1: 跑 production build**
-
-Run: `pnpm build`
 Expected: `out/main`, `out/preload`, `out/renderer` 三个目录有产物，无 TS 错误。
 
-- [ ] **Step 2: 跑 typecheck + 全部测试**
+> 注意：此时 better-sqlite3 binding 已切到 Electron ABI，**再跑 vitest 会报 ABI 错**——这是预期行为。需要回去 vitest 的话先跑 `pnpm rebuild:node`。
 
-Run: `pnpm typecheck && pnpm test`
-Expected: 全部通过。
-
-- [ ] **Step 3: 跑预览看 production 模式能启动**
+- [ ] **Step 4: 跑预览看 production 模式能启动**
 
 Run: `pnpm preview`
 Expected: app 启动；过 wizard；写 organization + site + reporting_period 到 `~/Library/Application Support/carbonbook/app.sqlite` (macOS) 或 `%APPDATA%\carbonbook\app.sqlite` (Windows)；重启后直接进 dashboard。
 
-- [ ] **Step 4: 验证 SQLite 文件可手工读**
+- [ ] **Step 5: 验证 SQLite 文件可手工读**
 
 macOS：
 Run: `sqlite3 ~/Library/Application\ Support/carbonbook/app.sqlite ".tables"`
@@ -3825,13 +3873,13 @@ Expected: `1`
 Run: `sqlite3 ~/Library/Application\ Support/carbonbook/app.sqlite "SELECT COUNT(*) FROM organization;"`
 Expected: `1`（singleton 约束生效）
 
-- [ ] **Step 5: Windows 验证**
+- [ ] **Step 6: Windows 验证**
 
 如果有 Windows 机器：在 Windows 上 `pnpm install && pnpm exec electron-rebuild && pnpm dev` 跑一遍同 wizard 流程，验证 `%APPDATA%\carbonbook\app.sqlite` 生成 + organization + site + reporting_period 三行各一条 + `PRAGMA foreign_keys = 1`。
 
 如果没有 Windows 机器：标 FIXME 注释，等 Phase 4 真正打 installer 时再补 Windows 验证。
 
-- [ ] **Step 6: 写 release notes (Phase 0)**
+- [ ] **Step 7: 写 release notes (Phase 0)**
 
 `docs/release-notes/phase-0.md`：
 
@@ -3862,7 +3910,7 @@ Expected: `1`（singleton 约束生效）
 Phase 1 — AI Pipeline + 算 (inventory) flow.
 ```
 
-- [ ] **Step 7: Commit + tag**
+- [ ] **Step 8: Commit + tag**
 
 ```bash
 git add docs/release-notes/

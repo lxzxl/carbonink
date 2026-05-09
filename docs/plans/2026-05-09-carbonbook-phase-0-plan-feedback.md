@@ -8,91 +8,44 @@ Review date: 2026-05-09
 
 ## Verdict
 
-上一轮 7 个问题大部分已经被吸收：`reporting_period` 写入、migration raw import、organization singleton、Biome 安装、migration 编号、routeTree 提交策略、renderer test scope 都有修正。
+上一轮 feedback 里的主问题基本已修：native rebuild、`completeOnboarding` 原子 mutation、`routeTree.gen.ts` 提交点、Node/Vite 类型、Biome pin、annual-only reporting period，以及 `organization + site + reporting_period` 验收口径都已补上。
 
-但当前 plan 还不建议直接执行。剩余问题主要集中在 Electron native dependency、onboarding 原子性、routeTree 生成文件实际提交点、以及 typecheck/build 可复现性。
+当前还剩 2 个会影响执行/验收的问题，另有 2 个文档级小问题。
 
 ## Findings
 
-### P1 — `better-sqlite3` 没有 Electron native rebuild 步骤，`pnpm dev/preview` 可能启动即崩
+### P1 — wizard 会把空字符串传给 optional schema，正常“只填中文名/只填英文名”路径会失败
 
-Plan 在 Task 6 直接安装 `better-sqlite3`：`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:762`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:765`，随后主进程启动时直接 import/open DB：`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:2151`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:2159`。但 `better-sqlite3` 是 native module，Electron runtime ABI 和本机 Node ABI 可能不一致；没有 rebuild/install-app-deps 步骤时，Phase 0 的 `pnpm dev` / `pnpm preview` 验收可能在 main process 加载 native binding 时失败。
+`organizationCreateInput` 和 `siteCreateInput` 把 `name_zh` / `name_en` 定义成 `z.string().min(1).optional()`：`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:1719`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:1720`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:1721`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:1747`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:1749`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:1750`。但 wizard 表单默认值是空字符串，并原样保存：`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3117`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3118`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3119`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3124`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3125`，site step 同样如此：`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3466`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3467`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3468`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3472`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3473`。最后 StepAIProvider 又把这些值原样传给 `completeOnboarding`：`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3602`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3604`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3605`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3610`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3611`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3612`。
 
-建议修改：
-
-- 在 Task 6 或 Task 3 后增加 `@electron/rebuild`。
-- 增加脚本，例如 `rebuild:native`: `electron-rebuild -f -w better-sqlite3`。
-- 在安装 Electron + better-sqlite3 后、第一次 `pnpm dev` 前明确运行 native rebuild。
-- Task 27 acceptance 加一条：clean install 后跑 rebuild，再跑 `pnpm dev` 和 `pnpm preview`。
-
-### P1 — onboarding finish 不是事务，失败会留下半初始化数据库并被 singleton 卡死
-
-Task 25 finish 现在是 3 个 renderer-side mutation 串行调用：先 `createOrganization`，再 `createSite`，再 `createReportingPeriod`，见 `docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3431`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3432`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3433`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3444`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3451`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3459`。同时 organization 已经有 DB singleton：`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:1040`，service 也会拒绝第二次创建：`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:1912`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:1913`。
-
-如果 `createOrganization` 成功后 `createSite` 或 `createReportingPeriod` 失败，数据库会只剩 organization。之后 `hasAnyOrganization()` 仍为 true，app 会跳过 onboarding；用户也无法重试创建组织。这会直接破坏 spec Phase 0 的 `organization/site/reporting_period` 闭环。
+结果：用户只填中文名时，英文名字段仍是 `''`，它不是 `undefined`，所以会触发 `.min(1)` 失败。site 名称同理。这个会让 Phase 0 wizard happy path 在很常见输入下无法完成。
 
 建议修改：
 
-- 新增 service 方法 `completeOnboarding(input)`，在一个 SQLite transaction 里创建 organization + first site + annual reporting_period。
-- tRPC 暴露单个 `organization.completeOnboarding` mutation。
-- Step 5 finish 只调用这个 mutation；成功后再写 localStorage 的 `ai_provider_kind`。
-- 增加测试：模拟 reporting_period duplicate / invalid 时，transaction rollback 后 `organization` 和 `site` 都不应残留。
+- 增加一个 `blankToUndefined` / `cleanTextFields` helper，在保存 draft 或提交 `completeOnboarding` 前把 `''` / whitespace-only 转成 `undefined`。
+- 或在 zod schema 里用 preprocess，把空字符串规范化成 `undefined` 后再校验。
+- 补测试：`completeOnboarding` 接收 `{ name_zh: '中山钢铁', name_en: '' }` 和 `{ first_site.name_zh: '主厂区', first_site.name_en: '' }` 时应成功，落库为空的另一语言名应为 `NULL`。
 
-### P1 — `routeTree.gen.ts` 策略仍有断点：Task 22 创建 onboarding route 却没有提交生成文件
+### P1 — Task 27 acceptance 顺序和 native ABI 说明互相冲突
 
-Task 18 现在要求 commit `routeTree.gen.ts`，这是对的：`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:2455`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:2458`。但 Task 18 当时只创建了 `__root.tsx` 和 `index.tsx`，却在验证里要求 `routeTree.gen.ts` 包含 `onboarding/$step`：`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:2357`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:2453`。真正创建 onboarding route 是 Task 22，而 Task 22 的 commit 没有包含 `src/renderer/routeTree.gen.ts`：`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3086`。
+Task 6 已说明 `pnpm dev` / `pnpm build` 会通过 `predev` / `prebuild` 把 `better-sqlite3` 切到 Electron ABI，之后再跑 vitest 需要先 `pnpm rebuild:node`：`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:818`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:819`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:820`。Task 27 Step 0 也明确写了 build 后再跑 vitest 会报 ABI 错：`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3788`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3789`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3795`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3796`。
 
-结果是执行过程中本地工作区可能有更新后的 generated file，但 tag / clean checkout 里没有，Task 26 对 `/onboarding/1` 的 routeTree import 也会依赖这个文件。
+但 Task 27 Step 1 先跑 `pnpm build`，Step 2 紧接着跑 `pnpm typecheck && pnpm test` 并期望通过：`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3798`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3800`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3803`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3805`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3806`。按前面的 ABI 说明，这里 `pnpm test` 很可能失败。
 
-建议修改：
+建议修改 Task 27 顺序，二选一：
 
-- Task 18 的 Expected 改成只包含 `__root` + `index`。
-- Task 22 在 `pnpm dev` 后验证 `routeTree.gen.ts` 已加入 `/onboarding/$step`。
-- Task 22 的 `git add` 加上 `src/renderer/routeTree.gen.ts`。
+- 推荐：把测试固定放在 build 前：`pnpm install` → `pnpm typecheck` → `pnpm test` → `pnpm rebuild:native` → `pnpm build` → `pnpm preview`。
+- 如果必须 build 后再跑测试，则 Step 2 改成 `pnpm rebuild:node && pnpm typecheck && pnpm test`，然后 preview 前再 `pnpm rebuild:native`。
 
-### P1 — `import.meta.glob` / Node 全局类型没有纳入 typecheck 基线
+### P2 — Task 6 文件说明写了 postinstall hook，但实际计划明确不使用 postinstall
 
-Task 7 使用 `import.meta.glob`：`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:947`。当前 tsconfig 没有 `vite/client` 类型或 `vite-env.d.ts`：`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:272`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:279`。同时 tests 和 service 里大量使用 `node:*`、`Buffer`、`NodeJS.Platform`，但 plan 没有直接安装 `@types/node`；例如 `docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:772`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:773`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:1782`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:1783`。
+Task 6 Files 写 `Modify: package.json (加 rebuild script + postinstall hook)`：`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:778`。但实际脚本只有 `predev` / `prebuild` / `rebuild:*`：`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:791`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:798`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:800`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:808`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:809`，Task 27 还明确说无 postinstall hook：`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3793`。
 
-这会让 `pnpm typecheck` 在后续任务中不稳定，常见错误是 `Property 'glob' does not exist on type 'ImportMeta'` 或找不到 Node globals。
+建议把 Files 说明改成 `加 rebuild scripts + predev/prebuild hooks`，避免执行者误加 postinstall。
 
-建议修改：
+### P3 — Task 15 期望测试数仍少算
 
-- Task 2 增加 `pnpm add -D @types/node`。
-- 增加 `src/vite-env.d.ts`，内容为 `/// <reference types="vite/client" />`。
-- 或在 `tsconfig.json` 加 `"types": ["node", "vite/client"]`，但要确认不会污染 renderer/browser 类型边界。
+Task 15 现在有 `completeOnboarding creates org+site+period atomically` 和 rollback 两个测试：`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:1969`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:1981`。全文件总数是 10 个 `it(...)`，但 Expected 写 `PASS (9 tests)`：`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:2160`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:2161`。
 
-### P2 — Paraglide config 使用远程 `@latest` 模块，build 不可复现且可能依赖外网
-
-Task 19 的 inlang settings 使用 CDN 且带 `@latest`：`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:2495`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:2496`。这会让 build 结果受外部网络和最新版本变化影响，和桌面 app 的可复现构建目标不一致。
-
-建议修改：
-
-- 使用本地安装并固定版本的 message-format plugin。
-- 或至少把 URL 从 `@latest` 改成固定版本，并在 Task 27 clean build 中覆盖离线/无外网场景。
-
-### P2 — `reportingPeriodCreateInput` 允许 quarterly/monthly，但 service 明确只支持 annual
-
-Schema 允许 `annual | quarterly | monthly`：`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:1710`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:1715`，但 service 对非 annual 直接 throw：`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:1988`。这会让 tRPC 类型看起来接受 quarterly/monthly，运行时却拒绝。
-
-建议修改：
-
-- Phase 0 若只支持年度，create input 就用 `z.literal('annual')`。
-- 保留 DB check 支持 quarterly/monthly 没问题，但 API contract 不要提前承诺。
-- 或实现 quarterly/monthly 的 date range 计算并加测试。
-
-### P2 — lint/format 验收仍有失败风险
-
-Task 1 浮动安装 `@biomejs/biome`：`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:191`，但 config `$schema` 写死 1.9.4：`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:198`。这会让 Biome major 版本升级时产生配置兼容风险。另一个具体 lint 点是 Task 26 的 test import 了 `userEvent` 但没有使用：`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3562`，最终 checklist 又要求 `pnpm lint` 通过。
-
-建议修改：
-
-- pin `@biomejs/biome` 到与 schema 一致的版本，或按安装版本生成对应 schema/config。
-- 删除未使用的 `userEvent` import，除非测试真正使用它走交互。
-
-### P3 — 文案和验收描述还有少量旧口径
-
-核心代码已创建 `reporting_period`，但部分描述仍只写 organization + site。例如 Task 25 dev 验收仍写“自动建组织 + site 写入 SQLite”：`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3516`，commit message 也是 `org+site persisted`：`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3524`；Windows 验证也只写 organization/site：`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3653`；release notes 写 `persists organization + first site`：`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:3678`。Task 15 现在有 8 个测试，但 Expected 仍是 `PASS (4 tests)`：`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:1805`、`docs/plans/2026-05-09-carbonbook-phase-0-foundation.md:2016`。
-
-建议修改为统一口径：organization + first site + reporting_period，并把 Task 15 expected count 改成 8 tests。
+建议改成 `PASS (10 tests)`，或移除精确测试数，只写 `PASS`，减少后续维护成本。
 
