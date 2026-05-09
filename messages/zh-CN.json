@@ -15,5 +15,11 @@
   "onboarding_step_company_country": "国家",
   "onboarding_back": "返回",
   "onboarding_next": "下一步",
-  "required_field": "必填"
+  "required_field": "必填",
+  "onboarding_step_year_title": "报告年度",
+  "onboarding_step_year_body": "默认本年。选择你要核算排放的财年。",
+  "onboarding_step_boundary_title": "组织边界",
+  "onboarding_step_boundary_body": "依据 GHG Protocol Corporate Standard，选择组织边界核算方式。",
+  "onboarding_step_boundary_equity_share": "股权比例 — 按对合资公司持股比例分配排放。",
+  "onboarding_step_boundary_operational_control": "经营控制 — 算自己运营的设施排放，无论是否持股。多数小厂适用。"
 }

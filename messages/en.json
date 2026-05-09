@@ -15,5 +15,11 @@
   "onboarding_step_company_country": "Country",
   "onboarding_back": "Back",
   "onboarding_next": "Next",
-  "required_field": "Required"
+  "required_field": "Required",
+  "onboarding_step_year_title": "Reporting year",
+  "onboarding_step_year_body": "Default is the current year. Select the fiscal year you'll be calculating emissions for.",
+  "onboarding_step_boundary_title": "Organizational boundary",
+  "onboarding_step_boundary_body": "Per GHG Protocol Corporate Standard. Choose how you account for organizational boundaries.",
+  "onboarding_step_boundary_equity_share": "Equity Share — emissions allocated by ownership share of joint ventures.",
+  "onboarding_step_boundary_operational_control": "Operational Control — emissions from facilities you operate, regardless of ownership."
 }
