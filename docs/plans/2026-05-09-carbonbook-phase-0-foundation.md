@@ -188,8 +188,10 @@ packages: []
 - [ ] **Step 5: 装 Biome（lint/format）+ 写 biome.json**
 
 ```bash
-pnpm add -D @biomejs/biome
+pnpm add -D @biomejs/biome@1.9.4
 ```
+
+> 显式 pin 1.9.4——`biome.json` 的 `$schema` 引用同版本，必须保持一致；major 升级时同步改 schema URL + 验证规则没破。
 
 `biome.json`:
 
@@ -246,6 +248,7 @@ git commit -m "Phase 0/Task 1: pnpm + Biome + project baseline"
 **Files:**
 - Create: `tsconfig.json`
 - Create: `tsconfig.node.json`
+- Create: `src/vite-env.d.ts`
 
 - [ ] **Step 1: 写根 tsconfig.json**
 
@@ -299,16 +302,32 @@ git commit -m "Phase 0/Task 1: pnpm + Biome + project baseline"
 }
 ```
 
-- [ ] **Step 3: 验证 (空运行 typecheck)**
-
-Run: `pnpm add -D typescript@5.5 && pnpm typecheck`
-Expected: `tsc --noEmit` 通过 (因为还没源代码，应无错误)。
-
-- [ ] **Step 4: Commit**
+- [ ] **Step 3: 装 TypeScript + 类型基线**
 
 ```bash
-git add tsconfig.json tsconfig.node.json package.json pnpm-lock.yaml
-git commit -m "Phase 0/Task 2: TypeScript baseline (strict + path aliases)"
+pnpm add -D typescript@5.5 @types/node
+```
+
+> `@types/node` 是 main process / tests 必需（用 `node:fs`、`Buffer`、`process` 等）。即使 renderer 不用，全局装一份不污染 renderer 类型——renderer 的 `react` 类型已经独立。
+
+- [ ] **Step 4: 写 src/vite-env.d.ts**
+
+```ts
+/// <reference types="vite/client" />
+```
+
+> 这一行让 `import.meta.glob`、`import.meta.env` 等 Vite-injected 类型在 main + renderer 都可用。文件本身只起 type-augmentation，不会进 runtime。
+
+- [ ] **Step 5: 验证 typecheck**
+
+Run: `pnpm typecheck`
+Expected: 通过（无源代码时无错误，但 `@types/node` + `vite/client` 已就位，后续 Task 7 用 `import.meta.glob` 时不再报 "Property 'glob' does not exist"）。
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add tsconfig.json tsconfig.node.json src/vite-env.d.ts package.json pnpm-lock.yaml
+git commit -m "Phase 0/Task 2: TypeScript baseline (strict + path aliases + Node/Vite types)"
 ```
 
 ---
@@ -751,20 +770,67 @@ git commit -m "Phase 0/Task 5: Vitest + ULID utility"
 
 ---
 
-### Task 6: better-sqlite3 connection + PRAGMA foreign_keys=ON 强制
+### Task 6: better-sqlite3 connection + Electron native rebuild + PRAGMA foreign_keys=ON 强制
 
 **Files:**
 - Create: `src/main/db/connection.ts`
 - Create: `tests/main/db/connection.test.ts`
+- Modify: `package.json` (加 rebuild script + postinstall hook)
 
 per spec §3 关键约束 0：`PRAGMA foreign_keys = ON` 是强制启动配置，未生效则 abort。
 
-- [ ] **Step 1: 装 better-sqlite3**
+> ⚠️ `better-sqlite3` 是 native module，Electron 的 V8/Node ABI 与系统 Node 不一致。第一次装完直接跑 `pnpm dev` 会在主进程加载 native binding 时报 "Module did not self-register" 之类错误。**必须用 `@electron/rebuild` 把 native module 编译成 Electron ABI 版本**。
+
+- [ ] **Step 1: 装 better-sqlite3 + @electron/rebuild**
 
 ```bash
 pnpm add better-sqlite3
-pnpm add -D @types/better-sqlite3
+pnpm add -D @types/better-sqlite3 @electron/rebuild
 ```
+
+- [ ] **Step 1b: 加 rebuild script + predev/prebuild hooks 到 package.json**
+
+修改 `package.json` `scripts`：
+
+```json
+{
+  "scripts": {
+    "predev": "electron-rebuild -f -w better-sqlite3",
+    "dev": "electron-vite dev",
+    "prebuild": "electron-rebuild -f -w better-sqlite3",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "rebuild:native": "electron-rebuild -f -w better-sqlite3",
+    "rebuild:node": "pnpm rebuild better-sqlite3"
+  }
+}
+```
+
+> **关键 ABI 取舍**（必读）：
+>
+> better-sqlite3 是 native module，Electron ABI ≠ system Node ABI，binding 一次只能编一个版本。我们用 hook 拆分：
+>
+> - `pnpm install` 默认装 Node ABI binding → **vitest 直接可跑** ✅
+> - `pnpm dev` / `pnpm build` 前，`predev` / `prebuild` hook 自动跑 `electron-rebuild` 切到 Electron ABI → **app 可启动** ✅
+> - 跑过 dev 之后想再跑 vitest，binding 是 Electron ABI 的，vitest 会报 "Module did not self-register"——这时跑 `pnpm rebuild:node` 切回 Node ABI 即可
+>
+> 这是 better-sqlite3 + Electron 的标准已知痛点；Phase 0 acceptance（Task 27 step 0）要求覆盖 clean install 场景。
+
+- [ ] **Step 1c: 暂不主动 rebuild —— Node ABI binding 默认对 vitest 友好**
+
+`pnpm install` 后 better-sqlite3 默认带 Node ABI binding。vitest 跑测试在 system Node 上，**无需 rebuild**。
+
+第一次需要 Electron ABI 是 Task 16（IPC 接通后 main process 真去开 DB），届时 `pnpm dev` 触发 `predev` hook 自动 `electron-rebuild`。如果实现期间手工想跑 `pnpm dev` 提前看 UI，可以手工跑一次 `pnpm rebuild:native`，回头再 `pnpm rebuild:node` 切回测试。
+
+> **环境依赖（确保 rebuild 不会失败）**：
+> - macOS 缺 Xcode CLT：`xcode-select --install`
+> - Windows 缺 MSVS Build Tools：装 Visual Studio Build Tools 2022 + Python 3
+> - Linux 不发行（spec §1）；rebuild 也用不上
 
 - [ ] **Step 2: 写失败测试 tests/main/db/connection.test.ts**
 
@@ -1707,19 +1773,22 @@ export type SiteCreateInput = z.infer<typeof siteCreateInput>;
 ```ts
 import { z } from 'zod';
 
-export const granularityEnum = z.enum(['annual', 'quarterly', 'monthly']);
+// DB CHECK 允许 annual / quarterly / monthly，但 v1 service / API 只暴露 annual。
+// quarterly / monthly 等 Phase 1+ 实现 date range 计算时再开放。
+export const granularityDbEnum = z.enum(['annual', 'quarterly', 'monthly']);
+export const granularityV1Enum = z.literal('annual');
 
 export const reportingPeriodCreateInput = z.object({
   organization_id: z.string(),
   year: z.number().int().min(2020).max(2030),
-  granularity: granularityEnum,
+  granularity: granularityV1Enum,   // v1 仅 'annual'，避免 API contract 比 service 实现宽
 });
 
 export const reportingPeriod = z.object({
   id: z.string(),
   organization_id: z.string(),
   year: z.number().int(),
-  granularity: granularityEnum,
+  granularity: granularityDbEnum,    // 读出来时仍可能是 quarterly/monthly（DB CHECK 允许；只是 v1 不会写入）
   starts_at: z.string(),
   ends_at: z.string(),
   is_active: z.number(),
@@ -1730,24 +1799,43 @@ export type ReportingPeriod = z.infer<typeof reportingPeriod>;
 export type ReportingPeriodCreateInput = z.infer<typeof reportingPeriodCreateInput>;
 ```
 
-- [ ] **Step 5: 写 src/shared/types.ts (re-export 集中)**
+- [ ] **Step 5: 写 src/shared/schemas/complete-onboarding.ts**
+
+```ts
+import { z } from 'zod';
+import { organizationCreateInput } from './organization.js';
+import { siteCreateInput } from './site.js';
+import { reportingPeriodCreateInput } from './reporting-period.js';
+
+export const completeOnboardingInput = z.object({
+  organization: organizationCreateInput,
+  // 注意：不要让前端传 organization_id；service 在事务里把刚建的 org.id 注入进来
+  first_site: siteCreateInput.omit({ organization_id: true }),
+  reporting_period: reportingPeriodCreateInput.omit({ organization_id: true }),
+});
+
+export type CompleteOnboardingInput = z.infer<typeof completeOnboardingInput>;
+```
+
+- [ ] **Step 6: 写 src/shared/types.ts (re-export 集中)**
 
 ```ts
 export * from './schemas/organization.js';
 export * from './schemas/site.js';
 export * from './schemas/reporting-period.js';
+export * from './schemas/complete-onboarding.js';
 ```
 
-- [ ] **Step 6: 跑 typecheck**
+- [ ] **Step 7: 跑 typecheck**
 
 Run: `pnpm typecheck`
 Expected: 通过，无类型错误
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add src/shared/ package.json pnpm-lock.yaml
-git commit -m "Phase 0/Task 14: zod schemas + types for organization/site/reporting_period"
+git commit -m "Phase 0/Task 14: zod schemas + types (organization/site/reporting_period/complete_onboarding)"
 ```
 
 ---
@@ -1877,6 +1965,39 @@ describe('OrganizationService', () => {
     expect(list[0]!.year).toBe(2024);
     expect(list[1]!.year).toBe(2025);
   });
+
+  it('completeOnboarding creates org+site+period atomically', () => {
+    const result = svc.completeOnboarding({
+      organization: { name_zh: '中山钢铁', country_code: 'CN', boundary_kind: 'operational_control' },
+      first_site: { name_zh: '主厂区', country_code: 'CN' },
+      reporting_period: { year: 2025, granularity: 'annual' },
+    });
+    expect(result.organization.id).toBeTruthy();
+    expect(result.site.organization_id).toBe(result.organization.id);
+    expect(result.reporting_period.organization_id).toBe(result.organization.id);
+    expect(result.reporting_period.year).toBe(2025);
+  });
+
+  it('completeOnboarding rolls back when reporting_period is invalid (no half state)', () => {
+    // 制造一个会让事务尾部失败的场景：先用同一年建一个 period，再调 completeOnboarding 用同 year
+    // 但 completeOnboarding 自己先建 org，然后 site，然后 period——
+    // 这里换个法子：手工 mock 让 createReportingPeriod 抛错验证 rollback
+    const orgSvc = svc;
+    const original = orgSvc.createReportingPeriod.bind(orgSvc);
+    (orgSvc as unknown as { createReportingPeriod: (i: unknown) => unknown }).createReportingPeriod =
+      () => { throw new Error('synthetic period failure'); };
+    expect(() =>
+      orgSvc.completeOnboarding({
+        organization: { name_en: 'Rollback Co', country_code: 'CN', boundary_kind: 'operational_control' },
+        first_site: { name_en: 'Site', country_code: 'CN' },
+        reporting_period: { year: 2025, granularity: 'annual' },
+      }),
+    ).toThrow(/synthetic period failure/);
+    // 还原
+    (orgSvc as unknown as { createReportingPeriod: typeof original }).createReportingPeriod = original;
+    // 关键断言：事务回滚 → 没有 organization 残留
+    expect(orgSvc.hasAnyOrganization()).toBe(false);
+  });
 });
 ```
 
@@ -1897,11 +2018,13 @@ import type {
   SiteCreateInput,
   ReportingPeriod,
   ReportingPeriodCreateInput,
+  CompleteOnboardingInput,
 } from '@shared/types.js';
 import {
   organizationCreateInput,
   siteCreateInput,
   reportingPeriodCreateInput,
+  completeOnboardingInput,
 } from '@shared/types.js';
 
 export class OrganizationService {
@@ -1975,23 +2098,17 @@ export class OrganizationService {
   }
 
   createReportingPeriod(input: ReportingPeriodCreateInput): ReportingPeriod {
-    const parsed = reportingPeriodCreateInput.parse(input);
+    const parsed = reportingPeriodCreateInput.parse(input);  // v1 schema 限定 'annual'
     const id = newId();
     const ts = this.ctx.now();
-    // 计算 starts_at / ends_at （UTC 边界），仅 v1 支持 annual；quarterly/monthly 留给后续 phase
-    let starts_at: string;
-    let ends_at: string;
-    if (parsed.granularity === 'annual') {
-      starts_at = `${parsed.year}-01-01T00:00:00.000Z`;
-      ends_at = `${parsed.year}-12-31T23:59:59.999Z`;
-    } else {
-      throw new Error(`granularity '${parsed.granularity}' not supported in Phase 0 (annual only)`);
-    }
+    // v1 仅 annual：UTC 全年范围
+    const starts_at = `${parsed.year}-01-01T00:00:00.000Z`;
+    const ends_at = `${parsed.year}-12-31T23:59:59.999Z`;
     this.ctx.db.prepare(
       `INSERT INTO reporting_period
          (id, organization_id, year, granularity, starts_at, ends_at, is_active, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, 1, ?)`,
-    ).run(id, parsed.organization_id, parsed.year, parsed.granularity, starts_at, ends_at, ts);
+       VALUES (?, ?, ?, 'annual', ?, ?, 1, ?)`,
+    ).run(id, parsed.organization_id, parsed.year, starts_at, ends_at, ts);
     return this.getReportingPeriod(id)!;
   }
 
@@ -2007,19 +2124,47 @@ export class OrganizationService {
       .prepare('SELECT * FROM reporting_period WHERE organization_id = ? ORDER BY year ASC, created_at ASC')
       .all(orgId) as ReportingPeriod[];
   }
+
+  /**
+   * Phase 0 onboarding 的"原子收尾"：
+   * 在单个 SQLite 事务里同时建 organization + first site + first reporting_period。
+   * 任意一步失败 → 全部回滚 → singleton 不会被半初始化数据卡死。
+   *
+   * 这是 wizard finish 应该调用的唯一 mutation。
+   */
+  completeOnboarding(input: CompleteOnboardingInput): {
+    organization: Organization;
+    site: Site;
+    reporting_period: ReportingPeriod;
+  } {
+    const parsed = completeOnboardingInput.parse(input);
+    const tx = this.ctx.db.transaction(() => {
+      const organization = this.createOrganization(parsed.organization);
+      const site = this.createSite({
+        ...parsed.first_site,
+        organization_id: organization.id,
+      });
+      const reporting_period = this.createReportingPeriod({
+        ...parsed.reporting_period,
+        organization_id: organization.id,
+      });
+      return { organization, site, reporting_period };
+    });
+    return tx();
+  }
 }
 ```
 
 - [ ] **Step 5: 跑测试确认通过**
 
 Run: `pnpm test tests/main/services/organization-service.test.ts`
-Expected: PASS (4 tests)
+Expected: PASS (9 tests — 含基础 4 + singleton 1 + reporting_period 创建/UNIQUE/列表 3 + completeOnboarding 事务回滚 1，详见 Step 4 实现 + 后续 P1 transaction fix)
 
 - [ ] **Step 6: Commit**
 
 ```bash
 git add src/main/services/ tests/main/services/
-git commit -m "Phase 0/Task 15: OrganizationService (org+site+reporting_period + singleton enforcement)"
+git commit -m "Phase 0/Task 15: OrganizationService (org+site+reporting_period + singleton + transactional completeOnboarding)"
 ```
 
 ---
@@ -2066,6 +2211,7 @@ import {
   organizationCreateInput,
   siteCreateInput,
   reportingPeriodCreateInput,
+  completeOnboardingInput,
 } from '@shared/types.js';
 import { z } from 'zod';
 
@@ -2073,6 +2219,11 @@ const t = initTRPC.context<TrpcContext>().create();
 
 export const organizationRouter = t.router({
   hasAny: t.procedure.query(({ ctx }) => ctx.organizationService.hasAnyOrganization()),
+  // Phase 0 wizard finish 走这一个原子 mutation
+  completeOnboarding: t.procedure
+    .input(completeOnboardingInput)
+    .mutation(({ input, ctx }) => ctx.organizationService.completeOnboarding(input)),
+  // 以下细粒度 mutation 保留作 Phase 1+ 在 Settings 里增加 site / period 用
   create: t.procedure.input(organizationCreateInput).mutation(({ input, ctx }) =>
     ctx.organizationService.createOrganization(input),
   ),
@@ -2450,7 +2601,7 @@ pnpm dev
 ```bash
 ls -la src/renderer/routeTree.gen.ts
 ```
-Expected: 文件存在，包含 `__root` + `index` + `onboarding/$step` 三条 route 类型。
+Expected: 文件存在，**包含 `__root` + `index` 两条 route**（onboarding 路由在 Task 22 才加，届时 Task 22 会更新并 commit gen file）。
 
 - [ ] **Step 10: Commit（**含 routeTree.gen.ts**）**
 
@@ -2493,13 +2644,15 @@ pnpm add -D @inlang/paraglide-js @inlang/paraglide-vite
   "sourceLanguageTag": "en",
   "languageTags": ["en", "zh-CN"],
   "modules": [
-    "https://cdn.jsdelivr.net/npm/@inlang/plugin-message-format@latest/dist/index.js"
+    "https://cdn.jsdelivr.net/npm/@inlang/plugin-message-format@4.0.0/dist/index.js"
   ],
   "plugin.inlang.messageFormat": {
     "pathPattern": "./messages/{languageTag}.json"
   }
 }
 ```
+
+> ⚠️ 不要用 `@latest`——CDN 拉到的版本可能在升级时破 build。pin 到具体小版本号，需要升时显式改这里。Plan acceptance（Task 27）要求覆盖 clean install 场景。
 
 - [ ] **Step 3: 写 messages/en.json**
 
@@ -3075,16 +3228,21 @@ function Dashboard() {
 
 记得在 `index.tsx` 顶部 import `Navigate` from `@tanstack/react-router`.
 
-- [ ] **Step 7: 跑 dev 验证 step 1**
+- [ ] **Step 7: 跑 dev 验证 step 1 + 触发 routeTree codegen**
 
 Run: `pnpm dev`
-Expected: 因为没组织，自动跳到 `/onboarding/1`，看到公司信息表单；填写并 Next 后路由到 `/onboarding/2`（暂会回到 1，因为后续 step 还没加）。
-
-- [ ] **Step 8: Commit**
+Expected: 因为没组织，自动跳到 `/onboarding/1`，看到公司信息表单；填写并 Next 后路由到 `/onboarding/2`（暂会回到 1，因为后续 step 还没加）。Ctrl-C 后验证 `routeTree.gen.ts` 已加入 `/onboarding/$step` route：
 
 ```bash
-git add src/renderer/routes/onboarding/ src/renderer/routes/index.tsx src/renderer/components/ui/input.tsx src/renderer/components/ui/label.tsx messages/
-git commit -m "Phase 0/Task 22: Onboarding wizard step 1 (company info)"
+grep -c "onboarding/\$step\|/onboarding/" src/renderer/routeTree.gen.ts
+```
+Expected: > 0
+
+- [ ] **Step 8: Commit（含更新后的 routeTree.gen.ts）**
+
+```bash
+git add src/renderer/routes/onboarding/ src/renderer/routes/index.tsx src/renderer/components/ui/input.tsx src/renderer/components/ui/label.tsx src/renderer/routeTree.gen.ts messages/
+git commit -m "Phase 0/Task 22: Onboarding wizard step 1 (company info) + routeTree gen update"
 ```
 
 ---
@@ -3428,9 +3586,7 @@ export function StepAIProvider() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const createOrg = trpc.organization.create.useMutation();
-  const createSite = trpc.organization.createSite.useMutation();
-  const createPeriod = trpc.organization.createReportingPeriod.useMutation();
+  const completeOnboarding = trpc.organization.completeOnboarding.useMutation();
   const utils = trpc.useUtils();
 
   const finish = async (kind: 'byot' | 'skip') => {
@@ -3441,25 +3597,26 @@ export function StepAIProvider() {
         setError('Wizard state incomplete; please restart from step 1.');
         return;
       }
-      const org = await createOrg.mutateAsync({
-        name_zh: draft.company.name_zh,
-        name_en: draft.company.name_en,
-        industry: draft.company.industry,
-        country_code: draft.company.country_code,
-        boundary_kind: draft.company.boundary_kind,
-      });
-      await createSite.mutateAsync({
-        organization_id: org.id,
-        name_zh: draft.first_site.name_zh,
-        name_en: draft.first_site.name_en,
-        address: draft.first_site.address,
-        country_code: draft.first_site.country_code,
-      });
-      // 用 step 2 选的 year 创建 annual reporting_period（spec §11 Phase 0 要求）
-      await createPeriod.mutateAsync({
-        organization_id: org.id,
-        year: draft.reporting_year,
-        granularity: 'annual',
+      // 单个原子 mutation：org + site + reporting_period 在一个事务里。
+      // 失败 → 全部 rollback，singleton 不会被半初始化数据卡住，用户可重试。
+      await completeOnboarding.mutateAsync({
+        organization: {
+          name_zh: draft.company.name_zh,
+          name_en: draft.company.name_en,
+          industry: draft.company.industry,
+          country_code: draft.company.country_code,
+          boundary_kind: draft.company.boundary_kind,
+        },
+        first_site: {
+          name_zh: draft.first_site.name_zh,
+          name_en: draft.first_site.name_en,
+          address: draft.first_site.address,
+          country_code: draft.first_site.country_code,
+        },
+        reporting_period: {
+          year: draft.reporting_year,
+          granularity: 'annual',
+        },
       });
       // ai_provider_kind 写到 localStorage，Phase 1 才接真凭证
       localStorage.setItem('carbonbook.onboarding.ai_provider_kind', kind);
@@ -3513,15 +3670,15 @@ if (step === '5') return <Page><StepAIProvider /></Page>;
 Run: `pnpm dev`
 Expected: 
 1. 第一次启动 → 跳到 `/onboarding/1`
-2. 填公司 → step 2 选年度 → step 3 选边界 → step 4 填 site → step 5 选 AI provider option → 自动建组织 + site 写入 SQLite → 跳回 `/`
+2. 填公司 → step 2 选年度 → step 3 选边界 → step 4 填 site → step 5 选 AI provider option → **单个原子 completeOnboarding mutation** 在 SQLite 一个事务里写入 organization + site + reporting_period → 跳回 `/`
 3. Dashboard 显示 "Inventory Dashboard" 空态（不再是欢迎页）
 4. 重启 app → Dashboard 直接显示 inventory 空态（不再走 onboarding，因为 organization 表已有数据）
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/renderer/routes/onboarding/-components/StepAIProvider.tsx src/renderer/routes/onboarding/$step.tsx messages/
-git commit -m "Phase 0/Task 25: wizard step 5 (AI provider skeleton) + finish flow → org+site persisted"
+git add src/renderer/routes/onboarding/-components/StepAIProvider.tsx src/renderer/routes/onboarding/$step.tsx src/renderer/routeTree.gen.ts messages/
+git commit -m "Phase 0/Task 25: wizard step 5 (AI provider) + atomic completeOnboarding mutation → org+site+reporting_period persisted"
 ```
 
 ---
@@ -3536,8 +3693,10 @@ git commit -m "Phase 0/Task 25: wizard step 5 (AI provider skeleton) + finish fl
 - [ ] **Step 1: 装测试依赖**
 
 ```bash
-pnpm add -D @testing-library/react @testing-library/user-event happy-dom
+pnpm add -D @testing-library/react happy-dom
 ```
+
+（不装 `@testing-library/user-event`——本 task 是 smoke test 不做交互；后续 e2e harness 真要走交互再加。）
 
 - [ ] **Step 2: 改 vitest.config.ts 支持 jsx + happy-dom**
 
@@ -3559,7 +3718,6 @@ test: {
 ```tsx
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider, createMemoryHistory, createRouter } from '@tanstack/react-router';
 import { routeTree } from '@renderer/routeTree.gen';
@@ -3618,6 +3776,25 @@ git commit -m "Phase 0/Task 26: renderer integration test for onboarding step 1"
 
 **Files:** (无新代码，纯构建产物验证)
 
+- [ ] **Step 0 (clean install 重现性验证)**：
+
+```bash
+rm -rf node_modules out
+pnpm install
+# clean install 后 better-sqlite3 是 Node ABI binding —— vitest 可直接跑
+pnpm typecheck
+pnpm test
+# 然后切到 Electron ABI 跑 dev/build
+pnpm rebuild:native
+pnpm build
+```
+
+Expected: 
+- `pnpm install` 不触发任何 native rebuild（无 postinstall hook）→ 装上后 binding 是 Node ABI
+- `pnpm test` 跑 vitest 全绿（用 Node ABI 的 better-sqlite3）
+- `pnpm rebuild:native` 后 binding 是 Electron ABI
+- `pnpm build` 三个 out/ 产物齐全；之后再跑 vitest 会报 native ABI 错，需要 `pnpm rebuild:node` 切回（这是预期行为，不是 plan 失败）
+
 - [ ] **Step 1: 跑 production build**
 
 Run: `pnpm build`
@@ -3650,7 +3827,7 @@ Expected: `1`（singleton 约束生效）
 
 - [ ] **Step 5: Windows 验证**
 
-如果有 Windows 机器：在 Windows 上 `pnpm install && pnpm dev` 跑一遍同 wizard 流程，验证 `%APPDATA%\carbonbook\app.sqlite` 生成 + organization/site 写入。
+如果有 Windows 机器：在 Windows 上 `pnpm install && pnpm exec electron-rebuild && pnpm dev` 跑一遍同 wizard 流程，验证 `%APPDATA%\carbonbook\app.sqlite` 生成 + organization + site + reporting_period 三行各一条 + `PRAGMA foreign_keys = 1`。
 
 如果没有 Windows 机器：标 FIXME 注释，等 Phase 4 真正打 installer 时再补 Windows 验证。
 
@@ -3675,7 +3852,8 @@ Expected: `1`（singleton 约束生效）
 - audit_event append-only triggers in place.
 - electron-trpc IPC + Service Layer pattern.
 - safeStorage credential adapter (mac+win only).
-- 5-step onboarding wizard → persists organization + first site.
+- 5-step onboarding wizard → atomic `completeOnboarding` mutation
+  persists organization + first site + first reporting_period.
 - Paraglide JS i18n (zh-CN + en).
 - Phase 0 acceptance: launch → wizard → dashboard.
 
