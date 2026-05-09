@@ -1,2 +1,5 @@
-// preload script - electron-trpc bridge 在 Task 11 注入
-export {};
+import { exposeElectronTRPC } from 'electron-trpc/main';
+
+process.once('loaded', () => {
+  exposeElectronTRPC();
+});

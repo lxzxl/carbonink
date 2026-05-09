@@ -11,6 +11,12 @@ importers:
       '@radix-ui/react-slot':
         specifier: ^1.2.4
         version: 1.2.4(@types/react@18.3.28)(react@18.3.1)
+      '@trpc/client':
+        specifier: ^11.17.0
+        version: 11.17.0(@trpc/server@11.17.0(typescript@5.5.4))(typescript@5.5.4)
+      '@trpc/server':
+        specifier: ^11.17.0
+        version: 11.17.0(typescript@5.5.4)
       better-sqlite3:
         specifier: ^12.9.0
         version: 12.9.0
@@ -23,6 +29,9 @@ importers:
       electron:
         specifier: ^33
         version: 33.4.11
+      electron-trpc:
+        specifier: ^0.7.1
+        version: 0.7.1(@trpc/client@11.17.0(@trpc/server@11.17.0(typescript@5.5.4))(typescript@5.5.4))(@trpc/server@11.17.0(typescript@5.5.4))(electron@33.4.11)
       electron-vite:
         specifier: ^4
         version: 4.0.1(vite@7.3.3(@types/node@25.6.2)(jiti@2.7.0)(lightningcss@1.32.0))
@@ -832,6 +841,19 @@ packages:
   '@tailwindcss/postcss@4.3.0':
     resolution: {integrity: sha512-Jm05Tjx+9yCLGv5qw1c+84Psds8MnyrEQYCB+FFk2lgGiUjlRqdxke4mVTuYrj2xnVZqKim2Apr5ySuQRYAw/w==}
 
+  '@trpc/client@11.17.0':
+    resolution: {integrity: sha512-KpJBFrbKTDeVCFv/3ckL1XBBH5Yssn8hethI/rUy7GIpTj+VzjtPjykDqJpzobuVOz+d26cXCSu1t4I6MYI5Zg==}
+    hasBin: true
+    peerDependencies:
+      '@trpc/server': 11.17.0
+      typescript: '>=5.7.2'
+
+  '@trpc/server@11.17.0':
+    resolution: {integrity: sha512-jbAOUe0PpUTCYqziyu+8vYXZdDXPudZgnEhWCQ2NjKnVEjfE93RqHTt1oycZJv/HNf51YlRXfEEwSIAbb161rw==}
+    hasBin: true
+    peerDependencies:
+      typescript: '>=5.7.2'
+
   '@types/babel__core@7.20.5':
     resolution: {integrity: sha512-qoQprZvz5wQFJwMDqeseRXWv3rqMvhgpbXFfVyWhbx9X47POIA6i/+dXefEmZKoAgOaTdaIgNSMqMIU61yRyzA==}
 
@@ -1060,6 +1082,13 @@ packages:
 
   electron-to-chromium@1.5.353:
     resolution: {integrity: sha512-kOrWphBi8TOZyiJZqsgqIle0lw+tzmnQK83pV9dZUd01Nm2POECSyFQMAuarzZdYqQW7FH9RaYOuaRo3h+bQ3w==}
+
+  electron-trpc@0.7.1:
+    resolution: {integrity: sha512-aWjZ5pLeVhrX9A9d8O8YgR8N+q4IXXzc76CJT1PwtDijIw+y5I+c75IAAtZ4JayYLeR3ll95PNGl5RTBu2qePw==}
+    peerDependencies:
+      '@trpc/client': '>10.0.0'
+      '@trpc/server': '>10.0.0'
+      electron: '>19.0.0'
 
   electron-vite@4.0.1:
     resolution: {integrity: sha512-QqacJbA8f1pmwUTqki1qLL5vIBaOQmeq13CZZefZ3r3vKVaIoC7cpoTgE+KPKxJDFTax+iFZV0VYvLVWPiQ8Aw==}
@@ -2308,6 +2337,15 @@ snapshots:
       postcss: 8.5.14
       tailwindcss: 4.3.0
 
+  '@trpc/client@11.17.0(@trpc/server@11.17.0(typescript@5.5.4))(typescript@5.5.4)':
+    dependencies:
+      '@trpc/server': 11.17.0(typescript@5.5.4)
+      typescript: 5.5.4
+
+  '@trpc/server@11.17.0(typescript@5.5.4)':
+    dependencies:
+      typescript: 5.5.4
+
   '@types/babel__core@7.20.5':
     dependencies:
       '@babel/parser': 7.29.3
@@ -2571,6 +2609,15 @@ snapshots:
     optional: true
 
   electron-to-chromium@1.5.353: {}
+
+  electron-trpc@0.7.1(@trpc/client@11.17.0(@trpc/server@11.17.0(typescript@5.5.4))(typescript@5.5.4))(@trpc/server@11.17.0(typescript@5.5.4))(electron@33.4.11):
+    dependencies:
+      '@trpc/client': 11.17.0(@trpc/server@11.17.0(typescript@5.5.4))(typescript@5.5.4)
+      '@trpc/server': 11.17.0(typescript@5.5.4)
+      debug: 4.4.3
+      electron: 33.4.11
+    transitivePeerDependencies:
+      - supports-color
 
   electron-vite@4.0.1(vite@7.3.3(@types/node@25.6.2)(jiti@2.7.0)(lightningcss@1.32.0)):
     dependencies:
