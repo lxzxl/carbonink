@@ -1,5 +1,6 @@
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
 import react from '@vitejs/plugin-react';
+import { TanStackRouterVite } from '@tanstack/router-vite-plugin';
 import { resolve } from 'node:path';
 
 export default defineConfig({
@@ -22,7 +23,13 @@ export default defineConfig({
     },
   },
   renderer: {
-    plugins: [react()],
+    plugins: [
+      TanStackRouterVite({
+        routesDirectory: resolve('src/renderer/routes'),
+        generatedRouteTree: resolve('src/renderer/routeTree.gen.ts'),
+      }),
+      react(),
+    ],
     resolve: {
       alias: {
         '@shared': resolve('src/shared'),
