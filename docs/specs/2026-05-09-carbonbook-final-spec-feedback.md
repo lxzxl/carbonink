@@ -6,172 +6,120 @@ Reviewed file: `docs/specs/2026-05-08-carbonbook-design.md`
 
 ## Summary
 
-Final spec is coherent overall. The chapter ordering is OK, especially moving MCP up to §9 instead of leaving it at the end. The two self-review changes around service layer extraction and the privacy wording after MCP exposure are directionally correct and should stay.
+The previous major issues are mostly resolved:
 
-The main remaining issues are scope consistency and a few implementation/legal-risk details that should be clarified before treating this as final.
+- CBAM is now clearly marked as a v1.1 design appendix.
+- License expiry now has an explicit state machine.
+- EF binding now uses a local `pinned_emission_factor` copy, which fixes the attached readonly DB foreign-key problem.
+- OAuth subscription wording has been softened into BYOT / compatible endpoint as the v1 stable path, with OAuth experimental.
+- Linux has been removed from v1 distribution scope.
+
+I would not delete this feedback file yet. There are still a few spec consistency issues worth fixing before treating the document as final.
 
 ## Findings
 
-### 1. CBAM is both v1 commercial scope and v1.1 backlog
+### 1. Headless MCP still leaves read-resource behavior ambiguous
 
 Severity: High
 
-Current conflict:
+The new headless stdio section correctly blocks write tools without GUI confirmation, but the unpaired-client row only says "所有 tools 一律拒绝". It does not explicitly deny MCP resources.
 
-- §1 and §10 describe CBAM as a priced add-on with independent license validation.
-- §7 gives a full CBAM module design.
-- §11 says CBAM Add-on rolls to v1.1 after finding 1-2 design partners.
+Relevant sections:
 
-Recommendation:
+- §9 says read permissions are automatically granted.
+- §9 says every external client first connection needs GUI pairing.
+- §9 headless row for "无配对历史" denies tools, but does not mention resources.
 
-Pick one product truth:
+Risk:
 
-- If CBAM is v1: keep §7/§10 as-is and remove CBAM from the v1.1 backlog.
-- If CBAM is v1.1: mark §7 as "v1.1 design appendix", and update §1/§10 to say CBAM is post-v1 / future add-on.
-
-I recommend the second option. It preserves the strong future module design without letting v1 scope creep.
-
-### 2. License expiry and grace-period logic conflict
-
-Severity: High
-
-Current conflict:
-
-- §10 "离线宽限" says signature wrong / expired enters read-only.
-- §10 "续费" says when `expires_at` arrives, the app enters a 30-day grace period and remains writable.
+An unpaired client that can launch `carbonbook --mcp-stdio` might still be able to read `carbonbook://activity-data`, `carbonbook://reports/{snapshot_id}`, or questionnaire resources if implementation follows "read auto grant" literally.
 
 Recommendation:
 
-Add an explicit state model:
+Clarify:
 
-- `expires_at`: subscription end.
-- `grace_until`: end of writable renewal grace period.
-- `revocation_check_after`: next required online revocation refresh.
+- Before pairing, headless stdio rejects **resources + tools + prompts**.
+- "Read 权限自动 grant" means "after successful pairing", not before pairing.
+- The unpaired response should be `permission_required` for any MCP request, not just tools.
 
-Then define behavior:
-
-- Before `expires_at`: full access.
-- After `expires_at` and before `grace_until`: full access with renewal banner.
-- After `grace_until`: read-only.
-- Signature invalid or revoked: read-only immediately.
-
-### 3. `activity_data` EF foreign key cannot cleanly target a UNION / attached DB
-
-Severity: Medium-High
-
-Current conflict:
-
-- `activity_data` declares a composite FK to `emission_factor`.
-- EF lookup is described as `ef_library.sqlite` readonly DB plus user EF in `app.sqlite`, queried through UNION and app-layer de-dupe.
-
-SQLite cannot make a normal FK point to a UNION view or a table in another attached database in the way this design implies.
-
-Recommendation:
-
-Use one of these:
-
-- Service-layer referential validation only, no DB FK for EF identity.
-- A local `pinned_emission_factor_ref` table in `app.sqlite` that records the exact factor identity used by activities.
-- Copy used EF rows into `app.sqlite` at bind time and FK against that local copy.
-
-I recommend `pinned_emission_factor_ref` or copied pinned rows because it improves report reproducibility and avoids relying only on service-layer discipline.
-
-### 4. MCP stdio headless mode needs a permission rule
+### 2. ER diagram still points `activity_data` at `emission_factor`, not `pinned_emission_factor`
 
 Severity: Medium
 
-Current gap:
+The schema has been fixed: `activity_data` now references `pinned_emission_factor`.
 
-- §9 defines stdio mode where Claude Desktop / Cursor launch `carbonbook --mcp-stdio`.
-- §9 also says first connection needs GUI pairing and write operations need GUI confirmation.
+But the ER overview still shows:
 
-The spec does not define what happens when the GUI is not running.
+- `activity_data -> emission_factor`
+- `emission_factor -> ef_dataset`
+
+That no longer matches the implementation design. It should show:
+
+- `activity_data -> pinned_emission_factor`
+- `pinned_emission_factor` copied from / derived from `emission_factor`
+- Optional `emission_factor -> ef_dataset` only if `ef_dataset` remains an actual table; otherwise drop it from the ER.
 
 Recommendation:
 
-Add a rule:
+Update the ER diagram so it reflects the pin-copy model. This matters because §3 is the source of truth future migration work will follow.
 
-- Headless stdio starts read-only unless a prior trusted pairing token exists.
-- Write tools in headless mode either connect to the running GUI for confirmation or return `permission_required`.
-- No first-time pairing can be completed purely headlessly.
-
-This keeps "off by default" and "write confirm" meaningful.
-
-### 5. OAuth subscription support is too risky for v1 wording
+### 3. JWT example omits `grace_until`
 
 Severity: Medium
 
-Current issue:
+The License State Machine defines `grace_until` as a JWT field computed by cloud, but the example JWT still only includes:
 
-The spec treats BYOT API keys and OAuth subscription login as parallel v1 choices. That is risky:
-
-- ChatGPT Plus is for the ChatGPT web app; API usage is separate.
-- Claude Pro does not include Anthropic Console/API usage.
-- GitHub Copilot SDK OAuth exists, but is technical preview and should not be treated as a stable general LLM-provider route.
+- `expires_at`
+- `support_until`
+- `revocation_check_after`
 
 Recommendation:
 
-For v1, position AI auth as:
+Add `grace_until` to the sample JWT, e.g. `expires_at + 30 days`. Otherwise implementers may miss the field even though the state machine depends on it.
 
-- Primary: BYOT API key.
-- Primary enterprise path: OpenAI-compatible endpoint / Azure OpenAI / internal endpoint.
-- Experimental / later: provider-specific OAuth where officially supported.
+### 4. "v1 不做 API 给第三方调用" conflicts with local MCP unless scoped
 
-Update onboarding copy from "BYOT key 或 OAuth 一选一" to "BYOT key / compatible endpoint; OAuth providers may appear when supported".
+Severity: Medium
 
-## Chapter Ordering
+§1 says v1 explicitly does not do "API 给第三方调用". §9 then exposes local MCP resources/tools and explicitly mentions future third-party integration through MCP.
 
-I agree with the current ordering.
+This is probably intended, but the wording is too broad.
 
-MCP belongs at §9, not at the end, because it depends on and cross-cuts:
+Recommendation:
 
-- §2 service layer architecture.
-- §3 data model.
-- §5 inventory/report services.
-- §6 questionnaire services.
-- §8 EF lookup.
-- §10 privacy and license language.
+Change §1 to something like:
 
-Putting it before subscription/license makes the privacy and cloud-boundary sections more accurate.
+- "公网 / 云端第三方 REST API"
+- "第三方 SaaS 远程 API"
+- "非本机、非用户配对的第三方调用"
 
-## Self-Review Changes
+That keeps the v1 no-public-API promise without contradicting local opt-in MCP.
 
-### Service layer after MCP introduction
+### 5. Residual v1/v1.1 wording around CBAM and OAuth should be cleaned up
 
-Agree.
+Severity: Low
 
-The spec now says tRPC, MCP, and future protocols must all call the service layer rather than importing DB / SQL directly. This is the right constraint. Without it, MCP would duplicate router logic and drift quickly.
+The main CBAM scope is fixed, but two small places still blur the phase boundary:
 
-### Privacy wording after MCP exposure
+- §1 "新做（Seneca 没做）" still lists `BYOT/OAuth AI 三模认证` and `CBAM XML 输出` as if both are v1.0 capabilities.
+- §7 "v1 不做" inside a v1.1 appendix says "CBAM 上游 precursor 自动追溯（v1 让用户手填）"; this should probably say "v1.1 MVP 让用户手填".
 
-Agree.
+Recommendation:
 
-The revised wording is more accurate than a blunt "data never leaves your computer" claim. With MCP enabled, local AI tools may read carbonbook data and then make their own provider calls. The spec correctly distinguishes that from carbonbook-cloud, which should not receive customer activity/report/questionnaire content.
+Rephrase §1 to distinguish v1.0 from planned v1.1:
 
-## Add / Remove / Change
+- v1.0 new: questionnaire AI mapping, EF version pinning, BYOT / compatible endpoint, local MCP.
+- v1.1 planned: CBAM XML, CBAM license, selected OAuth providers.
 
-Add:
+And rename the §7 list from "v1 不做" to "v1.1 MVP 不做".
 
-- A license state machine with `expires_at`, `grace_until`, `revocation_check_after`.
-- EF reference strategy for attached readonly EF DB plus custom app DB factors.
-- MCP headless stdio permission behavior.
-- A provider-auth matrix separating stable BYOT from experimental OAuth.
+## Notes
 
-Change:
-
-- Mark CBAM as v1.1 appendix unless it is intentionally in v1.
-- Soften OAuth subscription language in §1, §4, §5, and §11.
-- Clarify Linux credential storage expectations if Linux is postponed to v1.1.
-
-Remove:
-
-- No full section needs deletion.
-- Only remove CBAM from v1 commercial/license wording if v1.1 is the intended scope.
+No section needs deletion. The architecture is now internally much stronger than the previous version; remaining work is mostly tightening source-of-truth wording so implementation does not inherit ambiguity.
 
 ## External Fact Check Sources
 
-- OpenAI Help Center, "What is ChatGPT Plus?": https://help.openai.com/en/articles/6950777-what-is-chatgpt-plus
-- Anthropic Help Center, "What is the Pro plan?": https://support.anthropic.com/en/articles/8325606-what-is-claude-pro
-- Anthropic Help Center, "How can I access the Claude API?": https://support.anthropic.com/en/articles/8114521-how-can-i-access-the-claude-api
+- Anthropic Docs, "Set up Claude Code": https://docs.anthropic.com/en/docs/claude-code/getting-started
+- Anthropic Docs, "Identity and Access Management": https://docs.anthropic.com/en/docs/claude-code/team
 - GitHub Docs, "Using GitHub OAuth with Copilot SDK": https://docs.github.com/en/copilot/how-tos/copilot-sdk/set-up-copilot-sdk/github-oauth
-- Electron Docs, `safeStorage`: https://www.electronjs.org/docs/latest/api/safe-storage
+- GitHub Docs, "Getting started with Copilot SDK": https://docs.github.com/en/copilot/how-tos/copilot-sdk/sdk-getting-started

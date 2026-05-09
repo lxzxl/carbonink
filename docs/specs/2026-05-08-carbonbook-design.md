@@ -83,14 +83,17 @@
 | —— | Marcus Chatbot（独立 AI agent 路线，不进 v1） |
 | —— | EPIC 多租户、Keycloak、Kafka 等所有 Web SaaS 基础设施 |
 
-**新做（Seneca 没做）**：客户问卷 AI 解析 + 自动 mapping、EF 复合主键版本化、BYOT/OAuth AI 三模认证、CBAM XML 输出、对外 MCP 服务暴露。
+**新做（Seneca 没做）**：
+
+- **v1.0**：客户问卷 AI 解析 + 自动 mapping、EF pin 副本版本化、BYOT API key + OpenAI-compat endpoint（OAuth provider 实验性按 provider 公开支持开放）、对外本机 MCP 服务暴露
+- **v1.1（计划）**：CBAM 嵌入式排放方法论 + Quarterly Report XML 输出 + 独立 license（详见 §7）
 
 ### v1 显式不做
 
 - 多用户协作 / 团队权限
 - 移动端
 - **Linux 桌面发行版**（不在 roadmap 内；Electron 代码本身可移植，但不打包不签名不分发）
-- API 给第三方调用
+- 公网 / 云端第三方 REST API（本机 MCP 服务暴露见 §9 是 opt-in 的本地协议，不是公网 API，不与此条冲突）
 - ESG 非 GHG 部分（社会、治理、生物多样性等）
 - Scope 3 cat 2/3/8/10/11/12/13/14/15
 - 实时 EF 在线查询（v2 考虑加 Climatiq BYOK）
@@ -258,18 +261,22 @@
               ▼ N                           ▼ N                     │
         ┌──── activity_data ◄──────────────┘                        │
         │           │                                                │
-        │           │ N            ┌──────────────────┐             │
-        │           └────► 1 ────► │ emission_factor  │             │
-        │                          │  PK: (code,year, │             │
-        │                          │   source,geo,    │             │
-        │                          │   ds_version)    │             │
-        │                          └────────┬─────────┘             │
-        │                                   │ N                      │
-        │                                   ▼ 1                      │
-        │                          ┌──────────────────┐             │
-        │                          │ ef_dataset       │             │
-        │                          │ (snapshot 版本)  │             │
-        │                          └──────────────────┘             │
+        │           │ N (FK 在 app.sqlite 同库内)                     │
+        │           ▼ 1                                               │
+        │    ┌─────────────────────────────┐                          │
+        │    │ pinned_emission_factor       │  ◄── INSERT OR IGNORE   │
+        │    │ (在 app.sqlite，写入)         │      在用户绑定时由        │
+        │    │ PK 同 emission_factor 复合键  │      service layer 拷贝    │
+        │    └──────────────▲───────────────┘                          │
+        │                   │ copy from (build-time / user-uploaded)   │
+        │                   │                                          │
+        │    ┌──────────────┴───────────────┐                          │
+        │    │ emission_factor (UNION:      │                          │
+        │    │  ef_library.sqlite [RO]      │                          │
+        │    │  + app.sqlite source='user') │                          │
+        │    │ PK: (code,year,source,geo,   │                          │
+        │    │      ds_version)             │                          │
+        │    └──────────────────────────────┘                          │
         │                                                            │
         │ N                                                          │
         ▼ 1                                                          │
@@ -1152,13 +1159,13 @@ CREATE TABLE cbam_embedded_emissions (
 | Precursor 上游 PCF 数据库 | —— | ✅ | ✅ |
 | 优先 email support | —— | —— | ✅ |
 
-### v1 不做
+### v1.1 MVP 不做（§7 本身是 v1.1 范畴；以下是 v1.1 内部进一步收紧的边界）
 
 - CBAM Registry 直连 API
 - Verification statement 自动生成
 - CBAM 配额 / fee 估算
 - Mass balance M3/M4 监测方法
-- CBAM 上游 precursor 自动追溯（v1 让用户手填）
+- CBAM 上游 precursor 自动追溯（v1.1 MVP 让用户手填）
 
 ---
 
@@ -1342,7 +1349,7 @@ EF 主表 `name_zh` / `name_en` / `description_zh` / `description_en`。Crawler 
 
 1. **Off by default, opt-in**：默认不开 MCP server。
 2. **localhost-only by default**：开启时只 bind `127.0.0.1`，外部网络访问要二次开关 + pairing token。
-3. **Read 权限自动 grant，Write 权限单独 confirm**。
+3. **配对是访问的前提**：未配对客户端对 resources / tools / prompts 一律拒绝（返回 `permission_required`）。配对成功后 Read 权限自动 grant，Write 权限仍需单独 confirm。
 4. **Service layer 共享**：MCP tools = service 函数 + 一层 schema 转换。
 5. **配对配置一键复制**：UI 提供"copy config"按钮，输出 Claude Desktop / Cursor / Cherry Studio 各自 `mcp.json` 格式。
 
@@ -1412,7 +1419,7 @@ Settings → MCP Server → Write permissions:
 
 | 场景 | 行为 |
 |---|---|
-| **无配对历史**（OS Keychain 里没有任何 trusted token） | 启动后所有 tools 一律拒绝。返回 `{ permission_required: true, hint: "Open carbonbook GUI to pair this client first" }`。**不允许首次配对走 headless**——首次配对必须 GUI |
+| **无配对历史**（OS Keychain 里没有任何 trusted token） | 启动后所有 MCP 请求一律拒绝——**resources、tools、prompts 全部**返回 `{ permission_required: true, hint: "Open carbonbook GUI to pair this client first" }`。"Read 权限自动 grant"只对已配对客户端生效；未配对就没有 Read。**不允许首次配对走 headless**——首次配对必须 GUI |
 | **有配对 token 且 token 标记 trusted** | 自动启动 read-only：所有 resources + RO tools（`query_emissions` / `lookup_emission_factor` / `match_question_to_inventory`）正常工作 |
 | **有配对 token + 写 tool 调用 + GUI 未运行** | 写 tools 一律返回 `{ permission_required: true, hint: "Open carbonbook GUI to confirm write operations" }`。不静默执行 |
 | **有配对 token + 写 tool 调用 + GUI 同时运行** | 写 tools IPC 给 GUI 弹 confirm 对话框，与 SSE 模式一致 |
@@ -1476,6 +1483,7 @@ Settings → MCP Server → Write permissions:
   "devices_max": 1,
   "issued_at": 1746700000,
   "expires_at": 1778236000,
+  "grace_until": 1780828000,        // = expires_at + 30 days
   "support_until": 1781596000,
   "revocation_check_after": 1747304800
 }
