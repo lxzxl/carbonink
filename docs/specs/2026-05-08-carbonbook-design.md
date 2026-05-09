@@ -85,7 +85,7 @@
 
 **新做（Seneca 没做）**：
 
-- **v1.0**：客户问卷 AI 解析 + 自动 mapping、EF pin 副本版本化、BYOT API key + OpenAI-compat endpoint（OAuth provider 实验性按 provider 公开支持开放）、对外本机 MCP 服务暴露
+- **v1.0**：客户问卷 AI 解析 + 自动 mapping、EF pin 副本版本化、BYOT API key + OpenAI-compat endpoint（OAuth provider 实验性按 provider 公开支持开放）、对外本机 MCP 服务暴露、单位中文 alias + 燃料密度跨 family 换算 + 维度校验（AERA 三块空白）
 - **v1.1（计划）**：CBAM 嵌入式排放方法论 + Quarterly Report XML 输出 + 独立 license（详见 §7）
 
 ### v1 显式不做
@@ -170,7 +170,7 @@
 | 文件 | 路径 | 写性 | 用途 |
 |---|---|---|---|
 | `app.sqlite` | `<userData>/carbonbook/app.sqlite` | RW | 用户数据：组织、设施、活动数据、问卷、AI 提取记录、用户上传的自定义 EF（source='user'） |
-| `ef_library.sqlite` | 随 app installer 发版，季度更新覆盖 | RO | EF 库（~670 条 + 版本化） |
+| `ef_library.sqlite` | 随 app installer 发版，季度更新覆盖 | RO | EF 库（~670 条 + 版本化） + reference 数据：`unit_definition` (~180 单位) + `unit_alias` (中文别名) + `fuel_property` (燃料密度 / 热值)。详见 §3 单位与换算 |
 | `cache.sqlite` | `<userData>/carbonbook/cache.sqlite` | RW，可删 | AI 解析临时缓存（按 file hash 去重） |
 
 **4. 上传文件 content-addressed**
@@ -706,13 +706,150 @@ END;
 ### 关键约束 / 业务规则
 
 0. **`PRAGMA foreign_keys = ON` 是强制启动配置**——SQLite 默认不强制 FK，必须每个 better-sqlite3 connection / migration runner / 测试 DB 启动时显式开启。app 启动时若发现该 PRAGMA 未生效，立即 abort（FK 不开整个数据完整性失效，绝不能默默继续）。CI 加一条 smoke test：插入故意违反 FK 的行必须失败。
-1. **`activity_data.unit` 必须可转换到 `emission_factor.input_unit`**：写入前在应用层校验，单位转换表 `unit_conversion(from_unit, to_unit, factor)` 内置常量。
+1. **`activity_data.unit` 必须可转换到 `emission_factor.input_unit`**：写入前在应用层校验，详见下文"单位与换算"小节（`unit_definition` 表 + family 维度校验 + 中文 alias + 燃料密度跨 family）。
 2. **`emission_factor` 来自 ef_library.sqlite（attach 为 readonly DB）+ app.sqlite 里的用户上传 EF（同表结构 source='user'）**：查询时 UNION，应用层去重。绑定到 activity_data 时通过 service layer 复制到 `pinned_emission_factor`（详见 §3 原则 2）。
 3. **`question_signature` 算法版本化**：每条 question 同时存 `question_signature` + `signature_version` + `normalized_text`。同 (signature, signature_version, customer_id) 命中复用；signature_version 升级时旧 mapping 不破，service layer 在 lookup 时按版本兼容降级或一次性迁移。
 4. **`extraction.parsed_json` schema**：用 zod 在应用层校验，schema 跟着 prompt_version 走（升级 prompt 同步升 schema）。DB 列额外用 `CHECK(json_valid(parsed_json))` 防止脏数据落库。
 5. **ID 用 ULID**：单调时间序，跨机器无冲突，对 SQLite 索引友好。
 6. **JSON 列必须 `CHECK(json_valid(...))`**：所有声明为 JSON 用途的列（`parsed_json` / `mapping_payload` / `default_ef_query` / `ef_dataset_versions` / `scope3_kg_by_cat` / `report_metadata` / `audit_event.payload` 等）都用 `TEXT NOT NULL CHECK(json_valid(col))` 或 nullable 时 `TEXT CHECK(col IS NULL OR json_valid(col))`——SQLite 不会因为列类型名是 JSON 就自动校验。
 7. **`audit_event` 是 append-only**：用 SQLite trigger 拒绝 UPDATE / DELETE（schema 见上文）。这给 EF rebind 等历史变更提供 audit 不可篡改保证。
+
+### 单位与换算
+
+继承 Seneca AERA 已经落地的"表驱动单位换算"设计（`emission_factor_report_data_unit` 表 + `multiply_of_ratio / divide_of_ratio` 字段，覆盖 ~180 个单位 11+ family），但补 AERA 三个空白：
+
+1. **中文 / 本地化 alias**：AERA 不支持。国内电费单写"度"（=kWh）、燃气写"立方米"（=m³），AI 解析单据 + 用户手填都要能识别这些 alias 归一化。
+2. **跨 family 转换 via 燃料密度**：AERA 不支持。柴油用户输 100 升而 EF 是 kg-base，service 层要查 `fuel_property` 拿密度做转换。
+3. **维度校验**：AERA 不强制。允许过 `kg-km` 这种乱拼复合单位。我们用 family 标签 + 写入前 dimension check 拒绝。
+
+#### `unit_definition` 表（reference 数据，随 ef_library.sqlite 一起 readonly 发版）
+
+```sql
+CREATE TABLE unit_definition (
+  unit              TEXT PRIMARY KEY,         -- 'kWh' | 'L' | 'kg' | 'tonne_km' | ...
+  family            TEXT NOT NULL,            -- 'energy' | 'mass' | 'volume' | 'distance' | 'area' | 'time' | 'currency' | 'tonne_km' | 'count' | 'data' | ...
+  -- 转换公式：base_value = input * multiply_of_ratio / divide_of_ratio
+  -- family 内的 base unit (multiply=1, divide=1) 是该 family 的归一化单位
+  multiply_of_ratio REAL NOT NULL,
+  divide_of_ratio   REAL NOT NULL,
+  display_order     INTEGER NOT NULL DEFAULT 100,
+  display_name_zh   TEXT,
+  display_name_en   TEXT
+);
+CREATE INDEX idx_unit_family ON unit_definition(family, display_order);
+```
+
+v1 内置 catalog (~180 单位)：
+
+| Family | base unit | 常见单位 | AERA 是否覆盖 |
+|---|---|---|---|
+| `energy` | `kWh` | `kWh`, `MWh`, `GWh`, `J`, `kJ`, `MJ`, `GJ`, `TJ`, `kcal`, `therm`, `MMBTU` | ✅ |
+| `mass` | `kg` | `kg`, `g`, `t`/`tonne`, `lb`, `short_ton` (注意 AERA 老 typo `shout ton` 已修) | ✅ |
+| `volume` | `L` | `mL`, `L`, `m³`, `gal_us`, `gal_uk`, `bbl`, `scf` | ✅ |
+| `distance` | `km` | `m`, `km`, `mi`, `nmi`, `ft` | ✅ |
+| `area` | `m²` | `m²`, `km²`, `ha`, `ft²` | ✅ |
+| `time` | `hour` | `s`, `min`, `hour`, `day`, `year`, `month` | ✅ |
+| `currency` | —— | `CNY`, `USD`, `EUR`, `GBP`, `JPY`, `HKD` | ⚠️ AERA 用 fallback 汇率，**carbonbook v1 不自动换汇率**（见下） |
+| `tonne_km` (复合) | `tonne_km` | `tonne_km`, `kg_km`, `tonne_mi`, `lb_mi` | ✅ |
+| `passenger_km` | `passenger_km` | `passenger_km`, `passenger_mi` | ✅ |
+| `data` | `GB` | `MB`, `GB`, `TB` | ✅ |
+| `count` | `count` | `count` (无量纲) | ✅ |
+
+#### `unit_alias` 表（中文 / 本地化别名，AERA 没做）
+
+```sql
+CREATE TABLE unit_alias (
+  alias        TEXT PRIMARY KEY,           -- '度' | '立方米' | '公斤' | ...
+  canonical_unit TEXT NOT NULL REFERENCES unit_definition(unit),
+  language     TEXT NOT NULL,              -- 'zh' | 'en' | 'ja' | ...
+  notes        TEXT
+);
+CREATE INDEX idx_unit_alias_canonical ON unit_alias(canonical_unit);
+```
+
+v1 内置示例：
+
+| alias | canonical_unit | 语言 |
+|---|---|---|
+| `度`, `千瓦时`, `kw·h`, `kW⋅h`, `kwh` | `kWh` | zh / en（大小写） |
+| `立方米`, `m3`, `m^3` | `m³` | zh / en |
+| `公斤`, `千克` | `kg` | zh |
+| `吨`, `公吨` | `t` | zh |
+| `升` | `L` | zh |
+| `公里` | `km` | zh |
+| `美元`, `元` | `CNY` / `USD`（按上下文，需 prompt 消歧） | zh |
+
+AI 解析单据时（§4 pipeline）prompt 把 canonical 列表 + 常见 alias 都喂给模型，让它输出 canonical；用户手填 UI 也接受 alias，service 层归一化。
+
+#### `fuel_property` 表（cross-family 转换，AERA 没做）
+
+```sql
+CREATE TABLE fuel_property (
+  fuel_code              TEXT PRIMARY KEY,            -- 'diesel' | 'gasoline' | 'natural_gas' | 'lpg' | 'coal_anthracite' | ...
+  density_kg_per_L       REAL,                        -- 体积↔质量
+  density_kg_per_m3      REAL,                        -- 气体常用
+  lower_heating_value_MJ_per_kg REAL,                  -- 质量↔能量 (LHV)
+  lower_heating_value_MJ_per_m3 REAL,                  -- 气体能量
+  source                 TEXT NOT NULL,               -- 'IPCC_2006' | 'GB_T_213' | 'DEFRA_2024' | ...
+  notes                  TEXT
+);
+```
+
+v1 内置常见燃料 ~15-20 种（柴油 / 汽油 / 天然气 / LPG / 煤等）。当用户输 `100 L 柴油` 而 EF 是 `kg base` 时：
+
+```
+service 层流程：
+  1. activity unit = 'L' (family=volume)
+  2. EF input_unit = 'kg' (family=mass)
+  3. family 不匹配 → 查 emission_source.fuel_code (用户在 onboarding 选)
+  4. 查 fuel_property[fuel_code='diesel'] → density_kg_per_L=0.832
+  5. converted_amount = 100 * 0.832 = 83.2 kg
+  6. CO2e = 83.2 * EF.co2e_kg_per_unit
+```
+
+如果 source 没绑 fuel_code（如非燃料类排放），cross-family 转换直接抛 dimension mismatch 错误，UI 提示用户改单位或选不同 EF。
+
+#### Service-layer 换算流程
+
+```
+write activity_data 时：
+  1. user_unit = 输入或 alias 归一化后的 canonical
+     (lookup unit_alias 把 '度' → 'kWh')
+  2. (user_family, user_factors) = unit_definition[user_unit]
+  3. (ef_family, ef_factors) = unit_definition[EF.input_unit]
+  4. if user_family == ef_family:
+       converted = amount * (user.multiply / user.divide) / (ef.multiply / ef.divide)
+  5. elif fuel_code is bound and (user_family, ef_family) ∈ {(volume, mass), (volume, energy), (mass, energy)}:
+       走 fuel_property 查表，三步换算
+  6. else:
+       throw DimensionMismatchError({ user_unit, ef_input_unit, fuel_code? })
+  7. computed_co2e_kg = converted * EF.co2e_kg_per_unit
+  8. 落 activity_data：原始 amount + user_unit
+  9. 落 calculation_snapshot_line（freeze 时）：原始 amount + user_unit + converted_amount + ef_input_unit
+```
+
+**货币不自动换算**（与 AERA 不同）：spend-based EF 必须按报告期年度的官方汇率显式输入。汇率随时间漂移，自动换会导致历史报告不可复现。用户的活动数据 amount 直接用 EF 期望的 currency；不一致就抛错。Phase 1.5 起考虑加"按报告期 freeze 当时汇率"机制。
+
+#### EF 候选筛选（与 §4 EFMatcher 联动）
+
+EF 候选给用户选时，按 `unit_definition[EF.input_unit].family` 过滤掉 family 不兼容的（除非 emission_source 已绑 fuel_code 且能跨 family）。UI 上 disable 不兼容选项 + tooltip 解释。
+
+#### v1 不做
+
+- 用户自定义新单位 / family（要扩展 ef_library.sqlite snapshot 才支持）
+- 复合单位代数生成（继承 AERA 硬编码 list；动态生成 `lb-nmi` 类组合留 v2）
+- 跨年度货币历史汇率自动 freeze（v1.5）
+- 单位精度 / 有效数字声明（v1 一律 IEEE 754 double / SQLite REAL）
+
+#### 从 AERA 学到的具体教训
+
+| AERA 教训 | carbonbook 应对 |
+|---|---|
+| `'shout ton'` 入库 typo（migration 后才修） | EF 库发版前 CI 跑 unit catalog 校验：每个 unit 必须 ∈ ISO/IEC 80000 常见名 + alias 拼写 lint |
+| 没有 dimension check，允许 `kg + km` 这种乱拼 | service 层强制 family 校验 + UI EF 候选按 family 筛选 |
+| 没有中文 alias，国内用户输入摩擦 | `unit_alias` 表 + AI prompt 含 alias 列表 |
+| 没有 fuel density，跨 family 转换缺位 | `fuel_property` 表 + emission_source 绑 fuel_code |
+| 货币用 fallback 汇率自动换，可能误导 | v1 不自动换；`currency` family 内强校验 user_unit == EF.input_unit |
 
 ---
 
