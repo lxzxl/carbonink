@@ -465,14 +465,24 @@ CREATE TABLE extraction (
   llm_provider  TEXT NOT NULL,                -- 'azure-openai' | 'anthropic' | ...
   llm_model     TEXT NOT NULL,                -- 'gpt-5' | 'claude-sonnet-4-6' ...
   prompt_version TEXT NOT NULL,               -- 内部版本号
-  raw_response  TEXT NOT NULL,                                  -- LLM 原始输出（可能是非合法 JSON：流式截断 / provider bug / 模型返回 markdown 包裹的 JSON 等。审计 / debug 用，不强制 json_valid）
-  parsed_json   TEXT NOT NULL CHECK(json_valid(parsed_json)),   -- 应用层 zod 校验通过后的结构化 JSON（必须 valid）
+  -- raw_response / parsed_json / error_json 都 nullable；具体什么 status 下哪些必填由下面的 lifecycle CHECK 强制
+  raw_response  TEXT,                         -- LLM 原始输出（可能是非合法 JSON）；pending 时为 NULL
+  parsed_json   TEXT CHECK(parsed_json IS NULL OR json_valid(parsed_json)),  -- 应用层 zod 校验通过后的结构化 JSON
+  error_json    TEXT CHECK(error_json IS NULL OR json_valid(error_json)),    -- rejected 时的结构化错误描述（zod issues / provider error code / 等）
   status        TEXT NOT NULL CHECK(status IN ('pending', 'parsed', 'review_needed', 'rejected')),
   reviewed_by_user_at TEXT,                   -- 用户人工 confirm 时间
   cost_usd      REAL,                         -- AI 调用成本估算
   created_at    TEXT NOT NULL,
   -- 缓存键：同 (document, prompt, model) 不重复抽取（节省 token）
-  UNIQUE (document_id, prompt_version, llm_provider, llm_model)
+  UNIQUE (document_id, prompt_version, llm_provider, llm_model),
+  -- Lifecycle：status 与字段填充的硬约束（DB 层强制 schema 与状态一致）
+  CHECK (
+    (status = 'pending' AND raw_response IS NULL AND parsed_json IS NULL AND error_json IS NULL)
+    OR
+    (status IN ('parsed', 'review_needed') AND raw_response IS NOT NULL AND parsed_json IS NOT NULL)
+    OR
+    (status = 'rejected' AND raw_response IS NOT NULL AND parsed_json IS NULL)
+  )
 );
 ```
 
