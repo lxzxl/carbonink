@@ -1,13 +1,18 @@
 import { z } from 'zod';
 import { optionalString } from './_helpers.js';
 
-export const siteCreateInput = z.object({
+export const siteCreateInputBase = z.object({
   organization_id: z.string(),
   name_zh: optionalString({ max: 255 }),
   name_en: optionalString({ max: 255 }),
   address: optionalString({ max: 500 }),
   country_code: z.string().min(2).max(3),
-}).refine((v) => v.name_zh || v.name_en, { message: 'At least one of name_zh / name_en is required' });
+});
+
+export const siteCreateInput = siteCreateInputBase.refine(
+  (v) => v.name_zh || v.name_en,
+  { message: 'At least one of name_zh / name_en is required' },
+);
 
 export const site = z.object({
   id: z.string(),
