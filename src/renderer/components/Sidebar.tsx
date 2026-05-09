@@ -1,10 +1,11 @@
 import { Link } from '@tanstack/react-router';
 import { cn } from '@renderer/lib/utils';
+import * as m from '@renderer/paraglide/messages';
 
 export function Sidebar() {
   return (
     <nav className="flex h-full w-56 flex-col border-r border-border bg-muted/30 p-4">
-      <h2 className="mb-6 text-lg font-semibold">carbonbook</h2>
+      <h2 className="mb-6 text-lg font-semibold">{m.app_title()}</h2>
       <ul className="space-y-1">
         <li>
           <Link
@@ -14,7 +15,7 @@ export function Sidebar() {
               '[&.active]:bg-primary [&.active]:text-primary-foreground',
             )}
           >
-            Dashboard
+            {m.nav_dashboard()}
           </Link>
         </li>
       </ul>

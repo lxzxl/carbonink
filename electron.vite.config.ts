@@ -1,6 +1,7 @@
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
 import react from '@vitejs/plugin-react';
 import { TanStackRouterVite } from '@tanstack/router-vite-plugin';
+import { paraglideVitePlugin as paraglide } from '@inlang/paraglide-js';
 import { resolve } from 'node:path';
 
 export default defineConfig({
@@ -24,6 +25,10 @@ export default defineConfig({
   },
   renderer: {
     plugins: [
+      paraglide({
+        project: './project.inlang',
+        outdir: './src/renderer/paraglide',
+      }),
       TanStackRouterVite({
         routesDirectory: resolve('src/renderer/routes'),
         generatedRouteTree: resolve('src/renderer/routeTree.gen.ts'),

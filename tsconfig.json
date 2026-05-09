@@ -17,6 +17,8 @@
     "allowSyntheticDefaultImports": true,
     "isolatedModules": true,
     "noEmit": true,
+    "allowJs": true,
+    "checkJs": false,
     "baseUrl": ".",
     "paths": {
       "@shared/*": ["src/shared/*"],
