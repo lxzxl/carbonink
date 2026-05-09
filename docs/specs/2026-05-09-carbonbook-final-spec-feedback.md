@@ -6,63 +6,49 @@ Reviewed file: `docs/specs/2026-05-08-carbonbook-design.md`
 
 ## Summary
 
-The previous two findings have been addressed:
+The previous `extraction` lifecycle issue is mostly fixed:
 
-- `extraction.raw_response` is now unconstrained text instead of requiring valid JSON.
-- `answer` now has a DB-level source exclusivity `CHECK`.
+- `raw_response`, `parsed_json`, and `error_json` are now nullable.
+- `parsed_json` and `error_json` correctly use nullable `json_valid` checks.
+- `pending` now permits no provider output yet.
 
-One remaining database lifecycle issue should be fixed before deleting this feedback file.
+One small rejected-state edge case remains.
 
 ## Finding
 
-### `extraction` status lifecycle conflicts with `NOT NULL` fields
+### `rejected` extraction should allow `error_json` without `raw_response`
 
-Severity: Medium
+Severity: Low-Medium
 
-Current schema allows statuses:
-
-```sql
-status TEXT NOT NULL CHECK(status IN ('pending', 'parsed', 'review_needed', 'rejected'))
-```
-
-But the same table requires:
+Current lifecycle check:
 
 ```sql
-raw_response TEXT NOT NULL,
-parsed_json  TEXT NOT NULL CHECK(json_valid(parsed_json))
-```
-
-This conflicts with at least two lifecycle states:
-
-- `pending`: before the provider returns, there is no `raw_response` and no `parsed_json`.
-- `rejected`: if the model returns malformed output or zod validation fails, there may be a `raw_response` but no validated `parsed_json`.
-
-Using empty strings or `{}` would satisfy the database but weaken the meaning of the columns, especially because `parsed_json` is documented as "zod 校验通过后的结构化 JSON".
-
-Recommendation:
-
-Make `raw_response` and `parsed_json` nullable, and enforce validity by status:
-
-```sql
-raw_response TEXT,
-parsed_json  TEXT CHECK(parsed_json IS NULL OR json_valid(parsed_json)),
-status        TEXT NOT NULL CHECK(status IN ('pending', 'parsed', 'review_needed', 'rejected')),
 CHECK (
-  (status = 'pending' AND raw_response IS NULL AND parsed_json IS NULL)
+  (status = 'pending' AND raw_response IS NULL AND parsed_json IS NULL AND error_json IS NULL)
   OR
   (status IN ('parsed', 'review_needed') AND raw_response IS NOT NULL AND parsed_json IS NOT NULL)
   OR
-  (status = 'rejected' AND raw_response IS NOT NULL)
+  (status = 'rejected' AND raw_response IS NOT NULL AND parsed_json IS NULL)
 )
 ```
 
-If rejected records need structured error details, add:
+This handles malformed model output, but it does not handle provider/network failures where there is no model response body. The schema now has `error_json` for provider error code / zod issues, so `rejected` should be valid when either raw output or structured error details exist.
+
+Recommendation:
+
+Use a slightly stricter lifecycle check:
 
 ```sql
-error_json TEXT CHECK(error_json IS NULL OR json_valid(error_json))
+CHECK (
+  (status = 'pending' AND raw_response IS NULL AND parsed_json IS NULL AND error_json IS NULL)
+  OR
+  (status IN ('parsed', 'review_needed') AND raw_response IS NOT NULL AND parsed_json IS NOT NULL AND error_json IS NULL)
+  OR
+  (status = 'rejected' AND parsed_json IS NULL AND (raw_response IS NOT NULL OR error_json IS NOT NULL))
+)
 ```
 
-This keeps the table honest across the whole extraction lifecycle.
+This avoids fake empty raw responses, permits true provider errors, and prevents stale `error_json` from hanging around on successful parsed/review-needed rows.
 
 ## Notes
 

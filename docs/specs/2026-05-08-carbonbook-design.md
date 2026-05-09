@@ -476,12 +476,17 @@ CREATE TABLE extraction (
   -- 缓存键：同 (document, prompt, model) 不重复抽取（节省 token）
   UNIQUE (document_id, prompt_version, llm_provider, llm_model),
   -- Lifecycle：status 与字段填充的硬约束（DB 层强制 schema 与状态一致）
+  --   pending          : 三列全 NULL（还没拿到响应）
+  --   parsed/review    : raw + parsed 必填，error 必须 NULL（不允许残留过期错误）
+  --   rejected         : parsed 必须 NULL；raw 或 error 至少一个 NOT NULL
+  --                      （raw 为空覆盖 provider/network 错没有 body 的情况；
+  --                       raw 非空覆盖 model 输出格式坏 / zod 校验失败的情况）
   CHECK (
     (status = 'pending' AND raw_response IS NULL AND parsed_json IS NULL AND error_json IS NULL)
     OR
-    (status IN ('parsed', 'review_needed') AND raw_response IS NOT NULL AND parsed_json IS NOT NULL)
+    (status IN ('parsed', 'review_needed') AND raw_response IS NOT NULL AND parsed_json IS NOT NULL AND error_json IS NULL)
     OR
-    (status = 'rejected' AND raw_response IS NOT NULL AND parsed_json IS NULL)
+    (status = 'rejected' AND parsed_json IS NULL AND (raw_response IS NOT NULL OR error_json IS NOT NULL))
   )
 );
 ```
