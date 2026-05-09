@@ -386,8 +386,12 @@ EF 库季度更新换 readonly snapshot 时，pinned 行不动 → 历史 activi
 ```sql
 CREATE TABLE activity_data (
   id               TEXT PRIMARY KEY,           -- ULID
-  site_id          TEXT NOT NULL REFERENCES site(id),
-  emission_source_id TEXT NOT NULL REFERENCES emission_source(id),
+  -- site_id + emission_source_id 复合 FK 到 emission_source(id, site_id)
+  -- 保证 activity_data.site_id == emission_source.site_id（DB 层强制，service 不用 double check）
+  site_id          TEXT NOT NULL,
+  emission_source_id TEXT NOT NULL,
+  FOREIGN KEY (emission_source_id, site_id)
+    REFERENCES emission_source(id, site_id),
   reporting_period_id TEXT NOT NULL REFERENCES reporting_period(id),
 
   -- 时间维度
@@ -419,6 +423,8 @@ CREATE TABLE activity_data (
 );
 CREATE INDEX idx_activity_period ON activity_data(reporting_period_id, emission_source_id);
 CREATE INDEX idx_activity_extraction ON activity_data(extraction_id);
+-- 用于 EF rebind audit / 影响分析（"哪些活动数据用了这版 EF"）
+CREATE INDEX idx_activity_ef ON activity_data(ef_factor_code, ef_year, ef_source, ef_geography, ef_dataset_version);
 ```
 
 #### `emission_source`
@@ -431,9 +437,11 @@ CREATE TABLE emission_source (
   scope           INTEGER NOT NULL,
   category        TEXT,                    -- 'cat1' | 'cat4' | ...
   ghg_protocol_path TEXT,                  -- 'scope2.purchased_electricity.location_based'
-  default_ef_query TEXT,                   -- JSON：默认 EF 查询条件，pipeline 自动绑
+  default_ef_query TEXT CHECK(default_ef_query IS NULL OR json_valid(default_ef_query)),  -- 默认 EF 查询条件，pipeline 自动绑
   template_origin  TEXT,                   -- 哪个行业 template 推荐的
-  is_active        INTEGER DEFAULT 1
+  is_active        INTEGER DEFAULT 1,
+  -- 让 activity_data 用复合 FK 把 site_id 和 emission_source 钉死一致
+  UNIQUE (id, site_id)
 );
 ```
 
@@ -457,12 +465,14 @@ CREATE TABLE extraction (
   llm_provider  TEXT NOT NULL,                -- 'azure-openai' | 'anthropic' | ...
   llm_model     TEXT NOT NULL,                -- 'gpt-5' | 'claude-sonnet-4-6' ...
   prompt_version TEXT NOT NULL,               -- 内部版本号
-  raw_response  TEXT NOT NULL,                -- LLM 原始输出 JSON
-  parsed_json   TEXT NOT NULL,                -- 校验后的结构化 JSON
-  status        TEXT NOT NULL,                -- 'pending' | 'parsed' | 'review_needed' | 'rejected'
+  raw_response  TEXT NOT NULL CHECK(json_valid(raw_response)),  -- LLM 原始输出
+  parsed_json   TEXT NOT NULL CHECK(json_valid(parsed_json)),   -- 校验后的结构化 JSON
+  status        TEXT NOT NULL CHECK(status IN ('pending', 'parsed', 'review_needed', 'rejected')),
   reviewed_by_user_at TEXT,                   -- 用户人工 confirm 时间
   cost_usd      REAL,                         -- AI 调用成本估算
-  created_at    TEXT NOT NULL
+  created_at    TEXT NOT NULL,
+  -- 缓存键：同 (document, prompt, model) 不重复抽取（节省 token）
+  UNIQUE (document_id, prompt_version, llm_provider, llm_model)
 );
 ```
 
@@ -490,33 +500,53 @@ CREATE TABLE question (
   id              TEXT PRIMARY KEY,
   questionnaire_id TEXT NOT NULL REFERENCES questionnaire(id),
   question_signature TEXT NOT NULL,            -- 规范化文本 hash，跨问卷复用 mapping
+  signature_version TEXT NOT NULL,             -- 例 'sig-v1' / 'sig-v2'；算法变更时升级
+  normalized_text TEXT NOT NULL,               -- hash 出来之前的规范化文本（trim/lowercase/去标点/...）
   raw_text        TEXT NOT NULL,
   parsed_intent   TEXT,                        -- AI 归类的语义意图
-  question_kind   TEXT NOT NULL,               -- 'numerical' | 'categorical' | 'narrative'
+  question_kind   TEXT NOT NULL CHECK(question_kind IN ('numerical', 'categorical', 'narrative')),
   expected_unit   TEXT,                        -- 'kWh' | 'tCO2e' | '%' | 'yes/no' | 'text'
   position        TEXT,                        -- '5.2.a' / 'C7.5'
   required        INTEGER NOT NULL DEFAULT 0
 );
+CREATE INDEX idx_question_signature ON question(question_signature, signature_version);
+-- 同一问卷里 position 唯一（部分索引：position 非 NULL 时强制）
+CREATE UNIQUE INDEX uq_question_questionnaire_position
+  ON question(questionnaire_id, position)
+  WHERE position IS NOT NULL;
 
 CREATE TABLE question_mapping (
   question_signature TEXT NOT NULL,
-  customer_id       TEXT NOT NULL,
-  -- 映射目标：可以是 inventory 路径、SQL query、固定值、或留空
-  mapping_kind      TEXT NOT NULL,             -- 'inventory_path' | 'sql' | 'literal' | 'manual'
-  mapping_payload   TEXT NOT NULL,             -- JSON
-  confidence        REAL,                      -- AI 置信度 0-1
+  signature_version  TEXT NOT NULL,             -- 与 question.signature_version 一致；算法升级时不破老 mapping
+  customer_id        TEXT NOT NULL,
+  -- 映射目标：仅这 3 类，不放原始 SQL（避免 schema 演进破 mapping / 注入风险 / MCP 自动化继承）
+  mapping_kind       TEXT NOT NULL CHECK(mapping_kind IN ('inventory_path', 'literal', 'manual')),
+  mapping_payload    TEXT NOT NULL CHECK(json_valid(mapping_payload)),
+  confidence         REAL,                      -- AI 置信度 0-1
   reviewed_by_user_at TEXT,
-  created_at        TEXT NOT NULL,
-  PRIMARY KEY (question_signature, customer_id)
+  created_at         TEXT NOT NULL,
+  PRIMARY KEY (question_signature, signature_version, customer_id)
 );
+-- 未来若需要更复杂查询：用 allowlisted query-template DSL（typed parameters，read-only，特定 view）
+-- 而不是开放 raw SQL。该 DSL 不在 v1 范围。
 
 CREATE TABLE answer (
   id              TEXT PRIMARY KEY,
-  question_id     TEXT NOT NULL REFERENCES question(id),
+  question_id     TEXT NOT NULL UNIQUE REFERENCES question(id),  -- 一题一答
   value           TEXT NOT NULL,
   unit            TEXT,
-  source_kind     TEXT NOT NULL,               -- 'mapped_inventory' | 'manual' | 'ai_suggested'
-  source_ref      TEXT,                        -- e.g. 'calculation_snapshot:abc123' or 'activity_data:xyz'
+  source_kind     TEXT NOT NULL CHECK(source_kind IN ('mapped_inventory', 'manual', 'ai_suggested')),
+
+  -- 类型化 FK：根据 source_kind 互斥使用（service layer 校验只填一列）
+  source_calculation_snapshot_id TEXT REFERENCES calculation_snapshot(id),
+  source_activity_data_id        TEXT REFERENCES activity_data(id),
+  source_company_profile_key     TEXT REFERENCES company_profile(key),
+  source_narrative_bank_id       TEXT REFERENCES narrative_bank(id),
+
+  -- 不可变 source 快照：导出问卷后即使源数据变更，答案仍可解释
+  -- JSON 内含当时的关键字段（如 amount, unit, computed_co2e_kg, EF version, snapshot_id 等）
+  source_summary  TEXT CHECK(source_summary IS NULL OR json_valid(source_summary)),
+
   finalized_at    TEXT
 );
 
@@ -545,26 +575,91 @@ CREATE TABLE calculation_snapshot (
   id                  TEXT PRIMARY KEY,
   reporting_period_id TEXT NOT NULL REFERENCES reporting_period(id),
   frozen_at           TEXT NOT NULL,
-  ef_dataset_versions JSON NOT NULL,           -- 当时所有用到的 EF version（审计用）
+  ef_dataset_versions TEXT NOT NULL CHECK(json_valid(ef_dataset_versions)),  -- 当时所有用到的 EF version（审计用）
   total_co2e_kg       REAL NOT NULL,
   scope1_kg           REAL NOT NULL,
   scope2_kg_location  REAL NOT NULL,
   scope2_kg_market    REAL,
-  scope3_kg_by_cat    JSON NOT NULL,          -- {"cat1": ..., "cat4": ...}
-  activity_row_ids    JSON NOT NULL,           -- 当时纳入计算的 row id 数组
-  report_metadata     JSON,                    -- 报告标题、签字人、版本说明
+  scope3_kg_by_cat    TEXT NOT NULL CHECK(json_valid(scope3_kg_by_cat)),     -- {"cat1": ..., "cat4": ...}
+  -- 不再存 activity_row_ids JSON 列；改用 calculation_snapshot_line 子表（详见下表）
+  report_metadata     TEXT CHECK(report_metadata IS NULL OR json_valid(report_metadata)),
   pdf_path            TEXT,                    -- 落地 PDF
   excel_path          TEXT,                    -- 落地 Excel 底表
   parent_snapshot_id  TEXT REFERENCES calculation_snapshot(id),  -- 修订链
   revision            INTEGER NOT NULL DEFAULT 1
 );
+CREATE INDEX idx_csnap_period_frozen ON calculation_snapshot(reporting_period_id, frozen_at);
+
+-- 报告冻结时为每条纳入的活动数据生成一条不可变快照行
+-- 这是 audit-grade source of truth：即使原 activity_data 后续被改 / 删，快照行不变，报告仍可重建
+CREATE TABLE calculation_snapshot_line (
+  id                            TEXT PRIMARY KEY,                -- ULID
+  calculation_snapshot_id       TEXT NOT NULL REFERENCES calculation_snapshot(id) ON DELETE RESTRICT,
+
+  -- 原始引用（仅作为 audit hint；可能后续被改/删）
+  original_activity_data_id     TEXT,
+
+  -- 冻结时的 site / source / period 标识 + name 快照（self-contained）
+  site_id_at_freeze             TEXT NOT NULL,
+  site_name_at_freeze           TEXT NOT NULL,
+  emission_source_id_at_freeze  TEXT NOT NULL,
+  emission_source_name_at_freeze TEXT NOT NULL,
+  reporting_period_id_at_freeze TEXT NOT NULL,
+
+  -- 时间维度
+  occurred_at_start             TEXT NOT NULL,
+  occurred_at_end               TEXT NOT NULL,
+
+  -- 量 + 单位（含转换后量，对应 EF 的 input_unit）
+  amount                        REAL NOT NULL,
+  unit                          TEXT NOT NULL,
+  ef_input_unit                 TEXT NOT NULL,
+  converted_amount              REAL NOT NULL,
+
+  -- EF 复合键 + EF 系数值（直接复制，不依赖 pinned_emission_factor 行还在）
+  ef_factor_code                TEXT NOT NULL,
+  ef_year                       INTEGER NOT NULL,
+  ef_source                     TEXT NOT NULL,
+  ef_geography                  TEXT NOT NULL,
+  ef_dataset_version            TEXT NOT NULL,
+  ef_co2e_kg_per_unit           REAL NOT NULL,
+  ef_gwp_basis                  TEXT NOT NULL,
+
+  -- 计算结果
+  computed_co2e_kg              REAL NOT NULL,
+  scope                         INTEGER NOT NULL,
+  category                      TEXT,
+  ghg_protocol_path             TEXT,
+
+  -- 来源链（document hash 不可变，所以即使原文件丢失，hash 仍可作为索引；extraction_id 仅为参考）
+  extraction_id_at_freeze       TEXT,
+  document_id_at_freeze         TEXT,
+  document_sha256_at_freeze     TEXT
+);
+CREATE INDEX idx_csl_snapshot ON calculation_snapshot_line(calculation_snapshot_id);
+CREATE INDEX idx_csl_scope_cat ON calculation_snapshot_line(calculation_snapshot_id, scope, category);
 
 CREATE TABLE audit_event (
   id            TEXT PRIMARY KEY,
   event_kind    TEXT NOT NULL,        -- 'ef_rebind' | 'snapshot_freeze' | 'license_activated' | ...
-  payload       JSON NOT NULL,
+  payload       TEXT NOT NULL CHECK(json_valid(payload)),
   occurred_at   TEXT NOT NULL
 );
+CREATE INDEX idx_audit_occurred ON audit_event(occurred_at);
+CREATE INDEX idx_audit_kind_occurred ON audit_event(event_kind, occurred_at);
+
+-- audit_event 是 append-only：DB 层用 trigger 拒绝 UPDATE / DELETE
+CREATE TRIGGER audit_event_no_update
+BEFORE UPDATE ON audit_event
+BEGIN
+  SELECT RAISE(ABORT, 'audit_event is append-only');
+END;
+
+CREATE TRIGGER audit_event_no_delete
+BEFORE DELETE ON audit_event
+BEGIN
+  SELECT RAISE(ABORT, 'audit_event is append-only');
+END;
 ```
 
 ### 故意省略
@@ -579,11 +674,14 @@ CREATE TABLE audit_event (
 
 ### 关键约束 / 业务规则
 
+0. **`PRAGMA foreign_keys = ON` 是强制启动配置**——SQLite 默认不强制 FK，必须每个 better-sqlite3 connection / migration runner / 测试 DB 启动时显式开启。app 启动时若发现该 PRAGMA 未生效，立即 abort（FK 不开整个数据完整性失效，绝不能默默继续）。CI 加一条 smoke test：插入故意违反 FK 的行必须失败。
 1. **`activity_data.unit` 必须可转换到 `emission_factor.input_unit`**：写入前在应用层校验，单位转换表 `unit_conversion(from_unit, to_unit, factor)` 内置常量。
-2. **`emission_factor` 来自 ef_library.sqlite（attach 为 readonly DB）+ app.sqlite 里的用户上传 EF（同表结构 source='user'）**：查询时 UNION，应用层去重。
-3. **`question_signature`**：题面文本 trim → lowercase → 去标点 → 关键字提取 → hash。同客户的同问题，下次自动 hit 上次 mapping；同 signature 跨 customer 也复用（不同客户问到同一题面也能命中）。
-4. **`extraction.parsed_json` schema**：用 zod 在应用层校验，schema 跟着 prompt_version 走（升级 prompt 同步升 schema）。
+2. **`emission_factor` 来自 ef_library.sqlite（attach 为 readonly DB）+ app.sqlite 里的用户上传 EF（同表结构 source='user'）**：查询时 UNION，应用层去重。绑定到 activity_data 时通过 service layer 复制到 `pinned_emission_factor`（详见 §3 原则 2）。
+3. **`question_signature` 算法版本化**：每条 question 同时存 `question_signature` + `signature_version` + `normalized_text`。同 (signature, signature_version, customer_id) 命中复用；signature_version 升级时旧 mapping 不破，service layer 在 lookup 时按版本兼容降级或一次性迁移。
+4. **`extraction.parsed_json` schema**：用 zod 在应用层校验，schema 跟着 prompt_version 走（升级 prompt 同步升 schema）。DB 列额外用 `CHECK(json_valid(parsed_json))` 防止脏数据落库。
 5. **ID 用 ULID**：单调时间序，跨机器无冲突，对 SQLite 索引友好。
+6. **JSON 列必须 `CHECK(json_valid(...))`**：所有声明为 JSON 用途的列（`parsed_json` / `mapping_payload` / `default_ef_query` / `ef_dataset_versions` / `scope3_kg_by_cat` / `report_metadata` / `audit_event.payload` 等）都用 `TEXT NOT NULL CHECK(json_valid(col))` 或 nullable 时 `TEXT CHECK(col IS NULL OR json_valid(col))`——SQLite 不会因为列类型名是 JSON 就自动校验。
+7. **`audit_event` 是 append-only**：用 SQLite trigger 拒绝 UPDATE / DELETE（schema 见上文）。这给 EF rebind 等历史变更提供 audit 不可篡改保证。
 
 ---
 
@@ -1099,7 +1197,18 @@ CREATE TABLE cbam_source_stream (
   emission_source_id TEXT REFERENCES emission_source(id),
   stream_kind       TEXT NOT NULL,                          -- 'fuel' | 'process' | 'electricity' | 'heat_steam' | 'precursor'
   monitoring_method TEXT NOT NULL,                          -- 'CRT_M1' | 'CRT_M2' | 'CRT_default'
+  -- coarse-grained allocation：emission_source 整体按比例归这条 stream
   allocation_share  REAL DEFAULT 1.0
+);
+
+-- 行级分配表（v1.1 必备）：CBAM 计算需要把具体 activity_data 行按 share 分配给 stream
+-- 这保留"activity_data 不复制"的铁律（§7 原则），同时让分配做到 row 级精度
+-- 一个 activity_data 可以被多个 stream 引用（不同 share），一条 stream 也能引用多笔 activity_data
+CREATE TABLE cbam_source_stream_activity (
+  stream_id         TEXT NOT NULL REFERENCES cbam_source_stream(id),
+  activity_data_id  TEXT NOT NULL REFERENCES activity_data(id),
+  allocation_share  REAL NOT NULL DEFAULT 1.0,
+  PRIMARY KEY (stream_id, activity_data_id)
 );
 
 CREATE TABLE cbam_embedded_emissions (
@@ -1419,7 +1528,8 @@ Settings → MCP Server → Write permissions:
 
 | 场景 | 行为 |
 |---|---|
-| **无配对历史**（OS Keychain 里没有任何 trusted token） | 启动后所有 MCP 请求一律拒绝——**resources、tools、prompts 全部**返回 `{ permission_required: true, hint: "Open carbonbook GUI to pair this client first" }`。"Read 权限自动 grant"只对已配对客户端生效；未配对就没有 Read。**不允许首次配对走 headless**——首次配对必须 GUI |
+| **无配对历史**（OS Keychain 里没有任何 token） | 启动后所有 MCP 请求一律拒绝——**resources、tools、prompts 全部**返回 `{ permission_required: true, hint: "Open carbonbook GUI to pair this client first" }`。"Read 权限自动 grant"只对**已配对且 trusted 的**客户端生效；未配对就没有 Read。**不允许首次配对走 headless**——首次配对必须 GUI |
+| **有配对 token 但未标记 trusted**（"配对成功"≠"信任"） | Headless stdio 仍然拒绝所有 MCP 请求，返回 `{ permission_required: true, hint: "Open carbonbook GUI to use this client" }`。Trusted 标记只能在 GUI 里给（Settings → Integrations → 勾选 "Trust this client"）。GUI 运行 + SSE 连接时，未 trusted 客户端走常规 confirm 弹窗 |
 | **有配对 token 且 token 标记 trusted** | 自动启动 read-only：所有 resources + RO tools（`query_emissions` / `lookup_emission_factor` / `match_question_to_inventory`）正常工作 |
 | **有配对 token + 写 tool 调用 + GUI 未运行** | 写 tools 一律返回 `{ permission_required: true, hint: "Open carbonbook GUI to confirm write operations" }`。不静默执行 |
 | **有配对 token + 写 tool 调用 + GUI 同时运行** | 写 tools IPC 给 GUI 弹 confirm 对话框，与 SSE 模式一致 |
@@ -1483,11 +1593,13 @@ Settings → MCP Server → Write permissions:
   "devices_max": 1,
   "issued_at": 1746700000,
   "expires_at": 1778236000,
-  "grace_until": 1780828000,        // = expires_at + 30 days
+  "grace_until": 1780828000,
   "support_until": 1781596000,
   "revocation_check_after": 1747304800
 }
 ```
+
+`grace_until` 由 cloud 计算 = `expires_at + 30 天`；`support_until` 是续费宽限的更长一档（如服务到期后还能拿 hotfix 更新）；`revocation_check_after` 通常 = `issued_at + 7 天`。
 
 公钥嵌入 carbonbook 二进制；签名验证完全在本地。
 
