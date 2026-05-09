@@ -1,0 +1,55 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+.pnp.*
+
+# Build artifacts
+dist/
+out/
+build/
+release/
+
+# Electron
+*.app
+*.dmg
+*.exe
+*.AppImage
+*.deb
+*.rpm
+
+# Local data (user-generated, not for repo)
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+data/
+local/
+.cache/
+
+# Env / secrets
+.env
+.env.local
+.env.*.local
+auth.json
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Test
+coverage/
+.vitest-cache/
+
+# Misc
+*.tsbuildinfo
+.turbo/
