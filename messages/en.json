@@ -6,5 +6,14 @@
   "dashboard_inventory_title": "Inventory Dashboard",
   "dashboard_inventory_body": "No emission data yet.",
   "nav_dashboard": "Dashboard",
-  "loading": "Loading…"
+  "loading": "Loading…",
+  "onboarding_title": "Onboarding",
+  "onboarding_step_company_title": "Company info",
+  "onboarding_step_company_name_zh": "Chinese name",
+  "onboarding_step_company_name_en": "English name",
+  "onboarding_step_company_industry": "Industry",
+  "onboarding_step_company_country": "Country",
+  "onboarding_back": "Back",
+  "onboarding_next": "Next",
+  "required_field": "Required"
 }
