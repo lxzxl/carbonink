@@ -1,9 +1,9 @@
-import { useForm } from '@tanstack/react-form';
-import { useNavigate } from '@tanstack/react-router';
 import { Button } from '@renderer/components/ui/button';
 import { Input } from '@renderer/components/ui/input';
 import { Label } from '@renderer/components/ui/label';
 import * as m from '@renderer/paraglide/messages';
+import { useForm } from '@tanstack/react-form';
+import { useNavigate } from '@tanstack/react-router';
 import { loadDraft, saveDraft } from './wizardState';
 
 export function StepReportingYear() {
@@ -20,7 +20,13 @@ export function StepReportingYear() {
   });
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit(); }} className="space-y-4 max-w-md">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        form.handleSubmit();
+      }}
+      className="space-y-4 max-w-md"
+    >
       <h2 className="text-xl font-semibold">{m.onboarding_step_year_title()}</h2>
       <p className="text-sm text-muted-foreground">{m.onboarding_step_year_body()}</p>
 
@@ -42,7 +48,10 @@ export function StepReportingYear() {
       />
 
       <div className="flex justify-between pt-2">
-        <Button variant="outline" onClick={() => navigate({ to: '/onboarding/$step', params: { step: '1' } })}>
+        <Button
+          variant="outline"
+          onClick={() => navigate({ to: '/onboarding/$step', params: { step: '1' } })}
+        >
           {m.onboarding_back()}
         </Button>
         <Button type="submit">{m.onboarding_next()}</Button>

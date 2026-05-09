@@ -9,10 +9,9 @@ export const siteCreateInputBase = z.object({
   country_code: z.string().min(2).max(3),
 });
 
-export const siteCreateInput = siteCreateInputBase.refine(
-  (v) => v.name_zh || v.name_en,
-  { message: 'At least one of name_zh / name_en is required' },
-);
+export const siteCreateInput = siteCreateInputBase.refine((v) => v.name_zh || v.name_en, {
+  message: 'At least one of name_zh / name_en is required',
+});
 
 export const site = z.object({
   id: z.string(),

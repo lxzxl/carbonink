@@ -1,8 +1,8 @@
-import { describe, expect, it, afterEach } from 'vitest';
+import { rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { rmSync } from 'node:fs';
-import { openAppDb, closeAppDb } from '@main/db/connection';
+import { closeAppDb, openAppDb } from '@main/db/connection';
+import { afterEach, describe, expect, it } from 'vitest';
 
 describe('openAppDb', () => {
   const dbPath = join(tmpdir(), `carbonbook-test-${Date.now()}.sqlite`);

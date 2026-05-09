@@ -1,10 +1,10 @@
-import { describe, expect, it, beforeEach, afterEach } from 'vitest';
+import { rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { rmSync } from 'node:fs';
-import { openAppDb, closeAppDb } from '@main/db/connection';
+import { closeAppDb, openAppDb } from '@main/db/connection';
 import { runMigrations } from '@main/db/migrate';
 import { OrganizationService } from '@main/services/organization-service';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 describe('OrganizationService', () => {
   let svc: OrganizationService;
@@ -19,7 +19,11 @@ describe('OrganizationService', () => {
 
   afterEach(() => {
     closeAppDb();
-    try { rmSync(dbPath); } catch { /* ignore */ }
+    try {
+      rmSync(dbPath);
+    } catch {
+      /* ignore */
+    }
   });
 
   it('createOrganization persists and returns full row', () => {
@@ -63,12 +67,20 @@ describe('OrganizationService', () => {
   it('createOrganization rejects a second organization (singleton enforced)', () => {
     svc.createOrganization({ name_en: 'First', country_code: 'CN', boundary_kind: 'equity_share' });
     expect(() =>
-      svc.createOrganization({ name_en: 'Second', country_code: 'CN', boundary_kind: 'equity_share' }),
+      svc.createOrganization({
+        name_en: 'Second',
+        country_code: 'CN',
+        boundary_kind: 'equity_share',
+      }),
     ).toThrow(/singleton|UNIQUE|already exists/i);
   });
 
   it('createReportingPeriod creates annual period with correct date range', () => {
-    const org = svc.createOrganization({ name_en: 'Acme', country_code: 'CN', boundary_kind: 'operational_control' });
+    const org = svc.createOrganization({
+      name_en: 'Acme',
+      country_code: 'CN',
+      boundary_kind: 'operational_control',
+    });
     const period = svc.createReportingPeriod({
       organization_id: org.id,
       year: 2025,
@@ -81,7 +93,11 @@ describe('OrganizationService', () => {
   });
 
   it('createReportingPeriod is idempotent — duplicate (org, year, annual) rejected by UNIQUE', () => {
-    const org = svc.createOrganization({ name_en: 'Acme', country_code: 'CN', boundary_kind: 'operational_control' });
+    const org = svc.createOrganization({
+      name_en: 'Acme',
+      country_code: 'CN',
+      boundary_kind: 'operational_control',
+    });
     svc.createReportingPeriod({ organization_id: org.id, year: 2025, granularity: 'annual' });
     expect(() =>
       svc.createReportingPeriod({ organization_id: org.id, year: 2025, granularity: 'annual' }),
@@ -89,18 +105,26 @@ describe('OrganizationService', () => {
   });
 
   it('listReportingPeriodsByOrganization returns periods in created order', () => {
-    const org = svc.createOrganization({ name_en: 'Acme', country_code: 'CN', boundary_kind: 'operational_control' });
+    const org = svc.createOrganization({
+      name_en: 'Acme',
+      country_code: 'CN',
+      boundary_kind: 'operational_control',
+    });
     svc.createReportingPeriod({ organization_id: org.id, year: 2024, granularity: 'annual' });
     svc.createReportingPeriod({ organization_id: org.id, year: 2025, granularity: 'annual' });
     const list = svc.listReportingPeriodsByOrganization(org.id);
     expect(list.length).toBe(2);
-    expect(list[0]!.year).toBe(2024);
-    expect(list[1]!.year).toBe(2025);
+    expect(list[0]?.year).toBe(2024);
+    expect(list[1]?.year).toBe(2025);
   });
 
   it('completeOnboarding creates org+site+period atomically', () => {
     const result = svc.completeOnboarding({
-      organization: { name_zh: '中山钢铁', country_code: 'CN', boundary_kind: 'operational_control' },
+      organization: {
+        name_zh: '中山钢铁',
+        country_code: 'CN',
+        boundary_kind: 'operational_control',
+      },
       first_site: { name_zh: '主厂区', country_code: 'CN' },
       reporting_period: { year: 2025, granularity: 'annual' },
     });
@@ -112,7 +136,12 @@ describe('OrganizationService', () => {
 
   it('completeOnboarding accepts empty string for one of the bilingual name fields (treats as NULL)', () => {
     const result = svc.completeOnboarding({
-      organization: { name_zh: '中山钢铁', name_en: '   ', country_code: 'CN', boundary_kind: 'operational_control' },
+      organization: {
+        name_zh: '中山钢铁',
+        name_en: '   ',
+        country_code: 'CN',
+        boundary_kind: 'operational_control',
+      },
       first_site: { name_zh: '主厂区', name_en: '', country_code: 'CN' },
       reporting_period: { year: 2025, granularity: 'annual' },
     });
@@ -125,16 +154,24 @@ describe('OrganizationService', () => {
   it('completeOnboarding rolls back when reporting_period is invalid (no half state)', () => {
     const orgSvc = svc;
     const original = orgSvc.createReportingPeriod.bind(orgSvc);
-    (orgSvc as unknown as { createReportingPeriod: (i: unknown) => unknown }).createReportingPeriod =
-      () => { throw new Error('synthetic period failure'); };
+    (
+      orgSvc as unknown as { createReportingPeriod: (i: unknown) => unknown }
+    ).createReportingPeriod = () => {
+      throw new Error('synthetic period failure');
+    };
     expect(() =>
       orgSvc.completeOnboarding({
-        organization: { name_en: 'Rollback Co', country_code: 'CN', boundary_kind: 'operational_control' },
+        organization: {
+          name_en: 'Rollback Co',
+          country_code: 'CN',
+          boundary_kind: 'operational_control',
+        },
         first_site: { name_en: 'Site', country_code: 'CN' },
         reporting_period: { year: 2025, granularity: 'annual' },
       }),
     ).toThrow(/synthetic period failure/);
-    (orgSvc as unknown as { createReportingPeriod: typeof original }).createReportingPeriod = original;
+    (orgSvc as unknown as { createReportingPeriod: typeof original }).createReportingPeriod =
+      original;
     expect(orgSvc.hasAnyOrganization()).toBe(false);
   });
 });

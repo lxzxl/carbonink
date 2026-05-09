@@ -7,9 +7,8 @@ const STORAGE_KEY = 'carbonbook.locale';
 export function initLocale(): Locale {
   const stored = localStorage.getItem(STORAGE_KEY);
   const navigator = typeof window !== 'undefined' ? window.navigator.language : 'en';
-  const locale: Locale = stored === 'zh-CN' || stored === 'en'
-    ? stored
-    : navigator.startsWith('zh') ? 'zh-CN' : 'en';
+  const locale: Locale =
+    stored === 'zh-CN' || stored === 'en' ? stored : navigator.startsWith('zh') ? 'zh-CN' : 'en';
   runtime.setLocale(locale);
   return locale;
 }

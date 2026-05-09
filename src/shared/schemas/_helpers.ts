@@ -12,15 +12,12 @@ import { z } from 'zod';
  * 让 z.preprocess(...) 直接推断更稳，跨 Zod 3/4 都可用。
  */
 export function optionalString(opts: { max: number }) {
-  return z.preprocess(
-    (val) => {
-      if (val === null || val === undefined) return undefined;
-      if (typeof val === 'string') {
-        const trimmed = val.trim();
-        return trimmed === '' ? undefined : trimmed;
-      }
-      return val;
-    },
-    z.string().min(1).max(opts.max).optional(),
-  );
+  return z.preprocess((val) => {
+    if (val === null || val === undefined) return undefined;
+    if (typeof val === 'string') {
+      const trimmed = val.trim();
+      return trimmed === '' ? undefined : trimmed;
+    }
+    return val;
+  }, z.string().min(1).max(opts.max).optional());
 }

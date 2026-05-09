@@ -1,9 +1,9 @@
-import { app, BrowserWindow } from 'electron';
 import { join } from 'node:path';
-import { createMainWindow } from './window.js';
 import { openAppDb } from '@main/db/connection.js';
 import { runMigrations } from '@main/db/migrate.js';
 import { setupIpc } from '@main/ipc/setup.js';
+import { BrowserWindow, app } from 'electron';
+import { createMainWindow } from './window.js';
 
 let mainWindow: BrowserWindow | null = null;
 

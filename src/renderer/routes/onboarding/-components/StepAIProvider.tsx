@@ -1,9 +1,9 @@
+import { Button } from '@renderer/components/ui/button';
+import { trpc } from '@renderer/lib/trpc';
+import * as m from '@renderer/paraglide/messages';
 import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
-import { Button } from '@renderer/components/ui/button';
-import * as m from '@renderer/paraglide/messages';
-import { loadDraft, clearDraft } from './wizardState';
-import { trpc } from '@renderer/lib/trpc';
+import { clearDraft, loadDraft } from './wizardState';
 
 export function StepAIProvider() {
   const navigate = useNavigate();
@@ -61,7 +61,12 @@ export function StepAIProvider() {
         <Button className="w-full" disabled={submitting} onClick={() => finish('byot')}>
           {m.onboarding_step_ai_byot()}
         </Button>
-        <Button className="w-full" variant="outline" disabled={submitting} onClick={() => finish('skip')}>
+        <Button
+          className="w-full"
+          variant="outline"
+          disabled={submitting}
+          onClick={() => finish('skip')}
+        >
           {m.onboarding_step_ai_skip()}
         </Button>
       </div>
@@ -70,7 +75,11 @@ export function StepAIProvider() {
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <div className="flex justify-start pt-2">
-        <Button variant="outline" disabled={submitting} onClick={() => navigate({ to: '/onboarding/$step', params: { step: '4' } })}>
+        <Button
+          variant="outline"
+          disabled={submitting}
+          onClick={() => navigate({ to: '/onboarding/$step', params: { step: '4' } })}
+        >
           {m.onboarding_back()}
         </Button>
       </div>

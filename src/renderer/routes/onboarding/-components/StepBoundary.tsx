@@ -1,7 +1,7 @@
-import { useNavigate } from '@tanstack/react-router';
-import { useState } from 'react';
 import { Button } from '@renderer/components/ui/button';
 import * as m from '@renderer/paraglide/messages';
+import { useNavigate } from '@tanstack/react-router';
+import { useState } from 'react';
 import { loadDraft, saveDraft } from './wizardState';
 
 type Boundary = 'equity_share' | 'operational_control';
@@ -30,7 +30,9 @@ export function StepBoundary() {
           onClick={() => setSelected('operational_control')}
         >
           <strong>Operational Control</strong>
-          <p className="mt-1 text-sm text-muted-foreground">{m.onboarding_step_boundary_operational_control()}</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {m.onboarding_step_boundary_operational_control()}
+          </p>
         </button>
 
         <button
@@ -39,12 +41,17 @@ export function StepBoundary() {
           onClick={() => setSelected('equity_share')}
         >
           <strong>Equity Share</strong>
-          <p className="mt-1 text-sm text-muted-foreground">{m.onboarding_step_boundary_equity_share()}</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {m.onboarding_step_boundary_equity_share()}
+          </p>
         </button>
       </div>
 
       <div className="flex justify-between pt-2">
-        <Button variant="outline" onClick={() => navigate({ to: '/onboarding/$step', params: { step: '2' } })}>
+        <Button
+          variant="outline"
+          onClick={() => navigate({ to: '/onboarding/$step', params: { step: '2' } })}
+        >
           {m.onboarding_back()}
         </Button>
         <Button onClick={submit}>{m.onboarding_next()}</Button>

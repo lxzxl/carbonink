@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import { newId } from '@shared/ulid';
+import { describe, expect, it } from 'vitest';
 
 describe('newId', () => {
   it('returns 26-char ULID strings', () => {

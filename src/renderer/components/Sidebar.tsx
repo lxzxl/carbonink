@@ -1,6 +1,6 @@
-import { Link } from '@tanstack/react-router';
 import { cn } from '@renderer/lib/utils';
 import * as m from '@renderer/paraglide/messages';
+import { Link } from '@tanstack/react-router';
 
 export function Sidebar() {
   return (

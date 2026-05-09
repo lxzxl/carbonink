@@ -1,8 +1,8 @@
-import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
-import react from '@vitejs/plugin-react';
-import { TanStackRouterVite } from '@tanstack/router-vite-plugin';
-import { paraglideVitePlugin as paraglide } from '@inlang/paraglide-js';
 import { resolve } from 'node:path';
+import { paraglideVitePlugin as paraglide } from '@inlang/paraglide-js';
+import { TanStackRouterVite } from '@tanstack/router-vite-plugin';
+import react from '@vitejs/plugin-react';
+import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
 
 export default defineConfig({
   main: {

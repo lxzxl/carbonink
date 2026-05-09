@@ -1,5 +1,5 @@
-import { defineConfig, defineProject } from 'vitest/config';
 import { resolve } from 'node:path';
+import { defineConfig, defineProject } from 'vitest/config';
 
 const alias = {
   '@shared': resolve('src/shared'),

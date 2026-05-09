@@ -1,9 +1,9 @@
-import { describe, expect, it, afterEach, beforeEach } from 'vitest';
+import { rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { rmSync } from 'node:fs';
-import { openAppDb, closeAppDb } from '@main/db/connection';
+import { closeAppDb, openAppDb } from '@main/db/connection';
 import { runMigrations } from '@main/db/migrate';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 describe('runMigrations', () => {
   let dbPath: string;

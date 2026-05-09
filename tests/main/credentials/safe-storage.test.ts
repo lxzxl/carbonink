@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import { CredentialStore, type SafeStorageLike } from '@main/credentials/safe-storage';
+import { describe, expect, it } from 'vitest';
 
 function makeFakeSafeStorage(available: boolean): SafeStorageLike {
   const store = new Map<Buffer, Buffer>();
@@ -50,13 +50,14 @@ describe('CredentialStore', () => {
   });
 
   it('refuses to operate on linux platform', () => {
-    expect(() =>
-      new CredentialStore({
-        safeStorage: makeFakeSafeStorage(true),
-        readBlob: () => null,
-        writeBlob: () => undefined,
-        platform: 'linux',
-      }),
+    expect(
+      () =>
+        new CredentialStore({
+          safeStorage: makeFakeSafeStorage(true),
+          readBlob: () => null,
+          writeBlob: () => undefined,
+          platform: 'linux',
+        }),
     ).toThrow(/Linux is not supported/);
   });
 });

@@ -1,20 +1,20 @@
-import type { ServiceContext } from './base.js';
-import { newId } from '@shared/ulid.js';
 import type {
+  CompleteOnboardingInput,
   Organization,
   OrganizationCreateInput,
-  Site,
-  SiteCreateInput,
   ReportingPeriod,
   ReportingPeriodCreateInput,
-  CompleteOnboardingInput,
+  Site,
+  SiteCreateInput,
 } from '@shared/types.js';
 import {
-  organizationCreateInput,
-  siteCreateInput,
-  reportingPeriodCreateInput,
   completeOnboardingInput,
+  organizationCreateInput,
+  reportingPeriodCreateInput,
+  siteCreateInput,
 } from '@shared/types.js';
+import { newId } from '@shared/ulid.js';
+import type { ServiceContext } from './base.js';
 
 export class OrganizationService {
   constructor(private readonly ctx: ServiceContext) {}
@@ -22,23 +22,27 @@ export class OrganizationService {
   createOrganization(input: OrganizationCreateInput): Organization {
     const parsed = organizationCreateInput.parse(input);
     if (this.hasAnyOrganization()) {
-      throw new Error('Organization already exists (singleton enforced — only one per app instance).');
+      throw new Error(
+        'Organization already exists (singleton enforced — only one per app instance).',
+      );
     }
     const id = newId();
     const ts = this.ctx.now();
-    this.ctx.db.prepare(
-      `INSERT INTO organization (id, name_zh, name_en, industry, country_code, boundary_kind, created_at, updated_at)
+    this.ctx.db
+      .prepare(
+        `INSERT INTO organization (id, name_zh, name_en, industry, country_code, boundary_kind, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).run(
-      id,
-      parsed.name_zh ?? null,
-      parsed.name_en ?? null,
-      parsed.industry ?? null,
-      parsed.country_code,
-      parsed.boundary_kind,
-      ts,
-      ts,
-    );
+      )
+      .run(
+        id,
+        parsed.name_zh ?? null,
+        parsed.name_en ?? null,
+        parsed.industry ?? null,
+        parsed.country_code,
+        parsed.boundary_kind,
+        ts,
+        ts,
+      );
     return this.getOrganization(id)!;
   }
 
@@ -50,7 +54,9 @@ export class OrganizationService {
   }
 
   hasAnyOrganization(): boolean {
-    const row = this.ctx.db.prepare('SELECT COUNT(*) AS c FROM organization').get() as { c: number };
+    const row = this.ctx.db.prepare('SELECT COUNT(*) AS c FROM organization').get() as {
+      c: number;
+    };
     return row.c > 0;
   }
 
@@ -58,19 +64,21 @@ export class OrganizationService {
     const parsed = siteCreateInput.parse(input);
     const id = newId();
     const ts = this.ctx.now();
-    this.ctx.db.prepare(
-      `INSERT INTO site (id, organization_id, name_zh, name_en, address, country_code, is_active, created_at, updated_at)
+    this.ctx.db
+      .prepare(
+        `INSERT INTO site (id, organization_id, name_zh, name_en, address, country_code, is_active, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)`,
-    ).run(
-      id,
-      parsed.organization_id,
-      parsed.name_zh ?? null,
-      parsed.name_en ?? null,
-      parsed.address ?? null,
-      parsed.country_code,
-      ts,
-      ts,
-    );
+      )
+      .run(
+        id,
+        parsed.organization_id,
+        parsed.name_zh ?? null,
+        parsed.name_en ?? null,
+        parsed.address ?? null,
+        parsed.country_code,
+        ts,
+        ts,
+      );
     return this.getSite(id)!;
   }
 
@@ -91,11 +99,13 @@ export class OrganizationService {
     const ts = this.ctx.now();
     const starts_at = `${parsed.year}-01-01T00:00:00.000Z`;
     const ends_at = `${parsed.year}-12-31T23:59:59.999Z`;
-    this.ctx.db.prepare(
-      `INSERT INTO reporting_period
+    this.ctx.db
+      .prepare(
+        `INSERT INTO reporting_period
          (id, organization_id, year, granularity, starts_at, ends_at, is_active, created_at)
        VALUES (?, ?, ?, 'annual', ?, ?, 1, ?)`,
-    ).run(id, parsed.organization_id, parsed.year, starts_at, ends_at, ts);
+      )
+      .run(id, parsed.organization_id, parsed.year, starts_at, ends_at, ts);
     return this.getReportingPeriod(id)!;
   }
 
@@ -108,7 +118,9 @@ export class OrganizationService {
 
   listReportingPeriodsByOrganization(orgId: string): ReportingPeriod[] {
     return this.ctx.db
-      .prepare('SELECT * FROM reporting_period WHERE organization_id = ? ORDER BY year ASC, created_at ASC')
+      .prepare(
+        'SELECT * FROM reporting_period WHERE organization_id = ? ORDER BY year ASC, created_at ASC',
+      )
       .all(orgId) as ReportingPeriod[];
   }
 

@@ -1,7 +1,13 @@
-import { describe, expect, it, beforeEach, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { createMemoryHistory, createRootRoute, createRoute, createRouter, RouterProvider } from '@tanstack/react-router';
 import { StepCompanyInfo } from '@renderer/routes/onboarding/-components/StepCompanyInfo';
+import {
+  RouterProvider,
+  createMemoryHistory,
+  createRootRoute,
+  createRoute,
+  createRouter,
+} from '@tanstack/react-router';
+import { render, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // electron-trpc's ipcLink() executes at module load time and crashes outside Electron.
 // Mock the module before any route tree import can trigger it.

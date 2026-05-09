@@ -14,10 +14,26 @@
       "recommended": true,
       "style": {
         "useImportType": "warn",
-        "useNodejsImportProtocol": "warn"
+        "useNodejsImportProtocol": "warn",
+        "noNonNullAssertion": "warn"
+      },
+      "correctness": {
+        "noChildrenProp": "off"
       }
     }
   },
+  "overrides": [
+    {
+      "include": ["src/renderer/components/ui/**"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noLabelWithoutControl": "off"
+          }
+        }
+      }
+    }
+  ],
   "javascript": {
     "formatter": {
       "quoteStyle": "single",
@@ -26,6 +42,12 @@
     }
   },
   "files": {
-    "ignore": ["node_modules", "dist", "out", "src/renderer/paraglide", "src/renderer/routeTree.gen.ts"]
+    "ignore": [
+      "node_modules",
+      "dist",
+      "out",
+      "src/renderer/paraglide",
+      "src/renderer/routeTree.gen.ts"
+    ]
   }
 }

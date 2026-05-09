@@ -1,6 +1,6 @@
-import { createFileRoute, Navigate } from '@tanstack/react-router';
 import { trpc } from '@renderer/lib/trpc';
 import * as m from '@renderer/paraglide/messages';
+import { Navigate, createFileRoute } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/')({
   component: Dashboard,

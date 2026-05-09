@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import { completeOnboardingInput } from '@shared/schemas/complete-onboarding';
+import { describe, expect, it } from 'vitest';
 
 describe('completeOnboardingInput schema', () => {
   it('loads without throwing (regression: Zod 4 forbids .omit() on refined ZodObject)', () => {
