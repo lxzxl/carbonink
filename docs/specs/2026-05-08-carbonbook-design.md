@@ -89,6 +89,7 @@
 
 - 多用户协作 / 团队权限
 - 移动端
+- **Linux 桌面发行版**（不在 roadmap 内；Electron 代码本身可移植，但不打包不签名不分发）
 - API 给第三方调用
 - ESG 非 GHG 部分（社会、治理、生物多样性等）
 - Scope 3 cat 2/3/8/10/11/12/13/14/15
@@ -213,7 +214,7 @@
 |---|---|---|
 | electron-trpc | 自写 typed IPC | 节省 1-2 周；与 TanStack Query 集成顺滑 |
 | Cloudflare Pages+R2+Workers | 自建 VPS / Vercel / Supabase | 免费层够用、无服务器维护负担、Cloudflare 中国大陆访问通透 |
-| safeStorage (OS keystore) | 自加密 + 文件存储 | 系统级安全；v1 覆盖 macOS Keychain + Windows Credential Manager；Linux libsecret 在 v1.1 验证（与 Linux build 一起） |
+| safeStorage (OS keystore) | 自加密 + 文件存储 | 系统级安全；v1 覆盖 macOS Keychain + Windows Credential Manager。**Linux 不在产品 roadmap 内**——Electron 框架虽支持 Linux，但不打包发行 |
 | 上传文件 FS + content-hash | 入库 BLOB | SQLite BLOB 性能差 + DB 文件膨胀；FS + hash 干净 |
 
 ---
@@ -1596,15 +1597,15 @@ Questionnaire export: Base license JWT                                       →
 
 ### Auto-update
 
-- `electron-updater` 拉 carbonbook-cloud R2 上的签名 .dmg / .exe / .AppImage
+- `electron-updater` 拉 carbonbook-cloud R2 上的签名 .dmg / .exe
 - Channels: `stable`（默认）/ `beta`（用户 opt-in）
 - 同一 Ed25519 签名链
 - 默认行为：后台下载，下次启动安装
+- 平台：仅 macOS + Windows（Linux 不发行）
 
 签名 / 公证：
 - macOS：Apple Developer ID 签名 + notarization
 - Windows：EV Code Signing
-- Linux：AppImage + Ed25519 detached signature
 
 ### 支付基础设施
 
@@ -1661,7 +1662,7 @@ Phase 4: Cloud + License + 签名
    ↓ 里程碑 3: first-paying-customer
 Phase 5: Public Launch
    ↓
-v1.0 GA → 进入 v1.1 backlog（CBAM / Linux / 区域定价 等）
+v1.0 GA → 进入 v1.1 backlog（CBAM / 区域定价 等）
 ```
 
 每个 phase 完成由 **Done 标准**驱动而非日历。作者自行控制时间。
@@ -1675,7 +1676,7 @@ v1.0 GA → 进入 v1.1 backlog（CBAM / Linux / 区域定价 等）
 | electron-vite + React + TanStack + Tailwind + Paraglide 脚手架 | `pnpm dev` 弹窗显示中英切换 |
 | better-sqlite3 + migrations 框架；Service Layer 基类；electron-trpc IPC | Renderer 调一个 trpc procedure 拿数据库一行 |
 | §3 数据模型 schema 全量落地；shadcn/ui 设计 token；侧边栏导航 + 主页骨架 | 全部表 CREATE，Dashboard 空页能跑 |
-| safeStorage 凭证模块；OS Keychain 测试（mac/win/linux）；onboarding wizard 骨架 | Wizard 能走完 5 步，写到 organization/site/reporting_period 表 |
+| safeStorage 凭证模块；OS Keychain 测试（macOS + Windows）；onboarding wizard 骨架 | Wizard 能走完 5 步，写到 organization/site/reporting_period 表 |
 
 **Phase 0 Deliverable**: 启动空 app，过 wizard，建组织 + 1 个 site，看到空 inventory dashboard。
 
@@ -1765,7 +1766,6 @@ v1.0 GA → 进入 v1.1 backlog（CBAM / Linux / 区域定价 等）
 | 模块 | 何时 |
 |---|---|
 | **CBAM Add-on**（§7） | v1.1 —— 找到 1-2 个 CBAM 行业 design partner 再开 |
-| Linux build 完整签名 / AppImage 自动更新 | v1.1 |
 | MCP push subscription / 远程 / 多客户端配对 | v2 |
 | 区域 RMB 定价 + 本地支付平台 | v1.5 |
 | Floating license / 团队池 | v2 |
