@@ -50,8 +50,8 @@ carbonbook/
 │   │   │   └── migrations/
 │   │   │       ├── 001_core.sql           (organization, site, reporting_period)
 │   │   │       ├── 002_emission_factors.sql (emission_factor + pinned_emission_factor)
-│   │   │       ├── 003_inventory.sql      (emission_source, activity_data, calculation_snapshot[_line])
-│   │   │       ├── 004_extraction.sql     (document, extraction)
+│   │   │       ├── 003_extraction.sql     (document, extraction) — must precede 004 so activity_data.extraction_id has real FK
+│   │   │       ├── 004_inventory.sql      (emission_source, activity_data, calculation_snapshot[_line])
 │   │   │       ├── 005_questionnaire.sql  (customer, questionnaire, question, question_mapping, answer, company_profile, narrative_bank)
 │   │   │       └── 006_audit.sql          (audit_event + triggers)
 │   │   ├── services/
@@ -121,6 +121,7 @@ carbonbook/
 - Create: `.editorconfig`
 - Create: `.nvmrc`
 - Create: `pnpm-workspace.yaml`
+- Create: `biome.json`
 - Modify: `.gitignore` (already exists)
 
 - [ ] **Step 1: 初始化 package.json**
@@ -184,16 +185,58 @@ trim_trailing_whitespace = false
 packages: []
 ```
 
-- [ ] **Step 5: 验证**
-
-Run: `pnpm install && cat package.json | head -5`
-Expected: `pnpm-lock.yaml` 生成，`package.json` 头 5 行可见。
-
-- [ ] **Step 6: Commit**
+- [ ] **Step 5: 装 Biome（lint/format）+ 写 biome.json**
 
 ```bash
-git add package.json pnpm-lock.yaml pnpm-workspace.yaml .editorconfig .nvmrc
-git commit -m "Phase 0/Task 1: pnpm + project baseline"
+pnpm add -D @biomejs/biome
+```
+
+`biome.json`:
+
+```json
+{
+  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "organizeImports": { "enabled": true },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100,
+    "lineEnding": "lf"
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "style": {
+        "useImportType": "warn",
+        "useNodejsImportProtocol": "warn"
+      }
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "trailingCommas": "all",
+      "semicolons": "always"
+    }
+  },
+  "files": {
+    "ignore": ["node_modules", "dist", "out", "src/renderer/paraglide", "src/renderer/routeTree.gen.ts"]
+  }
+}
+```
+
+- [ ] **Step 6: 验证**
+
+Run: `pnpm install && pnpm exec biome --version && cat package.json | head -5`
+Expected: `pnpm-lock.yaml` 生成，Biome version 输出，`package.json` 头 5 行可见。
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add package.json pnpm-lock.yaml pnpm-workspace.yaml .editorconfig .nvmrc biome.json
+git commit -m "Phase 0/Task 1: pnpm + Biome + project baseline"
 ```
 
 ---
@@ -888,15 +931,10 @@ Expected: FAIL ("Cannot find module '@main/db/migrate'")
 
 - [ ] **Step 4: 写 src/main/db/migrate.ts**
 
+> ⚠️ 不能用 `readFileSync(join(__dirname, 'migrations'))` 走运行时文件读取——electron-vite build 后 SQL 文件不会跟着 `.js` bundle 进 `out/main/db/migrations/`，dev 也可能不一致。改用 Vite 的 `import.meta.glob` + `?raw` 在 build time 把 SQL 内容编进主进程 bundle。这条同时在 Vitest（vite-driven）和 electron-vite 下都可用。
+
 ```ts
 import type { Database } from 'better-sqlite3';
-import { readFileSync, readdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const MIGRATIONS_DIR = join(__dirname, 'migrations');
 
 interface Migration {
   version: number;
@@ -904,17 +942,26 @@ interface Migration {
   sql: string;
 }
 
+// Vite glob import: 在 build time 把 SQL 内容内联进 bundle。
+// `eager: true` 让 Vite 同步加载；`?raw` 让 SQL 文件作为字符串引入。
+const sqlModules = import.meta.glob<string>('./migrations/*.sql', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+});
+
 function loadMigrations(): Migration[] {
-  const files = readdirSync(MIGRATIONS_DIR)
-    .filter((f) => f.endsWith('.sql'))
-    .sort();
-  return files.map((file) => {
-    const match = file.match(/^(\d{3})_(.+)\.sql$/);
-    if (!match) throw new Error(`Migration filename invalid: ${file}`);
+  const entries = Object.entries(sqlModules)
+    // 按文件名排序（路径形如 './migrations/001_core.sql'）
+    .sort(([a], [b]) => a.localeCompare(b));
+  return entries.map(([path, sql]) => {
+    const filename = path.split('/').pop()!;
+    const match = filename.match(/^(\d{3})_(.+)\.sql$/);
+    if (!match) throw new Error(`Migration filename invalid: ${path}`);
     return {
       version: Number.parseInt(match[1]!, 10),
-      name: file.replace(/\.sql$/, ''),
-      sql: readFileSync(join(MIGRATIONS_DIR, file), 'utf-8'),
+      name: filename.replace(/\.sql$/, ''),
+      sql,
     };
   });
 }
@@ -988,6 +1035,9 @@ per spec §3 ER 图：organization (1 row 单机) → site (N) ← reporting_per
 
 CREATE TABLE organization (
   id            TEXT PRIMARY KEY,
+  -- spec §1: 单机一个 organization。用 singleton_key 列 + UNIQUE + CHECK 在 DB 层硬约束。
+  -- 任何 INSERT 都会写 singleton_key = 1；第二次 INSERT 必失败（UNIQUE 冲突）。
+  singleton_key INTEGER NOT NULL DEFAULT 1 CHECK (singleton_key = 1) UNIQUE,
   name_zh       TEXT,
   name_en       TEXT,
   industry      TEXT,
@@ -1579,11 +1629,12 @@ git commit -m "Phase 0/Task 13: migration 006 (audit_event + append-only trigger
 
 ---
 
-### Task 14: zod schemas (organization + site) + 共享类型
+### Task 14: zod schemas (organization + site + reporting_period) + 共享类型
 
 **Files:**
 - Create: `src/shared/schemas/organization.ts`
 - Create: `src/shared/schemas/site.ts`
+- Create: `src/shared/schemas/reporting-period.ts`
 - Create: `src/shared/types.ts`
 
 - [ ] **Step 1: 装 zod**
@@ -1651,23 +1702,52 @@ export type Site = z.infer<typeof site>;
 export type SiteCreateInput = z.infer<typeof siteCreateInput>;
 ```
 
-- [ ] **Step 4: 写 src/shared/types.ts (re-export 集中)**
+- [ ] **Step 4: 写 src/shared/schemas/reporting-period.ts**
+
+```ts
+import { z } from 'zod';
+
+export const granularityEnum = z.enum(['annual', 'quarterly', 'monthly']);
+
+export const reportingPeriodCreateInput = z.object({
+  organization_id: z.string(),
+  year: z.number().int().min(2020).max(2030),
+  granularity: granularityEnum,
+});
+
+export const reportingPeriod = z.object({
+  id: z.string(),
+  organization_id: z.string(),
+  year: z.number().int(),
+  granularity: granularityEnum,
+  starts_at: z.string(),
+  ends_at: z.string(),
+  is_active: z.number(),
+  created_at: z.string(),
+});
+
+export type ReportingPeriod = z.infer<typeof reportingPeriod>;
+export type ReportingPeriodCreateInput = z.infer<typeof reportingPeriodCreateInput>;
+```
+
+- [ ] **Step 5: 写 src/shared/types.ts (re-export 集中)**
 
 ```ts
 export * from './schemas/organization.js';
 export * from './schemas/site.js';
+export * from './schemas/reporting-period.js';
 ```
 
-- [ ] **Step 5: 跑 typecheck**
+- [ ] **Step 6: 跑 typecheck**
 
 Run: `pnpm typecheck`
 Expected: 通过，无类型错误
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
 git add src/shared/ package.json pnpm-lock.yaml
-git commit -m "Phase 0/Task 14: zod schemas + types for organization/site"
+git commit -m "Phase 0/Task 14: zod schemas + types for organization/site/reporting_period"
 ```
 
 ---
@@ -1759,6 +1839,44 @@ describe('OrganizationService', () => {
     svc.createOrganization({ name_en: 'X', country_code: 'CN', boundary_kind: 'equity_share' });
     expect(svc.hasAnyOrganization()).toBe(true);
   });
+
+  it('createOrganization rejects a second organization (singleton enforced)', () => {
+    svc.createOrganization({ name_en: 'First', country_code: 'CN', boundary_kind: 'equity_share' });
+    expect(() =>
+      svc.createOrganization({ name_en: 'Second', country_code: 'CN', boundary_kind: 'equity_share' }),
+    ).toThrow(/singleton|UNIQUE|already exists/i);
+  });
+
+  it('createReportingPeriod creates annual period with correct date range', () => {
+    const org = svc.createOrganization({ name_en: 'Acme', country_code: 'CN', boundary_kind: 'operational_control' });
+    const period = svc.createReportingPeriod({
+      organization_id: org.id,
+      year: 2025,
+      granularity: 'annual',
+    });
+    expect(period.year).toBe(2025);
+    expect(period.granularity).toBe('annual');
+    expect(period.starts_at).toBe('2025-01-01T00:00:00.000Z');
+    expect(period.ends_at).toBe('2025-12-31T23:59:59.999Z');
+  });
+
+  it('createReportingPeriod is idempotent — duplicate (org, year, annual) rejected by UNIQUE', () => {
+    const org = svc.createOrganization({ name_en: 'Acme', country_code: 'CN', boundary_kind: 'operational_control' });
+    svc.createReportingPeriod({ organization_id: org.id, year: 2025, granularity: 'annual' });
+    expect(() =>
+      svc.createReportingPeriod({ organization_id: org.id, year: 2025, granularity: 'annual' }),
+    ).toThrow(/UNIQUE/i);
+  });
+
+  it('listReportingPeriodsByOrganization returns periods in created order', () => {
+    const org = svc.createOrganization({ name_en: 'Acme', country_code: 'CN', boundary_kind: 'operational_control' });
+    svc.createReportingPeriod({ organization_id: org.id, year: 2024, granularity: 'annual' });
+    svc.createReportingPeriod({ organization_id: org.id, year: 2025, granularity: 'annual' });
+    const list = svc.listReportingPeriodsByOrganization(org.id);
+    expect(list.length).toBe(2);
+    expect(list[0]!.year).toBe(2024);
+    expect(list[1]!.year).toBe(2025);
+  });
 });
 ```
 
@@ -1772,14 +1890,29 @@ Expected: FAIL ("Cannot find module '@main/services/organization-service'")
 ```ts
 import type { ServiceContext } from './base.js';
 import { newId } from '@shared/ulid.js';
-import type { Organization, OrganizationCreateInput, Site, SiteCreateInput } from '@shared/types.js';
-import { organizationCreateInput, siteCreateInput } from '@shared/types.js';
+import type {
+  Organization,
+  OrganizationCreateInput,
+  Site,
+  SiteCreateInput,
+  ReportingPeriod,
+  ReportingPeriodCreateInput,
+} from '@shared/types.js';
+import {
+  organizationCreateInput,
+  siteCreateInput,
+  reportingPeriodCreateInput,
+} from '@shared/types.js';
 
 export class OrganizationService {
   constructor(private readonly ctx: ServiceContext) {}
 
   createOrganization(input: OrganizationCreateInput): Organization {
     const parsed = organizationCreateInput.parse(input);
+    // 应用层兜一道：spec §1 单机一个 organization
+    if (this.hasAnyOrganization()) {
+      throw new Error('Organization already exists (singleton enforced — only one per app instance).');
+    }
     const id = newId();
     const ts = this.ctx.now();
     this.ctx.db.prepare(
@@ -1840,6 +1973,40 @@ export class OrganizationService {
       .prepare('SELECT * FROM site WHERE organization_id = ? ORDER BY created_at')
       .all(orgId) as Site[];
   }
+
+  createReportingPeriod(input: ReportingPeriodCreateInput): ReportingPeriod {
+    const parsed = reportingPeriodCreateInput.parse(input);
+    const id = newId();
+    const ts = this.ctx.now();
+    // 计算 starts_at / ends_at （UTC 边界），仅 v1 支持 annual；quarterly/monthly 留给后续 phase
+    let starts_at: string;
+    let ends_at: string;
+    if (parsed.granularity === 'annual') {
+      starts_at = `${parsed.year}-01-01T00:00:00.000Z`;
+      ends_at = `${parsed.year}-12-31T23:59:59.999Z`;
+    } else {
+      throw new Error(`granularity '${parsed.granularity}' not supported in Phase 0 (annual only)`);
+    }
+    this.ctx.db.prepare(
+      `INSERT INTO reporting_period
+         (id, organization_id, year, granularity, starts_at, ends_at, is_active, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, 1, ?)`,
+    ).run(id, parsed.organization_id, parsed.year, parsed.granularity, starts_at, ends_at, ts);
+    return this.getReportingPeriod(id)!;
+  }
+
+  getReportingPeriod(id: string): ReportingPeriod | null {
+    const row = this.ctx.db.prepare('SELECT * FROM reporting_period WHERE id = ?').get(id) as
+      | ReportingPeriod
+      | undefined;
+    return row ?? null;
+  }
+
+  listReportingPeriodsByOrganization(orgId: string): ReportingPeriod[] {
+    return this.ctx.db
+      .prepare('SELECT * FROM reporting_period WHERE organization_id = ? ORDER BY year ASC, created_at ASC')
+      .all(orgId) as ReportingPeriod[];
+  }
 }
 ```
 
@@ -1852,7 +2019,7 @@ Expected: PASS (4 tests)
 
 ```bash
 git add src/main/services/ tests/main/services/
-git commit -m "Phase 0/Task 15: OrganizationService (org+site CRUD via service layer)"
+git commit -m "Phase 0/Task 15: OrganizationService (org+site+reporting_period + singleton enforcement)"
 ```
 
 ---
@@ -1895,7 +2062,11 @@ export function createTrpcContext(svc: ServiceContext): TrpcContext {
 ```ts
 import { initTRPC } from '@trpc/server';
 import type { TrpcContext } from '../context.js';
-import { organizationCreateInput, siteCreateInput } from '@shared/types.js';
+import {
+  organizationCreateInput,
+  siteCreateInput,
+  reportingPeriodCreateInput,
+} from '@shared/types.js';
 import { z } from 'zod';
 
 const t = initTRPC.context<TrpcContext>().create();
@@ -1914,6 +2085,14 @@ export const organizationRouter = t.router({
   listSites: t.procedure.input(z.object({ organization_id: z.string() })).query(({ input, ctx }) =>
     ctx.organizationService.listSitesByOrganization(input.organization_id),
   ),
+  createReportingPeriod: t.procedure
+    .input(reportingPeriodCreateInput)
+    .mutation(({ input, ctx }) => ctx.organizationService.createReportingPeriod(input)),
+  listReportingPeriods: t.procedure
+    .input(z.object({ organization_id: z.string() }))
+    .query(({ input, ctx }) =>
+      ctx.organizationService.listReportingPeriodsByOrganization(input.organization_id),
+    ),
 });
 ```
 
@@ -2259,12 +2438,34 @@ createRoot(root).render(
 Run: `pnpm dev`
 Expected: 页面分左右：左 sidebar，右 Dashboard 空态 ("Welcome to carbonbook…")。
 
-- [ ] **Step 9: Commit**
+- [ ] **Step 9: 触发 TanStack Router codegen + 验证 gen file 出现**
 
 ```bash
-git add src/renderer/router.tsx src/renderer/routes/ src/renderer/components/Sidebar.tsx src/renderer/main.tsx electron.vite.config.ts package.json pnpm-lock.yaml
-git commit -m "Phase 0/Task 18: TanStack Router + Sidebar + Dashboard empty state"
+pnpm dev
 ```
+
+让 Vite 启动一次，`TanStackRouterVite` plugin 会生成 `src/renderer/routeTree.gen.ts`。Ctrl-C 关掉 dev server。
+
+验证：
+```bash
+ls -la src/renderer/routeTree.gen.ts
+```
+Expected: 文件存在，包含 `__root` + `index` + `onboarding/$step` 三条 route 类型。
+
+- [ ] **Step 10: Commit（**含 routeTree.gen.ts**）**
+
+```bash
+git add src/renderer/router.tsx src/renderer/routes/ src/renderer/routeTree.gen.ts src/renderer/components/Sidebar.tsx src/renderer/main.tsx electron.vite.config.ts package.json pnpm-lock.yaml
+git commit -m "Phase 0/Task 18: TanStack Router + Sidebar + Dashboard empty state (gen file committed)"
+```
+
+> **关于 routeTree.gen.ts 的处理策略**：直接 commit。理由——
+> - vite plugin 会在 dev/build 时自动重生（不会陈旧）
+> - 但 vitest 跑测试时不一定走 vite plugin（取决于 vitest 配置），有 gen 文件可以直接 import
+> - CI / 新 checkout 不用先 codegen，简化 pipeline
+> - gen 文件冲突是常见的 git 噪音，但 Phase 0 routes 改动很少，可以接受
+>
+> 后续 phase 加 routes 时，每次 commit 同时带 gen 文件更新，CI 可加一条断言"gen 文件 up-to-date"。
 
 ---
 
@@ -3229,13 +3430,14 @@ export function StepAIProvider() {
 
   const createOrg = trpc.organization.create.useMutation();
   const createSite = trpc.organization.createSite.useMutation();
+  const createPeriod = trpc.organization.createReportingPeriod.useMutation();
   const utils = trpc.useUtils();
 
   const finish = async (kind: 'byot' | 'skip') => {
     setSubmitting(true);
     setError(null);
     try {
-      if (!draft.company || !draft.first_site) {
+      if (!draft.company || !draft.first_site || !draft.reporting_year) {
         setError('Wizard state incomplete; please restart from step 1.');
         return;
       }
@@ -3252,6 +3454,12 @@ export function StepAIProvider() {
         name_en: draft.first_site.name_en,
         address: draft.first_site.address,
         country_code: draft.first_site.country_code,
+      });
+      // 用 step 2 选的 year 创建 annual reporting_period（spec §11 Phase 0 要求）
+      await createPeriod.mutateAsync({
+        organization_id: org.id,
+        year: draft.reporting_year,
+        granularity: 'annual',
       });
       // ai_provider_kind 写到 localStorage，Phase 1 才接真凭证
       localStorage.setItem('carbonbook.onboarding.ai_provider_kind', kind);
@@ -3318,12 +3526,12 @@ git commit -m "Phase 0/Task 25: wizard step 5 (AI provider skeleton) + finish fl
 
 ---
 
-### Task 26: 端到端 wizard 测试 (renderer integration)
+### Task 26: Onboarding wizard smoke test (Renderer)
 
 **Files:**
 - Create: `tests/renderer/onboarding.test.tsx`
 
-per spec §11 Phase 0 deliverable 必须可验证。这个测试不连真 Electron / SQLite，跑 vitest happy-dom 把 wizard 流程跑通+断言 trpc mutation 被调用。
+**Scope（明确收紧）**：本任务**只**做 step 1 渲染 smoke test——wizard 端到端闭环（5 步全走通 + tRPC mutation 真触发）放在 Task 27 的手工 acceptance 里验。Phase 0 不承诺自动化端到端 happy-path 测试；那是 Phase 1+ 的 e2e harness 工作。
 
 - [ ] **Step 1: 装测试依赖**
 
@@ -3393,7 +3601,9 @@ describe('Onboarding wizard step 1', () => {
 Run: `pnpm test tests/renderer/onboarding.test.tsx`
 Expected: PASS (1 test)
 
-如果 happy-dom + Tailwind v4 + Paraglide 出问题：把这个测试 simplified，只断言 wizard step 1 form 渲染存在 input field（不依赖 i18n / 样式）。如果继续失败超过 30 分钟，标 FIXME 跳过此 task 改进，继续 Task 27（实测 wizard 已经有手工 dev 验证作 Phase 0 acceptance）。
+如果 happy-dom + Tailwind v4 + Paraglide 出问题：进一步简化，只断言 step 1 包含一个 `<input>` 元素（最低 smoke）。如果继续失败超过 30 分钟，加 `it.skip` + 注释说明，**Phase 0 acceptance 不依赖此测试**——wizard 闭环走 Task 27 手工验。
+
+> **本 task 是 smoke test，不是端到端测试**。承诺范围仅限"step 1 表单能渲染"。完整 happy-path 自动化在 Phase 1 起的 e2e harness 里做。
 
 - [ ] **Step 5: Commit**
 
@@ -3421,7 +3631,7 @@ Expected: 全部通过。
 - [ ] **Step 3: 跑预览看 production 模式能启动**
 
 Run: `pnpm preview`
-Expected: app 启动；过 wizard；写 organization + site 到 `~/Library/Application Support/carbonbook/app.sqlite` (macOS) 或 `%APPDATA%\carbonbook\app.sqlite` (Windows)；重启后直接进 dashboard。
+Expected: app 启动；过 wizard；写 organization + site + reporting_period 到 `~/Library/Application Support/carbonbook/app.sqlite` (macOS) 或 `%APPDATA%\carbonbook\app.sqlite` (Windows)；重启后直接进 dashboard。
 
 - [ ] **Step 4: 验证 SQLite 文件可手工读**
 
@@ -3429,11 +3639,14 @@ macOS：
 Run: `sqlite3 ~/Library/Application\ Support/carbonbook/app.sqlite ".tables"`
 Expected: 列出所有表（organization / site / reporting_period / emission_factor / pinned_emission_factor / emission_source / activity_data / calculation_snapshot / calculation_snapshot_line / document / extraction / customer / questionnaire / question / question_mapping / answer / company_profile / narrative_bank / audit_event / schema_migrations）
 
-Run: `sqlite3 ~/Library/Application\ Support/carbonbook/app.sqlite "SELECT * FROM organization; SELECT * FROM site;"`
-Expected: 一行 organization + 一行 site（你 wizard 填的数据）
+Run: `sqlite3 ~/Library/Application\ Support/carbonbook/app.sqlite "SELECT * FROM organization; SELECT * FROM site; SELECT * FROM reporting_period;"`
+Expected: 一行 organization + 一行 site + 一行 reporting_period（你 wizard 填的数据，year = 你在 step 2 选的年份）
 
 Run: `sqlite3 ~/Library/Application\ Support/carbonbook/app.sqlite "PRAGMA foreign_keys;"`
 Expected: `1`
+
+Run: `sqlite3 ~/Library/Application\ Support/carbonbook/app.sqlite "SELECT COUNT(*) FROM organization;"`
+Expected: `1`（singleton 约束生效）
 
 - [ ] **Step 5: Windows 验证**
 
@@ -3485,12 +3698,13 @@ git tag -a phase-0 -m "Phase 0 — Foundation"
 
 - [ ] `pnpm dev` 在 macOS 启动 carbonbook 窗口
 - [ ] 第一次启动跳到 onboarding wizard
-- [ ] 5 步 wizard 全部填完写入 SQLite
+- [ ] 5 步 wizard 全部填完，**写入 organization (1 行) + site (1 行) + reporting_period (1 行)** 到 SQLite
 - [ ] 重启 app 直接进 Dashboard 不再 onboarding
-- [ ] `pnpm test` 全绿
+- [ ] `pnpm test` 全绿（含 organization singleton 测试 + reporting_period 创建 / UNIQUE 测试）
 - [ ] `pnpm typecheck` 全绿
 - [ ] `pnpm build` 三个 out/ 产物齐全
-- [ ] sqlite3 CLI 能 query 出 organization + site 行 + foreign_keys=1
+- [ ] `pnpm lint` 通过（Biome）
+- [ ] sqlite3 CLI 能 query 出 organization + site + reporting_period 行 + `PRAGMA foreign_keys` = 1 + `SELECT COUNT(*) FROM organization` = 1
 - [ ] git 历史里 27 个 Phase 0 commit + tag `phase-0`
 
 ---
