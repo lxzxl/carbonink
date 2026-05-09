@@ -465,8 +465,8 @@ CREATE TABLE extraction (
   llm_provider  TEXT NOT NULL,                -- 'azure-openai' | 'anthropic' | ...
   llm_model     TEXT NOT NULL,                -- 'gpt-5' | 'claude-sonnet-4-6' ...
   prompt_version TEXT NOT NULL,               -- 内部版本号
-  raw_response  TEXT NOT NULL CHECK(json_valid(raw_response)),  -- LLM 原始输出
-  parsed_json   TEXT NOT NULL CHECK(json_valid(parsed_json)),   -- 校验后的结构化 JSON
+  raw_response  TEXT NOT NULL,                                  -- LLM 原始输出（可能是非合法 JSON：流式截断 / provider bug / 模型返回 markdown 包裹的 JSON 等。审计 / debug 用，不强制 json_valid）
+  parsed_json   TEXT NOT NULL CHECK(json_valid(parsed_json)),   -- 应用层 zod 校验通过后的结构化 JSON（必须 valid）
   status        TEXT NOT NULL CHECK(status IN ('pending', 'parsed', 'review_needed', 'rejected')),
   reviewed_by_user_at TEXT,                   -- 用户人工 confirm 时间
   cost_usd      REAL,                         -- AI 调用成本估算
@@ -537,7 +537,7 @@ CREATE TABLE answer (
   unit            TEXT,
   source_kind     TEXT NOT NULL CHECK(source_kind IN ('mapped_inventory', 'manual', 'ai_suggested')),
 
-  -- 类型化 FK：根据 source_kind 互斥使用（service layer 校验只填一列）
+  -- 类型化 source FK：4 个 nullable 列，业务上互斥
   source_calculation_snapshot_id TEXT REFERENCES calculation_snapshot(id),
   source_activity_data_id        TEXT REFERENCES activity_data(id),
   source_company_profile_key     TEXT REFERENCES company_profile(key),
@@ -547,7 +547,23 @@ CREATE TABLE answer (
   -- JSON 内含当时的关键字段（如 amount, unit, computed_co2e_kg, EF version, snapshot_id 等）
   source_summary  TEXT CHECK(source_summary IS NULL OR json_valid(source_summary)),
 
-  finalized_at    TEXT
+  finalized_at    TEXT,
+
+  -- DB-level 互斥：mapped_inventory 必填恰好一个 source FK；manual / ai_suggested 至多一个
+  -- (布尔表达式 IS NOT NULL 在 SQLite 求值为 0/1，可直接相加)
+  CHECK (
+    (source_kind = 'mapped_inventory' AND
+      ((source_calculation_snapshot_id IS NOT NULL) +
+       (source_activity_data_id IS NOT NULL) +
+       (source_company_profile_key IS NOT NULL) +
+       (source_narrative_bank_id IS NOT NULL)) = 1)
+    OR
+    (source_kind IN ('manual', 'ai_suggested') AND
+      ((source_calculation_snapshot_id IS NOT NULL) +
+       (source_activity_data_id IS NOT NULL) +
+       (source_company_profile_key IS NOT NULL) +
+       (source_narrative_bank_id IS NOT NULL)) <= 1)
+  )
 );
 
 CREATE TABLE company_profile (
