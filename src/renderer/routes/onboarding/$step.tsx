@@ -3,6 +3,7 @@ import { StepCompanyInfo } from './-components/StepCompanyInfo';
 import { StepReportingYear } from './-components/StepReportingYear';
 import { StepBoundary } from './-components/StepBoundary';
 import { StepFirstSite } from './-components/StepFirstSite';
+import { StepAIProvider } from './-components/StepAIProvider';
 import * as m from '@renderer/paraglide/messages';
 
 export const Route = createFileRoute('/onboarding/$step')({
@@ -16,6 +17,7 @@ function OnboardingShell() {
   if (step === '2') return <Page><StepReportingYear /></Page>;
   if (step === '3') return <Page><StepBoundary /></Page>;
   if (step === '4') return <Page><StepFirstSite /></Page>;
+  if (step === '5') return <Page><StepAIProvider /></Page>;
   return <Navigate to="/onboarding/$step" params={{ step: '1' }} replace />;
 }
 

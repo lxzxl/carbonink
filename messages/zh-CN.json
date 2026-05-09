@@ -27,5 +27,11 @@
   "onboarding_step_site_name_zh": "Site 名称（中文）",
   "onboarding_step_site_name_en": "Site 名称（English）",
   "onboarding_step_site_address": "地址",
-  "onboarding_step_site_country": "国家代码"
+  "onboarding_step_site_country": "国家代码",
+  "onboarding_step_ai_title": "AI 提供方",
+  "onboarding_step_ai_body": "carbonbook 需要 AI 提供方解析文档和回答问卷。可以稍后在设置里配置；现在跳过也可以。",
+  "onboarding_step_ai_skip": "稍后在设置里配置",
+  "onboarding_step_ai_byot": "我有 API key（向导完成后到设置里填）",
+  "onboarding_finish": "完成",
+  "onboarding_creating": "正在创建组织…"
 }
