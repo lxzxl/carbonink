@@ -3,6 +3,7 @@
   "version": "0.0.1-phase0",
   "private": true,
   "type": "module",
+  "main": "out/main/index.js",
   "engines": {
     "node": ">=22"
   },
@@ -20,6 +21,19 @@
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
     "@types/node": "^25.6.2",
+    "@types/react": "^18.3.28",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^4.7.0",
     "typescript": "5.5"
+  },
+  "dependencies": {
+    "electron": "^33",
+    "electron-vite": "^4",
+    "react": "^18",
+    "react-dom": "^18",
+    "vite": "^7"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["electron", "esbuild"]
   }
 }
