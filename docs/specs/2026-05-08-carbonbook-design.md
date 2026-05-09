@@ -52,9 +52,10 @@
 - 系统记忆 mapping，下次同客户的问卷复用
 - 内置 CDP supplier demo 模板；其他模板"用户首次填完即沉淀"
 
-**CBAM Add-on（高单价模块，独立购买）**
+**CBAM Add-on（高单价模块，独立购买，v1.1 计划）**
 - 仅 6 行业（钢/铝/水泥/化肥/电/氢）
 - 嵌入式排放方法论 + CBAM Quarterly Report XML 输出
+- v1.0 不发布；详见 §7（设计预案）+ §11（v1.1 backlog）
 
 ### 核心叙事（产品 marketing & sales 抓手）
 
@@ -67,8 +68,8 @@
 | 档 | 价格 | 内容 |
 |---|---|---|
 | **Base 年订阅** | $300-800 / 年 / 人 | 算+填全功能、ISO 14064 报告、通用问卷解析、CDP demo 模板、EF 库季度更新 |
-| **CBAM Add-on** | $2,000-5,000 / 年 | CBAM 方法论 + XML 输出 + 6 行业专属 EF |
-| **AI 调用** | **客户自付**（BYOT API key 或 OAuth 订阅 ChatGPT Plus / Claude Pro / GitHub Copilot 等） | 不进 carbonbook 的成本结构 |
+| **CBAM Add-on**（v1.1 计划，v1.0 不发布） | $2,000-5,000 / 年 | CBAM 方法论 + XML 输出 + 6 行业专属 EF。详见 §7（设计预案） |
+| **AI 调用** | **客户自付**（BYOT API key / OpenAI-compat endpoint；OAuth provider 视各 provider 公开支持情况开放） | 不进 carbonbook 的成本结构 |
 | **更新机制** | 年付校验联网一次；EF snapshot 季度推送（10MB 增量） | 单机为主，最小云依赖 |
 
 ### 与 Seneca AERA 的继承关系
@@ -212,7 +213,7 @@
 |---|---|---|
 | electron-trpc | 自写 typed IPC | 节省 1-2 周；与 TanStack Query 集成顺滑 |
 | Cloudflare Pages+R2+Workers | 自建 VPS / Vercel / Supabase | 免费层够用、无服务器维护负担、Cloudflare 中国大陆访问通透 |
-| safeStorage (OS keystore) | 自加密 + 文件存储 | 系统级安全；macOS Keychain / Windows Credential Manager / Linux libsecret |
+| safeStorage (OS keystore) | 自加密 + 文件存储 | 系统级安全；v1 覆盖 macOS Keychain + Windows Credential Manager；Linux libsecret 在 v1.1 验证（与 Linux build 一起） |
 | 上传文件 FS + content-hash | 入库 BLOB | SQLite BLOB 性能差 + DB 文件膨胀；FS + hash 干净 |
 
 ---
@@ -223,7 +224,14 @@
 
 1. **Activity-row 颗粒（不是 monthly aggregate）** —— 每一笔活动数据 = 一行（一张电费单 = 一行；一笔燃油加注 = 一行）。AERA 选了 monthly aggregate 丢掉了审计追溯，AI 解析单据天然就是逐笔，强行汇总会丢字段。聚合视图在 SQL view / 查询时算。
 
-2. **Immutable EF snapshot + activity 行硬绑版本** —— EF 永不就地改写，每次更新发新 `dataset_version`；activity_data 行 FK 到具体 EF snapshot。EF 库季度更新进来，老数据自动保持原值（可重现）；用户想"用新 DEFRA 重算 2024 年"是显式操作。**这一条直接根除 AERA 的 #1 痛点。**
+2. **Immutable EF snapshot + activity 行 FK 到本地 pin 副本** —— EF 永不就地改写，每次更新发新 `dataset_version`。用户绑活动数据到 EF 时，系统先从 `emission_factor`（UNION 来自 `ef_library.sqlite` readonly 库 + `app.sqlite` 用户上传 EF）query 候选；选中后**把那行 EF 复制到 `app.sqlite` 的 `pinned_emission_factor` 表**（按复合 PK 去重），activity_data 的 FK 指向本地 pin 副本（同 DB 内 FK 实际可用）。这样：
+   - EF 库 snapshot 替换后历史报告完全可复现
+   - DB 层 FK 完整性能强制（不依赖 service-layer 自觉）
+   - app.sqlite 自包含，备份/迁移/分享是单文件
+   - 体积可控（每个 unique EF 只 pin 一次）
+   - 用户想"用新 DEFRA 重算 2024 年"是显式操作 → 触发 audit_event 记录
+   
+   **SQLite 跨 attached DB 不支持普通 FK，所以"FK 直接指向 emission_factor"在 readonly 库这种部署模式下行不通**——pin 副本是这条原则的实现层落地，而不是冗余。这条根除 AERA 的 #1 痛点。
 
 3. **Document → Extraction → Activity Data 三层** —— 上传文件入 documents（content-hash 寻址），AI 解析结果入 extractions（JSON + 模型/prompt 版本），activity_data 行可以 FK 到 extraction（来自 AI）或为 NULL（用户手填）。审计链完整。
 
@@ -324,6 +332,47 @@ CREATE INDEX idx_ef_lookup ON emission_factor(factor_code, year, geography);
 CREATE INDEX idx_ef_scope_cat ON emission_factor(scope, category);
 ```
 
+#### `pinned_emission_factor`
+
+EF 行的本地"快照副本"，在 app.sqlite 内，让 activity_data 的 FK 实际可用（SQLite 不支持跨 attached DB 的普通 FK）。当用户首次把某条活动数据绑定到一个 EF 时，service layer 把那行 EF 从 `emission_factor`（无论来自 readonly 库还是用户上传）原样复制到此表（INSERT OR IGNORE，按复合 PK 去重）。
+
+```sql
+CREATE TABLE pinned_emission_factor (
+  -- 复合 PK 与 emission_factor 一致
+  factor_code      TEXT NOT NULL,
+  year             INTEGER NOT NULL,
+  source           TEXT NOT NULL,
+  geography        TEXT NOT NULL,
+  dataset_version  TEXT NOT NULL,
+  PRIMARY KEY (factor_code, year, source, geography, dataset_version),
+
+  -- 计算和审计需要的字段（emission_factor 的子集 + 元数据）
+  scope            INTEGER NOT NULL,
+  category         TEXT,
+  ghg_protocol_path TEXT,
+  input_unit       TEXT NOT NULL,
+  co2e_kg_per_unit REAL NOT NULL,
+  ch4_kg_per_unit  REAL,
+  n2o_kg_per_unit  REAL,
+  hfc_kg_per_unit  REAL,
+  pfc_kg_per_unit  REAL,
+  sf6_kg_per_unit  REAL,
+  nf3_kg_per_unit  REAL,
+  gwp_basis        TEXT NOT NULL,
+  name_zh          TEXT,
+  name_en          TEXT,
+  description_zh   TEXT,
+  description_en   TEXT,
+  citation_url     TEXT,
+
+  -- pin 自身的元数据
+  pinned_at        TEXT NOT NULL,             -- ISO8601 复制时间
+  pinned_from      TEXT NOT NULL              -- 'ef_library@v2026.q3' | 'user_uploaded' | 'cbam_default@v2024'
+);
+```
+
+EF 库季度更新换 readonly snapshot 时，pinned 行不动 → 历史 activity_data 仍然 FK 通且数值不变。用户走 EF Rebind 流程时（详见 §8），service layer 把新版本 EF 复制为新 pinned 行，把目标 activity_data 行的 FK 改指新 pin，原 pin 留着不删（其他历史数据可能还在引用）。
+
 #### `activity_data`
 
 ```sql
@@ -341,14 +390,14 @@ CREATE TABLE activity_data (
   amount           REAL NOT NULL,
   unit             TEXT NOT NULL,              -- 必须可换算到 EF.input_unit
 
-  -- EF 绑定（5 字段复合外键）
+  -- EF 绑定（5 字段复合外键，指向 app.sqlite 内的 pinned_emission_factor）
   ef_factor_code      TEXT NOT NULL,
   ef_year             INTEGER NOT NULL,
   ef_source           TEXT NOT NULL,
   ef_geography        TEXT NOT NULL,
   ef_dataset_version  TEXT NOT NULL,
   FOREIGN KEY (ef_factor_code, ef_year, ef_source, ef_geography, ef_dataset_version)
-    REFERENCES emission_factor(factor_code, year, source, geography, dataset_version),
+    REFERENCES pinned_emission_factor(factor_code, year, source, geography, dataset_version),
 
   -- 计算结果（冗余存 cache，输入变了重算）
   computed_co2e_kg REAL NOT NULL,
@@ -665,11 +714,11 @@ interface LLMClient {
 
 ### 三模 AI 认证
 
-| 模式 | 配置 | 客户场景 |
-|---|---|---|
-| **A. BYOT API Key** | 用户在设置里粘贴 key（OpenAI / Anthropic / Azure OpenAI / DeepSeek / Qwen / 任何 OpenAI 兼容 URL） | 默认；ESG 经理自己开账号付 API 账单 |
-| **B. OAuth Subscription** | 用户用 Claude Pro / ChatGPT Plus / GitHub Copilot / Google 账号 OAuth 登录 | 已经有月度订阅的用户 |
-| **C. Self-hosted / 内部 endpoint** | 用户填 OpenAI-compatible URL | 数据合规严的大客户、集团供应商 |
+| 模式 | 配置 | 客户场景 | 状态 |
+|---|---|---|---|
+| **A. BYOT API Key**（v1 主路） | 用户在设置里粘贴 key（OpenAI / Anthropic / Azure OpenAI / DeepSeek / Qwen / 任何 OpenAI 兼容 URL） | 默认；ESG 经理自己开账号付 API 账单 | ✅ stable |
+| **B. OAuth Provider Login**（实验性，按 provider 公开支持情况开放） | 用户通过 OAuth 登录已支持的 provider，例如 Anthropic Console OAuth、Google Vertex AI Application Default Credentials、GitHub Copilot SDK preview。**不是直接复用 ChatGPT Plus / Claude Pro 这种消费者订阅做 API 调用**——那条路在大多数 provider 不被官方支持。 | 已有 Console / Cloud / Copilot OAuth 凭证的用户；具体可用性随 pi-ai 上游适配 | ⚠️ experimental |
+| **C. Self-hosted / OpenAI-compat endpoint**（v1 企业主路） | 用户填 OpenAI-compatible URL（公司内部 Azure OpenAI 部署 / Ollama / vLLM / DeepSeek 自建） | 数据合规严的大客户、集团供应商 | ✅ stable |
 
 ### Prompt 库结构
 
@@ -739,7 +788,8 @@ src/main/llm/prompts/
 │   ② 报告年度（默认 2025）+ GHG Protocol 版本（AR6）│
 │   ③ 组织边界（Equity Share / Operational Control）│
 │   ④ 添加 Site（首个 site 必填）                   │
-│   ⑤ AI Provider 配置（BYOT key 或 OAuth 一选一）  │
+│   ⑤ AI Provider 配置（BYOT key / OpenAI-compat │
+│      endpoint；OAuth provider 视支持情况开放）   │
 └──────────────────────────────────────────────────┘
       │
       ▼
@@ -967,6 +1017,10 @@ total_period_emissions (view)
 ---
 
 ## §7. CBAM Add-on 模块
+
+> **状态：v1.1 设计附录（v1.0 不发布此模块）**
+>
+> 本章节是 CBAM Add-on 的完整设计预案。CBAM 模块在 v1.0 GA 之后启动，前提是已找到 1-2 个 CBAM 行业 design partner 验证。v1.0 的 license / UI / commercial 不含 CBAM。详见 §10 License Model 与 §11 v1.1 backlog。
 
 ### 范围 & 商业定位
 
@@ -1257,7 +1311,9 @@ Settings → EF Library → Audit
   [ ] 3 rows: OECC 2018 → OECC 2024
   [ ] 2 rows: IPCC AR5 → AR6
 
-  [Rebind selected]  ← 触发批量改 ef_dataset_version FK
+  [Rebind selected]  ← 触发：把新版本 EF 复制为新 pinned_emission_factor 行
+                       批量改 activity_data 的 FK 指新 pin（原 pin 保留）
+                       重算 computed_co2e_kg
                        audit_event 写一条 append-only 日志
 ```
 
@@ -1339,7 +1395,7 @@ EF 主表 `name_zh` / `name_en` / `description_zh` / `description_en`。Crawler 
 - 配对成功生成 token 存 OS Keychain
 - Settings → Integrations 列表显示所有配对客户端 + 最近活动 + Revoke 按钮
 
-### 写操作的 confirm 模式
+### 写操作的 confirm 模式（GUI 运行时）
 
 ```
 Settings → MCP Server → Write permissions:
@@ -1348,6 +1404,25 @@ Settings → MCP Server → Write permissions:
   ○ Trusted clients only（只信任配对时勾过 "trust this client" 的）
   ○ Off（拒绝所有写）
 ```
+
+### Headless stdio 模式的权限规则
+
+当外部工具把 carbonbook 当 MCP server **launch**（即 `carbonbook --mcp-stdio`，没有 GUI 进程在跑）时，权限模型严格收紧——因为没有人类在屏幕前看 confirm 弹窗：
+
+| 场景 | 行为 |
+|---|---|
+| **无配对历史**（OS Keychain 里没有任何 trusted token） | 启动后所有 tools 一律拒绝。返回 `{ permission_required: true, hint: "Open carbonbook GUI to pair this client first" }`。**不允许首次配对走 headless**——首次配对必须 GUI |
+| **有配对 token 且 token 标记 trusted** | 自动启动 read-only：所有 resources + RO tools（`query_emissions` / `lookup_emission_factor` / `match_question_to_inventory`）正常工作 |
+| **有配对 token + 写 tool 调用 + GUI 未运行** | 写 tools 一律返回 `{ permission_required: true, hint: "Open carbonbook GUI to confirm write operations" }`。不静默执行 |
+| **有配对 token + 写 tool 调用 + GUI 同时运行** | 写 tools IPC 给 GUI 弹 confirm 对话框，与 SSE 模式一致 |
+
+**铁律**：
+
+1. **首次配对永远要 GUI**——防止"用户不知情就被某 AI 工具配对"
+2. **Headless 写权限永远依赖 GUI 同时在跑**——不能在没有人类感知下改用户数据
+3. **stdio 启动时检查 GUI 进程是否运行**：通过 lock file 或 named pipe 探测；GUI 在 → 写 tools 走 IPC + GUI confirm；GUI 不在 → 写 tools 全部 `permission_required`
+
+这套规则保证 §9 的 "off by default + write confirm" 在 stdio launch 这条非 GUI 路径下依然 meaningful，不被绕过。
 
 ### 隐藏的好处
 
@@ -1380,10 +1455,11 @@ Settings → MCP Server → Write permissions:
 └──────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────┐
-│  CBAM Add-on（独立 JWT）                                  │
+│  CBAM Add-on（v1.1 计划，独立 JWT）                       │
 │  features: ["cbam"]                                      │
 │  tier: "T1" | "T2" | "T3"                                │
 │  duration: 1 year                                        │
+│  注：v1.0 不签发此 license；以下 schema 为 v1.1 预案     │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -1421,28 +1497,69 @@ Settings → MCP Server → Write permissions:
 4. 之后每次启动：本地验签 → 解析 expires_at → 决定是否要 ping cloud
 ```
 
-### 离线宽限
+### License State Machine
+
+License 在客户端有 4 个状态，由 JWT 字段 + 时间 + cloud 联网验证决定。**这套状态机是唯一的真相**——之前若有"过期立即 read-only"或"宽限期可写"等说法，以本节为准。
+
+#### JWT 字段
+
+| 字段 | 含义 |
+|---|---|
+| `expires_at` | 订阅截止时间（付费期最后一秒） |
+| `grace_until` | 写入宽限期截止 = `expires_at + 30 天`（cloud 计算并写入 JWT） |
+| `revocation_check_after` | 下次必须联网 ping cloud /verify 拿 revoke 状态的最早时间（典型 7 天间隔） |
+
+#### 4 个状态 × 触发条件 × UI 行为
+
+| 状态 | 触发条件 | UI 行为 |
+|---|---|---|
+| **active** | `now < expires_at` AND signature OK AND not revoked AND `now < revocation_check_after`（或最近 ping 成功） | 全功能；无 banner |
+| **grace** | `expires_at ≤ now < grace_until` AND not revoked | 全功能 + 红色顶部 banner "请续费（剩余 X 天）" |
+| **expired** | `now ≥ grace_until` OR signature 失效 OR 联网失败累计 > 30 天 | **Read-only**（详见下） |
+| **revoked** | cloud `/verify` 返回 revoked（无视 expires_at） | **Read-only** 立即生效 |
+
+#### 状态转换
 
 ```
-启动时:
-  本地验签 JWT
-   - 签名错 / 过期 → 进入 read-only 模式
-   - 还在 revocation_check_after 之前 → ✅ 全功能
-   - revocation_check_after 之后 → 后台异步 ping cloud /verify
-       ✓ 成功 → 拿新 JWT (refresh)
-       ✗ 联网失败 + 超过 30 天 → read-only
-       ✗ cloud 报 revoked → 立即 read-only
+       ┌────────┐  expires_at 到期    ┌────────┐
+       │ active │ ─────────────────► │ grace  │
+       └────┬───┘                     └────┬───┘
+            │                              │
+            │ revoked / 超过 30 天离线      │ grace_until 到期
+            │                              │
+            ▼                              ▼
+       ┌─────────────────────────────────────┐
+       │  read-only （expired or revoked）   │
+       └────┬────────────────────────────────┘
+            │ 用户续费 → cloud issue 新 JWT
+            │ 下次 ping 拿到 → 切回 active
+            ▼
+       ┌────────┐
+       │ active │
+       └────────┘
 ```
 
-**Read-only 模式**：所有现有数据可查看 + 导出，禁止：写 activity_data、生成新报告、调 AI。
+#### Read-only 模式定义
 
-### 续费
+- ✅ 允许：查看现有数据、导出 PDF/Excel、查 EF 库、settings 改 AI provider key（防止 key 失效卡死）
+- ❌ 禁止：写 activity_data、生成新报告、调 AI 跑 pipeline、freeze calculation_snapshot、导出问卷答案（已 finalized 的可重导）、写 EF 库（包括用户上传）、MCP 写 tools
+- 数据本身永远不动；恢复 license 后立刻能继续工作
 
-- expires_at 前 30 天：UI 顶部 banner "续费"
-- 用户点击 → 浏览器跳到 carbonbook.app/renew
-- 支付完成 → cloud 自动 issue 新 JWT，app 下次 ping 拿到 → 无缝续期
-- expires_at 当天若没续：进入 30 天宽限期（仍可写，banner 红色）
-- 30 天宽限后：read-only
+#### Cloud /verify ping 节奏
+
+- `now < revocation_check_after`：本地验签即可，不联网
+- `now ≥ revocation_check_after`：启动时后台异步 ping，**非阻塞**
+  - ✓ 成功 → 拿新 JWT（含新 `revocation_check_after`）
+  - ✗ 网络失败 → 累计离线天数；累计 > 30 天 → expired
+  - ✗ cloud 返回 `revoked` → 立即切 revoked
+
+### 续费触发点（UI banner）
+
+- `expires_at - 30 天` 起：UI 顶部 banner "续费即将到期"
+- 进入 grace（已过 expires_at）：banner 转红色，显示宽限剩余天数
+- 进入 read-only：全屏遮罩 + "续费恢复"按钮
+
+续费流程：用户点 banner → 浏览器跳 `carbonbook.app/renew?license_id=...` → 支付完成 → cloud webhook 生成新 JWT → app 下次启动或下次 ping 拿到新 JWT → 无缝切回 active。
 
 ### 撤销 / 退款
 
@@ -1597,7 +1714,7 @@ v1.0 GA → 进入 v1.1 backlog（CBAM / Linux / 区域定价 等）
 | 工作块 | Done 标准 |
 |---|---|
 | ISO 14064-1 PDF / Excel 报告模块（react-pdf + bilingual + Excel writer）；冻结 calculation_snapshot | 跑出一份能给客户看的 PDF + Excel |
-| EF rebind UI；audit_event；EF library 自动检查更新流程；OAuth login 流程（Anthropic / Codex / Copilot） | 模拟 EF 库换版后用户能 rebind |
+| EF rebind UI；audit_event；EF library 自动检查更新流程；OAuth login 流程（实验性，限 provider 官方支持的 OAuth：Anthropic Console / Vertex AI ADC / Copilot SDK preview） | 模拟 EF 库换版后用户能 rebind |
 | Closed Beta 招募；onboarding 教程 / 文档；macOS 开发版 + Windows 开发版能装 | 5+ 个用户拿到首版安装包 |
 | Beta 反馈快速 iteration；优先修堵路 bug；UX 痛点收紧 | Bug list ≤ 10 P0；体验流畅度通过 |
 
