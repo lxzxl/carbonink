@@ -1,21 +1,38 @@
-import { defineConfig } from 'vitest/config';
+import { defineConfig, defineProject } from 'vitest/config';
 import { resolve } from 'node:path';
+
+const alias = {
+  '@shared': resolve('src/shared'),
+  '@main': resolve('src/main'),
+  '@renderer': resolve('src/renderer'),
+};
 
 export default defineConfig({
   test: {
-    environment: 'node',
-    include: ['tests/**/*.test.{ts,tsx}'],
-    globals: false,
+    projects: [
+      defineProject({
+        test: {
+          name: 'renderer',
+          environment: 'happy-dom',
+          include: ['tests/renderer/**/*.test.{ts,tsx}'],
+          globals: false,
+        },
+        resolve: { alias },
+      }),
+      defineProject({
+        test: {
+          name: 'node',
+          environment: 'node',
+          include: ['tests/main/**/*.test.{ts,tsx}', 'tests/shared/**/*.test.{ts,tsx}'],
+          globals: false,
+        },
+        resolve: { alias },
+      }),
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
     },
   },
-  resolve: {
-    alias: {
-      '@shared': resolve('src/shared'),
-      '@main': resolve('src/main'),
-      '@renderer': resolve('src/renderer'),
-    },
-  },
+  resolve: { alias },
 });
