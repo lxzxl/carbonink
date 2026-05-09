@@ -9,18 +9,24 @@
   },
   "packageManager": "pnpm@10.0.0",
   "scripts": {
+    "predev": "electron-rebuild -f -w better-sqlite3",
     "dev": "electron-vite dev",
+    "prebuild": "electron-rebuild -f -w better-sqlite3",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
-    "format": "biome format --write ."
+    "format": "biome format --write .",
+    "rebuild:native": "electron-rebuild -f -w better-sqlite3",
+    "rebuild:node": "pnpm rebuild better-sqlite3"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
+    "@electron/rebuild": "^4.0.4",
     "@tailwindcss/postcss": "^4.3.0",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^25.6.2",
     "@types/react": "^18.3.28",
     "@types/react-dom": "^18.3.7",
@@ -34,6 +40,7 @@
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",
+    "better-sqlite3": "^12.9.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "electron": "^33",
@@ -47,6 +54,7 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
+      "better-sqlite3",
       "electron",
       "esbuild"
     ]
