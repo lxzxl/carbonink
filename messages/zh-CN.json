@@ -1,0 +1,10 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "app_title": "carbonbook",
+  "dashboard_welcome_title": "欢迎使用 carbonbook",
+  "dashboard_welcome_body": "你还没有设置组织。下一步引导向导会带你完成。",
+  "dashboard_inventory_title": "排放清单仪表盘",
+  "dashboard_inventory_body": "目前没有排放数据。",
+  "nav_dashboard": "仪表盘",
+  "loading": "加载中…"
+}

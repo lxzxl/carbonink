@@ -1,0 +1,10 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "app_title": "carbonbook",
+  "dashboard_welcome_title": "Welcome to carbonbook",
+  "dashboard_welcome_body": "You haven't set up your organization yet. The onboarding wizard will guide you next.",
+  "dashboard_inventory_title": "Inventory Dashboard",
+  "dashboard_inventory_body": "No emission data yet.",
+  "nav_dashboard": "Dashboard",
+  "loading": "Loading…"
+}
