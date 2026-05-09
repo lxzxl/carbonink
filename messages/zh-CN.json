@@ -21,5 +21,11 @@
   "onboarding_step_boundary_title": "组织边界",
   "onboarding_step_boundary_body": "依据 GHG Protocol Corporate Standard，选择组织边界核算方式。",
   "onboarding_step_boundary_equity_share": "股权比例 — 按对合资公司持股比例分配排放。",
-  "onboarding_step_boundary_operational_control": "经营控制 — 算自己运营的设施排放，无论是否持股。多数小厂适用。"
+  "onboarding_step_boundary_operational_control": "经营控制 — 算自己运营的设施排放，无论是否持股。多数小厂适用。",
+  "onboarding_step_site_title": "添加第一个 Site",
+  "onboarding_step_site_body": "Site 是物理地点（工厂、办公楼、仓库）。后面可以加更多。",
+  "onboarding_step_site_name_zh": "Site 名称（中文）",
+  "onboarding_step_site_name_en": "Site 名称（English）",
+  "onboarding_step_site_address": "地址",
+  "onboarding_step_site_country": "国家代码"
 }

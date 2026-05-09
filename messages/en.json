@@ -21,5 +21,11 @@
   "onboarding_step_boundary_title": "Organizational boundary",
   "onboarding_step_boundary_body": "Per GHG Protocol Corporate Standard. Choose how you account for organizational boundaries.",
   "onboarding_step_boundary_equity_share": "Equity Share — emissions allocated by ownership share of joint ventures.",
-  "onboarding_step_boundary_operational_control": "Operational Control — emissions from facilities you operate, regardless of ownership."
+  "onboarding_step_boundary_operational_control": "Operational Control — emissions from facilities you operate, regardless of ownership.",
+  "onboarding_step_site_title": "Add your first site",
+  "onboarding_step_site_body": "A site is a physical location (factory, office, warehouse). You'll add more later.",
+  "onboarding_step_site_name_zh": "Site name (中文)",
+  "onboarding_step_site_name_en": "Site name (English)",
+  "onboarding_step_site_address": "Address",
+  "onboarding_step_site_country": "Country code"
 }

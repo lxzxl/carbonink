@@ -2,6 +2,7 @@ import { createFileRoute, useParams, Navigate } from '@tanstack/react-router';
 import { StepCompanyInfo } from './-components/StepCompanyInfo';
 import { StepReportingYear } from './-components/StepReportingYear';
 import { StepBoundary } from './-components/StepBoundary';
+import { StepFirstSite } from './-components/StepFirstSite';
 import * as m from '@renderer/paraglide/messages';
 
 export const Route = createFileRoute('/onboarding/$step')({
@@ -14,6 +15,7 @@ function OnboardingShell() {
   if (step === '1') return <Page><StepCompanyInfo /></Page>;
   if (step === '2') return <Page><StepReportingYear /></Page>;
   if (step === '3') return <Page><StepBoundary /></Page>;
+  if (step === '4') return <Page><StepFirstSite /></Page>;
   return <Navigate to="/onboarding/$step" params={{ step: '1' }} replace />;
 }
 
