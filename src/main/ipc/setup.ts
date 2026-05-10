@@ -3,6 +3,7 @@ import { getAppDb } from '@main/db/connection.js';
 import { defaultNow } from '@main/services/base.js';
 import { createIpcContext } from './context.js';
 import { organizationHandlers } from './handlers/organization.js';
+import { sanitize } from './sanitize.js';
 import type { IpcTypeMap } from './types.js';
 
 let listener: IpcListener<IpcTypeMap> | null = null;
@@ -18,17 +19,17 @@ export function setupIpc(): void {
 
   const ctx = createIpcContext({ db: getAppDb(), now: defaultNow });
   const l = new IpcListener<IpcTypeMap>();
+  // typed-ipc's `handle()` is generic per-channel, but we're iterating over a
+  // heterogeneous map here — per-channel typing is preserved at the call
+  // boundary in the renderer wrapper, so a single cast at this seam is fine.
+  // biome-ignore lint/suspicious/noExplicitAny: heterogeneous handler dispatch
+  const handle = l.handle as unknown as (channel: string, h: (...a: any[]) => unknown) => void;
 
   for (const [channel, handler] of Object.entries(organizationHandlers(ctx))) {
-    // typed-ipc's handler signature is (event, ...args). Ignore the event in
+    const wrapped = sanitize(channel, handler as (...a: unknown[]) => unknown);
+    // typed-ipc's handler signature is `(event, ...args)`. Ignore the event in
     // Phase 0 — sender-id-based authorization waits for MCP (§9).
-    // The cast is unavoidable: typed-ipc's `handle()` is generic per-channel,
-    // but we're iterating over a heterogeneous map here. Per-channel typing
-    // is preserved at the call boundary in the renderer wrapper.
-    // biome-ignore lint/suspicious/noExplicitAny: heterogeneous handler dispatch
-    (l.handle as any)(channel, (_event: Electron.IpcMainInvokeEvent, ...args: unknown[]) =>
-      (handler as (...a: unknown[]) => unknown)(...args),
-    );
+    handle(channel, (_event: Electron.IpcMainInvokeEvent, ...args: unknown[]) => wrapped(...args));
   }
 
   listener = l;

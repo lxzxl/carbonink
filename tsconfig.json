@@ -22,7 +22,8 @@
     "paths": {
       "@shared/*": ["./src/shared/*"],
       "@main/*": ["./src/main/*"],
-      "@renderer/*": ["./src/renderer/*"]
+      "@renderer/*": ["./src/renderer/*"],
+      "@preload/*": ["./src/preload/*"]
     }
   },
   "include": ["src", "tests"],

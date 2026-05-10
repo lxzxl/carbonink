@@ -5,6 +5,7 @@ const alias = {
   '@shared': resolve('src/shared'),
   '@main': resolve('src/main'),
   '@renderer': resolve('src/renderer'),
+  '@preload': resolve('src/preload'),
 };
 
 export default defineConfig({
@@ -15,6 +16,15 @@ export default defineConfig({
           name: 'renderer',
           environment: 'happy-dom',
           include: ['tests/renderer/**/*.test.{ts,tsx}'],
+          globals: false,
+        },
+        resolve: { alias },
+      }),
+      defineProject({
+        test: {
+          name: 'preload',
+          environment: 'happy-dom',
+          include: ['tests/preload/**/*.test.{ts,tsx}'],
           globals: false,
         },
         resolve: { alias },
