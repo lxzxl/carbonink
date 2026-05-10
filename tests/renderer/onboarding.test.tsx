@@ -1,19 +1,19 @@
 import { StepCompanyInfo } from '@renderer/routes/onboarding/-components/StepCompanyInfo';
 import {
-  RouterProvider,
   createMemoryHistory,
   createRootRoute,
   createRoute,
   createRouter,
+  RouterProvider,
 } from '@tanstack/react-router';
 import { render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
-// electron-trpc's ipcLink() executes at module load time and crashes outside Electron.
-// Mock the module before any route tree import can trigger it.
-vi.mock('electron-trpc/renderer', () => ({
-  ipcLink: () => () => ({ next: () => {} }),
-}));
+// StepCompanyInfo uses TanStack Form + localStorage for the draft, plus the
+// router for navigation. It does not call any IPC channels, so we don't need
+// to stub `window.ipc` here. (The post-typed-ipc world has no module-level
+// IPC bootstrap that crashes outside Electron — unlike the old electron-trpc
+// `ipcLink()` which had to be mocked.)
 
 describe('Onboarding wizard step 1', () => {
   beforeEach(() => {
@@ -21,7 +21,7 @@ describe('Onboarding wizard step 1', () => {
   });
 
   it('renders company info form fields', async () => {
-    // Build a minimal in-memory router that just renders StepCompanyInfo
+    // Build a minimal in-memory router that just renders StepCompanyInfo.
     const rootRoute = createRootRoute();
     const stepRoute = createRoute({
       getParentRoute: () => rootRoute,

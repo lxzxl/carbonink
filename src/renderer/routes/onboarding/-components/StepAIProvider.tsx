@@ -1,6 +1,7 @@
 import { Button } from '@renderer/components/ui/button';
-import { trpc } from '@renderer/lib/trpc';
+import { orgApi } from '@renderer/lib/api/organization';
 import * as m from '@renderer/paraglide/messages';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { clearDraft, loadDraft } from './wizardState';
@@ -11,8 +12,10 @@ export function StepAIProvider() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const completeOnboarding = trpc.organization.completeOnboarding.useMutation();
-  const utils = trpc.useUtils();
+  const queryClient = useQueryClient();
+  const completeOnboarding = useMutation({
+    mutationFn: orgApi.completeOnboarding,
+  });
 
   const finish = async (kind: 'byot' | 'skip') => {
     setSubmitting(true);
@@ -43,7 +46,7 @@ export function StepAIProvider() {
       });
       localStorage.setItem('carbonbook.onboarding.ai_provider_kind', kind);
       clearDraft();
-      await utils.organization.hasAny.invalidate();
+      await queryClient.invalidateQueries({ queryKey: ['org:has-any'] });
       await navigate({ to: '/' });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unknown error');

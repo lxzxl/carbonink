@@ -1,7 +1,8 @@
+import '@renderer/lib/api/global'; // side-effect: register window.ipc types
 import { initLocale } from '@renderer/lib/i18n';
-import { trpc, trpcClient } from '@renderer/lib/trpc';
 import { router } from '@renderer/router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { RouterProvider } from '@tanstack/react-router';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -9,17 +10,20 @@ import './styles/globals.css';
 
 initLocale();
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { retry: false, refetchOnWindowFocus: false },
+  },
+});
 
 const root = document.getElementById('root');
 if (!root) throw new Error('#root not found');
 
 createRoot(root).render(
   <StrictMode>
-    <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
-      </QueryClientProvider>
-    </trpc.Provider>
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+      <ReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>
   </StrictMode>,
 );

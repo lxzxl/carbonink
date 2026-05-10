@@ -1,5 +1,5 @@
 import * as m from '@renderer/paraglide/messages';
-import { Navigate, createFileRoute, useParams } from '@tanstack/react-router';
+import { createFileRoute, Navigate, useParams } from '@tanstack/react-router';
 import { StepAIProvider } from './-components/StepAIProvider';
 import { StepBoundary } from './-components/StepBoundary';
 import { StepCompanyInfo } from './-components/StepCompanyInfo';

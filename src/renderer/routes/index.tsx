@@ -1,13 +1,17 @@
-import { trpc } from '@renderer/lib/trpc';
+import { orgApi } from '@renderer/lib/api/organization';
 import * as m from '@renderer/paraglide/messages';
-import { Navigate, createFileRoute } from '@tanstack/react-router';
+import { useQuery } from '@tanstack/react-query';
+import { createFileRoute, Navigate } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/')({
   component: Dashboard,
 });
 
 function Dashboard() {
-  const hasAny = trpc.organization.hasAny.useQuery();
+  const hasAny = useQuery({
+    queryKey: ['org:has-any'],
+    queryFn: orgApi.hasAny,
+  });
   if (hasAny.isLoading) return <p className="text-muted-foreground">{m.loading()}</p>;
   if (!hasAny.data) return <Navigate to="/onboarding/$step" params={{ step: '1' }} />;
   return (
