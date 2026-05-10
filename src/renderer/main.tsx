@@ -1,4 +1,3 @@
-import '@renderer/lib/api/global'; // side-effect: register window.ipc types
 import { initLocale } from '@renderer/lib/i18n';
 import { router } from '@renderer/router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
