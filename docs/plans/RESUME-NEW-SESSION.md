@@ -60,7 +60,7 @@ $ pnpm typecheck
 | 8-13 | 6 个 SQL migration（001 core / 002 EF / 003 extraction / 004 inventory / 005 questionnaire / 006 audit） | 每个低-中（DDL 主要） |
 | 14 | zod schemas + types + `optionalString` helper | 低-中 |
 | 15 | OrganizationService（CRUD + 单事务 `completeOnboarding`） | 中（多 test） |
-| 16 | electron-trpc IPC + organization router | 中 |
+| 16 | typed-ipc IPC + organization handlers (rev — replaces electron-trpc) | 中 |
 | 17 | Renderer trpc client + TanStack Query | 低-中 |
 | 18 | TanStack Router + Sidebar + Dashboard 空态 | 中 |
 | 19 | Paraglide JS i18n（zh-CN + en） | 中 |
@@ -129,8 +129,8 @@ docs/plans/tasks/
 ├── task-13-migration-006-audit_event-triggers.md
 ├── task-14-zod-schemas-shared-types.md
 ├── task-15-organization-service.md             ← 最大 (~7K tokens)
-├── task-16-electron-trpc-ipc-organization-router.md
-├── task-17-renderer-trpc-client-tanstack-query.md
+├── task-16-typed-ipc-organization-handlers.md
+├── task-17-renderer-ipc-wrappers.md
 ├── task-18-tanstack-router-routes.md
 ├── task-19-paraglide-js-i18n.md
 ├── task-20-safestorage-macos-windows-abort.md

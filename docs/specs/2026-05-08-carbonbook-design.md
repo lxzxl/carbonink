@@ -104,7 +104,7 @@
 
 ### 进程拓扑（含 Service Layer）
 
-引入 MCP server（详见 §9）后，业务逻辑必须从 tRPC router 下沉到独立 service layer，避免协议层之间的代码重复。tRPC + MCP + 任何未来协议（CLI / REST / WebSocket）都通过 service 调用，**不允许直接 import DB 或写 SQL**。
+引入 MCP server（详见 §9）后，业务逻辑必须从 IPC handler 下沉到独立 service layer，避免协议层之间的代码重复。Renderer-IPC + MCP + 任何未来协议（CLI / REST / WebSocket）都通过 service 调用，**不允许直接 import DB 或写 SQL**。
 
 ```
 ┌────────────────────────────────────────────────────────────────────┐
@@ -112,9 +112,9 @@
 ├──────────────────────────────────┬─────────────────────────────────┤
 │      MAIN PROCESS (Node)         │     RENDERER PROCESS (Chromium) │
 │                                  │                                 │
-│  ┌─ tRPC Router ─┐ ┌─ MCP Srv ─┐ │   ┌───────────────────────────┐ │
+│  ┌─ IPC Handlers ┐ ┌─ MCP Srv ─┐ │   ┌───────────────────────────┐ │
 │  │ inventory.*   │ │ resources │ │   │  TanStack Query / Store   │ │
-│  │ documents.*   │ │ tools     │◄┼──►│  (consume tRPC)           │ │
+│  │ documents.*   │ │ tools     │◄┼──►│  (consume IPC wrappers)   │ │
 │  │ reports.*     │ │ prompts   │ │   └────────┬──────────────────┘ │
 │  │ questionnaire.*│└─────┬─────┘ │            ▼                    │
 │  └────────┬──────┘       │       │   ┌───────────────────────────┐ │
@@ -160,10 +160,12 @@
 - 所有 LLM 调用从 Main 发起；Renderer 通过 IPC 发请求"用 AI 总结这个 PDF"，Main 执行真正的 HTTP
 - 防止 XSS / 渲染层漏洞泄露凭证
 
-**2. IPC 用 `electron-trpc`（type-safe，端到端 TS）**
-- TanStack Query 直接 consume tRPC 路由，DX 一致
-- 替代方案：手工 typed channels（更轻但要写更多胶水）
-- 选 trpc 是因为开发效率 > bundle 大小，而且它支持 subscription（用于 AI 流式输出 + 长任务进度）
+**2. IPC 用 `@electron-toolkit/typed-ipc` + Zod（type-safe，原生 Electron 通道）**
+- 共享 `TypeMap`：`{ 'org:create': (input: OrgCreateInput) => Organization, ... }`，main 端 `IpcListener<TypeMap>` 约束 `ipcMain.handle`、renderer 端 `IpcEmitter<TypeMap>` 约束 `ipcRenderer.invoke`
+- 每个 handler 入口 Zod parse，类型 + 运行时双重保险
+- Renderer 用一层薄 wrapper 把 `ipcRenderer.invoke('org:create', input)` 包成 `orgApi.create(input)`，再交给 TanStack Query 的 `useMutation` / `useQuery`，DX 跟 tRPC 客户端基本一致
+- 历史决定：原本选 `electron-trpc`（v10 时代库），但 tRPC v11 把 transformer 移到 link 层后 electron-trpc 仍按 v10 假设运行 runtime.transformer → 客户端 NPE + 静默挂死。库已无活跃维护（last commit 2024-12），换 typed-ipc 切断这条死路径
+- AI 流式输出 / 长任务进度走 `BrowserWindow.webContents.send` 自定义事件 channel（非 invoke，单向推送），renderer 用 `ipcRenderer.on` 订阅。MCP server 不走 IPC，独立跑在 `utilityProcess` 里通过 localhost socket 暴露（详见 §9）
 
 **3. 三个 SQLite 文件，职责分明**
 
@@ -215,7 +217,7 @@
 
 | 选 | 替代 | 理由 |
 |---|---|---|
-| electron-trpc | 自写 typed IPC | 节省 1-2 周；与 TanStack Query 集成顺滑 |
+| `@electron-toolkit/typed-ipc` + Zod | electron-trpc / tRPC | electron-trpc 已无活跃维护、tRPC v11 + electron-trpc 静默挂死（详见架构决定 #2）；typed-ipc 用 Electron 原生 channel，类型 + Zod 双保险，零 wire-format 依赖 |
 | Cloudflare Pages+R2+Workers | 自建 VPS / Vercel / Supabase | 免费层够用、无服务器维护负担、Cloudflare 中国大陆访问通透 |
 | safeStorage (OS keystore) | 自加密 + 文件存储 | 系统级安全；v1 覆盖 macOS Keychain + Windows Credential Manager。**Linux 不在产品 roadmap 内**——Electron 框架虽支持 Linux，但不打包发行 |
 | 上传文件 FS + content-hash | 入库 BLOB | SQLite BLOB 性能差 + DB 文件膨胀；FS + hash 干净 |
@@ -860,7 +862,7 @@ EF 候选给用户选时，按 `unit_definition[EF.input_unit].family` 过滤掉
 1. **多步流水线，不做一锅端**：`分类 → 抽取 → 校验 → 映射 → 计算` 五步，每步单独 prompt 单独 schema。
 2. **永远人审**：AI 抽取结果默认状态 `review_needed`，用户点 "Confirm" 才落到 `activity_data`。AI 是数据工程师，不是数据决策者。
 3. **Prompt 跟着 schema 走版本号**：`prompt_version="2026-05.bill_v1"`，对应 `extraction.parsed_json` 的 zod schema 版本。
-4. **流式输出 + 进度可见**：长 PDF / 多页 Excel 的抽取通过 pi-ai stream，Renderer 通过 tRPC subscription 实时收 token。
+4. **流式输出 + 进度可见**：长 PDF / 多页 Excel 的抽取通过 pi-ai stream，Renderer 通过 `ipcRenderer.on('extraction:progress', ...)` 订阅 main 端 `webContents.send` 推送的 token / 进度事件（不走 invoke 通道）。
 5. **缓存命中 `(document.sha256, prompt_version, llm_model)`**：相同文件 + 相同 prompt + 相同模型，直接复用上一次 `extraction.parsed_json`。
 
 ### 双轴抽象（不要混淆）
@@ -1572,7 +1574,7 @@ carbonbook-ef-source/
    ├─ 校验 sqlite_sha256
    ├─ 写入 <userData>/ef-snapshots/v2026.q3.sqlite
    ├─ 原子切换 symlink
-   └─ Renderer 通过 tRPC 收到 'ef-library-updated' 事件
+   └─ Renderer 通过 `ipcRenderer.on('ef-library-updated', ...)` 收到事件
 
 4. 显示 diff
    "+47 added, ~12 updated, -3 deprecated"
@@ -1673,6 +1675,13 @@ EF 主表 `name_zh` / `name_en` / `description_zh` / `description_en`。Crawler 
 |---|---|---|
 | **stdio** | Claude Desktop / Cursor 把 carbonbook 当 MCP server **launch** | 用户 mcp.json 里指向 `carbonbook --mcp-stdio`；headless 模式 |
 | **SSE / HTTP localhost** | carbonbook GUI 已运行，外部客户端 connect 进来 | GUI 进程内额外 bind `http://127.0.0.1:7842/mcp` |
+
+### 进程模型（v1）
+
+- **stdio headless 模式**：`carbonbook --mcp-stdio` 直接由 Electron main 进程跑（无 BrowserWindow），MCP SDK 走 stdin/stdout，service layer 直连 `app.sqlite`
+- **SSE / HTTP localhost 模式（GUI 运行时）**：MCP server 跑在 Electron `utilityProcess` 子进程里，通过 `MessagePortMain` 与 main 通信调用 service layer。隔离 crash domain（MCP 异常不拖死 GUI）+ 让 better-sqlite3 连接独立池
+- 不在 main 进程线程上直接 bind HTTP listener——避免 service layer 的 sync SQLite 调用阻塞 Electron 事件循环
+- 用 `utilityProcess` 而不是 `child_process.fork` 是因为 utilityProcess 由 Electron 管理生命周期、自动随 app 退出关闭、原生支持 MessagePort
 
 ### 配对 token / 多客户端
 
@@ -1962,7 +1971,7 @@ v1.0 GA → 进入 v1.1 backlog（CBAM / 区域定价 等）
 | 工作块 | Done 标准 |
 |---|---|
 | electron-vite + React + TanStack + Tailwind + Paraglide 脚手架 | `pnpm dev` 弹窗显示中英切换 |
-| better-sqlite3 + migrations 框架；Service Layer 基类；electron-trpc IPC | Renderer 调一个 trpc procedure 拿数据库一行 |
+| better-sqlite3 + migrations 框架；Service Layer 基类；`@electron-toolkit/typed-ipc` + Zod IPC | Renderer 调一个 IPC handler 拿数据库一行 |
 | §3 数据模型 schema 全量落地；shadcn/ui 设计 token；侧边栏导航 + 主页骨架 | 全部表 CREATE，Dashboard 空页能跑 |
 | safeStorage 凭证模块；OS Keychain 测试（macOS + Windows）；onboarding wizard 骨架 | Wizard 能走完 5 步，写到 organization/site/reporting_period 表 |
 
@@ -2059,6 +2068,23 @@ v1.0 GA → 进入 v1.1 backlog（CBAM / 区域定价 等）
 | Floating license / 团队池 | v2 |
 | Mobile companion app（仅查看） | v3 |
 
+### Dependency policy
+
+依赖版本范围按下列规则锁定，避免 supply-chain drift 与意外破坏性更新：
+
+| 范围语法 | 适用 | 例 |
+|---|---|---|
+| `^x.y.z` (caret) | semver 严格的成熟库；同 major 内可自由 patch/minor 升 | `react`, `vite`, `zod`, `@tanstack/*`, `tailwindcss`, `electron-builder` |
+| `~x.y.z` (tilde) | 过渡性版本 / 1.x 刚 cut / 仍在快速迭代且偶有 minor 破坏 | `typescript ~6.0.x`, `lucide-react ~1.x` |
+| `x.y.z` (exact pin) | 工具链类，配置文件随版本变化、CI 易漂移 | `@biomejs/biome` |
+| `>=x.y.z` (floor) | 运行时声明（`engines.node` 等），不直接锁 dep | `node >=24` |
+
+**Major bump 触发审查**：任意 dependency 的 major 升级（含 Electron 季度发版）走单独 PR，至少跑一遍完整 acceptance（onboarding wizard + 一次真实 inventory 算 + 一次问卷答 + macOS+Windows 安装包 smoke）。
+
+**EOL 库零容忍**：依赖跑在 EOL 版本（如 Electron 旧 major、Node EOL LTS）→ 计划 sprint 内升级。安全 patch 不能等。
+
+**审计节奏**：每个 phase 收尾跑一次 `pnpm outdated` + npm registry / GitHub last-commit 抽查，僵尸库（>12 个月无 release 且有活跃替代）替换。Phase 0 的 audit 记录见 commit message。
+
 ---
 
 ## 附录 A — 术语表
@@ -2105,7 +2131,7 @@ carbonbook/                       # 主 repo（v1 私有；后续可考虑开源
 ├── src/
 │   ├── main/                     # Electron 主进程
 │   │   ├── index.ts
-│   │   ├── trpc/                 # tRPC 路由
+│   │   ├── ipc/                  # IPC handlers（typed-ipc + Zod）
 │   │   ├── mcp/                  # MCP server
 │   │   ├── services/             # 业务逻辑（service layer）
 │   │   ├── pipeline/             # AI pipeline stages

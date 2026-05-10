@@ -19,8 +19,8 @@ Each task is a standalone file under 7K tokens — new sessions read only the ta
 | 13 | Migration 006 — audit_event + triggers | [task-13-migration-006-audit_event-triggers.md](./tasks/task-13-migration-006-audit_event-triggers.md) |
 | 14 | zod schemas (organization + site + reporting_period) + 共享类型 | [task-14-zod-schemas.md](./tasks/task-14-zod-schemas.md) |
 | 15 | organization-service (CRUD) | [task-15-organization-service.md](./tasks/task-15-organization-service.md) |
-| 16 | electron-trpc IPC + organization router | [task-16-electron-trpc-ipc-organization-router.md](./tasks/task-16-electron-trpc-ipc-organization-router.md) |
-| 17 | Renderer trpc client + TanStack Query | [task-17-renderer-trpc-client-tanstack-query.md](./tasks/task-17-renderer-trpc-client-tanstack-query.md) |
+| 16 | typed-ipc IPC + organization handlers (rev — supersedes electron-trpc) | [task-16-typed-ipc-organization-handlers.md](./tasks/task-16-typed-ipc-organization-handlers.md) |
+| 17 | Renderer IPC wrappers + TanStack Query (rev — supersedes trpc client) | [task-17-renderer-ipc-wrappers.md](./tasks/task-17-renderer-ipc-wrappers.md) |
 | 18 | TanStack Router + 基础 routes | [task-18-tanstack-router-routes.md](./tasks/task-18-tanstack-router-routes.md) |
 | 19 | Paraglide JS i18n | [task-19-paraglide-js-i18n.md](./tasks/task-19-paraglide-js-i18n.md) |
 | 20 | safeStorage 凭证适配器（macOS + Windows abort 兜底） | [task-20-safestorage-macos-windows-abort.md](./tasks/task-20-safestorage-macos-windows-abort.md) |
