@@ -19,17 +19,21 @@ export function setupIpc(): void {
 
   const ctx = createIpcContext({ db: getAppDb(), now: defaultNow });
   const l = new IpcListener<IpcTypeMap>();
-  // typed-ipc's `handle()` is generic per-channel, but we're iterating over a
-  // heterogeneous map here — per-channel typing is preserved at the call
-  // boundary in the renderer wrapper, so a single cast at this seam is fine.
-  // biome-ignore lint/suspicious/noExplicitAny: heterogeneous handler dispatch
-  const handle = l.handle as unknown as (channel: string, h: (...a: any[]) => unknown) => void;
 
   for (const [channel, handler] of Object.entries(organizationHandlers(ctx))) {
     const wrapped = sanitize(channel, handler as (...a: unknown[]) => unknown);
-    // typed-ipc's handler signature is `(event, ...args)`. Ignore the event in
-    // Phase 0 — sender-id-based authorization waits for MCP (§9).
-    handle(channel, (_event: Electron.IpcMainInvokeEvent, ...args: unknown[]) => wrapped(...args));
+    // typed-ipc's `handle()` is generic per-channel, but we're iterating over
+    // a heterogeneous map here — per-channel typing is preserved at the call
+    // boundary in the renderer wrapper. We call `l.handle(...)` directly
+    // (not via an extracted reference) so the method retains its `this`
+    // binding to the IpcListener instance — extracting it via
+    // `const handle = l.handle` strips `this` and `this.handlers.push()`
+    // throws at runtime.
+    // biome-ignore lint/suspicious/noExplicitAny: heterogeneous handler dispatch
+    (l.handle as (c: string, h: (...a: any[]) => unknown) => void)(
+      channel,
+      (_event: Electron.IpcMainInvokeEvent, ...args: unknown[]) => wrapped(...args),
+    );
   }
 
   listener = l;
