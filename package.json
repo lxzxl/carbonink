@@ -2,10 +2,9 @@
   "name": "carbonbook",
   "version": "0.0.1-phase0",
   "private": true,
-  "type": "module",
-  "main": "out/main/index.js",
+  "main": "out/main/index.cjs",
   "engines": {
-    "node": ">=22"
+    "node": ">=24"
   },
   "packageManager": "pnpm@10.0.0",
   "scripts": {
@@ -23,50 +22,50 @@
     "rebuild:node": "pnpm rebuild better-sqlite3"
   },
   "devDependencies": {
-    "@biomejs/biome": "1.9.4",
+    "@biomejs/biome": "2.4.15",
     "@electron/rebuild": "^4.0.4",
     "@inlang/paraglide-js": "^2.18.0",
-    "@inlang/paraglide-vite": "^1.4.0",
     "@tailwindcss/postcss": "^4.3.0",
     "@tanstack/react-query-devtools": "^5.100.9",
-    "@tanstack/router-vite-plugin": "^1.166.50",
+    "@tanstack/router-plugin": "^1.167.35",
     "@testing-library/react": "^16.3.2",
     "@types/better-sqlite3": "^7.6.13",
-    "@types/node": "^25.6.2",
-    "@types/react": "^18.3.28",
-    "@types/react-dom": "^18.3.7",
+    "@types/node": "^24.0.0",
+    "@types/react": "~18.3.28",
+    "@types/react-dom": "~18.3.7",
     "@vitejs/plugin-react": "^4.7.0",
     "@vitest/ui": "^4.1.5",
     "autoprefixer": "^10.5.0",
     "happy-dom": "^20.9.0",
     "postcss": "^8.5.14",
-    "tailwindcss": "4",
-    "typescript": "5.5",
+    "tailwindcss": "^4.3.0",
+    "typescript": "~6.0.3",
     "vitest": "^4.1.5"
   },
   "dependencies": {
+    "@electron-toolkit/typed-ipc": "^1.0.2",
     "@radix-ui/react-slot": "^1.2.4",
-    "@tanstack/react-form": "^1.29.3",
+    "@tanstack/react-form": "^1.31.0",
     "@tanstack/react-query": "^5.100.9",
     "@tanstack/react-router": "^1.169.2",
-    "@trpc/client": "^11.17.0",
-    "@trpc/react-query": "^11.17.0",
-    "@trpc/server": "^11.17.0",
     "better-sqlite3": "^12.9.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "electron": "^33",
-    "electron-trpc": "^0.7.1",
-    "electron-vite": "^4",
-    "lucide-react": "^1.14.0",
+    "electron": "^42.0.0",
+    "electron-vite": "^5.0.0",
+    "lucide-react": "~1.14.0",
     "react": "^18",
     "react-dom": "^18",
-    "tailwind-merge": "^3.5.0",
+    "tailwind-merge": "^3.6.0",
     "ulid": "^3.0.2",
     "vite": "^7",
     "zod": "^4.4.3"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["better-sqlite3", "electron", "esbuild"]
+    "onlyBuiltDependencies": [
+      "better-sqlite3",
+      "electron",
+      "esbuild"
+    ]
   }
 }

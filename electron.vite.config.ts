@@ -1,6 +1,6 @@
 import { resolve } from 'node:path';
 import { paraglideVitePlugin as paraglide } from '@inlang/paraglide-js';
-import { TanStackRouterVite } from '@tanstack/router-vite-plugin';
+import { TanStackRouterVite } from '@tanstack/router-plugin/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
 
@@ -15,12 +15,24 @@ export default defineConfig({
     },
     build: {
       outDir: 'out/main',
+      rollupOptions: {
+        output: {
+          format: 'cjs',
+          entryFileNames: '[name].cjs',
+        },
+      },
     },
   },
   preload: {
     plugins: [externalizeDepsPlugin()],
     build: {
       outDir: 'out/preload',
+      rollupOptions: {
+        output: {
+          format: 'cjs',
+          entryFileNames: '[name].cjs',
+        },
+      },
     },
   },
   renderer: {

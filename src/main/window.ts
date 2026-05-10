@@ -10,7 +10,7 @@ export function createMainWindow(): BrowserWindow {
     show: false,
     title: 'carbonbook',
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
+      preload: join(__dirname, '../preload/index.cjs'),
       sandbox: false,
       contextIsolation: true,
       nodeIntegration: false,

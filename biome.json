@@ -1,6 +1,6 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
-  "organizeImports": { "enabled": true },
+  "$schema": "https://biomejs.dev/schemas/2.4.15/schema.json",
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
@@ -24,7 +24,7 @@
   },
   "overrides": [
     {
-      "include": ["src/renderer/components/ui/**"],
+      "includes": ["**/src/renderer/components/ui/**"],
       "linter": {
         "rules": {
           "a11y": {
@@ -42,12 +42,13 @@
     }
   },
   "files": {
-    "ignore": [
-      "node_modules",
-      "dist",
-      "out",
-      "src/renderer/paraglide",
-      "src/renderer/routeTree.gen.ts"
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!**/dist",
+      "!**/out",
+      "!**/src/renderer/paraglide",
+      "!**/src/renderer/routeTree.gen.ts"
     ]
   }
 }
