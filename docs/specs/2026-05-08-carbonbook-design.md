@@ -130,7 +130,7 @@
 │     │  │          │              │                                 │
 │   ┌─▼─┐┌▼───┐ ┌──▼─────────┐    │                                 │
 │   │DB ││ EF │ │ LLMClient  │    │                                 │
-│   │app││ ro │ │ (pi-ai)    │    │                                 │
+│   │app││ ro │ │ (AI SDK 6) │    │                                 │
 │   └─┬─┘└────┘ └──┬────┬────┘    │                                 │
 │   ┌─▼─────┐     │    │ HTTPS    │                                 │
 │   │Uploads│     │    │ user-key │                                 │
@@ -202,6 +202,16 @@
 
 参考：UI baseline sprint plan `docs/plans/2026-05-11-carbonbook-ui-baseline.md`，灵感来自 craft-agents-oss。详见 `ui-baseline` git tag。
 
+**8. AI provider 多路 = Vercel AI SDK 6 + 凭证 main-only**
+- 用 AI SDK 6 的 model 抽象：`openai('gpt-4o')` / `anthropic('claude-sonnet-4-5')` / `azure(...)` / `deepseek(...)` / `createOpenAICompatible({baseURL, name})`。换 provider 一行代码切，prompt 业务逻辑不动
+- Phase 1b 替代 spec 初版选的 `@earendil-works/pi-ai`：AI SDK 6 是 zod 原生 + 12.5M weekly DL + Apache-2.0 + 独立 provider 小包（用户没选的 provider 不进 bundle）；pi-ai 只 64k DL + TypeBox（要重写 schemas）+ 单 version 包，bus-factor 不可接受。原 §6 流式段落 / §4 LLMClient 章节里"pi-ai" → AI SDK 6
+- 结构化抽取统一用 `generateObject({ model, schema: z.object({...}), prompt })`，schema 同时 enforce + parse；Phase 1c 升 `streamObject` 加渐进 UI（partial object stream over IPC）
+- 凭证：API key 经 Electron `safeStorage` 加密后存文件 blob（路径 `<userData>/credentials/llm.<provider>.apikey.bin`，权限 0o600）。Provider config 元数据（model 名、baseUrl 等）存 `app.sqlite.setting` 表
+- **API key 永不进 renderer 进程**：renderer 只能通过 IPC 看到 `sk-...abcd` mask；plaintext key 仅 main 进程内 LLMClient 内部使用
+- 所有 LLM 调用从 main 发起；renderer 提交"用 AI 抽这个 PDF"请求，main 跑 `generateObject` 后只回结构化结果
+
+参考：Phase 1b plan `docs/plans/2026-05-12-carbonbook-phase-1b-ai-extraction.md`。
+
 ### Tech Stack 决定
 
 | 层 | 选择 |
@@ -219,7 +229,7 @@
 | 样式 | Tailwind v4 + shadcn/ui |
 | i18n | Paraglide JS |
 | 数据库 | better-sqlite3 |
-| AI 抽象 | `@earendil-works/pi-ai` + 自家 `LLMClient` 包装 |
+| AI 抽象 | Vercel AI SDK 6 (`ai` + `@ai-sdk/{openai,anthropic,azure,deepseek,openai-compatible}`) + 自家 `LLMClient` 包装 |
 | MCP SDK | `@modelcontextprotocol/sdk` |
 | 打包 / 分发 | electron-builder |
 | Toast | sonner |
@@ -875,14 +885,14 @@ EF 候选给用户选时，按 `unit_definition[EF.input_unit].family` 过滤掉
 1. **多步流水线，不做一锅端**：`分类 → 抽取 → 校验 → 映射 → 计算` 五步，每步单独 prompt 单独 schema。
 2. **永远人审**：AI 抽取结果默认状态 `review_needed`，用户点 "Confirm" 才落到 `activity_data`。AI 是数据工程师，不是数据决策者。
 3. **Prompt 跟着 schema 走版本号**：`prompt_version="2026-05.bill_v1"`，对应 `extraction.parsed_json` 的 zod schema 版本。
-4. **流式输出 + 进度可见**：长 PDF / 多页 Excel 的抽取通过 pi-ai stream，Renderer 通过 `ipcRenderer.on('extraction:progress', ...)` 订阅 main 端 `webContents.send` 推送的 token / 进度事件（不走 invoke 通道）。
+4. **流式输出 + 进度可见**：长 PDF / 多页 Excel 的抽取通过 AI SDK 6 `streamObject` 渐进发送 partial JSON，Renderer 通过 `ipcRenderer.on('extraction:progress', ...)` 订阅 main 端 `webContents.send` 推送的 partial object 事件（不走 invoke 通道）。Phase 1b 先用一次性 `generateObject`；流式留 Phase 1c。
 5. **缓存命中 `(document.sha256, prompt_version, llm_model)`**：相同文件 + 相同 prompt + 相同模型，直接复用上一次 `extraction.parsed_json`。
 
 ### 双轴抽象（不要混淆）
 
 | 轴 | 抽象层 | 替换粒度 |
 |---|---|---|
-| **LLM Provider** | pi-ai + 自家 `LLMClient` | 用户在设置里切：Azure OpenAI / Claude / DeepSeek / OAuth / OpenAI-compat |
+| **LLM Provider** | AI SDK 6 + 自家 `LLMClient` | 用户在设置里切：OpenAI / Anthropic Claude / Azure OpenAI / DeepSeek / OpenAI-compat。Phase 2 加 OAuth subscription |
 | **Pipeline Stage Backend** | Stage Registry | 每个 stage 独立 swappable，比如换掉文档解析器 |
 
 这两轴正交：换 OCR 后端不影响 LLM 选择，反之亦然。
@@ -977,7 +987,7 @@ async function runInventoryPipeline(doc: Document, cfg: PipelineConfig) {
 | EFMatcher | `fts-plus-llm`（SQLite FTS 召回 → LLM 排序） | `fts-only`（无 LLM 兜底） | `embedding-similarity` |
 | AnswerGenerator | `llm-strong` | `data-binding`（mapping 直读，不过 LLM） | —— |
 
-### LLMClient 抽象（pi-ai 之上的薄壳）
+### LLMClient 抽象（AI SDK 6 之上的薄壳）
 
 ```ts
 // src/main/llm/client.ts
@@ -1006,7 +1016,7 @@ interface LLMClient {
 | 模式 | 配置 | 客户场景 | 状态 |
 |---|---|---|---|
 | **A. BYOT API Key**（v1 主路） | 用户在设置里粘贴 key（OpenAI / Anthropic / Azure OpenAI / DeepSeek / Qwen / 任何 OpenAI 兼容 URL） | 默认；ESG 经理自己开账号付 API 账单 | ✅ stable |
-| **B. OAuth Provider Login**（实验性，按 provider 公开支持情况开放） | 用户通过 OAuth 登录已支持的 provider，例如 Anthropic Console OAuth、Google Vertex AI Application Default Credentials、GitHub Copilot SDK preview。**不是直接复用 ChatGPT Plus / Claude Pro 这种消费者订阅做 API 调用**——那条路在大多数 provider 不被官方支持。 | 已有 Console / Cloud / Copilot OAuth 凭证的用户；具体可用性随 pi-ai 上游适配 | ⚠️ experimental |
+| **B. OAuth Provider Login**（实验性，按 provider 公开支持情况开放） | 用户通过 OAuth 登录已支持的 provider，例如 Anthropic Console OAuth、Google Vertex AI Application Default Credentials、GitHub Copilot SDK preview。**不是直接复用 ChatGPT Plus / Claude Pro 这种消费者订阅做 API 调用**——那条路在大多数 provider 不被官方支持。 | 已有 Console / Cloud / Copilot OAuth 凭证的用户；具体可用性随 AI SDK 上游 provider 适配 | ⚠️ experimental |
 | **C. Self-hosted / OpenAI-compat endpoint**（v1 企业主路） | 用户填 OpenAI-compatible URL（公司内部 Azure OpenAI 部署 / Ollama / vLLM / DeepSeek 自建） | 数据合规严的大客户、集团供应商 | ✅ stable |
 
 ### Prompt 库结构
@@ -1996,7 +2006,7 @@ v1.0 GA → 进入 v1.1 backlog（CBAM / 区域定价 等）
 
 | 工作块 | Done 标准 |
 |---|---|
-| pi-ai 集成 + 自家 `LLMClient`；BYOT key 设置 UI；Azure OpenAI / Claude / DeepSeek 三 provider 通 | Settings 页填 key，发一个测试 prompt 拿到响应 |
+| AI SDK 6 集成 + 自家 `LLMClient`；BYOT key 设置 UI；OpenAI / Anthropic / Azure / DeepSeek / OpenAI-compat 5 provider 通 | Settings 抽屉填 key，发一个测试 prompt 拿到响应（Phase 1b 实施） |
 | DocumentLoader stage（pdf-parse + Tesseract + LLM-vision auto fallback）；document/extraction 表写入；sha256 缓存 | 拖入 PDF 显示文本 / 表格规范化 |
 | Classifier + StructuredExtractor stage（v1 prompts: china_utility / fuel_receipt / freight）；zod schema validation；Stage Registry 落地 | 上传国网电费单 → AI 出 JSON → 通过 zod 校验 |
 | EF Matcher（FTS+LLM）；Activity 录入人审 UI；computed_co2e_kg 实时计算 | **里程碑 1：first-CO2e** 端到端通 |
