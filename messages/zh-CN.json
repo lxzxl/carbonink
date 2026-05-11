@@ -88,5 +88,12 @@
   "activities_form_fuel_none": "— 不选 —",
   "activities_form_notes": "备注（可选）",
   "activities_form_submit": "记录活动",
-  "activities_form_submitting": "正在记录…"
+  "activities_form_submitting": "正在记录…",
+  "dashboard_total_co2e": "总 CO2e",
+  "dashboard_scope_1": "范围 1",
+  "dashboard_scope_2": "范围 2",
+  "dashboard_scope_3": "范围 3",
+  "dashboard_empty_hint": "目前没有排放数据。",
+  "dashboard_add_first_activity": "添加第一笔活动数据 →",
+  "unit_kg_co2e": "kg CO2e"
 }

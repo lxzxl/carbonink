@@ -88,5 +88,12 @@
   "activities_form_fuel_none": "— None —",
   "activities_form_notes": "Notes (optional)",
   "activities_form_submit": "Record activity",
-  "activities_form_submitting": "Recording…"
+  "activities_form_submitting": "Recording…",
+  "dashboard_total_co2e": "Total CO2e",
+  "dashboard_scope_1": "Scope 1",
+  "dashboard_scope_2": "Scope 2",
+  "dashboard_scope_3": "Scope 3",
+  "dashboard_empty_hint": "No emissions data yet.",
+  "dashboard_add_first_activity": "Add your first activity →",
+  "unit_kg_co2e": "kg CO2e"
 }
