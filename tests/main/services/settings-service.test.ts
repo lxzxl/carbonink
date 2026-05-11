@@ -121,9 +121,11 @@ describe('SettingsService', () => {
     // Insert the config row directly without going through save, simulating
     // a sqlite row that survived a credential-blob deletion (e.g. user wiped
     // <userData>/credentials/ manually).
-    db.prepare(
-      `INSERT INTO setting (key, value, updated_at) VALUES (?, ?, ?)`,
-    ).run('llm.provider', JSON.stringify(config), '2026-05-11T00:00:00.000Z');
+    db.prepare(`INSERT INTO setting (key, value, updated_at) VALUES (?, ?, ?)`).run(
+      'llm.provider',
+      JSON.stringify(config),
+      '2026-05-11T00:00:00.000Z',
+    );
 
     const result = service.getProviderConfig();
     expect(result).toEqual({ ...config, apiKeyMasked: null });
@@ -147,9 +149,11 @@ describe('SettingsService', () => {
       model: 'gpt-4o-mini',
       apiKeyKeyref: 'llm.openai.apikey',
     };
-    db.prepare(
-      `INSERT INTO setting (key, value, updated_at) VALUES (?, ?, ?)`,
-    ).run('llm.provider', JSON.stringify(config), '2026-05-11T00:00:00.000Z');
+    db.prepare(`INSERT INTO setting (key, value, updated_at) VALUES (?, ?, ?)`).run(
+      'llm.provider',
+      JSON.stringify(config),
+      '2026-05-11T00:00:00.000Z',
+    );
 
     expect(service.getProviderConfigWithKey()).toBeNull();
   });
