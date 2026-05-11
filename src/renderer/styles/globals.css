@@ -34,15 +34,103 @@ body {
 }
 
 @theme {
-  --color-background: oklch(1 0 0);
-  --color-foreground: oklch(0.15 0 0);
-  --color-primary: oklch(0.55 0.13 145);
-  --color-primary-foreground: oklch(0.99 0 0);
-  --color-muted: oklch(0.96 0 0);
-  --color-muted-foreground: oklch(0.45 0 0);
-  --color-border: oklch(0.92 0 0);
+  /* ── Base palette (OKLch) ─────────────────────────────────────────
+   *
+   * Light mode background is a warm off-white (slight yellow), foreground
+   * is a near-black with the same hue rotation — better contrast on
+   * vibrancy backdrops than pure #FFF / #000.
+   *
+   * Note: Tailwind v4 requires the `--color-*` prefix to auto-generate
+   * the matching utilities (bg-background, text-foreground, etc.). The
+   * --foreground-N ladder below references --color-foreground directly
+   * via color-mix() so the two stay in sync.
+   */
+  --color-background: oklch(0.99 0.005 95);
+  --color-foreground: oklch(0.18 0.012 95);
+
+  --color-card: oklch(1 0 0 / 0.6); /* translucent over vibrancy */
+  --color-card-foreground: oklch(0.18 0.012 95);
+  --color-popover: oklch(0.99 0.005 95);
+  --color-popover-foreground: oklch(0.18 0.012 95);
+
+  /* Brand: carbonbook green. OKLch L=0.55 C=0.16 H=160 is a balanced
+   * forest green — readable on light bg, still vibrant on dark bg. */
+  --color-primary: oklch(0.55 0.16 160);
+  --color-primary-foreground: oklch(0.99 0.005 95);
+
+  --color-secondary: oklch(0.96 0.008 95);
+  --color-secondary-foreground: oklch(0.22 0.012 95);
+
+  --color-muted: oklch(0.95 0.008 95);
+  --color-muted-foreground: oklch(0.5 0.012 95);
+
+  --color-accent: oklch(0.94 0.012 160); /* tint with primary hue */
+  --color-accent-foreground: oklch(0.22 0.012 95);
+
+  --color-destructive: oklch(0.55 0.2 25);
+  --color-destructive-foreground: oklch(0.99 0.005 95);
+
+  --color-border: oklch(0.9 0.008 95);
+  --color-input: oklch(0.9 0.008 95);
+  --color-ring: oklch(0.55 0.16 160 / 0.5);
+
+  /* ── Foreground opacity ladder ────────────────────────────────────
+   * Use these instead of `text-muted-foreground/60` ad-hoc opacity.
+   * 15 perceptually-uniform levels via color-mix(). Use as
+   * `var(--foreground-30)` etc. in style attributes or in @theme
+   * declarations. (Tailwind utilities for these are a Phase 1+ refinement.)
+   */
+  --foreground-1\.5: color-mix(in oklab, var(--color-foreground) 1.5%, transparent);
+  --foreground-3: color-mix(in oklab, var(--color-foreground) 3%, transparent);
+  --foreground-5: color-mix(in oklab, var(--color-foreground) 5%, transparent);
+  --foreground-8: color-mix(in oklab, var(--color-foreground) 8%, transparent);
+  --foreground-12: color-mix(in oklab, var(--color-foreground) 12%, transparent);
+  --foreground-20: color-mix(in oklab, var(--color-foreground) 20%, transparent);
+  --foreground-30: color-mix(in oklab, var(--color-foreground) 30%, transparent);
+  --foreground-40: color-mix(in oklab, var(--color-foreground) 40%, transparent);
+  --foreground-50: color-mix(in oklab, var(--color-foreground) 50%, transparent);
+  --foreground-60: color-mix(in oklab, var(--color-foreground) 60%, transparent);
+  --foreground-70: color-mix(in oklab, var(--color-foreground) 70%, transparent);
+  --foreground-80: color-mix(in oklab, var(--color-foreground) 80%, transparent);
+  --foreground-90: color-mix(in oklab, var(--color-foreground) 90%, transparent);
+  --foreground-95: color-mix(in oklab, var(--color-foreground) 95%, transparent);
+
+  /* shadcn radius (preserved from Phase 0) */
+  --radius: 0.5rem;
   --radius-sm: 0.25rem;
   --radius-md: 0.5rem;
+}
+
+/* ── Dark mode override ─────────────────────────────────────────────
+ * Triggered via `.dark` class on <html> (next-themes pattern, or manual
+ * toggle later in Phase 1+). Mirrors the @theme tokens above. */
+.dark {
+  --color-background: oklch(0.18 0.012 95);
+  --color-foreground: oklch(0.95 0.008 95);
+
+  --color-card: oklch(0.22 0.012 95 / 0.6);
+  --color-card-foreground: oklch(0.95 0.008 95);
+  --color-popover: oklch(0.2 0.012 95);
+  --color-popover-foreground: oklch(0.95 0.008 95);
+
+  --color-primary: oklch(0.65 0.18 160);
+  --color-primary-foreground: oklch(0.18 0.012 95);
+
+  --color-secondary: oklch(0.25 0.012 95);
+  --color-secondary-foreground: oklch(0.95 0.008 95);
+
+  --color-muted: oklch(0.28 0.012 95);
+  --color-muted-foreground: oklch(0.65 0.012 95);
+
+  --color-accent: oklch(0.3 0.018 160);
+  --color-accent-foreground: oklch(0.95 0.008 95);
+
+  --color-destructive: oklch(0.65 0.22 25);
+  --color-destructive-foreground: oklch(0.18 0.012 95);
+
+  --color-border: oklch(0.3 0.012 95);
+  --color-input: oklch(0.3 0.012 95);
+  --color-ring: oklch(0.65 0.18 160 / 0.5);
 }
 
 @layer base {
@@ -52,8 +140,8 @@ body {
   body {
     /* NOTE: bg-background intentionally omitted — the html/body
      * `background: transparent` rule above must win so macOS vibrancy /
-     * Windows Mica show through. Task 2 of the UI baseline sprint will
-     * reintroduce token-styled surfaces on inner containers (cards etc.). */
+     * Windows Mica show through. Inner containers (cards, popovers,
+     * sidebar) carry the surface tokens instead. */
     @apply text-foreground;
     font-family: system-ui, -apple-system, sans-serif;
   }

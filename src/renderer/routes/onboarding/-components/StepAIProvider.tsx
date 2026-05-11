@@ -75,7 +75,7 @@ export function StepAIProvider() {
       </div>
 
       {submitting && <p className="text-sm text-muted-foreground">{m.onboarding_creating()}</p>}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
       <div className="flex justify-start pt-2">
         <Button
