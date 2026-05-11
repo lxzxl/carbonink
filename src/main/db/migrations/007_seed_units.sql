@@ -1,6 +1,10 @@
 -- Phase 1a: seed unit_definition + unit_alias + fuel_property reference data.
 -- Replaces future ef_library.sqlite RO bundle; that bundle is Phase 1c+ work.
 
+-- NOTE: tables created here are temporary residents of app.sqlite.
+-- Phase 1c+ moves them to ef_library.sqlite RO bundle (spec §2).
+-- At that point this migration becomes seed-only; DDL relocates.
+
 -- ── reference tables (Phase 1a lives in app.sqlite; Phase 1c+ moves to ef_library.sqlite RO) ──
 -- Schema mirrors §3 of docs/specs/2026-05-08-carbonbook-design.md.
 CREATE TABLE IF NOT EXISTS unit_definition (
@@ -72,6 +76,11 @@ INSERT INTO unit_definition (unit, family, multiply_of_ratio, divide_of_ratio, d
 ('nautical_mile', 'distance', 1.852, 1, 50, '海里', 'nautical mile'),
 ('ft', 'distance', 1, 3280.84, 60, '英尺', 'foot'),
 -- currency (canonical: CNY) — for spend-based EF, exact rate set per-period elsewhere
+-- ⚠️  Currency rates below are BOOTSTRAP DEFAULTS valid at seed time only.
+-- Phase 1a does NOT use spend-based EFs, so these ratios are not consumed.
+-- Phase 2 will introduce a per-reporting-period FX rate service that
+-- overrides these at conversion time. DO NOT rely on these for any
+-- production calculation.
 ('CNY', 'currency', 1, 1, 10, '人民币', 'Chinese yuan'),
 ('USD', 'currency', 7.2, 1, 20, '美元', 'US dollar'),
 ('EUR', 'currency', 7.8, 1, 30, '欧元', 'euro'),
@@ -93,7 +102,10 @@ INSERT INTO unit_alias (alias, canonical_unit, language, notes) VALUES
 ('千瓦时', 'kWh', 'zh', NULL),
 ('mwh', 'MWh', 'en', NULL),
 ('兆瓦时', 'MWh', 'zh', NULL),
-('万度', 'MWh', 'zh', '10000 kWh ≈ 10 MWh，approx; 注：实际是 10MWh，此 alias 提示用户复核'),
+-- NOTE: '万度' alias removed — aliases do name resolution only, not scalar
+-- prefix math. 1 万度 = 10,000 kWh, so mapping '万度' → kWh (or MWh) silently
+-- under-counts CO2e by 10,000× (or 10×). UI normalize step should suggest
+-- "did you mean 10000 度?" in Phase 1c+ instead.
 ('mj', 'MJ', 'en', NULL),
 ('兆焦', 'MJ', 'zh', NULL),
 ('gj', 'GJ', 'en', NULL),
@@ -119,7 +131,9 @@ INSERT INTO unit_alias (alias, canonical_unit, language, notes) VALUES
 ('KG', 'kg', 'en', NULL),
 ('公斤', 'kg', 'zh', NULL),
 ('千克', 'kg', 'zh', NULL),
-('斤', 'kg', 'zh', '注：实际 0.5 kg，此 alias 是常见误用提示'),
+-- NOTE: '斤' alias removed — 1 斤 = 0.5 kg, so mapping '斤' → kg silently doubles
+-- CO2e on any mass-based fuel (LPG, coal, etc.). UI normalize step should
+-- suggest "did you mean N×0.5 kg?" in Phase 1c+ instead.
 ('g', 'g', 'en', NULL),
 ('gram', 'g', 'en', NULL),
 ('克', 'g', 'zh', NULL),

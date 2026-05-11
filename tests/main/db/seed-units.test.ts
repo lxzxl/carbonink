@@ -3,34 +3,34 @@ import Database from 'better-sqlite3';
 import { describe, expect, it } from 'vitest';
 
 describe('Migration 007: seed units', () => {
-  it('inserts ≥36 unit definitions across 5 base families', () => {
-    // Plan promises "40 units" but the SQL ships 36 base + 3 composite (tkm, passenger_km,
-    // km_passenger) = 39 total. Composites live in their own families (mass_distance,
-    // passenger_distance) so they are never auto-convertible — filter them here to assert
-    // the 5 base families a unit-conversion service cares about.
+  it('inserts 39 unit definitions across 5 base families (+ 2 composite families)', () => {
+    // SQL ships 36 base (energy/volume/mass/distance/currency) + 3 composite
+    // (tkm, passenger_km, km_passenger) = 39 total. Composites live in their own families
+    // (mass_distance, passenger_distance) so they are never auto-convertible — assert the
+    // base-family set separately. Exact total pinned so accidental row drops fail CI loudly.
     const db = new Database(':memory:');
     db.pragma('foreign_keys = ON');
     runMigrations(db);
+    const totalRow = db.prepare('SELECT COUNT(*) AS n FROM unit_definition').get() as { n: number };
+    expect(totalRow.n).toBe(39);
     const families = db
       .prepare(
-        `SELECT family, COUNT(*) AS n FROM unit_definition
-         WHERE family IN ('currency', 'distance', 'energy', 'mass', 'volume')
-         GROUP BY family`,
+        `SELECT DISTINCT family FROM unit_definition
+         WHERE family IN ('currency', 'distance', 'energy', 'mass', 'volume')`,
       )
-      .all() as { family: string; n: number }[];
-    const total = families.reduce((s, f) => s + f.n, 0);
-    expect(total).toBeGreaterThanOrEqual(36);
+      .all() as { family: string }[];
     expect(families.map((f) => f.family).sort()).toEqual(
       ['currency', 'distance', 'energy', 'mass', 'volume'].sort(),
     );
   });
 
-  it('inserts ≥80 unit aliases (chinese + english)', () => {
+  it('inserts 79 unit aliases (chinese + english)', () => {
+    // 81 seeded - 2 removed (万度, 斤) = 79. Exact count so accidental drops fail CI.
     const db = new Database(':memory:');
     db.pragma('foreign_keys = ON');
     runMigrations(db);
     const n = db.prepare('SELECT COUNT(*) AS n FROM unit_alias').get() as { n: number };
-    expect(n.n).toBeGreaterThanOrEqual(80);
+    expect(n.n).toBe(79);
   });
 
   it('inserts 5 fuel_property rows', () => {
