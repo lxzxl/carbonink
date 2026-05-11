@@ -2,21 +2,6 @@ import { useNavigate } from '@tanstack/react-router';
 import { Command } from 'cmdk';
 import { useEffect, useState } from 'react';
 
-/**
- * Global command palette. Press ⌘K (or Ctrl+K on Windows) to open.
- *
- * ⌘K is reserved globally for this palette; no per-page hotkey may bind it.
- * Add new commands by appending to the `commands` array below — they will be
- * rendered automatically into the appropriate group. Escape is handled by
- * cmdk's `Command.Dialog` (Radix Dialog under the hood); do not re-add it.
- *
- * Each command's `onSelect` receives `{ navigate, close }` and must call
- * `close()` before navigating / firing the action, otherwise the palette
- * stays open behind the navigated page.
- *
- * Group render order is stable: Navigation → Actions → Settings → Help.
- */
-
 type CommandGroup = 'Navigation' | 'Actions' | 'Settings' | 'Help';
 
 type CommandContext = {
@@ -55,6 +40,20 @@ export const commands: CommandDef[] = [
   },
 ];
 
+/**
+ * Global command palette. Press ⌘K (or Ctrl+K on Windows) to open.
+ *
+ * ⌘K is reserved globally for this palette; no per-page hotkey may bind it.
+ * Add new commands by appending to the `commands` array above — they will be
+ * rendered automatically into the appropriate group. Escape is handled by
+ * cmdk's `Command.Dialog` (Radix Dialog under the hood); do not re-add it.
+ *
+ * Each command's `onSelect` receives `{ navigate, close }` and must call
+ * `close()` before navigating / firing the action, otherwise the palette
+ * stays open behind the navigated page.
+ *
+ * Group render order is stable: Navigation → Actions → Settings → Help.
+ */
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
