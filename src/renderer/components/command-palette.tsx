@@ -39,6 +39,15 @@ export const commands: CommandDef[] = [
     },
   },
   {
+    id: 'nav.activities',
+    group: 'Navigation',
+    label: 'Open Activities',
+    onSelect: ({ navigate, close }) => {
+      close();
+      navigate({ to: '/activities' });
+    },
+  },
+  {
     id: 'nav.onboarding',
     group: 'Navigation',
     label: 'Open Onboarding Wizard',
