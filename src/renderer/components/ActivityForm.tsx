@@ -4,7 +4,6 @@ import { Input } from '@renderer/components/ui/input';
 import { Label } from '@renderer/components/ui/label';
 import { activityApi } from '@renderer/lib/api/activity-data';
 import { efApi } from '@renderer/lib/api/ef-library';
-import { sourceApi } from '@renderer/lib/api/emission-source';
 import { orgApi } from '@renderer/lib/api/organization';
 import * as m from '@renderer/paraglide/messages';
 import type { EmissionFactor, EmissionSource, ReportingPeriod } from '@shared/types';
@@ -35,8 +34,20 @@ import { useEffect } from 'react';
  *
  * Phase 1a fuel codes are hardcoded (the 5 we seeded in migration 007).
  * Phase 1c can swap this for a dynamic endpoint without changing the form.
+ *
+ * Labels are looked up via paraglide; if a new fuel_code appears in the DB
+ * before its label is added we fall back to the raw code so the option is
+ * still pickable (the alternative — hiding it — silently drops a valid
+ * conversion and would be harder to debug).
  */
 const FUEL_CODES = ['gasoline', 'diesel', 'natural_gas', 'lpg', 'coal_anthracite'] as const;
+const FUEL_CODE_LABELS: Record<(typeof FUEL_CODES)[number], () => string> = {
+  gasoline: m.fuel_gasoline,
+  diesel: m.fuel_diesel,
+  natural_gas: m.fuel_natural_gas,
+  lpg: m.fuel_lpg,
+  coal_anthracite: m.fuel_coal_anthracite,
+};
 
 export interface ActivityFormProps {
   organizationId: string;
@@ -201,6 +212,22 @@ export function ActivityForm({ organizationId, sources, onCancel, onSuccess }: A
   const noSources = sources.length === 0;
   const noPeriods = !periodsQuery.isLoading && periods.length === 0;
 
+  // Bail out before rendering the form body if there's no usable input data.
+  // Showing the full form with a disabled submit + inline error is confusing
+  // (users try to fill it in and can't figure out why submit stays grey).
+  // Only render the prerequisite-missing message + a back button.
+  if (noSources || noPeriods) {
+    return (
+      <div className="space-y-4 max-w-2xl mt-4 rounded-md border border-border bg-muted/30 p-4">
+        {noSources && <p className="text-sm text-destructive">{m.activities_form_no_sources()}</p>}
+        {noPeriods && <p className="text-sm text-destructive">{m.activities_form_no_periods()}</p>}
+        <Button type="button" variant="outline" onClick={onCancel}>
+          {m.sources_cancel_button()}
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <form
       onSubmit={(e) => {
@@ -209,9 +236,6 @@ export function ActivityForm({ organizationId, sources, onCancel, onSuccess }: A
       }}
       className="space-y-4 max-w-2xl mt-4 rounded-md border border-border bg-muted/30 p-4"
     >
-      {noSources && <p className="text-sm text-destructive">{m.activities_form_no_sources()}</p>}
-      {noPeriods && <p className="text-sm text-destructive">{m.activities_form_no_periods()}</p>}
-
       <form.Field
         name="emission_source_id"
         validators={{
@@ -295,6 +319,9 @@ export function ActivityForm({ organizationId, sources, onCancel, onSuccess }: A
                 value={field.state.value}
                 onChange={(e) => field.handleChange(e.target.value)}
               />
+              {field.state.meta.errors[0] && (
+                <p className="text-xs text-destructive">{String(field.state.meta.errors[0])}</p>
+              )}
             </div>
           )}
         />
@@ -312,6 +339,9 @@ export function ActivityForm({ organizationId, sources, onCancel, onSuccess }: A
                 value={field.state.value}
                 onChange={(e) => field.handleChange(e.target.value)}
               />
+              {field.state.meta.errors[0] && (
+                <p className="text-xs text-destructive">{String(field.state.meta.errors[0])}</p>
+              )}
             </div>
           )}
         />
@@ -435,7 +465,7 @@ export function ActivityForm({ organizationId, sources, onCancel, onSuccess }: A
               <option value="">{m.activities_form_fuel_none()}</option>
               {FUEL_CODES.map((f) => (
                 <option key={f} value={f}>
-                  {f}
+                  {FUEL_CODE_LABELS[f]?.() ?? f}
                 </option>
               ))}
             </select>
@@ -469,10 +499,7 @@ export function ActivityForm({ organizationId, sources, onCancel, onSuccess }: A
         >
           {m.sources_cancel_button()}
         </Button>
-        <Button
-          type="submit"
-          disabled={createActivity.isPending || noSources || noPeriods || !selectedEf}
-        >
+        <Button type="submit" disabled={createActivity.isPending || !selectedEf}>
           {createActivity.isPending ? m.activities_form_submitting() : m.activities_form_submit()}
         </Button>
       </div>

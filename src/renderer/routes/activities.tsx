@@ -67,14 +67,16 @@ function ActivitiesList({ organizationId }: { organizationId: string }) {
     enabled: !!currentPeriodId,
   });
 
-  // Surface load errors via toast (same pattern as /sources).
+  // Surface load errors via toast (same pattern as /sources). Effect depends
+  // ONLY on the boolean `isError` so React Query's 3-retry default doesn't
+  // refire the toast three times (each retry mints a new error object).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: deliberately excluding activitiesQuery.error from deps — including it would refire the toast on every retry attempt (each retry mints a new error object), defeating the purpose of the fix.
   useEffect(() => {
-    if (activitiesQuery.error) {
-      const msg =
-        activitiesQuery.error instanceof Error ? activitiesQuery.error.message : 'Unknown error';
-      toast.error(m.activities_load_failed(), { description: msg });
-    }
-  }, [activitiesQuery.error]);
+    if (!activitiesQuery.isError) return;
+    const err = activitiesQuery.error;
+    const msg = err instanceof Error ? err.message : String(err ?? 'Unknown error');
+    toast.error(m.activities_load_failed(), { description: msg });
+  }, [activitiesQuery.isError]);
 
   const sources = sourcesQuery.data ?? [];
   const activities = activitiesQuery.data ?? [];

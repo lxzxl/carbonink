@@ -166,4 +166,141 @@ describe('/activities route', () => {
     // Submit button is present.
     expect(screen.getByRole('button', { name: /Record activity|记录活动/i })).toBeTruthy();
   });
+
+  // Regression test for commit a4a69c3: picking an emission source must
+  // trigger the EF candidate fetch and surface the resulting radio buttons.
+  // Before the fix the ActivityForm was reading
+  // `form.state.values.emission_source_id` synchronously (no subscription)
+  // so the parent component never re-rendered after the user picked, and
+  // efQuery stayed disabled.
+  it('renders EF candidates after the user picks a source (a4a69c3 regression)', async () => {
+    vi.mocked(efApi.list).mockResolvedValue([
+      {
+        factor_code: 'electricity.grid.cn',
+        year: 2024,
+        source: 'MEE',
+        geography: 'CN',
+        dataset_version: '2024.1',
+        scope: 2,
+        category: 'electricity.grid',
+        ghg_protocol_path: null,
+        input_unit: 'kWh',
+        co2e_kg_per_unit: 0.5703,
+        ch4_kg_per_unit: null,
+        n2o_kg_per_unit: null,
+        hfc_kg_per_unit: null,
+        pfc_kg_per_unit: null,
+        sf6_kg_per_unit: null,
+        nf3_kg_per_unit: null,
+        gwp_basis: 'AR5',
+        name_zh: '中国电网平均',
+        name_en: null,
+        description_zh: null,
+        description_en: null,
+        notes: null,
+        citation_url: null,
+      },
+    ]);
+
+    render(buildHarness());
+    const addBtn = await screen.findByRole('button', {
+      name: /Add Activity|添加活动数据/i,
+    });
+    fireEvent.click(addBtn);
+
+    const sourceSelect = (await screen.findByLabelText(
+      /Emission source|^排放源$/i,
+    )) as HTMLSelectElement;
+
+    // Pick the only source. The form should now fire efApi.list and the
+    // radio button should appear once the query resolves.
+    fireEvent.change(sourceSelect, { target: { value: FAKE_SOURCE.id } });
+    const radio = await screen.findByRole('radio');
+    expect(radio).toBeTruthy();
+  });
+
+  // Regression test for commit d3f1b31: picking an EF radio must flip the
+  // submit button out of its disabled state. Before the fix the five ef_*
+  // form fields weren't subscribed via useStore, so the parent re-render
+  // that gates the submit button never ran and the button stayed grey.
+  it('enables submit after the user picks an EF radio (d3f1b31 regression)', async () => {
+    vi.mocked(efApi.list).mockResolvedValue([
+      {
+        factor_code: 'electricity.grid.cn',
+        year: 2024,
+        source: 'MEE',
+        geography: 'CN',
+        dataset_version: '2024.1',
+        scope: 2,
+        category: 'electricity.grid',
+        ghg_protocol_path: null,
+        input_unit: 'kWh',
+        co2e_kg_per_unit: 0.5703,
+        ch4_kg_per_unit: null,
+        n2o_kg_per_unit: null,
+        hfc_kg_per_unit: null,
+        pfc_kg_per_unit: null,
+        sf6_kg_per_unit: null,
+        nf3_kg_per_unit: null,
+        gwp_basis: 'AR5',
+        name_zh: '中国电网平均',
+        name_en: null,
+        description_zh: null,
+        description_en: null,
+        notes: null,
+        citation_url: null,
+      },
+    ]);
+
+    render(buildHarness());
+    const addBtn = await screen.findByRole('button', {
+      name: /Add Activity|添加活动数据/i,
+    });
+    fireEvent.click(addBtn);
+
+    const sourceSelect = (await screen.findByLabelText(
+      /Emission source|^排放源$/i,
+    )) as HTMLSelectElement;
+    fireEvent.change(sourceSelect, { target: { value: FAKE_SOURCE.id } });
+
+    const radio = (await screen.findByRole('radio')) as HTMLInputElement;
+    const submit = screen.getByRole('button', {
+      name: /Record activity|记录活动/i,
+    }) as HTMLButtonElement;
+
+    // Pre-condition: submit is disabled before an EF is chosen.
+    expect(submit.disabled).toBe(true);
+
+    fireEvent.click(radio);
+
+    // After picking, the five composite-PK ef_* fields are set and the
+    // submit button becomes enabled.
+    await waitFor(() => {
+      expect(submit.disabled).toBe(false);
+    });
+  });
+
+  // Important #5: when there are no sources OR no reporting periods, the
+  // ActivityForm renders only a prerequisite-missing message + a Cancel
+  // button — not the full form body. This avoids the confusing UX where
+  // users could fill in dates/amount only to find a permanently-disabled
+  // submit button.
+  it('shows the no-sources message instead of the form body when sources is empty', async () => {
+    vi.mocked(sourceApi.listByOrg).mockResolvedValue([]);
+
+    render(buildHarness());
+    const addBtn = await screen.findByRole('button', {
+      name: /Add Activity|添加活动数据/i,
+    });
+    fireEvent.click(addBtn);
+
+    // The no-sources message appears.
+    expect(await screen.findByText(/No sources yet|还没有排放源。请先在/i)).toBeTruthy();
+
+    // The form body fields do NOT render.
+    expect(screen.queryByLabelText(/Emission source|^排放源$/i)).toBeNull();
+    expect(screen.queryByLabelText(/Reporting period|报告期/i)).toBeNull();
+    expect(screen.queryByLabelText(/Start date|开始日期/i)).toBeNull();
+    expect(screen.queryByRole('button', { name: /Record activity|记录活动/i })).toBeNull();
+  });
 });

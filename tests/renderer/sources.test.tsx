@@ -144,4 +144,44 @@ describe('/sources route', () => {
     // Submit button is present.
     expect(screen.getByRole('button', { name: /Create source|创建排放源/i })).toBeTruthy();
   });
+
+  // Regression for Critical #1: sites query resolves AFTER the form mounts
+  // (the dominant production path — Phase 1a always has exactly one site,
+  // but it arrives via async IPC). The previous render-phase guard read
+  // `form.state.values.site_id` without subscribing, so when the sites
+  // promise resolved later nothing re-checked the guard and `site_id`
+  // stayed empty → submit stayed disabled forever. The useEffect-based fix
+  // populates site_id when the query resolves; this test pins that.
+  it('enables submit after the async sites query resolves (Critical #1 fix)', async () => {
+    // Defer the listSites resolve to a microtask AFTER mount so we
+    // exercise the "data arrives later" path. The exact timing doesn't
+    // matter — useEffect will run again once defaultSiteId flips.
+    vi.mocked(orgApi.listSites).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          setTimeout(() => resolve([FAKE_SITE]), 10);
+        }),
+    );
+
+    render(buildHarness());
+    const addBtn = await screen.findByRole('button', { name: /Add Source|添加排放源/i });
+    fireEvent.click(addBtn);
+
+    // Fill in the required Name field so the only remaining gating
+    // condition for the submit button is site_id.
+    const nameInput = (await screen.findByLabelText(/^Name$|^名称$/i)) as HTMLInputElement;
+    fireEvent.change(nameInput, { target: { value: 'Electricity meter A' } });
+
+    // The form's own "Create source" submit button — there are two
+    // buttons in this region, so disambiguate by name.
+    const submit = screen.getByRole('button', {
+      name: /Create source|创建排放源/i,
+    }) as HTMLButtonElement;
+
+    // Wait for the deferred sites query to resolve and the effect to
+    // populate site_id; the button should be enabled.
+    await waitFor(() => {
+      expect(submit.disabled).toBe(false);
+    });
+  });
 });

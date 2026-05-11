@@ -6,8 +6,9 @@ import { sourceApi } from '@renderer/lib/api/emission-source';
 import { orgApi } from '@renderer/lib/api/organization';
 import * as m from '@renderer/paraglide/messages';
 import type { Site } from '@shared/types';
-import { useForm } from '@tanstack/react-form';
+import { useForm, useStore } from '@tanstack/react-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 
 /**
  * Inline create form for an EmissionSource. Mounted by /sources.
@@ -71,17 +72,25 @@ export function SourceForm({ organizationId, onCancel, onSuccess }: SourceFormPr
 
   // Sites load asynchronously; once they arrive (single-site onboarding case
   // is the dominant path) pre-fill the form field so submit doesn't blow up
-  // on an empty site_id. Done inside an effect-via-render guard rather than
-  // useEffect so the form value stays consistent across re-renders without
-  // toggling — useForm's setFieldValue is idempotent.
-  if (defaultSiteId && form.state.values.site_id !== defaultSiteId) {
-    // Phase 1a is single-site; this branch fires exactly once after the
-    // sites query resolves. Multi-site cases (Phase 1b+) will display the
-    // dropdown below and the user picks explicitly.
-    if (form.state.values.site_id === '') {
+  // on an empty site_id. We can't do this during render — that's a React
+  // anti-pattern (setState during render doubles work in strict mode and is
+  // discardable in concurrent mode) and reading `form.state.values` outside
+  // a <form.Field>/useStore subscription doesn't fire when the sites query
+  // resolves after mount (the dominant production path). Effect-keyed on
+  // defaultSiteId fixes both: it runs exactly once when sites resolve and
+  // never clobbers user-edited input (we check the field is still empty).
+  useEffect(() => {
+    if (defaultSiteId && form.state.values.site_id === '') {
       form.setFieldValue('site_id', defaultSiteId);
     }
-  }
+  }, [defaultSiteId, form]);
+
+  // Subscribe to site_id so the submit button's disabled state reactively
+  // tracks user dropdown picks. Reading `form.state.values.site_id` here
+  // (without useStore) would only refresh on parent re-renders, not on
+  // form-field changes — fine for single-site (defaultSiteId is enough),
+  // but Phase 1b+ needs the live picked value.
+  const siteId = useStore(form.store, (s) => s.values.site_id);
 
   return (
     <form
@@ -194,7 +203,7 @@ export function SourceForm({ organizationId, onCancel, onSuccess }: SourceFormPr
         >
           {m.sources_cancel_button()}
         </Button>
-        <Button type="submit" disabled={createSource.isPending || !defaultSiteId}>
+        <Button type="submit" disabled={createSource.isPending || !siteId}>
           {createSource.isPending ? m.sources_form_submitting() : m.sources_form_submit()}
         </Button>
       </div>

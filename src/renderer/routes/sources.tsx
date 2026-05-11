@@ -45,15 +45,16 @@ function SourcesList({ organizationId }: { organizationId: string }) {
   });
 
   // Surface load errors via toast (per UI baseline pattern — no inline error
-  // box). Effect-gated so the toast fires once per error transition rather
-  // than every render.
+  // box). Effect depends ONLY on the boolean `isError` so React Query's
+  // default 3-retry loop (which mints a fresh error object per attempt) won't
+  // refire the toast three times. We read the error message at call time.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: deliberately excluding sourcesQuery.error from deps — including it would refire the toast on every retry attempt (each retry mints a new error object), defeating the purpose of the fix.
   useEffect(() => {
-    if (sourcesQuery.error) {
-      const msg =
-        sourcesQuery.error instanceof Error ? sourcesQuery.error.message : 'Unknown error';
-      toast.error(m.sources_load_failed(), { description: msg });
-    }
-  }, [sourcesQuery.error]);
+    if (!sourcesQuery.isError) return;
+    const err = sourcesQuery.error;
+    const msg = err instanceof Error ? err.message : String(err ?? 'Unknown error');
+    toast.error(m.sources_load_failed(), { description: msg });
+  }, [sourcesQuery.isError]);
 
   const sources = sourcesQuery.data ?? [];
 
