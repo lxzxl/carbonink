@@ -6,7 +6,7 @@ import { activityApi } from '@renderer/lib/api/activity-data';
 import { efApi } from '@renderer/lib/api/ef-library';
 import { orgApi } from '@renderer/lib/api/organization';
 import * as m from '@renderer/paraglide/messages';
-import type { EmissionFactor, EmissionSource, ReportingPeriod } from '@shared/types';
+import type { ActivityData, EmissionFactor, EmissionSource, ReportingPeriod } from '@shared/types';
 import { useForm, useStore } from '@tanstack/react-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
@@ -49,14 +49,55 @@ const FUEL_CODE_LABELS: Record<(typeof FUEL_CODES)[number], () => string> = {
   coal_anthracite: m.fuel_coal_anthracite,
 };
 
+/**
+ * Subset of fields that can be prefilled from outside (e.g. an AI extraction
+ * result). We intentionally keep this narrow — `emission_source_id` and the
+ * five `ef_*` composite-PK fields stay user-driven so the EF citation never
+ * gets pinned without an explicit human pick. Phase 1c may widen this once
+ * source/EF auto-suggest lands.
+ */
+export type ActivityFormInitialValues = Partial<{
+  reporting_period_id: string;
+  occurred_at_start: string;
+  occurred_at_end: string;
+  amount: string;
+  unit: string;
+  fuel_code: string;
+  notes: string;
+}>;
+
 export interface ActivityFormProps {
   organizationId: string;
   sources: EmissionSource[];
   onCancel: () => void;
-  onSuccess: () => void;
+  /**
+   * Legacy callback fired after the activity row is created. Optional now
+   * that `onSubmitSuccess` exists — keeping both lets the Phase 1a
+   * /activities caller (which only needs to close the form) stay unchanged.
+   */
+  onSuccess?: () => void;
+  /**
+   * Phase 1b — receives the freshly-created `ActivityData` row so the caller
+   * can chain a side effect (e.g. mark an extraction as confirmed, navigate
+   * to a different page). Fires AFTER `onSuccess`.
+   */
+  onSubmitSuccess?: (activity: ActivityData) => void;
+  /**
+   * Prefill the form with values from outside (e.g. AI extraction). Merged
+   * over the natural defaults; the user can still edit any field before
+   * submit. The EF radio is never prefilled — see the type comment above.
+   */
+  initialValues?: ActivityFormInitialValues;
 }
 
-export function ActivityForm({ organizationId, sources, onCancel, onSuccess }: ActivityFormProps) {
+export function ActivityForm({
+  organizationId,
+  sources,
+  onCancel,
+  onSuccess,
+  onSubmitSuccess,
+  initialValues,
+}: ActivityFormProps) {
   const queryClient = useQueryClient();
 
   const periodsQuery = useQuery<ReportingPeriod[]>({
@@ -77,7 +118,12 @@ export function ActivityForm({ organizationId, sources, onCancel, onSuccess }: A
         queryKey: ['activity:totals-by-period', created.reporting_period_id],
       });
       toast.success(m.activities_create_success());
-      onSuccess();
+      // Legacy "close the form" callback fires first so the form's local
+      // state collapses before the caller navigates away or runs side
+      // effects. `onSubmitSuccess` is the Phase 1b extension point (e.g.
+      // chain `extractionApi.confirm` after a review-page submit).
+      onSuccess?.();
+      onSubmitSuccess?.(created);
     },
     onError: (err) => {
       const msg = err instanceof Error ? err.message : 'Unknown error';
@@ -94,19 +140,21 @@ export function ActivityForm({ organizationId, sources, onCancel, onSuccess }: A
   const form = useForm({
     defaultValues: {
       emission_source_id: '',
-      reporting_period_id: defaultPeriodId,
-      occurred_at_start: defaultStart,
-      occurred_at_end: defaultEnd,
-      amount: '' as string, // store as string so the input stays controlled even when empty
-      unit: '',
-      // EF composite PK — filled when the user picks an EF radio.
+      reporting_period_id: initialValues?.reporting_period_id ?? defaultPeriodId,
+      occurred_at_start: initialValues?.occurred_at_start ?? defaultStart,
+      occurred_at_end: initialValues?.occurred_at_end ?? defaultEnd,
+      amount: initialValues?.amount ?? '', // store as string so the input stays controlled even when empty
+      unit: initialValues?.unit ?? '',
+      // EF composite PK — filled when the user picks an EF radio. Never
+      // prefilled from `initialValues` so the citation always reflects an
+      // explicit human choice.
       ef_factor_code: '',
       ef_year: 0,
       ef_source: '',
       ef_geography: '',
       ef_dataset_version: '',
-      fuel_code: '',
-      notes: '',
+      fuel_code: initialValues?.fuel_code ?? '',
+      notes: initialValues?.notes ?? '',
     },
     onSubmit: async ({ value }) => {
       const amount = Number(value.amount);
