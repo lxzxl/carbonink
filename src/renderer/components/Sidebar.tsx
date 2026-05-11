@@ -19,6 +19,28 @@ export function Sidebar() {
             {m.nav_dashboard()}
           </Link>
         </li>
+        <li>
+          <Link
+            to="/sources"
+            className={cn(
+              'block rounded-md px-3 py-2 text-sm hover:bg-muted',
+              '[&.active]:bg-primary [&.active]:text-primary-foreground',
+            )}
+          >
+            {m.nav_sources()}
+          </Link>
+        </li>
+        <li>
+          <Link
+            to="/activities"
+            className={cn(
+              'block rounded-md px-3 py-2 text-sm hover:bg-muted',
+              '[&.active]:bg-primary [&.active]:text-primary-foreground',
+            )}
+          >
+            {m.nav_activities()}
+          </Link>
+        </li>
       </ul>
       {/* Theme toggle placeholder — wired in Phase 1 settings panel.
        * Static for now; the icon reserves the visual position. */}

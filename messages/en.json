@@ -6,6 +6,8 @@
   "dashboard_inventory_title": "Inventory Dashboard",
   "dashboard_inventory_body": "No emission data yet.",
   "nav_dashboard": "Dashboard",
+  "nav_sources": "Sources",
+  "nav_activities": "Activities",
   "loading": "Loading…",
   "onboarding_title": "Onboarding",
   "onboarding_step_company_title": "Company info",

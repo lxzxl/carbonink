@@ -6,6 +6,8 @@
   "dashboard_inventory_title": "排放清单仪表盘",
   "dashboard_inventory_body": "目前没有排放数据。",
   "nav_dashboard": "仪表盘",
+  "nav_sources": "排放源",
+  "nav_activities": "活动数据",
   "loading": "加载中…",
   "onboarding_title": "引导设置",
   "onboarding_step_company_title": "公司基本信息",
