@@ -47,6 +47,17 @@ export function Sidebar() {
             {m.nav_activities()}
           </Link>
         </li>
+        <li>
+          <Link
+            to="/documents"
+            className={cn(
+              'block rounded-md px-3 py-2 text-sm hover:bg-muted',
+              '[&.active]:bg-primary [&.active]:text-primary-foreground',
+            )}
+          >
+            {m.nav_documents()}
+          </Link>
+        </li>
       </ul>
       {/* Settings button — opens the right-side drawer via shared context.
        * Phase 1b replaces the Phase 0 Moon placeholder with a real gear.

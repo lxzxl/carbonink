@@ -91,6 +91,12 @@ export type IpcTypeMap = {
   'document:upload': (input: { filename: string; mimeType: string; bytes: Uint8Array }) => Document;
   'document:list': () => Document[];
   'document:get-by-id': (input: { id: string }) => Document | null;
+  // `document:read-bytes` ships the raw PDF over IPC so the renderer can
+  // construct a `Blob` URL for an `<iframe>` preview without granting the
+  // renderer process direct filesystem access. Returning Uint8Array keeps the
+  // payload structured-clone friendly (Buffer would lose its Node-specific
+  // prototype on the renderer side).
+  'document:read-bytes': (input: { id: string }) => Uint8Array;
 
   // extraction domain (Phase 1b — AI extraction pipeline)
   // `extraction:run` is async — it reads the PDF, calls the LLM, and writes

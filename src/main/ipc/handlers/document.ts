@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { listStages } from '@main/llm/stages/registry.js';
 import { z } from 'zod';
 import type { IpcContext } from '../context.js';
@@ -58,6 +59,25 @@ export function documentHandlers(ctx: IpcContext): {
     },
     'document:list': () => ctx.documentService.listAll(),
     'document:get-by-id': (input) => ctx.documentService.getById(idInput.parse(input).id),
+
+    'document:read-bytes': (input) => {
+      // Resolve the document row first so we never expose arbitrary file
+      // paths over IPC — the renderer hands us an `id` we look up, and the
+      // `storage_path` is read out of the database row we own. A missing row
+      // throws (the sanitize wrapper maps it to a generic IPC error); the
+      // renderer surfaces this as "Document not found" in the review page.
+      const id = idInput.parse(input).id;
+      const doc = ctx.documentService.getById(id);
+      if (!doc) throw new Error(`Document not found: ${id}`);
+      // `readFileSync` returns a Node `Buffer`, which is a `Uint8Array`
+      // subclass — but Electron's structured-clone path doesn't reliably
+      // preserve the Buffer prototype across process boundaries (the
+      // renderer would see a plain Uint8Array anyway). Convert explicitly so
+      // the type matches `IpcTypeMap` and the downstream `new Blob([bytes])`
+      // call doesn't trip on any Buffer-specific behavior.
+      const buf = readFileSync(doc.storage_path);
+      return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+    },
 
     'stages:list': () =>
       listStages().map((s) => ({

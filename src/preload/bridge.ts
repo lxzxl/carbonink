@@ -42,6 +42,7 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   'document:upload',
   'document:list',
   'document:get-by-id',
+  'document:read-bytes',
   // extraction domain (Phase 1b — AI extraction pipeline)
   'extraction:run',
   'extraction:list-pending',

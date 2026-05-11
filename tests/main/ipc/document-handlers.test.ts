@@ -101,6 +101,24 @@ describe('document IPC handlers', () => {
     expect(handlers['document:get-by-id']?.({ id: '01J0000000000000000000NOPE' })).toBeNull();
   });
 
+  it('document:read-bytes returns the on-disk PDF bytes for the requested id', () => {
+    const bytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x37]);
+    const doc = handlers['document:upload']?.({
+      filename: 'bill.pdf',
+      mimeType: 'application/pdf',
+      bytes,
+    });
+    const read = handlers['document:read-bytes']?.({ id: doc?.id ?? '' });
+    expect(read).toBeInstanceOf(Uint8Array);
+    expect(Array.from(read ?? new Uint8Array())).toEqual(Array.from(bytes));
+  });
+
+  it('document:read-bytes throws when the document id is unknown', () => {
+    expect(() => handlers['document:read-bytes']?.({ id: '01J0000000000000000000NOPE' })).toThrow(
+      /Document not found/,
+    );
+  });
+
   it('stages:list exposes the registered stage(s) without leaking schema/buildPrompt', () => {
     const stages = handlers['stages:list']?.();
     expect(stages?.length).toBeGreaterThanOrEqual(1);

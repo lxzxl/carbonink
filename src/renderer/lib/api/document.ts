@@ -22,4 +22,11 @@ export const documentApi = {
     invoke('document:upload', input),
   list: () => invoke('document:list'),
   getById: (input: { id: string }) => invoke('document:get-by-id', input),
+  /**
+   * Reads the raw PDF bytes for `id`. Used by the review page to construct
+   * a `Blob` URL for the `<iframe>` preview (option C — see Phase 1b task
+   * 15 plan). Memory cost is proportional to file size and the renderer must
+   * `URL.revokeObjectURL` on unmount; safe for Phase 1b's small bills.
+   */
+  readBytes: (input: { id: string }) => invoke('document:read-bytes', input),
 };

@@ -14,6 +14,7 @@ import { Route as DocumentsRouteImport } from './routes/documents'
 import { Route as ActivitiesRouteImport } from './routes/activities'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OnboardingStepRouteImport } from './routes/onboarding/$step'
+import { Route as DocumentsIdRouteImport } from './routes/documents.$id'
 
 const SourcesRoute = SourcesRouteImport.update({
   id: '/sources',
@@ -40,27 +41,35 @@ const OnboardingStepRoute = OnboardingStepRouteImport.update({
   path: '/onboarding/$step',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DocumentsIdRoute = DocumentsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => DocumentsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/activities': typeof ActivitiesRoute
-  '/documents': typeof DocumentsRoute
+  '/documents': typeof DocumentsRouteWithChildren
   '/sources': typeof SourcesRoute
+  '/documents/$id': typeof DocumentsIdRoute
   '/onboarding/$step': typeof OnboardingStepRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/activities': typeof ActivitiesRoute
-  '/documents': typeof DocumentsRoute
+  '/documents': typeof DocumentsRouteWithChildren
   '/sources': typeof SourcesRoute
+  '/documents/$id': typeof DocumentsIdRoute
   '/onboarding/$step': typeof OnboardingStepRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/activities': typeof ActivitiesRoute
-  '/documents': typeof DocumentsRoute
+  '/documents': typeof DocumentsRouteWithChildren
   '/sources': typeof SourcesRoute
+  '/documents/$id': typeof DocumentsIdRoute
   '/onboarding/$step': typeof OnboardingStepRoute
 }
 export interface FileRouteTypes {
@@ -70,22 +79,30 @@ export interface FileRouteTypes {
     | '/activities'
     | '/documents'
     | '/sources'
+    | '/documents/$id'
     | '/onboarding/$step'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/activities' | '/documents' | '/sources' | '/onboarding/$step'
+  to:
+    | '/'
+    | '/activities'
+    | '/documents'
+    | '/sources'
+    | '/documents/$id'
+    | '/onboarding/$step'
   id:
     | '__root__'
     | '/'
     | '/activities'
     | '/documents'
     | '/sources'
+    | '/documents/$id'
     | '/onboarding/$step'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ActivitiesRoute: typeof ActivitiesRoute
-  DocumentsRoute: typeof DocumentsRoute
+  DocumentsRoute: typeof DocumentsRouteWithChildren
   SourcesRoute: typeof SourcesRoute
   OnboardingStepRoute: typeof OnboardingStepRoute
 }
@@ -127,13 +144,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OnboardingStepRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/documents/$id': {
+      id: '/documents/$id'
+      path: '/$id'
+      fullPath: '/documents/$id'
+      preLoaderRoute: typeof DocumentsIdRouteImport
+      parentRoute: typeof DocumentsRoute
+    }
   }
 }
+
+interface DocumentsRouteChildren {
+  DocumentsIdRoute: typeof DocumentsIdRoute
+}
+
+const DocumentsRouteChildren: DocumentsRouteChildren = {
+  DocumentsIdRoute: DocumentsIdRoute,
+}
+
+const DocumentsRouteWithChildren = DocumentsRoute._addFileChildren(
+  DocumentsRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActivitiesRoute: ActivitiesRoute,
-  DocumentsRoute: DocumentsRoute,
+  DocumentsRoute: DocumentsRouteWithChildren,
   SourcesRoute: SourcesRoute,
   OnboardingStepRoute: OnboardingStepRoute,
 }
