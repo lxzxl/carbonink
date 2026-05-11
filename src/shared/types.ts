@@ -178,3 +178,57 @@ export type UnitDefinition = {
   display_name_zh: string | null;
   display_name_en: string | null;
 };
+
+// ---------------------------------------------------------------------------
+// AI provider config (Phase 1b)
+// ---------------------------------------------------------------------------
+//
+// Discriminated union over provider kinds; each shape has its own required
+// fields. `apiKeyKeyref` is a literal pointing to a `CredentialService` key
+// (see `ALLOWED_PREFIXES` in `credential-service.ts`); the plaintext key
+// itself never lives on this config object — it stays in OS keychain.
+
+export const openAiProviderConfig = z.object({
+  provider: z.literal('openai'),
+  model: z.string().default('gpt-4o-mini'),
+  apiKeyKeyref: z.literal('llm.openai.apikey'),
+});
+
+export const anthropicProviderConfig = z.object({
+  provider: z.literal('anthropic'),
+  model: z.string().default('claude-sonnet-4-5'),
+  apiKeyKeyref: z.literal('llm.anthropic.apikey'),
+});
+
+export const azureProviderConfig = z.object({
+  provider: z.literal('azure'),
+  model: z.string(),
+  apiKeyKeyref: z.literal('llm.azure.apikey'),
+  resourceName: z.string().min(1),
+  apiVersion: z.string().default('2024-08-01-preview'),
+});
+
+export const deepseekProviderConfig = z.object({
+  provider: z.literal('deepseek'),
+  model: z.string().default('deepseek-chat'),
+  apiKeyKeyref: z.literal('llm.deepseek.apikey'),
+});
+
+export const openAiCompatProviderConfig = z.object({
+  provider: z.literal('openai-compat'),
+  model: z.string().min(1),
+  apiKeyKeyref: z.literal('llm.openai-compat.apikey'),
+  baseUrl: z.string().url(),
+  name: z.string().default('Custom'),
+});
+
+export const providerConfig = z.discriminatedUnion('provider', [
+  openAiProviderConfig,
+  anthropicProviderConfig,
+  azureProviderConfig,
+  deepseekProviderConfig,
+  openAiCompatProviderConfig,
+]);
+
+export type ProviderConfig = z.infer<typeof providerConfig>;
+export type ProviderKind = ProviderConfig['provider'];
