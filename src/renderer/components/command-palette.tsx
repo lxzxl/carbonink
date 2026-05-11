@@ -5,14 +5,56 @@ import { useEffect, useState } from 'react';
 /**
  * Global command palette. Press ⌘K (or Ctrl+K on Windows) to open.
  *
- * Commands are organized by group. To add commands: append to the relevant
- * <Command.Group> below. Each Command.Item must have an `onSelect` that
- * closes the palette via setOpen(false) before navigating / firing action,
- * otherwise the palette stays open behind the navigated page.
+ * ⌘K is reserved globally for this palette; no per-page hotkey may bind it.
+ * Add new commands by appending to the `commands` array below — they will be
+ * rendered automatically into the appropriate group. Escape is handled by
+ * cmdk's `Command.Dialog` (Radix Dialog under the hood); do not re-add it.
  *
- * Phase 0 ships with 2 navigation commands (Dashboard / Onboarding). Phase
- * 1+ will register inventory / report / pipeline commands the same way.
+ * Each command's `onSelect` receives `{ navigate, close }` and must call
+ * `close()` before navigating / firing the action, otherwise the palette
+ * stays open behind the navigated page.
+ *
+ * Group render order is stable: Navigation → Actions → Settings → Help.
  */
+
+type CommandGroup = 'Navigation' | 'Actions' | 'Settings' | 'Help';
+
+type CommandContext = {
+  navigate: ReturnType<typeof useNavigate>;
+  close: () => void;
+};
+
+export type CommandDef = {
+  id: string;
+  group: CommandGroup;
+  label: string;
+  hint?: string;
+  onSelect: (ctx: CommandContext) => void;
+};
+
+const GROUP_ORDER: CommandGroup[] = ['Navigation', 'Actions', 'Settings', 'Help'];
+
+export const commands: CommandDef[] = [
+  {
+    id: 'nav.dashboard',
+    group: 'Navigation',
+    label: 'Open Dashboard',
+    onSelect: ({ navigate, close }) => {
+      close();
+      navigate({ to: '/' });
+    },
+  },
+  {
+    id: 'nav.onboarding',
+    group: 'Navigation',
+    label: 'Open Onboarding Wizard',
+    onSelect: ({ navigate, close }) => {
+      close();
+      navigate({ to: '/onboarding/$step', params: { step: '1' } });
+    },
+  },
+];
+
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
@@ -23,23 +65,15 @@ export function CommandPalette() {
         e.preventDefault();
         setOpen((v) => !v);
       }
-      if (e.key === 'Escape') {
-        setOpen(false);
-      }
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, []);
 
-  const goDashboard = () => {
-    setOpen(false);
-    navigate({ to: '/' });
-  };
+  const close = () => setOpen(false);
+  const ctx: CommandContext = { navigate, close };
 
-  const goOnboarding = () => {
-    setOpen(false);
-    navigate({ to: '/onboarding/$step', params: { step: '1' } });
-  };
+  const groupsToRender = GROUP_ORDER.filter((g) => commands.some((c) => c.group === g));
 
   return (
     <Command.Dialog
@@ -58,23 +92,26 @@ export function CommandPalette() {
             No commands found.
           </Command.Empty>
 
-          <Command.Group
-            heading="Navigation"
-            className="px-2 py-1 text-xs uppercase tracking-wide text-muted-foreground"
-          >
-            <Command.Item
-              onSelect={goDashboard}
-              className="flex items-center gap-2 px-2 py-2 rounded text-sm text-foreground aria-selected:bg-accent aria-selected:text-accent-foreground cursor-pointer"
+          {groupsToRender.map((group) => (
+            <Command.Group
+              key={group}
+              heading={group}
+              className="px-2 py-1 text-xs uppercase tracking-wide text-muted-foreground"
             >
-              Open Dashboard
-            </Command.Item>
-            <Command.Item
-              onSelect={goOnboarding}
-              className="flex items-center gap-2 px-2 py-2 rounded text-sm text-foreground aria-selected:bg-accent aria-selected:text-accent-foreground cursor-pointer"
-            >
-              Open Onboarding Wizard
-            </Command.Item>
-          </Command.Group>
+              {commands
+                .filter((c) => c.group === group)
+                .map((c) => (
+                  <Command.Item
+                    key={c.id}
+                    value={c.label}
+                    onSelect={() => c.onSelect(ctx)}
+                    className="flex items-center gap-2 px-2 py-2 rounded text-sm text-foreground aria-selected:bg-accent aria-selected:text-accent-foreground cursor-pointer"
+                  >
+                    {c.label}
+                  </Command.Item>
+                ))}
+            </Command.Group>
+          ))}
         </Command.List>
       </div>
     </Command.Dialog>
