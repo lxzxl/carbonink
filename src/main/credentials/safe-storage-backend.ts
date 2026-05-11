@@ -53,6 +53,15 @@ export function getCredentialStore(): CredentialStore {
 }
 
 /**
+ * Direct passthrough to Electron `safeStorage.isEncryptionAvailable()`. Used
+ * by `CredentialService` (via DI) and by IPC handlers that need to surface a
+ * "keychain unavailable" error to the renderer without touching the store.
+ */
+export function isSafeStorageAvailable(): boolean {
+  return safeStorage.isEncryptionAvailable();
+}
+
+/**
  * Delete the on-disk blob for a key. Used by `CredentialService.delete`; lives
  * here (not on `CredentialStore`) because the deletion is filesystem-specific
  * and the Phase 0 abstraction intentionally only knows set/get.

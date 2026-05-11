@@ -6,6 +6,7 @@ import { activityDataHandlers } from './handlers/activity-data.js';
 import { efLibraryHandlers } from './handlers/ef-library.js';
 import { emissionSourceHandlers } from './handlers/emission-source.js';
 import { organizationHandlers } from './handlers/organization.js';
+import { settingsHandlers } from './handlers/settings.js';
 import { sanitize } from './sanitize.js';
 import type { IpcTypeMap } from './types.js';
 
@@ -23,6 +24,7 @@ const HANDLER_FACTORIES: ReadonlyArray<HandlerFactory> = [
   efLibraryHandlers,
   emissionSourceHandlers,
   activityDataHandlers,
+  settingsHandlers,
 ];
 
 /**

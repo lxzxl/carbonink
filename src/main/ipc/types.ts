@@ -10,6 +10,7 @@ import type {
   EmissionSourceUpdateInput,
   Organization,
   OrganizationCreateInput,
+  ProviderConfig,
   ReportingPeriod,
   ReportingPeriodCreateInput,
   Site,
@@ -63,4 +64,20 @@ export type IpcTypeMap = {
     scope2_kg: number;
     scope3_kg: number;
   };
+
+  // settings domain (Phase 1b — LLM provider config)
+  // `settings:available` reports whether the OS-level keychain backend works.
+  // `settings:get-provider` returns the config + masked key for UI display.
+  // `settings:save-provider` persists config + key (split storage in SettingsService).
+  // `settings:clear-provider` removes both halves.
+  // `settings:ping-provider` is the "Test connection" path; optional `apiKey`
+  // lets the UI verify a key the user has typed but not yet saved.
+  'settings:available': () => boolean;
+  'settings:get-provider': () => (ProviderConfig & { apiKeyMasked: string | null }) | null;
+  'settings:save-provider': (input: { config: ProviderConfig; apiKey: string }) => void;
+  'settings:clear-provider': () => void;
+  'settings:ping-provider': (input: {
+    config: ProviderConfig;
+    apiKey?: string;
+  }) => Promise<{ ok: true } | { ok: false; error: string }>;
 };

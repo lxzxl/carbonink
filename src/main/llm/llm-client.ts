@@ -54,13 +54,19 @@ export class LLMClient {
    * model instance. Throws {@link ProviderNotConfiguredError} when the API
    * key for `config.apiKeyKeyref` is absent.
    *
+   * `overrideApiKey` lets the Settings UI "Test connection" path supply a
+   * key the user has typed but not yet saved — bypassing the credential
+   * lookup keeps the keychain free of unverified secrets. The override is
+   * never persisted by this client (callers that want persistence go
+   * through `SettingsService.saveProviderConfig`).
+   *
    * Each AI SDK provider factory (e.g. `createOpenAI`) returns a callable
    * `Provider`: invoking it with a model id (`createOpenAI({ apiKey })('gpt-4o')`)
    * yields a `LanguageModel`. The switch handles each provider's own settings
    * shape.
    */
-  private getModel(config: ProviderConfig): LanguageModel {
-    const apiKey = this.ctx.credentials.get(config.apiKeyKeyref);
+  private getModel(config: ProviderConfig, overrideApiKey?: string): LanguageModel {
+    const apiKey = overrideApiKey ?? this.ctx.credentials.get(config.apiKeyKeyref);
     if (apiKey === null) {
       throw new ProviderNotConfiguredError(config.provider);
     }
@@ -110,8 +116,28 @@ export class LLMClient {
    * the UI can render the error string directly.
    */
   async ping(config: ProviderConfig): Promise<{ ok: true } | { ok: false; error: string }> {
+    return this.pingInternal(config);
+  }
+
+  /**
+   * Variant of {@link ping} that uses an explicit plaintext key instead of
+   * the credential store. Lets the Settings UI verify a key before the user
+   * commits to saving it. The key is held in-memory for the duration of
+   * this call and never persisted by this client.
+   */
+  async pingWithKey(
+    config: ProviderConfig,
+    overrideApiKey: string,
+  ): Promise<{ ok: true } | { ok: false; error: string }> {
+    return this.pingInternal(config, overrideApiKey);
+  }
+
+  private async pingInternal(
+    config: ProviderConfig,
+    overrideApiKey?: string,
+  ): Promise<{ ok: true } | { ok: false; error: string }> {
     try {
-      const model = this.getModel(config);
+      const model = this.getModel(config, overrideApiKey);
       await generateObject({
         model,
         schema: pingSchema,

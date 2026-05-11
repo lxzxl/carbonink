@@ -268,6 +268,45 @@ describe('LLMClient.ping', () => {
   });
 });
 
+describe('LLMClient.pingWithKey', () => {
+  it('uses the override key (does NOT consult credentials.get) and returns ok=true on success', async () => {
+    const credentials = makeCredentials({}); // intentionally empty
+    const client = new LLMClient({ credentials });
+    vi.mocked(generateObject).mockResolvedValueOnce({ object: { ok: true } } as never);
+
+    const result = await client.pingWithKey(
+      {
+        provider: 'openai',
+        model: 'gpt-4o-mini',
+        apiKeyKeyref: 'llm.openai.apikey',
+      },
+      'sk-unsaved-typed-in-form',
+    );
+
+    expect(result).toEqual({ ok: true });
+    expect(credentials.get).not.toHaveBeenCalled();
+    expect(createOpenAI).toHaveBeenCalledWith({ apiKey: 'sk-unsaved-typed-in-form' });
+  });
+
+  it('returns ok=false with the error message on failure (override key still in effect)', async () => {
+    const credentials = makeCredentials({});
+    const client = new LLMClient({ credentials });
+    vi.mocked(generateObject).mockRejectedValueOnce(new Error('bad key'));
+
+    const result = await client.pingWithKey(
+      {
+        provider: 'openai',
+        model: 'gpt-4o-mini',
+        apiKeyKeyref: 'llm.openai.apikey',
+      },
+      'sk-wrong',
+    );
+
+    expect(result).toEqual({ ok: false, error: 'bad key' });
+    expect(credentials.get).not.toHaveBeenCalled();
+  });
+});
+
 describe('ProviderNotConfiguredError', () => {
   it('exposes the provider name and a recognizable name', () => {
     const err = new ProviderNotConfiguredError('openai');

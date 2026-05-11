@@ -32,6 +32,12 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   'activity:create',
   'activity:list-by-period',
   'activity:totals-by-period',
+  // settings domain (Phase 1b — LLM provider config)
+  'settings:available',
+  'settings:get-provider',
+  'settings:save-provider',
+  'settings:clear-provider',
+  'settings:ping-provider',
 ];
 
 export type InvokeFn = (channel: string, ...args: unknown[]) => Promise<unknown>;
