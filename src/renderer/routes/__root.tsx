@@ -1,4 +1,7 @@
+import { SettingsDrawerContent } from '@renderer/components/SettingsDrawerContent';
 import { Sidebar } from '@renderer/components/Sidebar';
+import { SettingsDrawer } from '@renderer/components/settings-drawer';
+import { useSettingsDrawer } from '@renderer/components/settings-drawer-context';
 import { createRootRoute, Outlet } from '@tanstack/react-router';
 
 export const Route = createRootRoute({
@@ -6,6 +9,11 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
+  // SettingsDrawer is mounted at the route root so it shares lifetime with
+  // the rest of the app chrome (Sidebar). The provider lives one level up
+  // in `main.tsx` so the out-of-route CommandPalette can also toggle it.
+  const { open, setOpen } = useSettingsDrawer();
+
   return (
     <>
       {/* macOS: traffic lights sit at left:18, top:16 inside this 32px-tall
@@ -23,6 +31,9 @@ function RootComponent() {
           <Outlet />
         </main>
       </div>
+      <SettingsDrawer open={open} onOpenChange={setOpen}>
+        <SettingsDrawerContent onSaved={() => setOpen(false)} />
+      </SettingsDrawer>
     </>
   );
 }
