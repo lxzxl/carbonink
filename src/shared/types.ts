@@ -232,3 +232,43 @@ export const providerConfig = z.discriminatedUnion('provider', [
 
 export type ProviderConfig = z.infer<typeof providerConfig>;
 export type ProviderKind = ProviderConfig['provider'];
+
+// ---------------------------------------------------------------------------
+// Document + Extraction (Phase 1b — AI extraction pipeline)
+// ---------------------------------------------------------------------------
+//
+// Mirrors the schema in migration 003. The Document row stores file metadata
+// alongside an absolute `storage_path` so the extraction service can read the
+// PDF without recomputing the content-addressed location. Extraction rows are
+// uniquely keyed by (document_id, prompt_version, llm_provider, llm_model) per
+// the migration's UNIQUE constraint — that tuple is the cache key.
+
+/** Row shape mirroring the `document` table. See migration 003. */
+export type Document = {
+  id: string;
+  sha256: string;
+  filename: string;
+  mime_type: string;
+  size_bytes: number;
+  storage_path: string;
+  uploaded_at: string;
+  uploaded_by: string | null;
+};
+
+export type ExtractionStatus = 'pending' | 'parsed' | 'review_needed' | 'rejected';
+
+/** Row shape mirroring the `extraction` table. See migration 003. */
+export type Extraction = {
+  id: string;
+  document_id: string;
+  llm_provider: string;
+  llm_model: string;
+  prompt_version: string;
+  raw_response: string | null;
+  parsed_json: string | null;
+  error_json: string | null;
+  status: ExtractionStatus;
+  reviewed_by_user_at: string | null;
+  cost_usd: number | null;
+  created_at: string;
+};
