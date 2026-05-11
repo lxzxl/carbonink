@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SourcesRouteImport } from './routes/sources'
+import { Route as DocumentsRouteImport } from './routes/documents'
 import { Route as ActivitiesRouteImport } from './routes/activities'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OnboardingStepRouteImport } from './routes/onboarding/$step'
@@ -17,6 +18,11 @@ import { Route as OnboardingStepRouteImport } from './routes/onboarding/$step'
 const SourcesRoute = SourcesRouteImport.update({
   id: '/sources',
   path: '/sources',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocumentsRoute = DocumentsRouteImport.update({
+  id: '/documents',
+  path: '/documents',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ActivitiesRoute = ActivitiesRouteImport.update({
@@ -38,12 +44,14 @@ const OnboardingStepRoute = OnboardingStepRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/activities': typeof ActivitiesRoute
+  '/documents': typeof DocumentsRoute
   '/sources': typeof SourcesRoute
   '/onboarding/$step': typeof OnboardingStepRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/activities': typeof ActivitiesRoute
+  '/documents': typeof DocumentsRoute
   '/sources': typeof SourcesRoute
   '/onboarding/$step': typeof OnboardingStepRoute
 }
@@ -51,20 +59,33 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/activities': typeof ActivitiesRoute
+  '/documents': typeof DocumentsRoute
   '/sources': typeof SourcesRoute
   '/onboarding/$step': typeof OnboardingStepRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/activities' | '/sources' | '/onboarding/$step'
+  fullPaths:
+    | '/'
+    | '/activities'
+    | '/documents'
+    | '/sources'
+    | '/onboarding/$step'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/activities' | '/sources' | '/onboarding/$step'
-  id: '__root__' | '/' | '/activities' | '/sources' | '/onboarding/$step'
+  to: '/' | '/activities' | '/documents' | '/sources' | '/onboarding/$step'
+  id:
+    | '__root__'
+    | '/'
+    | '/activities'
+    | '/documents'
+    | '/sources'
+    | '/onboarding/$step'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ActivitiesRoute: typeof ActivitiesRoute
+  DocumentsRoute: typeof DocumentsRoute
   SourcesRoute: typeof SourcesRoute
   OnboardingStepRoute: typeof OnboardingStepRoute
 }
@@ -76,6 +97,13 @@ declare module '@tanstack/react-router' {
       path: '/sources'
       fullPath: '/sources'
       preLoaderRoute: typeof SourcesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/documents': {
+      id: '/documents'
+      path: '/documents'
+      fullPath: '/documents'
+      preLoaderRoute: typeof DocumentsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/activities': {
@@ -105,6 +133,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActivitiesRoute: ActivitiesRoute,
+  DocumentsRoute: DocumentsRoute,
   SourcesRoute: SourcesRoute,
   OnboardingStepRoute: OnboardingStepRoute,
 }

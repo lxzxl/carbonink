@@ -1,3 +1,4 @@
+import { useSettingsDrawer } from '@renderer/components/settings-drawer-context';
 import { useNavigate } from '@tanstack/react-router';
 import { Command } from 'cmdk';
 import { useEffect, useState } from 'react';
@@ -7,6 +8,13 @@ type CommandGroup = 'Navigation' | 'Actions' | 'Settings' | 'Help';
 type CommandContext = {
   navigate: ReturnType<typeof useNavigate>;
   close: () => void;
+  /**
+   * Opens the global Settings drawer. Threaded through ctx (rather than
+   * dereferencing the hook inside an `onSelect` closure) because cmdk item
+   * callbacks run outside React's render phase — calling `useSettingsDrawer`
+   * there would violate the rules of hooks.
+   */
+  openSettings: () => void;
 };
 
 export type CommandDef = {
@@ -48,6 +56,24 @@ export const commands: CommandDef[] = [
     },
   },
   {
+    id: 'nav.documents',
+    group: 'Navigation',
+    label: 'Open Documents',
+    onSelect: ({ navigate, close }) => {
+      close();
+      navigate({ to: '/documents' });
+    },
+  },
+  {
+    id: 'nav.settings',
+    group: 'Navigation',
+    label: 'Open Settings',
+    onSelect: ({ close, openSettings }) => {
+      close();
+      openSettings();
+    },
+  },
+  {
     id: 'nav.onboarding',
     group: 'Navigation',
     label: 'Open Onboarding Wizard',
@@ -66,15 +92,16 @@ export const commands: CommandDef[] = [
  * rendered automatically into the appropriate group. Escape is handled by
  * cmdk's `Command.Dialog` (Radix Dialog under the hood); do not re-add it.
  *
- * Each command's `onSelect` receives `{ navigate, close }` and must call
- * `close()` before navigating / firing the action, otherwise the palette
- * stays open behind the navigated page.
+ * Each command's `onSelect` receives `{ navigate, close, openSettings }`
+ * and must call `close()` before navigating / firing the action, otherwise
+ * the palette stays open behind the navigated page.
  *
  * Group render order is stable: Navigation → Actions → Settings → Help.
  */
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+  const { setOpen: setSettingsDrawerOpen } = useSettingsDrawer();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -88,7 +115,11 @@ export function CommandPalette() {
   }, []);
 
   const close = () => setOpen(false);
-  const ctx: CommandContext = { navigate, close };
+  const ctx: CommandContext = {
+    navigate,
+    close,
+    openSettings: () => setSettingsDrawerOpen(true),
+  };
 
   const groupsToRender = GROUP_ORDER.filter((g) => commands.some((c) => c.group === g));
 

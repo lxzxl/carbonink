@@ -1,0 +1,26 @@
+import type { ProviderConfig } from '@shared/types.js';
+import { invoke } from '../ipc.js';
+
+/**
+ * Per-domain renderer wrapper for the `settings:*` IPC channels.
+ *
+ * Phase 1b — LLM provider config. The split-storage policy lives in
+ * `SettingsService`: provider config (no key) goes to sqlite, the API key
+ * itself goes to OS keychain via `CredentialService`. The renderer never
+ * sees plaintext keys — `getProvider()` returns `{ ...config, apiKeyMasked }`
+ * where `apiKeyMasked` is e.g. `sk-...abcd` or `null` if no key is stored.
+ *
+ * `pingProvider`'s optional `apiKey` lets the Settings drawer's "Test
+ * connection" button work against a freshly-typed key that hasn't been
+ * saved yet. The handler temporarily seats it before calling `LLMClient.ping`
+ * and does not persist (no `save-provider` is called).
+ */
+export const settingsApi = {
+  available: () => invoke('settings:available'),
+  getProvider: () => invoke('settings:get-provider'),
+  saveProvider: (input: { config: ProviderConfig; apiKey: string }) =>
+    invoke('settings:save-provider', input),
+  clearProvider: () => invoke('settings:clear-provider'),
+  pingProvider: (input: { config: ProviderConfig; apiKey?: string }) =>
+    invoke('settings:ping-provider', input),
+};
