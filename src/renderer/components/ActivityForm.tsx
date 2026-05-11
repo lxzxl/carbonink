@@ -170,13 +170,19 @@ export function ActivityForm({ organizationId, sources, onCancel, onSuccess }: A
   const efKey = (ef: EmissionFactor) =>
     `${ef.factor_code}|${ef.year}|${ef.source}|${ef.geography}|${ef.dataset_version}`;
 
-  const selectedEfKey = [
-    form.state.values.ef_factor_code,
-    form.state.values.ef_year,
-    form.state.values.ef_source,
-    form.state.values.ef_geography,
-    form.state.values.ef_dataset_version,
-  ].join('|');
+  // Subscribe to the 5 composite-PK ef_* fields so the EF radio "checked"
+  // state + submit-button disabled state both reactively follow form state.
+  // Without subscription, pickEf() would mutate state but radio visuals stay
+  // unchecked (same trap as emission_source_id above).
+  const selectedEfKey = useStore(form.store, (s) =>
+    [
+      s.values.ef_factor_code,
+      s.values.ef_year,
+      s.values.ef_source,
+      s.values.ef_geography,
+      s.values.ef_dataset_version,
+    ].join('|'),
+  );
   const selectedEf = efs.find((ef) => efKey(ef) === selectedEfKey);
 
   const pickEf = (ef: EmissionFactor) => {
@@ -465,9 +471,7 @@ export function ActivityForm({ organizationId, sources, onCancel, onSuccess }: A
         </Button>
         <Button
           type="submit"
-          disabled={
-            createActivity.isPending || noSources || noPeriods || !form.state.values.ef_factor_code
-          }
+          disabled={createActivity.isPending || noSources || noPeriods || !selectedEf}
         >
           {createActivity.isPending ? m.activities_form_submitting() : m.activities_form_submit()}
         </Button>
