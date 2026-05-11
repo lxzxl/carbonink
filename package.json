@@ -56,6 +56,7 @@
     "lucide-react": "~1.14.0",
     "react": "^18",
     "react-dom": "^18",
+    "sonner": "^2.0.7",
     "tailwind-merge": "^3.6.0",
     "ulid": "^3.0.2",
     "vite": "^7",

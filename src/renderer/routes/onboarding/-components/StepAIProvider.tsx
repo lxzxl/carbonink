@@ -1,3 +1,4 @@
+import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
 import { orgApi } from '@renderer/lib/api/organization';
 import * as m from '@renderer/paraglide/messages';
@@ -10,7 +11,6 @@ export function StepAIProvider() {
   const navigate = useNavigate();
   const draft = loadDraft();
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
   const completeOnboarding = useMutation({
@@ -19,10 +19,11 @@ export function StepAIProvider() {
 
   const finish = async (kind: 'byot' | 'skip') => {
     setSubmitting(true);
-    setError(null);
     try {
       if (!draft.company || !draft.first_site || !draft.reporting_year) {
-        setError('Wizard state incomplete; please restart from step 1.');
+        toast.error('Failed to complete onboarding', {
+          description: 'Wizard state incomplete; please restart from step 1.',
+        });
         return;
       }
       await completeOnboarding.mutateAsync({
@@ -49,7 +50,8 @@ export function StepAIProvider() {
       await queryClient.invalidateQueries({ queryKey: ['org:has-any'] });
       await navigate({ to: '/' });
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Unknown error');
+      const msg = e instanceof Error ? e.message : 'Unknown error';
+      toast.error('Failed to complete onboarding', { description: msg });
     } finally {
       setSubmitting(false);
     }
@@ -75,7 +77,6 @@ export function StepAIProvider() {
       </div>
 
       {submitting && <p className="text-sm text-muted-foreground">{m.onboarding_creating()}</p>}
-      {error && <p className="text-sm text-destructive">{error}</p>}
 
       <div className="flex justify-start pt-2">
         <Button

@@ -1,3 +1,4 @@
+import { Toaster } from '@renderer/components/toast';
 import { initLocale } from '@renderer/lib/i18n';
 import { router } from '@renderer/router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -22,6 +23,7 @@ createRoot(root).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
+      <Toaster />
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   </StrictMode>,
