@@ -8,7 +8,7 @@ import { sourceApi } from '@renderer/lib/api/emission-source';
 import { orgApi } from '@renderer/lib/api/organization';
 import * as m from '@renderer/paraglide/messages';
 import type { EmissionFactor, EmissionSource, ReportingPeriod } from '@shared/types';
-import { useForm } from '@tanstack/react-form';
+import { useForm, useStore } from '@tanstack/react-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 
@@ -138,7 +138,11 @@ export function ActivityForm({ organizationId, sources, onCancel, onSuccess }: A
     }
   }, [defaultPeriodId, defaultStart, defaultEnd, form]);
 
-  const selectedSourceId = form.state.values.emission_source_id;
+  // Subscribe to emission_source_id so the parent component re-renders when
+  // the user picks a source. Reading `form.state.values.x` synchronously here
+  // would NOT subscribe — only the <form.Field> for that name would re-render,
+  // leaving the EF candidate query stuck on the initial empty state.
+  const selectedSourceId = useStore(form.store, (s) => s.values.emission_source_id);
   const selectedSource = sources.find((s) => s.id === selectedSourceId);
 
   // EF candidate query — only enabled once a source is chosen. We pass
