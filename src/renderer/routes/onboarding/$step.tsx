@@ -1,4 +1,6 @@
+import { orgApi } from '@renderer/lib/api/organization';
 import * as m from '@renderer/paraglide/messages';
+import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Navigate, useParams } from '@tanstack/react-router';
 import { StepAIProvider } from './-components/StepAIProvider';
 import { StepBoundary } from './-components/StepBoundary';
@@ -12,6 +14,15 @@ export const Route = createFileRoute('/onboarding/$step')({
 
 function OnboardingShell() {
   const { step } = useParams({ strict: false });
+
+  // Guard: if an organization already exists, onboarding can't run a second
+  // time (singleton enforced in DB via UNIQUE singleton_key on organization).
+  // Block here BEFORE the user fills out a multi-step form only to be told
+  // at step 5 the create transaction failed. Dashboard owns the post-onboarding
+  // view; route them there.
+  const hasAny = useQuery({ queryKey: ['org:has-any'], queryFn: orgApi.hasAny });
+  if (hasAny.isLoading) return null; // brief flicker is acceptable vs a misleading wizard frame
+  if (hasAny.data === true) return <Navigate to="/" replace />;
 
   if (step === '1')
     return (
