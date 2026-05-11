@@ -192,6 +192,16 @@
 - 故意不收集用户的活动数据、报告内容、问卷答案——这是核心 marketing 卖点
 - MCP 暴露后修订承诺为："数据不出你的电脑。你可以选择把 carbonbook 暴露给本机的 AI 工具（Claude Desktop / Cursor 等）使用——这些工具产生的 AI 调用走它们各自的认证，不经 carbonbook-cloud。"
 
+**7. UI 视觉基线 = 原生 chrome + OKLch token 阶梯**
+- Window chrome：macOS `hiddenInset` + `vibrancy: 'under-window'` + traffic light 内嵌（`{x:18, y:16}`）；Windows `backgroundMaterial: 'mica'` + `autoHideMenuBar`。Renderer body 透明让模糊层透出。让 app "看起来像系统原生"，不像 web view 包壳
+- 颜色 token：OKLch 替代 HSL（感知线性更舒服），`--foreground-1.5..95` 15 级 `color-mix()` 阶梯替代 ad-hoc opacity。Tailwind v4 `@theme { --color-* }` 暴露 token utilities（`bg-primary` 等）。所有 shadcn 组件继承
+- 品牌主色：carbonbook 森林绿 `oklch(0.55 0.16 160)`
+- 命令式 UX：cmdk command palette（⌘K）是主导航补充。Phase 1+ 每个新功能要同时注册一条 command 到 `commands: CommandDef[]` 数组。⌘K 全局保留，任何 per-page hotkey 不可绑它
+- Toast：sonner 替代 inline 错误 `<p>`，避免错误把 wizard 步骤布局推变形。**不**用 `richColors`（specificity 会盖掉 token），用 OKLch token 类 + per-type 边框色（`error: 'border-destructive/40'` 等）
+- Drawer：vaul 是 settings / detail view 的标准容器（不用 Dialog —— Dialog 适合阻塞确认，drawer 适合并行查看）
+
+参考：UI baseline sprint plan `docs/plans/2026-05-11-carbonbook-ui-baseline.md`，灵感来自 craft-agents-oss。详见 `ui-baseline` git tag。
+
 ### Tech Stack 决定
 
 | 层 | 选择 |
@@ -212,6 +222,9 @@
 | AI 抽象 | `@earendil-works/pi-ai` + 自家 `LLMClient` 包装 |
 | MCP SDK | `@modelcontextprotocol/sdk` |
 | 打包 / 分发 | electron-builder |
+| Toast | sonner |
+| Command palette | cmdk |
+| Drawer / sheet | vaul |
 
 ### Trade-off 表
 
