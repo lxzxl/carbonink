@@ -72,13 +72,16 @@ export class UnitConversionService {
   }
 
   convertWithFuel(amount: number, fromUnit: string, toUnit: string, fuelCode: string): number {
+    // Always validate fuel binding, even when the conversion ends up not needing it.
+    // This guards callers (especially future FTS-matching paths in Phase 1c+) from
+    // silently passing through bad fuel codes.
+    const fuel = this.getFuelProperty(fuelCode);
+
     const from = this.normalize(fromUnit);
     const to = this.normalize(toUnit);
 
     // Same family: delegate to direct conversion.
     if (from.family === to.family) return this.convert(amount, fromUnit, toUnit);
-
-    const fuel = this.getFuelProperty(fuelCode);
 
     // Phase 1a supported cross-family paths: volume ↔ mass, mass ↔ energy,
     // volume ↔ energy. Compute intermediates in canonical units (kg, L, MJ).

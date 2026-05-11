@@ -92,6 +92,10 @@ describe('UnitConversionService.convertWithFuel', () => {
     expect(() => svc.convertWithFuel(1, 'L', 'kg', 'unobtanium')).toThrow();
   });
 
+  it('throws UnknownUnitError-like error on bad fuel_code even for same-family conversion', () => {
+    expect(() => svc.convertWithFuel(1, 'L', 'L', 'unobtanium')).toThrow();
+  });
+
   it('throws if conversion path impossible (e.g. distance → mass)', () => {
     expect(() => svc.convertWithFuel(1, 'km', 'kg', 'gasoline')).toThrow();
   });
