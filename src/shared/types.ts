@@ -1,3 +1,6 @@
+import { z } from 'zod';
+import { optionalString } from './schemas/_helpers.js';
+
 export * from './schemas/complete-onboarding.js';
 export * from './schemas/organization.js';
 export * from './schemas/reporting-period.js';
@@ -69,3 +72,90 @@ export type PinnedEmissionFactor = Omit<EmissionFactor, 'notes'> & {
    */
   pinned_from: string;
 };
+
+// ---------------------------------------------------------------------------
+// emission_source / activity_data — Zod inputs + DB row types (Phase 1a task 6)
+// ---------------------------------------------------------------------------
+//
+// 命名/lengths：参照 organization/site schema 的约定（255/500/100），
+// JSON / 自由文本字段给得宽松一些。`scope` 用 union of literals 而不是
+// `z.enum([...])`，因为它在 DB 里是 INTEGER（migration 004 CHECK 约束）。
+
+export const emissionSourceCreateInput = z.object({
+  site_id: z.string().min(1),
+  name: z.string().min(1).max(200),
+  scope: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  category: optionalString({ max: 255 }),
+  ghg_protocol_path: optionalString({ max: 500 }),
+  // JSON string (e.g. serialized EfLookupQuery). Validated as JSON by the
+  // DB CHECK constraint on insert; the zod schema just bounds length.
+  default_ef_query: optionalString({ max: 2000 }),
+  template_origin: optionalString({ max: 255 }),
+});
+
+export const emissionSourceUpdateInput = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1).max(200).optional(),
+  scope: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
+  category: optionalString({ max: 255 }),
+  is_active: z.boolean().optional(),
+});
+
+export const activityDataCreateInput = z.object({
+  emission_source_id: z.string().min(1),
+  reporting_period_id: z.string().min(1),
+  occurred_at_start: z.string(), // ISO 8601 date or datetime
+  occurred_at_end: z.string(),
+  amount: z.number().positive(),
+  unit: z.string().min(1),
+  ef_factor_code: z.string().min(1),
+  ef_year: z.number().int(),
+  ef_source: z.string().min(1),
+  ef_geography: z.string().min(1),
+  ef_dataset_version: z.string().min(1),
+  // Optional: lets ActivityDataService do cross-family conversion
+  // (e.g. m³ → kg via fuel density) when input unit and EF input_unit
+  // belong to different families. See spec §3 / migration 007.
+  fuel_code: optionalString({ max: 100 }),
+  notes: optionalString({ max: 2000 }),
+});
+
+/** Row shape mirroring the `emission_source` table. See migration 004. */
+export type EmissionSource = {
+  id: string;
+  site_id: string;
+  name: string;
+  scope: 1 | 2 | 3;
+  category: string | null;
+  ghg_protocol_path: string | null;
+  default_ef_query: string | null;
+  template_origin: string | null;
+  is_active: boolean;
+};
+
+/** Row shape mirroring the `activity_data` table. See migration 004. */
+export type ActivityData = {
+  id: string;
+  site_id: string;
+  emission_source_id: string;
+  reporting_period_id: string;
+  occurred_at_start: string;
+  occurred_at_end: string;
+  amount: number;
+  unit: string;
+  ef_factor_code: string;
+  ef_year: number;
+  ef_source: string;
+  ef_geography: string;
+  ef_dataset_version: string;
+  computed_co2e_kg: number;
+  computed_at: string;
+  extraction_id: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type EmissionSourceCreateInput = z.infer<typeof emissionSourceCreateInput>;
+export type EmissionSourceUpdateInput = z.infer<typeof emissionSourceUpdateInput>;
+export type ActivityDataCreateInput = z.infer<typeof activityDataCreateInput>;
