@@ -101,6 +101,33 @@ describe('UnitConversionService.convertWithFuel', () => {
   });
 });
 
+describe('UnitConversionService.listAll', () => {
+  it('returns at least the canonical units (kWh, L, kg, km)', () => {
+    const all = svc.listAll();
+    const units = new Set(all.map((u) => u.unit));
+    expect(units.has('kWh')).toBe(true);
+    expect(units.has('L')).toBe(true);
+    expect(units.has('kg')).toBe(true);
+    expect(units.has('km')).toBe(true);
+  });
+
+  it('is ordered by (family, display_order, unit)', () => {
+    const all = svc.listAll();
+    // For each consecutive pair, assert the sort invariant.
+    for (let i = 1; i < all.length; i += 1) {
+      const prev = all[i - 1];
+      const curr = all[i];
+      if (!prev || !curr) throw new Error('unreachable');
+      if (prev.family === curr.family) {
+        expect(prev.display_order).toBeLessThanOrEqual(curr.display_order);
+      } else {
+        // family changes — `prev.family` must lex-sort before `curr.family`.
+        expect(prev.family < curr.family).toBe(true);
+      }
+    }
+  });
+});
+
 describe('UnitConversionService.isCompatible', () => {
   it('returns true for same family', () => {
     expect(svc.isCompatible('kWh', 'MJ')).toBe(true);

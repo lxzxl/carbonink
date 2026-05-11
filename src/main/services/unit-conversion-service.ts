@@ -1,3 +1,4 @@
+import type { UnitDefinition } from '@shared/types.js';
 import type Database from 'better-sqlite3';
 
 export class UnknownUnitError extends Error {
@@ -133,6 +134,22 @@ export class UnitConversionService {
       return this.convert(intermediate_MJ, 'MJ', toUnit);
     }
     throw new Error(`Cannot convert to family ${to.family}`);
+  }
+
+  /**
+   * Returns every row in `unit_definition`, ordered by (family, display_order)
+   * so the renderer can render a grouped picker without further sorting.
+   * Read-only catalog — safe to expose verbatim across the IPC boundary.
+   */
+  listAll(): UnitDefinition[] {
+    return this.ctx.db
+      .prepare(
+        `SELECT unit, family, multiply_of_ratio, divide_of_ratio,
+                display_order, display_name_zh, display_name_en
+         FROM unit_definition
+         ORDER BY family ASC, display_order ASC, unit ASC`,
+      )
+      .all() as UnitDefinition[];
   }
 
   isCompatible(unitA: string, unitB: string): boolean {

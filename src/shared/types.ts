@@ -159,3 +159,22 @@ export type ActivityData = {
 export type EmissionSourceCreateInput = z.infer<typeof emissionSourceCreateInput>;
 export type EmissionSourceUpdateInput = z.infer<typeof emissionSourceUpdateInput>;
 export type ActivityDataCreateInput = z.infer<typeof activityDataCreateInput>;
+
+// ---------------------------------------------------------------------------
+// Unit definition (read-only catalog row, exposed via `units:list` IPC channel)
+// ---------------------------------------------------------------------------
+
+/**
+ * Row shape mirroring the `unit_definition` table (migration 003 / 007).
+ * Read-only for the UI: the renderer pulls the full catalog once at startup
+ * and uses it for unit pickers / family compatibility filtering.
+ */
+export type UnitDefinition = {
+  unit: string;
+  family: string;
+  multiply_of_ratio: number;
+  divide_of_ratio: number;
+  display_order: number;
+  display_name_zh: string | null;
+  display_name_en: string | null;
+};

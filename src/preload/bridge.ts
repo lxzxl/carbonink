@@ -7,6 +7,7 @@ import type { IpcTypeMap } from '@main/ipc/types.js';
  * Keep in sync with handler registration in `src/main/ipc/setup.ts`.
  */
 export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
+  // organization domain
   'org:has-any',
   'org:get-by-id',
   'org:create',
@@ -15,6 +16,21 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   'org:list-reporting-periods',
   'org:create-reporting-period',
   'org:complete-onboarding',
+  // ef-library domain (read-only catalog)
+  'ef:list',
+  'ef:get-by-pk',
+  'units:list',
+  // emission-source domain
+  'source:create',
+  'source:get-by-id',
+  'source:list-by-site',
+  'source:list-by-org',
+  'source:update',
+  'source:delete',
+  // activity-data domain
+  'activity:create',
+  'activity:list-by-period',
+  'activity:totals-by-period',
 ];
 
 export type InvokeFn = (channel: string, ...args: unknown[]) => Promise<unknown>;

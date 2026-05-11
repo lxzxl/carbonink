@@ -32,6 +32,7 @@ describe('preload bridge', () => {
     // also register it here. We rely on an explicit list rather than codegen so
     // adding a channel is a deliberate two-place change.
     expect(allowedChannels).toEqual([
+      // organization domain
       'org:has-any',
       'org:get-by-id',
       'org:create',
@@ -40,6 +41,21 @@ describe('preload bridge', () => {
       'org:list-reporting-periods',
       'org:create-reporting-period',
       'org:complete-onboarding',
+      // ef-library domain
+      'ef:list',
+      'ef:get-by-pk',
+      'units:list',
+      // emission-source domain
+      'source:create',
+      'source:get-by-id',
+      'source:list-by-site',
+      'source:list-by-org',
+      'source:update',
+      'source:delete',
+      // activity-data domain
+      'activity:create',
+      'activity:list-by-period',
+      'activity:totals-by-period',
     ]);
   });
 });
