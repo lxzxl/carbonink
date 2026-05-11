@@ -28,6 +28,7 @@ import type {
 export type IpcTypeMap = {
   // organization domain
   'org:has-any': () => boolean;
+  'org:get-current': () => Organization | null;
   'org:get-by-id': (input: { id: string }) => Organization | null;
   'org:create': (input: OrganizationCreateInput) => Organization;
   'org:list-sites': (input: { organization_id: string }) => Site[];

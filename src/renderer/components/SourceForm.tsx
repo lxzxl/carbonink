@@ -1,0 +1,203 @@
+import { toast } from '@renderer/components/toast';
+import { Button } from '@renderer/components/ui/button';
+import { Input } from '@renderer/components/ui/input';
+import { Label } from '@renderer/components/ui/label';
+import { sourceApi } from '@renderer/lib/api/emission-source';
+import { orgApi } from '@renderer/lib/api/organization';
+import * as m from '@renderer/paraglide/messages';
+import type { Site } from '@shared/types';
+import { useForm } from '@tanstack/react-form';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
+/**
+ * Inline create form for an EmissionSource. Mounted by /sources.
+ *
+ * Follows the StepCompanyInfo TanStack Form pattern (children-prop render
+ * style — we calibrated Biome's `noChildrenProp` off for that hook).
+ *
+ * Site picker: Phase 1a always has exactly 1 site (created during onboarding),
+ * so the dominant path renders a read-only label. The dropdown branch is
+ * intentionally kept so future "add a second site" flows don't need a UI
+ * rewrite — only adoption of the new Site management surface.
+ *
+ * On success: invalidates the per-org source list query so the table above
+ * refetches, then calls `onSuccess` to close the form.
+ */
+export interface SourceFormProps {
+  organizationId: string;
+  onCancel: () => void;
+  onSuccess: () => void;
+}
+
+export function SourceForm({ organizationId, onCancel, onSuccess }: SourceFormProps) {
+  const queryClient = useQueryClient();
+
+  const sitesQuery = useQuery<Site[]>({
+    queryKey: ['org:list-sites', organizationId],
+    queryFn: () => orgApi.listSites({ organization_id: organizationId }),
+  });
+
+  const createSource = useMutation({
+    mutationFn: sourceApi.create,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['source:list-by-org', organizationId] });
+      onSuccess();
+    },
+    onError: (err) => {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      toast.error(m.sources_create_failed(), { description: msg });
+    },
+  });
+
+  const sites = sitesQuery.data ?? [];
+  const defaultSiteId = sites[0]?.id ?? '';
+
+  const form = useForm({
+    defaultValues: {
+      name: '',
+      scope: 1 as 1 | 2 | 3,
+      category: '',
+      site_id: defaultSiteId,
+    },
+    onSubmit: async ({ value }) => {
+      await createSource.mutateAsync({
+        site_id: value.site_id,
+        name: value.name,
+        scope: value.scope,
+        category: value.category || undefined,
+      });
+    },
+  });
+
+  // Sites load asynchronously; once they arrive (single-site onboarding case
+  // is the dominant path) pre-fill the form field so submit doesn't blow up
+  // on an empty site_id. Done inside an effect-via-render guard rather than
+  // useEffect so the form value stays consistent across re-renders without
+  // toggling — useForm's setFieldValue is idempotent.
+  if (defaultSiteId && form.state.values.site_id !== defaultSiteId) {
+    // Phase 1a is single-site; this branch fires exactly once after the
+    // sites query resolves. Multi-site cases (Phase 1b+) will display the
+    // dropdown below and the user picks explicitly.
+    if (form.state.values.site_id === '') {
+      form.setFieldValue('site_id', defaultSiteId);
+    }
+  }
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        form.handleSubmit();
+      }}
+      className="space-y-4 max-w-md mt-4 rounded-md border border-border bg-muted/30 p-4"
+    >
+      <form.Field
+        name="name"
+        validators={{
+          onChange: ({ value }) => (value.trim().length > 0 ? undefined : m.required_field()),
+        }}
+        children={(field) => (
+          <div className="space-y-1">
+            <Label htmlFor="source-name">{m.sources_form_name()}</Label>
+            <Input
+              id="source-name"
+              value={field.state.value}
+              onChange={(e) => field.handleChange(e.target.value)}
+            />
+            {field.state.meta.errors[0] && (
+              <p className="text-xs text-destructive">{String(field.state.meta.errors[0])}</p>
+            )}
+          </div>
+        )}
+      />
+
+      <form.Field
+        name="scope"
+        children={(field) => (
+          <fieldset className="space-y-2">
+            <legend className="text-sm font-medium leading-none">{m.sources_form_scope()}</legend>
+            <div className="space-y-1">
+              {([1, 2, 3] as const).map((s) => (
+                <label key={s} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    name="scope"
+                    value={s}
+                    checked={field.state.value === s}
+                    onChange={() => field.handleChange(s)}
+                  />
+                  <span>
+                    {s === 1
+                      ? m.sources_form_scope_1()
+                      : s === 2
+                        ? m.sources_form_scope_2()
+                        : m.sources_form_scope_3()}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        )}
+      />
+
+      <form.Field
+        name="category"
+        children={(field) => (
+          <div className="space-y-1">
+            <Label htmlFor="source-category">{m.sources_form_category()}</Label>
+            <Input
+              id="source-category"
+              value={field.state.value}
+              placeholder={m.sources_form_category_placeholder()}
+              onChange={(e) => field.handleChange(e.target.value)}
+            />
+          </div>
+        )}
+      />
+
+      <form.Field
+        name="site_id"
+        children={(field) => (
+          <div className="space-y-1">
+            <Label htmlFor="source-site">{m.sources_form_site()}</Label>
+            {sites.length <= 1 ? (
+              // Single-site case (Phase 1a default). Read-only label keeps
+              // the field present (and form value populated) without
+              // cluttering the UI with a one-option dropdown.
+              <p id="source-site" className="text-sm text-muted-foreground">
+                {sites[0]?.name_zh ?? sites[0]?.name_en ?? '—'}
+              </p>
+            ) : (
+              <select
+                id="source-site"
+                value={field.state.value}
+                onChange={(e) => field.handleChange(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2"
+              >
+                {sites.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name_zh ?? s.name_en ?? s.id}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        )}
+      />
+
+      <div className="flex justify-end gap-2 pt-2">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={createSource.isPending}
+        >
+          {m.sources_cancel_button()}
+        </Button>
+        <Button type="submit" disabled={createSource.isPending || !defaultSiteId}>
+          {createSource.isPending ? m.sources_form_submitting() : m.sources_form_submit()}
+        </Button>
+      </div>
+    </form>
+  );
+}

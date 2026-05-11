@@ -60,6 +60,24 @@ export class OrganizationService {
     return row.c > 0;
   }
 
+  /**
+   * Phase 1a singleton accessor: returns the (only) organization, or null if
+   * onboarding hasn't run yet. `createOrganization` enforces the singleton
+   * invariant, but the row could theoretically have been seeded externally
+   * — `ORDER BY id ASC LIMIT 1` deterministically picks the earliest ULID so
+   * concurrent callers always see the same row.
+   *
+   * Used by `/sources` and `/activities` routes which need an organization_id
+   * to scope their queries without forcing a per-route org picker (single-org
+   * desktop app — there is no multi-tenant story in Phase 1a).
+   */
+  getCurrentOrganization(): Organization | null {
+    const row = this.ctx.db.prepare('SELECT * FROM organization ORDER BY id ASC LIMIT 1').get() as
+      | Organization
+      | undefined;
+    return row ?? null;
+  }
+
   createSite(input: SiteCreateInput): Site {
     const parsed = siteCreateInput.parse(input);
     const id = newId();

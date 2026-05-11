@@ -25,6 +25,7 @@ export function organizationHandlers(ctx: IpcContext): {
   const svc = ctx.organizationService;
   return {
     'org:has-any': () => svc.hasAnyOrganization(),
+    'org:get-current': () => svc.getCurrentOrganization(),
     'org:get-by-id': (input) => svc.getOrganization(orgIdInput.parse(input).id),
     'org:create': (input) => svc.createOrganization(organizationCreateInput.parse(input)),
     'org:list-sites': (input) =>

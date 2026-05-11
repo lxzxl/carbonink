@@ -30,6 +30,15 @@ export const commands: CommandDef[] = [
     },
   },
   {
+    id: 'nav.sources',
+    group: 'Navigation',
+    label: 'Open Sources',
+    onSelect: ({ navigate, close }) => {
+      close();
+      navigate({ to: '/sources' });
+    },
+  },
+  {
     id: 'nav.onboarding',
     group: 'Navigation',
     label: 'Open Onboarding Wizard',

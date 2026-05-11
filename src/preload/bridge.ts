@@ -9,6 +9,7 @@ import type { IpcTypeMap } from '@main/ipc/types.js';
 export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   // organization domain
   'org:has-any',
+  'org:get-current',
   'org:get-by-id',
   'org:create',
   'org:list-sites',

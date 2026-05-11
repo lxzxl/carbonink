@@ -34,6 +34,7 @@ describe('preload bridge', () => {
     expect(allowedChannels).toEqual([
       // organization domain
       'org:has-any',
+      'org:get-current',
       'org:get-by-id',
       'org:create',
       'org:list-sites',

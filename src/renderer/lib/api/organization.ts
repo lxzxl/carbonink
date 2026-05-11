@@ -19,6 +19,7 @@ import { invoke } from '../ipc.js';
  */
 export const orgApi = {
   hasAny: () => invoke('org:has-any'),
+  getCurrent: () => invoke('org:get-current'),
   getById: (input: { id: string }) => invoke('org:get-by-id', input),
   create: (input: OrganizationCreateInput) => invoke('org:create', input),
   listSites: (input: { organization_id: string }) => invoke('org:list-sites', input),
