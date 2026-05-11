@@ -51,4 +51,23 @@ describe('Migration 008: seed emission factors', () => {
       .all();
     expect(orphans).toEqual([]);
   });
+
+  it('pins exact co2e_kg_per_unit for representative rows (paste-error guard)', () => {
+    const db = new Database(':memory:');
+    db.pragma('foreign_keys = ON');
+    runMigrations(db);
+    const cases: Array<[string, number]> = [
+      ['electricity.grid.cn.national.2024', 0.5703],
+      ['electricity.grid.cn.east.2024', 0.5586],
+      ['fuel.gasoline.combustion.global.2024', 2.296],
+      ['fuel.diesel.combustion.global.2024', 2.683],
+      ['fuel.natural_gas.combustion.global.2024', 1.879],
+    ];
+    for (const [code, expected] of cases) {
+      const row = db
+        .prepare('SELECT co2e_kg_per_unit FROM emission_factor WHERE factor_code = ?')
+        .get(code) as { co2e_kg_per_unit: number };
+      expect(row.co2e_kg_per_unit).toBeCloseTo(expected, 4);
+    }
+  });
 });
