@@ -17,9 +17,9 @@ function RootComponent() {
       {/* NOTE: bg-background omitted from this wrapper so macOS vibrancy /
        * Windows Mica show through. text-foreground stays for inherited
        * text color tokens. */}
-      <div className="flex h-screen text-foreground">
+      <div className="flex h-screen pt-8 text-foreground">
         <Sidebar />
-        <main className="flex-1 overflow-auto p-8 pt-8">
+        <main className="flex-1 overflow-auto p-8">
           <Outlet />
         </main>
       </div>

@@ -21,11 +21,15 @@ body {
   -webkit-user-select: none;
 }
 
-/* Buttons + links inside the titlebar region opt out of drag.
+/* Buttons + links + form elements inside the titlebar region opt out of drag.
  * Otherwise clicks would be eaten by the OS as window-move gestures. */
 .titlebar-region button,
 .titlebar-region a,
-.titlebar-region [role="button"] {
+.titlebar-region [role="button"],
+.titlebar-region input,
+.titlebar-region textarea,
+.titlebar-region select,
+.titlebar-region [contenteditable="true"] {
   -webkit-app-region: no-drag;
 }
 
