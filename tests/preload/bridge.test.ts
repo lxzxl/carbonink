@@ -63,6 +63,19 @@ describe('preload bridge', () => {
       'settings:save-provider',
       'settings:clear-provider',
       'settings:ping-provider',
+      // document domain (Phase 1b)
+      'document:upload',
+      'document:list',
+      'document:get-by-id',
+      // extraction domain (Phase 1b)
+      'extraction:run',
+      'extraction:list-pending',
+      'extraction:list-by-document',
+      'extraction:get-by-id',
+      'extraction:confirm',
+      'extraction:discard',
+      // stages domain (Phase 1b)
+      'stages:list',
     ]);
   });
 });

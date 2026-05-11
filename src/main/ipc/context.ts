@@ -1,3 +1,4 @@
+import { join } from 'node:path';
 import {
   deleteCredentialBlob,
   getCredentialStore,
@@ -8,11 +9,14 @@ import { ActivityDataService } from '@main/services/activity-data-service.js';
 import type { ServiceContext } from '@main/services/base.js';
 import { CalculationService } from '@main/services/calculation-service.js';
 import { CredentialService } from '@main/services/credential-service.js';
+import { DocumentService } from '@main/services/document-service.js';
 import { EfService } from '@main/services/ef-service.js';
 import { EmissionSourceService } from '@main/services/emission-source-service.js';
+import { ExtractionService } from '@main/services/extraction-service.js';
 import { OrganizationService } from '@main/services/organization-service.js';
 import { SettingsService } from '@main/services/settings-service.js';
 import { UnitConversionService } from '@main/services/unit-conversion-service.js';
+import { app } from 'electron';
 
 /**
  * Service-layer container injected into every IPC handler factory. Wiring
@@ -28,10 +32,14 @@ export interface IpcContext {
   calculationService: CalculationService;
   // Phase 1b additions — credentialService is the keychain wrapper,
   // settingsService is the sqlite-backed provider config store, llmClient
-  // is the AI SDK adapter.
+  // is the AI SDK adapter, documentService owns content-addressed file
+  // storage + `document` rows, and extractionService orchestrates the
+  // PDF → LLM → `extraction` row pipeline.
   credentialService: CredentialService;
   settingsService: SettingsService;
   llmClient: LLMClient;
+  documentService: DocumentService;
+  extractionService: ExtractionService;
 }
 
 /**
@@ -43,6 +51,15 @@ export interface IpcContext {
 export interface IpcContextOverrides {
   credentialService?: CredentialService;
   llmClient?: LLMClient;
+  /**
+   * Test override for the uploads directory used by DocumentService. In
+   * production this resolves to `app.getPath('userData') + '/uploads'`; tests
+   * supply a `mkdtempSync` path so they don't write into the user's real
+   * Application Support directory.
+   */
+  uploadsDir?: string;
+  documentService?: DocumentService;
+  extractionService?: ExtractionService;
 }
 
 /**
@@ -94,10 +111,34 @@ export function createIpcContext(
   let credentialServiceInstance: CredentialService | undefined = overrides.credentialService;
   let llmClientInstance: LLMClient | undefined = overrides.llmClient;
   let settingsServiceInstance: SettingsService | undefined;
+  let documentServiceInstance: DocumentService | undefined = overrides.documentService;
+  let extractionServiceInstance: ExtractionService | undefined = overrides.extractionService;
 
   const getCredential = (): CredentialService => {
     if (!credentialServiceInstance) credentialServiceInstance = defaultCredentialService();
     return credentialServiceInstance;
+  };
+  const getSettings = (): SettingsService => {
+    if (!settingsServiceInstance) {
+      settingsServiceInstance = new SettingsService({ ...svc, credentials: getCredential() });
+    }
+    return settingsServiceInstance;
+  };
+  const getLlm = (): LLMClient => {
+    if (!llmClientInstance) {
+      llmClientInstance = new LLMClient({ credentials: getCredential() });
+    }
+    return llmClientInstance;
+  };
+  const getDocument = (): DocumentService => {
+    if (!documentServiceInstance) {
+      // Resolve uploads dir lazily — `app.getPath` errors before Electron is
+      // ready, and tests typically supply an explicit `uploadsDir` override
+      // (or inject a pre-built DocumentService) so we never hit this branch.
+      const uploadsDir = overrides.uploadsDir ?? join(app.getPath('userData'), 'uploads');
+      documentServiceInstance = new DocumentService({ ...svc, uploadsDir });
+    }
+    return documentServiceInstance;
   };
 
   const ctx: IpcContext = {
@@ -111,16 +152,24 @@ export function createIpcContext(
       return getCredential();
     },
     get llmClient() {
-      if (!llmClientInstance) {
-        llmClientInstance = new LLMClient({ credentials: getCredential() });
-      }
-      return llmClientInstance;
+      return getLlm();
     },
     get settingsService() {
-      if (!settingsServiceInstance) {
-        settingsServiceInstance = new SettingsService({ ...svc, credentials: getCredential() });
+      return getSettings();
+    },
+    get documentService() {
+      return getDocument();
+    },
+    get extractionService() {
+      if (!extractionServiceInstance) {
+        extractionServiceInstance = new ExtractionService({
+          ...svc,
+          documentService: getDocument(),
+          settingsService: getSettings(),
+          llmClient: getLlm(),
+        });
       }
-      return settingsServiceInstance;
+      return extractionServiceInstance;
     },
   };
   return ctx;

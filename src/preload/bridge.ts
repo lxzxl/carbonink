@@ -38,6 +38,19 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   'settings:save-provider',
   'settings:clear-provider',
   'settings:ping-provider',
+  // document domain (Phase 1b — uploaded source files)
+  'document:upload',
+  'document:list',
+  'document:get-by-id',
+  // extraction domain (Phase 1b — AI extraction pipeline)
+  'extraction:run',
+  'extraction:list-pending',
+  'extraction:list-by-document',
+  'extraction:get-by-id',
+  'extraction:confirm',
+  'extraction:discard',
+  // stages domain (Phase 1b — read-only extraction stage registry)
+  'stages:list',
 ];
 
 export type InvokeFn = (channel: string, ...args: unknown[]) => Promise<unknown>;

@@ -3,8 +3,10 @@ import { getAppDb } from '@main/db/connection.js';
 import { defaultNow } from '@main/services/base.js';
 import { createIpcContext, type IpcContext } from './context.js';
 import { activityDataHandlers } from './handlers/activity-data.js';
+import { documentHandlers } from './handlers/document.js';
 import { efLibraryHandlers } from './handlers/ef-library.js';
 import { emissionSourceHandlers } from './handlers/emission-source.js';
+import { extractionHandlers } from './handlers/extraction.js';
 import { organizationHandlers } from './handlers/organization.js';
 import { settingsHandlers } from './handlers/settings.js';
 import { sanitize } from './sanitize.js';
@@ -25,6 +27,8 @@ const HANDLER_FACTORIES: ReadonlyArray<HandlerFactory> = [
   emissionSourceHandlers,
   activityDataHandlers,
   settingsHandlers,
+  documentHandlers,
+  extractionHandlers,
 ];
 
 /**

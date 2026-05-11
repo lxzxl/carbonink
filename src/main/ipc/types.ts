@@ -2,12 +2,14 @@ import type {
   ActivityData,
   ActivityDataCreateInput,
   CompleteOnboardingInput,
+  Document,
   EfCompositePk,
   EfLookupQuery,
   EmissionFactor,
   EmissionSource,
   EmissionSourceCreateInput,
   EmissionSourceUpdateInput,
+  Extraction,
   Organization,
   OrganizationCreateInput,
   ProviderConfig,
@@ -80,4 +82,26 @@ export type IpcTypeMap = {
     config: ProviderConfig;
     apiKey?: string;
   }) => Promise<{ ok: true } | { ok: false; error: string }>;
+
+  // document domain (Phase 1b — uploaded source files)
+  // `document:upload` carries raw bytes as a `Uint8Array` so Electron's
+  // structured-clone path doesn't trip on Buffer (it does, but Uint8Array is
+  // the lowest-common-denominator across realms). The handler converts to a
+  // Buffer before handing off to DocumentService.
+  'document:upload': (input: { filename: string; mimeType: string; bytes: Uint8Array }) => Document;
+  'document:list': () => Document[];
+  'document:get-by-id': (input: { id: string }) => Document | null;
+
+  // extraction domain (Phase 1b — AI extraction pipeline)
+  // `extraction:run` is async — it reads the PDF, calls the LLM, and writes
+  // the row; the sanitize wrapper already awaits handlers, so this is fine.
+  'extraction:run': (input: { document_id: string; stage_id: string }) => Promise<Extraction>;
+  'extraction:list-pending': () => Extraction[];
+  'extraction:list-by-document': (input: { document_id: string }) => Extraction[];
+  'extraction:get-by-id': (input: { id: string }) => Extraction | null;
+  'extraction:confirm': (input: { id: string }) => void;
+  'extraction:discard': (input: { id: string }) => void;
+
+  // stages domain (Phase 1b — read-only extraction stage registry)
+  'stages:list': () => Array<{ id: string; version: string; description: string }>;
 };
