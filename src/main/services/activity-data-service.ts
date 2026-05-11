@@ -6,9 +6,10 @@ import type { CalculationService } from './calculation-service.js';
 import type { EfService } from './ef-service.js';
 
 /**
- * Explicit column list mirrors `EmissionSourceService` style: makes the
- * INTEGER → boolean / column-order coupling obvious, and gives mapRow a single
- * place to convert `is_active`-style fields if they ever sprout here.
+ * Explicit column list mirrors `EmissionSourceService` style. activity_data
+ * has no INTEGER-as-boolean columns today (see migration 004), so the SELECT
+ * is a pure pass-through — listed explicitly so a future column addition
+ * needing post-processing is obvious at the call site.
  */
 const AD_COLUMNS = [
   'id',
@@ -33,11 +34,6 @@ const AD_COLUMNS = [
 ] as const;
 
 const AD_SELECT = `SELECT ${AD_COLUMNS.join(', ')} FROM activity_data`;
-
-function mapRow(row: ActivityData | undefined): ActivityData | null {
-  if (!row) return null;
-  return row;
-}
 
 /**
  * Phase 1a's keystone service. Composes:
@@ -179,7 +175,7 @@ export class ActivityDataService {
   /** Lookup a single activity_data by id, or null. */
   getById(id: string): ActivityData | null {
     const row = this.db.prepare(`${AD_SELECT} WHERE id = ?`).get(id) as ActivityData | undefined;
-    return mapRow(row);
+    return row ?? null;
   }
 
   /**
@@ -201,10 +197,18 @@ export class ActivityDataService {
   }
 
   /**
-   * Hard delete. Phase 1a's spec §3 guarantees no other table FKs into
-   * activity_data, and audit triggers (migration 006) only cover
-   * audit_event. If Phase 1c+ adds calculation_snapshot_line referencing
-   * activity_data, this will need to become soft-delete or restricted.
+   * Hard delete. Phase 1a: safe because `answer.source_activity_data_id`
+   * (FK declared in migration 005, no ON DELETE clause) is only populated
+   * in Phase 1b+. Until then, no row references activity_data and the
+   * DELETE always succeeds. `calculation_snapshot_line.original_activity_data_id`
+   * (migration 004) is intentionally not a real FK — snapshots are designed
+   * to outlive deleted activities — so it doesn't constrain this either.
+   *
+   * Phase 1b TODO: once `answer` rows can reference activities, pick one:
+   *   (a) switch to soft-delete (add is_active column to activity_data), or
+   *   (b) change the FK to `ON DELETE SET NULL` in migration 005, or
+   *   (c) explicitly cascade or block deletes in this service.
+   * Whichever is chosen needs a service-layer test asserting the new semantics.
    */
   delete(id: string): void {
     this.db.prepare('DELETE FROM activity_data WHERE id = ?').run(id);
