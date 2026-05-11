@@ -1,5 +1,34 @@
 @import "tailwindcss";
 
+/* Let macOS vibrancy / Windows Mica show through.
+ * Without this the body's opaque background covers the blur layer.
+ * The base layer below intentionally omits `bg-background` on body so we
+ * don't need !important here. */
+html,
+body {
+  background: transparent;
+}
+
+#root {
+  background: transparent;
+}
+
+/* On macOS hiddenInset the titlebar zone (top 32px) has traffic lights
+ * at x:18, y:16. Make it -webkit-app-region: drag so users can grab
+ * empty header space to move the window. */
+.titlebar-region {
+  -webkit-app-region: drag;
+  -webkit-user-select: none;
+}
+
+/* Buttons + links inside the titlebar region opt out of drag.
+ * Otherwise clicks would be eaten by the OS as window-move gestures. */
+.titlebar-region button,
+.titlebar-region a,
+.titlebar-region [role="button"] {
+  -webkit-app-region: no-drag;
+}
+
 @theme {
   --color-background: oklch(1 0 0);
   --color-foreground: oklch(0.15 0 0);
@@ -17,7 +46,11 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    /* NOTE: bg-background intentionally omitted — the html/body
+     * `background: transparent` rule above must win so macOS vibrancy /
+     * Windows Mica show through. Task 2 of the UI baseline sprint will
+     * reintroduce token-styled surfaces on inner containers (cards etc.). */
+    @apply text-foreground;
     font-family: system-ui, -apple-system, sans-serif;
   }
 }
