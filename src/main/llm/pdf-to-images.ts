@@ -1,4 +1,4 @@
-import { createCanvas, type Canvas } from '@napi-rs/canvas';
+import { type Canvas, createCanvas } from '@napi-rs/canvas';
 
 export interface PdfToImagesOptions {
   /**
@@ -34,10 +34,7 @@ export interface PdfToImagesOptions {
  * @param opts.dpi — resolution. Defaults to 200.
  * @returns one PNG buffer per page, in document order.
  */
-export async function pdfToImages(
-  bytes: Buffer,
-  opts: PdfToImagesOptions = {},
-): Promise<Buffer[]> {
+export async function pdfToImages(bytes: Buffer, opts: PdfToImagesOptions = {}): Promise<Buffer[]> {
   const dpi = opts.dpi ?? 200;
   // pdfjs-dist uses a CSS-pixel-per-inch baseline of 72; scale = dpi/72.
   const scale = dpi / 72;
@@ -59,16 +56,14 @@ export async function pdfToImages(
     for (let i = 1; i <= doc.numPages; i++) {
       const page = await doc.getPage(i);
       const viewport = page.getViewport({ scale });
-      const canvas: Canvas = createCanvas(
-        Math.ceil(viewport.width),
-        Math.ceil(viewport.height),
-      );
-      const ctx = canvas.getContext('2d');
-      // @napi-rs/canvas's 2d context is API-compatible with the
-      // browser one used by pdfjs — but the cast is needed because
-      // the typed shapes are nominally different.
+      const canvas: Canvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height));
+      // pdfjs 5.x's preferred API is `canvas`; it derives the 2d
+      // context internally. @napi-rs/canvas's `Canvas` is structurally
+      // compatible with the browser HTMLCanvasElement for the methods
+      // pdfjs actually uses (getContext, width, height) — but the
+      // typed shapes are nominally distinct so the cast is needed.
       await page.render({
-        canvasContext: ctx as unknown as CanvasRenderingContext2D,
+        canvas: canvas as unknown as HTMLCanvasElement,
         viewport,
       }).promise;
       page.cleanup();
