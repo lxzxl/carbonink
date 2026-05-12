@@ -4,12 +4,19 @@ import { join } from 'node:path';
 import { runMigrations } from '@main/db/migrate';
 import type { LLMClient } from '@main/llm/llm-client';
 import type { ChinaUtilityExtraction } from '@main/llm/stages/china-utility';
+import { registerStage } from '@main/llm/stages/registry';
+import type { Stage } from '@main/llm/stages/types';
+import { VisionUnsupportedError } from '@main/llm/vision-capability';
 import { DocumentService } from '@main/services/document-service';
-import { ExtractionService } from '@main/services/extraction-service';
+import {
+  ExtractionService,
+  StageDoesNotSupportVisionError,
+} from '@main/services/extraction-service';
 import type { SettingsService } from '@main/services/settings-service';
 import type { Document, ProviderConfig } from '@shared/types';
 import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
 
 /**
  * Canonical extraction object the fake LLMClient returns. Matches the
@@ -392,5 +399,130 @@ describe('ExtractionService', () => {
       active_status: 'review_needed',
       has_rejected: false,
     });
+  });
+
+  it('falls back to the vision path when pdf-parse returns empty text', async () => {
+    h.cleanup();
+    h = setupHarness();
+
+    const parsePdfSpy = vi.fn(async () => ({ text: '   ' }));
+    const pdfToImagesSpy = vi.fn(async () => [Buffer.from([0x89, 0x50, 0x4e, 0x47])]);
+    const extractWithImagesSpy = vi
+      .fn()
+      .mockResolvedValue(FAKE_EXTRACTION);
+    const llmClient = {
+      extract: vi.fn(),
+      extractWithImages: extractWithImagesSpy,
+    } as unknown as LLMClient;
+    const emitProgressSpy = vi.fn();
+
+    h.extractionService = new ExtractionService({
+      db: h.db,
+      now: () => '2026-05-11T00:00:00.000Z',
+      documentService: h.documentService,
+      settingsService: h.settingsService,
+      llmClient,
+      readFile: () => Buffer.from('pdf-bytes'),
+      parsePdf: parsePdfSpy,
+      pdfToImages: pdfToImagesSpy,
+      emitProgress: emitProgressSpy,
+    });
+
+    const doc = uploadFakePdf(h.documentService);
+
+    const ext = await h.extractionService.run({
+      document_id: doc.id,
+      stage_id: 'china_utility.v1',
+    });
+
+    expect(ext.status).toBe('review_needed');
+    expect(JSON.parse(ext.parsed_json ?? '')).toEqual(FAKE_EXTRACTION);
+    expect(pdfToImagesSpy).toHaveBeenCalledTimes(1);
+    expect(extractWithImagesSpy).toHaveBeenCalledTimes(1);
+    expect(llmClient.extract).not.toHaveBeenCalled();
+    expect(emitProgressSpy).toHaveBeenCalledWith('extraction:progress', {
+      document_id: doc.id,
+      phase: 'vision',
+    });
+  });
+
+  it("throws VisionUnsupportedError when vision is needed but the model can't take images", async () => {
+    h.cleanup();
+    h = setupHarness();
+
+    h.settingsService = {
+      getProviderConfigWithKey: vi.fn(() => ({
+        config: {
+          provider: 'deepseek' as const,
+          model: 'deepseek-chat',
+          apiKeyKeyref: 'llm.deepseek.apikey' as const,
+        },
+        apiKey: 'sk-fake',
+      })),
+    } as unknown as SettingsService;
+
+    const pdfToImagesSpy = vi.fn(async () => [Buffer.from([0x89])]);
+    const extractWithImagesSpy = vi.fn();
+    const llmClient = {
+      extract: vi.fn(),
+      extractWithImages: extractWithImagesSpy,
+    } as unknown as LLMClient;
+
+    h.extractionService = new ExtractionService({
+      db: h.db,
+      now: () => '2026-05-11T00:00:00.000Z',
+      documentService: h.documentService,
+      settingsService: h.settingsService,
+      llmClient,
+      readFile: () => Buffer.from('pdf-bytes'),
+      parsePdf: vi.fn(async () => ({ text: '   ' })),
+      pdfToImages: pdfToImagesSpy,
+    });
+
+    const doc = uploadFakePdf(h.documentService);
+
+    await expect(
+      h.extractionService.run({ document_id: doc.id, stage_id: 'china_utility.v1' }),
+    ).rejects.toBeInstanceOf(VisionUnsupportedError);
+    expect(pdfToImagesSpy).not.toHaveBeenCalled();
+    expect(extractWithImagesSpy).not.toHaveBeenCalled();
+    const count = h.db.prepare('SELECT COUNT(*) AS c FROM extraction').get() as { c: number };
+    expect(count.c).toBe(0);
+  });
+
+  it('throws StageDoesNotSupportVisionError when the stage has no buildVisionMessages', async () => {
+    h.cleanup();
+    h = setupHarness();
+
+    const textOnlyStageId = 'text_only_stage.test.v1';
+    const textOnlyStage: Stage<{ ok: boolean }> = {
+      id: textOnlyStageId,
+      version: '0.0.0',
+      description: 'test',
+      inputType: 'pdf_text',
+      schema: z.object({ ok: z.boolean() }),
+      buildPrompt: () => 'noop',
+    };
+    registerStage(textOnlyStage);
+
+    h.extractionService = new ExtractionService({
+      db: h.db,
+      now: () => '2026-05-11T00:00:00.000Z',
+      documentService: h.documentService,
+      settingsService: h.settingsService,
+      llmClient: {
+        extract: vi.fn(),
+        extractWithImages: vi.fn(),
+      } as unknown as LLMClient,
+      readFile: () => Buffer.from('pdf-bytes'),
+      parsePdf: vi.fn(async () => ({ text: '   ' })),
+      pdfToImages: vi.fn(async () => [Buffer.from([0x89])]),
+    });
+
+    const doc = uploadFakePdf(h.documentService);
+
+    await expect(
+      h.extractionService.run({ document_id: doc.id, stage_id: textOnlyStageId }),
+    ).rejects.toBeInstanceOf(StageDoesNotSupportVisionError);
   });
 });

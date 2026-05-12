@@ -1,6 +1,9 @@
 import { readFileSync } from 'node:fs';
 import type { LLMClient } from '@main/llm/llm-client.js';
+import { pdfToImages as pdfToImagesDefault } from '@main/llm/pdf-to-images.js';
 import { getStage } from '@main/llm/stages/registry.js';
+import { assertVisionCapable } from '@main/llm/vision-capability.js';
+import type { IpcPushTypeMap } from '@main/ipc/types.js';
 import type { Extraction, ExtractionStatus } from '@shared/types.js';
 import { newId } from '@shared/ulid.js';
 import type { ServiceContext } from './base.js';
@@ -29,6 +32,29 @@ export class PdfNotReadableError extends Error {
 }
 
 /**
+ * Thrown when `ExtractionService.run()` switches to the vision branch
+ * (because pdf-parse couldn't read the PDF) but the chosen stage
+ * doesn't implement `buildVisionMessages`. Currently china_utility.v1
+ * is the only stage with vision support; this exists for defensive
+ * coding so adding a text-only future stage (e.g. an Excel parser)
+ * fails with a clear message instead of a generic crash.
+ *
+ * Whitelisted by the IPC sanitize layer so the user sees a toast
+ * with the stage id rather than a correlation id.
+ */
+export class StageDoesNotSupportVisionError extends Error {
+  constructor(public readonly stageId: string) {
+    super(
+      `Stage "${stageId}" does not support image input yet. Upload a text-layer ` +
+        `PDF or wait for a future version that adds vision support to this stage.`,
+    );
+    this.name = 'StageDoesNotSupportVisionError';
+  }
+}
+
+export { VisionUnsupportedError } from '@main/llm/vision-capability.js';
+
+/**
  * Injected pdf-parse adapter shape. We DI this so tests can pass a stub
  * that returns canned text — the real `pdf-parse` package eagerly loads
  * fixture files on first import which makes it awkward to invoke under
@@ -36,6 +62,14 @@ export class PdfNotReadableError extends Error {
  * class (see `parsePdfDefault` below).
  */
 export type ParsePdf = (bytes: Buffer) => Promise<{ text: string }>;
+
+/**
+ * Injected PDF-to-images adapter shape. DI'd so tests can supply a
+ * lightweight stub returning canned PNG buffers without touching
+ * pdfjs-dist or canvas. Production wires the real `pdfToImages` from
+ * `@main/llm/pdf-to-images`.
+ */
+export type PdfToImages = (bytes: Buffer) => Promise<Buffer[]>;
 
 /**
  * Production default for `parsePdf`. Imported lazily so test runs that
@@ -85,6 +119,11 @@ async function parsePdfDefault(bytes: Buffer): Promise<{ text: string }> {
 export class ExtractionService {
   private readonly readFile: (path: string) => Buffer;
   private readonly parsePdf: ParsePdf;
+  private readonly pdfToImages: PdfToImages;
+  private readonly emitProgress?: <C extends keyof IpcPushTypeMap>(
+    channel: C,
+    payload: IpcPushTypeMap[C],
+  ) => void;
 
   constructor(
     private readonly ctx: ServiceContext & {
@@ -95,10 +134,23 @@ export class ExtractionService {
       readFile?: (path: string) => Buffer;
       /** DI override for PDF parsing. Defaults to `pdf-parse`. */
       parsePdf?: ParsePdf;
+      /** DI override for PDF→PNG rendering. Defaults to `@main/llm/pdf-to-images`. */
+      pdfToImages?: PdfToImages;
+      /**
+       * Main→renderer push emitter for `extraction:progress` events.
+       * Optional: tests usually omit this, production wires the real
+       * one from `createProgressEmitter(getMainWindow)`.
+       */
+      emitProgress?: <C extends keyof IpcPushTypeMap>(
+        channel: C,
+        payload: IpcPushTypeMap[C],
+      ) => void;
     },
   ) {
     this.readFile = ctx.readFile ?? readFileSync;
     this.parsePdf = ctx.parsePdf ?? parsePdfDefault;
+    this.pdfToImages = ctx.pdfToImages ?? pdfToImagesDefault;
+    if (ctx.emitProgress) this.emitProgress = ctx.emitProgress;
   }
 
   async run(input: { document_id: string; stage_id: string }): Promise<Extraction> {
@@ -146,22 +198,49 @@ export class ExtractionService {
     const pdf = await this.parsePdf(bytes);
     const pdfText = pdf.text;
 
-    // Fail fast if pdf-parse extracted no meaningful text. This is almost
-    // always a scanned-image PDF (no text layer); pdf-parse returns
-    // empty or whitespace-only text. Sending an empty prompt to the LLM
-    // wastes a paid round-trip and gets a generic "I see nothing" reply
-    // back — better to tell the user upfront that OCR is needed.
-    //
-    // Threshold of 10 chars: a real one-page utility bill has 500+ chars
-    // of text layer; even a tiny invoice has ~100. <10 reliably indicates
-    // an image-only PDF. (Phase 1c will add Tesseract / LLM-vision
-    // fallback for this path.)
-    if (pdfText.trim().length < 10) {
-      throw new PdfNotReadableError(doc.filename);
-    }
+    // Branch: text path (>=10 chars of extracted text) vs vision path.
+    // The threshold of 10 chars reliably distinguishes text-layer PDFs
+    // from image-only scans — see the original `PdfNotReadableError`
+    // comment in Phase 1b. The vision branch handles every case the
+    // text branch can't, throwing typed errors that the renderer
+    // surfaces as actionable toasts:
+    //   - VisionUnsupportedError: chosen model can't take images
+    //   - StageDoesNotSupportVisionError: stage didn't opt into vision
+    //   - SchemaMismatchError: model output didn't match schema
+    let result: unknown;
+    if (pdfText.trim().length >= 10) {
+      const prompt = stage.buildPrompt(pdfText);
+      result = await this.ctx.llmClient.extract(
+        providerConfig.config,
+        stage.schema,
+        prompt,
+      );
+    } else {
+      // Vision path. Validate prerequisites first so we don't burn
+      // 5-10s rendering PDF pages only to find out the model can't
+      // accept them.
+      assertVisionCapable(providerConfig.config);
+      if (!stage.buildVisionMessages) {
+        throw new StageDoesNotSupportVisionError(stage.id);
+      }
 
-    const prompt = stage.buildPrompt(pdfText);
-    const result = await this.ctx.llmClient.extract(providerConfig.config, stage.schema, prompt);
+      // Best-effort UX hint: flip the renderer's spinner text from
+      // "正在抽取…" to "正在识别图像（需要更长时间）…" so the user
+      // knows why this run is slower. No-op if the renderer is closed.
+      this.emitProgress?.('extraction:progress', {
+        document_id: doc.id,
+        phase: 'vision',
+      });
+
+      const images = await this.pdfToImages(bytes);
+      const vision = stage.buildVisionMessages();
+      result = await this.ctx.llmClient.extractWithImages(
+        providerConfig.config,
+        stage.schema,
+        vision,
+        images,
+      );
+    }
 
     // Migration 003's CHECK constraint requires raw_response + parsed_json
     // both NOT NULL when status is `review_needed`. We don't get a separate

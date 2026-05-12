@@ -1,6 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { ProviderNotConfiguredError, SchemaMismatchError } from '@main/llm/llm-client.js';
-import { PdfNotReadableError } from '@main/services/extraction-service.js';
+import { VisionUnsupportedError } from '@main/llm/vision-capability.js';
+import {
+  PdfNotReadableError,
+  StageDoesNotSupportVisionError,
+} from '@main/services/extraction-service.js';
 import { z } from 'zod';
 
 /**
@@ -41,7 +45,9 @@ export function sanitize(
       if (
         err instanceof ProviderNotConfiguredError ||
         err instanceof SchemaMismatchError ||
-        err instanceof PdfNotReadableError
+        err instanceof PdfNotReadableError ||
+        err instanceof VisionUnsupportedError ||
+        err instanceof StageDoesNotSupportVisionError
       ) {
         // Still log server-side for support / debugging.
         console.error(`[ipc:${channel}] ${err.name}`, err);

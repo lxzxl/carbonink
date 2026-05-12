@@ -4,6 +4,7 @@ import {
   getCredentialStore,
   isSafeStorageAvailable,
 } from '@main/credentials/safe-storage-backend.js';
+import type { ProgressEmitter } from './progress.js';
 import { LLMClient } from '@main/llm/llm-client.js';
 import { ActivityDataService } from '@main/services/activity-data-service.js';
 import type { ServiceContext } from '@main/services/base.js';
@@ -60,6 +61,13 @@ export interface IpcContextOverrides {
   uploadsDir?: string;
   documentService?: DocumentService;
   extractionService?: ExtractionService;
+  /**
+   * Optional main→renderer push channel emitter. Production wires
+   * `createProgressEmitter(getMainWindow)`; tests typically supply a
+   * `vi.fn()` so they can assert on emitted events without needing
+   * a real Electron BrowserWindow.
+   */
+  progressEmitter?: ProgressEmitter;
 }
 
 /**
@@ -167,6 +175,7 @@ export function createIpcContext(
           documentService: getDocument(),
           settingsService: getSettings(),
           llmClient: getLlm(),
+          ...(overrides.progressEmitter && { emitProgress: overrides.progressEmitter }),
         });
       }
       return extractionServiceInstance;
