@@ -28,6 +28,15 @@ describe('pdfToImages', () => {
     const lowDpi = await pdfToImages(bytes, { dpi: 72 });
     const highDpi = await pdfToImages(bytes, { dpi: 200 });
     // Higher DPI → strictly more pixels → bigger PNG. Compare page 1.
-    expect(highDpi[0]!.length).toBeGreaterThan(lowDpi[0]!.length);
+    const lowFirst = lowDpi[0];
+    const highFirst = highDpi[0];
+    expect(lowFirst).toBeDefined();
+    expect(highFirst).toBeDefined();
+    // biome flags `lowFirst!.length` style assertions; the two
+    // `toBeDefined()` checks above already surface the failure
+    // mode with a useful message, so we type-narrow with a
+    // runtime check that's also a documented contract.
+    if (!lowFirst || !highFirst) throw new Error('pdfToImages returned no pages');
+    expect(highFirst.length).toBeGreaterThan(lowFirst.length);
   });
 });
