@@ -8,6 +8,27 @@ import type { DocumentService } from './document-service.js';
 import type { SettingsService } from './settings-service.js';
 
 /**
+ * Thrown when pdf-parse extracts essentially no text from the uploaded PDF —
+ * almost always a scanned-image PDF without a text layer. We fail fast
+ * BEFORE calling the LLM (saves a paid round-trip, gives the user a clear
+ * next step). Phase 1c will add OCR fallback (Tesseract or LLM-vision) for
+ * this path. Whitelisted by the IPC sanitize layer so the user sees the
+ * full message.
+ */
+export class PdfNotReadableError extends Error {
+  constructor(public readonly filename: string) {
+    super(
+      `Couldn't read text from "${filename}". This is almost always a scanned-image PDF without ` +
+        `a text layer. Phase 1b extracts from text-based PDFs only (OCR comes in Phase 1c). ` +
+        `Workaround: open the PDF in another tool, "Print → Save as PDF" or "Export as PDF" with ` +
+        `OCR enabled (macOS Preview's "Export" usually does the right thing on selectable text), ` +
+        `and re-upload.`,
+    );
+    this.name = 'PdfNotReadableError';
+  }
+}
+
+/**
  * Injected pdf-parse adapter shape. We DI this so tests can pass a stub
  * that returns canned text — the real `pdf-parse` package eagerly loads
  * fixture files on first import which makes it awkward to invoke under
@@ -108,6 +129,20 @@ export class ExtractionService {
     const bytes = this.readFile(doc.storage_path);
     const pdf = await this.parsePdf(bytes);
     const pdfText = pdf.text;
+
+    // Fail fast if pdf-parse extracted no meaningful text. This is almost
+    // always a scanned-image PDF (no text layer); pdf-parse returns
+    // empty or whitespace-only text. Sending an empty prompt to the LLM
+    // wastes a paid round-trip and gets a generic "I see nothing" reply
+    // back — better to tell the user upfront that OCR is needed.
+    //
+    // Threshold of 10 chars: a real one-page utility bill has 500+ chars
+    // of text layer; even a tiny invoice has ~100. <10 reliably indicates
+    // an image-only PDF. (Phase 1c will add Tesseract / LLM-vision
+    // fallback for this path.)
+    if (pdfText.trim().length < 10) {
+      throw new PdfNotReadableError(doc.filename);
+    }
 
     const prompt = stage.buildPrompt(pdfText);
     const result = await this.ctx.llmClient.extract(providerConfig.config, stage.schema, prompt);

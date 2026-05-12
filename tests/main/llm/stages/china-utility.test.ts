@@ -36,11 +36,26 @@ describe('chinaUtilityExtraction schema', () => {
     expect(parsed.amount_yuan).toBeNull();
   });
 
-  it('rejects a non-ISO date format like "2025/01/01"', () => {
-    expect(() => chinaUtilityExtraction.parse({ ...GOOD, period_start: '2025/01/01' })).toThrow();
+  it('accepts non-ISO date strings (permissive schema — model needs to say "I cannot parse this")', () => {
+    // Schema relaxed Phase 1b smoke fix: DeepSeek + OpenAI-compat lack
+    // native JSON Schema mode and the model needs an escape hatch to
+    // honestly report "this period field isn't readable" without forcing
+    // SchemaMismatchError. The ActivityForm Confirm flow validates ISO
+    // format at the point the date becomes activity_data.
+    expect(() =>
+      chinaUtilityExtraction.parse({ ...GOOD, period_start: '2025/01/01' }),
+    ).not.toThrow();
+    expect(() => chinaUtilityExtraction.parse({ ...GOOD, period_start: '' })).not.toThrow();
   });
 
-  it('rejects a negative amount_kwh', () => {
+  it('accepts amount_kwh = 0 (model reports "I could not read consumption")', () => {
+    // Same rationale as date relaxation. The review UI flags any
+    // zero/empty fields visually so the user knows to override before
+    // committing.
+    expect(() => chinaUtilityExtraction.parse({ ...GOOD, amount_kwh: 0 })).not.toThrow();
+  });
+
+  it('rejects a negative amount_kwh (consumption can be zero but never negative)', () => {
     expect(() => chinaUtilityExtraction.parse({ ...GOOD, amount_kwh: -10 })).toThrow();
   });
 

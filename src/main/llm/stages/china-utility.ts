@@ -12,28 +12,54 @@ import type { Stage } from './types.js';
  * forwarded into the JSON schema sent to the model — they double as inline
  * documentation for both humans and the LLM.
  */
+/**
+ * Schema is deliberately PERMISSIVE on data fields because the model needs an
+ * honest way to say "I couldn't extract this" — for scanned-only PDFs (no
+ * text layer), bills in unfamiliar formats, or non-utility documents the user
+ * uploaded by mistake. Earlier strict schema (positive amount_kwh, ISO date
+ * regex) forced the model into a corner: it had to either lie (invent
+ * plausible numbers) or trigger a `SchemaMismatchError` that gave the user
+ * no recoverable signal.
+ *
+ * Validation contract is now: the SHAPE is strict (every key present, types
+ * correct), the VALUES are best-effort. The review UI is responsible for
+ * showing `confidence` prominently and warning when fields look empty
+ * (amount_kwh=0, dates empty). The Confirm flow then opens ActivityForm
+ * pre-filled with whatever was extracted; the user can override any field
+ * before committing to activity_data.
+ *
+ * Phase 1c will likely re-introduce strict validation for `confidence='high'`
+ * paths — but only after OCR fallback exists for scan-only PDFs so the
+ * model has a fair chance.
+ */
 export const chinaUtilityExtraction = z.object({
   doc_type: z
     .literal('china_utility')
-    .describe(
-      'Must be the literal "china_utility" if confident this is a Chinese electricity bill',
-    ),
-  supplier_name: z.string().describe('国网XX供电公司 or similar'),
-  account_no: z.string().nullable().describe('User account number, if visible'),
-  amount_kwh: z.number().positive().describe('Energy consumption in kWh (degrees, 度)'),
-  amount_yuan: z.number().positive().nullable().describe('Total bill amount in CNY, if visible'),
+    .describe('Always the literal "china_utility" — caller has already classified.'),
+  supplier_name: z
+    .string()
+    .describe('Utility company name, e.g. 国网XX供电公司. Empty string if not legible.'),
+  account_no: z.string().nullable().describe('User account number (户号), or null.'),
+  amount_kwh: z
+    .number()
+    .min(0)
+    .describe('Energy consumption in kWh (度). 0 if not legible — UI will flag.'),
+  amount_yuan: z
+    .number()
+    .min(0)
+    .nullable()
+    .describe('Total bill amount in CNY (应收合计). Number only, no symbols. null if absent.'),
   period_start: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .describe('Billing period start date (ISO YYYY-MM-DD)'),
+    .describe('Billing period start as YYYY-MM-DD. Empty string if not legible.'),
   period_end: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .describe('Billing period end date (ISO YYYY-MM-DD)'),
+    .describe('Billing period end as YYYY-MM-DD. Empty string if not legible.'),
   confidence: z
     .enum(['high', 'medium', 'low'])
     .describe(
-      'Your confidence in the extraction (medium if any field unclear; low if document looks unfamiliar)',
+      'high: all four key fields (supplier/amount_kwh/period_start/period_end) clearly visible. ' +
+        'medium: 1-2 inferred. low: this does not look like a Chinese utility bill, OR PDF text is unreadable.',
     ),
 });
 

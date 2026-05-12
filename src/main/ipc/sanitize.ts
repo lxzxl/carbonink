@@ -1,4 +1,5 @@
 import { ProviderNotConfiguredError, SchemaMismatchError } from '@main/llm/llm-client.js';
+import { PdfNotReadableError } from '@main/services/extraction-service.js';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 
@@ -37,7 +38,11 @@ export function sanitize(
       }
       // Whitelist of user-actionable errors. Their messages are already safe
       // for renderer display (no SQL / FS paths / API keys).
-      if (err instanceof ProviderNotConfiguredError || err instanceof SchemaMismatchError) {
+      if (
+        err instanceof ProviderNotConfiguredError ||
+        err instanceof SchemaMismatchError ||
+        err instanceof PdfNotReadableError
+      ) {
         // Still log server-side for support / debugging.
         console.error(`[ipc:${channel}] ${err.name}`, err);
         throw new Error(err.message);
