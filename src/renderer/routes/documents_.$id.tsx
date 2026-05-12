@@ -28,12 +28,16 @@ const STAGE_ID = 'china_utility.v1';
  * in the effect's cleanup. Forgetting this leaks ~filesize bytes per
  * navigation; the cleanup keeps the renderer flat over long sessions.
  */
-export const Route = createFileRoute('/documents/$id')({
+export const Route = createFileRoute('/documents_/$id')({
   component: DocumentReviewRoute,
 });
 
 function DocumentReviewRoute() {
-  const { id } = useParams({ from: '/documents/$id' });
+  // strict:false lets useParams resolve from whichever route the component
+  // is mounted under — production routes it as `/documents_/$id` (per the
+  // flat-route id), but tests rebuild routes manually with `/documents/$id`.
+  // Either way, `id` is the single dynamic segment.
+  const { id } = useParams({ strict: false }) as { id: string };
 
   const docQuery = useQuery<Document | null>({
     queryKey: ['document:get-by-id', id],

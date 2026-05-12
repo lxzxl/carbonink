@@ -1,4 +1,4 @@
-import { Route as DocumentReviewRoute } from '@renderer/routes/documents.$id';
+import { Route as DocumentReviewRoute } from '@renderer/routes/documents_.$id';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   createMemoryHistory,
