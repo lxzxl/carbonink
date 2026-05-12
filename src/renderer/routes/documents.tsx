@@ -1,6 +1,9 @@
 import { DocumentsUpload } from '@renderer/components/DocumentsUpload';
+import { useSettingsDrawer } from '@renderer/components/settings-drawer-context';
 import { toast } from '@renderer/components/toast';
+import { Button } from '@renderer/components/ui/button';
 import { documentApi } from '@renderer/lib/api/document';
+import { settingsApi } from '@renderer/lib/api/settings';
 import * as m from '@renderer/paraglide/messages';
 import type { Document } from '@shared/types';
 import { useQuery } from '@tanstack/react-query';
@@ -27,11 +30,39 @@ export const Route = createFileRoute('/documents')({
 });
 
 function DocumentsRoute() {
+  // Provider gate — extraction needs an AI provider configured.
+  // If none, replace upload zone with a banner that opens Settings.
+  // Re-renders automatically when the user saves settings (queryKey shared
+  // with SettingsDrawerContent's `getProvider` query → mutation invalidates).
+  const providerQuery = useQuery({
+    queryKey: ['settings:get-provider'],
+    queryFn: settingsApi.getProvider,
+  });
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">{m.nav_documents()}</h1>
-      <DocumentsUpload />
+      {providerQuery.isLoading ? (
+        <p className="text-sm text-muted-foreground">{m.loading()}</p>
+      ) : providerQuery.data == null ? (
+        <ProviderNotConfiguredBanner />
+      ) : (
+        <DocumentsUpload />
+      )}
       <DocumentsList />
+    </div>
+  );
+}
+
+function ProviderNotConfiguredBanner() {
+  const { setOpen } = useSettingsDrawer();
+  return (
+    <div className="rounded-md border border-border bg-muted/30 p-4">
+      <p className="text-sm font-medium">{m.documents_ai_required_title()}</p>
+      <p className="mt-1 text-sm text-muted-foreground">{m.documents_ai_required_body()}</p>
+      <Button type="button" className="mt-3" onClick={() => setOpen(true)}>
+        {m.documents_ai_required_cta()}
+      </Button>
     </div>
   );
 }
