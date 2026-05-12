@@ -41,6 +41,8 @@
   "documents_review_uploaded_on": "上传于 {date}",
   "documents_review_sha_label": "SHA",
   "documents_review_no_extraction": "这份文档还没有抽取结果。",
+  "documents_extraction_run_now": "开始抽取",
+  "documents_extraction_running": "抽取中...",
   "documents_review_load_failed": "加载文档失败",
   "documents_review_pdf_unavailable": "无法预览 PDF。",
   "documents_review_pdf_loading": "正在加载 PDF 预览…",

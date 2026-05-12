@@ -1,13 +1,16 @@
 import { ExtractionReview } from '@renderer/components/ExtractionReview';
 import { toast } from '@renderer/components/toast';
+import { Button } from '@renderer/components/ui/button';
 import { documentApi } from '@renderer/lib/api/document';
 import { extractionApi } from '@renderer/lib/api/extraction';
 import * as m from '@renderer/paraglide/messages';
 import type { Document, Extraction } from '@shared/types';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link, useParams } from '@tanstack/react-router';
 import { ArrowLeft } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
+
+const STAGE_ID = 'china_utility.v1';
 
 /**
  * /documents/$id — document review detail.
@@ -88,12 +91,52 @@ function DocumentReview({ document }: { document: Document }) {
           {extractionsQuery.isLoading ? (
             <p className="text-sm text-muted-foreground">{m.loading()}</p>
           ) : !extraction ? (
-            <p className="text-sm text-muted-foreground">{m.documents_review_no_extraction()}</p>
+            <RunExtractionAction document={document} />
           ) : (
             <ExtractionReview extraction={extraction} document={document} />
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Shown when a document has no extraction yet. The upload flow runs extraction
+ * inline, but a doc uploaded before AI provider was configured (or whose
+ * initial run failed) lands here. One-click re-trigger via the same
+ * `extraction:run` IPC — service layer dedupes via the (sha256, stage, model)
+ * 4-tuple, so this is idempotent if a result already exists.
+ */
+function RunExtractionAction({ document }: { document: Document }) {
+  const queryClient = useQueryClient();
+  const runExtraction = useMutation({
+    mutationFn: () => extractionApi.run({ document_id: document.id, stage_id: STAGE_ID }),
+    onSuccess: async () => {
+      toast.success(m.documents_extraction_done(), { description: document.filename });
+      await queryClient.invalidateQueries({
+        queryKey: ['extraction:list-by-document', document.id],
+      });
+      await queryClient.invalidateQueries({ queryKey: ['extraction:list-pending'] });
+    },
+    onError: (err) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(m.documents_extraction_failed(), { description: msg });
+    },
+  });
+
+  return (
+    <div className="space-y-3 rounded-md border border-border bg-muted/30 p-4">
+      <p className="text-sm text-muted-foreground">{m.documents_review_no_extraction()}</p>
+      <Button
+        type="button"
+        onClick={() => runExtraction.mutate()}
+        disabled={runExtraction.isPending}
+      >
+        {runExtraction.isPending
+          ? m.documents_extraction_running()
+          : m.documents_extraction_run_now()}
+      </Button>
     </div>
   );
 }

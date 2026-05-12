@@ -41,6 +41,8 @@
   "documents_review_uploaded_on": "Uploaded {date}",
   "documents_review_sha_label": "SHA",
   "documents_review_no_extraction": "No extraction yet for this document.",
+  "documents_extraction_run_now": "Run extraction",
+  "documents_extraction_running": "Extracting...",
   "documents_review_load_failed": "Failed to load document",
   "documents_review_pdf_unavailable": "PDF preview unavailable.",
   "documents_review_pdf_loading": "Loading PDF preview…",
