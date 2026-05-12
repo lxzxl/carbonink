@@ -1,4 +1,4 @@
-import { StepCompanyInfo } from '@renderer/routes/onboarding/-components/StepCompanyInfo';
+import { StepCompanyInfo } from '@renderer/features/onboarding/components/StepCompanyInfo';
 import {
   createMemoryHistory,
   createRootRoute,

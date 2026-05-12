@@ -1,12 +1,12 @@
+import { StepAIProvider } from '@renderer/features/onboarding/components/StepAIProvider';
+import { StepBoundary } from '@renderer/features/onboarding/components/StepBoundary';
+import { StepCompanyInfo } from '@renderer/features/onboarding/components/StepCompanyInfo';
+import { StepFirstSite } from '@renderer/features/onboarding/components/StepFirstSite';
+import { StepReportingYear } from '@renderer/features/onboarding/components/StepReportingYear';
 import { orgApi } from '@renderer/lib/api/organization';
 import * as m from '@renderer/paraglide/messages';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Navigate, useParams } from '@tanstack/react-router';
-import { StepAIProvider } from './-components/StepAIProvider';
-import { StepBoundary } from './-components/StepBoundary';
-import { StepCompanyInfo } from './-components/StepCompanyInfo';
-import { StepFirstSite } from './-components/StepFirstSite';
-import { StepReportingYear } from './-components/StepReportingYear';
 
 export const Route = createFileRoute('/onboarding/$step')({
   component: OnboardingShell,
