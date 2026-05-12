@@ -1,10 +1,11 @@
 import { toast } from '@renderer/components/toast';
 import { documentApi } from '@renderer/lib/api/document';
 import { extractionApi } from '@renderer/lib/api/extraction';
+import { subscribe } from '@renderer/lib/ipc';
 import * as m from '@renderer/paraglide/messages';
 import { useQueryClient } from '@tanstack/react-query';
 import { UploadCloud } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 /**
  * Phase 1b — drag-drop upload zone for source PDFs.
@@ -14,20 +15,20 @@ import { useRef, useState } from 'react';
  *   2. `extraction:run` (stage `china_utility.v1`) — parse PDF text → LLM →
  *      `extraction` row with `status='review_needed'`.
  *
- * Both steps surface their own toast on success/failure so the user knows
- * *which* step broke if the LLM call fails after a successful upload. The
- * extraction is fired-and-forgot inside this component (no `await` on the
- * UI thread for the LLM call — the toast resolves async and the list query
- * is invalidated). Re-running extraction on an already-extracted doc is
- * idempotent at the service layer (cache hit), so the worst case is a
- * wasted IPC round-trip.
+ * Phase 1c — when the PDF has no text layer, `extraction:run` falls back
+ * to the vision path on the main side and sends an `extraction:progress`
+ * event with `{ phase: 'vision' }`. This component subscribes for the
+ * current document id and flips the spinner copy from "Extracting…" to
+ * "Recognizing image (longer wait)…" so the user knows why the call is
+ * taking 10x longer than usual.
  *
  * Status state machine for the visual progress label:
- *   idle → uploading → extracting → done → idle (after ~1.5s)
+ *   idle → uploading → extracting (→ extracting:vision on progress event) → done → idle
  *
- * Disabled state covers all non-idle states. We do NOT prevent re-render
- * during extraction — clicking the zone or dropping during extracting just
- * no-ops via the disabled `<input>` and the early-return in `handleFile`.
+ * Disabled state covers all non-idle states. The progress subscription
+ * is scoped to the active upload's document id so a stale "switched
+ * to vision" event from a previous file doesn't sneak into the next
+ * one.
  */
 type UploadState = 'idle' | 'uploading' | 'extracting' | 'done';
 
@@ -36,9 +37,25 @@ const STAGE_ID = 'china_utility.v1';
 
 export function DocumentsUpload() {
   const [state, setState] = useState<UploadState>('idle');
+  const [visionPhase, setVisionPhase] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [activeDocId, setActiveDocId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const queryClient = useQueryClient();
+
+  // Subscribe to extraction:progress for the current activeDocId. The
+  // subscription is per-doc so a slow vision call doesn't leak its
+  // phase event into a subsequent upload. We return the unsubscribe
+  // directly from the effect so React cleans up on doc change or unmount.
+  useEffect(() => {
+    if (!activeDocId) return;
+    const unsubscribe = subscribe('extraction:progress', (payload) => {
+      if (payload.document_id === activeDocId && payload.phase === 'vision') {
+        setVisionPhase(true);
+      }
+    });
+    return unsubscribe;
+  }, [activeDocId]);
 
   async function handleFile(file: File): Promise<void> {
     if (state !== 'idle') return;
@@ -50,6 +67,7 @@ export function DocumentsUpload() {
     }
 
     setState('uploading');
+    setVisionPhase(false);
     let doc: Awaited<ReturnType<typeof documentApi.upload>>;
     try {
       const buffer = await file.arrayBuffer();
@@ -59,8 +77,6 @@ export function DocumentsUpload() {
         bytes: new Uint8Array(buffer),
       });
       toast.success(m.documents_upload_success(), { description: file.name });
-      // Refresh the list immediately so the row shows up while extraction
-      // runs in the background.
       await queryClient.invalidateQueries({ queryKey: ['document:list'] });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -69,32 +85,26 @@ export function DocumentsUpload() {
       return;
     }
 
+    setActiveDocId(doc.id);
     setState('extracting');
     try {
       await extractionApi.run({ document_id: doc.id, stage_id: STAGE_ID });
       toast.success(m.documents_extraction_done(), { description: file.name });
-      // Invalidate everything that may have changed: the per-doc extraction
-      // list (powers the row-level status badge) and the global pending list
-      // (Phase 1c may surface a count in the sidebar).
       await queryClient.invalidateQueries({ queryKey: ['document:list'] });
       await queryClient.invalidateQueries({
         queryKey: ['extraction:list-by-document', doc.id],
       });
       await queryClient.invalidateQueries({ queryKey: ['extraction:list-pending'] });
-      // Documents list reads its per-row chips from this query; without
-      // the invalidate the freshly-uploaded doc stays on "无抽取" until the
-      // next manual refresh.
       await queryClient.invalidateQueries({ queryKey: ['extraction:list-statuses'] });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       toast.error(m.documents_extraction_failed(), { description: msg });
     } finally {
       setState('done');
-      // Brief "Done" state so the user gets a confirmation flash, then back
-      // to idle so they can drop another file. 1.2s is the same hold sonner
-      // uses for a success toast by default.
       setTimeout(() => {
         setState('idle');
+        setActiveDocId(null);
+        setVisionPhase(false);
       }, 1200);
     }
   }
@@ -109,9 +119,6 @@ export function DocumentsUpload() {
   function onFileChange(e: React.ChangeEvent<HTMLInputElement>): void {
     const file = e.target.files?.[0];
     if (file) void handleFile(file);
-    // Reset the input so dropping the *same* file twice in a row still fires
-    // change. The default behavior keeps the value and silently ignores
-    // re-selection of an identical file.
     e.target.value = '';
   }
 
@@ -120,7 +127,9 @@ export function DocumentsUpload() {
     state === 'uploading'
       ? m.documents_uploading()
       : state === 'extracting'
-        ? m.documents_extracting()
+        ? visionPhase
+          ? m.documents_extracting_vision()
+          : m.documents_extracting()
         : state === 'done'
           ? m.documents_upload_done()
           : m.documents_upload_hint();
