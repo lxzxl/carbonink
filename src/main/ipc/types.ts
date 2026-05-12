@@ -10,6 +10,7 @@ import type {
   EmissionSourceCreateInput,
   EmissionSourceUpdateInput,
   Extraction,
+  ExtractionStatus,
   Organization,
   OrganizationCreateInput,
   ProviderConfig,
@@ -107,6 +108,15 @@ export type IpcTypeMap = {
   'extraction:get-by-id': (input: { id: string }) => Extraction | null;
   'extraction:confirm': (input: { id: string }) => void;
   'extraction:discard': (input: { id: string }) => void;
+  // One row per document that has at least one extraction. Used by the
+  // /documents list to render a per-row status chip without N+1'ing into
+  // `list-by-document`. Documents with zero extractions are omitted —
+  // caller defaults to a "no extractions" chip for those.
+  'extraction:list-statuses': () => Array<{
+    document_id: string;
+    active_status: ExtractionStatus | null;
+    has_rejected: boolean;
+  }>;
 
   // stages domain (Phase 1b — read-only extraction stage registry)
   'stages:list': () => Array<{ id: string; version: string; description: string }>;

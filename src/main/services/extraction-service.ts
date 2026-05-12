@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import type { LLMClient } from '@main/llm/llm-client.js';
 import { getStage } from '@main/llm/stages/registry.js';
-import type { Extraction } from '@shared/types.js';
+import type { Extraction, ExtractionStatus } from '@shared/types.js';
 import { newId } from '@shared/ulid.js';
 import type { ServiceContext } from './base.js';
 import type { DocumentService } from './document-service.js';
@@ -116,6 +116,8 @@ export class ExtractionService {
     // Cache check: same (document, stage, provider, model) → return existing
     // row, don't burn another LLM round-trip. SELECT-first (not relying on
     // the UNIQUE index throwing) so the LLM call is genuinely skipped.
+    // `findCached` deliberately excludes `status='rejected'` rows so a user
+    // who discards a bad extraction can re-trigger the LLM here.
     const cached = this.findCached(
       doc.id,
       stage.id,
@@ -123,6 +125,20 @@ export class ExtractionService {
       providerConfig.config.model,
     );
     if (cached) return cached;
+
+    // The schema's UNIQUE (document_id, prompt_version, llm_provider, llm_model)
+    // constraint doesn't filter by status, so a previously-rejected row at the
+    // same key would still block the upcoming INSERT. Drop any matching
+    // rejected row now — the discard was a soft-delete that kept the raw
+    // response around for ad-hoc forensics, but once the user explicitly
+    // retries, that snapshot has served its purpose.
+    this.ctx.db
+      .prepare(
+        `DELETE FROM extraction
+           WHERE document_id = ? AND prompt_version = ? AND llm_provider = ? AND llm_model = ?
+             AND status = 'rejected'`,
+      )
+      .run(doc.id, stage.id, providerConfig.config.provider, providerConfig.config.model);
 
     // Read + parse the PDF. The DI'd `readFile` lets tests provide bytes
     // without writing a real file; `parsePdf` lets them skip pdf.js entirely.
@@ -248,12 +264,71 @@ export class ExtractionService {
     provider: string,
     model: string,
   ): Extraction | null {
+    // Skipping rejected rows is what makes the discard → retry loop possible:
+    // a rejected extraction is treated as a soft-delete, so re-running with
+    // the same (doc, stage, provider, model) tuple bypasses the cache and
+    // actually calls the LLM again. The matching `DELETE ... status='rejected'`
+    // in `run()` then clears the way for the fresh INSERT past the UNIQUE
+    // constraint.
     const row = this.ctx.db
       .prepare(
         `SELECT * FROM extraction
-         WHERE document_id = ? AND prompt_version = ? AND llm_provider = ? AND llm_model = ?`,
+         WHERE document_id = ? AND prompt_version = ? AND llm_provider = ? AND llm_model = ?
+           AND status != 'rejected'`,
       )
       .get(documentId, promptVersion, provider, model) as Extraction | undefined;
     return row ?? null;
+  }
+
+  /**
+   * Returns one summary row per document that has at least one extraction.
+   * Documents with no extractions are omitted (caller treats missing keys
+   * as "no extractions yet"). Used by the /documents list to render a
+   * per-row status chip without N+1'ing into `listByDocument`.
+   *
+   * Output shape:
+   * - `active_status`: status of the most-recent NON-rejected extraction,
+   *   or `null` if every extraction for the doc is rejected.
+   * - `has_rejected`: true if the doc has any rejected row in history. The
+   *   detail page uses this to show a "previous extraction discarded —
+   *   re-run?" hint when `active_status` is null.
+   *
+   * Implementation: single SELECT with a correlated subquery for the latest
+   * non-rejected status (cheaper than two passes when there are few docs;
+   * the table is small in Phase 1b — premature index work would be wasted).
+   */
+  getStatusByDocument(): Array<{
+    document_id: string;
+    active_status: ExtractionStatus | null;
+    has_rejected: boolean;
+  }> {
+    // `inner` is a SQLite reserved word (INNER JOIN), so we use `latest`
+    // as the subquery alias. The subquery picks the most-recent non-rejected
+    // status; the outer MAX() detects whether any rejected row exists. One
+    // pass over the table, indexed on document_id by the implicit rowid.
+    const rows = this.ctx.db
+      .prepare(
+        `SELECT
+           e.document_id AS document_id,
+           (
+             SELECT latest.status FROM extraction AS latest
+             WHERE latest.document_id = e.document_id AND latest.status != 'rejected'
+             ORDER BY latest.created_at DESC, latest.id DESC
+             LIMIT 1
+           ) AS active_status,
+           MAX(CASE WHEN e.status = 'rejected' THEN 1 ELSE 0 END) AS rejected_flag
+         FROM extraction AS e
+         GROUP BY e.document_id`,
+      )
+      .all() as Array<{
+      document_id: string;
+      active_status: ExtractionStatus | null;
+      rejected_flag: number;
+    }>;
+    return rows.map((r) => ({
+      document_id: r.document_id,
+      active_status: r.active_status,
+      has_rejected: r.rejected_flag === 1,
+    }));
   }
 }

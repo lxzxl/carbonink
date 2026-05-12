@@ -52,9 +52,7 @@ export const chinaUtilityExtraction = z.object({
   period_start: z
     .string()
     .describe('Billing period start as YYYY-MM-DD. Empty string if not legible.'),
-  period_end: z
-    .string()
-    .describe('Billing period end as YYYY-MM-DD. Empty string if not legible.'),
+  period_end: z.string().describe('Billing period end as YYYY-MM-DD. Empty string if not legible.'),
   confidence: z
     .enum(['high', 'medium', 'low'])
     .describe(

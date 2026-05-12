@@ -72,10 +72,15 @@ function DocumentReview({ document }: { document: Document }) {
     queryKey: ['extraction:list-by-document', document.id],
     queryFn: () => extractionApi.listByDocument({ document_id: document.id }),
   });
-  // Most-recent extraction first (the service orders DESC). For Phase 1b
-  // there's at most one per (doc, stage, provider, model) tuple, so this is
-  // effectively "the" extraction.
-  const extraction = extractionsQuery.data?.[0];
+  // Rejected rows are soft-deletes (kept in `extraction` for forensics until
+  // the user explicitly re-extracts — see ExtractionService.run). The review
+  // pane treats them as "no extraction yet", so we pick the most-recent
+  // NON-rejected row as the active one. `hasDiscarded` is true when the doc
+  // has any rejected history without a fresh extraction on top — the retry
+  // CTA uses it to surface a "previously discarded" hint.
+  const extractions = extractionsQuery.data ?? [];
+  const activeExtraction = extractions.find((e) => e.status !== 'rejected');
+  const hasDiscarded = !activeExtraction && extractions.some((e) => e.status === 'rejected');
 
   return (
     <div className="space-y-4">
@@ -94,10 +99,10 @@ function DocumentReview({ document }: { document: Document }) {
         <div className="overflow-y-auto">
           {extractionsQuery.isLoading ? (
             <p className="text-sm text-muted-foreground">{m.loading()}</p>
-          ) : !extraction ? (
-            <RunExtractionAction document={document} />
+          ) : !activeExtraction ? (
+            <RunExtractionAction document={document} discardedHint={hasDiscarded} />
           ) : (
-            <ExtractionReview extraction={extraction} document={document} />
+            <ExtractionReview extraction={activeExtraction} document={document} />
           )}
         </div>
       </div>
@@ -106,13 +111,26 @@ function DocumentReview({ document }: { document: Document }) {
 }
 
 /**
- * Shown when a document has no extraction yet. The upload flow runs extraction
- * inline, but a doc uploaded before AI provider was configured (or whose
- * initial run failed) lands here. One-click re-trigger via the same
- * `extraction:run` IPC — service layer dedupes via the (sha256, stage, model)
- * 4-tuple, so this is idempotent if a result already exists.
+ * Shown when a document has no active extraction. The upload flow runs
+ * extraction inline, but several paths land here:
+ *   - doc uploaded before AI provider was configured
+ *   - initial extraction failed (LLM/network error)
+ *   - user discarded the previous extraction and wants to retry
+ *
+ * The `discardedHint` flag covers the third case — we want the user to know
+ * the LLM will be re-invoked (no silent cache hit) and offer a small nudge
+ * to try a different model if the previous run was nonsense. Service-layer
+ * cache (`findCached`) excludes rejected rows and `run()` clears stale
+ * rejected rows out of the way, so this button is genuinely a fresh round
+ * trip.
  */
-function RunExtractionAction({ document }: { document: Document }) {
+function RunExtractionAction({
+  document,
+  discardedHint,
+}: {
+  document: Document;
+  discardedHint?: boolean;
+}) {
   const queryClient = useQueryClient();
   const runExtraction = useMutation({
     mutationFn: () => extractionApi.run({ document_id: document.id, stage_id: STAGE_ID }),
@@ -122,6 +140,7 @@ function RunExtractionAction({ document }: { document: Document }) {
         queryKey: ['extraction:list-by-document', document.id],
       });
       await queryClient.invalidateQueries({ queryKey: ['extraction:list-pending'] });
+      await queryClient.invalidateQueries({ queryKey: ['extraction:list-statuses'] });
     },
     onError: (err) => {
       const msg = err instanceof Error ? err.message : String(err);
@@ -131,7 +150,11 @@ function RunExtractionAction({ document }: { document: Document }) {
 
   return (
     <div className="space-y-3 rounded-md border border-border bg-muted/30 p-4">
-      <p className="text-sm text-muted-foreground">{m.documents_review_no_extraction()}</p>
+      <p className="text-sm text-muted-foreground">
+        {discardedHint
+          ? m.documents_review_previous_discarded()
+          : m.documents_review_no_extraction()}
+      </p>
       <Button
         type="button"
         onClick={() => runExtraction.mutate()}
@@ -139,7 +162,9 @@ function RunExtractionAction({ document }: { document: Document }) {
       >
         {runExtraction.isPending
           ? m.documents_extraction_running()
-          : m.documents_extraction_run_now()}
+          : discardedHint
+            ? m.documents_extraction_run_again()
+            : m.documents_extraction_run_now()}
       </Button>
     </div>
   );

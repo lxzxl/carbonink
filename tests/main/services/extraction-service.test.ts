@@ -271,4 +271,126 @@ describe('ExtractionService', () => {
   it('getById returns null for a missing id', () => {
     expect(h.extractionService.getById('01J0000000000000000000ZZZ')).toBeNull();
   });
+
+  it('after discard, run() bypasses the cache, drops the rejected row, and calls the LLM again', async () => {
+    // Regression test for the "retry after discard" UX. Before the fix the
+    // cache lookup returned the rejected row, so the button silently did
+    // nothing; even if you bypassed the cache, the UNIQUE constraint on
+    // (doc, stage, provider, model) would block the INSERT.
+    const doc = uploadFakePdf(h.documentService);
+    const first = await h.extractionService.run({
+      document_id: doc.id,
+      stage_id: 'china_utility.v1',
+    });
+    h.extractionService.discard(first.id);
+    expect(h.extractionService.getById(first.id)?.status).toBe('rejected');
+
+    const retried = await h.extractionService.run({
+      document_id: doc.id,
+      stage_id: 'china_utility.v1',
+    });
+
+    // Brand-new row, not the discarded one — confirms the cache skipped.
+    expect(retried.id).not.toBe(first.id);
+    expect(retried.status).toBe('review_needed');
+    // LLM hit twice (once for `first`, once for `retried`). PDF parsed
+    // twice as well — there's no separate dedupe for PDF text.
+    expect(h.llmClient.extract).toHaveBeenCalledTimes(2);
+    // The rejected row should be gone: re-extract intentionally drops the
+    // soft-deleted row to make room past the UNIQUE constraint, and we
+    // don't currently keep a longer audit trail (Phase 1c can revisit).
+    expect(h.extractionService.getById(first.id)).toBeNull();
+    // Exactly one row left in the table — the fresh one.
+    const rows = h.db
+      .prepare('SELECT COUNT(*) AS c FROM extraction WHERE document_id = ?')
+      .get(doc.id) as { c: number };
+    expect(rows.c).toBe(1);
+  });
+
+  it('getStatusByDocument summarizes (active_status, has_rejected) per doc', async () => {
+    // Three docs, each in a different state, plus a doc with no extraction
+    // at all (which the method should OMIT from the result — caller treats
+    // missing keys as "no extractions yet").
+    const docFresh = uploadFakePdf(h.documentService);
+    const docConfirmed = h.documentService.uploadFile({
+      filename: 'confirmed.pdf',
+      mimeType: 'application/pdf',
+      bytes: Buffer.from('%PDF-1.4 doc confirmed'),
+    });
+    const docDiscarded = h.documentService.uploadFile({
+      filename: 'discarded.pdf',
+      mimeType: 'application/pdf',
+      bytes: Buffer.from('%PDF-1.4 doc discarded'),
+    });
+    const docNoExtraction = h.documentService.uploadFile({
+      filename: 'empty.pdf',
+      mimeType: 'application/pdf',
+      bytes: Buffer.from('%PDF-1.4 doc empty'),
+    });
+
+    const fresh = await h.extractionService.run({
+      document_id: docFresh.id,
+      stage_id: 'china_utility.v1',
+    });
+    const confirmed = await h.extractionService.run({
+      document_id: docConfirmed.id,
+      stage_id: 'china_utility.v1',
+    });
+    h.extractionService.confirm(confirmed.id);
+    const willDiscard = await h.extractionService.run({
+      document_id: docDiscarded.id,
+      stage_id: 'china_utility.v1',
+    });
+    h.extractionService.discard(willDiscard.id);
+
+    const statuses = h.extractionService.getStatusByDocument();
+    const byDocId = new Map(statuses.map((s) => [s.document_id, s]));
+
+    expect(byDocId.get(docFresh.id)).toEqual({
+      document_id: docFresh.id,
+      active_status: 'review_needed',
+      has_rejected: false,
+    });
+    expect(byDocId.get(docConfirmed.id)).toEqual({
+      document_id: docConfirmed.id,
+      active_status: 'parsed',
+      has_rejected: false,
+    });
+    // Only-rejected doc: active is null (no non-rejected rows), has_rejected true.
+    expect(byDocId.get(docDiscarded.id)).toEqual({
+      document_id: docDiscarded.id,
+      active_status: null,
+      has_rejected: true,
+    });
+    // Doc with no extraction rows should be absent from the response.
+    expect(byDocId.has(docNoExtraction.id)).toBe(false);
+
+    // Silence "unused variable" — `fresh` is asserted via byDocId above
+    // but TS would warn without an explicit reference.
+    expect(fresh.status).toBe('review_needed');
+  });
+
+  it('getStatusByDocument: a fresh re-run after discard surfaces as active without has_rejected', async () => {
+    // After the user retries, the prior rejected row is deleted (see the
+    // "run() drops the rejected row" test), so has_rejected flips back to
+    // false. The chip should show "Needs review", not "Discarded".
+    const doc = uploadFakePdf(h.documentService);
+    const first = await h.extractionService.run({
+      document_id: doc.id,
+      stage_id: 'china_utility.v1',
+    });
+    h.extractionService.discard(first.id);
+    await h.extractionService.run({
+      document_id: doc.id,
+      stage_id: 'china_utility.v1',
+    });
+
+    const statuses = h.extractionService.getStatusByDocument();
+    const entry = statuses.find((s) => s.document_id === doc.id);
+    expect(entry).toEqual({
+      document_id: doc.id,
+      active_status: 'review_needed',
+      has_rejected: false,
+    });
+  });
 });

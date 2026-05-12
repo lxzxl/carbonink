@@ -111,6 +111,9 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
         queryKey: ['extraction:list-by-document', document.id],
       });
       await queryClient.invalidateQueries({ queryKey: ['extraction:list-pending'] });
+      // /documents list chip depends on this — without it the row keeps
+      // showing the old "review needed" chip until a full refetch.
+      await queryClient.invalidateQueries({ queryKey: ['extraction:list-statuses'] });
       toast.success(m.documents_review_discard_success());
       navigate({ to: '/documents' });
     },
@@ -119,6 +122,17 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
       toast.error(m.documents_review_discard_failed(), { description: msg });
     },
   });
+
+  // Shared discard handler for both the happy-path button and the
+  // parse-error fallback. `window.confirm` is the same guardrail the user
+  // sees in the normal review path — clicking 丢弃 with no prompt was
+  // accidental-tap-prone, especially in the parse-error branch where the
+  // button is the only action.
+  const requestDiscard = () => {
+    if (window.confirm(m.documents_review_discard_confirm())) {
+      discardMutation.mutate();
+    }
+  };
 
   // We don't pre-confirm the extraction — it stays `review_needed` until
   // the user actually submits the ActivityForm. Phase 1c may swap this for
@@ -138,6 +152,11 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
       queryKey: ['extraction:list-by-document', document.id],
     });
     await queryClient.invalidateQueries({ queryKey: ['extraction:list-pending'] });
+    // Same rationale as the discard path: /documents list chip reads from
+    // this query, so confirmation needs to invalidate it too — otherwise
+    // the user lands on /dashboard, comes back to /documents, and the row
+    // still shows "Needs review".
+    await queryClient.invalidateQueries({ queryKey: ['extraction:list-statuses'] });
     navigate({ to: '/' });
   };
 
@@ -149,7 +168,7 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
           <Button
             type="button"
             variant="outline"
-            onClick={() => discardMutation.mutate()}
+            onClick={requestDiscard}
             disabled={discardMutation.isPending}
           >
             {m.documents_review_discard()}
@@ -205,11 +224,7 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
           <Button
             type="button"
             variant="outline"
-            onClick={() => {
-              if (window.confirm(m.documents_review_discard_confirm())) {
-                discardMutation.mutate();
-              }
-            }}
+            onClick={requestDiscard}
             disabled={discardMutation.isPending}
           >
             {m.documents_review_discard()}

@@ -35,6 +35,7 @@ export function extractionHandlers(ctx: IpcContext): {
     'extraction:list-pending': () => svc.listPendingReview(),
     'extraction:list-by-document': (input) =>
       svc.listByDocument(docIdInput.parse(input).document_id),
+    'extraction:list-statuses': () => svc.getStatusByDocument(),
     'extraction:get-by-id': (input) => svc.getById(idInput.parse(input).id),
     'extraction:confirm': (input) => {
       svc.confirm(idInput.parse(input).id);

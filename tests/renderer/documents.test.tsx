@@ -45,10 +45,10 @@ vi.mock('@renderer/lib/api/settings', () => ({
   },
 }));
 
+import { SettingsDrawerProvider } from '@renderer/components/settings-drawer-context';
 import { documentApi } from '@renderer/lib/api/document';
 import { extractionApi } from '@renderer/lib/api/extraction';
 import { settingsApi } from '@renderer/lib/api/settings';
-import { SettingsDrawerProvider } from '@renderer/components/settings-drawer-context';
 
 const FAKE_PROVIDER_CONFIG = {
   provider: 'deepseek' as const,

@@ -1,6 +1,6 @@
+import { randomUUID } from 'node:crypto';
 import { ProviderNotConfiguredError, SchemaMismatchError } from '@main/llm/llm-client.js';
 import { PdfNotReadableError } from '@main/services/extraction-service.js';
-import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 
 /**

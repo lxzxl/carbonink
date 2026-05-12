@@ -81,6 +81,10 @@ export function DocumentsUpload() {
         queryKey: ['extraction:list-by-document', doc.id],
       });
       await queryClient.invalidateQueries({ queryKey: ['extraction:list-pending'] });
+      // Documents list reads its per-row chips from this query; without
+      // the invalidate the freshly-uploaded doc stays on "无抽取" until the
+      // next manual refresh.
+      await queryClient.invalidateQueries({ queryKey: ['extraction:list-statuses'] });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       toast.error(m.documents_extraction_failed(), { description: msg });

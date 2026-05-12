@@ -43,6 +43,10 @@ import { getLocale, experimentalStaticLocale } from "../runtime.js"
 /** @typedef {{ date: NonNullable<unknown> }} Documents_Review_Uploaded_OnInputs */
 /** @typedef {{}} Documents_Review_Sha_LabelInputs */
 /** @typedef {{}} Documents_Review_No_ExtractionInputs */
+/** @typedef {{}} Documents_Review_Previous_DiscardedInputs */
+/** @typedef {{}} Documents_Extraction_Run_NowInputs */
+/** @typedef {{}} Documents_Extraction_Run_AgainInputs */
+/** @typedef {{}} Documents_Extraction_RunningInputs */
 /** @typedef {{}} Documents_Review_Load_FailedInputs */
 /** @typedef {{}} Documents_Review_Pdf_UnavailableInputs */
 /** @typedef {{}} Documents_Review_Pdf_LoadingInputs */
@@ -759,6 +763,62 @@ export const documents_review_no_extraction = /** @type {((inputs?: Documents_Re
 	const locale = experimentalStaticLocale ?? options.locale ?? getLocale()
 	if (locale === "en") return __en.documents_review_no_extraction(inputs)
 	return __zh_cn2.documents_review_no_extraction(inputs)
+});
+/**
+* | output |
+* | --- |
+* | "Previous extraction was discarded. Re-running will call the LLM again — consider switching model or providing a clearer PDF first." |
+*
+* @param {Documents_Review_Previous_DiscardedInputs} inputs
+* @param {{ locale?: "en" | "zh-CN" }} options
+* @returns {LocalizedString}
+*/
+export const documents_review_previous_discarded = /** @type {((inputs?: Documents_Review_Previous_DiscardedInputs, options?: { locale?: "en" | "zh-CN" }) => LocalizedString) & import('../runtime.js').MessageMetadata<Documents_Review_Previous_DiscardedInputs, { locale?: "en" | "zh-CN" }, {}>} */ ((inputs = {}, options = {}) => {
+	const locale = experimentalStaticLocale ?? options.locale ?? getLocale()
+	if (locale === "en") return __en.documents_review_previous_discarded(inputs)
+	return __zh_cn2.documents_review_previous_discarded(inputs)
+});
+/**
+* | output |
+* | --- |
+* | "Run extraction" |
+*
+* @param {Documents_Extraction_Run_NowInputs} inputs
+* @param {{ locale?: "en" | "zh-CN" }} options
+* @returns {LocalizedString}
+*/
+export const documents_extraction_run_now = /** @type {((inputs?: Documents_Extraction_Run_NowInputs, options?: { locale?: "en" | "zh-CN" }) => LocalizedString) & import('../runtime.js').MessageMetadata<Documents_Extraction_Run_NowInputs, { locale?: "en" | "zh-CN" }, {}>} */ ((inputs = {}, options = {}) => {
+	const locale = experimentalStaticLocale ?? options.locale ?? getLocale()
+	if (locale === "en") return __en.documents_extraction_run_now(inputs)
+	return __zh_cn2.documents_extraction_run_now(inputs)
+});
+/**
+* | output |
+* | --- |
+* | "Run again" |
+*
+* @param {Documents_Extraction_Run_AgainInputs} inputs
+* @param {{ locale?: "en" | "zh-CN" }} options
+* @returns {LocalizedString}
+*/
+export const documents_extraction_run_again = /** @type {((inputs?: Documents_Extraction_Run_AgainInputs, options?: { locale?: "en" | "zh-CN" }) => LocalizedString) & import('../runtime.js').MessageMetadata<Documents_Extraction_Run_AgainInputs, { locale?: "en" | "zh-CN" }, {}>} */ ((inputs = {}, options = {}) => {
+	const locale = experimentalStaticLocale ?? options.locale ?? getLocale()
+	if (locale === "en") return __en.documents_extraction_run_again(inputs)
+	return __zh_cn2.documents_extraction_run_again(inputs)
+});
+/**
+* | output |
+* | --- |
+* | "Extracting..." |
+*
+* @param {Documents_Extraction_RunningInputs} inputs
+* @param {{ locale?: "en" | "zh-CN" }} options
+* @returns {LocalizedString}
+*/
+export const documents_extraction_running = /** @type {((inputs?: Documents_Extraction_RunningInputs, options?: { locale?: "en" | "zh-CN" }) => LocalizedString) & import('../runtime.js').MessageMetadata<Documents_Extraction_RunningInputs, { locale?: "en" | "zh-CN" }, {}>} */ ((inputs = {}, options = {}) => {
+	const locale = experimentalStaticLocale ?? options.locale ?? getLocale()
+	if (locale === "en") return __en.documents_extraction_running(inputs)
+	return __zh_cn2.documents_extraction_running(inputs)
 });
 /**
 * | output |

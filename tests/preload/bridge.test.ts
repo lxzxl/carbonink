@@ -72,6 +72,7 @@ describe('preload bridge', () => {
       'extraction:run',
       'extraction:list-pending',
       'extraction:list-by-document',
+      'extraction:list-statuses',
       'extraction:get-by-id',
       'extraction:confirm',
       'extraction:discard',

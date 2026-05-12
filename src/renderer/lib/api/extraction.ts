@@ -17,6 +17,7 @@ export const extractionApi = {
   run: (input: { document_id: string; stage_id: string }) => invoke('extraction:run', input),
   listPending: () => invoke('extraction:list-pending'),
   listByDocument: (input: { document_id: string }) => invoke('extraction:list-by-document', input),
+  listStatuses: () => invoke('extraction:list-statuses'),
   getById: (input: { id: string }) => invoke('extraction:get-by-id', input),
   confirm: (input: { id: string }) => invoke('extraction:confirm', input),
   discard: (input: { id: string }) => invoke('extraction:discard', input),
