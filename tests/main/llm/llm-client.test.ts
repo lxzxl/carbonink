@@ -320,3 +320,67 @@ describe('ProviderNotConfiguredError', () => {
     expect(err).toBeInstanceOf(Error);
   });
 });
+
+describe('LLMClient.extractWithImages', () => {
+  it('builds a multipart user message with text + image parts and forwards mode=json', async () => {
+    const credentials = makeCredentials({ 'llm.openai.apikey': 'sk-vision' });
+    const client = new LLMClient({ credentials });
+    const schema = z.object({ ok: z.boolean() });
+    vi.mocked(generateObject).mockResolvedValueOnce({ object: { ok: true } } as never);
+
+    const config: ProviderConfig = {
+      provider: 'openai',
+      model: 'gpt-4o',
+      apiKeyKeyref: 'llm.openai.apikey',
+    };
+    const imageA = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0xaa]);
+    const imageB = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0xbb]);
+
+    const result = await client.extractWithImages(
+      config,
+      schema,
+      { userText: 'extract fields' },
+      [imageA, imageB],
+    );
+
+    expect(result).toEqual({ ok: true });
+    expect(generateObject).toHaveBeenCalledTimes(1);
+    const call = vi.mocked(generateObject).mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(call?.model).toBe('openai-model:gpt-4o');
+    expect(call?.schema).toBe(schema);
+    expect(call?.mode).toBe('json');
+    // One user-role message with content = [text, image, image].
+    const messages = call?.messages as Array<{ role: string; content: Array<{ type: string }> }>;
+    expect(messages).toHaveLength(1);
+    expect(messages[0]!.role).toBe('user');
+    expect(messages[0]!.content).toHaveLength(3); // 1 text + 2 images
+    expect(messages[0]!.content[0]).toEqual({ type: 'text', text: 'extract fields' });
+    expect(messages[0]!.content[1]).toMatchObject({ type: 'image' });
+    expect(messages[0]!.content[2]).toMatchObject({ type: 'image' });
+  });
+
+  it('includes a system message when VisionMessages.system is set', async () => {
+    const credentials = makeCredentials({ 'llm.anthropic.apikey': 'sk-anthropic' });
+    const client = new LLMClient({ credentials });
+    const schema = z.object({ ok: z.boolean() });
+    vi.mocked(generateObject).mockResolvedValueOnce({ object: { ok: true } } as never);
+
+    const config: ProviderConfig = {
+      provider: 'anthropic',
+      model: 'claude-sonnet-4-5',
+      apiKeyKeyref: 'llm.anthropic.apikey',
+    };
+    await client.extractWithImages(
+      config,
+      schema,
+      { system: 'You are an expert OCR.', userText: 'extract' },
+      [Buffer.from([0x89, 0x50, 0x4e, 0x47])],
+    );
+
+    const call = vi.mocked(generateObject).mock.calls[0]?.[0] as Record<string, unknown>;
+    const messages = call?.messages as Array<{ role: string; content: unknown }>;
+    expect(messages).toHaveLength(2);
+    expect(messages[0]).toEqual({ role: 'system', content: 'You are an expert OCR.' });
+    expect(messages[1]!.role).toBe('user');
+  });
+});

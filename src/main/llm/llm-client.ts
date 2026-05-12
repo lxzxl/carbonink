@@ -4,6 +4,7 @@ import { createDeepSeek } from '@ai-sdk/deepseek';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import type { CredentialService } from '@main/services/credential-service.js';
+import type { VisionMessages } from '@main/llm/stages/types.js';
 import type { ProviderConfig } from '@shared/types.js';
 import { generateObject, type LanguageModel, NoObjectGeneratedError } from 'ai';
 import { z } from 'zod';
@@ -144,6 +145,62 @@ export class LLMClient {
       // Capture the raw text so the IPC sanitize layer can include a useful
       // preview in the user-facing error (without leaking the API key or
       // other secrets — the raw text is just the model's response).
+      if (NoObjectGeneratedError.isInstance(err)) {
+        throw new SchemaMismatchError(config.provider, err.text, err);
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Variant of `extract` for image inputs. Builds a multipart user
+   * message — one text part followed by one image part per buffer —
+   * and calls AI SDK 6's `generateObject` with `mode: 'json'`.
+   *
+   * The image parts use AI SDK's `{ type: 'image', image: Buffer }`
+   * shape. The SDK is responsible for base64-encoding and selecting
+   * the right MIME type per provider; PNG buffers (what `pdfToImages`
+   * produces) are universally accepted.
+   *
+   * Schema validation + error translation matches `extract`:
+   * NoObjectGeneratedError → SchemaMismatchError with a raw-text
+   * preview.
+   */
+  async extractWithImages<T>(
+    config: ProviderConfig,
+    schema: z.ZodType<T>,
+    vision: VisionMessages,
+    images: Buffer[],
+  ): Promise<T> {
+    const model = this.getModel(config);
+
+    // AI SDK 6 message shape: each role-message has `content` that's
+    // either a string OR an array of typed parts. We always use the
+    // array form for the user turn so adding more content types in
+    // the future is non-breaking.
+    const userContent: Array<{ type: 'text'; text: string } | { type: 'image'; image: Buffer }> = [
+      { type: 'text', text: vision.userText },
+      ...images.map((image) => ({ type: 'image' as const, image })),
+    ];
+
+    const messages = vision.system
+      ? [
+          { role: 'system' as const, content: vision.system },
+          { role: 'user' as const, content: userContent },
+        ]
+      : [{ role: 'user' as const, content: userContent }];
+
+    try {
+      const result = await generateObject({
+        model,
+        schema,
+        // biome-ignore lint/suspicious/noExplicitAny: AI SDK's `messages`
+        // union is too broad for our narrowed multipart shape.
+        messages: messages as any,
+        mode: 'json',
+      });
+      return result.object;
+    } catch (err) {
       if (NoObjectGeneratedError.isInstance(err)) {
         throw new SchemaMismatchError(config.provider, err.text, err);
       }
