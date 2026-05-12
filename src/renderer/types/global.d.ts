@@ -1,4 +1,4 @@
-import type { IpcTypeMap } from '@main/ipc/types.js';
+import type { IpcPushTypeMap, IpcTypeMap } from '@main/ipc/types.js';
 
 declare global {
   interface Window {
@@ -7,6 +7,10 @@ declare global {
         channel: C,
         ...args: Parameters<IpcTypeMap[C]>
       ): Promise<ReturnType<IpcTypeMap[C]>>;
+      subscribe<C extends keyof IpcPushTypeMap & string>(
+        channel: C,
+        callback: (payload: IpcPushTypeMap[C]) => void,
+      ): () => void;
     };
   }
 }
