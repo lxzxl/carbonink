@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { Stage } from './types.js';
+import type { Stage, VisionMessages } from './types.js';
 
 /**
  * Structured output schema for a Chinese electricity utility bill. The model
@@ -28,9 +28,9 @@ import type { Stage } from './types.js';
  * pre-filled with whatever was extracted; the user can override any field
  * before committing to activity_data.
  *
- * Phase 1c will likely re-introduce strict validation for `confidence='high'`
- * paths — but only after OCR fallback exists for scan-only PDFs so the
- * model has a fair chance.
+ * Phase 1c re-uses the same schema for the vision path — see
+ * `buildVisionMessages`. The model has a fair OCR chance now so this
+ * permissiveness may be tightened in 1d for `confidence='high'` rows.
  */
 export const chinaUtilityExtraction = z.object({
   doc_type: z
@@ -64,29 +64,13 @@ export const chinaUtilityExtraction = z.object({
 export type ChinaUtilityExtraction = z.infer<typeof chinaUtilityExtraction>;
 
 /**
- * v1 China utility stage. Combines classification ("is this a Chinese
- * electricity bill?") and extraction in a single prompt — at Phase 1b
- * volume the cost of two round-trips isn't worth the cleanliness, and the
- * `confidence` enum gives us a soft fallback when the doc looks unfamiliar.
- *
- * Prompt is in English (model performs better at instruction-following in
- * English) while the bill text itself stays Chinese inside the `---` block.
+ * Field-mapping + output-format rules shared between `buildPrompt`
+ * (text path) and `buildVisionMessages` (image path). Extracting this
+ * to a const guarantees the two paths stay aligned — diverging copies
+ * would cause the model to behave differently for the same bill
+ * depending on which path triggered.
  */
-export const chinaUtilityStage: Stage<ChinaUtilityExtraction> = {
-  id: 'china_utility.v1',
-  version: '1.0.0',
-  description: 'Chinese electricity bill (国网/南方电网 风格) — classify + extract',
-  inputType: 'pdf_text',
-  schema: chinaUtilityExtraction,
-  buildPrompt: (pdfText) => `
-You are extracting structured data from a Chinese electricity utility bill (中国电费单).
-
-Bill text (extracted from PDF):
-<bill>
-${pdfText}
-</bill>
-
-Output rules (CRITICAL — DeepSeek and other providers without native JSON
+const FIELD_RULES = `Output rules (CRITICAL — DeepSeek and other providers without native JSON
 schema mode read these directly):
 - Return EXACTLY ONE JSON object, no markdown, no \`\`\`json fences, no prose.
 - Every required field must be present. Numeric fields are numbers (not
@@ -123,5 +107,41 @@ Field mapping (Chinese bills follow regional variations):
 
 Example valid response shape (do not copy the values — extract from the
 real bill above):
-{"doc_type":"china_utility","supplier_name":"国网北京市电力公司","account_no":"1234567890","amount_kwh":523.5,"amount_yuan":312.7,"period_start":"2025-09-01","period_end":"2025-09-30","confidence":"high"}`,
+{"doc_type":"china_utility","supplier_name":"国网北京市电力公司","account_no":"1234567890","amount_kwh":523.5,"amount_yuan":312.7,"period_start":"2025-09-01","period_end":"2025-09-30","confidence":"high"}`;
+
+/**
+ * v1 China utility stage. Combines classification ("is this a Chinese
+ * electricity bill?") and extraction in a single prompt — at Phase 1b
+ * volume the cost of two round-trips isn't worth the cleanliness, and the
+ * `confidence` enum gives us a soft fallback when the doc looks unfamiliar.
+ *
+ * Prompt is in English (model performs better at instruction-following in
+ * English) while the bill text itself stays Chinese inside the `---` block.
+ *
+ * Phase 1c: `buildVisionMessages` reuses the same `FIELD_RULES` body so
+ * the model behaves identically across text and image inputs.
+ */
+export const chinaUtilityStage: Stage<ChinaUtilityExtraction> = {
+  id: 'china_utility.v1',
+  version: '1.0.0',
+  description: 'Chinese electricity bill (国网/南方电网 风格) — classify + extract',
+  inputType: 'pdf_text',
+  schema: chinaUtilityExtraction,
+  buildPrompt: (pdfText) => `
+You are extracting structured data from a Chinese electricity utility bill (中国电费单).
+
+Bill text (extracted from PDF):
+<bill>
+${pdfText}
+</bill>
+
+${FIELD_RULES}`,
+  buildVisionMessages: (): VisionMessages => ({
+    userText: `You are extracting structured data from a Chinese electricity utility bill (中国电费单).
+
+The bill is provided as one or more PNG images (one per PDF page) attached to this
+message. Look at the images directly — do NOT request OCR text from another tool.
+
+${FIELD_RULES}`,
+  }),
 };

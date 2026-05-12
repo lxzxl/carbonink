@@ -85,4 +85,18 @@ describe('chinaUtilityStage metadata', () => {
     expect(prompt).toContain('SAMPLE_PDF_TEXT_TOKEN');
     expect(prompt).toContain('Chinese electricity utility bill');
   });
+
+  it('exposes a buildVisionMessages() returning the same field rules as buildPrompt', () => {
+    expect(chinaUtilityStage.buildVisionMessages).toBeDefined();
+    const messages = chinaUtilityStage.buildVisionMessages?.();
+    expect(messages).toBeDefined();
+    expect(messages?.userText).toContain('Chinese electricity utility bill');
+    // The field mapping rules MUST appear verbatim in both prompts so the
+    // model behaves consistently across text and vision paths.
+    expect(messages?.userText).toContain('amount_kwh');
+    expect(messages?.userText).toContain('用电量');
+    expect(messages?.userText).toContain('confidence');
+    // No PDF text placeholder — image content is appended by the caller.
+    expect(messages?.userText).not.toContain('<bill>');
+  });
 });
