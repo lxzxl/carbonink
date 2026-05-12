@@ -13,6 +13,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock the IPC wrappers — the route mounts inside a test router with no
 // preload bridge, so we intercept at the wrapper layer.
+vi.mock('@renderer/lib/ipc', () => ({
+  subscribe: vi.fn(() => () => {}),
+}));
 vi.mock('@renderer/lib/api/document', () => ({
   documentApi: {
     upload: vi.fn(),

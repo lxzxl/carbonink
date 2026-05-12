@@ -3,12 +3,13 @@ import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
 import { documentApi } from '@renderer/lib/api/document';
 import { extractionApi } from '@renderer/lib/api/extraction';
+import { subscribe } from '@renderer/lib/ipc';
 import * as m from '@renderer/paraglide/messages';
 import type { Document, Extraction } from '@shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link, useParams } from '@tanstack/react-router';
 import { ArrowLeft } from 'lucide-react';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 const STAGE_ID = 'china_utility.v1';
 
@@ -132,8 +133,18 @@ function RunExtractionAction({
   discardedHint?: boolean;
 }) {
   const queryClient = useQueryClient();
+  const [visionPhase, setVisionPhase] = useState(false);
+
+  // Subscribe while the mutation is in flight — we set visionPhase=true on
+  // the matching extraction:progress event, then reset when the mutation
+  // settles. Scoping by document id prevents a stale event from a
+  // background extraction (e.g. user navigated back to /documents and
+  // kicked off another run) from sneaking in.
   const runExtraction = useMutation({
-    mutationFn: () => extractionApi.run({ document_id: document.id, stage_id: STAGE_ID }),
+    mutationFn: async () => {
+      setVisionPhase(false);
+      return extractionApi.run({ document_id: document.id, stage_id: STAGE_ID });
+    },
     onSuccess: async () => {
       toast.success(m.documents_extraction_done(), { description: document.filename });
       await queryClient.invalidateQueries({
@@ -146,7 +157,19 @@ function RunExtractionAction({
       const msg = err instanceof Error ? err.message : String(err);
       toast.error(m.documents_extraction_failed(), { description: msg });
     },
+    onSettled: () => {
+      setVisionPhase(false);
+    },
   });
+
+  useEffect(() => {
+    if (!runExtraction.isPending) return;
+    return subscribe('extraction:progress', (payload) => {
+      if (payload.document_id === document.id && payload.phase === 'vision') {
+        setVisionPhase(true);
+      }
+    });
+  }, [runExtraction.isPending, document.id]);
 
   return (
     <div className="space-y-3 rounded-md border border-border bg-muted/30 p-4">
@@ -161,7 +184,9 @@ function RunExtractionAction({
         disabled={runExtraction.isPending}
       >
         {runExtraction.isPending
-          ? m.documents_extraction_running()
+          ? visionPhase
+            ? m.documents_extracting_vision()
+            : m.documents_extraction_running()
           : discardedHint
             ? m.documents_extraction_run_again()
             : m.documents_extraction_run_now()}
