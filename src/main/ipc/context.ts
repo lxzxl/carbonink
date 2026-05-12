@@ -4,7 +4,6 @@ import {
   getCredentialStore,
   isSafeStorageAvailable,
 } from '@main/credentials/safe-storage-backend.js';
-import type { ProgressEmitter } from './progress.js';
 import { LLMClient } from '@main/llm/llm-client.js';
 import { ActivityDataService } from '@main/services/activity-data-service.js';
 import type { ServiceContext } from '@main/services/base.js';
@@ -18,6 +17,7 @@ import { OrganizationService } from '@main/services/organization-service.js';
 import { SettingsService } from '@main/services/settings-service.js';
 import { UnitConversionService } from '@main/services/unit-conversion-service.js';
 import { app } from 'electron';
+import type { ProgressEmitter } from './progress.js';
 
 /**
  * Service-layer container injected into every IPC handler factory. Wiring

@@ -3,8 +3,8 @@ import { createAzure } from '@ai-sdk/azure';
 import { createDeepSeek } from '@ai-sdk/deepseek';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
-import type { CredentialService } from '@main/services/credential-service.js';
 import type { VisionMessages } from '@main/llm/stages/types.js';
+import type { CredentialService } from '@main/services/credential-service.js';
 import type { ProviderConfig } from '@shared/types.js';
 import { generateObject, type LanguageModel, NoObjectGeneratedError } from 'ai';
 import { z } from 'zod';
@@ -194,8 +194,7 @@ export class LLMClient {
       const result = await generateObject({
         model,
         schema,
-        // biome-ignore lint/suspicious/noExplicitAny: AI SDK's `messages`
-        // union is too broad for our narrowed multipart shape.
+        // biome-ignore lint/suspicious/noExplicitAny: AI SDK's `messages` union is too broad for our narrowed multipart shape.
         messages: messages as any,
         mode: 'json',
       });
