@@ -26,6 +26,9 @@ importers:
       '@electron-toolkit/typed-ipc':
         specifier: ^1.0.2
         version: 1.0.2(@electron-toolkit/preload@3.0.2(electron@41.5.1))(electron@41.5.1)
+      '@napi-rs/canvas':
+        specifier: ^0.1.74
+        version: 0.1.80
       '@radix-ui/react-slot':
         specifier: ^1.2.4
         version: 1.2.4(@types/react@18.3.28)(react@18.3.1)
@@ -65,6 +68,9 @@ importers:
       pdf-parse:
         specifier: ^2.4.5
         version: 2.4.5
+      pdfjs-dist:
+        specifier: ^5.4.296
+        version: 5.4.296
       react:
         specifier: ^18
         version: 18.3.1
