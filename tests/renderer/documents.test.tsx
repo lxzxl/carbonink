@@ -31,9 +31,31 @@ vi.mock('@renderer/lib/api/extraction', () => ({
     discard: vi.fn(),
   },
 }));
+// `/documents` now queries the provider config to decide between upload
+// zone and "AI not configured" banner. Mock the wrapper so the route
+// thinks DeepSeek is configured in the test environment — otherwise the
+// banner mounts and calls `useSettingsDrawer()` outside its provider.
+vi.mock('@renderer/lib/api/settings', () => ({
+  settingsApi: {
+    getProvider: vi.fn(),
+    saveProvider: vi.fn(),
+    clearProvider: vi.fn(),
+    pingProvider: vi.fn(),
+    available: vi.fn(),
+  },
+}));
 
 import { documentApi } from '@renderer/lib/api/document';
 import { extractionApi } from '@renderer/lib/api/extraction';
+import { settingsApi } from '@renderer/lib/api/settings';
+import { SettingsDrawerProvider } from '@renderer/components/settings-drawer-context';
+
+const FAKE_PROVIDER_CONFIG = {
+  provider: 'deepseek' as const,
+  model: 'deepseek-chat',
+  apiKeyKeyref: 'llm.deepseek.apikey' as const,
+  apiKeyMasked: 'sk-...test',
+};
 
 const FAKE_DOC = {
   id: 'doc_01',
@@ -67,7 +89,7 @@ const documentsComponent: NonNullable<typeof DocumentsRoute.options.component> =
   return c;
 })();
 
-function buildHarness() {
+function buildHarnessWithRouter() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
   });
@@ -79,10 +101,9 @@ function buildHarness() {
     path: '/documents',
     component: documentsComponent,
   });
-  // Stub detail route — needed for `useNavigate({ to: '/documents/$id' })`
-  // type registration so the click navigation in the list compiles. The
-  // component body is irrelevant for these tests; we only assert the call
-  // path, not the destination render.
+  // Stub detail route so the click navigation has a real target. The
+  // testid lets nav tests assert "we landed on the detail route" without
+  // needing the real PDF preview / extraction list.
   const detailRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/documents/$id',
@@ -92,11 +113,23 @@ function buildHarness() {
     routeTree: rootRoute.addChildren([documentsRoute, detailRoute]),
     history: createMemoryHistory({ initialEntries: ['/documents'] }),
   });
-  return (
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>
-  );
+  return {
+    ui: (
+      // SettingsDrawerProvider wraps router because ProviderNotConfiguredBanner
+      // (inside DocumentsRoute) calls `useSettingsDrawer()` — without this
+      // provider, every render path that hits the banner throws.
+      <SettingsDrawerProvider>
+        <QueryClientProvider client={queryClient}>
+          <RouterProvider router={router} />
+        </QueryClientProvider>
+      </SettingsDrawerProvider>
+    ),
+    router,
+  };
+}
+
+function buildHarness() {
+  return buildHarnessWithRouter().ui;
 }
 
 describe('/documents route', () => {
@@ -104,6 +137,9 @@ describe('/documents route', () => {
     vi.mocked(documentApi.list).mockResolvedValue([]);
     vi.mocked(documentApi.upload).mockReset();
     vi.mocked(extractionApi.run).mockReset();
+    // Default: provider IS configured, so the upload zone (not the
+    // "AI not configured" banner) renders.
+    vi.mocked(settingsApi.getProvider).mockResolvedValue(FAKE_PROVIDER_CONFIG);
   });
 
   afterEach(() => {
@@ -115,8 +151,11 @@ describe('/documents route', () => {
     render(buildHarness());
     // Heading from m.nav_documents(): "Documents" (en) / "文档" (zh).
     expect(await screen.findByRole('heading', { name: /Documents|文档/ })).toBeTruthy();
-    // Upload-zone instructional text (works in either locale).
-    expect(screen.getByText(/Drop a PDF here|把 PDF 拖到这里/)).toBeTruthy();
+    // Upload-zone instructional text (works in either locale). Use findByText
+    // so we wait for the provider query to resolve — getByText is sync and
+    // races against the "Loading…" placeholder while settings:get-provider
+    // is in-flight.
+    expect(await screen.findByText(/Drop a PDF here|把 PDF 拖到这里/)).toBeTruthy();
   });
 
   it('shows the empty state when there are no documents', async () => {
@@ -179,6 +218,47 @@ describe('/documents route', () => {
     // appears.
     await waitFor(() => {
       expect(screen.queryByText('bill.pdf')).toBeTruthy();
+    });
+  });
+
+  it('navigates to /documents/$id when the row "Open" link is clicked', async () => {
+    vi.mocked(documentApi.list).mockResolvedValue([FAKE_DOC]);
+    const { ui, router } = buildHarnessWithRouter();
+    render(ui);
+
+    // Wait for the row to render.
+    await screen.findByText('bill.pdf');
+
+    // Click the per-row "Open" link (its accessible name includes the
+    // filename — see ActivityForm doc-row Link).
+    const openLink = screen.getByLabelText(/bill\.pdf/);
+    await act(async () => {
+      fireEvent.click(openLink);
+    });
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe(`/documents/${FAKE_DOC.id}`);
+    });
+    // Detail stub should now be rendered.
+    expect(screen.getByTestId('detail-stub')).toBeTruthy();
+  });
+
+  it('navigates to /documents/$id when the row itself is clicked', async () => {
+    vi.mocked(documentApi.list).mockResolvedValue([FAKE_DOC]);
+    const { ui, router } = buildHarnessWithRouter();
+    render(ui);
+
+    await screen.findByText('bill.pdf');
+
+    // Click the filename cell — the row-level onClick should catch it
+    // (the inner Link has stopPropagation, so we click a non-link cell).
+    const filenameCell = screen.getByText('bill.pdf');
+    await act(async () => {
+      fireEvent.click(filenameCell);
+    });
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe(`/documents/${FAKE_DOC.id}`);
     });
   });
 });
