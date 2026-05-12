@@ -54,9 +54,7 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
  * Subscribe-side counterpart to `allowedChannels`. Keep aligned with
  * `IpcPushTypeMap` keys in `src/main/ipc/types.ts`.
  */
-export const allowedPushChannels: ReadonlyArray<keyof IpcPushTypeMap> = [
-  'extraction:progress',
-];
+export const allowedPushChannels: ReadonlyArray<keyof IpcPushTypeMap> = ['extraction:progress'];
 
 export type InvokeFn = (channel: string, ...args: unknown[]) => Promise<unknown>;
 

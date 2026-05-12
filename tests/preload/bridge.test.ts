@@ -115,7 +115,12 @@ describe('createBridge subscribe (Phase 1c push channels)', () => {
 
     bridge.subscribe('extraction:progress', callback);
     // Simulate Electron firing the event:
-    capturedInnerHandler?.({ /* fake IpcRendererEvent */ }, { document_id: 'd', phase: 'vision' });
+    capturedInnerHandler?.(
+      {
+        /* fake IpcRendererEvent */
+      },
+      { document_id: 'd', phase: 'vision' },
+    );
 
     expect(callback).toHaveBeenCalledWith({ document_id: 'd', phase: 'vision' });
     // The Electron event itself never reaches the renderer-supplied callback.
