@@ -11,21 +11,22 @@ import type { DocumentService } from './document-service.js';
 import type { SettingsService } from './settings-service.js';
 
 /**
- * Thrown when pdf-parse extracts essentially no text from the uploaded PDF —
- * almost always a scanned-image PDF without a text layer. We fail fast
- * BEFORE calling the LLM (saves a paid round-trip, gives the user a clear
- * next step). Phase 1c will add OCR fallback (Tesseract or LLM-vision) for
- * this path. Whitelisted by the IPC sanitize layer so the user sees the
- * full message.
+ * Phase 1b sentinel — was thrown when `pdf-parse` returned essentially
+ * no text from the uploaded PDF (image-only scan). **Phase 1c retired
+ * the throw**: `ExtractionService.run()` now catches the empty-text
+ * case inline and routes to the vision LLM branch. The class is kept
+ * as exported API surface so any future "force text only" code path
+ * or alternative orchestrator can re-use the sentinel; the message
+ * body assumes that future caller will still need to tell the user
+ * something useful. Today the sanitize layer's whitelist entry is
+ * defensive (no live path reaches it).
  */
 export class PdfNotReadableError extends Error {
   constructor(public readonly filename: string) {
     super(
-      `Couldn't read text from "${filename}". This is almost always a scanned-image PDF without ` +
-        `a text layer. Phase 1b extracts from text-based PDFs only (OCR comes in Phase 1c). ` +
-        `Workaround: open the PDF in another tool, "Print → Save as PDF" or "Export as PDF" with ` +
-        `OCR enabled (macOS Preview's "Export" usually does the right thing on selectable text), ` +
-        `and re-upload.`,
+      `Couldn't read text from "${filename}" and the vision fallback wasn't available. ` +
+        `Try switching to a multimodal model in Settings (gpt-4o / claude-sonnet-4-5 / ` +
+        `deepseek-vl), or re-export the PDF with OCR enabled.`,
     );
     this.name = 'PdfNotReadableError';
   }

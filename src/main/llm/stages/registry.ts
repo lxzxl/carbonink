@@ -26,7 +26,11 @@ export function listStages(): Stage[] {
 /**
  * Test helper — registers a stage at runtime so tests can verify the
  * orchestrator's behavior on stages that aren't part of the default
- * registry. Not called in production code paths.
+ * registry. Not called in production code paths; the export is not
+ * compile-time gated to `NODE_ENV==='test'` (would require a build-step
+ * tree-shake we don't have set up), so don't `import` it from any
+ * production module. Adding a new production stage should mutate the
+ * literal `Map(...)` on line 14, not call this function.
  */
 export function registerStage<T>(stage: Stage<T>): void {
   _stageRegistry.set(stage.id, stage as Stage<unknown>);
