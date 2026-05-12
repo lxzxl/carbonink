@@ -7,7 +7,7 @@ import { orgApi } from '@renderer/lib/api/organization';
 import * as m from '@renderer/paraglide/messages';
 import type { Document, EmissionSource, Extraction } from '@shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
 
 /**
@@ -216,7 +216,20 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
         </dl>
       </div>
 
-      {!showForm ? (
+      {extraction.status === 'parsed' ? (
+        <div className="rounded-md border border-border bg-muted/30 p-4 text-sm">
+          <p className="font-medium">{m.documents_review_already_confirmed_title()}</p>
+          <p className="mt-1 text-muted-foreground">
+            {m.documents_review_already_confirmed_body()}
+          </p>
+          <Link
+            to="/activities"
+            className="mt-3 inline-block text-sm text-[color:var(--color-primary)] hover:underline"
+          >
+            {m.documents_review_view_activities_link()}
+          </Link>
+        </div>
+      ) : !showForm ? (
         <div className="flex flex-wrap gap-2">
           <Button type="button" onClick={() => setShowForm(true)}>
             {m.documents_review_confirm()}
