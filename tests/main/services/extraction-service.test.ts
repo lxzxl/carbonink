@@ -407,9 +407,7 @@ describe('ExtractionService', () => {
 
     const parsePdfSpy = vi.fn(async () => ({ text: '   ' }));
     const pdfToImagesSpy = vi.fn(async () => [Buffer.from([0x89, 0x50, 0x4e, 0x47])]);
-    const extractWithImagesSpy = vi
-      .fn()
-      .mockResolvedValue(FAKE_EXTRACTION);
+    const extractWithImagesSpy = vi.fn().mockResolvedValue(FAKE_EXTRACTION);
     const llmClient = {
       extract: vi.fn(),
       extractWithImages: extractWithImagesSpy,

@@ -3,7 +3,7 @@ import type { BrowserWindow } from 'electron';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('createProgressEmitter', () => {
-  it('forwards channel + payload to the resolved window\'s webContents.send', () => {
+  it("forwards channel + payload to the resolved window's webContents.send", () => {
     const send = vi.fn();
     const fakeWin = { webContents: { send, isDestroyed: () => false } } as unknown as BrowserWindow;
     const emitter = createProgressEmitter(() => fakeWin);
@@ -21,8 +21,9 @@ describe('createProgressEmitter', () => {
     // is still in flight. Sending to a missing webContents would throw;
     // we swallow that to keep the main pipeline going to completion.
     const emitter = createProgressEmitter(() => null);
-    expect(() => emitter('extraction:progress', { document_id: 'x', phase: 'vision' }))
-      .not.toThrow();
+    expect(() =>
+      emitter('extraction:progress', { document_id: 'x', phase: 'vision' }),
+    ).not.toThrow();
   });
 
   it('is a no-op when webContents is destroyed', () => {

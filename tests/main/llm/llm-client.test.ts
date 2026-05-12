@@ -336,12 +336,10 @@ describe('LLMClient.extractWithImages', () => {
     const imageA = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0xaa]);
     const imageB = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0xbb]);
 
-    const result = await client.extractWithImages(
-      config,
-      schema,
-      { userText: 'extract fields' },
-      [imageA, imageB],
-    );
+    const result = await client.extractWithImages(config, schema, { userText: 'extract fields' }, [
+      imageA,
+      imageB,
+    ]);
 
     expect(result).toEqual({ ok: true });
     expect(generateObject).toHaveBeenCalledTimes(1);
