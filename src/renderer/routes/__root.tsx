@@ -1,3 +1,4 @@
+import { CommandPalette } from '@renderer/components/command-palette';
 import { SettingsDrawerContent } from '@renderer/components/SettingsDrawerContent';
 import { Sidebar } from '@renderer/components/Sidebar';
 import { SettingsDrawer } from '@renderer/components/settings-drawer';
@@ -9,9 +10,16 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
-  // SettingsDrawer is mounted at the route root so it shares lifetime with
-  // the rest of the app chrome (Sidebar). The provider lives one level up
-  // in `main.tsx` so the out-of-route CommandPalette can also toggle it.
+  // SettingsDrawer + CommandPalette both mount at the route root:
+  //   - CommandPalette uses `useNavigate()` from TanStack Router; if it sits
+  //     outside <RouterProvider> (as a sibling in main.tsx) every render
+  //     logs "useRouter must be used inside a <RouterProvider> component!"
+  //     and the navigate stub becomes a no-op. That breakage also corrupts
+  //     in-tree TanStack <Link> click handlers (the cause of the /documents
+  //     row "click does nothing" bug). Keep it inside the route tree.
+  //   - SettingsDrawerProvider lives one level up in main.tsx so the
+  //     Sidebar gear (this subtree) and the CommandPalette (also this
+  //     subtree now) both consume the same open state via context.
   const { open, setOpen } = useSettingsDrawer();
 
   return (
@@ -31,6 +39,7 @@ function RootComponent() {
           <Outlet />
         </main>
       </div>
+      <CommandPalette />
       <SettingsDrawer open={open} onOpenChange={setOpen}>
         <SettingsDrawerContent onSaved={() => setOpen(false)} />
       </SettingsDrawer>
