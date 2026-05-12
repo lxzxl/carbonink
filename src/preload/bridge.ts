@@ -1,11 +1,5 @@
-import type { IpcTypeMap } from '@main/ipc/types.js';
+import type { IpcPushTypeMap, IpcTypeMap } from '@main/ipc/types.js';
 
-/**
- * Whitelist of channel names. Defense-in-depth: even if the preload were
- * compromised, the renderer can only invoke channels listed here.
- *
- * Keep in sync with handler registration in `src/main/ipc/setup.ts`.
- */
 export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   // organization domain
   'org:has-any',
@@ -55,13 +49,43 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   'stages:list',
 ];
 
+/**
+ * Whitelist of push channels (main→renderer events via webContents.send).
+ * Subscribe-side counterpart to `allowedChannels`. Keep aligned with
+ * `IpcPushTypeMap` keys in `src/main/ipc/types.ts`.
+ */
+export const allowedPushChannels: ReadonlyArray<keyof IpcPushTypeMap> = [
+  'extraction:progress',
+];
+
 export type InvokeFn = (channel: string, ...args: unknown[]) => Promise<unknown>;
+
+/**
+ * Preload-side subscribe primitive. Implementations wire to
+ * `ipcRenderer.on` + return a cleanup that calls `removeListener`.
+ *
+ * The handler signature mirrors Electron's: receives the event object
+ * (which we never pass through) plus the payload. The bridge translates
+ * this to a payload-only callback on the renderer side.
+ */
+export type SubscribeFn = (
+  channel: string,
+  handler: (event: unknown, payload: unknown) => void,
+) => () => void;
 
 export interface IpcBridge {
   invoke<C extends keyof IpcTypeMap & string>(
     channel: C,
     ...args: Parameters<IpcTypeMap[C]>
   ): Promise<ReturnType<IpcTypeMap[C]>>;
+  /**
+   * Subscribe to a main→renderer push channel. Returns an unsubscribe
+   * function that detaches the listener.
+   */
+  subscribe<C extends keyof IpcPushTypeMap & string>(
+    channel: C,
+    callback: (payload: IpcPushTypeMap[C]) => void,
+  ): () => void;
 }
 
 /**
@@ -69,7 +93,7 @@ export interface IpcBridge {
  * `src/preload/index.ts` so the channel-allowlist gate can be unit-tested
  * without bundling the preload script through Electron.
  */
-export function createBridge(invokeFn: InvokeFn): IpcBridge {
+export function createBridge(invokeFn: InvokeFn, subscribeFn: SubscribeFn): IpcBridge {
   return {
     invoke<C extends keyof IpcTypeMap & string>(
       channel: C,
@@ -79,6 +103,18 @@ export function createBridge(invokeFn: InvokeFn): IpcBridge {
         return Promise.reject(new Error(`IPC channel not allowed: ${String(channel)}`));
       }
       return invokeFn(channel, ...args) as Promise<ReturnType<IpcTypeMap[C]>>;
+    },
+    subscribe<C extends keyof IpcPushTypeMap & string>(
+      channel: C,
+      callback: (payload: IpcPushTypeMap[C]) => void,
+    ): () => void {
+      if (!allowedPushChannels.includes(channel)) {
+        throw new Error(`IPC push channel not allowed: ${String(channel)}`);
+      }
+      const unsubscribe = subscribeFn(channel, (_event, payload) => {
+        callback(payload as IpcPushTypeMap[C]);
+      });
+      return unsubscribe ?? (() => {});
     },
   };
 }
