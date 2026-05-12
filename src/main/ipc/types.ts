@@ -121,3 +121,23 @@ export type IpcTypeMap = {
   // stages domain (Phase 1b — read-only extraction stage registry)
   'stages:list': () => Array<{ id: string; version: string; description: string }>;
 };
+
+/**
+ * Push channels — main→renderer events fired via `webContents.send`,
+ * subscribed via the preload `subscribe` API. Separate from
+ * `IpcTypeMap` because these are not request/response: payload only,
+ * no return value, no per-call correlation id.
+ *
+ * Phase 1c only registers `extraction:progress` (signals "switching
+ * to vision OCR" mid-extraction). Phase 1d's streamObject will
+ * extend the payload to carry partial JSON without a schema break —
+ * `phase` becomes a discriminator with more values.
+ */
+export type IpcPushTypeMap = {
+  'extraction:progress': {
+    /** Which extraction this event belongs to. */
+    document_id: string;
+    /** Stage of the pipeline the event was emitted from. */
+    phase: 'vision';
+  };
+};
