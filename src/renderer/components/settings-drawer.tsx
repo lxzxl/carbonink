@@ -1,5 +1,9 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { Drawer } from 'vaul';
+
+// `-webkit-app-region` is Electron-specific and not in csstype's CSSProperties.
+// Cast a one-off object so we can pass it via React's `style` prop.
+const NO_DRAG: CSSProperties = { WebkitAppRegion: 'no-drag' } as CSSProperties;
 
 /**
  * Right-side settings drawer. Controlled via the `open` / `onOpenChange`
@@ -35,9 +39,21 @@ export function SettingsDrawer({
   return (
     <Drawer.Root open={open} onOpenChange={onOpenChange} direction="right">
       <Drawer.Portal>
-        <Drawer.Overlay className="fixed inset-0 z-40 bg-foreground/30" />
+        {/* Same drag-region opt-out: overlay covers the full viewport, so its
+         * top 32px overlaps the titlebar drag region. Clicking the overlay
+         * there to dismiss the drawer would otherwise window-move instead. */}
+        <Drawer.Overlay className="fixed inset-0 z-40 bg-foreground/30" style={NO_DRAG} />
         <Drawer.Content
           aria-describedby={undefined}
+          // The drawer surface overlaps the global 32px titlebar drag region
+          // (`.titlebar-region` at z-50 across the top of the window). Without
+          // `WebkitAppRegion: 'no-drag'` here, clicks on the drawer's top
+          // ~32px — including the ✕ close button — are eaten by Electron as
+          // window-move gestures instead of firing onClick. The opt-out in
+          // globals.css only matches descendants of `.titlebar-region`, but
+          // vaul renders into a portal outside that tree, so we override at
+          // the drawer root.
+          style={NO_DRAG}
           className="fixed right-0 top-0 bottom-0 z-50 flex w-[480px] flex-col border-l border-border bg-popover text-popover-foreground shadow-2xl"
         >
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
