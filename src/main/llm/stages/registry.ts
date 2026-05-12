@@ -11,9 +11,7 @@ import type { Stage } from './types.js';
  * the call site (e.g. by importing `chinaUtilityStage` directly when it
  * needs `ChinaUtilityExtraction`).
  */
-const _stageRegistry = new Map<string, Stage>([
-  [chinaUtilityStage.id, chinaUtilityStage as Stage],
-]);
+const _stageRegistry = new Map<string, Stage>([[chinaUtilityStage.id, chinaUtilityStage as Stage]]);
 
 export const stageRegistry: ReadonlyMap<string, Stage> = _stageRegistry;
 
@@ -28,7 +26,7 @@ export function listStages(): Stage[] {
 /**
  * Test helper — registers a stage at runtime so tests can verify the
  * orchestrator's behavior on stages that aren't part of the default
- * registry. Not exported in production code paths.
+ * registry. Not called in production code paths.
  */
 export function registerStage<T>(stage: Stage<T>): void {
   _stageRegistry.set(stage.id, stage as Stage<unknown>);

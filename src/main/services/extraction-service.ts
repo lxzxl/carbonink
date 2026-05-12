@@ -1,9 +1,9 @@
 import { readFileSync } from 'node:fs';
+import type { IpcPushTypeMap } from '@main/ipc/types.js';
 import type { LLMClient } from '@main/llm/llm-client.js';
 import { pdfToImages as pdfToImagesDefault } from '@main/llm/pdf-to-images.js';
 import { getStage } from '@main/llm/stages/registry.js';
 import { assertVisionCapable } from '@main/llm/vision-capability.js';
-import type { IpcPushTypeMap } from '@main/ipc/types.js';
 import type { Extraction, ExtractionStatus } from '@shared/types.js';
 import { newId } from '@shared/ulid.js';
 import type { ServiceContext } from './base.js';
@@ -210,11 +210,7 @@ export class ExtractionService {
     let result: unknown;
     if (pdfText.trim().length >= 10) {
       const prompt = stage.buildPrompt(pdfText);
-      result = await this.ctx.llmClient.extract(
-        providerConfig.config,
-        stage.schema,
-        prompt,
-      );
+      result = await this.ctx.llmClient.extract(providerConfig.config, stage.schema, prompt);
     } else {
       // Vision path. Validate prerequisites first so we don't burn
       // 5-10s rendering PDF pages only to find out the model can't
