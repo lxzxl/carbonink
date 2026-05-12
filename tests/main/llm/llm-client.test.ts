@@ -96,6 +96,10 @@ describe('LLMClient.extract', () => {
       model: 'openai-model:gpt-4o-mini',
       schema,
       prompt: 'hello',
+      // `mode: 'json'` forces JSON-mode across all providers; default
+      // 'auto' silently falls back to compatibility mode for DeepSeek /
+      // OpenAI-compat and logs a runtime warning.
+      mode: 'json',
     });
   });
 

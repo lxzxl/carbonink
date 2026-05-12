@@ -2,7 +2,15 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';" />
+  <!-- CSP:
+       - default-src 'self': block all third-party origins by default
+       - script-src 'self': only our bundles (no inline scripts, no CDN)
+       - style-src 'self' 'unsafe-inline': Tailwind v4 injects inline styles
+       - frame-src 'self' blob:: PDF preview iframe loads blob: URLs created
+         from IPC-fetched document bytes (see documents_.$id.tsx PdfPreview).
+         Without `blob:` Electron blocks the iframe with ERR_BLOCKED_BY_CSP.
+       - img-src 'self' data:: future-proof for inline icons / base64 sprites -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; frame-src 'self' blob:; img-src 'self' data:;" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>carbonbook</title>
 </head>

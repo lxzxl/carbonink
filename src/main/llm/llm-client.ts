@@ -5,8 +5,35 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import type { CredentialService } from '@main/services/credential-service.js';
 import type { ProviderConfig } from '@shared/types.js';
-import { generateObject, type LanguageModel } from 'ai';
+import { generateObject, type LanguageModel, NoObjectGeneratedError } from 'ai';
 import { z } from 'zod';
+
+/**
+ * Thrown when the model returned a response but it didn't match the requested
+ * zod schema. We capture the raw text so the UI can surface what the model
+ * actually said (truncated, sanitized) — far more actionable than the generic
+ * "extraction failed" message.
+ *
+ * Common with providers that lack native JSON Schema mode (DeepSeek,
+ * OpenAI-compat endpoints). AI SDK falls back to "compatibility mode" which
+ * injects the schema into the system message; if the model returns markdown
+ * fences, prose, or omits required fields, validation fails here.
+ */
+export class SchemaMismatchError extends Error {
+  constructor(
+    public readonly provider: string,
+    public readonly rawText: string | undefined,
+    cause?: unknown,
+  ) {
+    const preview = rawText ? rawText.slice(0, 200) : '(no text captured)';
+    super(
+      `Model (${provider}) returned a response that did not match the expected schema. ` +
+        `Raw preview: ${preview}`,
+    );
+    this.name = 'SchemaMismatchError';
+    if (cause !== undefined) (this as Error & { cause?: unknown }).cause = cause;
+  }
+}
 
 /**
  * Thrown by `LLMClient.getModel` when the provider's API key is not present
@@ -102,8 +129,26 @@ export class LLMClient {
    */
   async extract<T>(config: ProviderConfig, schema: z.ZodType<T>, prompt: string): Promise<T> {
     const model = this.getModel(config);
-    const result = await generateObject({ model, schema, prompt });
-    return result.object;
+    try {
+      // `mode: 'json'` forces JSON-mode where supported and reliably falls
+      // back to system-message schema injection elsewhere. Default 'auto'
+      // picked tool-calling for OpenAI and compatibility mode for DeepSeek,
+      // and the auto-detection logged a warning at runtime ("…used in a
+      // compatibility mode…"). Setting json explicitly silences the warning
+      // and gives us the same behavior across all providers.
+      const result = await generateObject({ model, schema, prompt, mode: 'json' });
+      return result.object;
+    } catch (err) {
+      // `NoObjectGeneratedError` is AI SDK's signal that the model responded
+      // but the response failed schema validation (or wasn't valid JSON).
+      // Capture the raw text so the IPC sanitize layer can include a useful
+      // preview in the user-facing error (without leaking the API key or
+      // other secrets — the raw text is just the model's response).
+      if (NoObjectGeneratedError.isInstance(err)) {
+        throw new SchemaMismatchError(config.provider, err.text, err);
+      }
+      throw err;
+    }
   }
 
   /**

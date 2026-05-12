@@ -1,3 +1,4 @@
+import { ProviderNotConfiguredError, SchemaMismatchError } from '@main/llm/llm-client.js';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 
@@ -5,9 +6,14 @@ import { z } from 'zod';
  * Wraps an IPC handler so we never leak raw error messages
  * (better-sqlite3 SQL fragments, file paths, etc.) across the IPC boundary.
  *
- * - Zod errors are reformatted into a short, actionable list of field paths.
- * - All other errors get a fresh correlation id; the full error is logged
- *   server-side and the renderer only sees `IPC handler <channel> failed [<id>]`.
+ * Error class handling, in order:
+ * - `ZodError` → reformatted into actionable field-path list.
+ * - `ProviderNotConfiguredError` → passthrough (UI surfaces "open Settings").
+ * - `SchemaMismatchError` → passthrough (message includes raw-text preview
+ *   so the user can see what the model said and decide whether to retry,
+ *   switch model, or report a prompt bug).
+ * - Everything else → fresh correlation id; full error logged server-side
+ *   and the renderer sees `IPC handler <channel> failed [<id>]`.
  *
  * The returned wrapper is intentionally typed as `(...args: unknown[])` rather
  * than mirroring the input handler's signature: callers (the IPC dispatcher
@@ -28,6 +34,13 @@ export function sanitize(
           .map((i) => `${i.path.join('.') || '<root>'}: ${i.message}`)
           .join('; ');
         throw new Error(`Invalid input for ${channel}: ${detail}`);
+      }
+      // Whitelist of user-actionable errors. Their messages are already safe
+      // for renderer display (no SQL / FS paths / API keys).
+      if (err instanceof ProviderNotConfiguredError || err instanceof SchemaMismatchError) {
+        // Still log server-side for support / debugging.
+        console.error(`[ipc:${channel}] ${err.name}`, err);
+        throw new Error(err.message);
       }
       const id = randomUUID();
       console.error(`[ipc:${channel}] ${id}`, err);
