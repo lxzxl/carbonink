@@ -47,11 +47,17 @@ vi.mock('@renderer/lib/api/settings', () => ({
     available: vi.fn(),
   },
 }));
+vi.mock('@renderer/lib/api/stages', () => ({
+  stagesApi: {
+    list: vi.fn(),
+  },
+}));
 
 import { SettingsDrawerProvider } from '@renderer/components/settings-drawer-context';
 import { documentApi } from '@renderer/lib/api/document';
 import { extractionApi } from '@renderer/lib/api/extraction';
 import { settingsApi } from '@renderer/lib/api/settings';
+import { stagesApi } from '@renderer/lib/api/stages';
 
 const FAKE_PROVIDER_CONFIG = {
   provider: 'deepseek' as const,
@@ -143,6 +149,10 @@ describe('/documents route', () => {
     // Default: provider IS configured, so the upload zone (not the
     // "AI not configured" banner) renders.
     vi.mocked(settingsApi.getProvider).mockResolvedValue(FAKE_PROVIDER_CONFIG);
+    // Return a minimal stage list so the dropdown renders correctly.
+    vi.mocked(stagesApi.list).mockResolvedValue([
+      { id: 'china_utility.v1', version: '1.0.0', description: 'Chinese electricity bill' },
+    ]);
   });
 
   afterEach(() => {
