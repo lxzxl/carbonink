@@ -1,4 +1,5 @@
 import { ActivityForm } from '@renderer/components/ActivityForm';
+import { CONFIDENCE_CLASSES, CONFIDENCE_LABELS, Field } from '@renderer/components/extractions/shared';
 import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
 import { sourceApi } from '@renderer/lib/api/emission-source';
@@ -163,22 +164,6 @@ function parseExtraction(raw: string | null, promptVersion: string): StageParsed
   }
   return null;
 }
-
-// ---------------------------------------------------------------------------
-// Confidence chip mapping
-// ---------------------------------------------------------------------------
-
-const CONFIDENCE_CLASSES: Record<'high' | 'medium' | 'low', string> = {
-  high: 'border-[color:var(--color-primary)]/40 bg-[color:var(--color-primary)]/10 text-[color:var(--color-primary)]',
-  medium: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300',
-  low: 'border-destructive/40 bg-destructive/10 text-destructive',
-};
-
-const CONFIDENCE_LABELS: Record<'high' | 'medium' | 'low', () => string> = {
-  high: m.documents_review_confidence_high,
-  medium: m.documents_review_confidence_medium,
-  low: m.documents_review_confidence_low,
-};
 
 // ---------------------------------------------------------------------------
 // Component
@@ -681,18 +666,4 @@ function buildTravelInitialValues(
   }
   out.amount = typeof data.distance_km === 'number' ? String(data.distance_km) : '1';
   return out;
-}
-
-// ---------------------------------------------------------------------------
-// Generic field row
-// ---------------------------------------------------------------------------
-
-function Field({ label, value }: { label: string; value: string | number | null | undefined }) {
-  const display = value === null || value === undefined || value === '' ? '—' : String(value);
-  return (
-    <>
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="font-medium">{display}</dd>
-    </>
-  );
 }
