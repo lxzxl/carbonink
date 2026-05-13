@@ -52,8 +52,8 @@ describe('EfService.list', () => {
 
   it('returns the full seeded set when called with no filters', () => {
     const rows = svc.list({});
-    // Migration 008 seeds 12 EFs.
-    expect(rows).toHaveLength(12);
+    // Migration 008 seeds 12 EFs; migration 011 adds 20 more (32 total).
+    expect(rows).toHaveLength(32);
   });
 
   it('AND-combines factor_code with other filters', () => {

@@ -3,12 +3,12 @@ import Database from 'better-sqlite3';
 import { describe, expect, it } from 'vitest';
 
 describe('Migration 008: seed emission factors', () => {
-  it('inserts 12 EFs', () => {
+  it('inserts 12 EFs (plus 20 more from migration 011 = 32 total)', () => {
     const db = new Database(':memory:');
     db.pragma('foreign_keys = ON');
     runMigrations(db);
     const n = db.prepare('SELECT COUNT(*) AS n FROM emission_factor').get() as { n: number };
-    expect(n.n).toBe(12);
+    expect(n.n).toBe(32);
   });
 
   it('includes all 4 China grid regional EFs + national', () => {

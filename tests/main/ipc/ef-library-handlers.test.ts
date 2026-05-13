@@ -26,8 +26,8 @@ describe('ef-library IPC handlers', () => {
 
   it('ef:list with empty filter returns the full seeded catalog', () => {
     const rows = handlers['ef:list']?.({});
-    // Migration 008 seeds 12 EFs.
-    expect(rows?.length).toBe(12);
+    // Migration 008 seeds 12 EFs; migration 011 adds 20 more (32 total).
+    expect(rows?.length).toBe(32);
   });
 
   it('ef:list applies scope filter', () => {
