@@ -6,6 +6,9 @@ import type { ChinaUtilityParsed } from '@renderer/components/extractions/china-
 import { FuelReceiptFields } from '@renderer/components/extractions/fuel-receipt/fields';
 import { buildFuelReceiptInitialValues } from '@renderer/components/extractions/fuel-receipt/prefill';
 import type { FuelReceiptParsed } from '@renderer/components/extractions/fuel-receipt/types';
+import { FreightFields } from '@renderer/components/extractions/freight/fields';
+import { buildFreightInitialValues } from '@renderer/components/extractions/freight/prefill';
+import type { FreightParsed } from '@renderer/components/extractions/freight/types';
 import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
 import { sourceApi } from '@renderer/lib/api/emission-source';
@@ -54,22 +57,6 @@ export interface ExtractionReviewProps {
 // ---------------------------------------------------------------------------
 // Per-stage parsed types + parsers
 // ---------------------------------------------------------------------------
-
-type FreightParsed = {
-  doc_type?: string;
-  supplier_name?: string;
-  mode?: 'road' | 'rail' | 'sea' | 'air';
-  vehicle_class?: string | null;
-  weight_kg?: number;
-  volume_m3?: number | null;
-  distance_km?: number | null;
-  origin?: string;
-  destination?: string;
-  tracking_no?: string | null;
-  amount_yuan?: number;
-  occurred_at?: string;
-  confidence?: 'high' | 'medium' | 'low';
-};
 
 type PurchaseParsed = {
   doc_type?: string;
@@ -350,36 +337,6 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
 // Per-stage <dl> field blocks
 // ---------------------------------------------------------------------------
 
-function FreightFields({ data }: { data: FreightParsed }) {
-  return (
-    <dl className="grid grid-cols-1 gap-y-2 text-sm sm:grid-cols-[max-content_1fr] sm:gap-x-4">
-      <Field label={m.documents_review_field_supplier()} value={data.supplier_name} />
-      <Field label={m.documents_review_field_mode()} value={data.mode} />
-      <Field label={m.documents_review_field_vehicle_class()} value={data.vehicle_class} />
-      <Field
-        label={m.documents_review_field_weight_kg()}
-        value={typeof data.weight_kg === 'number' ? `${data.weight_kg} kg` : undefined}
-      />
-      <Field
-        label={m.documents_review_field_volume_m3()}
-        value={typeof data.volume_m3 === 'number' ? `${data.volume_m3} m³` : undefined}
-      />
-      <Field
-        label={m.documents_review_field_distance_km()}
-        value={typeof data.distance_km === 'number' ? `${data.distance_km} km` : undefined}
-      />
-      <Field label={m.documents_review_field_origin()} value={data.origin} />
-      <Field label={m.documents_review_field_destination()} value={data.destination} />
-      <Field label={m.documents_review_field_tracking_no()} value={data.tracking_no} />
-      <Field
-        label={m.documents_review_field_amount_yuan()}
-        value={typeof data.amount_yuan === 'number' ? `¥${data.amount_yuan}` : undefined}
-      />
-      <Field label={m.documents_review_field_occurred_at()} value={data.occurred_at} />
-    </dl>
-  );
-}
-
 function PurchaseFields({ data }: { data: PurchaseParsed }) {
   return (
     <dl className="grid grid-cols-1 gap-y-2 text-sm sm:grid-cols-[max-content_1fr] sm:gap-x-4">
@@ -432,40 +389,6 @@ function TravelFields({ data }: { data: TravelParsed }) {
 // ---------------------------------------------------------------------------
 // ActivityForm prefill builders (per stage)
 // ---------------------------------------------------------------------------
-
-/**
- * Freight prefill: amount in kg (raw, not tonne-km — distance is
- * usually null at this stage and EF Matcher Phase 1.5 will convert to
- * tonne-km), single-day event (start = end), supplier + endpoints +
- * mode + tracking_no in notes.
- *
- * The `unit='kg'` choice + per-kg freight EFs (Phase 1 manual EF
- * Matcher path) gives a non-zero CO2e on Confirm even when distance
- * is unknown. Once Phase 1.5 EF Matcher lands, this builder switches
- * to `amount = weight_kg * distance_km / 1000, unit='tonne-km'`.
- */
-function buildFreightInitialValues(
-  data: FreightParsed,
-  filename: string,
-): import('@renderer/components/ActivityForm').ActivityFormInitialValues {
-  const notesParts = [`Auto-extracted from: ${filename}`];
-  if (data.supplier_name) notesParts.push(`Supplier: ${data.supplier_name}`);
-  if (data.origin || data.destination) {
-    notesParts.push(`${data.origin ?? '?'} → ${data.destination ?? '?'}`);
-  }
-  if (data.mode) notesParts.push(`Mode: ${data.mode}`);
-  if (data.tracking_no) notesParts.push(`Tracking: ${data.tracking_no}`);
-  const out: import('@renderer/components/ActivityForm').ActivityFormInitialValues = {
-    unit: 'kg',
-    notes: notesParts.join(' · '),
-  };
-  if (data.occurred_at) {
-    out.occurred_at_start = data.occurred_at;
-    out.occurred_at_end = data.occurred_at;
-  }
-  if (typeof data.weight_kg === 'number') out.amount = String(data.weight_kg);
-  return out;
-}
 
 /**
  * Purchase prefill: dual-track based on whether quantity_kg is known.
