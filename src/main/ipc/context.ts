@@ -10,6 +10,7 @@ import type { ServiceContext } from '@main/services/base.js';
 import { CalculationService } from '@main/services/calculation-service.js';
 import { CredentialService } from '@main/services/credential-service.js';
 import { DocumentService } from '@main/services/document-service.js';
+import { EfMatcherService } from '@main/services/ef-matcher-service.js';
 import { EfService } from '@main/services/ef-service.js';
 import { EmissionSourceService } from '@main/services/emission-source-service.js';
 import { ExtractionService } from '@main/services/extraction-service.js';
@@ -41,6 +42,8 @@ export interface IpcContext {
   llmClient: LLMClient;
   documentService: DocumentService;
   extractionService: ExtractionService;
+  // Phase 1c addition — LLM-assisted emission factor recommendation.
+  efMatcherService: EfMatcherService;
 }
 
 /**
@@ -61,6 +64,7 @@ export interface IpcContextOverrides {
   uploadsDir?: string;
   documentService?: DocumentService;
   extractionService?: ExtractionService;
+  efMatcherService?: EfMatcherService;
   /**
    * Optional main→renderer push channel emitter. Production wires
    * `createProgressEmitter(getMainWindow)`; tests typically supply a
@@ -121,6 +125,7 @@ export function createIpcContext(
   let settingsServiceInstance: SettingsService | undefined;
   let documentServiceInstance: DocumentService | undefined = overrides.documentService;
   let extractionServiceInstance: ExtractionService | undefined = overrides.extractionService;
+  let efMatcherServiceInstance: EfMatcherService | undefined = overrides.efMatcherService;
 
   const getCredential = (): CredentialService => {
     if (!credentialServiceInstance) credentialServiceInstance = defaultCredentialService();
@@ -179,6 +184,27 @@ export function createIpcContext(
         });
       }
       return extractionServiceInstance;
+    },
+    get efMatcherService() {
+      if (!efMatcherServiceInstance) {
+        const providerCfg = getSettings().getProviderConfigWithKey();
+        if (!providerCfg) {
+          throw new Error('AI provider not configured. Open Settings to set up.');
+        }
+        efMatcherServiceInstance = new EfMatcherService({
+          db: svc.db,
+          efService,
+          extractionService: {
+            get: (id: string) => ctx.extractionService.getById(id),
+          },
+          emissionSourceService: {
+            get: (id: string) => emissionSourceService.getById(id),
+          },
+          llmClient: getLlm(),
+          config: providerCfg.config,
+        });
+      }
+      return efMatcherServiceInstance;
     },
   };
   return ctx;

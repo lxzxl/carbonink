@@ -11,9 +11,11 @@ import type {
   EmissionSourceUpdateInput,
   Extraction,
   ExtractionStatus,
+  MatcherResult,
   Organization,
   OrganizationCreateInput,
   ProviderConfig,
+  RecommendQuery,
   ReportingPeriod,
   ReportingPeriodCreateInput,
   Site,
@@ -49,6 +51,9 @@ export type IpcTypeMap = {
   'ef:list': (input: EfLookupQuery) => EmissionFactor[];
   'ef:get-by-pk': (input: EfCompositePk) => EmissionFactor | null;
   'units:list': () => UnitDefinition[];
+
+  // ef-matcher domain (Phase 1c — LLM-assisted emission factor recommendation)
+  'ef:recommend': (input: RecommendQuery) => Promise<MatcherResult>;
 
   // emission-source domain (per-site source definitions)
   'source:create': (input: EmissionSourceCreateInput) => EmissionSource;

@@ -6,6 +6,7 @@ import { createIpcContext, type IpcContext } from './context.js';
 import { activityDataHandlers } from './handlers/activity-data.js';
 import { documentHandlers } from './handlers/document.js';
 import { efLibraryHandlers } from './handlers/ef-library.js';
+import { efMatcherHandlers } from './handlers/ef-matcher.js';
 import { emissionSourceHandlers } from './handlers/emission-source.js';
 import { extractionHandlers } from './handlers/extraction.js';
 import { organizationHandlers } from './handlers/organization.js';
@@ -22,6 +23,7 @@ type HandlerFactory = (ctx: IpcContext) => HandlerMap;
 const HANDLER_FACTORIES: ReadonlyArray<HandlerFactory> = [
   organizationHandlers,
   efLibraryHandlers,
+  efMatcherHandlers,
   emissionSourceHandlers,
   activityDataHandlers,
   settingsHandlers,

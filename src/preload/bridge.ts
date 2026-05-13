@@ -15,6 +15,8 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   'ef:list',
   'ef:get-by-pk',
   'units:list',
+  // ef-matcher domain (Phase 1c — LLM-assisted EF recommendation)
+  'ef:recommend',
   // emission-source domain
   'source:create',
   'source:get-by-id',
