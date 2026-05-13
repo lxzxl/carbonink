@@ -1,5 +1,8 @@
 import { ActivityForm } from '@renderer/components/ActivityForm';
 import { CONFIDENCE_CLASSES, CONFIDENCE_LABELS, Field } from '@renderer/components/extractions/shared';
+import { ChinaUtilityFields } from '@renderer/components/extractions/china-utility/fields';
+import { buildChinaUtilityInitialValues } from '@renderer/components/extractions/china-utility/prefill';
+import type { ChinaUtilityParsed } from '@renderer/components/extractions/china-utility/types';
 import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
 import { sourceApi } from '@renderer/lib/api/emission-source';
@@ -48,17 +51,6 @@ export interface ExtractionReviewProps {
 // ---------------------------------------------------------------------------
 // Per-stage parsed types + parsers
 // ---------------------------------------------------------------------------
-
-type ChinaUtilityParsed = {
-  doc_type?: string;
-  supplier_name?: string;
-  account_no?: string | null;
-  amount_kwh?: number;
-  amount_yuan?: number | null;
-  period_start?: string;
-  period_end?: string;
-  confidence?: 'high' | 'medium' | 'low';
-};
 
 type FuelReceiptParsed = {
   doc_type?: string;
@@ -376,25 +368,6 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
 // Per-stage <dl> field blocks
 // ---------------------------------------------------------------------------
 
-function ChinaUtilityFields({ data }: { data: ChinaUtilityParsed }) {
-  return (
-    <dl className="grid grid-cols-1 gap-y-2 text-sm sm:grid-cols-[max-content_1fr] sm:gap-x-4">
-      <Field label={m.documents_review_field_supplier()} value={data.supplier_name} />
-      <Field label={m.documents_review_field_account()} value={data.account_no} />
-      <Field
-        label={m.documents_review_field_amount_kwh()}
-        value={typeof data.amount_kwh === 'number' ? `${data.amount_kwh} kWh` : undefined}
-      />
-      <Field
-        label={m.documents_review_field_amount_yuan()}
-        value={typeof data.amount_yuan === 'number' ? `¥${data.amount_yuan}` : undefined}
-      />
-      <Field label={m.documents_review_field_period_start()} value={data.period_start} />
-      <Field label={m.documents_review_field_period_end()} value={data.period_end} />
-    </dl>
-  );
-}
-
 function FuelReceiptFields({ data }: { data: FuelReceiptParsed }) {
   return (
     <dl className="grid grid-cols-1 gap-y-2 text-sm sm:grid-cols-[max-content_1fr] sm:gap-x-4">
@@ -501,24 +474,6 @@ function TravelFields({ data }: { data: TravelParsed }) {
 // ---------------------------------------------------------------------------
 // ActivityForm prefill builders (per stage)
 // ---------------------------------------------------------------------------
-
-/**
- * China utility prefill: amount in kWh, period range, supplier in notes.
- * Same shape Phase 1b shipped.
- */
-function buildChinaUtilityInitialValues(
-  data: ChinaUtilityParsed,
-  filename: string,
-): import('@renderer/components/ActivityForm').ActivityFormInitialValues {
-  const out: import('@renderer/components/ActivityForm').ActivityFormInitialValues = {
-    unit: 'kWh',
-    notes: `Auto-extracted from: ${filename}`,
-  };
-  if (data.period_start) out.occurred_at_start = data.period_start;
-  if (data.period_end) out.occurred_at_end = data.period_end;
-  if (typeof data.amount_kwh === 'number') out.amount = String(data.amount_kwh);
-  return out;
-}
 
 /**
  * Fuel receipt prefill: amount in liters, single-day event (start =
