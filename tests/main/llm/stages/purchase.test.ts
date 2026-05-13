@@ -3,6 +3,7 @@ import {
   purchaseExtraction,
   purchaseStage,
 } from '@main/llm/stages/purchase';
+import { getStage, listStages } from '@main/llm/stages/registry';
 import { describe, expect, it } from 'vitest';
 
 const GOOD: PurchaseExtraction = {
@@ -131,5 +132,19 @@ describe('purchaseStage metadata', () => {
     expect(msgs?.userText).toContain('aggregate');
     // No PDF text placeholder — image content is appended by the caller.
     expect(msgs?.userText).not.toContain('<invoice>');
+  });
+});
+
+describe('purchaseStage registry integration', () => {
+  it('is returned by getStage("purchase.v1")', () => {
+    expect(getStage('purchase.v1')).toBe(purchaseStage);
+  });
+
+  it('appears in listStages() alongside the existing 3 stages', () => {
+    const ids = listStages().map((s) => s.id);
+    expect(ids).toContain('purchase.v1');
+    expect(ids).toContain('freight.v1');
+    expect(ids).toContain('fuel_receipt.v1');
+    expect(ids).toContain('china_utility.v1');
   });
 });
