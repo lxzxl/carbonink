@@ -252,4 +252,73 @@ export class LLMClient {
       };
     }
   }
+
+  /**
+   * Ask the LLM to pick the 3 most-relevant emission factors from a
+   * pre-filtered candidate list. Used by EfMatcherService to overlay
+   * "Recommended for this document" suggestions on the EF picker.
+   *
+   * Inputs:
+   * - `parsedJson`: the extraction's parsed_json string.
+   * - `candidates`: the FTS5-ranked candidate list (max 20 rows).
+   *
+   * Output: zod-validated `{ recommendations: 3 × {composite_pk, reasoning_zh} }`.
+   * Throws if the model fails schema validation (caller catches and
+   * falls back to FTS5-only).
+   */
+  async recommendEfs(
+    config: ProviderConfig,
+    parsedJson: string,
+    candidates: ReadonlyArray<{
+      factor_code: string;
+      year: number;
+      source: string;
+      geography: string;
+      dataset_version: string;
+      input_unit?: string;
+      name_zh?: string | null;
+      name_en?: string | null;
+      description_zh?: string | null;
+      co2e_kg_per_unit?: number;
+    }>,
+  ): Promise<{ recommendations: Array<{ factor_code: string; year: number; source: string; geography: string; dataset_version: string; reasoning_zh: string }> }> {
+    const schema = z.object({
+      recommendations: z
+        .array(
+          z.object({
+            factor_code: z.string(),
+            year: z.number().int(),
+            source: z.string(),
+            geography: z.string(),
+            dataset_version: z.string(),
+            reasoning_zh: z.string().max(200),
+          }),
+        )
+        .length(3),
+    });
+
+    const candidateList = candidates
+      .map((c, i) => {
+        const name = c.name_zh ?? c.name_en ?? c.factor_code;
+        const desc = c.description_zh ?? '';
+        return `${i + 1}. ${c.factor_code} | ${c.year} | ${c.geography} | ${c.input_unit ?? '?'} | ${c.co2e_kg_per_unit ?? '?'} kgCO2e/unit | ${name}${desc ? ' — ' + desc : ''}`;
+      })
+      .join('\n');
+
+    const prompt = `你是一名碳核算助理。下面是一份单据的抽取结果（parsed_json），以及一个候选排放因子清单。
+请从候选清单中选出最贴合该单据的 3 个排放因子，并给出 1-2 句简短的中文理由。
+
+<parsed_json>
+${parsedJson}
+</parsed_json>
+
+<candidates>
+${candidateList}
+</candidates>
+
+返回 JSON：{ recommendations: [3 个对象，每个包含完整复合主键 factor_code/year/source/geography/dataset_version 以及 reasoning_zh] }。
+factor_code 等 5 个键必须从上方候选清单中原样复制；不要凭空构造。`;
+
+    return this.extract(config, schema, prompt);
+  }
 }
