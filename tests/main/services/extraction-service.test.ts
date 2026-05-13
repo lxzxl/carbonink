@@ -636,8 +636,6 @@ describe('ExtractionService', () => {
     // stage's. Mirrors the technique used for fuel_receipt smoke.
     const [, schema] = vi.mocked(h.llmClient.extract).mock.calls[0] ?? [];
     expect(schema).toBeDefined();
-    expect(() =>
-      (schema as { parse: (x: unknown) => unknown }).parse(freightOutput),
-    ).not.toThrow();
+    expect(() => (schema as { parse: (x: unknown) => unknown }).parse(freightOutput)).not.toThrow();
   });
 });
