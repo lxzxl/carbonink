@@ -523,4 +523,63 @@ describe('ExtractionService', () => {
       h.extractionService.run({ document_id: doc.id, stage_id: textOnlyStageId }),
     ).rejects.toBeInstanceOf(StageDoesNotSupportVisionError);
   });
+
+  it('run() routes fuel_receipt.v1 through the same pipeline (stage lookup + INSERT)', async () => {
+    // Mirror the FAKE_EXTRACTION pattern but for fuel_receipt.v1's shape.
+    const fuelExtraction = {
+      doc_type: 'fuel_receipt' as const,
+      supplier_name: '中国石化北京加油站',
+      fuel_type: '92#汽油',
+      fuel_category: 'gasoline' as const,
+      volume_l: 38.5,
+      unit_price_yuan: 7.85,
+      amount_yuan: 302.23,
+      occurred_at: '2026-04-15',
+      license_plate: '京A12345',
+      confidence: 'high' as const,
+    };
+
+    // Override the harness's LLM client to return the fuel-shaped object
+    // when the orchestrator calls extract() with the fuel schema. We
+    // verify the right stage_id was threaded through to the row.
+    h.cleanup();
+    h = setupHarness();
+    h.llmClient = {
+      extract: vi.fn().mockResolvedValue(fuelExtraction),
+      extractWithImages: vi.fn(),
+    } as unknown as LLMClient;
+
+    // Re-build ExtractionService with the new llmClient (the harness's
+    // setupHarness binds it at construction time).
+    h.extractionService = new ExtractionService({
+      db: h.db,
+      now: () => '2026-05-13T00:00:00.000Z',
+      documentService: h.documentService,
+      settingsService: h.settingsService,
+      llmClient: h.llmClient,
+      readFile: () => Buffer.from('fuel-pdf-bytes'),
+      parsePdf: vi.fn(async () => ({ text: 'FAKE_FUEL_TEXT' })),
+    });
+
+    const doc = uploadFakePdf(h.documentService);
+
+    const ext = await h.extractionService.run({
+      document_id: doc.id,
+      stage_id: 'fuel_receipt.v1',
+    });
+
+    expect(ext.status).toBe('review_needed');
+    expect(ext.prompt_version).toBe('fuel_receipt.v1');
+    expect(JSON.parse(ext.parsed_json ?? '')).toEqual(fuelExtraction);
+    // The LLM client got called with the fuel_receipt schema (we passed
+    // it through; the orchestrator should pick the right stage).
+    expect(h.llmClient.extract).toHaveBeenCalledTimes(1);
+    const [, schema] = vi.mocked(h.llmClient.extract).mock.calls[0] ?? [];
+    expect(schema).toBeDefined();
+    // Schema instance check: importing fuelReceiptExtraction at the test
+    // top would create a cyclical require pattern in some setups; we
+    // sanity-check by parsing the fuel extraction through the schema
+    // captured at the call site.
+    expect(() => (schema as { parse: (x: unknown) => unknown }).parse(fuelExtraction)).not.toThrow();
+  });
 });
