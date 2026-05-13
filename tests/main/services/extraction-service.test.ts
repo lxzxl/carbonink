@@ -638,4 +638,53 @@ describe('ExtractionService', () => {
     expect(schema).toBeDefined();
     expect(() => (schema as { parse: (x: unknown) => unknown }).parse(freightOutput)).not.toThrow();
   });
+
+  it('run() routes purchase.v1 through the same pipeline (stage lookup + INSERT)', async () => {
+    const purchaseOutput = {
+      doc_type: 'purchase' as const,
+      supplier_name: '宝山钢铁股份有限公司',
+      item_description: '热轧钢板 5mm / 冷轧钢板 3mm',
+      category: 'raw_material' as const,
+      quantity_kg: 7500,
+      amount_yuan: 48650,
+      occurred_at: '2026-04-22',
+      invoice_no: '12345678',
+      confidence: 'medium' as const,
+    };
+
+    h.cleanup();
+    h = setupHarness();
+    h.llmClient = {
+      extract: vi.fn().mockResolvedValue(purchaseOutput),
+      extractWithImages: vi.fn(),
+    } as unknown as LLMClient;
+
+    h.extractionService = new ExtractionService({
+      db: h.db,
+      now: () => '2026-05-13T00:00:00.000Z',
+      documentService: h.documentService,
+      settingsService: h.settingsService,
+      llmClient: h.llmClient,
+      readFile: () => Buffer.from('purchase-pdf-bytes'),
+      parsePdf: vi.fn(async () => ({ text: 'FAKE_PURCHASE_TEXT' })),
+    });
+
+    const doc = uploadFakePdf(h.documentService);
+
+    const ext = await h.extractionService.run({
+      document_id: doc.id,
+      stage_id: 'purchase.v1',
+    });
+
+    expect(ext.status).toBe('review_needed');
+    expect(ext.prompt_version).toBe('purchase.v1');
+    expect(JSON.parse(ext.parsed_json ?? '')).toEqual(purchaseOutput);
+    expect(h.llmClient.extract).toHaveBeenCalledTimes(1);
+    // Schema captured at the call site can parse the purchase output —
+    // proves the orchestrator passed purchase.v1's schema, not another
+    // stage's. Mirrors the technique used for fuel_receipt / freight smokes.
+    const [, schema] = vi.mocked(h.llmClient.extract).mock.calls[0] ?? [];
+    expect(schema).toBeDefined();
+    expect(() => (schema as { parse: (x: unknown) => unknown }).parse(purchaseOutput)).not.toThrow();
+  });
 });
