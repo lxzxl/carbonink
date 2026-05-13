@@ -101,4 +101,35 @@ describe('purchaseStage metadata', () => {
     expect(typeof purchaseStage.buildPrompt).toBe('function');
     expect(typeof purchaseStage.buildVisionMessages).toBe('function');
   });
+
+  it('buildPrompt embeds the PDF text inside <invoice>...</invoice> AND includes field rules', () => {
+    const prompt = purchaseStage.buildPrompt('SAMPLE_PURCHASE_TEXT_TOKEN');
+    expect(prompt).toContain('Chinese purchase invoice');
+    expect(prompt).toContain('SAMPLE_PURCHASE_TEXT_TOKEN');
+    expect(prompt).toContain('<invoice>');
+    expect(prompt).toContain('</invoice>');
+    // Field rules verbatim shared with vision path.
+    expect(prompt).toContain('category');
+    expect(prompt).toContain('quantity_kg');
+    // Each of the 6 category enum values appears in the prompt body.
+    expect(prompt).toContain('raw_material');
+    expect(prompt).toContain('component');
+    expect(prompt).toContain('consumable');
+    expect(prompt).toContain('office_supply');
+    expect(prompt).toContain('service');
+    // The multi-line aggregation instruction.
+    expect(prompt).toContain('aggregate');
+  });
+
+  it('buildVisionMessages mirrors buildPrompt field rules but omits the <invoice> placeholder', () => {
+    const msgs = purchaseStage.buildVisionMessages?.();
+    expect(msgs).toBeDefined();
+    expect(msgs?.userText).toContain('Chinese purchase invoice');
+    expect(msgs?.userText).toContain('category');
+    expect(msgs?.userText).toContain('quantity_kg');
+    expect(msgs?.userText).toContain('raw_material');
+    expect(msgs?.userText).toContain('aggregate');
+    // No PDF text placeholder — image content is appended by the caller.
+    expect(msgs?.userText).not.toContain('<invoice>');
+  });
 });
