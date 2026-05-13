@@ -4,9 +4,10 @@ import { Input } from '@renderer/components/ui/input';
 import { Label } from '@renderer/components/ui/label';
 import { activityApi } from '@renderer/lib/api/activity-data';
 import { efApi } from '@renderer/lib/api/ef-library';
+import { efMatcherApi } from '@renderer/lib/api/ef-matcher';
 import { orgApi } from '@renderer/lib/api/organization';
 import * as m from '@renderer/paraglide/messages';
-import type { ActivityData, EmissionFactor, EmissionSource, ReportingPeriod } from '@shared/types';
+import type { ActivityData, EmissionFactor, EmissionSource, MatcherResult, ReportingPeriod } from '@shared/types';
 import { useForm, useStore } from '@tanstack/react-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
@@ -225,6 +226,26 @@ export function ActivityForm({
     enabled: !!selectedSource,
   });
   const efs = efQuery.data ?? [];
+
+  // Matcher query — only fires when a matcherHint was passed AND a source is
+  // selected. On LLM failure (reject) we intentionally fall back to the full
+  // EF list silently (retry: false keeps the UI clean).
+  const matcherHintRef = initialValues?.matcherHint;
+  const matcherQuery = useQuery({
+    queryKey: ['ef:recommend', matcherHintRef?.extraction_id ?? '', selectedSourceId ?? ''],
+    // efMatcherApi.recommend() is typed as Promise<Promise<MatcherResult>> due to
+    // the IPC type-map declaring its return as Promise<MatcherResult>, but at
+    // runtime window.ipc.invoke resolves the outer promise only. We cast to the
+    // actual settled shape so TanStack Query's generic is correct.
+    queryFn: (): Promise<MatcherResult> =>
+      efMatcherApi.recommend({
+        extraction_id: matcherHintRef!.extraction_id,
+        emission_source_id: selectedSourceId!,
+      }) as unknown as Promise<MatcherResult>,
+    enabled: !!matcherHintRef && !!selectedSourceId,
+    staleTime: Number.POSITIVE_INFINITY,
+    retry: false,
+  });
 
   // Build a stable key for radio rendering / matching (composite PK joined).
   const efKey = (ef: EmissionFactor) =>
@@ -446,12 +467,60 @@ export function ActivityForm({
         />
       </div>
 
+      {/* Recommended for this document — only shown when matcherHint is
+       * present AND a source is selected AND the LLM either returned results
+       * or is still loading. On LLM failure the block stays hidden and the
+       * full EF list below remains the sole picker. */}
+      {matcherHintRef &&
+        selectedSourceId &&
+        (matcherQuery.isLoading ||
+          (matcherQuery.data?.recommended?.length ?? 0) > 0) && (
+          <div className="rounded-md border border-[color:var(--color-primary)]/40 bg-[color:var(--color-primary)]/5 p-3">
+            <h4 className="text-sm font-medium">{m.ef_matcher_recommended_heading()}</h4>
+            {matcherQuery.isLoading ? (
+              <p className="text-xs text-muted-foreground">{m.ef_matcher_loading()}</p>
+            ) : (
+              <ul className="mt-2 space-y-2">
+                {matcherQuery.data?.recommended.map((rec) => (
+                  <li key={efKey(rec.ef)} className="text-sm">
+                    <label className="flex items-start gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="ef"
+                        className="mt-1"
+                        checked={selectedEfKey === efKey(rec.ef)}
+                        onChange={() => pickEf(rec.ef)}
+                      />
+                      <span>
+                        <span className="font-medium">
+                          ⭐ {rec.ef.name_zh ?? rec.ef.name_en ?? rec.ef.factor_code}
+                        </span>
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          {rec.ef.co2e_kg_per_unit} kgCO₂e/{rec.ef.input_unit}
+                        </span>
+                        <span className="block text-xs text-muted-foreground">
+                          <span>{m.ef_matcher_reasoning_label()}</span>{' '}
+                          <span>{rec.reasoning_zh}</span>
+                        </span>
+                      </span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
       {/* EF Matcher: auto-filtered by (source.category, source.scope).
        * Radio-per-candidate keeps the picker scannable when there are 1–10
        * EFs (the Phase 1a catalog size). We can swap for a typeahead later
        * when the EF library grows. */}
       <fieldset className="space-y-2 rounded-md border border-border bg-background/40 p-3">
-        <legend className="px-1 text-sm font-medium">{m.activities_form_ef()}</legend>
+        <legend className="px-1 text-sm font-medium">
+          {matcherHintRef && selectedSourceId
+            ? m.ef_matcher_all_candidates()
+            : m.activities_form_ef()}
+        </legend>
         {!selectedSource ? (
           <p className="text-xs text-muted-foreground">
             {m.activities_form_ef_pick_source_first()}
