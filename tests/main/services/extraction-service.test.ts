@@ -584,4 +584,60 @@ describe('ExtractionService', () => {
       (schema as { parse: (x: unknown) => unknown }).parse(fuelExtraction),
     ).not.toThrow();
   });
+
+  it('run() routes freight.v1 through the same pipeline (stage lookup + INSERT)', async () => {
+    // Mirror the fuel_receipt smoke pattern for freight.v1.
+    const freightOutput = {
+      doc_type: 'freight' as const,
+      supplier_name: '顺丰速运',
+      mode: 'road' as const,
+      vehicle_class: '冷链车',
+      weight_kg: 1250,
+      volume_m3: 4.5,
+      distance_km: null,
+      origin: '广州市番禺区',
+      destination: '上海市浦东新区',
+      tracking_no: 'SF1234567890',
+      amount_yuan: 2680,
+      occurred_at: '2026-05-08',
+      confidence: 'high' as const,
+    };
+
+    h.cleanup();
+    h = setupHarness();
+    h.llmClient = {
+      extract: vi.fn().mockResolvedValue(freightOutput),
+      extractWithImages: vi.fn(),
+    } as unknown as LLMClient;
+
+    h.extractionService = new ExtractionService({
+      db: h.db,
+      now: () => '2026-05-13T00:00:00.000Z',
+      documentService: h.documentService,
+      settingsService: h.settingsService,
+      llmClient: h.llmClient,
+      readFile: () => Buffer.from('freight-pdf-bytes'),
+      parsePdf: vi.fn(async () => ({ text: 'FAKE_FREIGHT_TEXT' })),
+    });
+
+    const doc = uploadFakePdf(h.documentService);
+
+    const ext = await h.extractionService.run({
+      document_id: doc.id,
+      stage_id: 'freight.v1',
+    });
+
+    expect(ext.status).toBe('review_needed');
+    expect(ext.prompt_version).toBe('freight.v1');
+    expect(JSON.parse(ext.parsed_json ?? '')).toEqual(freightOutput);
+    expect(h.llmClient.extract).toHaveBeenCalledTimes(1);
+    // Schema captured at the call site can parse the freight output —
+    // proves the orchestrator passed freight.v1's schema, not another
+    // stage's. Mirrors the technique used for fuel_receipt smoke.
+    const [, schema] = vi.mocked(h.llmClient.extract).mock.calls[0] ?? [];
+    expect(schema).toBeDefined();
+    expect(() =>
+      (schema as { parse: (x: unknown) => unknown }).parse(freightOutput),
+    ).not.toThrow();
+  });
 });
