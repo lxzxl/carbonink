@@ -1,5 +1,4 @@
 import { chinaUtilityStage } from '@main/llm/stages/china-utility';
-import { freightStage } from '@main/llm/stages/freight';
 import { getStage, listStages, stageRegistry } from '@main/llm/stages/registry';
 import { describe, expect, it } from 'vitest';
 
