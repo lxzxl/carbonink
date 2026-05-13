@@ -152,4 +152,32 @@ describe('travelStage metadata', () => {
     expect(typeof travelStage.buildPrompt).toBe('function');
     expect(typeof travelStage.buildVisionMessages).toBe('function');
   });
+
+  it('buildPrompt embeds the PDF text inside <ticket>...</ticket> AND includes field rules', () => {
+    const prompt = travelStage.buildPrompt('SAMPLE_TRAVEL_TEXT_TOKEN');
+    expect(prompt).toContain('Chinese business-travel');
+    expect(prompt).toContain('SAMPLE_TRAVEL_TEXT_TOKEN');
+    expect(prompt).toContain('<ticket>');
+    expect(prompt).toContain('</ticket>');
+    // Field rules verbatim shared with vision path.
+    expect(prompt).toContain('mode');
+    expect(prompt).toContain('distance_km');
+    // Each of the 3 mode enum values appears in the prompt body.
+    expect(prompt).toContain('air');
+    expect(prompt).toContain('rail');
+    expect(prompt).toContain('taxi');
+    // The "do not estimate distance" guidance is verbatim.
+    expect(prompt).toContain('Do NOT estimate');
+  });
+
+  it('buildVisionMessages mirrors buildPrompt field rules but omits the <ticket> placeholder', () => {
+    const msgs = travelStage.buildVisionMessages?.();
+    expect(msgs).toBeDefined();
+    expect(msgs?.userText).toContain('Chinese business-travel');
+    expect(msgs?.userText).toContain('mode');
+    expect(msgs?.userText).toContain('distance_km');
+    expect(msgs?.userText).toContain('Do NOT estimate');
+    // No PDF text placeholder — image content is appended by the caller.
+    expect(msgs?.userText).not.toContain('<ticket>');
+  });
 });
