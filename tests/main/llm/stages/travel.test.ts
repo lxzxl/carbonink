@@ -1,5 +1,5 @@
-import { type TravelExtraction, travelExtraction, travelStage } from '@main/llm/stages/travel';
 import { getStage, listStages } from '@main/llm/stages/registry';
+import { type TravelExtraction, travelExtraction, travelStage } from '@main/llm/stages/travel';
 import { describe, expect, it } from 'vitest';
 
 const AIR_GOOD: TravelExtraction = {
