@@ -1,5 +1,5 @@
-import { Field } from '../shared';
 import * as m from '@renderer/paraglide/messages';
+import { Field } from '../shared';
 import type { TravelParsed } from './types';
 
 export function TravelFields({ data }: { data: TravelParsed }) {

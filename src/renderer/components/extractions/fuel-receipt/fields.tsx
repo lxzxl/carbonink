@@ -1,5 +1,5 @@
-import { Field } from '../shared';
 import * as m from '@renderer/paraglide/messages';
+import { Field } from '../shared';
 import type { FuelReceiptParsed } from './types';
 
 export function FuelReceiptFields({ data }: { data: FuelReceiptParsed }) {

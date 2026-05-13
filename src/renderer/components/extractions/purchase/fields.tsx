@@ -1,5 +1,5 @@
-import { Field } from '../shared';
 import * as m from '@renderer/paraglide/messages';
+import { Field } from '../shared';
 import type { PurchaseParsed } from './types';
 
 export function PurchaseFields({ data }: { data: PurchaseParsed }) {
