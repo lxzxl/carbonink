@@ -117,7 +117,7 @@ If any of the existing inline functions imports additional symbols (e.g., `dayjs
 
 ### `extractions/types.ts`
 
-Owns the discriminated union and the `parseExtraction` dispatcher. The `kind` tag uses stage-version strings (matches the existing pattern in the monolithic file):
+Owns the discriminated union and the `parseExtraction` dispatcher. The discriminator tag is `stage` (matching the existing field name in the monolithic file) and its values are stage-version strings:
 
 ```ts
 import type { ChinaUtilityParsed } from './china-utility/types';
@@ -127,11 +127,11 @@ import type { PurchaseParsed } from './purchase/types';
 import type { TravelParsed } from './travel/types';
 
 export type StageParsed =
-  | { kind: 'china_utility.v1'; data: ChinaUtilityParsed }
-  | { kind: 'fuel_receipt.v1'; data: FuelReceiptParsed }
-  | { kind: 'freight.v1'; data: FreightParsed }
-  | { kind: 'purchase.v1'; data: PurchaseParsed }
-  | { kind: 'travel.v1'; data: TravelParsed };
+  | { stage: 'china_utility.v1'; data: ChinaUtilityParsed }
+  | { stage: 'fuel_receipt.v1'; data: FuelReceiptParsed }
+  | { stage: 'freight.v1'; data: FreightParsed }
+  | { stage: 'purchase.v1'; data: PurchaseParsed }
+  | { stage: 'travel.v1'; data: TravelParsed };
 
 export function parseExtraction(
   raw: string | null,
@@ -215,7 +215,7 @@ Cumulative: ~698 → ~270 LOC on ExtractionReview.tsx (440 LOC moved out, ~12 ne
 
 | Risk | Caught by |
 |---|---|
-| Discriminated union arms drift (e.g., a `kind` typo) | `pnpm typecheck` — every step. |
+| Discriminated union arms drift (e.g., a `stage` tag typo) | `pnpm typecheck` — every step. |
 | `Field` row label/value rendering regression | `tests/renderer/documents-review.test.tsx` (renders china_utility extraction, asserts field text). |
 | Orchestrator routing regression (wrong stage's prefill on confirm) | `tests/renderer/documents-review.test.tsx` "Confirm button opens the embedded ActivityForm with prefilled values" — exercises the prefill switch for china_utility's path. |
 | Stage-specific extraction routing regression | 5 extraction-service smoke tests in `tests/main/services/extraction-service.test.ts`. |
