@@ -11,14 +11,17 @@ describe('stage registry', () => {
     expect(getStage('does-not-exist.v1')).toBeUndefined();
   });
 
-  it('listStages returns exactly one stage in Phase 1b', () => {
+  it('listStages returns both registered stages (china_utility.v1 and fuel_receipt.v1)', () => {
     const stages = listStages();
-    expect(stages.length).toBe(1);
-    expect(stages[0]?.id).toBe('china_utility.v1');
+    expect(stages.length).toBe(2);
+    const ids = stages.map((s) => s.id);
+    expect(ids).toContain('china_utility.v1');
+    expect(ids).toContain('fuel_receipt.v1');
   });
 
   it('exposes the raw Map for callers that want size / iteration', () => {
-    expect(stageRegistry.size).toBe(1);
+    expect(stageRegistry.size).toBe(2);
     expect(stageRegistry.has('china_utility.v1')).toBe(true);
+    expect(stageRegistry.has('fuel_receipt.v1')).toBe(true);
   });
 });

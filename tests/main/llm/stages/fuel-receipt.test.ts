@@ -3,6 +3,7 @@ import {
   fuelReceiptExtraction,
   fuelReceiptStage,
 } from '@main/llm/stages/fuel-receipt';
+import { getStage, listStages } from '@main/llm/stages/registry';
 import { describe, expect, it } from 'vitest';
 
 /**
@@ -111,5 +112,19 @@ describe('fuelReceiptStage metadata', () => {
     expect(msgs?.userText).toContain('gasoline');
     // No PDF text placeholder — image content is appended by the caller.
     expect(msgs?.userText).not.toContain('<receipt>');
+  });
+});
+
+describe('fuelReceiptStage registry integration', () => {
+  it('is returned by getStage("fuel_receipt.v1")', () => {
+    expect(getStage('fuel_receipt.v1')).toBe(fuelReceiptStage);
+  });
+
+  it('appears in listStages()', () => {
+    const ids = listStages().map((s) => s.id);
+    expect(ids).toContain('fuel_receipt.v1');
+    // china_utility.v1 still registered too — adding a stage shouldn't
+    // displace existing ones.
+    expect(ids).toContain('china_utility.v1');
   });
 });

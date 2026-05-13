@@ -1,4 +1,5 @@
 import { chinaUtilityStage } from './china-utility.js';
+import { fuelReceiptStage } from './fuel-receipt.js';
 import type { Stage } from './types.js';
 
 /**
@@ -11,7 +12,10 @@ import type { Stage } from './types.js';
  * the call site (e.g. by importing `chinaUtilityStage` directly when it
  * needs `ChinaUtilityExtraction`).
  */
-const _stageRegistry = new Map<string, Stage>([[chinaUtilityStage.id, chinaUtilityStage as Stage]]);
+const _stageRegistry = new Map<string, Stage>([
+  [chinaUtilityStage.id, chinaUtilityStage as Stage],
+  [fuelReceiptStage.id, fuelReceiptStage as Stage],
+]);
 
 export const stageRegistry: ReadonlyMap<string, Stage> = _stageRegistry;
 
