@@ -4,6 +4,7 @@ import { Button } from '@renderer/components/ui/button';
 import { sourceApi } from '@renderer/lib/api/emission-source';
 import { extractionApi } from '@renderer/lib/api/extraction';
 import { orgApi } from '@renderer/lib/api/organization';
+import { stagesApi } from '@renderer/lib/api/stages';
 import * as m from '@renderer/paraglide/messages';
 import type { Document, EmissionSource, Extraction } from '@shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -14,22 +15,23 @@ import { useMemo, useState } from 'react';
  * Right pane of the document review page — renders the AI-extracted fields
  * for a single `Extraction`, plus Confirm/Discard actions.
  *
- * The schema we render here is the `china_utility.v1` stage's parsed output
- * (the only stage in Phase 1b). We pick fields out of the JSON dynamically
- * because the `Extraction` row only carries the serialized JSON string; the
- * concrete shape lives in `src/main/llm/stages/china-utility.ts`. If parsing
- * fails we surface a generic error rather than crashing the page — the
- * Extraction row may still be intact (the LLM returned garbage, but the row
- * exists) and the user should be able to discard it cleanly.
+ * Phase 1d introduced per-stage field rendering. The component switches on
+ * `extraction.prompt_version` to pick:
+ *   - which parser interprets `parsed_json`
+ *   - which `<Field>` rows to render
+ *   - which `buildXxxInitialValues` produces the ActivityForm prefill
+ *
+ * Adding a 3rd stage (freight/purchase/travel) means: add a parser, add a
+ * Field-block renderer, add an initial-values builder, add a switch arm.
+ * When this file grows past ~400 LOC, refactor per-stage parts to their
+ * own files under `src/renderer/components/extractions/<stage>/`. For now
+ * 2 stages share this file because the surface is still small.
  *
  * Confirm flow:
  *   1. User picks emission_source + EF in the embedded ActivityForm.
  *   2. ActivityForm submits → `activityApi.create` returns the new row.
  *   3. `onSubmitSuccess` fires `extractionApi.confirm({ id })` to flip the
- *      extraction to `parsed` status. These are two non-atomic IPC calls —
- *      if the confirm step fails after activity creation, the activity row
- *      stays (correct) and the user sees a toast. Phase 1c can fold both
- *      into a single transaction if the failure becomes common.
+ *      extraction to `parsed` status.
  *   4. Navigate to / (dashboard) so the user sees their emission total tick
  *      up immediately.
  *
@@ -42,6 +44,10 @@ export interface ExtractionReviewProps {
   document: Document;
 }
 
+// ---------------------------------------------------------------------------
+// Per-stage parsed types + parsers
+// ---------------------------------------------------------------------------
+
 type ChinaUtilityParsed = {
   doc_type?: string;
   supplier_name?: string;
@@ -53,23 +59,57 @@ type ChinaUtilityParsed = {
   confidence?: 'high' | 'medium' | 'low';
 };
 
-function parseExtraction(raw: string | null): ChinaUtilityParsed | null {
+type FuelReceiptParsed = {
+  doc_type?: string;
+  supplier_name?: string;
+  fuel_type?: string;
+  fuel_category?:
+    | 'gasoline'
+    | 'diesel'
+    | 'lpg'
+    | 'cng'
+    | 'jet_fuel'
+    | 'marine_fuel'
+    | 'biofuel'
+    | 'other';
+  volume_l?: number;
+  unit_price_yuan?: number | null;
+  amount_yuan?: number;
+  occurred_at?: string;
+  license_plate?: string | null;
+  confidence?: 'high' | 'medium' | 'low';
+};
+
+type StageParsed =
+  | { stage: 'china_utility.v1'; data: ChinaUtilityParsed }
+  | { stage: 'fuel_receipt.v1'; data: FuelReceiptParsed };
+
+function parseExtraction(raw: string | null, promptVersion: string): StageParsed | null {
   if (!raw) return null;
+  let obj: unknown;
   try {
-    const obj = JSON.parse(raw);
-    if (obj && typeof obj === 'object') return obj as ChinaUtilityParsed;
-    return null;
+    obj = JSON.parse(raw);
   } catch {
     return null;
   }
+  if (!obj || typeof obj !== 'object') return null;
+  // The discriminator is the persisted prompt_version, not anything
+  // inside parsed_json itself. A malformed extraction (raw text that
+  // claims doc_type X but came from stage Y) is still rendered per the
+  // stage; the field-block renderer surfaces empty / unexpected values.
+  if (promptVersion === 'china_utility.v1') {
+    return { stage: 'china_utility.v1', data: obj as ChinaUtilityParsed };
+  }
+  if (promptVersion === 'fuel_receipt.v1') {
+    return { stage: 'fuel_receipt.v1', data: obj as FuelReceiptParsed };
+  }
+  return null;
 }
 
-/**
- * Color-code the confidence badge per the design spec — high = primary
- * accent (good), medium = muted warning, low = destructive. We keep the
- * mapping tight to design tokens (no raw hex) so a future theme swap
- * (Phase 1c+) carries through automatically.
- */
+// ---------------------------------------------------------------------------
+// Confidence chip mapping
+// ---------------------------------------------------------------------------
+
 const CONFIDENCE_CLASSES: Record<'high' | 'medium' | 'low', string> = {
   high: 'border-[color:var(--color-primary)]/40 bg-[color:var(--color-primary)]/10 text-[color:var(--color-primary)]',
   medium: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300',
@@ -82,16 +122,31 @@ const CONFIDENCE_LABELS: Record<'high' | 'medium' | 'low', () => string> = {
   low: m.documents_review_confidence_low,
 };
 
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
 export function ExtractionReview({ extraction, document }: ExtractionReviewProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
 
-  const parsed = useMemo(() => parseExtraction(extraction.parsed_json), [extraction.parsed_json]);
+  const parsed = useMemo(
+    () => parseExtraction(extraction.parsed_json, extraction.prompt_version),
+    [extraction.parsed_json, extraction.prompt_version],
+  );
 
-  // Pull org + sources for the embedded ActivityForm. We lift these here so
-  // the form gets the same data shape /activities uses; ActivityForm itself
-  // is data-source agnostic (it just consumes the `sources` prop).
+  // Stage description for the chip — falls back to the raw id if the
+  // stages:list query hasn't resolved yet or the stage isn't registered.
+  const stagesQuery = useQuery({
+    queryKey: ['stages:list'],
+    queryFn: stagesApi.list,
+    staleTime: Infinity,
+  });
+  const stageDescription =
+    stagesQuery.data?.find((s) => s.id === extraction.prompt_version)?.description ??
+    extraction.prompt_version;
+
   const orgQuery = useQuery({
     queryKey: ['org:get-current'],
     queryFn: orgApi.getCurrent,
@@ -111,8 +166,6 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
         queryKey: ['extraction:list-by-document', document.id],
       });
       await queryClient.invalidateQueries({ queryKey: ['extraction:list-pending'] });
-      // /documents list chip depends on this — without it the row keeps
-      // showing the old "review needed" chip until a full refetch.
       await queryClient.invalidateQueries({ queryKey: ['extraction:list-statuses'] });
       toast.success(m.documents_review_discard_success());
       navigate({ to: '/documents' });
@@ -123,28 +176,17 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
     },
   });
 
-  // Shared discard handler for both the happy-path button and the
-  // parse-error fallback. `window.confirm` is the same guardrail the user
-  // sees in the normal review path — clicking 丢弃 with no prompt was
-  // accidental-tap-prone, especially in the parse-error branch where the
-  // button is the only action.
   const requestDiscard = () => {
     if (window.confirm(m.documents_review_discard_confirm())) {
       discardMutation.mutate();
     }
   };
 
-  // We don't pre-confirm the extraction — it stays `review_needed` until
-  // the user actually submits the ActivityForm. Phase 1c may swap this for
-  // a single atomic IPC call; for now the two-step is good enough.
   const handleSubmitSuccess = async () => {
     try {
       await extractionApi.confirm({ id: extraction.id });
       toast.success(m.documents_review_confirm_success());
     } catch (err) {
-      // The activity_data row already exists — surface the failure but
-      // don't roll back. The user can manually mark the extraction
-      // confirmed later if needed.
       const msg = err instanceof Error ? err.message : String(err);
       toast.error(m.documents_review_confirm_failed(), { description: msg });
     }
@@ -152,10 +194,6 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
       queryKey: ['extraction:list-by-document', document.id],
     });
     await queryClient.invalidateQueries({ queryKey: ['extraction:list-pending'] });
-    // Same rationale as the discard path: /documents list chip reads from
-    // this query, so confirmation needs to invalidate it too — otherwise
-    // the user lands on /dashboard, comes back to /documents, and the row
-    // still shows "Needs review".
     await queryClient.invalidateQueries({ queryKey: ['extraction:list-statuses'] });
     navigate({ to: '/' });
   };
@@ -178,16 +216,25 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
     );
   }
 
-  const confidence = parsed.confidence ?? 'medium';
+  const confidence = parsed.data.confidence ?? 'medium';
   const confidenceClass = CONFIDENCE_CLASSES[confidence];
   const confidenceLabel = CONFIDENCE_LABELS[confidence]();
+
+  // fuel-only warning: the model selected "other" because it couldn't
+  // confidently bucket the fuel. The user MUST override before this
+  // gets to ActivityForm because the EF lookup needs a known category.
+  const showFuelOtherWarning =
+    parsed.stage === 'fuel_receipt.v1' && parsed.data.fuel_category === 'other';
 
   return (
     <div className="space-y-4">
       <div className="rounded-md border border-border bg-muted/30 p-4 text-sm">
         <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <span className="rounded border border-border bg-background px-2 py-0.5 font-mono">
-            {m.documents_review_stage()}: {extraction.prompt_version}
+          <span
+            className="rounded border border-border bg-background px-2 py-0.5"
+            title={extraction.prompt_version}
+          >
+            {m.documents_review_stage()}: {stageDescription}
           </span>
           <span className="rounded border border-border bg-background px-2 py-0.5">
             {m.documents_review_provider()}: {extraction.llm_provider} · {extraction.llm_model}
@@ -200,20 +247,17 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
           </span>
         </div>
 
-        <dl className="grid grid-cols-1 gap-y-2 text-sm sm:grid-cols-[max-content_1fr] sm:gap-x-4">
-          <Field label={m.documents_review_field_supplier()} value={parsed.supplier_name} />
-          <Field label={m.documents_review_field_account()} value={parsed.account_no} />
-          <Field
-            label={m.documents_review_field_amount_kwh()}
-            value={typeof parsed.amount_kwh === 'number' ? `${parsed.amount_kwh} kWh` : undefined}
-          />
-          <Field
-            label={m.documents_review_field_amount_yuan()}
-            value={typeof parsed.amount_yuan === 'number' ? `¥${parsed.amount_yuan}` : undefined}
-          />
-          <Field label={m.documents_review_field_period_start()} value={parsed.period_start} />
-          <Field label={m.documents_review_field_period_end()} value={parsed.period_end} />
-        </dl>
+        {parsed.stage === 'china_utility.v1' ? (
+          <ChinaUtilityFields data={parsed.data} />
+        ) : (
+          <FuelReceiptFields data={parsed.data} />
+        )}
+
+        {showFuelOtherWarning && (
+          <div className="mt-3 rounded border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            {m.documents_review_fuel_category_other_warning()}
+          </div>
+        )}
       </div>
 
       {extraction.status === 'parsed' ? (
@@ -255,31 +299,114 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
           onSubmitSuccess={() => {
             void handleSubmitSuccess();
           }}
-          initialValues={buildInitialValues(parsed, document.filename)}
+          initialValues={
+            parsed.stage === 'china_utility.v1'
+              ? buildChinaUtilityInitialValues(parsed.data, document.filename)
+              : buildFuelReceiptInitialValues(parsed.data, document.filename)
+          }
         />
       )}
     </div>
   );
 }
 
+// ---------------------------------------------------------------------------
+// Per-stage <dl> field blocks
+// ---------------------------------------------------------------------------
+
+function ChinaUtilityFields({ data }: { data: ChinaUtilityParsed }) {
+  return (
+    <dl className="grid grid-cols-1 gap-y-2 text-sm sm:grid-cols-[max-content_1fr] sm:gap-x-4">
+      <Field label={m.documents_review_field_supplier()} value={data.supplier_name} />
+      <Field label={m.documents_review_field_account()} value={data.account_no} />
+      <Field
+        label={m.documents_review_field_amount_kwh()}
+        value={typeof data.amount_kwh === 'number' ? `${data.amount_kwh} kWh` : undefined}
+      />
+      <Field
+        label={m.documents_review_field_amount_yuan()}
+        value={typeof data.amount_yuan === 'number' ? `¥${data.amount_yuan}` : undefined}
+      />
+      <Field label={m.documents_review_field_period_start()} value={data.period_start} />
+      <Field label={m.documents_review_field_period_end()} value={data.period_end} />
+    </dl>
+  );
+}
+
+function FuelReceiptFields({ data }: { data: FuelReceiptParsed }) {
+  return (
+    <dl className="grid grid-cols-1 gap-y-2 text-sm sm:grid-cols-[max-content_1fr] sm:gap-x-4">
+      <Field label={m.documents_review_field_supplier()} value={data.supplier_name} />
+      <Field label={m.documents_review_field_fuel_type()} value={data.fuel_type} />
+      <Field label={m.documents_review_field_fuel_category()} value={data.fuel_category} />
+      <Field
+        label={m.documents_review_field_volume_l()}
+        value={typeof data.volume_l === 'number' ? `${data.volume_l} L` : undefined}
+      />
+      <Field
+        label={m.documents_review_field_unit_price_yuan()}
+        value={typeof data.unit_price_yuan === 'number' ? `¥${data.unit_price_yuan}` : undefined}
+      />
+      <Field
+        label={m.documents_review_field_amount_yuan()}
+        value={typeof data.amount_yuan === 'number' ? `¥${data.amount_yuan}` : undefined}
+      />
+      <Field label={m.documents_review_field_occurred_at()} value={data.occurred_at} />
+      <Field label={m.documents_review_field_license_plate()} value={data.license_plate} />
+    </dl>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ActivityForm prefill builders (per stage)
+// ---------------------------------------------------------------------------
+
 /**
- * Build the `initialValues` payload, omitting fields we don't have so the
- * `Partial` shape stays compatible with `exactOptionalPropertyTypes` (which
- * rejects `{ amount: undefined }` even on a Partial type).
+ * China utility prefill: amount in kWh, period range, supplier in notes.
+ * Same shape Phase 1b shipped.
  */
-function buildInitialValues(
-  parsed: ChinaUtilityParsed,
+function buildChinaUtilityInitialValues(
+  data: ChinaUtilityParsed,
   filename: string,
 ): import('@renderer/components/ActivityForm').ActivityFormInitialValues {
   const out: import('@renderer/components/ActivityForm').ActivityFormInitialValues = {
     unit: 'kWh',
     notes: `Auto-extracted from: ${filename}`,
   };
-  if (parsed.period_start) out.occurred_at_start = parsed.period_start;
-  if (parsed.period_end) out.occurred_at_end = parsed.period_end;
-  if (typeof parsed.amount_kwh === 'number') out.amount = String(parsed.amount_kwh);
+  if (data.period_start) out.occurred_at_start = data.period_start;
+  if (data.period_end) out.occurred_at_end = data.period_end;
+  if (typeof data.amount_kwh === 'number') out.amount = String(data.amount_kwh);
   return out;
 }
+
+/**
+ * Fuel receipt prefill: amount in liters, single-day event (start =
+ * end), supplier + plate in notes. Fueling has no period — both date
+ * bounds collapse to `occurred_at`.
+ */
+function buildFuelReceiptInitialValues(
+  data: FuelReceiptParsed,
+  filename: string,
+): import('@renderer/components/ActivityForm').ActivityFormInitialValues {
+  const notesParts = [`Auto-extracted from: ${filename}`];
+  if (data.supplier_name) notesParts.push(`Supplier: ${data.supplier_name}`);
+  if (data.license_plate) notesParts.push(`Plate: ${data.license_plate}`);
+  if (data.fuel_type) notesParts.push(`Fuel: ${data.fuel_type}`);
+  const out: import('@renderer/components/ActivityForm').ActivityFormInitialValues = {
+    unit: 'L',
+    notes: notesParts.join(' · '),
+  };
+  if (data.occurred_at) {
+    out.occurred_at_start = data.occurred_at;
+    out.occurred_at_end = data.occurred_at;
+  }
+  if (typeof data.volume_l === 'number') out.amount = String(data.volume_l);
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Generic field row
+// ---------------------------------------------------------------------------
 
 function Field({ label, value }: { label: string; value: string | number | null | undefined }) {
   const display = value === null || value === undefined || value === '' ? '—' : String(value);
