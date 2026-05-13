@@ -272,3 +272,29 @@ export type Extraction = {
   cost_usd: number | null;
   created_at: string;
 };
+
+// ---------------------------------------------------------------------------
+// EF Matcher types (Phase 1c Task 5)
+// ---------------------------------------------------------------------------
+
+/** Input to EfMatcherService.recommend(): identifies the extraction + source. */
+export type RecommendQuery = {
+  extraction_id: string;
+  emission_source_id: string;
+};
+
+/** One LLM-recommended emission factor with a short Chinese reasoning note. */
+export type MatcherRecommendation = {
+  ef: EmissionFactor;
+  reasoning_zh: string;
+};
+
+/**
+ * Full result from EfMatcherService.recommend().
+ * - `recommended`: 0–3 items selected by the LLM (empty on LLM failure).
+ * - `ranked_full`: ≤ 20 items sorted by FTS5 bm25 relevance.
+ */
+export type MatcherResult = {
+  recommended: MatcherRecommendation[];
+  ranked_full: EmissionFactor[];
+};
