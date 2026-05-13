@@ -689,4 +689,59 @@ describe('ExtractionService', () => {
       (schema as { parse: (x: unknown) => unknown }).parse(purchaseOutput),
     ).not.toThrow();
   });
+
+  it('run() routes travel.v1 through the same pipeline (stage lookup + INSERT)', async () => {
+    const travelOutput = {
+      doc_type: 'travel' as const,
+      supplier_name: '中国国际航空',
+      mode: 'air' as const,
+      passenger_name: '张三',
+      origin: '北京首都国际机场',
+      destination: '上海虹桥国际机场',
+      departure_at: '2026-04-15T08:30',
+      arrival_at: '2026-04-15T10:50',
+      travel_class: '经济舱',
+      distance_km: null,
+      flight_or_train_no: 'CA1234',
+      vehicle_plate: null,
+      amount_yuan: 1250,
+      ticket_no: '7841234567890',
+      confidence: 'high' as const,
+    };
+
+    h.cleanup();
+    h = setupHarness();
+    h.llmClient = {
+      extract: vi.fn().mockResolvedValue(travelOutput),
+      extractWithImages: vi.fn(),
+    } as unknown as LLMClient;
+
+    h.extractionService = new ExtractionService({
+      db: h.db,
+      now: () => '2026-05-13T00:00:00.000Z',
+      documentService: h.documentService,
+      settingsService: h.settingsService,
+      llmClient: h.llmClient,
+      readFile: () => Buffer.from('travel-pdf-bytes'),
+      parsePdf: vi.fn(async () => ({ text: 'FAKE_TRAVEL_TEXT' })),
+    });
+
+    const doc = uploadFakePdf(h.documentService);
+
+    const ext = await h.extractionService.run({
+      document_id: doc.id,
+      stage_id: 'travel.v1',
+    });
+
+    expect(ext.status).toBe('review_needed');
+    expect(ext.prompt_version).toBe('travel.v1');
+    expect(JSON.parse(ext.parsed_json ?? '')).toEqual(travelOutput);
+    expect(h.llmClient.extract).toHaveBeenCalledTimes(1);
+    // Schema captured at the call site can parse the travel output —
+    // proves the orchestrator passed travel.v1's schema, not another
+    // stage's. Mirrors the technique used for fuel/freight/purchase smokes.
+    const [, schema] = vi.mocked(h.llmClient.extract).mock.calls[0] ?? [];
+    expect(schema).toBeDefined();
+    expect(() => (schema as { parse: (x: unknown) => unknown }).parse(travelOutput)).not.toThrow();
+  });
 });
