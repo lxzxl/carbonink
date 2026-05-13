@@ -3,6 +3,9 @@ import { CONFIDENCE_CLASSES, CONFIDENCE_LABELS, Field } from '@renderer/componen
 import { ChinaUtilityFields } from '@renderer/components/extractions/china-utility/fields';
 import { buildChinaUtilityInitialValues } from '@renderer/components/extractions/china-utility/prefill';
 import type { ChinaUtilityParsed } from '@renderer/components/extractions/china-utility/types';
+import { FuelReceiptFields } from '@renderer/components/extractions/fuel-receipt/fields';
+import { buildFuelReceiptInitialValues } from '@renderer/components/extractions/fuel-receipt/prefill';
+import type { FuelReceiptParsed } from '@renderer/components/extractions/fuel-receipt/types';
 import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
 import { sourceApi } from '@renderer/lib/api/emission-source';
@@ -51,27 +54,6 @@ export interface ExtractionReviewProps {
 // ---------------------------------------------------------------------------
 // Per-stage parsed types + parsers
 // ---------------------------------------------------------------------------
-
-type FuelReceiptParsed = {
-  doc_type?: string;
-  supplier_name?: string;
-  fuel_type?: string;
-  fuel_category?:
-    | 'gasoline'
-    | 'diesel'
-    | 'lpg'
-    | 'cng'
-    | 'jet_fuel'
-    | 'marine_fuel'
-    | 'biofuel'
-    | 'other';
-  volume_l?: number;
-  unit_price_yuan?: number | null;
-  amount_yuan?: number;
-  occurred_at?: string;
-  license_plate?: string | null;
-  confidence?: 'high' | 'medium' | 'low';
-};
 
 type FreightParsed = {
   doc_type?: string;
@@ -368,30 +350,6 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
 // Per-stage <dl> field blocks
 // ---------------------------------------------------------------------------
 
-function FuelReceiptFields({ data }: { data: FuelReceiptParsed }) {
-  return (
-    <dl className="grid grid-cols-1 gap-y-2 text-sm sm:grid-cols-[max-content_1fr] sm:gap-x-4">
-      <Field label={m.documents_review_field_supplier()} value={data.supplier_name} />
-      <Field label={m.documents_review_field_fuel_type()} value={data.fuel_type} />
-      <Field label={m.documents_review_field_fuel_category()} value={data.fuel_category} />
-      <Field
-        label={m.documents_review_field_volume_l()}
-        value={typeof data.volume_l === 'number' ? `${data.volume_l} L` : undefined}
-      />
-      <Field
-        label={m.documents_review_field_unit_price_yuan()}
-        value={typeof data.unit_price_yuan === 'number' ? `¥${data.unit_price_yuan}` : undefined}
-      />
-      <Field
-        label={m.documents_review_field_amount_yuan()}
-        value={typeof data.amount_yuan === 'number' ? `¥${data.amount_yuan}` : undefined}
-      />
-      <Field label={m.documents_review_field_occurred_at()} value={data.occurred_at} />
-      <Field label={m.documents_review_field_license_plate()} value={data.license_plate} />
-    </dl>
-  );
-}
-
 function FreightFields({ data }: { data: FreightParsed }) {
   return (
     <dl className="grid grid-cols-1 gap-y-2 text-sm sm:grid-cols-[max-content_1fr] sm:gap-x-4">
@@ -474,31 +432,6 @@ function TravelFields({ data }: { data: TravelParsed }) {
 // ---------------------------------------------------------------------------
 // ActivityForm prefill builders (per stage)
 // ---------------------------------------------------------------------------
-
-/**
- * Fuel receipt prefill: amount in liters, single-day event (start =
- * end), supplier + plate in notes. Fueling has no period — both date
- * bounds collapse to `occurred_at`.
- */
-function buildFuelReceiptInitialValues(
-  data: FuelReceiptParsed,
-  filename: string,
-): import('@renderer/components/ActivityForm').ActivityFormInitialValues {
-  const notesParts = [`Auto-extracted from: ${filename}`];
-  if (data.supplier_name) notesParts.push(`Supplier: ${data.supplier_name}`);
-  if (data.license_plate) notesParts.push(`Plate: ${data.license_plate}`);
-  if (data.fuel_type) notesParts.push(`Fuel: ${data.fuel_type}`);
-  const out: import('@renderer/components/ActivityForm').ActivityFormInitialValues = {
-    unit: 'L',
-    notes: notesParts.join(' · '),
-  };
-  if (data.occurred_at) {
-    out.occurred_at_start = data.occurred_at;
-    out.occurred_at_end = data.occurred_at;
-  }
-  if (typeof data.volume_l === 'number') out.amount = String(data.volume_l);
-  return out;
-}
 
 /**
  * Freight prefill: amount in kg (raw, not tonne-km — distance is
