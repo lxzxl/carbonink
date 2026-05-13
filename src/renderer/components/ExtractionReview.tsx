@@ -12,6 +12,9 @@ import type { FreightParsed } from '@renderer/components/extractions/freight/typ
 import { PurchaseFields } from '@renderer/components/extractions/purchase/fields';
 import { buildPurchaseInitialValues } from '@renderer/components/extractions/purchase/prefill';
 import type { PurchaseParsed } from '@renderer/components/extractions/purchase/types';
+import { TravelFields } from '@renderer/components/extractions/travel/fields';
+import { buildTravelInitialValues } from '@renderer/components/extractions/travel/prefill';
+import type { TravelParsed } from '@renderer/components/extractions/travel/types';
 import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
 import { sourceApi } from '@renderer/lib/api/emission-source';
@@ -60,24 +63,6 @@ export interface ExtractionReviewProps {
 // ---------------------------------------------------------------------------
 // Per-stage parsed types + parsers
 // ---------------------------------------------------------------------------
-
-type TravelParsed = {
-  doc_type?: string;
-  supplier_name?: string;
-  mode?: 'air' | 'rail' | 'taxi';
-  passenger_name?: string | null;
-  origin?: string;
-  destination?: string;
-  departure_at?: string;
-  arrival_at?: string | null;
-  travel_class?: string | null;
-  distance_km?: number | null;
-  flight_or_train_no?: string | null;
-  vehicle_plate?: string | null;
-  amount_yuan?: number;
-  ticket_no?: string | null;
-  confidence?: 'high' | 'medium' | 'low';
-};
 
 type StageParsed =
   | { stage: 'china_utility.v1'; data: ChinaUtilityParsed }
@@ -324,86 +309,3 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
   );
 }
 
-// ---------------------------------------------------------------------------
-// Per-stage <dl> field blocks
-// ---------------------------------------------------------------------------
-
-function TravelFields({ data }: { data: TravelParsed }) {
-  return (
-    <dl className="grid grid-cols-1 gap-y-2 text-sm sm:grid-cols-[max-content_1fr] sm:gap-x-4">
-      <Field label={m.documents_review_field_supplier()} value={data.supplier_name} />
-      <Field label={m.documents_review_field_mode()} value={data.mode} />
-      <Field label={m.documents_review_field_passenger_name()} value={data.passenger_name} />
-      <Field label={m.documents_review_field_origin()} value={data.origin} />
-      <Field label={m.documents_review_field_destination()} value={data.destination} />
-      <Field label={m.documents_review_field_departure_at()} value={data.departure_at} />
-      <Field label={m.documents_review_field_arrival_at()} value={data.arrival_at} />
-      <Field label={m.documents_review_field_travel_class()} value={data.travel_class} />
-      <Field
-        label={m.documents_review_field_distance_km()}
-        value={typeof data.distance_km === 'number' ? `${data.distance_km} km` : undefined}
-      />
-      <Field
-        label={m.documents_review_field_flight_or_train_no()}
-        value={data.flight_or_train_no}
-      />
-      <Field label={m.documents_review_field_vehicle_plate()} value={data.vehicle_plate} />
-      <Field
-        label={m.documents_review_field_amount_yuan()}
-        value={typeof data.amount_yuan === 'number' ? `¥${data.amount_yuan}` : undefined}
-      />
-      <Field label={m.documents_review_field_ticket_no()} value={data.ticket_no} />
-    </dl>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// ActivityForm prefill builders (per stage)
-// ---------------------------------------------------------------------------
-
-/**
- * Travel prefill: dual-track based on mode.
- *
- * Air / rail use 'passenger-km' as the unit (per-passenger emissions
- * regardless of the vehicle's other passengers). Taxi uses 'vehicle-km'
- * (the emission belongs to the vehicle, not divided across passengers).
- *
- * `amount` defaults to `distance_km` when known, else 1. The "amount=1"
- * default lets the user immediately commit a placeholder activity_data
- * row and have something show on the dashboard; once Phase 1.5 EF
- * Matcher's routing API fills the real distance, the amount can be
- * recalculated.
- *
- * `occurred_at_start = occurred_at_end = departure_at date portion`
- * (strip the time component because activity_data uses dates).
- */
-function buildTravelInitialValues(
-  data: TravelParsed,
-  filename: string,
-): import('@renderer/components/ActivityForm').ActivityFormInitialValues {
-  const notesParts = [`Auto-extracted from: ${filename}`];
-  if (data.supplier_name) notesParts.push(`Supplier: ${data.supplier_name}`);
-  if (data.mode) notesParts.push(`Mode: ${data.mode}`);
-  if (data.origin || data.destination) {
-    notesParts.push(`${data.origin ?? '?'} → ${data.destination ?? '?'}`);
-  }
-  if (data.travel_class) notesParts.push(`Class: ${data.travel_class}`);
-  if (data.flight_or_train_no) notesParts.push(`No: ${data.flight_or_train_no}`);
-  if (data.vehicle_plate) notesParts.push(`Plate: ${data.vehicle_plate}`);
-  if (data.ticket_no) notesParts.push(`Ticket: ${data.ticket_no}`);
-
-  const unit = data.mode === 'taxi' ? 'vehicle-km' : 'passenger-km';
-  const out: import('@renderer/components/ActivityForm').ActivityFormInitialValues = {
-    unit,
-    notes: notesParts.join(' · '),
-  };
-  // departure_at can be "YYYY-MM-DDTHH:MM" or "YYYY-MM-DD" or empty;
-  // strip to date portion only for activity_data.
-  if (data.departure_at) {
-    const datePart = data.departure_at.split('T')[0] ?? data.departure_at;
-    out.occurred_at_start = datePart;
-    out.occurred_at_end = datePart;
-  }
-  out.amount = typeof data.distance_km === 'number' ? String(data.distance_km) : '1';
-  return out;
-}
