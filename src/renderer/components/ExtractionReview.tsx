@@ -1,20 +1,16 @@
 import { ActivityForm } from '@renderer/components/ActivityForm';
-import { CONFIDENCE_CLASSES, CONFIDENCE_LABELS, Field } from '@renderer/components/extractions/shared';
 import { ChinaUtilityFields } from '@renderer/components/extractions/china-utility/fields';
 import { buildChinaUtilityInitialValues } from '@renderer/components/extractions/china-utility/prefill';
-import type { ChinaUtilityParsed } from '@renderer/components/extractions/china-utility/types';
-import { FuelReceiptFields } from '@renderer/components/extractions/fuel-receipt/fields';
-import { buildFuelReceiptInitialValues } from '@renderer/components/extractions/fuel-receipt/prefill';
-import type { FuelReceiptParsed } from '@renderer/components/extractions/fuel-receipt/types';
 import { FreightFields } from '@renderer/components/extractions/freight/fields';
 import { buildFreightInitialValues } from '@renderer/components/extractions/freight/prefill';
-import type { FreightParsed } from '@renderer/components/extractions/freight/types';
+import { FuelReceiptFields } from '@renderer/components/extractions/fuel-receipt/fields';
+import { buildFuelReceiptInitialValues } from '@renderer/components/extractions/fuel-receipt/prefill';
 import { PurchaseFields } from '@renderer/components/extractions/purchase/fields';
 import { buildPurchaseInitialValues } from '@renderer/components/extractions/purchase/prefill';
-import type { PurchaseParsed } from '@renderer/components/extractions/purchase/types';
+import { CONFIDENCE_CLASSES, CONFIDENCE_LABELS } from '@renderer/components/extractions/shared';
 import { TravelFields } from '@renderer/components/extractions/travel/fields';
 import { buildTravelInitialValues } from '@renderer/components/extractions/travel/prefill';
-import type { TravelParsed } from '@renderer/components/extractions/travel/types';
+import { parseExtraction } from '@renderer/components/extractions/types';
 import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
 import { sourceApi } from '@renderer/lib/api/emission-source';
@@ -59,52 +55,6 @@ export interface ExtractionReviewProps {
   extraction: Extraction;
   document: Document;
 }
-
-// ---------------------------------------------------------------------------
-// Per-stage parsed types + parsers
-// ---------------------------------------------------------------------------
-
-type StageParsed =
-  | { stage: 'china_utility.v1'; data: ChinaUtilityParsed }
-  | { stage: 'fuel_receipt.v1'; data: FuelReceiptParsed }
-  | { stage: 'freight.v1'; data: FreightParsed }
-  | { stage: 'purchase.v1'; data: PurchaseParsed }
-  | { stage: 'travel.v1'; data: TravelParsed };
-
-function parseExtraction(raw: string | null, promptVersion: string): StageParsed | null {
-  if (!raw) return null;
-  let obj: unknown;
-  try {
-    obj = JSON.parse(raw);
-  } catch {
-    return null;
-  }
-  if (!obj || typeof obj !== 'object') return null;
-  // The discriminator is the persisted prompt_version, not anything
-  // inside parsed_json itself. A malformed extraction (raw text that
-  // claims doc_type X but came from stage Y) is still rendered per the
-  // stage; the field-block renderer surfaces empty / unexpected values.
-  if (promptVersion === 'china_utility.v1') {
-    return { stage: 'china_utility.v1', data: obj as ChinaUtilityParsed };
-  }
-  if (promptVersion === 'fuel_receipt.v1') {
-    return { stage: 'fuel_receipt.v1', data: obj as FuelReceiptParsed };
-  }
-  if (promptVersion === 'freight.v1') {
-    return { stage: 'freight.v1', data: obj as FreightParsed };
-  }
-  if (promptVersion === 'purchase.v1') {
-    return { stage: 'purchase.v1', data: obj as PurchaseParsed };
-  }
-  if (promptVersion === 'travel.v1') {
-    return { stage: 'travel.v1', data: obj as TravelParsed };
-  }
-  return null;
-}
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
 
 export function ExtractionReview({ extraction, document }: ExtractionReviewProps) {
   const navigate = useNavigate();
@@ -308,4 +258,3 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
     </div>
   );
 }
-
