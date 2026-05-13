@@ -1,7 +1,7 @@
+import { runMigrations } from '@main/db/migrate';
 import { EfMatcherService } from '@main/services/ef-matcher-service';
 import type { EmissionFactor, Extraction } from '@shared/types';
 import Database from 'better-sqlite3';
-import { runMigrations } from '@main/db/migrate';
 import { describe, expect, it, vi } from 'vitest';
 
 function makeDb() {
@@ -50,7 +50,16 @@ const FAKE_CONFIG = {
   apiKeyKeyref: 'fake-keyref',
 } as never;
 
-type LlmResult = { recommendations: Array<{ factor_code: string; year: number; source: string; geography: string; dataset_version: string; reasoning_zh: string }> };
+type LlmResult = {
+  recommendations: Array<{
+    factor_code: string;
+    year: number;
+    source: string;
+    geography: string;
+    dataset_version: string;
+    reasoning_zh: string;
+  }>;
+};
 
 function makeService(opts: {
   extraction: Extraction | null;
@@ -144,9 +153,30 @@ describe('EfMatcherService.recommend', () => {
       candidates: [CANDIDATE_DIESEL],
       llmResult: {
         recommendations: [
-          { factor_code: 'HALLUCINATED', year: 2024, source: 'X', geography: 'X', dataset_version: 'x', reasoning_zh: '幻觉' },
-          { factor_code: CANDIDATE_DIESEL.factor_code, year: CANDIDATE_DIESEL.year, source: CANDIDATE_DIESEL.source, geography: CANDIDATE_DIESEL.geography, dataset_version: CANDIDATE_DIESEL.dataset_version, reasoning_zh: '匹配' },
-          { factor_code: 'ALSO_HALLUCINATED', year: 2024, source: 'X', geography: 'X', dataset_version: 'x', reasoning_zh: '幻觉2' },
+          {
+            factor_code: 'HALLUCINATED',
+            year: 2024,
+            source: 'X',
+            geography: 'X',
+            dataset_version: 'x',
+            reasoning_zh: '幻觉',
+          },
+          {
+            factor_code: CANDIDATE_DIESEL.factor_code,
+            year: CANDIDATE_DIESEL.year,
+            source: CANDIDATE_DIESEL.source,
+            geography: CANDIDATE_DIESEL.geography,
+            dataset_version: CANDIDATE_DIESEL.dataset_version,
+            reasoning_zh: '匹配',
+          },
+          {
+            factor_code: 'ALSO_HALLUCINATED',
+            year: 2024,
+            source: 'X',
+            geography: 'X',
+            dataset_version: 'x',
+            reasoning_zh: '幻觉2',
+          },
         ],
       },
     });

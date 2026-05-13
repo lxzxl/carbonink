@@ -168,9 +168,7 @@ describe('ActivityForm — matcher recommended section', () => {
     fireEvent.change(sourceSelect, { target: { value: FAKE_SOURCE.id } });
 
     // The recommended heading should appear.
-    expect(
-      await screen.findByText(/Recommended for this document|为本单据推荐/),
-    ).toBeTruthy();
+    expect(await screen.findByText(/Recommended for this document|为本单据推荐/)).toBeTruthy();
 
     // All three reasoning strings should be in the DOM.
     expect(await screen.findByText('直接命中柴油')).toBeTruthy();

@@ -34,9 +34,9 @@ describe('migration 010 — ef_fts virtual table', () => {
     const before = efRowCount(db, 'ef_fts');
     insertTestEf(db, 'test.trigger.insert', '柴油测试');
     expect(efRowCount(db, 'ef_fts')).toBe(before + 1);
-    const hit = db
-      .prepare(`SELECT factor_code FROM ef_fts WHERE ef_fts MATCH ?`)
-      .get('柴油测试') as { factor_code: string } | undefined;
+    const hit = db.prepare(`SELECT factor_code FROM ef_fts WHERE ef_fts MATCH ?`).get('柴油测试') as
+      | { factor_code: string }
+      | undefined;
     expect(hit?.factor_code).toBe('test.trigger.insert');
   });
 
@@ -49,7 +49,9 @@ describe('migration 010 — ef_fts virtual table', () => {
       '更新后名称',
       'test.trigger.update',
     );
-    const oldHit = db.prepare(`SELECT factor_code FROM ef_fts WHERE ef_fts MATCH ?`).get('原始名称');
+    const oldHit = db
+      .prepare(`SELECT factor_code FROM ef_fts WHERE ef_fts MATCH ?`)
+      .get('原始名称');
     const newHit = db
       .prepare(`SELECT factor_code FROM ef_fts WHERE ef_fts MATCH ?`)
       .get('更新后名称') as { factor_code: string } | undefined;

@@ -281,7 +281,16 @@ export class LLMClient {
       description_zh?: string | null;
       co2e_kg_per_unit?: number;
     }>,
-  ): Promise<{ recommendations: Array<{ factor_code: string; year: number; source: string; geography: string; dataset_version: string; reasoning_zh: string }> }> {
+  ): Promise<{
+    recommendations: Array<{
+      factor_code: string;
+      year: number;
+      source: string;
+      geography: string;
+      dataset_version: string;
+      reasoning_zh: string;
+    }>;
+  }> {
     const schema = z.object({
       recommendations: z
         .array(
@@ -301,7 +310,7 @@ export class LLMClient {
       .map((c, i) => {
         const name = c.name_zh ?? c.name_en ?? c.factor_code;
         const desc = c.description_zh ?? '';
-        return `${i + 1}. ${c.factor_code} | ${c.year} | ${c.geography} | ${c.input_unit ?? '?'} | ${c.co2e_kg_per_unit ?? '?'} kgCO2e/unit | ${name}${desc ? ' — ' + desc : ''}`;
+        return `${i + 1}. ${c.factor_code} | ${c.year} | ${c.geography} | ${c.input_unit ?? '?'} | ${c.co2e_kg_per_unit ?? '?'} kgCO2e/unit | ${name}${desc ? ` — ${desc}` : ''}`;
       })
       .join('\n');
 

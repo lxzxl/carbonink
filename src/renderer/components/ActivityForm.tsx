@@ -7,7 +7,13 @@ import { efApi } from '@renderer/lib/api/ef-library';
 import { efMatcherApi } from '@renderer/lib/api/ef-matcher';
 import { orgApi } from '@renderer/lib/api/organization';
 import * as m from '@renderer/paraglide/messages';
-import type { ActivityData, EmissionFactor, EmissionSource, MatcherResult, ReportingPeriod } from '@shared/types';
+import type {
+  ActivityData,
+  EmissionFactor,
+  EmissionSource,
+  MatcherResult,
+  ReportingPeriod,
+} from '@shared/types';
 import { useForm, useStore } from '@tanstack/react-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
@@ -473,8 +479,7 @@ export function ActivityForm({
        * full EF list below remains the sole picker. */}
       {matcherHintRef &&
         selectedSourceId &&
-        (matcherQuery.isLoading ||
-          (matcherQuery.data?.recommended?.length ?? 0) > 0) && (
+        (matcherQuery.isLoading || (matcherQuery.data?.recommended?.length ?? 0) > 0) && (
           <div className="rounded-md border border-[color:var(--color-primary)]/40 bg-[color:var(--color-primary)]/5 p-3">
             <h4 className="text-sm font-medium">{m.ef_matcher_recommended_heading()}</h4>
             {matcherQuery.isLoading ? (

@@ -1,8 +1,13 @@
-import type { Database } from 'better-sqlite3';
 import type { LLMClient } from '@main/llm/llm-client.js';
-import type { EmissionFactor, MatcherResult, RecommendQuery, ProviderConfig } from '@shared/types.js';
-import type { EfService } from './ef-service.js';
+import type {
+  EmissionFactor,
+  MatcherResult,
+  ProviderConfig,
+  RecommendQuery,
+} from '@shared/types.js';
+import type { Database } from 'better-sqlite3';
 import { extractHint } from './ef-matcher/hint.js';
+import type { EfService } from './ef-service.js';
 
 const CANDIDATE_LIMIT = 20;
 
@@ -90,10 +95,7 @@ export class EfMatcherService {
         })
         .filter((x): x is { ef: EmissionFactor; reasoning_zh: string } => x !== null);
     } catch (err) {
-      console.warn(
-        '[ef-matcher] LLM recommend failed:',
-        err instanceof Error ? err.message : err,
-      );
+      console.warn('[ef-matcher] LLM recommend failed:', err instanceof Error ? err.message : err);
       recommended = [];
     }
 

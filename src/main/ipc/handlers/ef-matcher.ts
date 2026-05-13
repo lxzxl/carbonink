@@ -15,7 +15,6 @@ export function efMatcherHandlers(ctx: IpcContext): {
   [K in keyof IpcTypeMap]?: IpcTypeMap[K];
 } {
   return {
-    'ef:recommend': async (input) =>
-      ctx.efMatcherService.recommend(recommendQuery.parse(input)),
+    'ef:recommend': async (input) => ctx.efMatcherService.recommend(recommendQuery.parse(input)),
   };
 }

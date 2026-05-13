@@ -14,7 +14,9 @@ describe('ef:recommend handler', () => {
   it('zod-rejects malformed input (missing extraction_id)', async () => {
     const ctx = makeCtx();
     const handlers = efMatcherHandlers(ctx);
-    await expect(handlers['ef:recommend']!({ emission_source_id: 's1' } as never)).rejects.toThrow();
+    await expect(
+      handlers['ef:recommend']!({ emission_source_id: 's1' } as never),
+    ).rejects.toThrow();
   });
 
   it('zod-rejects malformed input (missing emission_source_id)', async () => {
@@ -26,8 +28,14 @@ describe('ef:recommend handler', () => {
   it('delegates to service on valid input', async () => {
     const ctx = makeCtx();
     const handlers = efMatcherHandlers(ctx);
-    const result = await handlers['ef:recommend']!({ extraction_id: 'e1', emission_source_id: 's1' });
-    expect(ctx.efMatcherService.recommend).toHaveBeenCalledWith({ extraction_id: 'e1', emission_source_id: 's1' });
+    const result = await handlers['ef:recommend']!({
+      extraction_id: 'e1',
+      emission_source_id: 's1',
+    });
+    expect(ctx.efMatcherService.recommend).toHaveBeenCalledWith({
+      extraction_id: 'e1',
+      emission_source_id: 's1',
+    });
     expect(result).toEqual({ recommended: [], ranked_full: [] });
   });
 });

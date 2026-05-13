@@ -8,6 +8,5 @@ import { invoke } from '../ipc.js';
  * with 0–3 LLM-selected recommendations and a full BM25-ranked list.
  */
 export const efMatcherApi = {
-  recommend: (input: Parameters<typeof invoke<'ef:recommend'>>[1]) =>
-    invoke('ef:recommend', input),
+  recommend: (input: Parameters<typeof invoke<'ef:recommend'>>[1]) => invoke('ef:recommend', input),
 };
