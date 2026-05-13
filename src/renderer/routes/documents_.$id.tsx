@@ -101,7 +101,15 @@ function DocumentReview({ document }: { document: Document }) {
           {extractionsQuery.isLoading ? (
             <p className="text-sm text-muted-foreground">{m.loading()}</p>
           ) : !activeExtraction ? (
-            <RunExtractionAction document={document} discardedHint={hasDiscarded} />
+            <RunExtractionAction
+              document={document}
+              discardedHint={hasDiscarded}
+              // Retry the same stage the user originally picked. If the
+              // doc only ever had rejected extractions, the most-recent
+              // rejected one's prompt_version is the right retry stage.
+              // If there's no history at all, fall back to the default.
+              stageId={extractions[0]?.prompt_version ?? STAGE_ID}
+            />
           ) : (
             <ExtractionReview extraction={activeExtraction} document={document} />
           )}
@@ -128,9 +136,11 @@ function DocumentReview({ document }: { document: Document }) {
 function RunExtractionAction({
   document,
   discardedHint,
+  stageId,
 }: {
   document: Document;
   discardedHint?: boolean;
+  stageId: string;
 }) {
   const queryClient = useQueryClient();
   const [visionPhase, setVisionPhase] = useState(false);
@@ -143,7 +153,7 @@ function RunExtractionAction({
   const runExtraction = useMutation({
     mutationFn: async () => {
       setVisionPhase(false);
-      return extractionApi.run({ document_id: document.id, stage_id: STAGE_ID });
+      return extractionApi.run({ document_id: document.id, stage_id: stageId });
     },
     onSuccess: async () => {
       toast.success(m.documents_extraction_done(), { description: document.filename });
