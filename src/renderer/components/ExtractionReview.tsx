@@ -96,10 +96,23 @@ type FreightParsed = {
   confidence?: 'high' | 'medium' | 'low';
 };
 
+type PurchaseParsed = {
+  doc_type?: string;
+  supplier_name?: string;
+  item_description?: string;
+  category?: 'raw_material' | 'component' | 'consumable' | 'office_supply' | 'service' | 'other';
+  quantity_kg?: number | null;
+  amount_yuan?: number;
+  occurred_at?: string;
+  invoice_no?: string | null;
+  confidence?: 'high' | 'medium' | 'low';
+};
+
 type StageParsed =
   | { stage: 'china_utility.v1'; data: ChinaUtilityParsed }
   | { stage: 'fuel_receipt.v1'; data: FuelReceiptParsed }
-  | { stage: 'freight.v1'; data: FreightParsed };
+  | { stage: 'freight.v1'; data: FreightParsed }
+  | { stage: 'purchase.v1'; data: PurchaseParsed };
 
 function parseExtraction(raw: string | null, promptVersion: string): StageParsed | null {
   if (!raw) return null;
@@ -122,6 +135,9 @@ function parseExtraction(raw: string | null, promptVersion: string): StageParsed
   }
   if (promptVersion === 'freight.v1') {
     return { stage: 'freight.v1', data: obj as FreightParsed };
+  }
+  if (promptVersion === 'purchase.v1') {
+    return { stage: 'purchase.v1', data: obj as PurchaseParsed };
   }
   return null;
 }
@@ -240,11 +256,18 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
   const confidenceClass = CONFIDENCE_CLASSES[confidence];
   const confidenceLabel = CONFIDENCE_LABELS[confidence]();
 
-  // fuel-only warning: the model selected "other" because it couldn't
-  // confidently bucket the fuel. The user MUST override before this
-  // gets to ActivityForm because the EF lookup needs a known category.
-  const showFuelOtherWarning =
-    parsed.stage === 'fuel_receipt.v1' && parsed.data.fuel_category === 'other';
+  // Warning when the model selected "other" because it couldn't confidently
+  // bucket the document — fires for fuel_receipt's fuel_category AND
+  // purchase's category. The user MUST override before this gets to
+  // ActivityForm because the EF lookup needs a known category. The message
+  // is category-specific so the user knows which field needs attention.
+  const showCategoryOtherWarning =
+    (parsed.stage === 'fuel_receipt.v1' && parsed.data.fuel_category === 'other') ||
+    (parsed.stage === 'purchase.v1' && parsed.data.category === 'other');
+  const categoryOtherWarningMessage =
+    parsed.stage === 'purchase.v1'
+      ? m.documents_review_purchase_category_other_warning()
+      : m.documents_review_fuel_category_other_warning();
 
   return (
     <div className="space-y-4">
@@ -271,13 +294,15 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
           <ChinaUtilityFields data={parsed.data} />
         ) : parsed.stage === 'fuel_receipt.v1' ? (
           <FuelReceiptFields data={parsed.data} />
-        ) : (
+        ) : parsed.stage === 'freight.v1' ? (
           <FreightFields data={parsed.data} />
+        ) : (
+          <PurchaseFields data={parsed.data} />
         )}
 
-        {showFuelOtherWarning && (
+        {showCategoryOtherWarning && (
           <div className="mt-3 rounded border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-            {m.documents_review_fuel_category_other_warning()}
+            {categoryOtherWarningMessage}
           </div>
         )}
       </div>
@@ -326,7 +351,9 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
               ? buildChinaUtilityInitialValues(parsed.data, document.filename)
               : parsed.stage === 'fuel_receipt.v1'
                 ? buildFuelReceiptInitialValues(parsed.data, document.filename)
-                : buildFreightInitialValues(parsed.data, document.filename)
+                : parsed.stage === 'freight.v1'
+                  ? buildFreightInitialValues(parsed.data, document.filename)
+                  : buildPurchaseInitialValues(parsed.data, document.filename)
           }
         />
       )}
@@ -411,6 +438,26 @@ function FreightFields({ data }: { data: FreightParsed }) {
   );
 }
 
+function PurchaseFields({ data }: { data: PurchaseParsed }) {
+  return (
+    <dl className="grid grid-cols-1 gap-y-2 text-sm sm:grid-cols-[max-content_1fr] sm:gap-x-4">
+      <Field label={m.documents_review_field_supplier()} value={data.supplier_name} />
+      <Field label={m.documents_review_field_item_description()} value={data.item_description} />
+      <Field label={m.documents_review_field_category()} value={data.category} />
+      <Field
+        label={m.documents_review_field_quantity_kg()}
+        value={typeof data.quantity_kg === 'number' ? `${data.quantity_kg} kg` : undefined}
+      />
+      <Field
+        label={m.documents_review_field_amount_yuan()}
+        value={typeof data.amount_yuan === 'number' ? `¥${data.amount_yuan}` : undefined}
+      />
+      <Field label={m.documents_review_field_occurred_at()} value={data.occurred_at} />
+      <Field label={m.documents_review_field_invoice_no()} value={data.invoice_no} />
+    </dl>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // ActivityForm prefill builders (per stage)
 // ---------------------------------------------------------------------------
@@ -489,6 +536,48 @@ function buildFreightInitialValues(
     out.occurred_at_end = data.occurred_at;
   }
   if (typeof data.weight_kg === 'number') out.amount = String(data.weight_kg);
+  return out;
+}
+
+/**
+ * Purchase prefill: dual-track based on whether quantity_kg is known.
+ *
+ * If the invoice gave an explicit weight (`quantity_kg > 0`), prefill
+ * `amount=String(quantity_kg)` with `unit='kg'` — EF Matcher will pick
+ * a per-kg EF (e.g. embodied CO2e of steel per kg).
+ *
+ * If `quantity_kg` is null OR 0 (service invoices, count-based units,
+ * unreadable weight), prefill `amount=String(amount_yuan)` with
+ * `unit='CNY'` — EF Matcher (Phase 1.5) will pick a per-currency EF
+ * (e.g. CO2e per ¥1 of office supplies / consulting services).
+ *
+ * Single-day event (purchase = invoice issue date), so
+ * occurred_at_start = end.
+ */
+function buildPurchaseInitialValues(
+  data: PurchaseParsed,
+  filename: string,
+): import('@renderer/components/ActivityForm').ActivityFormInitialValues {
+  const notesParts = [`Auto-extracted from: ${filename}`];
+  if (data.supplier_name) notesParts.push(`Supplier: ${data.supplier_name}`);
+  if (data.item_description) notesParts.push(`Items: ${data.item_description}`);
+  if (data.category) notesParts.push(`Category: ${data.category}`);
+  if (data.invoice_no) notesParts.push(`Invoice: ${data.invoice_no}`);
+
+  const hasWeight = typeof data.quantity_kg === 'number' && data.quantity_kg > 0;
+  const out: import('@renderer/components/ActivityForm').ActivityFormInitialValues = {
+    unit: hasWeight ? 'kg' : 'CNY',
+    notes: notesParts.join(' · '),
+  };
+  if (data.occurred_at) {
+    out.occurred_at_start = data.occurred_at;
+    out.occurred_at_end = data.occurred_at;
+  }
+  if (hasWeight) {
+    out.amount = String(data.quantity_kg);
+  } else if (typeof data.amount_yuan === 'number') {
+    out.amount = String(data.amount_yuan);
+  }
   return out;
 }
 
