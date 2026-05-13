@@ -15,6 +15,7 @@ import type { FreightParsed } from './types';
 export function buildFreightInitialValues(
   data: FreightParsed,
   filename: string,
+  matcherHint?: { extraction_id: string; stage_id: string },
 ): ActivityFormInitialValues {
   const notesParts = [`Auto-extracted from: ${filename}`];
   if (data.supplier_name) notesParts.push(`Supplier: ${data.supplier_name}`);
@@ -32,5 +33,6 @@ export function buildFreightInitialValues(
     out.occurred_at_end = data.occurred_at;
   }
   if (typeof data.weight_kg === 'number') out.amount = String(data.weight_kg);
+  if (matcherHint) out.matcherHint = matcherHint;
   return out;
 }

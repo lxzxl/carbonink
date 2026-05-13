@@ -66,6 +66,11 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
     [extraction.parsed_json, extraction.prompt_version],
   );
 
+  const matcherHint = {
+    extraction_id: extraction.id,
+    stage_id: extraction.prompt_version,
+  };
+
   // Stage description for the chip — falls back to the raw id if the
   // stages:list query hasn't resolved yet or the stage isn't registered.
   const stagesQuery = useQuery({
@@ -244,14 +249,14 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
           }}
           initialValues={
             parsed.stage === 'china_utility.v1'
-              ? buildChinaUtilityInitialValues(parsed.data, document.filename)
+              ? buildChinaUtilityInitialValues(parsed.data, document.filename, matcherHint)
               : parsed.stage === 'fuel_receipt.v1'
-                ? buildFuelReceiptInitialValues(parsed.data, document.filename)
+                ? buildFuelReceiptInitialValues(parsed.data, document.filename, matcherHint)
                 : parsed.stage === 'freight.v1'
-                  ? buildFreightInitialValues(parsed.data, document.filename)
+                  ? buildFreightInitialValues(parsed.data, document.filename, matcherHint)
                   : parsed.stage === 'purchase.v1'
-                    ? buildPurchaseInitialValues(parsed.data, document.filename)
-                    : buildTravelInitialValues(parsed.data, document.filename)
+                    ? buildPurchaseInitialValues(parsed.data, document.filename, matcherHint)
+                    : buildTravelInitialValues(parsed.data, document.filename, matcherHint)
           }
         />
       )}

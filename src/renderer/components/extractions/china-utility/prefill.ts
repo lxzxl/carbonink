@@ -4,6 +4,7 @@ import type { ChinaUtilityParsed } from './types';
 export function buildChinaUtilityInitialValues(
   data: ChinaUtilityParsed,
   filename: string,
+  matcherHint?: { extraction_id: string; stage_id: string },
 ): ActivityFormInitialValues {
   const out: ActivityFormInitialValues = {
     unit: 'kWh',
@@ -12,5 +13,6 @@ export function buildChinaUtilityInitialValues(
   if (data.period_start) out.occurred_at_start = data.period_start;
   if (data.period_end) out.occurred_at_end = data.period_end;
   if (typeof data.amount_kwh === 'number') out.amount = String(data.amount_kwh);
+  if (matcherHint) out.matcherHint = matcherHint;
   return out;
 }

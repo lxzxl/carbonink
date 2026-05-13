@@ -64,6 +64,7 @@ export type ActivityFormInitialValues = Partial<{
   unit: string;
   fuel_code: string;
   notes: string;
+  matcherHint?: { extraction_id: string; stage_id: string };
 }>;
 
 export interface ActivityFormProps {

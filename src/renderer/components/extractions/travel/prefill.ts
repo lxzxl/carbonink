@@ -20,6 +20,7 @@ import type { TravelParsed } from './types';
 export function buildTravelInitialValues(
   data: TravelParsed,
   filename: string,
+  matcherHint?: { extraction_id: string; stage_id: string },
 ): ActivityFormInitialValues {
   const notesParts = [`Auto-extracted from: ${filename}`];
   if (data.supplier_name) notesParts.push(`Supplier: ${data.supplier_name}`);
@@ -43,5 +44,6 @@ export function buildTravelInitialValues(
     out.occurred_at_end = datePart;
   }
   out.amount = typeof data.distance_km === 'number' ? String(data.distance_km) : '1';
+  if (matcherHint) out.matcherHint = matcherHint;
   return out;
 }

@@ -9,6 +9,7 @@ import type { FuelReceiptParsed } from './types';
 export function buildFuelReceiptInitialValues(
   data: FuelReceiptParsed,
   filename: string,
+  matcherHint?: { extraction_id: string; stage_id: string },
 ): ActivityFormInitialValues {
   const notesParts = [`Auto-extracted from: ${filename}`];
   if (data.supplier_name) notesParts.push(`Supplier: ${data.supplier_name}`);
@@ -23,5 +24,6 @@ export function buildFuelReceiptInitialValues(
     out.occurred_at_end = data.occurred_at;
   }
   if (typeof data.volume_l === 'number') out.amount = String(data.volume_l);
+  if (matcherHint) out.matcherHint = matcherHint;
   return out;
 }

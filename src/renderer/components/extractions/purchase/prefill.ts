@@ -19,6 +19,7 @@ import type { PurchaseParsed } from './types';
 export function buildPurchaseInitialValues(
   data: PurchaseParsed,
   filename: string,
+  matcherHint?: { extraction_id: string; stage_id: string },
 ): ActivityFormInitialValues {
   const notesParts = [`Auto-extracted from: ${filename}`];
   if (data.supplier_name) notesParts.push(`Supplier: ${data.supplier_name}`);
@@ -40,5 +41,6 @@ export function buildPurchaseInitialValues(
   } else if (typeof data.amount_yuan === 'number') {
     out.amount = String(data.amount_yuan);
   }
+  if (matcherHint) out.matcherHint = matcherHint;
   return out;
 }
