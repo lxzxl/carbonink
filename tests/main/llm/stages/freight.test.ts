@@ -100,4 +100,33 @@ describe('freightStage metadata', () => {
     expect(typeof freightStage.buildPrompt).toBe('function');
     expect(typeof freightStage.buildVisionMessages).toBe('function');
   });
+
+  it('buildPrompt embeds the PDF text inside <receipt>...</receipt> AND includes field rules', () => {
+    const prompt = freightStage.buildPrompt('SAMPLE_FREIGHT_TEXT_TOKEN');
+    expect(prompt).toContain('Chinese freight');
+    expect(prompt).toContain('SAMPLE_FREIGHT_TEXT_TOKEN');
+    expect(prompt).toContain('<receipt>');
+    expect(prompt).toContain('</receipt>');
+    // Field rules verbatim shared with vision path.
+    expect(prompt).toContain('mode');
+    expect(prompt).toContain('weight_kg');
+    // Each of the 4 mode enum values appears in the prompt body.
+    expect(prompt).toContain('road');
+    expect(prompt).toContain('rail');
+    expect(prompt).toContain('sea');
+    expect(prompt).toContain('air');
+    // The "do not estimate distance" guidance is verbatim.
+    expect(prompt).toContain('Do NOT estimate');
+  });
+
+  it('buildVisionMessages mirrors buildPrompt field rules but omits the <receipt> placeholder', () => {
+    const msgs = freightStage.buildVisionMessages?.();
+    expect(msgs).toBeDefined();
+    expect(msgs?.userText).toContain('Chinese freight');
+    expect(msgs?.userText).toContain('mode');
+    expect(msgs?.userText).toContain('weight_kg');
+    expect(msgs?.userText).toContain('Do NOT estimate');
+    // No PDF text placeholder — image content is appended by the caller.
+    expect(msgs?.userText).not.toContain('<receipt>');
+  });
 });

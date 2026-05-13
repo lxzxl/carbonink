@@ -130,12 +130,88 @@ export const freightExtraction = z.object({
 export type FreightExtraction = z.infer<typeof freightExtraction>;
 
 /**
- * v1 Chinese-freight stage. Mirrors `fuelReceiptStage` structure:
- * one schema, one text-path prompt, one vision-path prompt, both
- * sharing a private FIELD_RULES const.
- *
- * Prompt body lands in Task 2 of the implementation plan; this stub
- * exists so the registry wiring + metadata tests can pass first.
+ * Field-mapping + output-format rules shared between `buildPrompt`
+ * (text path) and `buildVisionMessages` (image path). Extracting this
+ * to a const guarantees the two paths stay aligned. Same DRY pattern as
+ * china_utility.v1 and fuel_receipt.v1.
+ */
+const FIELD_RULES = `Output rules (CRITICAL — DeepSeek and other providers without native JSON
+schema mode read these directly):
+- Return EXACTLY ONE JSON object, no markdown, no \`\`\`json fences, no prose.
+- Every required field must be present. Numeric fields are numbers (not
+  strings). Date fields are strings in ISO format "YYYY-MM-DD".
+- If a value is genuinely missing on the receipt, use null ONLY for the
+  four fields explicitly marked nullable (vehicle_class, volume_m3,
+  distance_km, tracking_no). Never omit a key. Never use null for
+  required fields — emit a best-guess instead with confidence='low'.
+
+Field mapping (Chinese freight documents follow many regional variations):
+- doc_type: always "freight".
+- supplier_name: the carrier / logistics provider, e.g.
+  "中远海运" / "顺丰速运" / "中铁集装箱" / "DHL".
+- mode: transport-mode discriminator (one of road/rail/sea/air):
+  - road:  公路货车 / 卡车 / 货拉拉 / 顺丰快递 / 最后一公里
+  - rail:  铁路 / 中欧班列 / X-list 班次
+  - sea:   海运 / 集装箱 / 散货 / 港到港 / Bill of Lading (BL)
+  - air:   航空货运 / 货机 / 客机腹舱 / Air Waybill (AWB)
+  If multi-modal (e.g. 海铁联运), pick the dominant leg and set
+  confidence='medium'.
+- vehicle_class: free-text within-mode subtype.
+  - road:  "8 轴货车" / "冷链车" / "液化气罐车" / "厢式货车"
+  - sea:   "20ft 集装箱" / "40ft 集装箱" / "散货"
+  - rail:  "C70" / "X70" / "中欧班列"
+  - air:   "B777F" / "B747F" / "客机腹舱"
+  null if not legible — affects only EF refinement.
+- weight_kg: numeric KILOGRAMS.
+  - "千克" / "kg" / "公斤"  → kg directly.
+  - "吨" / "T" / "tonne" → multiply by 1000.
+  - "克" / "g" → divide by 1000.
+  - "磅" / "lb" → multiply by 0.4536 (and set confidence='medium').
+  0 if not legible.
+- volume_m3: numeric cubic meters (立方米 / m³ / CBM). null if absent.
+- distance_km: numeric kilometers — fill ONLY if an explicit distance
+  number appears on the receipt (e.g. highway toll receipt, some 中欧
+  班列 documents print mileage). Do NOT estimate from origin /
+  destination strings. Wrong example: "深圳 → 汉堡" → "distance_km:
+  19000" is WRONG. Leave it null. The downstream EF Matcher will fill
+  distance from a routing API.
+- origin: free-form loading location, e.g. "深圳市宝安区" / "Hamburg" /
+  "Shanghai Yangshan Port". Empty string if not legible.
+- destination: free-form unloading location.
+- tracking_no: pick the most prominent of: BL number, container number,
+  train number, road waybill, AWB number. Use one canonical string.
+  null if absent.
+- amount_yuan: total CNY paid ("应付运费" / "总费用" / "Total Charges").
+  Number only (no "¥" / "元"). 0 if not legible.
+- occurred_at: loading / shipment date as ISO YYYY-MM-DD. If both
+  loading and delivery dates appear, use the LOADING date. If only
+  year-month shown ("2026-05"), assume the 15th. Empty string if not
+  legible.
+- confidence:
+  - "high" if supplier, mode, weight_kg, origin, destination,
+    amount_yuan, occurred_at are all clearly visible and unambiguous.
+  - "medium" if one or two were inferred, OR a unit conversion was
+    applied (吨 → kg, lb → kg), OR mode was inferred from context.
+  - "low" if the document doesn't look like a freight document at all,
+    OR multiple required fields are guesses, OR mode is ambiguous.
+
+Ignore (DO NOT include in the output): payment method (cash/card/wire),
+fapiao receipt number, customs declaration code, cargo description
+detail, insurance number, surcharge breakdown.
+
+Example valid response shape (do not copy the values — extract from the
+real receipt):
+{"doc_type":"freight","supplier_name":"顺丰速运","mode":"road","vehicle_class":"冷链车","weight_kg":1250,"volume_m3":4.5,"distance_km":null,"origin":"广州市番禺区","destination":"上海市浦东新区","tracking_no":"SF1234567890","amount_yuan":2680,"occurred_at":"2026-05-08","confidence":"high"}`;
+
+/**
+ * v1 Chinese-freight stage. Mirrors `fuelReceiptStage`:
+ * - same Stage<T> shape;
+ * - text path uses <receipt>${pdfText}</receipt> wrapper analogous to
+ *   the other stages;
+ * - vision path swaps the wrapper for an "images attached" hint and
+ *   reuses FIELD_RULES verbatim;
+ * - prompt is in English (instruction-following) while the receipt
+ *   content stays Chinese.
  */
 export const freightStage: Stage<FreightExtraction> = {
   id: 'freight.v1',
@@ -143,8 +219,24 @@ export const freightStage: Stage<FreightExtraction> = {
   description: 'Chinese freight (运输单据) — classify + extract',
   inputType: 'pdf_text',
   schema: freightExtraction,
-  buildPrompt: (_pdfText: string) => '__PROMPT_PENDING_TASK_2__',
+  buildPrompt: (pdfText: string) => `
+You are extracting structured data from a Chinese freight / shipping document (运输单 / 物流单 / 提单).
+
+Receipt text (extracted from PDF):
+<receipt>
+${pdfText}
+</receipt>
+
+${FIELD_RULES}`,
   buildVisionMessages: (): VisionMessages => ({
-    userText: '__VISION_PROMPT_PENDING_TASK_2__',
+    userText: `You are extracting structured data from a Chinese freight / shipping document (运输单 / 物流单 / 提单).
+
+The receipt is provided as one or more PNG images (one per PDF page) attached to this
+message. Look at the images directly — do NOT request OCR text from another tool.
+
+If the PDF shows multiple shipments batched together, extract the most prominent /
+largest one and set confidence='low'.
+
+${FIELD_RULES}`,
   }),
 };
