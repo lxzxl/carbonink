@@ -580,6 +580,8 @@ describe('ExtractionService', () => {
     // top would create a cyclical require pattern in some setups; we
     // sanity-check by parsing the fuel extraction through the schema
     // captured at the call site.
-    expect(() => (schema as { parse: (x: unknown) => unknown }).parse(fuelExtraction)).not.toThrow();
+    expect(() =>
+      (schema as { parse: (x: unknown) => unknown }).parse(fuelExtraction),
+    ).not.toThrow();
   });
 });
