@@ -9,6 +9,9 @@ import type { FuelReceiptParsed } from '@renderer/components/extractions/fuel-re
 import { FreightFields } from '@renderer/components/extractions/freight/fields';
 import { buildFreightInitialValues } from '@renderer/components/extractions/freight/prefill';
 import type { FreightParsed } from '@renderer/components/extractions/freight/types';
+import { PurchaseFields } from '@renderer/components/extractions/purchase/fields';
+import { buildPurchaseInitialValues } from '@renderer/components/extractions/purchase/prefill';
+import type { PurchaseParsed } from '@renderer/components/extractions/purchase/types';
 import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
 import { sourceApi } from '@renderer/lib/api/emission-source';
@@ -57,18 +60,6 @@ export interface ExtractionReviewProps {
 // ---------------------------------------------------------------------------
 // Per-stage parsed types + parsers
 // ---------------------------------------------------------------------------
-
-type PurchaseParsed = {
-  doc_type?: string;
-  supplier_name?: string;
-  item_description?: string;
-  category?: 'raw_material' | 'component' | 'consumable' | 'office_supply' | 'service' | 'other';
-  quantity_kg?: number | null;
-  amount_yuan?: number;
-  occurred_at?: string;
-  invoice_no?: string | null;
-  confidence?: 'high' | 'medium' | 'low';
-};
 
 type TravelParsed = {
   doc_type?: string;
@@ -337,26 +328,6 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
 // Per-stage <dl> field blocks
 // ---------------------------------------------------------------------------
 
-function PurchaseFields({ data }: { data: PurchaseParsed }) {
-  return (
-    <dl className="grid grid-cols-1 gap-y-2 text-sm sm:grid-cols-[max-content_1fr] sm:gap-x-4">
-      <Field label={m.documents_review_field_supplier()} value={data.supplier_name} />
-      <Field label={m.documents_review_field_item_description()} value={data.item_description} />
-      <Field label={m.documents_review_field_category()} value={data.category} />
-      <Field
-        label={m.documents_review_field_quantity_kg()}
-        value={typeof data.quantity_kg === 'number' ? `${data.quantity_kg} kg` : undefined}
-      />
-      <Field
-        label={m.documents_review_field_amount_yuan()}
-        value={typeof data.amount_yuan === 'number' ? `¥${data.amount_yuan}` : undefined}
-      />
-      <Field label={m.documents_review_field_occurred_at()} value={data.occurred_at} />
-      <Field label={m.documents_review_field_invoice_no()} value={data.invoice_no} />
-    </dl>
-  );
-}
-
 function TravelFields({ data }: { data: TravelParsed }) {
   return (
     <dl className="grid grid-cols-1 gap-y-2 text-sm sm:grid-cols-[max-content_1fr] sm:gap-x-4">
@@ -389,48 +360,6 @@ function TravelFields({ data }: { data: TravelParsed }) {
 // ---------------------------------------------------------------------------
 // ActivityForm prefill builders (per stage)
 // ---------------------------------------------------------------------------
-
-/**
- * Purchase prefill: dual-track based on whether quantity_kg is known.
- *
- * If the invoice gave an explicit weight (`quantity_kg > 0`), prefill
- * `amount=String(quantity_kg)` with `unit='kg'` — EF Matcher will pick
- * a per-kg EF (e.g. embodied CO2e of steel per kg).
- *
- * If `quantity_kg` is null OR 0 (service invoices, count-based units,
- * unreadable weight), prefill `amount=String(amount_yuan)` with
- * `unit='CNY'` — EF Matcher (Phase 1.5) will pick a per-currency EF
- * (e.g. CO2e per ¥1 of office supplies / consulting services).
- *
- * Single-day event (purchase = invoice issue date), so
- * occurred_at_start = end.
- */
-function buildPurchaseInitialValues(
-  data: PurchaseParsed,
-  filename: string,
-): import('@renderer/components/ActivityForm').ActivityFormInitialValues {
-  const notesParts = [`Auto-extracted from: ${filename}`];
-  if (data.supplier_name) notesParts.push(`Supplier: ${data.supplier_name}`);
-  if (data.item_description) notesParts.push(`Items: ${data.item_description}`);
-  if (data.category) notesParts.push(`Category: ${data.category}`);
-  if (data.invoice_no) notesParts.push(`Invoice: ${data.invoice_no}`);
-
-  const hasWeight = typeof data.quantity_kg === 'number' && data.quantity_kg > 0;
-  const out: import('@renderer/components/ActivityForm').ActivityFormInitialValues = {
-    unit: hasWeight ? 'kg' : 'CNY',
-    notes: notesParts.join(' · '),
-  };
-  if (data.occurred_at) {
-    out.occurred_at_start = data.occurred_at;
-    out.occurred_at_end = data.occurred_at;
-  }
-  if (hasWeight) {
-    out.amount = String(data.quantity_kg);
-  } else if (typeof data.amount_yuan === 'number') {
-    out.amount = String(data.amount_yuan);
-  }
-  return out;
-}
 
 /**
  * Travel prefill: dual-track based on mode.
