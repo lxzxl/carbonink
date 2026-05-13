@@ -89,4 +89,27 @@ describe('fuelReceiptStage metadata', () => {
     expect(typeof fuelReceiptStage.buildPrompt).toBe('function');
     expect(typeof fuelReceiptStage.buildVisionMessages).toBe('function');
   });
+
+  it('buildPrompt embeds the PDF text inside <receipt>...</receipt> AND includes field rules', () => {
+    const prompt = fuelReceiptStage.buildPrompt('SAMPLE_FUEL_RECEIPT_TEXT_TOKEN');
+    expect(prompt).toContain('Chinese fuel receipt');
+    expect(prompt).toContain('SAMPLE_FUEL_RECEIPT_TEXT_TOKEN');
+    expect(prompt).toContain('<receipt>');
+    expect(prompt).toContain('</receipt>');
+    // Field rules verbatim shared with vision path.
+    expect(prompt).toContain('fuel_category');
+    expect(prompt).toContain('92#汽油');
+    expect(prompt).toContain('gasoline');
+  });
+
+  it('buildVisionMessages mirrors buildPrompt field rules but omits the <receipt> placeholder', () => {
+    const msgs = fuelReceiptStage.buildVisionMessages?.();
+    expect(msgs).toBeDefined();
+    expect(msgs?.userText).toContain('Chinese fuel receipt');
+    expect(msgs?.userText).toContain('fuel_category');
+    expect(msgs?.userText).toContain('92#汽油');
+    expect(msgs?.userText).toContain('gasoline');
+    // No PDF text placeholder — image content is appended by the caller.
+    expect(msgs?.userText).not.toContain('<receipt>');
+  });
 });
