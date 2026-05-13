@@ -1,4 +1,5 @@
 import { type FreightExtraction, freightExtraction, freightStage } from '@main/llm/stages/freight';
+import { getStage, listStages } from '@main/llm/stages/registry';
 import { describe, expect, it } from 'vitest';
 
 const GOOD: FreightExtraction = {
@@ -128,5 +129,18 @@ describe('freightStage metadata', () => {
     expect(msgs?.userText).toContain('Do NOT estimate');
     // No PDF text placeholder — image content is appended by the caller.
     expect(msgs?.userText).not.toContain('<receipt>');
+  });
+});
+
+describe('freightStage registry integration', () => {
+  it('is returned by getStage("freight.v1")', () => {
+    expect(getStage('freight.v1')).toBe(freightStage);
+  });
+
+  it('appears in listStages() alongside the existing 2 stages', () => {
+    const ids = listStages().map((s) => s.id);
+    expect(ids).toContain('freight.v1');
+    expect(ids).toContain('fuel_receipt.v1');
+    expect(ids).toContain('china_utility.v1');
   });
 });

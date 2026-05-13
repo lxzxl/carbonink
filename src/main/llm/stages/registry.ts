@@ -1,4 +1,5 @@
 import { chinaUtilityStage } from './china-utility.js';
+import { freightStage } from './freight.js';
 import { fuelReceiptStage } from './fuel-receipt.js';
 import type { Stage } from './types.js';
 
@@ -15,6 +16,7 @@ import type { Stage } from './types.js';
 const _stageRegistry = new Map<string, Stage>([
   [chinaUtilityStage.id, chinaUtilityStage as Stage],
   [fuelReceiptStage.id, fuelReceiptStage as Stage],
+  [freightStage.id, freightStage as Stage],
 ]);
 
 export const stageRegistry: ReadonlyMap<string, Stage> = _stageRegistry;
