@@ -1,4 +1,5 @@
 import { type TravelExtraction, travelExtraction, travelStage } from '@main/llm/stages/travel';
+import { getStage, listStages } from '@main/llm/stages/registry';
 import { describe, expect, it } from 'vitest';
 
 const AIR_GOOD: TravelExtraction = {
@@ -179,5 +180,20 @@ describe('travelStage metadata', () => {
     expect(msgs?.userText).toContain('Do NOT estimate');
     // No PDF text placeholder — image content is appended by the caller.
     expect(msgs?.userText).not.toContain('<ticket>');
+  });
+});
+
+describe('travelStage registry integration', () => {
+  it('is returned by getStage("travel.v1")', () => {
+    expect(getStage('travel.v1')).toBe(travelStage);
+  });
+
+  it('appears in listStages() alongside the existing 4 stages', () => {
+    const ids = listStages().map((s) => s.id);
+    expect(ids).toContain('travel.v1');
+    expect(ids).toContain('purchase.v1');
+    expect(ids).toContain('freight.v1');
+    expect(ids).toContain('fuel_receipt.v1');
+    expect(ids).toContain('china_utility.v1');
   });
 });
