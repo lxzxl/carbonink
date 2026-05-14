@@ -2,7 +2,7 @@
 
 > Auto-generated i18n message functions. Import `messages.js` to use translated strings.
 
-Compiled from: `/Users/lxz/ws/personal/carbonbook/project.inlang`
+Compiled from: `./project.inlang`
 
 
 ## What is this folder?
