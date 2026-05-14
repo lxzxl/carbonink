@@ -54,7 +54,7 @@ Six end-to-end scenarios exercising the FULL backend pipeline (real seeded EF ca
 
 All pre-existing tests (extraction stages 1-5, stage registry, IPC, renderer) continue to pass. The opt-in `matcherHint` design preserves every prior code path.
 
-### ✅ Category granularity mismatch — RESOLVED
+### ✅ Category granularity mismatch — RESOLVED (commit 954cc7d)
 
 The smoke test surfaced a real product-level wrinkle: the canonical `emission_source.category` (chosen once by the user when creating a source) is more coarse than the EF catalog's per-row `category` (which goes down to per-class granularity like `travel.air.economy.shorthaul`). The matcher previously used `EfService.list({scope, category?})` with **exact** category match, so a source categorized `travel.air` got zero candidates.
 
