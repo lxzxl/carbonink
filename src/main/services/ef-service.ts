@@ -64,8 +64,11 @@ export class EfService {
       params.push(q.factor_code);
     }
     if (q.category !== undefined) {
-      clauses.push('category = ?');
-      params.push(q.category);
+      // Prefix-match: source categories are coarse (e.g. 'travel.air') while
+      // catalog rows go finer ('travel.air.economy.shorthaul'). Match both
+      // the exact category and any dotted descendant.
+      clauses.push('(category = ? OR category LIKE ?)');
+      params.push(q.category, `${q.category}.%`);
     }
     if (q.scope !== undefined) {
       clauses.push('scope = ?');

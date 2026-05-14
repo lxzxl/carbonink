@@ -54,19 +54,17 @@ Six end-to-end scenarios exercising the FULL backend pipeline (real seeded EF ca
 
 All pre-existing tests (extraction stages 1-5, stage registry, IPC, renderer) continue to pass. The opt-in `matcherHint` design preserves every prior code path.
 
-### 🟡 Category granularity mismatch — surfaced by smoke
+### ✅ Category granularity mismatch — RESOLVED
 
-The smoke test surfaced a real product-level wrinkle: the canonical `emission_source.category` (chosen once by the user when creating a source) is more coarse than the EF catalog's per-row `category` (which goes down to per-class granularity like `travel.air.economy.shorthaul`). The matcher uses `EfService.list({scope, category?})` which does **exact** category match.
+The smoke test surfaced a real product-level wrinkle: the canonical `emission_source.category` (chosen once by the user when creating a source) is more coarse than the EF catalog's per-row `category` (which goes down to per-class granularity like `travel.air.economy.shorthaul`). The matcher previously used `EfService.list({scope, category?})` with **exact** category match, so a source categorized `travel.air` got zero candidates.
 
 Concrete examples observed in the seed:
 - `travel.air.economy.shorthaul` / `travel.air.economy.longhaul` / `travel.air.business.longhaul` are three sibling categories — no parent `travel.air` bucket.
 - `purchase.service.consulting` exists; users would more naturally name their source `purchase.service` or just `purchase`.
 
-**Impact in v1:** the matcher works when the user's `emission_source.category` matches one of the catalog categories exactly. When it doesn't, `ranked_full` returns 0 candidates and the Recommended section silently hides (the FTS5+LLM fallback path). The user can still pick manually if there's any EF list at all from the scope filter, but for users with mismatched categories the EF list also collapses to empty.
+**Fix:** `EfService.list({category})` now does prefix-match (`category = ? OR category LIKE '<cat>.%'`). A source categorized `travel.air` pulls in all three `travel.air.*` EFs; `travel` pulls in all 6 `travel.*` rows. Exact-match behavior is preserved for fine-grained categories.
 
-**Recommended fix (Phase 2):** make `EfService.list({category})` do prefix-match (`category LIKE ? || '.%' OR category = ?`) instead of exact match. This is a 2-line change, but it impacts other call sites — needs its own brainstorm + spec.
-
-**Workaround for `phase-1d`:** document this limitation in the release notes. The 12 Phase 1a EFs + 20 Phase 1b EFs cover the common scope/category strings users are likely to pick during early adoption.
+The smoke test `travel.v1` stage now uses the coarser `category: 'travel.air'` to exercise the bridge; see `tests/main/services/ef-service.test.ts` for the three new unit tests covering coarse/fine/top-level prefix match.
 
 ### Open follow-up for the GUI smoke
 

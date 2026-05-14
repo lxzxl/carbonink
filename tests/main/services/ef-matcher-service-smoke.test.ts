@@ -133,11 +133,11 @@ describe('EfMatcherService — end-to-end smoke against real seeded catalog', ()
         }),
         prompt_version: 'travel.v1',
       } as Extraction,
-      // Travel EFs use specific per-class categories (travel.air.economy.shorthaul
-      // etc.), not a single 'travel.air' bucket. We pick the most likely exact
-      // category for an "经济舱" ticket; the bm25 ranking then sorts the
-      // resulting single-row candidate set.
-      source: { scope: 3, category: 'travel.air.economy.shorthaul' },
+      // Travel EFs use per-class categories (travel.air.economy.shorthaul etc.)
+      // while user-chosen source categories are coarser. Prefix-match in
+      // EfService.list lets the coarse 'travel.air' pull in all three seeded
+      // travel.air.* variants; bm25 then ranks them against the hint.
+      source: { scope: 3, category: 'travel.air' },
     });
 
     const r = await svc.recommend({
@@ -145,7 +145,8 @@ describe('EfMatcherService — end-to-end smoke against real seeded catalog', ()
       emission_source_id: 'src-travel',
     });
 
-    expect(r.ranked_full.length).toBeGreaterThan(0);
+    // 3 seeded travel.air.* EFs: economy.shorthaul, economy.longhaul, business.longhaul.
+    expect(r.ranked_full.length).toBeGreaterThan(1);
     for (const ef of r.ranked_full) {
       expect(ef.category).toMatch(/^travel\.air/);
     }

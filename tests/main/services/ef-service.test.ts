@@ -61,6 +61,35 @@ describe('EfService.list', () => {
     expect(svc.list({ factor_code: 'electricity.grid.cn.east.2024', scope: 1 })).toHaveLength(0);
     expect(svc.list({ factor_code: 'electricity.grid.cn.east.2024', scope: 2 })).toHaveLength(1);
   });
+
+  // Bridges the source/catalog granularity gap: `emission_source.category` is
+  // coarse (e.g. 'travel.air') while the EF catalog goes finer
+  // (travel.air.economy.shorthaul). Prefix-match lets a coarse source category
+  // pull in all matching finer-grained EFs.
+  it('returns all travel.air.* EFs for { category: "travel.air" } (prefix-match)', () => {
+    const rows = svc.list({ category: 'travel.air' });
+    // Migration 011 seeds 3 travel.air.* variants:
+    // economy.shorthaul, economy.longhaul, business.longhaul.
+    expect(rows).toHaveLength(3);
+    for (const r of rows) {
+      expect(r.category).toMatch(/^travel\.air(\.|$)/);
+    }
+  });
+
+  it('still exact-matches { category: "travel.air.economy.shorthaul" }', () => {
+    const rows = svc.list({ category: 'travel.air.economy.shorthaul' });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.category).toBe('travel.air.economy.shorthaul');
+  });
+
+  it('returns all travel.* EFs for { category: "travel" } (prefix-match at top level)', () => {
+    const rows = svc.list({ category: 'travel' });
+    // 3 air + 2 rail + 1 taxi = 6 travel.* EFs in migration 011.
+    expect(rows).toHaveLength(6);
+    for (const r of rows) {
+      expect(r.category).toMatch(/^travel\./);
+    }
+  });
 });
 
 describe('EfService.get', () => {
