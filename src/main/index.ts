@@ -5,6 +5,13 @@ import { cleanupIpc, setupIpc } from '@main/ipc/setup.js';
 import { app, BrowserWindow } from 'electron';
 import { createMainWindow } from './window.js';
 
+// E2E test hook: honor a per-test temp userData dir if the env var is set.
+// MUST run before any service reads `app.getPath('userData')`. Runs at
+// module-load time so it precedes `app.whenReady`.
+if (process.env.CARBONBOOK_TEST_USER_DATA_DIR) {
+  app.setPath('userData', process.env.CARBONBOOK_TEST_USER_DATA_DIR);
+}
+
 app.whenReady().then(() => {
   const dbPath = join(app.getPath('userData'), 'app.sqlite');
   const db = openAppDb(dbPath);
