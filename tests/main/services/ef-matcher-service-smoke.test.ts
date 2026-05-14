@@ -35,20 +35,24 @@ function setup(opts: {
   const db = new Database(':memory:');
   runMigrations(db);
   const efService = new EfService({ db });
-  const recommendEfs = vi.fn().mockImplementation((_config, _json, candidates: EmissionFactor[]) => {
-    const picker = opts.llmPicker ?? ((cs) => cs.slice(0, 3).map((ef) => ({ ef, reasoning_zh: `pick ${ef.factor_code}` })));
-    const picks = picker(candidates);
-    return Promise.resolve({
-      recommendations: picks.map((p) => ({
-        factor_code: p.ef.factor_code,
-        year: p.ef.year,
-        source: p.ef.source,
-        geography: p.ef.geography,
-        dataset_version: p.ef.dataset_version,
-        reasoning_zh: p.reasoning_zh,
-      })),
+  const recommendEfs = vi
+    .fn()
+    .mockImplementation((_config, _json, candidates: EmissionFactor[]) => {
+      const picker =
+        opts.llmPicker ??
+        ((cs) => cs.slice(0, 3).map((ef) => ({ ef, reasoning_zh: `pick ${ef.factor_code}` })));
+      const picks = picker(candidates);
+      return Promise.resolve({
+        recommendations: picks.map((p) => ({
+          factor_code: p.ef.factor_code,
+          year: p.ef.year,
+          source: p.ef.source,
+          geography: p.ef.geography,
+          dataset_version: p.ef.dataset_version,
+          reasoning_zh: p.reasoning_zh,
+        })),
+      });
     });
-  });
   const svc = new EfMatcherService({
     db,
     efService,
@@ -94,13 +98,20 @@ describe('EfMatcherService — end-to-end smoke against real seeded catalog', ()
     const { svc } = setup({
       extraction: {
         id: 'ext-freight-1',
-        parsed_json: JSON.stringify({ mode: 'road', vehicle_class: '重型卡车', supplier_name: '顺丰' }),
+        parsed_json: JSON.stringify({
+          mode: 'road',
+          vehicle_class: '重型卡车',
+          supplier_name: '顺丰',
+        }),
         prompt_version: 'freight.v1',
       } as Extraction,
       source: { scope: 3, category: 'freight.road' },
     });
 
-    const r = await svc.recommend({ extraction_id: 'ext-freight-1', emission_source_id: 'src-freight' });
+    const r = await svc.recommend({
+      extraction_id: 'ext-freight-1',
+      emission_source_id: 'src-freight',
+    });
 
     expect(r.ranked_full.length).toBeGreaterThan(0);
     // All candidates must be in freight.road.* (the scope/category filter is doing its job).
@@ -115,7 +126,11 @@ describe('EfMatcherService — end-to-end smoke against real seeded catalog', ()
     const { svc } = setup({
       extraction: {
         id: 'ext-travel-1',
-        parsed_json: JSON.stringify({ mode: 'air', travel_class: '经济舱', supplier_name: '中国国际航空' }),
+        parsed_json: JSON.stringify({
+          mode: 'air',
+          travel_class: '经济舱',
+          supplier_name: '中国国际航空',
+        }),
         prompt_version: 'travel.v1',
       } as Extraction,
       // Travel EFs use specific per-class categories (travel.air.economy.shorthaul
@@ -125,7 +140,10 @@ describe('EfMatcherService — end-to-end smoke against real seeded catalog', ()
       source: { scope: 3, category: 'travel.air.economy.shorthaul' },
     });
 
-    const r = await svc.recommend({ extraction_id: 'ext-travel-1', emission_source_id: 'src-travel' });
+    const r = await svc.recommend({
+      extraction_id: 'ext-travel-1',
+      emission_source_id: 'src-travel',
+    });
 
     expect(r.ranked_full.length).toBeGreaterThan(0);
     for (const ef of r.ranked_full) {
@@ -150,7 +168,10 @@ describe('EfMatcherService — end-to-end smoke against real seeded catalog', ()
       source: { scope: 3, category: 'purchase.service.consulting' },
     });
 
-    const r = await svc.recommend({ extraction_id: 'ext-purchase-1', emission_source_id: 'src-purchase' });
+    const r = await svc.recommend({
+      extraction_id: 'ext-purchase-1',
+      emission_source_id: 'src-purchase',
+    });
 
     expect(r.ranked_full.length).toBeGreaterThan(0);
     expect(r.ranked_full[0]?.input_unit).toBe('CNY');
@@ -159,7 +180,11 @@ describe('EfMatcherService — end-to-end smoke against real seeded catalog', ()
 
   it('returns empty result when scope/category filter has no candidates', async () => {
     const { svc, recommendEfs } = setup({
-      extraction: { id: 'e-empty', parsed_json: '{}', prompt_version: 'fuel_receipt.v1' } as Extraction,
+      extraction: {
+        id: 'e-empty',
+        parsed_json: '{}',
+        prompt_version: 'fuel_receipt.v1',
+      } as Extraction,
       source: { scope: 3, category: 'this.category.does.not.exist' },
     });
 
