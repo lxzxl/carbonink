@@ -1,17 +1,14 @@
 import { ExtractionReview } from '@renderer/components/ExtractionReview';
+import { ManualStagePicker } from '@renderer/components/ManualStagePicker';
 import { toast } from '@renderer/components/toast';
-import { Button } from '@renderer/components/ui/button';
 import { documentApi } from '@renderer/lib/api/document';
 import { extractionApi } from '@renderer/lib/api/extraction';
-import { subscribe } from '@renderer/lib/ipc';
 import * as m from '@renderer/paraglide/messages';
 import type { Document, Extraction } from '@shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link, useParams } from '@tanstack/react-router';
 import { ArrowLeft } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
-
-const STAGE_ID = 'china_utility.v1';
+import { useEffect, useMemo } from 'react';
 
 /**
  * /documents/$id — document review detail.
@@ -69,18 +66,48 @@ function DocumentReviewRoute() {
 }
 
 function DocumentReview({ document }: { document: Document }) {
+  const queryClient = useQueryClient();
+
   const extractionsQuery = useQuery<Extraction[]>({
     queryKey: ['extraction:list-by-document', document.id],
     queryFn: () => extractionApi.listByDocument({ document_id: document.id }),
   });
+
   // Rejected rows are soft-deletes (kept in `extraction` for forensics until
   // the user explicitly re-extracts — see ExtractionService.run). The review
   // pane treats them as "no extraction yet", so we pick the most-recent
-  // NON-rejected row as the active one. `hasDiscarded` is true when the doc
-  // has any rejected history without a fresh extraction on top — the retry
-  // CTA uses it to surface a "previously discarded" hint.
+  // NON-rejected row as the active one.
   const extractions = extractionsQuery.data ?? [];
   const activeExtraction = extractions.find((e) => e.status !== 'rejected');
+
+  // Auto-classify pipeline: fires once when we observe an empty extraction
+  // list (no active extraction, no rejected history). This replaces the old
+  // manual "Run extraction" button for brand-new documents.
+  const classifyMutation = useMutation({
+    mutationFn: () => extractionApi.classifyAndRun({ document_id: document.id }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: ['extraction:list-by-document', document.id],
+      });
+    },
+  });
+
+  useEffect(() => {
+    // Only fire once on first observation of a truly empty extraction list
+    // (no rows at all — not just no active extraction). If there's rejected
+    // history, fall through to the ManualStagePicker via the hasDiscarded path.
+    if (
+      extractionsQuery.data &&
+      extractionsQuery.data.length === 0 &&
+      !classifyMutation.isPending &&
+      !classifyMutation.isError &&
+      !classifyMutation.data
+    ) {
+      classifyMutation.mutate();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [extractionsQuery.data, classifyMutation]);
+
   const hasDiscarded = !activeExtraction && extractions.some((e) => e.status === 'rejected');
 
   return (
@@ -100,110 +127,27 @@ function DocumentReview({ document }: { document: Document }) {
         <div className="overflow-y-auto">
           {extractionsQuery.isLoading ? (
             <p className="text-sm text-muted-foreground">{m.loading()}</p>
-          ) : !activeExtraction ? (
-            <RunExtractionAction
-              document={document}
-              discardedHint={hasDiscarded}
-              // Retry the same stage the user originally picked. If the
-              // doc only ever had rejected extractions, the most-recent
-              // rejected one's prompt_version is the right retry stage.
-              // If there's no history at all, fall back to the default.
-              stageId={extractions[0]?.prompt_version ?? STAGE_ID}
+          ) : classifyMutation.isPending ? (
+            <div className="rounded-md border bg-muted/30 p-4">
+              <p className="text-sm">{m.documents_review_classifying()}</p>
+            </div>
+          ) : (classifyMutation.data as Awaited<typeof classifyMutation.data>)?.status === 'classify_failed' ? (
+            <ManualStagePicker documentId={document.id} />
+          ) : !activeExtraction && hasDiscarded ? (
+            <ManualStagePicker
+              documentId={document.id}
+              defaultStageId={extractions[0]?.prompt_version}
+              discardExtractionId={extractions[0]?.id}
             />
-          ) : (
+          ) : activeExtraction ? (
             <ExtractionReview extraction={activeExtraction} document={document} />
-          )}
+          ) : null}
         </div>
       </div>
     </div>
   );
 }
 
-/**
- * Shown when a document has no active extraction. The upload flow runs
- * extraction inline, but several paths land here:
- *   - doc uploaded before AI provider was configured
- *   - initial extraction failed (LLM/network error)
- *   - user discarded the previous extraction and wants to retry
- *
- * The `discardedHint` flag covers the third case — we want the user to know
- * the LLM will be re-invoked (no silent cache hit) and offer a small nudge
- * to try a different model if the previous run was nonsense. Service-layer
- * cache (`findCached`) excludes rejected rows and `run()` clears stale
- * rejected rows out of the way, so this button is genuinely a fresh round
- * trip.
- */
-function RunExtractionAction({
-  document,
-  discardedHint,
-  stageId,
-}: {
-  document: Document;
-  discardedHint?: boolean;
-  stageId: string;
-}) {
-  const queryClient = useQueryClient();
-  const [visionPhase, setVisionPhase] = useState(false);
-
-  // Subscribe while the mutation is in flight — we set visionPhase=true on
-  // the matching extraction:progress event, then reset when the mutation
-  // settles. Scoping by document id prevents a stale event from a
-  // background extraction (e.g. user navigated back to /documents and
-  // kicked off another run) from sneaking in.
-  const runExtraction = useMutation({
-    mutationFn: async () => {
-      setVisionPhase(false);
-      return extractionApi.run({ document_id: document.id, stage_id: stageId });
-    },
-    onSuccess: async () => {
-      toast.success(m.documents_extraction_done(), { description: document.filename });
-      await queryClient.invalidateQueries({
-        queryKey: ['extraction:list-by-document', document.id],
-      });
-      await queryClient.invalidateQueries({ queryKey: ['extraction:list-pending'] });
-      await queryClient.invalidateQueries({ queryKey: ['extraction:list-statuses'] });
-    },
-    onError: (err) => {
-      const msg = err instanceof Error ? err.message : String(err);
-      toast.error(m.documents_extraction_failed(), { description: msg });
-    },
-    onSettled: () => {
-      setVisionPhase(false);
-    },
-  });
-
-  useEffect(() => {
-    if (!runExtraction.isPending) return;
-    return subscribe('extraction:progress', (payload) => {
-      if (payload.document_id === document.id && payload.phase === 'vision') {
-        setVisionPhase(true);
-      }
-    });
-  }, [runExtraction.isPending, document.id]);
-
-  return (
-    <div className="space-y-3 rounded-md border border-border bg-muted/30 p-4">
-      <p className="text-sm text-muted-foreground">
-        {discardedHint
-          ? m.documents_review_previous_discarded()
-          : m.documents_review_no_extraction()}
-      </p>
-      <Button
-        type="button"
-        onClick={() => runExtraction.mutate()}
-        disabled={runExtraction.isPending}
-      >
-        {runExtraction.isPending
-          ? visionPhase
-            ? m.documents_extracting_vision()
-            : m.documents_extraction_running()
-          : discardedHint
-            ? m.documents_extraction_run_again()
-            : m.documents_extraction_run_now()}
-      </Button>
-    </div>
-  );
-}
 
 function BackLink() {
   return (

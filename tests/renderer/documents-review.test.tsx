@@ -26,6 +26,7 @@ vi.mock('@renderer/lib/api/document', () => ({
 }));
 vi.mock('@renderer/lib/api/extraction', () => ({
   extractionApi: {
+    classifyAndRun: vi.fn(),
     run: vi.fn(),
     listPending: vi.fn(),
     listByDocument: vi.fn(),
@@ -191,6 +192,13 @@ describe('/documents/$id review route', () => {
     vi.mocked(documentApi.getById).mockResolvedValue(FAKE_DOC);
     vi.mocked(documentApi.readBytes).mockResolvedValue(new Uint8Array([0x25, 0x50, 0x44, 0x46]));
     vi.mocked(extractionApi.listByDocument).mockResolvedValue([FAKE_EXTRACTION]);
+    // Default: classifyAndRun succeeds — tests that need empty-list behavior
+    // mock listByDocument to [] AND override classifyAndRun as needed.
+    vi.mocked(extractionApi.classifyAndRun).mockResolvedValue({
+      status: 'classified',
+      extraction: FAKE_EXTRACTION,
+      doc_type: 'china_utility',
+    });
     vi.mocked(extractionApi.confirm).mockResolvedValue(undefined);
     vi.mocked(extractionApi.discard).mockResolvedValue(undefined);
     vi.mocked(orgApi.getCurrent).mockResolvedValue(FAKE_ORG);
@@ -253,12 +261,21 @@ describe('/documents/$id review route', () => {
     expect(notesInput.value).toContain('bill.pdf');
   });
 
-  it('shows the no-extraction message when no extractions exist', async () => {
+  it('auto-fires classifyAndRun and shows classifying state when no extractions exist', async () => {
+    // classifyAndRun never resolves so the pending state stays visible
     vi.mocked(extractionApi.listByDocument).mockResolvedValue([]);
+    vi.mocked(extractionApi.classifyAndRun).mockImplementation(
+      () => new Promise(() => {}), // never resolves — keeps mutation pending
+    );
 
     render(buildHarness());
 
-    expect(await screen.findByText(/No extraction yet|这份文档还没有抽取结果/)).toBeTruthy();
+    expect(
+      await screen.findByText(/Analyzing document type|正在分析单据类型/),
+    ).toBeTruthy();
+    expect(extractionApi.classifyAndRun).toHaveBeenCalledWith({
+      document_id: FAKE_DOC.id,
+    });
   });
 
   it('Discard button calls extractionApi.discard after confirmation', async () => {
