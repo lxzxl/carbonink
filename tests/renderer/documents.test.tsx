@@ -245,4 +245,26 @@ describe('/documents route', () => {
       expect(router.state.location.pathname).toBe(`/documents/${FAKE_DOC.id}`);
     });
   });
+
+  it('displays "未分类" chip when doc_type is null', async () => {
+    vi.mocked(documentApi.list).mockResolvedValue([FAKE_DOC]);
+    render(buildHarness());
+
+    // Wait for the row to render and check that the unclassified label appears
+    const unclassifiedChip = await screen.findByText(/未分类|Not classified/);
+    expect(unclassifiedChip).toBeTruthy();
+  });
+
+  it('displays the doc_type label when doc_type is set', async () => {
+    const docWithType = {
+      ...FAKE_DOC,
+      doc_type: 'fuel_receipt.v1',
+    };
+    vi.mocked(documentApi.list).mockResolvedValue([docWithType]);
+    render(buildHarness());
+
+    // The label map should translate 'fuel_receipt.v1' to '加油发票'
+    const fuelReceiptChip = await screen.findByText('加油发票');
+    expect(fuelReceiptChip).toBeTruthy();
+  });
 });

@@ -5,6 +5,7 @@ import { Button } from '@renderer/components/ui/button';
 import { documentApi } from '@renderer/lib/api/document';
 import { extractionApi } from '@renderer/lib/api/extraction';
 import { settingsApi } from '@renderer/lib/api/settings';
+import { stageLabel } from '@renderer/lib/stage-labels';
 import * as m from '@renderer/paraglide/messages';
 import type { Document, ExtractionStatus } from '@shared/types';
 import { useQuery } from '@tanstack/react-query';
@@ -122,11 +123,11 @@ function resolveStatusChip(
  */
 function DocumentRow({
   document: d,
-  chip,
+  statusChip,
   onOpen,
 }: {
   document: Document;
-  chip: DocumentStatusChip;
+  statusChip: DocumentStatusChip;
   onOpen: () => void;
 }) {
   return (
@@ -136,11 +137,16 @@ function DocumentRow({
       </td>
       <td className="px-3 py-2">{d.filename}</td>
       <td className="whitespace-nowrap px-3 py-2">
-        <span
-          className={`inline-flex items-center rounded border px-2 py-0.5 text-xs font-medium ${STATUS_CHIP_CLASSES[chip]}`}
-        >
-          {STATUS_CHIP_LABELS[chip]()}
-        </span>
+        <div className="flex gap-2">
+          <span
+            className={`inline-flex items-center rounded border px-2 py-0.5 text-xs font-medium ${STATUS_CHIP_CLASSES[statusChip]}`}
+          >
+            {STATUS_CHIP_LABELS[statusChip]()}
+          </span>
+          <span className="inline-flex items-center rounded border border-border bg-muted/30 px-2 py-0.5 text-xs font-medium text-muted-foreground">
+            {stageLabel(d.doc_type)}
+          </span>
+        </div>
       </td>
       <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{d.sha256.slice(0, 8)}</td>
       <td className="px-3 py-2 text-right text-xs">
@@ -228,7 +234,7 @@ function DocumentsList() {
             <DocumentRow
               key={d.id}
               document={d}
-              chip={resolveStatusChip(
+              statusChip={resolveStatusChip(
                 statusByDocId.get(d.id)?.active ?? null,
                 statusByDocId.get(d.id)?.hasRejected ?? false,
               )}

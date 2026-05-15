@@ -39,6 +39,7 @@
   "documents_status_parsed": "Confirmed",
   "documents_status_rejected": "Discarded",
   "documents_status_none": "No extractions",
+  "documents_status_unclassified": "Not classified",
   "documents_open_row": "Open",
   "documents_review_back": "Back to documents",
   "documents_review_uploaded_on": "Uploaded {date}",

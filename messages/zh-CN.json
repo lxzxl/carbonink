@@ -39,6 +39,7 @@
   "documents_status_parsed": "已确认",
   "documents_status_rejected": "已丢弃",
   "documents_status_none": "无抽取",
+  "documents_status_unclassified": "未分类",
   "documents_open_row": "打开",
   "documents_review_back": "返回文档列表",
   "documents_review_uploaded_on": "上传于 {date}",
