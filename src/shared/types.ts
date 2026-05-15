@@ -7,6 +7,17 @@ export * from './schemas/reporting-period.js';
 export * from './schemas/site.js';
 
 // ---------------------------------------------------------------------------
+// Customer types
+// ---------------------------------------------------------------------------
+
+/** Row shape mirroring the `customer` table. See migration 005. */
+export type Customer = {
+  id: string;
+  name: string;
+  notes: string | null;
+};
+
+// ---------------------------------------------------------------------------
 // Emission Factor types (Phase 1a — bare TS types; Zod schemas land in Task 6)
 // ---------------------------------------------------------------------------
 
