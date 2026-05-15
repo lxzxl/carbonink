@@ -65,6 +65,7 @@
     "cmdk": "^1.1.1",
     "electron": "^41.5.1",
     "electron-vite": "^5.0.0",
+    "exceljs": "^4.4.0",
     "lucide-react": "~1.14.0",
     "pdf-parse": "^2.4.5",
     "pdfjs-dist": "^5.4.296",
