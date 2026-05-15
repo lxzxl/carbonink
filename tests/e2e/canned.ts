@@ -16,7 +16,7 @@
  *   travel        : travel.air.economy.shorthaul       / 2024 / DEFRA      / GLOBAL    / 2024.annual
  */
 
-import type { Extraction, MatcherResult, EmissionFactor } from '../../src/shared/types.js';
+import type { EmissionFactor, Extraction, MatcherResult } from '../../src/shared/types.js';
 
 // ---------------------------------------------------------------------------
 // Real EF rows from seeded catalog

@@ -41,7 +41,9 @@ describe('migration 012 — document.doc_type', () => {
   it('creates partial index idx_document_doc_type on non-null doc_type', () => {
     const db = setupDb();
     const idx = db
-      .prepare(`SELECT name, sql FROM sqlite_master WHERE type='index' AND name='idx_document_doc_type'`)
+      .prepare(
+        `SELECT name, sql FROM sqlite_master WHERE type='index' AND name='idx_document_doc_type'`,
+      )
       .get() as { name: string; sql: string } | undefined;
     expect(idx).toBeDefined();
     expect(idx?.sql).toContain('doc_type');

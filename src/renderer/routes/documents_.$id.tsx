@@ -105,7 +105,7 @@ function DocumentReview({ document }: { document: Document }) {
     ) {
       classifyMutation.mutate();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [extractionsQuery.data, classifyMutation]);
 
   const hasDiscarded = !activeExtraction && extractions.some((e) => e.status === 'rejected');
@@ -131,7 +131,8 @@ function DocumentReview({ document }: { document: Document }) {
             <div className="rounded-md border bg-muted/30 p-4">
               <p className="text-sm">{m.documents_review_classifying()}</p>
             </div>
-          ) : (classifyMutation.data as Awaited<typeof classifyMutation.data>)?.status === 'classify_failed' ? (
+          ) : (classifyMutation.data as Awaited<typeof classifyMutation.data>)?.status ===
+            'classify_failed' ? (
             <ManualStagePicker documentId={document.id} />
           ) : !activeExtraction && hasDiscarded ? (
             <ManualStagePicker
@@ -147,7 +148,6 @@ function DocumentReview({ document }: { document: Document }) {
     </div>
   );
 }
-
 
 function BackLink() {
   return (

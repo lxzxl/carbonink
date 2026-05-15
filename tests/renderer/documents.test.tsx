@@ -61,21 +61,6 @@ const FAKE_DOC = {
   doc_type: null,
 };
 
-const FAKE_EXTRACTION = {
-  id: 'ext_01',
-  document_id: FAKE_DOC.id,
-  llm_provider: 'openai',
-  llm_model: 'gpt-4o-mini',
-  prompt_version: 'china_utility.v1',
-  raw_response: '{}',
-  parsed_json: '{}',
-  error_json: null,
-  status: 'review_needed' as const,
-  reviewed_by_user_at: null,
-  cost_usd: null,
-  created_at: '2026-05-12T10:00:01.000Z',
-};
-
 const documentsComponent: NonNullable<typeof DocumentsRoute.options.component> = (() => {
   const c = DocumentsRoute.options.component;
   if (!c) throw new Error('documents route is missing a component');

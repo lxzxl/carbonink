@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
 
 describe('main entry — CARBONBOOK_TEST_USER_DATA_DIR hook', () => {
   it('src/main/index.ts honors the test env var before reading userData', () => {

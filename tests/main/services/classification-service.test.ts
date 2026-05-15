@@ -24,7 +24,9 @@ function setup(opts: {
   const classify = opts.classifyThrows
     ? vi.fn().mockRejectedValue(opts.classifyThrows)
     : vi.fn().mockResolvedValue(opts.classifyResult ?? { doc_type: null, confidence: 0 });
-  const run = vi.fn().mockResolvedValue(opts.extractionRunResult ?? ({ id: 'ext-1' } as Extraction));
+  const run = vi
+    .fn()
+    .mockResolvedValue(opts.extractionRunResult ?? ({ id: 'ext-1' } as Extraction));
   const updateDocType = vi.fn();
   const docService = {
     getById: vi.fn().mockReturnValue(opts.document),
@@ -33,7 +35,11 @@ function setup(opts: {
   return {
     svc: new ClassificationService({
       db,
-      llmClient: { classifyDocument: classify, extractWithImages: vi.fn(), extract: vi.fn() } as never,
+      llmClient: {
+        classifyDocument: classify,
+        extractWithImages: vi.fn(),
+        extract: vi.fn(),
+      } as never,
       extractionService: { run } as never,
       documentService: docService as never,
       config: FAKE_CONFIG,

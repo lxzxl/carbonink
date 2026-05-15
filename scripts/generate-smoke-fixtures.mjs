@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 /**
  * Generates the 5 manual-smoke fixture PDFs by rendering filled-in Chinese
  * invoice HTML through Playwright's headless Chromium.
@@ -21,9 +24,6 @@
  * Outputs to tests/fixtures/smoke/.
  */
 import { chromium } from '@playwright/test';
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = join(__dirname, '..', 'tests', 'fixtures', 'smoke');

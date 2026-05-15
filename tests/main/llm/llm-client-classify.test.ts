@@ -17,7 +17,11 @@ describe('LLMClient.classifyDocument', () => {
       confidence: 0.92,
     } as unknown as never);
 
-    const result = await client.classifyDocument(fakeConfig, '中国石化加油 0号柴油 45.6升 357.96元', []);
+    const result = await client.classifyDocument(
+      fakeConfig,
+      '中国石化加油 0号柴油 45.6升 357.96元',
+      [],
+    );
 
     expect(result.doc_type).toBe('fuel_receipt.v1');
     expect(result.confidence).toBe(0.92);

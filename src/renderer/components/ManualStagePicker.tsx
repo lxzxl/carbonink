@@ -37,7 +37,7 @@ export function ManualStagePicker({
   onConfirmed,
 }: ManualStagePickerProps) {
   const queryClient = useQueryClient();
-  const [selected, setSelected] = useState<string>(defaultStageId ?? STAGES[0]!.id);
+  const [selected, setSelected] = useState<string>(defaultStageId ?? STAGES[0]?.id ?? '');
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -56,9 +56,7 @@ export function ManualStagePicker({
 
   return (
     <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-4 space-y-3">
-      {!discardExtractionId && (
-        <p className="text-sm">{m.documents_review_classify_failed()}</p>
-      )}
+      {!discardExtractionId && <p className="text-sm">{m.documents_review_classify_failed()}</p>}
       <div className="flex items-center gap-2">
         <select
           value={selected}
@@ -67,7 +65,9 @@ export function ManualStagePicker({
           disabled={mutation.isPending}
         >
           {STAGES.map((s) => (
-            <option key={s.id} value={s.id}>{s.label}</option>
+            <option key={s.id} value={s.id}>
+              {s.label}
+            </option>
           ))}
         </select>
         <Button type="button" onClick={() => mutation.mutate()} disabled={mutation.isPending}>

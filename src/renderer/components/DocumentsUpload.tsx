@@ -84,36 +84,36 @@ export function DocumentsUpload() {
 
   return (
     <label
-        htmlFor="documents-upload-input"
-        onDragOver={(e) => {
-          e.preventDefault();
-          if (!disabled) setIsDragging(true);
-        }}
-        onDragLeave={() => setIsDragging(false)}
-        onDrop={onDrop}
-        data-state={state}
-        data-dragging={isDragging || undefined}
-        className={[
-          'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-border bg-muted/30 px-6 py-10 text-sm transition-colors',
-          'hover:border-primary/60 hover:bg-muted/50',
-          'data-[dragging]:border-primary data-[dragging]:bg-primary/5',
-          disabled ? 'pointer-events-none opacity-60' : '',
-        ]
-          .filter(Boolean)
-          .join(' ')}
-      >
-        <UploadCloud className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
-        <span className="font-medium text-foreground">{label}</span>
-        <span className="text-xs text-muted-foreground">{m.documents_upload_pdf_only()}</span>
-        <input
-          ref={inputRef}
-          id="documents-upload-input"
-          type="file"
-          accept={ACCEPT}
-          className="sr-only"
-          disabled={disabled}
-          onChange={onFileChange}
-        />
-      </label>
+      htmlFor="documents-upload-input"
+      onDragOver={(e) => {
+        e.preventDefault();
+        if (!disabled) setIsDragging(true);
+      }}
+      onDragLeave={() => setIsDragging(false)}
+      onDrop={onDrop}
+      data-state={state}
+      data-dragging={isDragging || undefined}
+      className={[
+        'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-border bg-muted/30 px-6 py-10 text-sm transition-colors',
+        'hover:border-primary/60 hover:bg-muted/50',
+        'data-[dragging]:border-primary data-[dragging]:bg-primary/5',
+        disabled ? 'pointer-events-none opacity-60' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
+      <UploadCloud className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
+      <span className="font-medium text-foreground">{label}</span>
+      <span className="text-xs text-muted-foreground">{m.documents_upload_pdf_only()}</span>
+      <input
+        ref={inputRef}
+        id="documents-upload-input"
+        type="file"
+        accept={ACCEPT}
+        className="sr-only"
+        disabled={disabled}
+        onChange={onFileChange}
+      />
+    </label>
   );
 }

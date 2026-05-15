@@ -1,6 +1,6 @@
-import type { Database } from 'better-sqlite3';
 import type { LLMClient } from '@main/llm/llm-client.js';
 import type { ClassifyAndRunResult, ProviderConfig } from '@shared/types.js';
+import type { Database } from 'better-sqlite3';
 import type { DocumentService } from './document-service.js';
 import type { ExtractionService } from './extraction-service.js';
 

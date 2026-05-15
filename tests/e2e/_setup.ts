@@ -57,9 +57,7 @@ export async function launchApp(opts: LaunchOpts): Promise<StageE2ESetup> {
   });
 
   // Wait for the app to be ready before installing IPC overrides.
-  await app.evaluate(
-    ({ app: electronApp }: typeof import('electron')) => electronApp.whenReady(),
-  );
+  await app.evaluate(({ app: electronApp }: typeof import('electron')) => electronApp.whenReady());
 
   // -------------------------------------------------------------------------
   // Override extraction:run
@@ -71,32 +69,21 @@ export async function launchApp(opts: LaunchOpts): Promise<StageE2ESetup> {
   type ExtractionMap = Record<string, Record<string, unknown>>;
   const extractionMap: ExtractionMap = opts.cannedExtractions as ExtractionMap;
 
-  await app.evaluate(
-    (
-      { ipcMain }: typeof import('electron'),
-      map: ExtractionMap,
-    ) => {
-      ipcMain.removeHandler('extraction:run');
-      ipcMain.handle(
-        'extraction:run',
-        (_event, input: { document_id: string; stage_id: string }) => {
-          const canned = map[input.stage_id];
-          if (!canned) {
-            throw new Error(
-              `[e2e harness] No canned extraction for stage_id "${input.stage_id}"`,
-            );
-          }
-          return {
-            ...canned,
-            id: `ext-${input.stage_id}-mock`,
-            document_id: input.document_id,
-            created_at: new Date().toISOString(),
-          };
-        },
-      );
-    },
-    extractionMap,
-  );
+  await app.evaluate(({ ipcMain }: typeof import('electron'), map: ExtractionMap) => {
+    ipcMain.removeHandler('extraction:run');
+    ipcMain.handle('extraction:run', (_event, input: { document_id: string; stage_id: string }) => {
+      const canned = map[input.stage_id];
+      if (!canned) {
+        throw new Error(`[e2e harness] No canned extraction for stage_id "${input.stage_id}"`);
+      }
+      return {
+        ...canned,
+        id: `ext-${input.stage_id}-mock`,
+        document_id: input.document_id,
+        created_at: new Date().toISOString(),
+      };
+    });
+  }, extractionMap);
 
   // -------------------------------------------------------------------------
   // Override ef:recommend
@@ -107,34 +94,26 @@ export async function launchApp(opts: LaunchOpts): Promise<StageE2ESetup> {
   type RecommendMap = Record<string, unknown>;
   const recommendMap: RecommendMap = opts.cannedRecommendations as RecommendMap;
 
-  await app.evaluate(
-    (
-      { ipcMain }: typeof import('electron'),
-      map: RecommendMap,
-    ) => {
-      ipcMain.removeHandler('ef:recommend');
-      ipcMain.handle(
-        'ef:recommend',
-        (_event, input: { extraction_id: string; emission_source_id: string }) => {
-          const match = /^ext-(.+?)-mock$/.exec(input.extraction_id);
-          const stageId = match?.[1];
-          if (!stageId) {
-            throw new Error(
-              `[e2e harness] Cannot parse stage_id from extraction_id: "${input.extraction_id}"`,
-            );
-          }
-          const canned = map[stageId];
-          if (!canned) {
-            throw new Error(
-              `[e2e harness] No canned recommendation for stage_id "${stageId}"`,
-            );
-          }
-          return canned;
-        },
-      );
-    },
-    recommendMap,
-  );
+  await app.evaluate(({ ipcMain }: typeof import('electron'), map: RecommendMap) => {
+    ipcMain.removeHandler('ef:recommend');
+    ipcMain.handle(
+      'ef:recommend',
+      (_event, input: { extraction_id: string; emission_source_id: string }) => {
+        const match = /^ext-(.+?)-mock$/.exec(input.extraction_id);
+        const stageId = match?.[1];
+        if (!stageId) {
+          throw new Error(
+            `[e2e harness] Cannot parse stage_id from extraction_id: "${input.extraction_id}"`,
+          );
+        }
+        const canned = map[stageId];
+        if (!canned) {
+          throw new Error(`[e2e harness] No canned recommendation for stage_id "${stageId}"`);
+        }
+        return canned;
+      },
+    );
+  }, recommendMap);
 
   const window = await app.firstWindow();
   await window.waitForLoadState('domcontentloaded');

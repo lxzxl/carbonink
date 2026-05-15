@@ -123,9 +123,7 @@ export class DocumentService {
    * skip classification entirely. Pass `null` to clear a previously-set type.
    */
   updateDocType(documentId: string, docType: string | null): void {
-    this.ctx.db
-      .prepare(`UPDATE document SET doc_type = ? WHERE id = ?`)
-      .run(docType, documentId);
+    this.ctx.db.prepare(`UPDATE document SET doc_type = ? WHERE id = ?`).run(docType, documentId);
   }
 
   /**

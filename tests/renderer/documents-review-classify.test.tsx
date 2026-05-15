@@ -64,12 +64,12 @@ vi.mock('@renderer/lib/api/ef-library', () => ({
   },
 }));
 
+import { activityApi } from '@renderer/lib/api/activity-data';
 import { documentApi } from '@renderer/lib/api/document';
+import { efApi } from '@renderer/lib/api/ef-library';
+import { sourceApi } from '@renderer/lib/api/emission-source';
 import { extractionApi } from '@renderer/lib/api/extraction';
 import { orgApi } from '@renderer/lib/api/organization';
-import { sourceApi } from '@renderer/lib/api/emission-source';
-import { activityApi } from '@renderer/lib/api/activity-data';
-import { efApi } from '@renderer/lib/api/ef-library';
 
 const FAKE_DOC = {
   id: 'doc_classify_01',
@@ -191,9 +191,7 @@ describe('/documents/$id classify pipeline', () => {
 
     render(buildHarness());
 
-    expect(
-      await screen.findByText(/Analyzing document type|正在分析单据类型/),
-    ).toBeTruthy();
+    expect(await screen.findByText(/Analyzing document type|正在分析单据类型/)).toBeTruthy();
     expect(extractionApi.classifyAndRun).toHaveBeenCalledWith({
       document_id: FAKE_DOC.id,
     });

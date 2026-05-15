@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
 import { extractionHandlers } from '@main/ipc/handlers/extraction';
+import { describe, expect, it, vi } from 'vitest';
 
 function makeCtx() {
   return {
@@ -15,20 +15,25 @@ describe('extraction:classify-and-run handler', () => {
   it('zod-rejects malformed input (missing document_id)', async () => {
     const ctx = makeCtx();
     const handlers = extractionHandlers(ctx);
-    await expect((handlers['extraction:classify-and-run']!)({} as never)).rejects.toThrow();
+    await expect(handlers['extraction:classify-and-run']!({} as never)).rejects.toThrow();
   });
 
   it('zod-rejects empty document_id', async () => {
     const ctx = makeCtx();
     const handlers = extractionHandlers(ctx);
-    await expect((handlers['extraction:classify-and-run']!)({ document_id: '' } as never)).rejects.toThrow();
+    await expect(
+      handlers['extraction:classify-and-run']!({ document_id: '' } as never),
+    ).rejects.toThrow();
   });
 
   it('delegates to classificationService.classifyAndRun on valid input', async () => {
     const ctx = makeCtx();
     const handlers = extractionHandlers(ctx);
-    const r = await (handlers['extraction:classify-and-run']!)({ document_id: 'd-1' });
-    expect((ctx as never as { classificationService: { classifyAndRun: ReturnType<typeof vi.fn> } }).classificationService.classifyAndRun).toHaveBeenCalledWith('d-1');
+    const r = await handlers['extraction:classify-and-run']!({ document_id: 'd-1' });
+    expect(
+      (ctx as never as { classificationService: { classifyAndRun: ReturnType<typeof vi.fn> } })
+        .classificationService.classifyAndRun,
+    ).toHaveBeenCalledWith('d-1');
     expect(r).toEqual({ status: 'classify_failed' });
   });
 });

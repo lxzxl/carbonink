@@ -270,9 +270,7 @@ describe('/documents/$id review route', () => {
 
     render(buildHarness());
 
-    expect(
-      await screen.findByText(/Analyzing document type|正在分析单据类型/),
-    ).toBeTruthy();
+    expect(await screen.findByText(/Analyzing document type|正在分析单据类型/)).toBeTruthy();
     expect(extractionApi.classifyAndRun).toHaveBeenCalledWith({
       document_id: FAKE_DOC.id,
     });
