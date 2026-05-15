@@ -18,6 +18,37 @@ export type Customer = {
 };
 
 // ---------------------------------------------------------------------------
+// Question / Questionnaire types (Phase 2.2a — questionnaire extract pipeline)
+// ---------------------------------------------------------------------------
+
+/** Row shape mirroring the `question` table. See migration 005. */
+export type Question = {
+  id: string;
+  questionnaire_id: string;
+  question_signature: string;
+  signature_version: string;
+  normalized_text: string;
+  raw_text: string;
+  parsed_intent: string | null;
+  question_kind: 'numerical' | 'categorical' | 'narrative';
+  expected_unit: string | null;
+  position: string | null;
+  required: number;
+};
+
+/** Row shape mirroring the `questionnaire` table. See migration 005. */
+export type Questionnaire = {
+  id: string;
+  customer_id: string;
+  document_id: string;
+  template_kind: string | null;
+  reporting_year: number;
+  status: 'parsing' | 'mapping' | 'answering' | 'exported';
+  due_date: string | null;
+  created_at: string;
+};
+
+// ---------------------------------------------------------------------------
 // Emission Factor types (Phase 1a — bare TS types; Zod schemas land in Task 6)
 // ---------------------------------------------------------------------------
 
