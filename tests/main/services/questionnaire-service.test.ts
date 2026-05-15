@@ -25,7 +25,7 @@ function setup(opts?: {
   runMigrations(db);
   const customerService = new CustomerService({ db });
   const documentService = {
-    upload: vi.fn().mockImplementation((input) => ({
+    uploadFile: vi.fn().mockImplementation((input) => ({
       id: 'doc-1',
       sha256: 'aabb',
       filename: input.filename,

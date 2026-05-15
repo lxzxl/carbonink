@@ -11,7 +11,11 @@ import type { ServiceContext } from './base.js';
  * stages. Centralized as a constant so the rejection error message and the
  * `if`-guard can't drift.
  */
-const ALLOWED_MIME_TYPES: ReadonlySet<string> = new Set(['application/pdf']);
+const ALLOWED_MIME_TYPES: ReadonlySet<string> = new Set([
+  'application/pdf',
+  // Phase 2.2a — questionnaire side accepts .xlsx CDP-style files.
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+]);
 
 /**
  * Pick a filesystem extension from a user-supplied filename. We use the
@@ -70,7 +74,7 @@ export class DocumentService {
   uploadFile(input: { filename: string; mimeType: string; bytes: Buffer }): Document {
     if (!ALLOWED_MIME_TYPES.has(input.mimeType)) {
       throw new Error(
-        `Unsupported mimeType: ${input.mimeType}. Phase 1b only accepts application/pdf.`,
+        `Unsupported mimeType: ${input.mimeType}. Accepted: application/pdf, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.`,
       );
     }
 

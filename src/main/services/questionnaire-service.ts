@@ -7,13 +7,15 @@ import type { CustomerService } from './customer-service';
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
 /**
- * Minimal interface for the document storage dependency.
- * The real DocumentService.uploadFile validates MIME types; this interface
- * covers the upload method shape used by QuestionnaireService (called `upload`
- * so tests can inject a simple mock without the PDF-only guard).
+ * Minimal interface for the document storage dependency. Matches the real
+ * DocumentService.uploadFile signature so production wiring can pass the
+ * real service in without an adapter. Tests inject a vi.fn() mock that
+ * returns a Document-shaped row without writing to disk; the transaction
+ * below upserts the row into the test DB via INSERT OR IGNORE so the
+ * questionnaire FK resolves.
  */
 export interface DocumentUploadService {
-  upload(input: { filename: string; mimeType: string; bytes: Uint8Array }): Document;
+  uploadFile(input: { filename: string; mimeType: string; bytes: Buffer }): Document;
 }
 
 /**
@@ -78,10 +80,10 @@ export class QuestionnaireService {
       const customer: Customer = this.deps.customerService.createOrGetByName(
         input.customer_name,
       );
-      const document: Document = this.deps.documentService.upload({
+      const document: Document = this.deps.documentService.uploadFile({
         filename: input.filename,
         mimeType: XLSX_MIME,
-        bytes: input.file_bytes,
+        bytes: buf,
       });
 
       // Ensure the document row exists in the local DB so the questionnaire FK
