@@ -275,6 +275,20 @@ export type Extraction = {
 };
 
 // ---------------------------------------------------------------------------
+// ClassificationService result (Phase 1c Task 3 — auto-classify + run)
+// ---------------------------------------------------------------------------
+
+/**
+ * Discriminated-union result from ClassificationService.classifyAndRun().
+ * - `classified`: doc_type was determined (from cache or LLM) and extraction ran.
+ * - `classify_failed`: any failure mode (doc missing, low confidence, LLM error,
+ *   corrupt PDF). Renderer should prompt for manual stage selection.
+ */
+export type ClassifyAndRunResult =
+  | { status: 'classified'; extraction: Extraction; doc_type: string }
+  | { status: 'classify_failed' };
+
+// ---------------------------------------------------------------------------
 // EF Matcher types (Phase 1c Task 5)
 // ---------------------------------------------------------------------------
 

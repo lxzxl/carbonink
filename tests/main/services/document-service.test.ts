@@ -180,4 +180,21 @@ describe('DocumentService', () => {
   it('delete is a no-op for a missing id', () => {
     expect(() => service.delete('01J0000000000000000000NOPE')).not.toThrow();
   });
+
+  it('updateDocType writes doc_type to the document row', () => {
+    const doc = service.uploadFile({
+      filename: 'bill.pdf',
+      mimeType: 'application/pdf',
+      bytes: FAKE_PDF,
+    });
+    // doc_type starts null (migration default).
+    expect(service.getById(doc.id)?.doc_type).toBeNull();
+
+    service.updateDocType(doc.id, 'fuel_receipt.v1');
+    expect(service.getById(doc.id)?.doc_type).toBe('fuel_receipt.v1');
+
+    // Can also be cleared back to null.
+    service.updateDocType(doc.id, null);
+    expect(service.getById(doc.id)?.doc_type).toBeNull();
+  });
 });

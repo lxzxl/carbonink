@@ -118,6 +118,17 @@ export class DocumentService {
   }
 
   /**
+   * Write `doc_type` back to the document row. Called by ClassificationService
+   * after a successful LLM classification to cache the result so future calls
+   * skip classification entirely. Pass `null` to clear a previously-set type.
+   */
+  updateDocType(documentId: string, docType: string | null): void {
+    this.ctx.db
+      .prepare(`UPDATE document SET doc_type = ? WHERE id = ?`)
+      .run(docType, documentId);
+  }
+
+  /**
    * Most recent uploads first. Default cap of 100 matches the Phase 1b UI
    * which paginates beyond that — callers that want everything can pass a
    * very large limit. We sort by `uploaded_at` (the table's ISO8601 timestamp
