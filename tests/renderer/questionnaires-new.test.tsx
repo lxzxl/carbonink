@@ -20,11 +20,12 @@ vi.mock('@renderer/lib/api/questionnaire', () => ({
   },
 }));
 
-const newQuestionnaireComponent: NonNullable<typeof NewQuestionnaireRoute.options.component> = (() => {
-  const c = NewQuestionnaireRoute.options.component;
-  if (!c) throw new Error('new questionnaire route is missing a component');
-  return c;
-})();
+const newQuestionnaireComponent: NonNullable<typeof NewQuestionnaireRoute.options.component> =
+  (() => {
+    const c = NewQuestionnaireRoute.options.component;
+    if (!c) throw new Error('new questionnaire route is missing a component');
+    return c;
+  })();
 
 function buildHarness() {
   const queryClient = new QueryClient({
@@ -72,7 +73,9 @@ describe('/questionnaires/new route', () => {
     expect(container.querySelector('input[id="qa-customer"]')).toBeTruthy();
 
     // Verify year input field exists with the default year
-    const yearInput = container.querySelector('input[id="qa-year"][type="number"]') as HTMLInputElement;
+    const yearInput = container.querySelector(
+      'input[id="qa-year"][type="number"]',
+    ) as HTMLInputElement;
     expect(yearInput).toBeTruthy();
     expect(yearInput.value).toBe(new Date().getFullYear().toString());
 

@@ -39,9 +39,7 @@ function QuestionnaireDetailRoute() {
         </p>
       </div>
       {questions.length === 0 ? (
-        <p className="text-muted-foreground italic">
-          {m.questionnaires_detail_answer_pending()}
-        </p>
+        <p className="text-muted-foreground italic">{m.questionnaires_detail_answer_pending()}</p>
       ) : (
         <>
           <table className="w-full text-sm">
@@ -64,9 +62,7 @@ function QuestionnaireDetailRoute() {
               ))}
             </tbody>
           </table>
-          <p className="text-muted-foreground italic">
-            {m.questionnaires_detail_answer_pending()}
-          </p>
+          <p className="text-muted-foreground italic">{m.questionnaires_detail_answer_pending()}</p>
         </>
       )}
     </div>

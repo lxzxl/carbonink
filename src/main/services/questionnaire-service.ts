@@ -1,7 +1,7 @@
-import type { Database } from 'better-sqlite3';
 import { createHash, randomUUID } from 'node:crypto';
 import type { LLMClient } from '@main/llm/llm-client';
 import type { Customer, Document, ProviderConfig, Question, Questionnaire } from '@shared/types';
+import type { Database } from 'better-sqlite3';
 import type { CustomerService } from './customer-service';
 
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -77,9 +77,7 @@ export class QuestionnaireService {
     // Step 3: all writes inside one transaction — customer, document,
     // questionnaire, and question rows all commit or all roll back together.
     const tx = this.deps.db.transaction(() => {
-      const customer: Customer = this.deps.customerService.createOrGetByName(
-        input.customer_name,
-      );
+      const customer: Customer = this.deps.customerService.createOrGetByName(input.customer_name);
       const document: Document = this.deps.documentService.uploadFile({
         filename: input.filename,
         mimeType: XLSX_MIME,

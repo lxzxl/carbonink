@@ -139,10 +139,15 @@ export type IpcTypeMap = {
     file_bytes: Uint8Array;
     filename: string;
   }) => Promise<{ questionnaire_id: string; question_count: number }>;
-  'questionnaire:list': () => Array<Questionnaire & { customer_name: string; question_count: number }>;
-  'questionnaire:get-by-id': (input: { id: string }) =>
-    | { questionnaire: Questionnaire; customer: Customer; document: Document; questions: Question[] }
-    | null;
+  'questionnaire:list': () => Array<
+    Questionnaire & { customer_name: string; question_count: number }
+  >;
+  'questionnaire:get-by-id': (input: { id: string }) => {
+    questionnaire: Questionnaire;
+    customer: Customer;
+    document: Document;
+    questions: Question[];
+  } | null;
 };
 
 /**

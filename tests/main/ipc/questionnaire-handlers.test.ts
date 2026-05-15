@@ -14,13 +14,13 @@ function makeCtx() {
 describe('questionnaire:* handlers', () => {
   it('questionnaire:create zod-rejects empty input', async () => {
     const handlers = questionnaireHandlers(makeCtx());
-    await expect((handlers['questionnaire:create']!)({} as never)).rejects.toThrow();
+    await expect(handlers['questionnaire:create']!({} as never)).rejects.toThrow();
   });
 
   it('questionnaire:create rejects missing customer_name', async () => {
     const handlers = questionnaireHandlers(makeCtx());
     await expect(
-      (handlers['questionnaire:create']!)({
+      handlers['questionnaire:create']!({
         reporting_year: 2026,
         due_date: null,
         file_bytes: new Uint8Array([0]),
@@ -32,7 +32,7 @@ describe('questionnaire:* handlers', () => {
   it('questionnaire:create delegates to service on valid input', async () => {
     const ctx = makeCtx();
     const handlers = questionnaireHandlers(ctx);
-    const r = await (handlers['questionnaire:create']!)({
+    const r = await handlers['questionnaire:create']!({
       customer_name: 'Acme',
       reporting_year: 2026,
       due_date: '2026-12-31',
@@ -40,25 +40,34 @@ describe('questionnaire:* handlers', () => {
       filename: 'q.xlsx',
     });
     expect(r.questionnaire_id).toBe('q-1');
-    expect((ctx as never as { questionnaireService: { createFromUpload: ReturnType<typeof vi.fn> } }).questionnaireService.createFromUpload).toHaveBeenCalledOnce();
+    expect(
+      (ctx as never as { questionnaireService: { createFromUpload: ReturnType<typeof vi.fn> } })
+        .questionnaireService.createFromUpload,
+    ).toHaveBeenCalledOnce();
   });
 
   it('questionnaire:list delegates to service.list', () => {
     const ctx = makeCtx();
     const handlers = questionnaireHandlers(ctx);
-    (handlers['questionnaire:list']!)();
-    expect((ctx as never as { questionnaireService: { list: ReturnType<typeof vi.fn> } }).questionnaireService.list).toHaveBeenCalledOnce();
+    handlers['questionnaire:list']!();
+    expect(
+      (ctx as never as { questionnaireService: { list: ReturnType<typeof vi.fn> } })
+        .questionnaireService.list,
+    ).toHaveBeenCalledOnce();
   });
 
   it('questionnaire:get-by-id zod-rejects empty id', () => {
     const handlers = questionnaireHandlers(makeCtx());
-    expect(() => (handlers['questionnaire:get-by-id']!)({ id: '' } as never)).toThrow();
+    expect(() => handlers['questionnaire:get-by-id']!({ id: '' } as never)).toThrow();
   });
 
   it('questionnaire:get-by-id delegates on valid id', () => {
     const ctx = makeCtx();
     const handlers = questionnaireHandlers(ctx);
-    (handlers['questionnaire:get-by-id']!)({ id: 'q-1' });
-    expect((ctx as never as { questionnaireService: { getById: ReturnType<typeof vi.fn> } }).questionnaireService.getById).toHaveBeenCalledWith('q-1');
+    handlers['questionnaire:get-by-id']!({ id: 'q-1' });
+    expect(
+      (ctx as never as { questionnaireService: { getById: ReturnType<typeof vi.fn> } })
+        .questionnaireService.getById,
+    ).toHaveBeenCalledWith('q-1');
   });
 });

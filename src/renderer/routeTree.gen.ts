@@ -10,15 +10,23 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SourcesRouteImport } from './routes/sources'
+import { Route as QuestionnairesRouteImport } from './routes/questionnaires'
 import { Route as DocumentsRouteImport } from './routes/documents'
 import { Route as ActivitiesRouteImport } from './routes/activities'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as QuestionnairesNewRouteImport } from './routes/questionnaires.new'
+import { Route as QuestionnairesIdRouteImport } from './routes/questionnaires.$id'
 import { Route as OnboardingStepRouteImport } from './routes/onboarding.$step'
 import { Route as DocumentsIdRouteImport } from './routes/documents_.$id'
 
 const SourcesRoute = SourcesRouteImport.update({
   id: '/sources',
   path: '/sources',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QuestionnairesRoute = QuestionnairesRouteImport.update({
+  id: '/questionnaires',
+  path: '/questionnaires',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocumentsRoute = DocumentsRouteImport.update({
@@ -36,6 +44,16 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const QuestionnairesNewRoute = QuestionnairesNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => QuestionnairesRoute,
+} as any)
+const QuestionnairesIdRoute = QuestionnairesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => QuestionnairesRoute,
+} as any)
 const OnboardingStepRoute = OnboardingStepRouteImport.update({
   id: '/onboarding/$step',
   path: '/onboarding/$step',
@@ -51,26 +69,35 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/activities': typeof ActivitiesRoute
   '/documents': typeof DocumentsRoute
+  '/questionnaires': typeof QuestionnairesRouteWithChildren
   '/sources': typeof SourcesRoute
   '/documents/$id': typeof DocumentsIdRoute
   '/onboarding/$step': typeof OnboardingStepRoute
+  '/questionnaires/$id': typeof QuestionnairesIdRoute
+  '/questionnaires/new': typeof QuestionnairesNewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/activities': typeof ActivitiesRoute
   '/documents': typeof DocumentsRoute
+  '/questionnaires': typeof QuestionnairesRouteWithChildren
   '/sources': typeof SourcesRoute
   '/documents/$id': typeof DocumentsIdRoute
   '/onboarding/$step': typeof OnboardingStepRoute
+  '/questionnaires/$id': typeof QuestionnairesIdRoute
+  '/questionnaires/new': typeof QuestionnairesNewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/activities': typeof ActivitiesRoute
   '/documents': typeof DocumentsRoute
+  '/questionnaires': typeof QuestionnairesRouteWithChildren
   '/sources': typeof SourcesRoute
   '/documents_/$id': typeof DocumentsIdRoute
   '/onboarding/$step': typeof OnboardingStepRoute
+  '/questionnaires/$id': typeof QuestionnairesIdRoute
+  '/questionnaires/new': typeof QuestionnairesNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -78,31 +105,41 @@ export interface FileRouteTypes {
     | '/'
     | '/activities'
     | '/documents'
+    | '/questionnaires'
     | '/sources'
     | '/documents/$id'
     | '/onboarding/$step'
+    | '/questionnaires/$id'
+    | '/questionnaires/new'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/activities'
     | '/documents'
+    | '/questionnaires'
     | '/sources'
     | '/documents/$id'
     | '/onboarding/$step'
+    | '/questionnaires/$id'
+    | '/questionnaires/new'
   id:
     | '__root__'
     | '/'
     | '/activities'
     | '/documents'
+    | '/questionnaires'
     | '/sources'
     | '/documents_/$id'
     | '/onboarding/$step'
+    | '/questionnaires/$id'
+    | '/questionnaires/new'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ActivitiesRoute: typeof ActivitiesRoute
   DocumentsRoute: typeof DocumentsRoute
+  QuestionnairesRoute: typeof QuestionnairesRouteWithChildren
   SourcesRoute: typeof SourcesRoute
   DocumentsIdRoute: typeof DocumentsIdRoute
   OnboardingStepRoute: typeof OnboardingStepRoute
@@ -115,6 +152,13 @@ declare module '@tanstack/react-router' {
       path: '/sources'
       fullPath: '/sources'
       preLoaderRoute: typeof SourcesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/questionnaires': {
+      id: '/questionnaires'
+      path: '/questionnaires'
+      fullPath: '/questionnaires'
+      preLoaderRoute: typeof QuestionnairesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/documents': {
@@ -138,6 +182,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/questionnaires/new': {
+      id: '/questionnaires/new'
+      path: '/new'
+      fullPath: '/questionnaires/new'
+      preLoaderRoute: typeof QuestionnairesNewRouteImport
+      parentRoute: typeof QuestionnairesRoute
+    }
+    '/questionnaires/$id': {
+      id: '/questionnaires/$id'
+      path: '/$id'
+      fullPath: '/questionnaires/$id'
+      preLoaderRoute: typeof QuestionnairesIdRouteImport
+      parentRoute: typeof QuestionnairesRoute
+    }
     '/onboarding/$step': {
       id: '/onboarding/$step'
       path: '/onboarding/$step'
@@ -155,10 +213,25 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface QuestionnairesRouteChildren {
+  QuestionnairesIdRoute: typeof QuestionnairesIdRoute
+  QuestionnairesNewRoute: typeof QuestionnairesNewRoute
+}
+
+const QuestionnairesRouteChildren: QuestionnairesRouteChildren = {
+  QuestionnairesIdRoute: QuestionnairesIdRoute,
+  QuestionnairesNewRoute: QuestionnairesNewRoute,
+}
+
+const QuestionnairesRouteWithChildren = QuestionnairesRoute._addFileChildren(
+  QuestionnairesRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActivitiesRoute: ActivitiesRoute,
   DocumentsRoute: DocumentsRoute,
+  QuestionnairesRoute: QuestionnairesRouteWithChildren,
   SourcesRoute: SourcesRoute,
   DocumentsIdRoute: DocumentsIdRoute,
   OnboardingStepRoute: OnboardingStepRoute,

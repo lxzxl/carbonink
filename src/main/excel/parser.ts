@@ -36,10 +36,18 @@ export class ExcelParser {
           if (typeof raw === 'string' || typeof raw === 'number') {
             value = raw;
           } else if (typeof raw === 'object' && raw !== null) {
-            if ('result' in raw && (typeof raw.result === 'string' || typeof raw.result === 'number')) {
+            if (
+              'result' in raw &&
+              (typeof raw.result === 'string' || typeof raw.result === 'number')
+            ) {
               value = raw.result;
-            } else if ('richText' in raw && Array.isArray((raw as { richText: unknown[] }).richText)) {
-              value = ((raw as { richText: Array<{ text: string }> }).richText).map((r) => r.text).join('');
+            } else if (
+              'richText' in raw &&
+              Array.isArray((raw as { richText: unknown[] }).richText)
+            ) {
+              value = (raw as { richText: Array<{ text: string }> }).richText
+                .map((r) => r.text)
+                .join('');
             } else if (raw instanceof Date) {
               value = raw.toISOString();
             } else {

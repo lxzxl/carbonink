@@ -5,6 +5,7 @@ import {
   getCredentialStore,
   isSafeStorageAvailable,
 } from '@main/credentials/safe-storage-backend.js';
+import { ExcelParser } from '@main/excel/parser.js';
 import { LLMClient } from '@main/llm/llm-client.js';
 import { ActivityDataService } from '@main/services/activity-data-service.js';
 import type { ServiceContext } from '@main/services/base.js';
@@ -17,7 +18,6 @@ import { EfMatcherService } from '@main/services/ef-matcher-service.js';
 import { EfService } from '@main/services/ef-service.js';
 import { EmissionSourceService } from '@main/services/emission-source-service.js';
 import { ExtractionService } from '@main/services/extraction-service.js';
-import { ExcelParser } from '@main/excel/parser.js';
 import { OrganizationService } from '@main/services/organization-service.js';
 import { QuestionnaireService } from '@main/services/questionnaire-service.js';
 import { SettingsService } from '@main/services/settings-service.js';

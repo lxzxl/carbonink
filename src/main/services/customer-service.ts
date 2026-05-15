@@ -1,6 +1,6 @@
-import type { Database } from 'better-sqlite3';
-import type { Customer } from '@shared/types';
 import { randomUUID } from 'node:crypto';
+import type { Customer } from '@shared/types';
+import type { Database } from 'better-sqlite3';
 
 /**
  * Simple customer registry. Used by the questionnaire pipeline to
@@ -21,7 +21,9 @@ export class CustomerService {
       .get(name) as Customer | undefined;
     if (existing) return existing;
     const id = randomUUID();
-    this.deps.db.prepare(`INSERT INTO customer (id, name, notes) VALUES (?, ?, NULL)`).run(id, name);
+    this.deps.db
+      .prepare(`INSERT INTO customer (id, name, notes) VALUES (?, ?, NULL)`)
+      .run(id, name);
     return { id, name, notes: null };
   }
 
@@ -32,9 +34,9 @@ export class CustomerService {
   }
 
   getById(id: string): Customer | null {
-    const row = this.deps.db
-      .prepare(`SELECT id, name, notes FROM customer WHERE id = ?`)
-      .get(id) as Customer | undefined;
+    const row = this.deps.db.prepare(`SELECT id, name, notes FROM customer WHERE id = ?`).get(id) as
+      | Customer
+      | undefined;
     return row ?? null;
   }
 }

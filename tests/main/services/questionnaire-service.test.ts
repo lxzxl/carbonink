@@ -50,7 +50,9 @@ function setup(opts?: {
       customerService,
       llmClient: llmClient as never,
       config: FAKE_CONFIG,
-      excelParse: vi.fn().mockResolvedValue([{ sheet: 'S', row: 1, col: 1, value: 'Q', ref: 'S!A1' }]),
+      excelParse: vi
+        .fn()
+        .mockResolvedValue([{ sheet: 'S', row: 1, col: 1, value: 'Q', ref: 'S!A1' }]),
       now: () => '2026-05-15T00:00:00Z',
     }),
     llmClient,
@@ -62,8 +64,22 @@ describe('QuestionnaireService.createFromUpload', () => {
   it('happy path: creates customer + questionnaire + questions, status=mapping', async () => {
     const { svc, db } = setup({
       llmQuestions: [
-        { raw_text: 'Q1', normalized_text: 'q1', answer_cell_ref: 'S!B1', expected_unit: 'kWh', sheet: 'S', question_row: 1 },
-        { raw_text: 'Q2', normalized_text: 'q2', answer_cell_ref: 'S!B2', expected_unit: null, sheet: 'S', question_row: 2 },
+        {
+          raw_text: 'Q1',
+          normalized_text: 'q1',
+          answer_cell_ref: 'S!B1',
+          expected_unit: 'kWh',
+          sheet: 'S',
+          question_row: 1,
+        },
+        {
+          raw_text: 'Q2',
+          normalized_text: 'q2',
+          answer_cell_ref: 'S!B2',
+          expected_unit: null,
+          sheet: 'S',
+          question_row: 2,
+        },
       ],
     });
     const result = await svc.createFromUpload({
@@ -74,11 +90,24 @@ describe('QuestionnaireService.createFromUpload', () => {
       filename: 'q.xlsx',
     });
     expect(result.question_count).toBe(2);
-    const qRow = db.prepare(`SELECT * FROM questionnaire WHERE id = ?`).get(result.questionnaire_id) as { status: string; due_date: string | null; reporting_year: number };
+    const qRow = db
+      .prepare(`SELECT * FROM questionnaire WHERE id = ?`)
+      .get(result.questionnaire_id) as {
+      status: string;
+      due_date: string | null;
+      reporting_year: number;
+    };
     expect(qRow.status).toBe('mapping');
     expect(qRow.due_date).toBe('2026-12-31');
     expect(qRow.reporting_year).toBe(2026);
-    const qs = db.prepare(`SELECT * FROM question WHERE questionnaire_id = ? ORDER BY position`).all(result.questionnaire_id) as Array<{ raw_text: string; expected_unit: string | null; question_kind: string; position: string | null }>;
+    const qs = db
+      .prepare(`SELECT * FROM question WHERE questionnaire_id = ? ORDER BY position`)
+      .all(result.questionnaire_id) as Array<{
+      raw_text: string;
+      expected_unit: string | null;
+      question_kind: string;
+      position: string | null;
+    }>;
     expect(qs.length).toBe(2);
     expect(qs.every((q) => q.question_kind === 'numerical')).toBe(true);
     expect(qs[0]?.position).toBe('S!B1');
@@ -101,8 +130,20 @@ describe('QuestionnaireService.createFromUpload', () => {
 
   it('reuses an existing customer when name matches', async () => {
     const { svc, db } = setup({ llmQuestions: [] });
-    await svc.createFromUpload({ customer_name: 'A', reporting_year: 2026, due_date: null, file_bytes: new Uint8Array([0]), filename: 'a.xlsx' });
-    await svc.createFromUpload({ customer_name: 'A', reporting_year: 2026, due_date: null, file_bytes: new Uint8Array([0]), filename: 'b.xlsx' });
+    await svc.createFromUpload({
+      customer_name: 'A',
+      reporting_year: 2026,
+      due_date: null,
+      file_bytes: new Uint8Array([0]),
+      filename: 'a.xlsx',
+    });
+    await svc.createFromUpload({
+      customer_name: 'A',
+      reporting_year: 2026,
+      due_date: null,
+      file_bytes: new Uint8Array([0]),
+      filename: 'b.xlsx',
+    });
     const customers = db.prepare(`SELECT COUNT(*) AS c FROM customer`).get() as { c: number };
     expect(customers.c).toBe(1);
     const qCount = db.prepare(`SELECT COUNT(*) AS c FROM questionnaire`).get() as { c: number };
@@ -131,11 +172,30 @@ describe('QuestionnaireService.list', () => {
   it('returns questionnaires joined with customer_name + question_count, newest first', async () => {
     const { svc, db } = setup({
       llmQuestions: [
-        { raw_text: 'Q', normalized_text: 'q', answer_cell_ref: 'S!B1', expected_unit: 'kWh', sheet: 'S', question_row: 1 },
+        {
+          raw_text: 'Q',
+          normalized_text: 'q',
+          answer_cell_ref: 'S!B1',
+          expected_unit: 'kWh',
+          sheet: 'S',
+          question_row: 1,
+        },
       ],
     });
-    await svc.createFromUpload({ customer_name: 'Acme', reporting_year: 2026, due_date: null, file_bytes: new Uint8Array([0]), filename: 'a.xlsx' });
-    await svc.createFromUpload({ customer_name: 'Globex', reporting_year: 2025, due_date: null, file_bytes: new Uint8Array([0]), filename: 'b.xlsx' });
+    await svc.createFromUpload({
+      customer_name: 'Acme',
+      reporting_year: 2026,
+      due_date: null,
+      file_bytes: new Uint8Array([0]),
+      filename: 'a.xlsx',
+    });
+    await svc.createFromUpload({
+      customer_name: 'Globex',
+      reporting_year: 2025,
+      due_date: null,
+      file_bytes: new Uint8Array([0]),
+      filename: 'b.xlsx',
+    });
     const list = svc.list();
     expect(list.length).toBe(2);
     // Both rows should carry customer_name and question_count
@@ -145,7 +205,7 @@ describe('QuestionnaireService.list', () => {
     }
     // Each row got 1 question from llmQuestions
     expect(list.every((r) => r.question_count === 1)).toBe(true);
-    void db;  // silence unused
+    void db; // silence unused
   });
 
   it('returns empty list when no questionnaires exist', () => {
@@ -158,7 +218,14 @@ describe('QuestionnaireService.getById', () => {
   it('returns questionnaire + customer + document + questions', async () => {
     const { svc } = setup({
       llmQuestions: [
-        { raw_text: 'Q1', normalized_text: 'q1', answer_cell_ref: 'S!B1', expected_unit: 'kWh', sheet: 'S', question_row: 1 },
+        {
+          raw_text: 'Q1',
+          normalized_text: 'q1',
+          answer_cell_ref: 'S!B1',
+          expected_unit: 'kWh',
+          sheet: 'S',
+          question_row: 1,
+        },
       ],
     });
     const r = await svc.createFromUpload({

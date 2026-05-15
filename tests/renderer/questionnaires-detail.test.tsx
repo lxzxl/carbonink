@@ -183,9 +183,7 @@ describe('/questionnaires/$id detail route', () => {
 
     // Wait for not-found message to render
     await waitFor(() => {
-      expect(
-        screen.getByText(/Questionnaire not found|问卷不存在/),
-      ).toBeTruthy();
+      expect(screen.getByText(/Questionnaire not found|问卷不存在/)).toBeTruthy();
     });
 
     // Verify back link is still available
