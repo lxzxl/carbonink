@@ -50,6 +50,10 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   'extraction:discard',
   // stages domain (Phase 1b — read-only extraction stage registry)
   'stages:list',
+  // questionnaire domain (Phase 2.2a — questionnaire upload + extract pipeline)
+  'questionnaire:create',
+  'questionnaire:list',
+  'questionnaire:get-by-id',
 ];
 
 /**

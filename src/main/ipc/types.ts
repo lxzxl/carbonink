@@ -3,6 +3,7 @@ import type {
   ActivityDataCreateInput,
   ClassifyAndRunResult,
   CompleteOnboardingInput,
+  Customer,
   Document,
   EfCompositePk,
   EfLookupQuery,
@@ -16,6 +17,8 @@ import type {
   Organization,
   OrganizationCreateInput,
   ProviderConfig,
+  Question,
+  Questionnaire,
   RecommendQuery,
   ReportingPeriod,
   ReportingPeriodCreateInput,
@@ -127,6 +130,19 @@ export type IpcTypeMap = {
 
   // stages domain (Phase 1b — read-only extraction stage registry)
   'stages:list': () => Array<{ id: string; version: string; description: string }>;
+
+  // questionnaire domain (Phase 2.2a — questionnaire upload + extract pipeline)
+  'questionnaire:create': (input: {
+    customer_name: string;
+    reporting_year: number;
+    due_date: string | null;
+    file_bytes: Uint8Array;
+    filename: string;
+  }) => Promise<{ questionnaire_id: string; question_count: number }>;
+  'questionnaire:list': () => Array<Questionnaire & { customer_name: string; question_count: number }>;
+  'questionnaire:get-by-id': (input: { id: string }) =>
+    | { questionnaire: Questionnaire; customer: Customer; document: Document; questions: Question[] }
+    | null;
 };
 
 /**

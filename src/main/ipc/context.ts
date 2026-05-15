@@ -11,12 +11,15 @@ import type { ServiceContext } from '@main/services/base.js';
 import { CalculationService } from '@main/services/calculation-service.js';
 import { ClassificationService } from '@main/services/classification-service.js';
 import { CredentialService } from '@main/services/credential-service.js';
+import { CustomerService } from '@main/services/customer-service.js';
 import { DocumentService } from '@main/services/document-service.js';
 import { EfMatcherService } from '@main/services/ef-matcher-service.js';
 import { EfService } from '@main/services/ef-service.js';
 import { EmissionSourceService } from '@main/services/emission-source-service.js';
 import { ExtractionService } from '@main/services/extraction-service.js';
+import { ExcelParser } from '@main/excel/parser.js';
 import { OrganizationService } from '@main/services/organization-service.js';
+import { QuestionnaireService } from '@main/services/questionnaire-service.js';
 import { SettingsService } from '@main/services/settings-service.js';
 import { UnitConversionService } from '@main/services/unit-conversion-service.js';
 import { app } from 'electron';
@@ -48,6 +51,9 @@ export interface IpcContext {
   efMatcherService: EfMatcherService;
   // Phase 1c Task 4 — auto-classify doc-type + run extraction.
   classificationService: ClassificationService;
+  // Phase 2.2a — questionnaire upload + extract pipeline.
+  customerService: CustomerService;
+  questionnaireService: QuestionnaireService;
 }
 
 /**
@@ -70,6 +76,8 @@ export interface IpcContextOverrides {
   extractionService?: ExtractionService;
   efMatcherService?: EfMatcherService;
   classificationService?: ClassificationService;
+  customerService?: CustomerService;
+  questionnaireService?: QuestionnaireService;
   /**
    * Optional main→renderer push channel emitter. Production wires
    * `createProgressEmitter(getMainWindow)`; tests typically supply a
@@ -133,6 +141,9 @@ export function createIpcContext(
   let efMatcherServiceInstance: EfMatcherService | undefined = overrides.efMatcherService;
   let classificationServiceInstance: ClassificationService | undefined =
     overrides.classificationService;
+  let customerServiceInstance: CustomerService | undefined = overrides.customerService;
+  let questionnaireServiceInstance: QuestionnaireService | undefined =
+    overrides.questionnaireService;
 
   const getCredential = (): CredentialService => {
     if (!credentialServiceInstance) credentialServiceInstance = defaultCredentialService();
@@ -239,6 +250,29 @@ export function createIpcContext(
         });
       }
       return classificationServiceInstance;
+    },
+    get customerService() {
+      if (!customerServiceInstance) {
+        customerServiceInstance = new CustomerService({ db: svc.db });
+      }
+      return customerServiceInstance;
+    },
+    get questionnaireService() {
+      if (!questionnaireServiceInstance) {
+        const providerCfg = getSettings().getProviderConfigWithKey();
+        if (!providerCfg) {
+          throw new Error('AI provider not configured. Open Settings to set up.');
+        }
+        questionnaireServiceInstance = new QuestionnaireService({
+          db: svc.db,
+          documentService: getDocument(),
+          customerService: ctx.customerService,
+          llmClient: getLlm(),
+          config: providerCfg.config,
+          excelParse: ExcelParser.parse,
+        });
+      }
+      return questionnaireServiceInstance;
     },
   };
   return ctx;

@@ -10,6 +10,7 @@ import { efMatcherHandlers } from './handlers/ef-matcher.js';
 import { emissionSourceHandlers } from './handlers/emission-source.js';
 import { extractionHandlers } from './handlers/extraction.js';
 import { organizationHandlers } from './handlers/organization.js';
+import { questionnaireHandlers } from './handlers/questionnaire.js';
 import { settingsHandlers } from './handlers/settings.js';
 import { createProgressEmitter } from './progress.js';
 import { sanitize } from './sanitize.js';
@@ -29,6 +30,7 @@ const HANDLER_FACTORIES: ReadonlyArray<HandlerFactory> = [
   settingsHandlers,
   documentHandlers,
   extractionHandlers,
+  questionnaireHandlers,
 ];
 
 export function setupIpc(): void {

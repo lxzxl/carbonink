@@ -81,6 +81,10 @@ describe('preload bridge', () => {
       'extraction:discard',
       // stages domain (Phase 1b)
       'stages:list',
+      // questionnaire domain (Phase 2.2a)
+      'questionnaire:create',
+      'questionnaire:list',
+      'questionnaire:get-by-id',
     ]);
   });
 });
