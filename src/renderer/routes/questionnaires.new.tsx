@@ -46,7 +46,6 @@ function NewQuestionnaireRoute() {
           ? m.questionnaires_wizard_success({ count: r.question_count })
           : `Parsed: ${r.question_count} question(s)`;
       toast.success(successMsg);
-      // @ts-expect-error route added in T9 — type registers once T9's file is created
       void navigate({ to: '/questionnaires/$id', params: { id: r.questionnaire_id } });
     },
     onError: (err) => {
