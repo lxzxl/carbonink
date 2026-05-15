@@ -5,6 +5,7 @@ import { FreightFields } from '@renderer/components/extractions/freight/fields';
 import { buildFreightInitialValues } from '@renderer/components/extractions/freight/prefill';
 import { FuelReceiptFields } from '@renderer/components/extractions/fuel-receipt/fields';
 import { buildFuelReceiptInitialValues } from '@renderer/components/extractions/fuel-receipt/prefill';
+import { ManualStagePicker } from '@renderer/components/ManualStagePicker';
 import { PurchaseFields } from '@renderer/components/extractions/purchase/fields';
 import { buildPurchaseInitialValues } from '@renderer/components/extractions/purchase/prefill';
 import { CONFIDENCE_CLASSES, CONFIDENCE_LABELS } from '@renderer/components/extractions/shared';
@@ -60,6 +61,7 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
+  const [showStagePicker, setShowStagePicker] = useState(false);
 
   const parsed = useMemo(
     () => parseExtraction(extraction.parsed_json, extraction.prompt_version),
@@ -221,20 +223,36 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
             {m.documents_review_view_activities_link()}
           </Link>
         </div>
-      ) : !showForm ? (
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" onClick={() => setShowForm(true)}>
-            {m.documents_review_confirm()}
-          </Button>
-          <Button
+      ) : !showForm && !showStagePicker ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" onClick={() => setShowForm(true)}>
+              {m.documents_review_confirm()}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={requestDiscard}
+              disabled={discardMutation.isPending}
+            >
+              {m.documents_review_discard()}
+            </Button>
+          </div>
+          <button
             type="button"
-            variant="outline"
-            onClick={requestDiscard}
-            disabled={discardMutation.isPending}
+            onClick={() => setShowStagePicker(true)}
+            className="text-xs text-muted-foreground underline hover:text-foreground"
           >
-            {m.documents_review_discard()}
-          </Button>
+            {m.documents_review_switch_stage()}
+          </button>
         </div>
+      ) : showStagePicker ? (
+        <ManualStagePicker
+          documentId={extraction.document_id}
+          discardExtractionId={extraction.id}
+          defaultStageId={extraction.prompt_version}
+          onConfirmed={() => setShowStagePicker(false)}
+        />
       ) : orgQuery.isLoading || sourcesQuery.isLoading ? (
         <p className="text-sm text-muted-foreground">{m.loading()}</p>
       ) : !orgId ? (

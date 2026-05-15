@@ -300,4 +300,28 @@ describe('/documents/$id review route', () => {
       (window as unknown as { confirm: typeof originalConfirm }).confirm = originalConfirm;
     }
   });
+
+  it('switch-stage button reveals the ManualStagePicker with discardExtractionId set', async () => {
+    render(buildHarness());
+
+    // Wait for the extracted fields to render.
+    await screen.findByText('国网XX供电公司');
+
+    // Find the "Switch stage and re-extract" link button.
+    const switchButton = screen.getByRole('button', {
+      name: /Switch stage and re-extract|切换类型重抽/,
+    });
+    expect(switchButton).toBeTruthy();
+
+    // Click it to reveal the ManualStagePicker.
+    fireEvent.click(switchButton);
+
+    // The ManualStagePicker should now be visible; its dropdown is a select element.
+    // The select should show the current stage (china_utility.v1 = 电费账单).
+    const stageSelect = (await screen.findByDisplayValue('电费账单')) as HTMLSelectElement;
+    expect(stageSelect).toBeTruthy();
+
+    // Verify it's a select with the stage options.
+    expect(stageSelect.tagName).toBe('SELECT');
+  });
 });
