@@ -24,16 +24,6 @@ vi.mock('@renderer/lib/api/document', () => ({
     readBytes: vi.fn(),
   },
 }));
-vi.mock('@renderer/lib/api/extraction', () => ({
-  extractionApi: {
-    run: vi.fn(),
-    listPending: vi.fn(),
-    listByDocument: vi.fn(),
-    getById: vi.fn(),
-    confirm: vi.fn(),
-    discard: vi.fn(),
-  },
-}));
 // `/documents` now queries the provider config to decide between upload
 // zone and "AI not configured" banner. Mock the wrapper so the route
 // thinks DeepSeek is configured in the test environment — otherwise the
@@ -47,17 +37,10 @@ vi.mock('@renderer/lib/api/settings', () => ({
     available: vi.fn(),
   },
 }));
-vi.mock('@renderer/lib/api/stages', () => ({
-  stagesApi: {
-    list: vi.fn(),
-  },
-}));
 
 import { SettingsDrawerProvider } from '@renderer/components/settings-drawer-context';
 import { documentApi } from '@renderer/lib/api/document';
-import { extractionApi } from '@renderer/lib/api/extraction';
 import { settingsApi } from '@renderer/lib/api/settings';
-import { stagesApi } from '@renderer/lib/api/stages';
 
 const FAKE_PROVIDER_CONFIG = {
   provider: 'deepseek' as const,
@@ -146,14 +129,9 @@ describe('/documents route', () => {
   beforeEach(() => {
     vi.mocked(documentApi.list).mockResolvedValue([]);
     vi.mocked(documentApi.upload).mockReset();
-    vi.mocked(extractionApi.run).mockReset();
     // Default: provider IS configured, so the upload zone (not the
     // "AI not configured" banner) renders.
     vi.mocked(settingsApi.getProvider).mockResolvedValue(FAKE_PROVIDER_CONFIG);
-    // Return a minimal stage list so the dropdown renders correctly.
-    vi.mocked(stagesApi.list).mockResolvedValue([
-      { id: 'china_utility.v1', version: '1.0.0', description: 'Chinese electricity bill' },
-    ]);
   });
 
   afterEach(() => {
@@ -186,12 +164,11 @@ describe('/documents route', () => {
     expect(screen.getByText(FAKE_DOC.sha256.slice(0, 8))).toBeTruthy();
   });
 
-  it('uploads a file then fires extraction:run for the returned doc', async () => {
+  it('uploads a file and invalidates the document list query', async () => {
     // Empty list initially; the upload should trigger an invalidate and
     // the second `list` call returns the freshly-uploaded doc.
     vi.mocked(documentApi.list).mockResolvedValueOnce([]).mockResolvedValue([FAKE_DOC]);
     vi.mocked(documentApi.upload).mockResolvedValue(FAKE_DOC);
-    vi.mocked(extractionApi.run).mockResolvedValue(FAKE_EXTRACTION);
 
     render(buildHarness());
     // Wait for the empty state to settle so the next render is the post-load
@@ -219,13 +196,6 @@ describe('/documents route', () => {
     expect(vi.mocked(documentApi.upload).mock.calls[0]?.[0]).toMatchObject({
       filename: 'bill.pdf',
       mimeType: 'application/pdf',
-    });
-    await waitFor(() => {
-      expect(extractionApi.run).toHaveBeenCalledTimes(1);
-    });
-    expect(vi.mocked(extractionApi.run).mock.calls[0]?.[0]).toEqual({
-      document_id: FAKE_DOC.id,
-      stage_id: 'china_utility.v1',
     });
 
     // The list query should have been invalidated, so the row eventually
