@@ -14,6 +14,8 @@ import { invoke } from '../ipc.js';
  * `parsed_json` to satisfy the migration-003 CHECK constraint.
  */
 export const extractionApi = {
+  classifyAndRun: (input: { document_id: string }) =>
+    invoke('extraction:classify-and-run', input),
   run: (input: { document_id: string; stage_id: string }) => invoke('extraction:run', input),
   listPending: () => invoke('extraction:list-pending'),
   listByDocument: (input: { document_id: string }) => invoke('extraction:list-by-document', input),

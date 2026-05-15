@@ -1,6 +1,7 @@
 import type {
   ActivityData,
   ActivityDataCreateInput,
+  ClassifyAndRunResult,
   CompleteOnboardingInput,
   Document,
   EfCompositePk,
@@ -107,6 +108,7 @@ export type IpcTypeMap = {
   // extraction domain (Phase 1b — AI extraction pipeline)
   // `extraction:run` is async — it reads the PDF, calls the LLM, and writes
   // the row; the sanitize wrapper already awaits handlers, so this is fine.
+  'extraction:classify-and-run': (input: { document_id: string }) => Promise<ClassifyAndRunResult>;
   'extraction:run': (input: { document_id: string; stage_id: string }) => Promise<Extraction>;
   'extraction:list-pending': () => Extraction[];
   'extraction:list-by-document': (input: { document_id: string }) => Extraction[];

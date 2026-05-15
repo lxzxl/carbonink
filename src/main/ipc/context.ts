@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   deleteCredentialBlob,
@@ -8,6 +9,7 @@ import { LLMClient } from '@main/llm/llm-client.js';
 import { ActivityDataService } from '@main/services/activity-data-service.js';
 import type { ServiceContext } from '@main/services/base.js';
 import { CalculationService } from '@main/services/calculation-service.js';
+import { ClassificationService } from '@main/services/classification-service.js';
 import { CredentialService } from '@main/services/credential-service.js';
 import { DocumentService } from '@main/services/document-service.js';
 import { EfMatcherService } from '@main/services/ef-matcher-service.js';
@@ -44,6 +46,8 @@ export interface IpcContext {
   extractionService: ExtractionService;
   // Phase 1c addition — LLM-assisted emission factor recommendation.
   efMatcherService: EfMatcherService;
+  // Phase 1c Task 4 — auto-classify doc-type + run extraction.
+  classificationService: ClassificationService;
 }
 
 /**
@@ -65,6 +69,7 @@ export interface IpcContextOverrides {
   documentService?: DocumentService;
   extractionService?: ExtractionService;
   efMatcherService?: EfMatcherService;
+  classificationService?: ClassificationService;
   /**
    * Optional main→renderer push channel emitter. Production wires
    * `createProgressEmitter(getMainWindow)`; tests typically supply a
@@ -126,6 +131,8 @@ export function createIpcContext(
   let documentServiceInstance: DocumentService | undefined = overrides.documentService;
   let extractionServiceInstance: ExtractionService | undefined = overrides.extractionService;
   let efMatcherServiceInstance: EfMatcherService | undefined = overrides.efMatcherService;
+  let classificationServiceInstance: ClassificationService | undefined =
+    overrides.classificationService;
 
   const getCredential = (): CredentialService => {
     if (!credentialServiceInstance) credentialServiceInstance = defaultCredentialService();
@@ -205,6 +212,33 @@ export function createIpcContext(
         });
       }
       return efMatcherServiceInstance;
+    },
+    get classificationService() {
+      if (!classificationServiceInstance) {
+        const providerCfg = getSettings().getProviderConfigWithKey();
+        if (!providerCfg) {
+          throw new Error('AI provider not configured. Open Settings to set up.');
+        }
+        classificationServiceInstance = new ClassificationService({
+          db: svc.db,
+          llmClient: getLlm(),
+          extractionService: ctx.extractionService,
+          documentService: getDocument(),
+          config: providerCfg.config,
+          readFile: (p: string) => readFileSync(p),
+          parsePdf: async (buf: Buffer) => {
+            const mod = await import('pdf-parse');
+            const parser = new mod.PDFParse({ data: buf });
+            try {
+              const result = await parser.getText();
+              return { text: result.text };
+            } finally {
+              await parser.destroy();
+            }
+          },
+        });
+      }
+      return classificationServiceInstance;
     },
   };
   return ctx;

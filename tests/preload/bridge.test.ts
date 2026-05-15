@@ -71,6 +71,7 @@ describe('preload bridge', () => {
       'document:get-by-id',
       'document:read-bytes',
       // extraction domain (Phase 1b)
+      'extraction:classify-and-run',
       'extraction:run',
       'extraction:list-pending',
       'extraction:list-by-document',

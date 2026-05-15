@@ -28,6 +28,10 @@ export function extractionHandlers(ctx: IpcContext): {
 } {
   const svc = ctx.extractionService;
   return {
+    'extraction:classify-and-run': async (input) => {
+      const parsed = z.object({ document_id: z.string().min(1) }).parse(input);
+      return ctx.classificationService.classifyAndRun(parsed.document_id);
+    },
     'extraction:run': (input) => {
       const parsed = runInput.parse(input);
       return svc.run(parsed);
