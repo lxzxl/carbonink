@@ -126,3 +126,58 @@ describe('QuestionnaireService.createFromUpload', () => {
     expect(qnaires.c).toBe(0);
   });
 });
+
+describe('QuestionnaireService.list', () => {
+  it('returns questionnaires joined with customer_name + question_count, newest first', async () => {
+    const { svc, db } = setup({
+      llmQuestions: [
+        { raw_text: 'Q', normalized_text: 'q', answer_cell_ref: 'S!B1', expected_unit: 'kWh', sheet: 'S', question_row: 1 },
+      ],
+    });
+    await svc.createFromUpload({ customer_name: 'Acme', reporting_year: 2026, due_date: null, file_bytes: new Uint8Array([0]), filename: 'a.xlsx' });
+    await svc.createFromUpload({ customer_name: 'Globex', reporting_year: 2025, due_date: null, file_bytes: new Uint8Array([0]), filename: 'b.xlsx' });
+    const list = svc.list();
+    expect(list.length).toBe(2);
+    // Both rows should carry customer_name and question_count
+    for (const r of list) {
+      expect(r.customer_name).toBeTruthy();
+      expect(typeof r.question_count).toBe('number');
+    }
+    // Each row got 1 question from llmQuestions
+    expect(list.every((r) => r.question_count === 1)).toBe(true);
+    void db;  // silence unused
+  });
+
+  it('returns empty list when no questionnaires exist', () => {
+    const { svc } = setup({ llmQuestions: [] });
+    expect(svc.list()).toEqual([]);
+  });
+});
+
+describe('QuestionnaireService.getById', () => {
+  it('returns questionnaire + customer + document + questions', async () => {
+    const { svc } = setup({
+      llmQuestions: [
+        { raw_text: 'Q1', normalized_text: 'q1', answer_cell_ref: 'S!B1', expected_unit: 'kWh', sheet: 'S', question_row: 1 },
+      ],
+    });
+    const r = await svc.createFromUpload({
+      customer_name: 'Acme',
+      reporting_year: 2026,
+      due_date: null,
+      file_bytes: new Uint8Array([0]),
+      filename: 'q.xlsx',
+    });
+    const detail = svc.getById(r.questionnaire_id);
+    expect(detail).not.toBeNull();
+    expect(detail?.customer.name).toBe('Acme');
+    expect(detail?.questions.length).toBe(1);
+    expect(detail?.questions[0]?.normalized_text).toBe('q1');
+    expect(detail?.questionnaire.status).toBe('mapping');
+  });
+
+  it('getById returns null for unknown id', () => {
+    const { svc } = setup({ llmQuestions: [] });
+    expect(svc.getById('not-real')).toBeNull();
+  });
+});

@@ -1,7 +1,7 @@
 import type { Database } from 'better-sqlite3';
 import { createHash, randomUUID } from 'node:crypto';
 import type { LLMClient } from '@main/llm/llm-client';
-import type { Customer, Document, ProviderConfig } from '@shared/types';
+import type { Customer, Document, ProviderConfig, Question, Questionnaire } from '@shared/types';
 import type { CustomerService } from './customer-service';
 
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -150,5 +150,44 @@ export class QuestionnaireService {
       questionnaire_id: questionnaireId,
       question_count: llmResult.questions.length,
     };
+  }
+
+  list(): Array<Questionnaire & { customer_name: string; question_count: number }> {
+    return this.deps.db
+      .prepare(`
+        SELECT q.*,
+               c.name AS customer_name,
+               (SELECT COUNT(*) FROM question WHERE questionnaire_id = q.id) AS question_count
+        FROM questionnaire q
+        JOIN customer c ON c.id = q.customer_id
+        ORDER BY q.created_at DESC, q.id DESC
+      `)
+      .all() as Array<Questionnaire & { customer_name: string; question_count: number }>;
+  }
+
+  getById(id: string): {
+    questionnaire: Questionnaire;
+    customer: Customer;
+    document: Document;
+    questions: Question[];
+  } | null {
+    const questionnaire = this.deps.db
+      .prepare(`SELECT * FROM questionnaire WHERE id = ?`)
+      .get(id) as Questionnaire | undefined;
+    if (!questionnaire) return null;
+
+    const customer = this.deps.db
+      .prepare(`SELECT id, name, notes FROM customer WHERE id = ?`)
+      .get(questionnaire.customer_id) as Customer;
+
+    const document = this.deps.db
+      .prepare(`SELECT * FROM document WHERE id = ?`)
+      .get(questionnaire.document_id) as Document;
+
+    const questions = this.deps.db
+      .prepare(`SELECT * FROM question WHERE questionnaire_id = ? ORDER BY position, id`)
+      .all(id) as Question[];
+
+    return { questionnaire, customer, document, questions };
   }
 }
