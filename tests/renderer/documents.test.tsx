@@ -132,7 +132,7 @@ describe('/documents route', () => {
     // so we wait for the provider query to resolve — getByText is sync and
     // races against the "Loading…" placeholder while settings:get-provider
     // is in-flight.
-    expect(await screen.findByText(/Drop a PDF here|把 PDF 拖到这里/)).toBeTruthy();
+    expect(await screen.findByText(/Drop one or more PDFs|把 PDF 拖到这里/)).toBeTruthy();
   });
 
   it('shows the empty state when there are no documents', async () => {

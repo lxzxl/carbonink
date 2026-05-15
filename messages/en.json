@@ -13,7 +13,7 @@
   "cmd_open_settings": "Open Settings",
   "cmd_open_documents": "Open Documents",
   "documents_placeholder": "Document upload + extraction lands in Phase 1b Task 14.",
-  "documents_upload_hint": "Drop a PDF here, or click to browse",
+  "documents_upload_hint": "Drop one or more PDFs here, or click to browse",
   "documents_upload_pdf_only": "Only PDF files are supported.",
   "documents_uploading": "Uploading…",
   "documents_extracting": "Extracting…",

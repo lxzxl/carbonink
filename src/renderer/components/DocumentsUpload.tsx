@@ -6,79 +6,117 @@ import { UploadCloud } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 /**
- * Phase 1b — drag-drop upload zone for source PDFs.
+ * Phase 1b — drag-drop upload zone for source PDFs. Phase 2 — multi-file batch.
  *
- * Upload-only pipeline per drop:
+ * Upload-only pipeline per file:
  *   1. `document:upload` — write file, dedupe by sha256, return a Document row.
- *      → Document appears in list with `doc_type=NULL` (shows as "未分类" chip on T6).
+ *      → Document appears in list with `doc_type=NULL` (shows as "未分类" chip).
  *
- * Classification and extraction are deferred to the review page (T7).
- * This makes the upload flow provider-independent and faster.
+ * Classification and extraction are deferred to the review page (lazy).
+ * This makes the upload flow provider-independent and fast.
  *
- * Status state machine for the visual progress label:
- *   idle → uploading → done → idle
+ * Batch behavior:
+ *   - Accept multiple files at once (drag-drop OR file picker).
+ *   - Non-PDFs are filtered out before any upload starts; one toast warns
+ *     about the skipped count (we don't fail the whole batch).
+ *   - Files upload sequentially. Sequential keeps the DB writes orderly
+ *     and avoids racing the dedupe-by-sha256 check (parallel uploads of
+ *     the same file would both compute the hash and both try to insert).
+ *   - One failure in the middle does NOT abort the remaining uploads;
+ *     errors are accumulated and reported in a single summary toast.
  *
- * Disabled state covers non-idle states. The upload zone remains enabled
- * even when a file is being processed so users can queue multiple uploads.
+ * Progress label states (in order):
+ *   idle → uploading (with N/M counter) → done → idle
  */
-type UploadState = 'idle' | 'uploading' | 'done';
+type UploadState =
+  | { kind: 'idle' }
+  | { kind: 'uploading'; current: number; total: number; filename: string }
+  | { kind: 'done' };
 
 const ACCEPT = 'application/pdf';
 
 export function DocumentsUpload() {
-  const [state, setState] = useState<UploadState>('idle');
+  const [state, setState] = useState<UploadState>({ kind: 'idle' });
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const queryClient = useQueryClient();
 
-  async function handleFile(file: File): Promise<void> {
-    if (state !== 'idle') return;
-    if (file.type !== ACCEPT) {
-      toast.error(m.documents_upload_failed(), {
-        description: m.documents_upload_pdf_only(),
+  async function handleFiles(filesIn: File[]): Promise<void> {
+    if (state.kind !== 'idle') return;
+    if (filesIn.length === 0) return;
+
+    // Filter PDFs; warn if any were skipped.
+    const pdfs = filesIn.filter((f) => f.type === ACCEPT);
+    const skipped = filesIn.length - pdfs.length;
+    if (skipped > 0) {
+      toast.warning(m.documents_upload_pdf_only(), {
+        description: `${skipped} non-PDF file(s) skipped`,
       });
-      return;
+    }
+    if (pdfs.length === 0) return;
+
+    const total = pdfs.length;
+    const successes: string[] = [];
+    const failures: { filename: string; message: string }[] = [];
+
+    for (let i = 0; i < pdfs.length; i++) {
+      const file = pdfs[i];
+      if (!file) continue;
+      setState({ kind: 'uploading', current: i + 1, total, filename: file.name });
+      try {
+        const buffer = await file.arrayBuffer();
+        await documentApi.upload({
+          filename: file.name,
+          mimeType: file.type,
+          bytes: new Uint8Array(buffer),
+        });
+        successes.push(file.name);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        failures.push({ filename: file.name, message: msg });
+      }
     }
 
-    setState('uploading');
-    try {
-      const buffer = await file.arrayBuffer();
-      await documentApi.upload({
-        filename: file.name,
-        mimeType: file.type,
-        bytes: new Uint8Array(buffer),
+    // Refresh document list once at the end (avoids N invalidations on a batch).
+    await queryClient.invalidateQueries({ queryKey: ['document:list'] });
+
+    // Single summary toast for the batch.
+    if (failures.length === 0) {
+      toast.success(m.documents_upload_success(), {
+        description: total === 1 ? successes[0] : `${successes.length} file(s) uploaded`,
       });
-      toast.success(m.documents_upload_success(), { description: file.name });
-      await queryClient.invalidateQueries({ queryKey: ['document:list'] });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      toast.error(m.documents_upload_failed(), { description: msg });
-    } finally {
-      setState('done');
-      setTimeout(() => {
-        setState('idle');
-      }, 1200);
+    } else if (successes.length === 0) {
+      toast.error(m.documents_upload_failed(), {
+        description: failures.map((f) => `${f.filename}: ${f.message}`).join('\n'),
+      });
+    } else {
+      toast.warning(m.documents_upload_success(), {
+        description: `${successes.length} ok, ${failures.length} failed`,
+      });
     }
+
+    setState({ kind: 'done' });
+    setTimeout(() => setState({ kind: 'idle' }), 1200);
   }
 
   function onDrop(e: React.DragEvent<HTMLLabelElement>): void {
     e.preventDefault();
     setIsDragging(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) void handleFile(file);
+    const files = Array.from(e.dataTransfer.files ?? []);
+    if (files.length > 0) void handleFiles(files);
   }
 
   function onFileChange(e: React.ChangeEvent<HTMLInputElement>): void {
-    const file = e.target.files?.[0];
-    if (file) void handleFile(file);
+    const files = Array.from(e.target.files ?? []);
+    if (files.length > 0) void handleFiles(files);
     e.target.value = '';
   }
 
-  const disabled = state !== 'idle';
+  const disabled = state.kind !== 'idle';
   const label =
-    state === 'uploading'
-      ? m.documents_uploading()
-      : state === 'done'
+    state.kind === 'uploading'
+      ? `${m.documents_uploading()} (${state.current}/${state.total}) — ${state.filename}`
+      : state.kind === 'done'
         ? m.documents_upload_done()
         : m.documents_upload_hint();
 
@@ -91,7 +129,7 @@ export function DocumentsUpload() {
       }}
       onDragLeave={() => setIsDragging(false)}
       onDrop={onDrop}
-      data-state={state}
+      data-state={state.kind}
       data-dragging={isDragging || undefined}
       className={[
         'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-border bg-muted/30 px-6 py-10 text-sm transition-colors',
@@ -110,6 +148,7 @@ export function DocumentsUpload() {
         id="documents-upload-input"
         type="file"
         accept={ACCEPT}
+        multiple
         className="sr-only"
         disabled={disabled}
         onChange={onFileChange}

@@ -13,7 +13,7 @@
   "cmd_open_settings": "打开设置",
   "cmd_open_documents": "打开文档",
   "documents_placeholder": "文档上传和抽取功能在 Phase 1b Task 14 落地。",
-  "documents_upload_hint": "把 PDF 拖到这里，或点击选择文件",
+  "documents_upload_hint": "把 PDF 拖到这里（可多选），或点击选择文件",
   "documents_upload_pdf_only": "只支持 PDF 文件。",
   "documents_uploading": "上传中…",
   "documents_extracting": "正在抽取…",
