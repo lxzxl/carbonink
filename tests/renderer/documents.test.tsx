@@ -75,6 +75,7 @@ const FAKE_DOC = {
   storage_path: '/tmp/uploads/ab/abcd...pdf',
   uploaded_at: '2026-05-12T10:00:00.000Z',
   uploaded_by: null,
+  doc_type: null,
 };
 
 const FAKE_EXTRACTION = {

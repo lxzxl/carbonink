@@ -253,6 +253,7 @@ export type Document = {
   storage_path: string;
   uploaded_at: string;
   uploaded_by: string | null;
+  doc_type: string | null;
 };
 
 export type ExtractionStatus = 'pending' | 'parsed' | 'review_needed' | 'rejected';
