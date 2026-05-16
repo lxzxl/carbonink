@@ -8,7 +8,7 @@ import {
   Outlet,
   RouterProvider,
 } from '@tanstack/react-router';
-import { render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 // Mock the IPC wrappers — the route mounts inside a test router with no
@@ -141,9 +141,8 @@ function buildHarness() {
 
 describe('/questionnaires/$id detail route', () => {
   afterEach(() => {
+    cleanup();
     vi.clearAllMocks();
-    // Clean up the DOM between tests so renderers don't bleed across tests
-    document.body.innerHTML = '';
   });
 
   it('renders questionnaire detail with AnswerReviewCards for each question', async () => {
