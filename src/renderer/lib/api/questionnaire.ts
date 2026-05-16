@@ -18,4 +18,6 @@ export const questionnaireApi = {
   list: () => invoke('questionnaire:list'),
 
   getById: (input: { id: string }) => invoke('questionnaire:get-by-id', input),
+
+  finalize: (input: { id: string }) => invoke('questionnaire:finalize', input),
 };

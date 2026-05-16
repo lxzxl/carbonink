@@ -163,6 +163,12 @@ export class QuestionnaireService {
       .all() as Array<Questionnaire & { customer_name: string; question_count: number }>;
   }
 
+  finalizeAnswering(id: string): void {
+    this.deps.db
+      .prepare(`UPDATE questionnaire SET status = 'answering' WHERE id = ?`)
+      .run(id);
+  }
+
   getById(id: string): {
     questionnaire: Questionnaire;
     customer: Customer;

@@ -134,6 +134,7 @@
   "questionnaires_detail_position": "单元格",
   "questionnaires_detail_answer_pending": "Phase 2.2b 将在此处生成答案。",
   "questionnaires_detail_not_found": "问卷不存在",
+  "questionnaires_finalize_button": "确认全部答案",
   "ef_matcher_all_candidates": "全部候选",
   "ef_matcher_loading": "正在分析...",
   "ef_matcher_no_candidates": "未找到与该排放源范围/类别匹配的排放因子。",

@@ -1,6 +1,11 @@
+import { toast } from '@renderer/components/toast';
+import { Button } from '@renderer/components/ui/button';
+import { AnswerReviewCard } from '@renderer/components/AnswerReviewCard';
+import { answerApi } from '@renderer/lib/api/answer';
 import { questionnaireApi } from '@renderer/lib/api/questionnaire';
 import * as m from '@renderer/paraglide/messages';
-import { useQuery } from '@tanstack/react-query';
+import type { Answer } from '@shared/types';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/questionnaires/$id')({
@@ -9,9 +14,26 @@ export const Route = createFileRoute('/questionnaires/$id')({
 
 function QuestionnaireDetailRoute() {
   const { id } = Route.useParams();
+  const queryClient = useQueryClient();
+
   const q = useQuery({
     queryKey: ['questionnaire:get-by-id', id],
     queryFn: () => questionnaireApi.getById({ id }),
+  });
+
+  const answersQuery = useQuery({
+    queryKey: ['answer:list-by-questionnaire', id],
+    queryFn: () => answerApi.listByQuestionnaire(id),
+    enabled: !!q.data,
+  });
+
+  const finalizeMutation = useMutation({
+    mutationFn: () => questionnaireApi.finalize({ id }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['questionnaire:get-by-id', id] });
+      toast.success(m.questionnaires_finalize_button());
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : String(e)),
   });
 
   if (q.isLoading) return <p className="text-muted-foreground">{m.loading()}</p>;
@@ -26,6 +48,10 @@ function QuestionnaireDetailRoute() {
     );
   }
   const { questionnaire, customer, document, questions } = q.data;
+
+  const byQ = new Map<string, Answer>(
+    (answersQuery.data ?? []).map((a) => [a.question_id, a]),
+  );
 
   return (
     <div className="space-y-6">
@@ -42,27 +68,25 @@ function QuestionnaireDetailRoute() {
         <p className="text-muted-foreground italic">{m.questionnaires_detail_answer_pending()}</p>
       ) : (
         <>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-muted-foreground">
-                <th className="py-2 text-left">{m.questionnaires_detail_question()}</th>
-                <th className="text-left">{m.questionnaires_detail_kind()}</th>
-                <th className="text-left">{m.questionnaires_detail_unit()}</th>
-                <th className="text-left">{m.questionnaires_detail_position()}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {questions.map((q) => (
-                <tr key={q.id} className="border-b">
-                  <td className="py-2">{q.raw_text}</td>
-                  <td>{q.question_kind}</td>
-                  <td>{q.expected_unit ?? '—'}</td>
-                  <td className="font-mono text-xs">{q.position ?? '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="text-muted-foreground italic">{m.questionnaires_detail_answer_pending()}</p>
+          <div className="space-y-4">
+            {questions.map((question) => (
+              <AnswerReviewCard
+                key={question.id}
+                question={question}
+                answer={byQ.get(question.id) ?? null}
+                questionnaireId={id}
+              />
+            ))}
+          </div>
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              onClick={() => finalizeMutation.mutate()}
+              disabled={finalizeMutation.isPending}
+            >
+              {m.questionnaires_finalize_button()}
+            </Button>
+          </div>
         </>
       )}
     </div>

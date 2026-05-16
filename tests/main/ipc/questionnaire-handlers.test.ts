@@ -7,6 +7,7 @@ function makeCtx() {
       createFromUpload: vi.fn().mockResolvedValue({ questionnaire_id: 'q-1', question_count: 5 }),
       list: vi.fn().mockReturnValue([]),
       getById: vi.fn().mockReturnValue(null),
+      finalizeAnswering: vi.fn().mockReturnValue(undefined),
     },
   } as unknown as never;
 }
@@ -68,6 +69,21 @@ describe('questionnaire:* handlers', () => {
     expect(
       (ctx as never as { questionnaireService: { getById: ReturnType<typeof vi.fn> } })
         .questionnaireService.getById,
+    ).toHaveBeenCalledWith('q-1');
+  });
+
+  it('questionnaire:finalize zod-rejects empty id', () => {
+    const handlers = questionnaireHandlers(makeCtx());
+    expect(() => handlers['questionnaire:finalize']!({ id: '' } as never)).toThrow();
+  });
+
+  it('questionnaire:finalize delegates to service.finalizeAnswering', () => {
+    const ctx = makeCtx();
+    const handlers = questionnaireHandlers(ctx);
+    handlers['questionnaire:finalize']!({ id: 'q-1' });
+    expect(
+      (ctx as never as { questionnaireService: { finalizeAnswering: ReturnType<typeof vi.fn> } })
+        .questionnaireService.finalizeAnswering,
     ).toHaveBeenCalledWith('q-1');
   });
 });

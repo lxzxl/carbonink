@@ -149,6 +149,7 @@ export type IpcTypeMap = {
     document: Document;
     questions: Question[];
   } | null;
+  'questionnaire:finalize': (input: { id: string }) => void;
 
   // answer domain (Phase 2.2b — auto-answer pipeline)
   'answer:generate': (input: { question_id: string }) => Promise<Answer>;

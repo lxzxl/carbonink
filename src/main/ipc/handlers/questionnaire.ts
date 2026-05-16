@@ -35,5 +35,9 @@ export function questionnaireHandlers(ctx: IpcContext): {
       const parsed = idInput.parse(input);
       return ctx.questionnaireService.getById(parsed.id);
     },
+    'questionnaire:finalize': (input) => {
+      const parsed = idInput.parse(input);
+      return ctx.questionnaireService.finalizeAnswering(parsed.id);
+    },
   };
 }

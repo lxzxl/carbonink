@@ -134,6 +134,7 @@
   "questionnaires_detail_position": "Cell",
   "questionnaires_detail_answer_pending": "Phase 2.2b will generate answers here.",
   "questionnaires_detail_not_found": "Questionnaire not found",
+  "questionnaires_finalize_button": "Finalize answers",
   "ef_matcher_all_candidates": "All candidates",
   "ef_matcher_loading": "Analyzing...",
   "ef_matcher_no_candidates": "No emission factors match this source's scope/category.",

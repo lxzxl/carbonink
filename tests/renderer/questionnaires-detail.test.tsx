@@ -9,15 +9,24 @@ import {
   RouterProvider,
 } from '@tanstack/react-router';
 import { render, screen, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-// Mock the IPC wrapper — the route mounts inside a test router with no
+// Mock the IPC wrappers — the route mounts inside a test router with no
 // preload bridge, so we intercept at the wrapper layer.
 vi.mock('@renderer/lib/api/questionnaire', () => ({
   questionnaireApi: {
     create: vi.fn(),
     list: vi.fn(),
     getById: vi.fn(),
+    finalize: vi.fn(),
+  },
+}));
+
+vi.mock('@renderer/lib/api/answer', () => ({
+  answerApi: {
+    generate: vi.fn(),
+    save: vi.fn(),
+    listByQuestionnaire: vi.fn().mockResolvedValue([]),
   },
 }));
 
@@ -133,9 +142,11 @@ function buildHarness() {
 describe('/questionnaires/$id detail route', () => {
   afterEach(() => {
     vi.clearAllMocks();
+    // Clean up the DOM between tests so renderers don't bleed across tests
+    document.body.innerHTML = '';
   });
 
-  it('renders questionnaire detail with questions', async () => {
+  it('renders questionnaire detail with AnswerReviewCards for each question', async () => {
     vi.mocked(questionnaireApi.getById).mockResolvedValue({
       questionnaire: FAKE_QUESTIONNAIRE,
       customer: FAKE_CUSTOMER,
@@ -153,24 +164,13 @@ describe('/questionnaires/$id detail route', () => {
     // Verify header info
     expect(screen.getByText('2025 · answering · questionnaire_2025.xlsx')).toBeTruthy();
 
-    // Verify question table rows
+    // Verify each question's raw_text appears in an AnswerReviewCard
     expect(screen.getByText('Total energy (kWh)')).toBeTruthy();
     expect(screen.getByText('Reporting period')).toBeTruthy();
     expect(screen.getByText('Waste (tons)')).toBeTruthy();
 
-    // Verify units display
-    expect(screen.getByText('kWh')).toBeTruthy();
-    expect(screen.getByText('tons')).toBeTruthy();
-    expect(screen.getAllByText('—')).toHaveLength(2); // for expected_unit and position that are null
-
-    // Verify cell positions display
-    expect(screen.getByText('B2')).toBeTruthy();
-    expect(screen.getByText('C3')).toBeTruthy();
-
-    // Verify answer pending message
-    expect(
-      screen.getByText(/Phase 2\.2b will generate answers here|Phase 2\.2b 将在此处生成答案/),
-    ).toBeTruthy();
+    // Verify the finalize button is present
+    expect(screen.getByRole('button', { name: /Finalize answers|确认全部答案/ })).toBeTruthy();
 
     // Verify back link
     expect(screen.getAllByText(/← Questionnaires|← 返回问卷列表/)).toBeTruthy();
@@ -188,5 +188,24 @@ describe('/questionnaires/$id detail route', () => {
 
     // Verify back link is still available
     expect(screen.getAllByText(/← Questionnaires|← 返回问卷列表/)).toBeTruthy();
+  });
+
+  it('renders empty-questions state with pending message', async () => {
+    vi.mocked(questionnaireApi.getById).mockResolvedValue({
+      questionnaire: FAKE_QUESTIONNAIRE,
+      customer: FAKE_CUSTOMER,
+      document: FAKE_DOCUMENT,
+      questions: [],
+    });
+
+    render(buildHarness());
+
+    await waitFor(() => {
+      expect(screen.getByText('Acme Corp')).toBeTruthy();
+    });
+
+    expect(
+      screen.getByText(/Phase 2\.2b will generate answers here|Phase 2\.2b 将在此处生成答案/),
+    ).toBeTruthy();
   });
 });
