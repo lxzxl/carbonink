@@ -23,7 +23,7 @@ export function AnswerReviewCard({ question, answer, questionnaireId }: AnswerRe
     queryClient.invalidateQueries({ queryKey: ['answer:list-by-questionnaire', questionnaireId] });
 
   const generate = useMutation({
-    mutationFn: (): Promise<import('@shared/types').Answer> => answerApi.generate(question.id) as never,
+    mutationFn: () => answerApi.generate(question.id),
     onSuccess: (a) => {
       setValue(a.value);
       setUnit(a.unit ?? '');

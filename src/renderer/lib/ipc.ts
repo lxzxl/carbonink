@@ -10,7 +10,7 @@ import type { IpcPushTypeMap, IpcTypeMap } from '@main/ipc/types.js';
 export function invoke<C extends keyof IpcTypeMap>(
   channel: C,
   ...args: Parameters<IpcTypeMap[C]>
-): Promise<ReturnType<IpcTypeMap[C]>> {
+): Promise<Awaited<ReturnType<IpcTypeMap[C]>>> {
   if (!window.ipc) {
     throw new Error('window.ipc not available — preload script not loaded?');
   }

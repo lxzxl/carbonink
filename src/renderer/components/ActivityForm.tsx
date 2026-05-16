@@ -239,15 +239,11 @@ export function ActivityForm({
   const matcherHintRef = initialValues?.matcherHint;
   const matcherQuery = useQuery({
     queryKey: ['ef:recommend', matcherHintRef?.extraction_id ?? '', selectedSourceId ?? ''],
-    // efMatcherApi.recommend() is typed as Promise<Promise<MatcherResult>> due to
-    // the IPC type-map declaring its return as Promise<MatcherResult>, but at
-    // runtime window.ipc.invoke resolves the outer promise only. We cast to the
-    // actual settled shape so TanStack Query's generic is correct.
-    queryFn: (): Promise<MatcherResult> =>
+    queryFn: () =>
       efMatcherApi.recommend({
         extraction_id: matcherHintRef!.extraction_id,
         emission_source_id: selectedSourceId!,
-      }) as unknown as Promise<MatcherResult>,
+      }),
     enabled: !!matcherHintRef && !!selectedSourceId,
     staleTime: Number.POSITIVE_INFINITY,
     retry: false,

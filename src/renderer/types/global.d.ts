@@ -6,7 +6,7 @@ declare global {
       invoke<C extends keyof IpcTypeMap>(
         channel: C,
         ...args: Parameters<IpcTypeMap[C]>
-      ): Promise<ReturnType<IpcTypeMap[C]>>;
+      ): Promise<Awaited<ReturnType<IpcTypeMap[C]>>>;
       subscribe<C extends keyof IpcPushTypeMap & string>(
         channel: C,
         callback: (payload: IpcPushTypeMap[C]) => void,

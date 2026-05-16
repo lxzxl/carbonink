@@ -86,7 +86,7 @@ export interface IpcBridge {
   invoke<C extends keyof IpcTypeMap & string>(
     channel: C,
     ...args: Parameters<IpcTypeMap[C]>
-  ): Promise<ReturnType<IpcTypeMap[C]>>;
+  ): Promise<Awaited<ReturnType<IpcTypeMap[C]>>>;
   /**
    * Subscribe to a main→renderer push channel. Returns an unsubscribe
    * function that detaches the listener.
@@ -107,11 +107,11 @@ export function createBridge(invokeFn: InvokeFn, subscribeFn: SubscribeFn): IpcB
     invoke<C extends keyof IpcTypeMap & string>(
       channel: C,
       ...args: Parameters<IpcTypeMap[C]>
-    ): Promise<ReturnType<IpcTypeMap[C]>> {
+    ): Promise<Awaited<ReturnType<IpcTypeMap[C]>>> {
       if (!allowedChannels.includes(channel)) {
         return Promise.reject(new Error(`IPC channel not allowed: ${String(channel)}`));
       }
-      return invokeFn(channel, ...args) as Promise<ReturnType<IpcTypeMap[C]>>;
+      return invokeFn(channel, ...args) as Promise<Awaited<ReturnType<IpcTypeMap[C]>>>;
     },
     subscribe<C extends keyof IpcPushTypeMap & string>(
       channel: C,
