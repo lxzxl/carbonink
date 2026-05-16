@@ -1,3 +1,4 @@
+import * as answerSvc from '@main/services/answer-generation/index.js';
 import { Effect } from 'effect';
 import { z } from 'zod';
 import type { IpcContext } from '../context.js';
@@ -18,16 +19,24 @@ export function answerHandlers(ctx: IpcContext): {
   return {
     'answer:generate': async (input) => {
       const parsed = generateInput.parse(input);
-      return Effect.runPromise(ctx.answerGenerationService.generate(parsed.question_id));
+      const config = ctx.providerConfig;
+      if (!config) {
+        throw new Error('AI provider not configured. Open Settings to set up.');
+      }
+      return Effect.runPromise(
+        answerSvc.generate(parsed.question_id, config).pipe(Effect.provide(ctx.answerLayer)),
+      );
     },
     'answer:save': async (input) => {
       const parsed = saveInput.parse(input);
-      return Effect.runPromise(ctx.answerGenerationService.save(parsed));
+      return Effect.runPromise(answerSvc.save(parsed).pipe(Effect.provide(ctx.answerLayer)));
     },
     'answer:list-by-questionnaire': async (input) => {
       const parsed = listInput.parse(input);
       return Effect.runPromise(
-        ctx.answerGenerationService.listByQuestionnaire(parsed.questionnaire_id),
+        answerSvc
+          .listByQuestionnaire(parsed.questionnaire_id)
+          .pipe(Effect.provide(ctx.answerLayer)),
       );
     },
   };

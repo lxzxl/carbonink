@@ -1,10 +1,10 @@
-import type { Database } from 'better-sqlite3';
-import { Effect } from 'effect';
 import { randomUUID } from 'node:crypto';
 import { ProviderNotConfiguredError, SchemaMismatchError } from '@main/llm/llm-client';
 import type { ActivityDataService } from '@main/services/activity-data-service';
 import type { OrganizationService } from '@main/services/organization-service';
 import type { Answer, ProviderConfig, Question, Questionnaire } from '@shared/types';
+import type { Database } from 'better-sqlite3';
+import { Effect } from 'effect';
 import {
   AnswerNotFound,
   type GenErr,
@@ -46,7 +46,11 @@ export function generate(
     if (existing) return yield* Effect.fail(new QuestionAlreadyAnswered({ id: questionId }));
 
     const questionnaire = yield* readQuestionnaire(db, question.questionnaire_id);
-    const inventory = loadInventoryContext(orgService, activityDataService, questionnaire.reporting_year);
+    const inventory = loadInventoryContext(
+      orgService,
+      activityDataService,
+      questionnaire.reporting_year,
+    );
     if (inventory.activity_count === 0) {
       return yield* Effect.fail(new InventoryEmpty({ year: questionnaire.reporting_year }));
     }
@@ -86,7 +90,8 @@ export function save(input: SaveInput): Effect.Effect<Answer, SaveErr, DbTag | N
     const db = yield* DbTag;
     const nowFn = yield* NowTag;
     const existing = yield* readAnswerByQuestion(db, input.question_id);
-    if (!existing) return yield* Effect.fail(new AnswerNotFound({ question_id: input.question_id }));
+    if (!existing)
+      return yield* Effect.fail(new AnswerNotFound({ question_id: input.question_id }));
     const finalizedAt = input.finalize ? nowFn() : existing.finalized_at;
     yield* Effect.sync(() => {
       db.prepare(
@@ -116,10 +121,7 @@ export function listByQuestionnaire(
   });
 }
 
-function readQuestion(
-  db: Database,
-  id: string,
-): Effect.Effect<Question, QuestionNotFound, never> {
+function readQuestion(db: Database, id: string): Effect.Effect<Question, QuestionNotFound, never> {
   return Effect.sync(
     () => db.prepare('SELECT * FROM question WHERE id = ?').get(id) as Question | undefined,
   ).pipe(
@@ -146,9 +148,7 @@ function readQuestionnaire(
     () =>
       db.prepare('SELECT * FROM questionnaire WHERE id = ?').get(id) as Questionnaire | undefined,
   ).pipe(
-    Effect.flatMap((q) =>
-      q ? Effect.succeed(q) : Effect.fail(new QuestionnaireNotFound({ id })),
-    ),
+    Effect.flatMap((q) => (q ? Effect.succeed(q) : Effect.fail(new QuestionnaireNotFound({ id })))),
   );
 }
 
@@ -173,7 +173,8 @@ function loadInventoryContext(
     .listReportingPeriodsByOrganization(org.id)
     .filter((p) => p.year === year);
   const period = periods[0];
-  if (!period) return { year, activity_count: 0, activities_summary: '无该年度报告期', totals: null };
+  if (!period)
+    return { year, activity_count: 0, activities_summary: '无该年度报告期', totals: null };
   const activities = activityDataService.listByPeriod(period.id);
   const totals = activityDataService.totalsByPeriod(period.id);
   return {

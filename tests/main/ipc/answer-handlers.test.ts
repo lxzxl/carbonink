@@ -1,6 +1,19 @@
 import { answerHandlers } from '@main/ipc/handlers/answer';
-import { Effect } from 'effect';
-import { describe, expect, it, vi } from 'vitest';
+import * as answerSvc from '@main/services/answer-generation/index';
+import { Effect, Layer } from 'effect';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('@main/services/answer-generation/index', async () => {
+  const actual = await vi.importActual<typeof import('@main/services/answer-generation/index')>(
+    '@main/services/answer-generation/index',
+  );
+  return {
+    ...actual,
+    generate: vi.fn(),
+    save: vi.fn(),
+    listByQuestionnaire: vi.fn(),
+  };
+});
 
 const fakeAnswer = {
   id: 'ans-1',
@@ -18,55 +31,45 @@ const fakeAnswer = {
 
 function makeCtx() {
   return {
-    answerGenerationService: {
-      generate: vi.fn().mockReturnValue(Effect.succeed(fakeAnswer)),
-      save: vi.fn().mockReturnValue(Effect.succeed(fakeAnswer)),
-      listByQuestionnaire: vi.fn().mockReturnValue(Effect.succeed([fakeAnswer])),
-    },
-  } as unknown as never;
+    answerLayer: Layer.empty,
+    providerConfig: { provider: 'openai' as const, model: 'gpt-4o', apiKey: 'test-key' },
+  } as never;
 }
 
 describe('answer:* handlers', () => {
-  it('answer:generate calls service.generate and resolves the answer', async () => {
-    const ctx = makeCtx();
-    const handlers = answerHandlers(ctx);
+  afterEach(() => vi.clearAllMocks());
+
+  it('answer:generate calls answerSvc.generate and resolves the answer', async () => {
+    vi.mocked(answerSvc.generate).mockReturnValue(Effect.succeed(fakeAnswer) as never);
+    const handlers = answerHandlers(makeCtx());
     const result = await handlers['answer:generate']!({ question_id: 'q-1' });
     expect(result).toEqual(fakeAnswer);
-    expect(
-      (
-        ctx as never as {
-          answerGenerationService: { generate: ReturnType<typeof vi.fn> };
-        }
-      ).answerGenerationService.generate,
-    ).toHaveBeenCalledWith('q-1');
+    expect(answerSvc.generate).toHaveBeenCalledTimes(1);
+    expect(answerSvc.generate).toHaveBeenCalledWith('q-1', expect.any(Object));
   });
 
-  it('answer:save calls service.save and resolves the updated answer', async () => {
-    const ctx = makeCtx();
-    const handlers = answerHandlers(ctx);
+  it('answer:save calls answerSvc.save and resolves the updated answer', async () => {
+    vi.mocked(answerSvc.save).mockReturnValue(Effect.succeed(fakeAnswer) as never);
+    const handlers = answerHandlers(makeCtx());
     const input = { question_id: 'q-1', value: '42', unit: 'tCO2e', finalize: true };
     const result = await handlers['answer:save']!(input);
     expect(result).toEqual(fakeAnswer);
-    expect(
-      (
-        ctx as never as {
-          answerGenerationService: { save: ReturnType<typeof vi.fn> };
-        }
-      ).answerGenerationService.save,
-    ).toHaveBeenCalledWith(input);
+    expect(answerSvc.save).toHaveBeenCalledWith(input);
   });
 
-  it('answer:list-by-questionnaire calls service.listByQuestionnaire and resolves the list', async () => {
-    const ctx = makeCtx();
-    const handlers = answerHandlers(ctx);
+  it('answer:list-by-questionnaire calls answerSvc.listByQuestionnaire and resolves the list', async () => {
+    vi.mocked(answerSvc.listByQuestionnaire).mockReturnValue(Effect.succeed([fakeAnswer]) as never);
+    const handlers = answerHandlers(makeCtx());
     const result = await handlers['answer:list-by-questionnaire']!({ questionnaire_id: 'qs-1' });
     expect(result).toEqual([fakeAnswer]);
-    expect(
-      (
-        ctx as never as {
-          answerGenerationService: { listByQuestionnaire: ReturnType<typeof vi.fn> };
-        }
-      ).answerGenerationService.listByQuestionnaire,
-    ).toHaveBeenCalledWith('qs-1');
+    expect(answerSvc.listByQuestionnaire).toHaveBeenCalledWith('qs-1');
+  });
+
+  it('answer:generate throws when providerConfig is null', async () => {
+    const ctx = { answerLayer: Layer.empty, providerConfig: null } as never;
+    const handlers = answerHandlers(ctx);
+    await expect(handlers['answer:generate']!({ question_id: 'q-1' })).rejects.toThrow(
+      'AI provider not configured',
+    );
   });
 });

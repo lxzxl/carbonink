@@ -195,9 +195,11 @@ describe('answer-generation.save', () => {
     );
     expect(result.value).toBe('15000');
     expect(result.source_kind).toBe('manual');
-    const row = db
-      .prepare(`SELECT * FROM answer WHERE question_id = ?`)
-      .get('q-1') as { value: string; source_kind: string; finalized_at: string | null };
+    const row = db.prepare(`SELECT * FROM answer WHERE question_id = ?`).get('q-1') as {
+      value: string;
+      source_kind: string;
+      finalized_at: string | null;
+    };
     expect(row.value).toBe('15000');
     expect(row.finalized_at).toBeNull();
   });
@@ -213,9 +215,9 @@ describe('answer-generation.save', () => {
         .save({ question_id: 'q-1', value: '15000', unit: 'kWh', finalize: true })
         .pipe(Effect.provide(testLayer)),
     );
-    const row = db
-      .prepare(`SELECT finalized_at FROM answer WHERE question_id = ?`)
-      .get('q-1') as { finalized_at: string };
+    const row = db.prepare(`SELECT finalized_at FROM answer WHERE question_id = ?`).get('q-1') as {
+      finalized_at: string;
+    };
     expect(row.finalized_at).toBe('2026-05-15T12:00:00Z');
   });
 

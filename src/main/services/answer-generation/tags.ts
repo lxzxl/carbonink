@@ -1,13 +1,19 @@
-import type { Database } from 'better-sqlite3';
-import { Context, Layer } from 'effect';
 import type { LLMClient } from '@main/llm/llm-client';
 import type { ActivityDataService } from '@main/services/activity-data-service';
 import type { OrganizationService } from '@main/services/organization-service';
+import type { Database } from 'better-sqlite3';
+import { Context, Layer } from 'effect';
 
 export class DbTag extends Context.Tag('answer/Db')<DbTag, Database>() {}
 export class LLMClientTag extends Context.Tag('answer/LLMClient')<LLMClientTag, LLMClient>() {}
-export class OrgServiceTag extends Context.Tag('answer/OrgService')<OrgServiceTag, OrganizationService>() {}
-export class ActivityDataServiceTag extends Context.Tag('answer/ActivityDataService')<ActivityDataServiceTag, ActivityDataService>() {}
+export class OrgServiceTag extends Context.Tag('answer/OrgService')<
+  OrgServiceTag,
+  OrganizationService
+>() {}
+export class ActivityDataServiceTag extends Context.Tag('answer/ActivityDataService')<
+  ActivityDataServiceTag,
+  ActivityDataService
+>() {}
 export class NowTag extends Context.Tag('answer/Now')<NowTag, () => string>() {}
 
 export type AnswerR = DbTag | LLMClientTag | OrgServiceTag | ActivityDataServiceTag | NowTag;
