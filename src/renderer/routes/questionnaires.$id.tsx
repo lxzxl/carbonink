@@ -1,6 +1,6 @@
+import { AnswerReviewCard } from '@renderer/components/AnswerReviewCard';
 import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
-import { AnswerReviewCard } from '@renderer/components/AnswerReviewCard';
 import { answerApi } from '@renderer/lib/api/answer';
 import { questionnaireApi } from '@renderer/lib/api/questionnaire';
 import * as m from '@renderer/paraglide/messages';
@@ -49,9 +49,7 @@ function QuestionnaireDetailRoute() {
   }
   const { questionnaire, customer, document, questions } = q.data;
 
-  const byQ = new Map<string, Answer>(
-    (answersQuery.data ?? []).map((a) => [a.question_id, a]),
-  );
+  const byQ = new Map<string, Answer>((answersQuery.data ?? []).map((a) => [a.question_id, a]));
 
   return (
     <div className="space-y-6">

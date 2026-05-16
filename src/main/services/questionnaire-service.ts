@@ -164,9 +164,7 @@ export class QuestionnaireService {
   }
 
   finalizeAnswering(id: string): void {
-    this.deps.db
-      .prepare(`UPDATE questionnaire SET status = 'answering' WHERE id = ?`)
-      .run(id);
+    this.deps.db.prepare(`UPDATE questionnaire SET status = 'answering' WHERE id = ?`).run(id);
   }
 
   getById(id: string): {

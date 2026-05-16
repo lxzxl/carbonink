@@ -33,26 +33,54 @@ function setup(opts?: {
   runMigrations(db);
 
   if (opts?.seedQuestionnaire) {
-    db.prepare(`INSERT INTO customer (id, name, notes) VALUES ('cu-1', ?, NULL)`).run(opts.seedQuestionnaire.customer_name);
-    db.prepare(`INSERT INTO document (id, sha256, filename, mime_type, size_bytes, storage_path, uploaded_at) VALUES ('doc-1', 'aa', 'q.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 100, '/tmp/q.xlsx', '2026-05-15T00:00:00Z')`).run();
-    db.prepare(`INSERT INTO questionnaire (id, customer_id, document_id, reporting_year, status, due_date, created_at) VALUES (?, 'cu-1', 'doc-1', ?, 'mapping', NULL, '2026-05-15T00:00:00Z')`)
-      .run(opts.seedQuestionnaire.id, opts.seedQuestionnaire.reporting_year);
+    db.prepare(`INSERT INTO customer (id, name, notes) VALUES ('cu-1', ?, NULL)`).run(
+      opts.seedQuestionnaire.customer_name,
+    );
+    db.prepare(
+      `INSERT INTO document (id, sha256, filename, mime_type, size_bytes, storage_path, uploaded_at) VALUES ('doc-1', 'aa', 'q.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 100, '/tmp/q.xlsx', '2026-05-15T00:00:00Z')`,
+    ).run();
+    db.prepare(
+      `INSERT INTO questionnaire (id, customer_id, document_id, reporting_year, status, due_date, created_at) VALUES (?, 'cu-1', 'doc-1', ?, 'mapping', NULL, '2026-05-15T00:00:00Z')`,
+    ).run(opts.seedQuestionnaire.id, opts.seedQuestionnaire.reporting_year);
   }
   if (opts?.seedQuestion) {
-    db.prepare(`INSERT INTO question (id, questionnaire_id, question_signature, signature_version, normalized_text, raw_text, parsed_intent, question_kind, expected_unit, position, required) VALUES (?, ?, 'sig', 'v1', 'q', ?, NULL, 'numerical', 'kWh', 'Sheet1!B5', 0)`)
-      .run(opts.seedQuestion.id, opts.seedQuestion.questionnaire_id, opts.seedQuestion.raw_text);
+    db.prepare(
+      `INSERT INTO question (id, questionnaire_id, question_signature, signature_version, normalized_text, raw_text, parsed_intent, question_kind, expected_unit, position, required) VALUES (?, ?, 'sig', 'v1', 'q', ?, NULL, 'numerical', 'kWh', 'Sheet1!B5', 0)`,
+    ).run(opts.seedQuestion.id, opts.seedQuestion.questionnaire_id, opts.seedQuestion.raw_text);
   }
   if (opts?.seedAnswer) {
     const a = opts.seedAnswer;
-    db.prepare(`INSERT INTO answer (id, question_id, value, unit, source_kind, source_summary, finalized_at) VALUES (?, ?, ?, NULL, 'ai_suggested', NULL, NULL)`)
-      .run(a.id, a.question_id, a.value);
+    db.prepare(
+      `INSERT INTO answer (id, question_id, value, unit, source_kind, source_summary, finalized_at) VALUES (?, ?, ?, NULL, 'ai_suggested', NULL, NULL)`,
+    ).run(a.id, a.question_id, a.value);
   }
 
   const orgService = {
-    getCurrentOrganization: vi.fn().mockReturnValue({ id: 'org-1', name_zh: 'Test', name_en: null, industry: null, country_code: 'CN', boundary_kind: 'operational_control', created_at: '2026-05-15T00:00:00Z', updated_at: '2026-05-15T00:00:00Z' }),
+    getCurrentOrganization: vi.fn().mockReturnValue({
+      id: 'org-1',
+      name_zh: 'Test',
+      name_en: null,
+      industry: null,
+      country_code: 'CN',
+      boundary_kind: 'operational_control',
+      created_at: '2026-05-15T00:00:00Z',
+      updated_at: '2026-05-15T00:00:00Z',
+    }),
     listReportingPeriodsByOrganization: vi.fn().mockReturnValue(
       opts?.seedQuestionnaire
-        ? [{ id: 'rp-1', organization_id: 'org-1', year: opts.seedQuestionnaire.reporting_year, granularity: 'annual', starts_at: '', ends_at: '', is_active: 1, created_at: '', updated_at: '' }]
+        ? [
+            {
+              id: 'rp-1',
+              organization_id: 'org-1',
+              year: opts.seedQuestionnaire.reporting_year,
+              granularity: 'annual',
+              starts_at: '',
+              ends_at: '',
+              is_active: 1,
+              created_at: '',
+              updated_at: '',
+            },
+          ]
         : [],
     ),
   };
@@ -63,7 +91,11 @@ function setup(opts?: {
   const llmClient = {
     generateAnswer: opts?.llmThrows
       ? vi.fn().mockRejectedValue(opts.llmThrows)
-      : vi.fn().mockResolvedValue(opts?.llmAnswer ?? { value: '14820', unit: 'kWh', source_summary: 'sum of activities' }),
+      : vi
+          .fn()
+          .mockResolvedValue(
+            opts?.llmAnswer ?? { value: '14820', unit: 'kWh', source_summary: 'sum of activities' },
+          ),
   };
 
   return {
@@ -148,7 +180,11 @@ describe('AnswerGenerationService.save', () => {
     );
     expect(result.value).toBe('15000');
     expect(result.source_kind).toBe('manual');
-    const row = db.prepare(`SELECT * FROM answer WHERE question_id = ?`).get('q-1') as { value: string; source_kind: string; finalized_at: string | null };
+    const row = db.prepare(`SELECT * FROM answer WHERE question_id = ?`).get('q-1') as {
+      value: string;
+      source_kind: string;
+      finalized_at: string | null;
+    };
     expect(row.value).toBe('15000');
     expect(row.finalized_at).toBeNull();
   });
@@ -162,7 +198,9 @@ describe('AnswerGenerationService.save', () => {
     await Effect.runPromise(
       svc.save({ question_id: 'q-1', value: '15000', unit: 'kWh', finalize: true }),
     );
-    const row = db.prepare(`SELECT finalized_at FROM answer WHERE question_id = ?`).get('q-1') as { finalized_at: string };
+    const row = db.prepare(`SELECT finalized_at FROM answer WHERE question_id = ?`).get('q-1') as {
+      finalized_at: string;
+    };
     expect(row.finalized_at).toBe('2026-05-15T12:00:00Z');
   });
 
@@ -181,10 +219,18 @@ describe('AnswerGenerationService.listByQuestionnaire', () => {
       seedQuestionnaire: { id: 'qn-1', reporting_year: 2026, customer_name: 'A' },
     });
     // Insert two questions with different positions + answers.
-    db.prepare(`INSERT INTO question (id, questionnaire_id, question_signature, signature_version, normalized_text, raw_text, parsed_intent, question_kind, expected_unit, position, required) VALUES ('q-1', 'qn-1', 's1', 'v1', 'q1', 'q1', NULL, 'numerical', NULL, 'Sheet1!B2', 0)`).run();
-    db.prepare(`INSERT INTO question (id, questionnaire_id, question_signature, signature_version, normalized_text, raw_text, parsed_intent, question_kind, expected_unit, position, required) VALUES ('q-2', 'qn-1', 's2', 'v1', 'q2', 'q2', NULL, 'numerical', NULL, 'Sheet1!B5', 0)`).run();
-    db.prepare(`INSERT INTO answer (id, question_id, value, unit, source_kind, source_summary, finalized_at) VALUES ('a-1', 'q-1', 'v1', NULL, 'ai_suggested', NULL, NULL)`).run();
-    db.prepare(`INSERT INTO answer (id, question_id, value, unit, source_kind, source_summary, finalized_at) VALUES ('a-2', 'q-2', 'v2', NULL, 'ai_suggested', NULL, NULL)`).run();
+    db.prepare(
+      `INSERT INTO question (id, questionnaire_id, question_signature, signature_version, normalized_text, raw_text, parsed_intent, question_kind, expected_unit, position, required) VALUES ('q-1', 'qn-1', 's1', 'v1', 'q1', 'q1', NULL, 'numerical', NULL, 'Sheet1!B2', 0)`,
+    ).run();
+    db.prepare(
+      `INSERT INTO question (id, questionnaire_id, question_signature, signature_version, normalized_text, raw_text, parsed_intent, question_kind, expected_unit, position, required) VALUES ('q-2', 'qn-1', 's2', 'v1', 'q2', 'q2', NULL, 'numerical', NULL, 'Sheet1!B5', 0)`,
+    ).run();
+    db.prepare(
+      `INSERT INTO answer (id, question_id, value, unit, source_kind, source_summary, finalized_at) VALUES ('a-1', 'q-1', 'v1', NULL, 'ai_suggested', NULL, NULL)`,
+    ).run();
+    db.prepare(
+      `INSERT INTO answer (id, question_id, value, unit, source_kind, source_summary, finalized_at) VALUES ('a-2', 'q-2', 'v2', NULL, 'ai_suggested', NULL, NULL)`,
+    ).run();
     const result = await Effect.runPromise(svc.listByQuestionnaire('qn-1'));
     expect(result.length).toBe(2);
     expect(result[0]?.question_id).toBe('q-1');

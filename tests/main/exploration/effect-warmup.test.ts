@@ -138,9 +138,7 @@ describe('Data.TaggedError + Effect.catchTag', () => {
   class NotFound extends Data.TaggedError('NotFound')<{ id: string }> {}
   class Timeout extends Data.TaggedError('Timeout')<{ ms: number }> {}
 
-  const lookup = (
-    id: string,
-  ): Effect.Effect<string, NotFound | Timeout, never> =>
+  const lookup = (id: string): Effect.Effect<string, NotFound | Timeout, never> =>
     id === 'slow'
       ? Effect.fail(new Timeout({ ms: 1000 }))
       : id === 'gone'
@@ -150,9 +148,7 @@ describe('Data.TaggedError + Effect.catchTag', () => {
   it('catchTag recovers only the matching error', async () => {
     // Recover from NotFound by returning a default; let Timeout pass through.
     const safe = (id: string) =>
-      lookup(id).pipe(
-        Effect.catchTag('NotFound', (_e) => Effect.succeed('fallback')),
-      );
+      lookup(id).pipe(Effect.catchTag('NotFound', (_e) => Effect.succeed('fallback')));
 
     expect(await Effect.runPromise(safe('ok'))).toBe('record:ok');
     expect(await Effect.runPromise(safe('gone'))).toBe('fallback');

@@ -433,7 +433,12 @@ ${cellsText}
       year: number;
       activity_count: number;
       activities_summary: string;
-      totals: { total_co2e_kg: number; scope1_kg?: number; scope2_kg?: number; scope3_kg?: number } | null;
+      totals: {
+        total_co2e_kg: number;
+        scope1_kg?: number;
+        scope2_kg?: number;
+        scope3_kg?: number;
+      } | null;
     },
   ): Promise<{ value: string; unit: string | null; source_summary: string }> {
     const schema = z.object({

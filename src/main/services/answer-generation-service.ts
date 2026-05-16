@@ -1,9 +1,9 @@
-import { ProviderNotConfiguredError, SchemaMismatchError } from '@main/llm/llm-client';
+import { randomUUID } from 'node:crypto';
 import type { LLMClient } from '@main/llm/llm-client';
+import { ProviderNotConfiguredError, SchemaMismatchError } from '@main/llm/llm-client';
 import type { Answer, ProviderConfig, Question, Questionnaire } from '@shared/types';
 import type { Database } from 'better-sqlite3';
 import { Data, Effect } from 'effect';
-import { randomUUID } from 'node:crypto';
 import type { ActivityDataService } from './activity-data-service';
 import type { OrganizationService } from './organization-service';
 
@@ -128,26 +128,34 @@ export class AnswerGenerationService {
     const nowFn = this.deps.now ?? (() => new Date().toISOString());
     return Effect.gen(function* () {
       const existing = yield* readAnswerByQuestion(db, input.question_id);
-      if (!existing) return yield* Effect.fail(new AnswerNotFound({ question_id: input.question_id }));
+      if (!existing)
+        return yield* Effect.fail(new AnswerNotFound({ question_id: input.question_id }));
       const finalizedAt = input.finalize ? nowFn() : existing.finalized_at;
       yield* Effect.sync(() => {
-        db.prepare(`UPDATE answer SET value = ?, unit = ?, source_kind = 'manual', finalized_at = ? WHERE question_id = ?`)
-          .run(input.value, input.unit, finalizedAt, input.question_id);
+        db.prepare(
+          `UPDATE answer SET value = ?, unit = ?, source_kind = 'manual', finalized_at = ? WHERE question_id = ?`,
+        ).run(input.value, input.unit, finalizedAt, input.question_id);
       });
-      return yield* Effect.sync(() => db.prepare(`SELECT * FROM answer WHERE question_id = ?`).get(input.question_id) as Answer);
+      return yield* Effect.sync(
+        () =>
+          db.prepare(`SELECT * FROM answer WHERE question_id = ?`).get(input.question_id) as Answer,
+      );
     });
   }
 
   listByQuestionnaire(questionnaireId: string): Effect.Effect<Answer[], never, never> {
     const { db } = this.deps;
-    return Effect.sync(() =>
-      db.prepare(`
+    return Effect.sync(
+      () =>
+        db
+          .prepare(`
         SELECT a.*
         FROM answer a
         JOIN question q ON q.id = a.question_id
         WHERE q.questionnaire_id = ?
         ORDER BY q.position
-      `).all(questionnaireId) as Answer[],
+      `)
+          .all(questionnaireId) as Answer[],
     );
   }
 }
@@ -160,7 +168,10 @@ function readQuestion(db: Database, id: string): Effect.Effect<Question, Questio
   );
 }
 
-function readAnswerByQuestion(db: Database, qid: string): Effect.Effect<Answer | null, never, never> {
+function readAnswerByQuestion(
+  db: Database,
+  qid: string,
+): Effect.Effect<Answer | null, never, never> {
   return Effect.sync(
     () =>
       (db.prepare('SELECT * FROM answer WHERE question_id = ?').get(qid) as Answer | undefined) ??
@@ -176,9 +187,7 @@ function readQuestionnaire(
     () =>
       db.prepare('SELECT * FROM questionnaire WHERE id = ?').get(id) as Questionnaire | undefined,
   ).pipe(
-    Effect.flatMap((q) =>
-      q ? Effect.succeed(q) : Effect.fail(new QuestionnaireNotFound({ id })),
-    ),
+    Effect.flatMap((q) => (q ? Effect.succeed(q) : Effect.fail(new QuestionnaireNotFound({ id })))),
   );
 }
 

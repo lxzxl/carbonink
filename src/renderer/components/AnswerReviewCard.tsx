@@ -113,12 +113,7 @@ export function AnswerReviewCard({ question, answer, questionnaireId }: AnswerRe
         >
           {m.answer_save()}
         </Button>
-        <Button
-          type="button"
-          size="sm"
-          onClick={() => save.mutate(true)}
-          disabled={save.isPending}
-        >
+        <Button type="button" size="sm" onClick={() => save.mutate(true)} disabled={save.isPending}>
           {m.answer_save_finalize()}
         </Button>
       </div>
