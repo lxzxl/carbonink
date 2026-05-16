@@ -317,6 +317,25 @@ export type Extraction = {
 };
 
 // ---------------------------------------------------------------------------
+// Answer (Phase 2.2b — auto-answer pipeline)
+// ---------------------------------------------------------------------------
+
+/** Row shape mirroring the `answer` table. See migration 005. */
+export type Answer = {
+  id: string;
+  question_id: string;
+  value: string;
+  unit: string | null;
+  source_kind: 'mapped_inventory' | 'manual' | 'ai_suggested';
+  source_calculation_snapshot_id: string | null;
+  source_activity_data_id: string | null;
+  source_company_profile_key: string | null;
+  source_narrative_bank_id: string | null;
+  source_summary: string | null;
+  finalized_at: string | null;
+};
+
+// ---------------------------------------------------------------------------
 // ClassificationService result (Phase 1c Task 3 — auto-classify + run)
 // ---------------------------------------------------------------------------
 
