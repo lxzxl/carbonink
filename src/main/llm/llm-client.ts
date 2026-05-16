@@ -421,6 +421,47 @@ ${cellsText}
     return this.extract(config, schema, prompt);
   }
 
+  // Auto-fill questionnaire answers from inventory data.
+  async generateAnswer(
+    config: ProviderConfig,
+    question: {
+      raw_text: string;
+      expected_unit?: string | null;
+      question_kind: 'numerical' | 'categorical' | 'narrative';
+    },
+    inventory: {
+      year: number;
+      activity_count: number;
+      activities_summary: string;
+      totals: { total_co2e_kg: number; scope1_kg?: number; scope2_kg?: number; scope3_kg?: number } | null;
+    },
+  ): Promise<{ value: string; unit: string | null; source_summary: string }> {
+    const schema = z.object({
+      value: z.string(),
+      unit: z.string().nullable(),
+      source_summary: z.string().max(500),
+    });
+
+    const prompt = `你是一名碳核算助理。下面是一道供应商问卷的题目，以及当前组织 ${inventory.year} 年度的 inventory 数据。请基于 inventory 给出答案。
+
+<question>
+${question.raw_text}
+${question.expected_unit ? `期望单位：${question.expected_unit}` : ''}
+</question>
+
+<inventory>
+活动数据行数：${inventory.activity_count}
+活动数据摘要：${inventory.activities_summary}
+${inventory.totals ? `总排放：${JSON.stringify(inventory.totals)}` : '无总排放快照。'}
+</inventory>
+
+返回 JSON: { value: <答案字符串，可以是数字字符串或文本>, unit: <单位字符串，若题面有要求；否则 null>, source_summary: <1-2 句中文，说明答案是从 inventory 哪部分推出来的> }
+
+如果 inventory 里没有相关数据，value 用空字符串 ""，source_summary 解释为何无法回答。`;
+
+    return this.extract(config, schema, prompt);
+  }
+
   /**
    * Classify a document into one of the 5 supported stage types.
    *
