@@ -1,8 +1,15 @@
 import { runMigrations } from '@main/db/migrate';
-import { AnswerGenerationService } from '@main/services/answer-generation-service';
+import * as answerSvc from '@main/services/answer-generation';
+import {
+  ActivityDataServiceTag,
+  DbTag,
+  LLMClientTag,
+  NowTag,
+  OrgServiceTag,
+} from '@main/services/answer-generation/tags';
 import type { Answer } from '@shared/types';
 import Database from 'better-sqlite3';
-import { Cause, Effect, Exit, Option } from 'effect';
+import { Cause, Effect, Exit, Layer, Option } from 'effect';
 import { describe, expect, it, vi } from 'vitest';
 
 const FAKE_CONFIG = {
@@ -11,7 +18,6 @@ const FAKE_CONFIG = {
   apiKeyKeyref: 'fake',
 } as never;
 
-// Helper: read the typed-error _tag out of an Exit.Failure.
 function failureTag<A>(exit: Exit.Exit<A, unknown>): string | null {
   if (Exit.isSuccess(exit)) return null;
   const failure = Cause.failureOption(exit.cause);
@@ -98,30 +104,29 @@ function setup(opts?: {
           ),
   };
 
-  return {
-    db,
-    svc: new AnswerGenerationService({
-      db,
-      llmClient: llmClient as never,
-      orgService: orgService as never,
-      activityDataService: activityDataService as never,
-      config: FAKE_CONFIG,
-      now: () => '2026-05-15T12:00:00Z',
-    }),
-    llmClient,
-  };
+  const testLayer = Layer.mergeAll(
+    Layer.succeed(DbTag, db),
+    Layer.succeed(LLMClientTag, llmClient as never),
+    Layer.succeed(OrgServiceTag, orgService as never),
+    Layer.succeed(ActivityDataServiceTag, activityDataService as never),
+    Layer.succeed(NowTag, () => '2026-05-15T12:00:00Z'),
+  );
+
+  return { db, testLayer, llmClient };
 }
 
-describe('AnswerGenerationService.generate (Effect Step 1)', () => {
+describe('answer-generation.generate (Effect Step 2)', () => {
   it('happy path: returns answer row + inserts to DB', async () => {
-    const { svc, db, llmClient } = setup({
+    const { testLayer, db, llmClient } = setup({
       seedQuestionnaire: { id: 'qn-1', reporting_year: 2026, customer_name: 'Acme' },
       seedQuestion: { id: 'q-1', questionnaire_id: 'qn-1', raw_text: '2026 total kWh?' },
       activitiesForYear: 12,
       totalsForYear: { total_co2e_kg: 8456.7 },
       llmAnswer: { value: '14820', unit: 'kWh', source_summary: 'sum of activities' },
     });
-    const result = await Effect.runPromise(svc.generate('q-1'));
+    const result = await Effect.runPromise(
+      answerSvc.generate('q-1', FAKE_CONFIG).pipe(Effect.provide(testLayer)),
+    );
     expect(result.value).toBe('14820');
     expect(result.source_kind).toBe('ai_suggested');
     expect(llmClient.generateAnswer).toHaveBeenCalledTimes(1);
@@ -130,95 +135,106 @@ describe('AnswerGenerationService.generate (Effect Step 1)', () => {
   });
 
   it('QuestionNotFound when id does not exist', async () => {
-    const { svc } = setup({});
-    const exit = await Effect.runPromiseExit(svc.generate('not-real'));
+    const { testLayer } = setup({});
+    const exit = await Effect.runPromiseExit(
+      answerSvc.generate('not-real', FAKE_CONFIG).pipe(Effect.provide(testLayer)),
+    );
     expect(failureTag(exit)).toBe('QuestionNotFound');
   });
 
   it('QuestionAlreadyAnswered when answer row already exists', async () => {
-    const { svc } = setup({
+    const { testLayer } = setup({
       seedQuestionnaire: { id: 'qn-1', reporting_year: 2026, customer_name: 'A' },
       seedQuestion: { id: 'q-1', questionnaire_id: 'qn-1', raw_text: 'Q' },
       seedAnswer: { id: 'a-1', question_id: 'q-1', value: 'existing' },
       activitiesForYear: 1,
     });
-    const exit = await Effect.runPromiseExit(svc.generate('q-1'));
+    const exit = await Effect.runPromiseExit(
+      answerSvc.generate('q-1', FAKE_CONFIG).pipe(Effect.provide(testLayer)),
+    );
     expect(failureTag(exit)).toBe('QuestionAlreadyAnswered');
   });
 
   it('InventoryEmpty when no activities for the year', async () => {
-    const { svc } = setup({
+    const { testLayer } = setup({
       seedQuestionnaire: { id: 'qn-1', reporting_year: 2026, customer_name: 'A' },
       seedQuestion: { id: 'q-1', questionnaire_id: 'qn-1', raw_text: 'Q' },
       activitiesForYear: 0,
     });
-    const exit = await Effect.runPromiseExit(svc.generate('q-1'));
+    const exit = await Effect.runPromiseExit(
+      answerSvc.generate('q-1', FAKE_CONFIG).pipe(Effect.provide(testLayer)),
+    );
     expect(failureTag(exit)).toBe('InventoryEmpty');
   });
 
   it('LLMCallFailed when LLM rejects', async () => {
-    const { svc } = setup({
+    const { testLayer } = setup({
       seedQuestionnaire: { id: 'qn-1', reporting_year: 2026, customer_name: 'A' },
       seedQuestion: { id: 'q-1', questionnaire_id: 'qn-1', raw_text: 'Q' },
       activitiesForYear: 1,
       llmThrows: new Error('network down'),
     });
-    const exit = await Effect.runPromiseExit(svc.generate('q-1'));
+    const exit = await Effect.runPromiseExit(
+      answerSvc.generate('q-1', FAKE_CONFIG).pipe(Effect.provide(testLayer)),
+    );
     expect(failureTag(exit)).toBe('LLMCallFailed');
   });
 });
 
-describe('AnswerGenerationService.save', () => {
+describe('answer-generation.save', () => {
   it('updates value/unit + flips source_kind to manual on user edit', async () => {
-    const { svc, db } = setup({
+    const { testLayer, db } = setup({
       seedQuestionnaire: { id: 'qn-1', reporting_year: 2026, customer_name: 'A' },
       seedQuestion: { id: 'q-1', questionnaire_id: 'qn-1', raw_text: 'Q' },
       seedAnswer: { id: 'a-1', question_id: 'q-1', value: '14820' },
     });
     const result = await Effect.runPromise(
-      svc.save({ question_id: 'q-1', value: '15000', unit: 'kWh', finalize: false }),
+      answerSvc
+        .save({ question_id: 'q-1', value: '15000', unit: 'kWh', finalize: false })
+        .pipe(Effect.provide(testLayer)),
     );
     expect(result.value).toBe('15000');
     expect(result.source_kind).toBe('manual');
-    const row = db.prepare(`SELECT * FROM answer WHERE question_id = ?`).get('q-1') as {
-      value: string;
-      source_kind: string;
-      finalized_at: string | null;
-    };
+    const row = db
+      .prepare(`SELECT * FROM answer WHERE question_id = ?`)
+      .get('q-1') as { value: string; source_kind: string; finalized_at: string | null };
     expect(row.value).toBe('15000');
     expect(row.finalized_at).toBeNull();
   });
 
   it('sets finalized_at when finalize=true', async () => {
-    const { svc, db } = setup({
+    const { testLayer, db } = setup({
       seedQuestionnaire: { id: 'qn-1', reporting_year: 2026, customer_name: 'A' },
       seedQuestion: { id: 'q-1', questionnaire_id: 'qn-1', raw_text: 'Q' },
       seedAnswer: { id: 'a-1', question_id: 'q-1', value: '14820' },
     });
     await Effect.runPromise(
-      svc.save({ question_id: 'q-1', value: '15000', unit: 'kWh', finalize: true }),
+      answerSvc
+        .save({ question_id: 'q-1', value: '15000', unit: 'kWh', finalize: true })
+        .pipe(Effect.provide(testLayer)),
     );
-    const row = db.prepare(`SELECT finalized_at FROM answer WHERE question_id = ?`).get('q-1') as {
-      finalized_at: string;
-    };
+    const row = db
+      .prepare(`SELECT finalized_at FROM answer WHERE question_id = ?`)
+      .get('q-1') as { finalized_at: string };
     expect(row.finalized_at).toBe('2026-05-15T12:00:00Z');
   });
 
   it('AnswerNotFound for unknown question_id', async () => {
-    const { svc } = setup({});
+    const { testLayer } = setup({});
     const exit = await Effect.runPromiseExit(
-      svc.save({ question_id: 'not-real', value: 'v', unit: null, finalize: false }),
+      answerSvc
+        .save({ question_id: 'not-real', value: 'v', unit: null, finalize: false })
+        .pipe(Effect.provide(testLayer)),
     );
     expect(failureTag(exit)).toBe('AnswerNotFound');
   });
 });
 
-describe('AnswerGenerationService.listByQuestionnaire', () => {
+describe('answer-generation.listByQuestionnaire', () => {
   it('returns answers for the questionnaire ordered by question position', async () => {
-    const { svc, db } = setup({
+    const { testLayer, db } = setup({
       seedQuestionnaire: { id: 'qn-1', reporting_year: 2026, customer_name: 'A' },
     });
-    // Insert two questions with different positions + answers.
     db.prepare(
       `INSERT INTO question (id, questionnaire_id, question_signature, signature_version, normalized_text, raw_text, parsed_intent, question_kind, expected_unit, position, required) VALUES ('q-1', 'qn-1', 's1', 'v1', 'q1', 'q1', NULL, 'numerical', NULL, 'Sheet1!B2', 0)`,
     ).run();
@@ -231,7 +247,9 @@ describe('AnswerGenerationService.listByQuestionnaire', () => {
     db.prepare(
       `INSERT INTO answer (id, question_id, value, unit, source_kind, source_summary, finalized_at) VALUES ('a-2', 'q-2', 'v2', NULL, 'ai_suggested', NULL, NULL)`,
     ).run();
-    const result = await Effect.runPromise(svc.listByQuestionnaire('qn-1'));
+    const result = await Effect.runPromise(
+      answerSvc.listByQuestionnaire('qn-1').pipe(Effect.provide(testLayer)),
+    );
     expect(result.length).toBe(2);
     expect(result[0]?.question_id).toBe('q-1');
     expect(result[1]?.question_id).toBe('q-2');
