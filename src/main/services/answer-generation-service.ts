@@ -33,6 +33,10 @@ export class LLMCallFailed extends Data.TaggedError('LLMCallFailed')<{
 
 export class ProviderNotConfigured extends Data.TaggedError('ProviderNotConfigured')<{}> {}
 
+export class AnswerNotFound extends Data.TaggedError('AnswerNotFound')<{
+  question_id: string;
+}> {}
+
 export type GenErr =
   | QuestionNotFound
   | QuestionAlreadyAnswered
@@ -41,6 +45,15 @@ export type GenErr =
   | LLMSchemaMismatch
   | LLMCallFailed
   | ProviderNotConfigured;
+
+export type SaveErr = AnswerNotFound;
+
+export interface SaveInput {
+  question_id: string;
+  value: string;
+  unit: string | null;
+  finalize: boolean;
+}
 
 export class AnswerGenerationService {
   constructor(
@@ -108,6 +121,34 @@ export class AnswerGenerationService {
 
       return answer;
     });
+  }
+
+  save(input: SaveInput): Effect.Effect<Answer, SaveErr, never> {
+    const { db } = this.deps;
+    const nowFn = this.deps.now ?? (() => new Date().toISOString());
+    return Effect.gen(function* () {
+      const existing = yield* readAnswerByQuestion(db, input.question_id);
+      if (!existing) return yield* Effect.fail(new AnswerNotFound({ question_id: input.question_id }));
+      const finalizedAt = input.finalize ? nowFn() : existing.finalized_at;
+      yield* Effect.sync(() => {
+        db.prepare(`UPDATE answer SET value = ?, unit = ?, source_kind = 'manual', finalized_at = ? WHERE question_id = ?`)
+          .run(input.value, input.unit, finalizedAt, input.question_id);
+      });
+      return yield* Effect.sync(() => db.prepare(`SELECT * FROM answer WHERE question_id = ?`).get(input.question_id) as Answer);
+    });
+  }
+
+  listByQuestionnaire(questionnaireId: string): Effect.Effect<Answer[], never, never> {
+    const { db } = this.deps;
+    return Effect.sync(() =>
+      db.prepare(`
+        SELECT a.*
+        FROM answer a
+        JOIN question q ON q.id = a.question_id
+        WHERE q.questionnaire_id = ?
+        ORDER BY q.position
+      `).all(questionnaireId) as Answer[],
+    );
   }
 }
 

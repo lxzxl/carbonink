@@ -135,3 +135,59 @@ describe('AnswerGenerationService.generate (Effect Step 1)', () => {
     expect(failureTag(exit)).toBe('LLMCallFailed');
   });
 });
+
+describe('AnswerGenerationService.save', () => {
+  it('updates value/unit + flips source_kind to manual on user edit', async () => {
+    const { svc, db } = setup({
+      seedQuestionnaire: { id: 'qn-1', reporting_year: 2026, customer_name: 'A' },
+      seedQuestion: { id: 'q-1', questionnaire_id: 'qn-1', raw_text: 'Q' },
+      seedAnswer: { id: 'a-1', question_id: 'q-1', value: '14820' },
+    });
+    const result = await Effect.runPromise(
+      svc.save({ question_id: 'q-1', value: '15000', unit: 'kWh', finalize: false }),
+    );
+    expect(result.value).toBe('15000');
+    expect(result.source_kind).toBe('manual');
+    const row = db.prepare(`SELECT * FROM answer WHERE question_id = ?`).get('q-1') as { value: string; source_kind: string; finalized_at: string | null };
+    expect(row.value).toBe('15000');
+    expect(row.finalized_at).toBeNull();
+  });
+
+  it('sets finalized_at when finalize=true', async () => {
+    const { svc, db } = setup({
+      seedQuestionnaire: { id: 'qn-1', reporting_year: 2026, customer_name: 'A' },
+      seedQuestion: { id: 'q-1', questionnaire_id: 'qn-1', raw_text: 'Q' },
+      seedAnswer: { id: 'a-1', question_id: 'q-1', value: '14820' },
+    });
+    await Effect.runPromise(
+      svc.save({ question_id: 'q-1', value: '15000', unit: 'kWh', finalize: true }),
+    );
+    const row = db.prepare(`SELECT finalized_at FROM answer WHERE question_id = ?`).get('q-1') as { finalized_at: string };
+    expect(row.finalized_at).toBe('2026-05-15T12:00:00Z');
+  });
+
+  it('AnswerNotFound for unknown question_id', async () => {
+    const { svc } = setup({});
+    const exit = await Effect.runPromiseExit(
+      svc.save({ question_id: 'not-real', value: 'v', unit: null, finalize: false }),
+    );
+    expect(failureTag(exit)).toBe('AnswerNotFound');
+  });
+});
+
+describe('AnswerGenerationService.listByQuestionnaire', () => {
+  it('returns answers for the questionnaire ordered by question position', async () => {
+    const { svc, db } = setup({
+      seedQuestionnaire: { id: 'qn-1', reporting_year: 2026, customer_name: 'A' },
+    });
+    // Insert two questions with different positions + answers.
+    db.prepare(`INSERT INTO question (id, questionnaire_id, question_signature, signature_version, normalized_text, raw_text, parsed_intent, question_kind, expected_unit, position, required) VALUES ('q-1', 'qn-1', 's1', 'v1', 'q1', 'q1', NULL, 'numerical', NULL, 'Sheet1!B2', 0)`).run();
+    db.prepare(`INSERT INTO question (id, questionnaire_id, question_signature, signature_version, normalized_text, raw_text, parsed_intent, question_kind, expected_unit, position, required) VALUES ('q-2', 'qn-1', 's2', 'v1', 'q2', 'q2', NULL, 'numerical', NULL, 'Sheet1!B5', 0)`).run();
+    db.prepare(`INSERT INTO answer (id, question_id, value, unit, source_kind, source_summary, finalized_at) VALUES ('a-1', 'q-1', 'v1', NULL, 'ai_suggested', NULL, NULL)`).run();
+    db.prepare(`INSERT INTO answer (id, question_id, value, unit, source_kind, source_summary, finalized_at) VALUES ('a-2', 'q-2', 'v2', NULL, 'ai_suggested', NULL, NULL)`).run();
+    const result = await Effect.runPromise(svc.listByQuestionnaire('qn-1'));
+    expect(result.length).toBe(2);
+    expect(result[0]?.question_id).toBe('q-1');
+    expect(result[1]?.question_id).toBe('q-2');
+  });
+});
