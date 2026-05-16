@@ -8,6 +8,7 @@ import {
 import { ExcelParser } from '@main/excel/parser.js';
 import { LLMClient } from '@main/llm/llm-client.js';
 import { ActivityDataService } from '@main/services/activity-data-service.js';
+import { AnswerGenerationService } from '@main/services/answer-generation-service.js';
 import type { ServiceContext } from '@main/services/base.js';
 import { CalculationService } from '@main/services/calculation-service.js';
 import { ClassificationService } from '@main/services/classification-service.js';
@@ -54,6 +55,8 @@ export interface IpcContext {
   // Phase 2.2a — questionnaire upload + extract pipeline.
   customerService: CustomerService;
   questionnaireService: QuestionnaireService;
+  // Phase 2.2b — auto-answer pipeline.
+  answerGenerationService: AnswerGenerationService;
 }
 
 /**
@@ -78,6 +81,7 @@ export interface IpcContextOverrides {
   classificationService?: ClassificationService;
   customerService?: CustomerService;
   questionnaireService?: QuestionnaireService;
+  answerGenerationService?: AnswerGenerationService;
   /**
    * Optional main→renderer push channel emitter. Production wires
    * `createProgressEmitter(getMainWindow)`; tests typically supply a
@@ -144,6 +148,8 @@ export function createIpcContext(
   let customerServiceInstance: CustomerService | undefined = overrides.customerService;
   let questionnaireServiceInstance: QuestionnaireService | undefined =
     overrides.questionnaireService;
+  let answerGenerationServiceInstance: AnswerGenerationService | undefined =
+    overrides.answerGenerationService;
 
   const getCredential = (): CredentialService => {
     if (!credentialServiceInstance) credentialServiceInstance = defaultCredentialService();
@@ -273,6 +279,22 @@ export function createIpcContext(
         });
       }
       return questionnaireServiceInstance;
+    },
+    get answerGenerationService() {
+      if (!answerGenerationServiceInstance) {
+        const providerCfg = getSettings().getProviderConfigWithKey();
+        if (!providerCfg) {
+          throw new Error('AI provider not configured. Open Settings to set up.');
+        }
+        answerGenerationServiceInstance = new AnswerGenerationService({
+          db: svc.db,
+          llmClient: getLlm(),
+          orgService: ctx.organizationService,
+          activityDataService,
+          config: providerCfg.config,
+        });
+      }
+      return answerGenerationServiceInstance;
     },
   };
   return ctx;

@@ -4,6 +4,7 @@ import { defaultNow } from '@main/services/base.js';
 import { getMainWindow } from '@main/window.js';
 import { createIpcContext, type IpcContext } from './context.js';
 import { activityDataHandlers } from './handlers/activity-data.js';
+import { answerHandlers } from './handlers/answer.js';
 import { documentHandlers } from './handlers/document.js';
 import { efLibraryHandlers } from './handlers/ef-library.js';
 import { efMatcherHandlers } from './handlers/ef-matcher.js';
@@ -31,6 +32,7 @@ const HANDLER_FACTORIES: ReadonlyArray<HandlerFactory> = [
   documentHandlers,
   extractionHandlers,
   questionnaireHandlers,
+  answerHandlers,
 ];
 
 export function setupIpc(): void {

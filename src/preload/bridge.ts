@@ -54,6 +54,10 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   'questionnaire:create',
   'questionnaire:list',
   'questionnaire:get-by-id',
+  // answer domain (Phase 2.2b — auto-answer pipeline)
+  'answer:generate',
+  'answer:save',
+  'answer:list-by-questionnaire',
 ];
 
 /**

@@ -1,6 +1,7 @@
 import type {
   ActivityData,
   ActivityDataCreateInput,
+  Answer,
   ClassifyAndRunResult,
   CompleteOnboardingInput,
   Customer,
@@ -148,6 +149,16 @@ export type IpcTypeMap = {
     document: Document;
     questions: Question[];
   } | null;
+
+  // answer domain (Phase 2.2b — auto-answer pipeline)
+  'answer:generate': (input: { question_id: string }) => Promise<Answer>;
+  'answer:save': (input: {
+    question_id: string;
+    value: string;
+    unit: string | null;
+    finalize: boolean;
+  }) => Promise<Answer>;
+  'answer:list-by-questionnaire': (input: { questionnaire_id: string }) => Promise<Answer[]>;
 };
 
 /**

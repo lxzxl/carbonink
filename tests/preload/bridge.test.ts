@@ -85,6 +85,10 @@ describe('preload bridge', () => {
       'questionnaire:create',
       'questionnaire:list',
       'questionnaire:get-by-id',
+      // answer domain (Phase 2.2b)
+      'answer:generate',
+      'answer:save',
+      'answer:list-by-questionnaire',
     ]);
   });
 });
