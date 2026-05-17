@@ -27,6 +27,21 @@ function QuestionnaireDetailRoute() {
     enabled: !!q.data,
   });
 
+  const generateAll = useMutation({
+    mutationFn: () => answerApi.generateAllUnanswered(id),
+    onSuccess: (results) => {
+      if (results.length === 0) {
+        toast.success(m.answer_generate_all_empty());
+        return;
+      }
+      const ok = results.filter((r) => r.ok).length;
+      const failed = results.length - ok;
+      toast.success(m.answer_generate_all_done({ ok, failed }));
+      void queryClient.invalidateQueries({ queryKey: ['answer:list-by-questionnaire', id] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : String(e)),
+  });
+
   const finalizeMutation = useMutation({
     mutationFn: () => questionnaireApi.finalize({ id }),
     onSuccess: () => {
@@ -76,7 +91,16 @@ function QuestionnaireDetailRoute() {
               />
             ))}
           </div>
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              onClick={() => generateAll.mutate()}
+              disabled={generateAll.isPending}
+            >
+              {generateAll.isPending
+                ? m.answer_generate_all_running()
+                : m.answer_generate_all_button()}
+            </Button>
             <Button
               type="button"
               onClick={() => finalizeMutation.mutate()}

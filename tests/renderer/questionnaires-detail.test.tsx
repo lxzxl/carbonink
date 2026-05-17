@@ -27,6 +27,7 @@ vi.mock('@renderer/lib/api/answer', () => ({
     generate: vi.fn(),
     save: vi.fn(),
     listByQuestionnaire: vi.fn().mockResolvedValue([]),
+    generateAllUnanswered: vi.fn(),
   },
 }));
 
@@ -206,5 +207,20 @@ describe('/questionnaires/$id detail route', () => {
     expect(
       screen.getByText(/Phase 2\.2b will generate answers here|Phase 2\.2b 将在此处生成答案/),
     ).toBeTruthy();
+  });
+
+  it('renders Generate all unanswered button', async () => {
+    vi.mocked(questionnaireApi.getById).mockResolvedValue({
+      questionnaire: FAKE_QUESTIONNAIRE,
+      customer: FAKE_CUSTOMER,
+      document: FAKE_DOCUMENT,
+      questions: FAKE_QUESTIONS,
+    });
+
+    render(buildHarness());
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /generate all unanswered/i })).toBeTruthy();
+    });
   });
 });
