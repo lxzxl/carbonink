@@ -12,6 +12,5 @@ export const answerApi = {
   generateAllUnanswered: (questionnaire_id: string) =>
     invoke('answer:generate-all-unanswered', { questionnaire_id }),
 
-  exportToXlsx: (input: { questionnaire_id: string }) =>
-    invoke('answer:export-to-xlsx', input),
+  exportToXlsx: (input: { questionnaire_id: string }) => invoke('answer:export-to-xlsx', input),
 };

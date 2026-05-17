@@ -1,10 +1,10 @@
+import * as fs from 'node:fs/promises';
+import { writeAnswers } from '@main/excel/answer-writer';
 import { answerHandlers } from '@main/ipc/handlers/answer';
 import * as answerSvc from '@main/services/answer-generation/index';
-import { writeAnswers } from '@main/excel/answer-writer';
 import { Effect, Either, Layer } from 'effect';
-import { afterEach, describe, expect, it, vi } from 'vitest';
 import { dialog } from 'electron';
-import * as fs from 'node:fs/promises';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@main/services/answer-generation/index', async () => {
   const actual = await vi.importActual<typeof import('@main/services/answer-generation/index')>(
@@ -126,9 +126,7 @@ describe('answer:* handlers', () => {
     const listQuestions = vi.fn().mockReturnValue(fakeQuestionnaire.questions);
     const documentGetById = vi.fn().mockReturnValue(fakeQuestionnaire.document);
 
-    vi.mocked(answerSvc.listByQuestionnaire).mockReturnValue(
-      Effect.succeed(fakeAnswers) as never,
-    );
+    vi.mocked(answerSvc.listByQuestionnaire).mockReturnValue(Effect.succeed(fakeAnswers) as never);
     vi.mocked(fs.readFile).mockResolvedValue(fakeBuffer as never);
     vi.mocked(writeAnswers).mockResolvedValue(fakeWriteResult);
     vi.mocked(dialog.showSaveDialog).mockResolvedValue({
@@ -174,9 +172,7 @@ describe('answer:* handlers', () => {
     const listQuestions = vi.fn().mockReturnValue(fakeQuestionnaire.questions);
     const documentGetById = vi.fn().mockReturnValue(fakeQuestionnaire.document);
 
-    vi.mocked(answerSvc.listByQuestionnaire).mockReturnValue(
-      Effect.succeed(fakeAnswers) as never,
-    );
+    vi.mocked(answerSvc.listByQuestionnaire).mockReturnValue(Effect.succeed(fakeAnswers) as never);
     vi.mocked(fs.readFile).mockResolvedValue(fakeBuffer as never);
     vi.mocked(dialog.showSaveDialog).mockResolvedValue({ canceled: true } as never);
 

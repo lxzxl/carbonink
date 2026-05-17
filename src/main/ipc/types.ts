@@ -168,9 +168,10 @@ export type IpcTypeMap = {
       | { ok: false; result: { error: { _tag: string; message: string } } }
     >
   >;
-  'answer:export-to-xlsx': (input: { questionnaire_id: string }) => Promise<
-    | { canceled: true }
-    | { canceled: false; path: string; written: number; drafts: number }
+  'answer:export-to-xlsx': (input: {
+    questionnaire_id: string;
+  }) => Promise<
+    { canceled: true } | { canceled: false; path: string; written: number; drafts: number }
   >;
 };
 

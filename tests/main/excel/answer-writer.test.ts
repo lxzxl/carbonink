@@ -2,7 +2,9 @@ import { writeAnswers } from '@main/excel/answer-writer';
 import ExcelJS from 'exceljs';
 import { describe, expect, it } from 'vitest';
 
-async function buildFixture(cells: { sheet: string; address: string; value: string | number }[]): Promise<Buffer> {
+async function buildFixture(
+  cells: { sheet: string; address: string; value: string | number }[],
+): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
   const sheets = new Map<string, ExcelJS.Worksheet>();
   for (const c of cells) {
@@ -16,7 +18,11 @@ async function buildFixture(cells: { sheet: string; address: string; value: stri
   return Buffer.from((await wb.xlsx.writeBuffer()) as ArrayBuffer);
 }
 
-async function readCell(buffer: Buffer, sheet: string, address: string): Promise<{ value: unknown; note: unknown }> {
+async function readCell(
+  buffer: Buffer,
+  sheet: string,
+  address: string,
+): Promise<{ value: unknown; note: unknown }> {
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(buffer as unknown as ArrayBuffer);
   const cell = wb.getWorksheet(sheet)!.getCell(address);
