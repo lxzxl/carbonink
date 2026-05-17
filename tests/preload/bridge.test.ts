@@ -87,6 +87,7 @@ describe('preload bridge', () => {
       'questionnaire:get-by-id',
       'questionnaire:finalize',
       // answer domain (Phase 2.2b)
+      'answer:export-to-xlsx',
       'answer:generate',
       'answer:save',
       'answer:list-by-questionnaire',

@@ -167,6 +167,16 @@ export class QuestionnaireService {
     this.deps.db.prepare(`UPDATE questionnaire SET status = 'answering' WHERE id = ?`).run(id);
   }
 
+  markExported(id: string): void {
+    this.deps.db.prepare(`UPDATE questionnaire SET status = 'exported' WHERE id = ?`).run(id);
+  }
+
+  listQuestions(questionnaireId: string): Question[] {
+    return this.deps.db
+      .prepare(`SELECT * FROM question WHERE questionnaire_id = ? ORDER BY position, id`)
+      .all(questionnaireId) as Question[];
+  }
+
   getById(id: string): {
     questionnaire: Questionnaire;
     customer: Customer;

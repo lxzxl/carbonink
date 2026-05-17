@@ -56,6 +56,7 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   'questionnaire:get-by-id',
   'questionnaire:finalize',
   // answer domain (Phase 2.2b — auto-answer pipeline)
+  'answer:export-to-xlsx',
   'answer:generate',
   'answer:save',
   'answer:list-by-questionnaire',

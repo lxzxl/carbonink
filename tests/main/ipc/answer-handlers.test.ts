@@ -1,7 +1,10 @@
 import { answerHandlers } from '@main/ipc/handlers/answer';
 import * as answerSvc from '@main/services/answer-generation/index';
+import { writeAnswers } from '@main/excel/answer-writer';
 import { Effect, Either, Layer } from 'effect';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { dialog } from 'electron';
+import * as fs from 'node:fs/promises';
 
 vi.mock('@main/services/answer-generation/index', async () => {
   const actual = await vi.importActual<typeof import('@main/services/answer-generation/index')>(
@@ -15,6 +18,19 @@ vi.mock('@main/services/answer-generation/index', async () => {
     generateAllUnanswered: vi.fn(),
   };
 });
+
+vi.mock('electron', () => ({
+  dialog: { showSaveDialog: vi.fn() },
+}));
+
+vi.mock('node:fs/promises', () => ({
+  readFile: vi.fn(),
+  writeFile: vi.fn(),
+}));
+
+vi.mock('@main/excel/answer-writer', () => ({
+  writeAnswers: vi.fn(),
+}));
 
 const fakeAnswer = {
   id: 'ans-1',
@@ -86,5 +102,94 @@ describe('answer:* handlers', () => {
     expect(result.length).toBe(2);
     expect(result[0]).toEqual({ ok: true, result: { value: fakeAnswer } });
     expect(result[1]).toMatchObject({ ok: false, result: { error: { _tag: 'LLMCallFailed' } } });
+  });
+
+  it('answer:export-to-xlsx happy path returns path + counts and calls markExported', async () => {
+    const fakeQuestionnaire = {
+      questionnaire: { id: 'qn-1', document_id: 'doc-1', status: 'answering' },
+      customer: { id: 'cust-1', name: 'Acme' },
+      document: { id: 'doc-1', filename: 'q.xlsx', storage_path: '/data/q.xlsx' },
+      questions: [
+        { id: 'q-1', position: 'S!B1' },
+        { id: 'q-2', position: 'S!B2' },
+      ],
+    };
+    const fakeAnswers = [
+      { ...fakeAnswer, id: 'ans-1', question_id: 'q-1', value: '100', finalized_at: '2026-01-01' },
+      { ...fakeAnswer, id: 'ans-2', question_id: 'q-2', value: '200', finalized_at: null },
+    ];
+    const fakeBuffer = Buffer.from('fake xlsx');
+    const fakeWriteResult = { buffer: fakeBuffer, written: 2, drafts: 1 };
+
+    const markExported = vi.fn();
+    const getById = vi.fn().mockReturnValue(fakeQuestionnaire);
+    const listQuestions = vi.fn().mockReturnValue(fakeQuestionnaire.questions);
+    const documentGetById = vi.fn().mockReturnValue(fakeQuestionnaire.document);
+
+    vi.mocked(answerSvc.listByQuestionnaire).mockReturnValue(
+      Effect.succeed(fakeAnswers) as never,
+    );
+    vi.mocked(fs.readFile).mockResolvedValue(fakeBuffer as never);
+    vi.mocked(writeAnswers).mockResolvedValue(fakeWriteResult);
+    vi.mocked(dialog.showSaveDialog).mockResolvedValue({
+      canceled: false,
+      filePath: '/tmp/out.xlsx',
+    } as never);
+    vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+
+    const ctx = Object.assign(makeCtx(), {
+      questionnaireService: { getById, listQuestions, markExported },
+      documentService: { getById: documentGetById },
+    });
+
+    const handlers = answerHandlers(ctx);
+    const result = await handlers['answer:export-to-xlsx']!({ questionnaire_id: 'qn-1' });
+
+    expect(result).toEqual({ canceled: false, path: '/tmp/out.xlsx', written: 2, drafts: 1 });
+    expect(markExported).toHaveBeenCalledWith('qn-1');
+    expect(fs.writeFile).toHaveBeenCalledWith('/tmp/out.xlsx', fakeBuffer);
+    expect(writeAnswers).toHaveBeenCalledWith(
+      fakeBuffer,
+      expect.arrayContaining([
+        { ref: 'S!B1', value: '100', isDraft: false },
+        { ref: 'S!B2', value: '200', isDraft: true },
+      ]),
+    );
+  });
+
+  it('answer:export-to-xlsx canceled path returns { canceled: true } and skips write', async () => {
+    const fakeQuestionnaire = {
+      questionnaire: { id: 'qn-1', document_id: 'doc-1', status: 'answering' },
+      customer: { id: 'cust-1', name: 'Acme' },
+      document: { id: 'doc-1', filename: 'q.xlsx', storage_path: '/data/q.xlsx' },
+      questions: [{ id: 'q-1', position: 'S!B1' }],
+    };
+    const fakeAnswers = [
+      { ...fakeAnswer, id: 'ans-1', question_id: 'q-1', value: '100', finalized_at: null },
+    ];
+    const fakeBuffer = Buffer.from('fake xlsx');
+
+    const markExported = vi.fn();
+    const getById = vi.fn().mockReturnValue(fakeQuestionnaire);
+    const listQuestions = vi.fn().mockReturnValue(fakeQuestionnaire.questions);
+    const documentGetById = vi.fn().mockReturnValue(fakeQuestionnaire.document);
+
+    vi.mocked(answerSvc.listByQuestionnaire).mockReturnValue(
+      Effect.succeed(fakeAnswers) as never,
+    );
+    vi.mocked(fs.readFile).mockResolvedValue(fakeBuffer as never);
+    vi.mocked(dialog.showSaveDialog).mockResolvedValue({ canceled: true } as never);
+
+    const ctx = Object.assign(makeCtx(), {
+      questionnaireService: { getById, listQuestions, markExported },
+      documentService: { getById: documentGetById },
+    });
+
+    const handlers = answerHandlers(ctx);
+    const result = await handlers['answer:export-to-xlsx']!({ questionnaire_id: 'qn-1' });
+
+    expect(result).toEqual({ canceled: true });
+    expect(markExported).not.toHaveBeenCalled();
+    expect(fs.writeFile).not.toHaveBeenCalled();
   });
 });

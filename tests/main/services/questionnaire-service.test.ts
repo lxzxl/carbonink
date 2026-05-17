@@ -214,6 +214,25 @@ describe('QuestionnaireService.list', () => {
   });
 });
 
+describe('QuestionnaireService.markExported', () => {
+  it('transitions status to exported', async () => {
+    const { svc, db } = setup({ llmQuestions: [] });
+    const r = await svc.createFromUpload({
+      customer_name: 'Acme',
+      reporting_year: 2026,
+      due_date: null,
+      file_bytes: new Uint8Array([0]),
+      filename: 'q.xlsx',
+    });
+    svc.finalizeAnswering(r.questionnaire_id);
+    svc.markExported(r.questionnaire_id);
+    const row = db
+      .prepare(`SELECT status FROM questionnaire WHERE id = ?`)
+      .get(r.questionnaire_id) as { status: string };
+    expect(row.status).toBe('exported');
+  });
+});
+
 describe('QuestionnaireService.getById', () => {
   it('returns questionnaire + customer + document + questions', async () => {
     const { svc } = setup({

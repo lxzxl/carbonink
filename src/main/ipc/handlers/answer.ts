@@ -1,6 +1,9 @@
 import * as answerSvc from '@main/services/answer-generation/index.js';
+import { writeAnswers, type AnswerCell } from '@main/excel/answer-writer.js';
 import { Effect, Either } from 'effect';
 import { z } from 'zod';
+import { dialog } from 'electron';
+import * as fs from 'node:fs/promises';
 import type { IpcContext } from '../context.js';
 import type { IpcTypeMap } from '../types.js';
 
@@ -63,6 +66,51 @@ export function answerHandlers(ctx: IpcContext): {
           }),
         }),
       );
+    },
+
+    'answer:export-to-xlsx': async (input) => {
+      const parsed = listInput.parse(input);
+
+      const detail = ctx.questionnaireService.getById(parsed.questionnaire_id);
+      if (!detail) throw new Error('Questionnaire not found');
+      const { questionnaire, document } = detail;
+
+      const answers = await Effect.runPromise(
+        answerSvc
+          .listByQuestionnaire(parsed.questionnaire_id)
+          .pipe(Effect.provide(ctx.answerLayer)),
+      );
+      const questions = ctx.questionnaireService.listQuestions(parsed.questionnaire_id);
+      const questionById = new Map(questions.map((q) => [q.id, q]));
+
+      const cells: AnswerCell[] = answers.flatMap((a) => {
+        const q = questionById.get(a.question_id);
+        if (!q?.position) return [];
+        return [{ ref: q.position, value: a.value, isDraft: a.finalized_at == null }];
+      });
+
+      const defaultName = document.filename.replace(/\.xlsx$/i, '') + '_filled.xlsx';
+      const dialogResult = await dialog.showSaveDialog({
+        title: 'Export answered questionnaire',
+        defaultPath: defaultName,
+        filters: [{ name: 'Excel', extensions: ['xlsx'] }],
+      });
+      if (dialogResult.canceled || !dialogResult.filePath) {
+        return { canceled: true as const };
+      }
+
+      const originalBytes = await fs.readFile(document.storage_path);
+      const { buffer, written, drafts } = await writeAnswers(originalBytes, cells);
+      await fs.writeFile(dialogResult.filePath, buffer);
+
+      ctx.questionnaireService.markExported(questionnaire.id);
+
+      return {
+        canceled: false as const,
+        path: dialogResult.filePath,
+        written,
+        drafts,
+      };
     },
   };
 }
