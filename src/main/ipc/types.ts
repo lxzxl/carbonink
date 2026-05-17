@@ -160,7 +160,9 @@ export type IpcTypeMap = {
     finalize: boolean;
   }) => Promise<Answer>;
   'answer:list-by-questionnaire': (input: { questionnaire_id: string }) => Promise<Answer[]>;
-  'answer:generate-all-unanswered': (input: { questionnaire_id: string }) => Promise<
+  'answer:generate-all-unanswered': (input: {
+    questionnaire_id: string;
+  }) => Promise<
     Array<
       | { ok: true; result: { value: Answer } }
       | { ok: false; result: { error: { _tag: string; message: string } } }

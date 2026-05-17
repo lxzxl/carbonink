@@ -4,7 +4,7 @@ import type { ActivityDataService } from '@main/services/activity-data-service';
 import type { OrganizationService } from '@main/services/organization-service';
 import type { Answer, ProviderConfig, Question, Questionnaire } from '@shared/types';
 import type { Database } from 'better-sqlite3';
-import { Effect, Either, Schedule } from 'effect';
+import { Effect, type Either, Schedule } from 'effect';
 import {
   AnswerNotFound,
   type GenErr,
@@ -103,11 +103,9 @@ export function generateAllUnanswered(
   return Effect.gen(function* () {
     const db = yield* DbTag;
     const unanswered = readUnansweredQuestions(db, questionnaireId);
-    return yield* Effect.forEach(
-      unanswered,
-      (q) => Effect.either(generate(q.id, config)),
-      { concurrency: 3 },
-    );
+    return yield* Effect.forEach(unanswered, (q) => Effect.either(generate(q.id, config)), {
+      concurrency: 3,
+    });
   });
 }
 
@@ -211,16 +209,15 @@ function loadInventoryContext(
   };
 }
 
-function readUnansweredQuestions(
-  db: Database,
-  questionnaireId: string,
-): readonly Question[] {
-  return db.prepare(`
+function readUnansweredQuestions(db: Database, questionnaireId: string): readonly Question[] {
+  return db
+    .prepare(`
     SELECT q.* FROM question q
     LEFT JOIN answer a ON a.question_id = q.id
     WHERE q.questionnaire_id = ? AND a.id IS NULL
     ORDER BY q.position
-  `).all(questionnaireId) as Question[];
+  `)
+    .all(questionnaireId) as Question[];
 }
 
 function insertAnswer(

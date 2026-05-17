@@ -77,10 +77,7 @@ describe('answer:* handlers', () => {
   it('answer:generate-all-unanswered returns serialized results', async () => {
     const fakeError = { _tag: 'LLMCallFailed', cause: new Error('boom') };
     vi.mocked(answerSvc.generateAllUnanswered).mockReturnValue(
-      Effect.succeed([
-        Either.right(fakeAnswer),
-        Either.left(fakeError as never),
-      ] as never) as never,
+      Effect.succeed([Either.right(fakeAnswer), Either.left(fakeError as never)] as never) as never,
     );
     const handlers = answerHandlers(makeCtx());
     const result = await handlers['answer:generate-all-unanswered']!({
