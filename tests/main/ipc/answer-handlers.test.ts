@@ -1,6 +1,6 @@
 import { answerHandlers } from '@main/ipc/handlers/answer';
 import * as answerSvc from '@main/services/answer-generation/index';
-import { Effect, Layer } from 'effect';
+import { Effect, Either, Layer } from 'effect';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@main/services/answer-generation/index', async () => {
@@ -12,6 +12,7 @@ vi.mock('@main/services/answer-generation/index', async () => {
     generate: vi.fn(),
     save: vi.fn(),
     listByQuestionnaire: vi.fn(),
+    generateAllUnanswered: vi.fn(),
   };
 });
 
@@ -71,5 +72,22 @@ describe('answer:* handlers', () => {
     await expect(handlers['answer:generate']!({ question_id: 'q-1' })).rejects.toThrow(
       'AI provider not configured',
     );
+  });
+
+  it('answer:generate-all-unanswered returns serialized results', async () => {
+    const fakeError = { _tag: 'LLMCallFailed', cause: new Error('boom') };
+    vi.mocked(answerSvc.generateAllUnanswered).mockReturnValue(
+      Effect.succeed([
+        Either.right(fakeAnswer),
+        Either.left(fakeError as never),
+      ] as never) as never,
+    );
+    const handlers = answerHandlers(makeCtx());
+    const result = await handlers['answer:generate-all-unanswered']!({
+      questionnaire_id: 'qn-1',
+    });
+    expect(result.length).toBe(2);
+    expect(result[0]).toEqual({ ok: true, result: { value: fakeAnswer } });
+    expect(result[1]).toMatchObject({ ok: false, result: { error: { _tag: 'LLMCallFailed' } } });
   });
 });

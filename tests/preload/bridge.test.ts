@@ -90,6 +90,7 @@ describe('preload bridge', () => {
       'answer:generate',
       'answer:save',
       'answer:list-by-questionnaire',
+      'answer:generate-all-unanswered',
     ]);
   });
 });

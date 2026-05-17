@@ -59,6 +59,7 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   'answer:generate',
   'answer:save',
   'answer:list-by-questionnaire',
+  'answer:generate-all-unanswered',
 ];
 
 /**

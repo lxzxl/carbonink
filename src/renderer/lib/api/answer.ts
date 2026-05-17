@@ -8,4 +8,7 @@ export const answerApi = {
 
   listByQuestionnaire: (questionnaire_id: string) =>
     invoke('answer:list-by-questionnaire', { questionnaire_id }),
+
+  generateAllUnanswered: (questionnaire_id: string) =>
+    invoke('answer:generate-all-unanswered', { questionnaire_id }),
 };

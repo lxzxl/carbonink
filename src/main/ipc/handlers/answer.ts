@@ -1,5 +1,5 @@
 import * as answerSvc from '@main/services/answer-generation/index.js';
-import { Effect } from 'effect';
+import { Effect, Either } from 'effect';
 import { z } from 'zod';
 import type { IpcContext } from '../context.js';
 import type { IpcTypeMap } from '../types.js';
@@ -37,6 +37,31 @@ export function answerHandlers(ctx: IpcContext): {
         answerSvc
           .listByQuestionnaire(parsed.questionnaire_id)
           .pipe(Effect.provide(ctx.answerLayer)),
+      );
+    },
+    'answer:generate-all-unanswered': async (input) => {
+      const parsed = listInput.parse(input);
+      if (!ctx.providerConfig) {
+        throw new Error('AI provider not configured. Open Settings to set up.');
+      }
+      const results = await Effect.runPromise(
+        answerSvc
+          .generateAllUnanswered(parsed.questionnaire_id, ctx.providerConfig)
+          .pipe(Effect.provide(ctx.answerLayer)),
+      );
+      return results.map((r) =>
+        Either.match(r, {
+          onRight: (value) => ({ ok: true as const, result: { value } }),
+          onLeft: (error) => ({
+            ok: false as const,
+            result: {
+              error: {
+                _tag: error._tag,
+                message: 'cause' in error ? String(error.cause) : error._tag,
+              },
+            },
+          }),
+        }),
       );
     },
   };
