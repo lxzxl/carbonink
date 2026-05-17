@@ -9,7 +9,7 @@ import {
 } from '@main/services/answer-generation/tags';
 import type { Answer } from '@shared/types';
 import Database from 'better-sqlite3';
-import { Cause, Effect, Exit, Layer, Option } from 'effect';
+import { Cause, Effect, Either, Exit, Layer, Option } from 'effect';
 import { describe, expect, it, vi } from 'vitest';
 
 const FAKE_CONFIG = {
@@ -303,5 +303,57 @@ describe('answer-generation.listByQuestionnaire', () => {
     expect(result.length).toBe(2);
     expect(result[0]?.question_id).toBe('q-1');
     expect(result[1]?.question_id).toBe('q-2');
+  });
+});
+
+describe('answer-generation.generateAllUnanswered', () => {
+  it('generates for unanswered questions only; returns Right per success', async () => {
+    const { testLayer, db } = setup({
+      seedQuestionnaire: { id: 'qn-1', reporting_year: 2026, customer_name: 'A' },
+      activitiesForYear: 5,
+    });
+    // 3 questions; 1 already answered.
+    db.prepare(
+      `INSERT INTO question (id, questionnaire_id, question_signature, signature_version, normalized_text, raw_text, parsed_intent, question_kind, expected_unit, position, required) VALUES ('q-1', 'qn-1', 's1', 'v1', 'q1', 'q1', NULL, 'numerical', NULL, 'Sheet1!B2', 0)`,
+    ).run();
+    db.prepare(
+      `INSERT INTO question (id, questionnaire_id, question_signature, signature_version, normalized_text, raw_text, parsed_intent, question_kind, expected_unit, position, required) VALUES ('q-2', 'qn-1', 's2', 'v1', 'q2', 'q2', NULL, 'numerical', NULL, 'Sheet1!B3', 0)`,
+    ).run();
+    db.prepare(
+      `INSERT INTO question (id, questionnaire_id, question_signature, signature_version, normalized_text, raw_text, parsed_intent, question_kind, expected_unit, position, required) VALUES ('q-3', 'qn-1', 's3', 'v1', 'q3', 'q3', NULL, 'numerical', NULL, 'Sheet1!B4', 0)`,
+    ).run();
+    db.prepare(
+      `INSERT INTO answer (id, question_id, value, unit, source_kind, source_summary, finalized_at) VALUES ('a-1', 'q-1', 'existing', NULL, 'ai_suggested', NULL, NULL)`,
+    ).run();
+    const results = await Effect.runPromise(
+      answerSvc.generateAllUnanswered('qn-1', FAKE_CONFIG).pipe(Effect.provide(testLayer)),
+    );
+    expect(results.length).toBe(2); // q-2 and q-3
+    expect(results.every((r) => Either.isRight(r))).toBe(true);
+  });
+
+  it('isolates per-item failures: returns Left for failing items, Right for others', async () => {
+    const { testLayer, db, llmClient } = setup({
+      seedQuestionnaire: { id: 'qn-1', reporting_year: 2026, customer_name: 'A' },
+      activitiesForYear: 5,
+    });
+    db.prepare(
+      `INSERT INTO question (id, questionnaire_id, question_signature, signature_version, normalized_text, raw_text, parsed_intent, question_kind, expected_unit, position, required) VALUES ('q-1', 'qn-1', 's1', 'v1', 'q1', 'q1', NULL, 'numerical', NULL, 'Sheet1!B2', 0)`,
+    ).run();
+    db.prepare(
+      `INSERT INTO question (id, questionnaire_id, question_signature, signature_version, normalized_text, raw_text, parsed_intent, question_kind, expected_unit, position, required) VALUES ('q-2', 'qn-1', 's2', 'v1', 'q2', 'q2', NULL, 'numerical', NULL, 'Sheet1!B3', 0)`,
+    ).run();
+    vi.mocked(llmClient.generateAnswer)
+      .mockResolvedValueOnce({ value: 'ok', unit: null, source_summary: 's' })
+      .mockRejectedValue(new Error('persistent'));
+    const results = await Effect.runPromise(
+      answerSvc.generateAllUnanswered('qn-1', FAKE_CONFIG).pipe(Effect.provide(testLayer)),
+    );
+    expect(results.length).toBe(2);
+    const oks = results.filter(Either.isRight);
+    const fails = results.filter(Either.isLeft);
+    expect(oks.length).toBe(1);
+    expect(fails.length).toBe(1);
+    expect((fails[0]!.left as { _tag: string })._tag).toBe('LLMCallFailed');
   });
 });

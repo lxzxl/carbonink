@@ -4,7 +4,7 @@ import type { ActivityDataService } from '@main/services/activity-data-service';
 import type { OrganizationService } from '@main/services/organization-service';
 import type { Answer, ProviderConfig, Question, Questionnaire } from '@shared/types';
 import type { Database } from 'better-sqlite3';
-import { Effect, Schedule } from 'effect';
+import { Effect, Either, Schedule } from 'effect';
 import {
   AnswerNotFound,
   type GenErr,
@@ -29,6 +29,8 @@ import {
 
 export * from './errors';
 export * from './tags';
+
+export type GenerateResult = Either.Either<Answer, GenErr>;
 
 const RETRY_SCHEDULE = Schedule.exponential('100 millis').pipe(
   Schedule.compose(Schedule.recurs(2)),
@@ -91,6 +93,21 @@ export function generate(
       source_summary: llmResult.source_summary,
       created_at: now(),
     });
+  });
+}
+
+export function generateAllUnanswered(
+  questionnaireId: string,
+  config: ProviderConfig,
+): Effect.Effect<readonly GenerateResult[], never, AnswerR> {
+  return Effect.gen(function* () {
+    const db = yield* DbTag;
+    const unanswered = readUnansweredQuestions(db, questionnaireId);
+    return yield* Effect.forEach(
+      unanswered,
+      (q) => Effect.either(generate(q.id, config)),
+      { concurrency: 3 },
+    );
   });
 }
 
@@ -192,6 +209,18 @@ function loadInventoryContext(
     activities_summary: `${activities.length} 条活动数据`,
     totals,
   };
+}
+
+function readUnansweredQuestions(
+  db: Database,
+  questionnaireId: string,
+): readonly Question[] {
+  return db.prepare(`
+    SELECT q.* FROM question q
+    LEFT JOIN answer a ON a.question_id = q.id
+    WHERE q.questionnaire_id = ? AND a.id IS NULL
+    ORDER BY q.position
+  `).all(questionnaireId) as Question[];
 }
 
 function insertAnswer(
