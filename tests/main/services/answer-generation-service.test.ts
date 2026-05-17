@@ -179,6 +179,54 @@ describe('answer-generation.generate (Effect Step 2)', () => {
     );
     expect(failureTag(exit)).toBe('LLMCallFailed');
   });
+
+  it('retries LLMCallFailed up to 2 times then succeeds', async () => {
+    const { testLayer, llmClient } = setup({
+      seedQuestionnaire: { id: 'qn-1', reporting_year: 2026, customer_name: 'A' },
+      seedQuestion: { id: 'q-1', questionnaire_id: 'qn-1', raw_text: 'Q' },
+      activitiesForYear: 1,
+    });
+    vi.mocked(llmClient.generateAnswer)
+      .mockRejectedValueOnce(new Error('transient 1'))
+      .mockRejectedValueOnce(new Error('transient 2'))
+      .mockResolvedValueOnce({ value: '14820', unit: 'kWh', source_summary: 's' });
+    const result = await Effect.runPromise(
+      answerSvc.generate('q-1', FAKE_CONFIG).pipe(Effect.provide(testLayer)),
+    );
+    expect(result.value).toBe('14820');
+    expect(llmClient.generateAnswer).toHaveBeenCalledTimes(3);
+  });
+
+  it('gives up after 2 retries when LLMCallFailed persists', async () => {
+    const { testLayer, llmClient } = setup({
+      seedQuestionnaire: { id: 'qn-1', reporting_year: 2026, customer_name: 'A' },
+      seedQuestion: { id: 'q-1', questionnaire_id: 'qn-1', raw_text: 'Q' },
+      activitiesForYear: 1,
+    });
+    vi.mocked(llmClient.generateAnswer).mockRejectedValue(new Error('persistent'));
+    const exit = await Effect.runPromiseExit(
+      answerSvc.generate('q-1', FAKE_CONFIG).pipe(Effect.provide(testLayer)),
+    );
+    expect(failureTag(exit)).toBe('LLMCallFailed');
+    expect(llmClient.generateAnswer).toHaveBeenCalledTimes(3); // 1 initial + 2 retries
+  });
+
+  it('does NOT retry LLMSchemaMismatch', async () => {
+    const { testLayer, llmClient } = setup({
+      seedQuestionnaire: { id: 'qn-1', reporting_year: 2026, customer_name: 'A' },
+      seedQuestion: { id: 'q-1', questionnaire_id: 'qn-1', raw_text: 'Q' },
+      activitiesForYear: 1,
+    });
+    const { SchemaMismatchError } = await import('@main/llm/llm-client');
+    vi.mocked(llmClient.generateAnswer).mockRejectedValue(
+      new SchemaMismatchError('test', 'bad json', new Error()),
+    );
+    const exit = await Effect.runPromiseExit(
+      answerSvc.generate('q-1', FAKE_CONFIG).pipe(Effect.provide(testLayer)),
+    );
+    expect(failureTag(exit)).toBe('LLMSchemaMismatch');
+    expect(llmClient.generateAnswer).toHaveBeenCalledTimes(1); // no retry
+  });
 });
 
 describe('answer-generation.save', () => {

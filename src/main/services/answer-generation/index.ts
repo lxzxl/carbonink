@@ -4,7 +4,7 @@ import type { ActivityDataService } from '@main/services/activity-data-service';
 import type { OrganizationService } from '@main/services/organization-service';
 import type { Answer, ProviderConfig, Question, Questionnaire } from '@shared/types';
 import type { Database } from 'better-sqlite3';
-import { Effect } from 'effect';
+import { Effect, Schedule } from 'effect';
 import {
   AnswerNotFound,
   type GenErr,
@@ -29,6 +29,10 @@ import {
 
 export * from './errors';
 export * from './tags';
+
+const RETRY_SCHEDULE = Schedule.exponential('100 millis').pipe(
+  Schedule.compose(Schedule.recurs(2)),
+);
 
 export function generate(
   questionId: string,
@@ -72,7 +76,12 @@ export function generate(
           : cause instanceof SchemaMismatchError
             ? new LLMSchemaMismatch({ raw: cause.rawText ?? '' })
             : new LLMCallFailed({ cause }),
-    });
+    }).pipe(
+      Effect.retry({
+        schedule: RETRY_SCHEDULE,
+        while: (err): err is LLMCallFailed => err._tag === 'LLMCallFailed',
+      }),
+    );
 
     return yield* insertAnswer(db, {
       id: randomUUID(),
