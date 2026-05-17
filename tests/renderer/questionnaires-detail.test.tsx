@@ -28,6 +28,7 @@ vi.mock('@renderer/lib/api/answer', () => ({
     save: vi.fn(),
     listByQuestionnaire: vi.fn().mockResolvedValue([]),
     generateAllUnanswered: vi.fn(),
+    exportToXlsx: vi.fn(),
   },
 }));
 
@@ -221,6 +222,21 @@ describe('/questionnaires/$id detail route', () => {
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /generate all unanswered/i })).toBeTruthy();
+    });
+  });
+
+  it('renders Export to Excel button', async () => {
+    vi.mocked(questionnaireApi.getById).mockResolvedValue({
+      questionnaire: FAKE_QUESTIONNAIRE,
+      customer: FAKE_CUSTOMER,
+      document: FAKE_DOCUMENT,
+      questions: FAKE_QUESTIONS,
+    });
+
+    render(buildHarness());
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /export to excel|导出 excel/i })).toBeTruthy();
     });
   });
 });

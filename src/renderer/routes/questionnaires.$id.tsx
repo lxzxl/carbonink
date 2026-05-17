@@ -42,6 +42,16 @@ function QuestionnaireDetailRoute() {
     onError: (e) => toast.error(e instanceof Error ? e.message : String(e)),
   });
 
+  const exportToExcel = useMutation({
+    mutationFn: () => answerApi.exportToXlsx({ questionnaire_id: id }),
+    onSuccess: (result) => {
+      if (result.canceled) return;
+      toast.success(m.answer_export_done({ written: result.written, drafts: result.drafts }));
+      void queryClient.invalidateQueries({ queryKey: ['questionnaire:get-by-id', id] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : String(e)),
+  });
+
   const finalizeMutation = useMutation({
     mutationFn: () => questionnaireApi.finalize({ id }),
     onSuccess: () => {
@@ -100,6 +110,13 @@ function QuestionnaireDetailRoute() {
               {generateAll.isPending
                 ? m.answer_generate_all_running()
                 : m.answer_generate_all_button()}
+            </Button>
+            <Button
+              type="button"
+              onClick={() => exportToExcel.mutate()}
+              disabled={exportToExcel.isPending}
+            >
+              {exportToExcel.isPending ? m.answer_export_running() : m.answer_export_button()}
             </Button>
             <Button
               type="button"
