@@ -6,6 +6,7 @@ import { activityApi } from '@renderer/lib/api/activity-data';
 import { efApi } from '@renderer/lib/api/ef-library';
 import { efMatcherApi } from '@renderer/lib/api/ef-matcher';
 import { orgApi } from '@renderer/lib/api/organization';
+import { routingApi } from '@renderer/lib/api/routing';
 import * as m from '@renderer/paraglide/messages';
 import type {
   ActivityData,
@@ -16,7 +17,7 @@ import type {
 } from '@shared/types';
 import { useForm, useStore } from '@tanstack/react-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 /**
  * Inline create form for an ActivityData row. Mounted by /activities.
@@ -72,6 +73,24 @@ export type ActivityFormInitialValues = Partial<{
   fuel_code: string;
   notes: string;
   matcherHint?: { extraction_id: string; stage_id: string };
+  /**
+   * Routing API hint — present for freight + travel extractions when origin
+   * and destination are known. The ActivityForm uses this to show a "Look up
+   * distance" button that calls `routingApi.lookup` and, on success, fills
+   * `amount` (for travel rows where amount = distance_km) and displays a
+   * source badge ("AMap: 1085 km" / "Haversine: 10978 km").
+   */
+  routingHint?: {
+    /** 'freight' → driving mode; 'travel' → derived from travelMode. */
+    stage: 'freight' | 'travel';
+    origin: string;
+    destination: string;
+    /**
+     * Only meaningful for travel rows. Maps to routing mode:
+     *   air → 'air'  |  rail → 'transit'  |  taxi → 'driving'
+     */
+    travelMode?: 'air' | 'rail' | 'taxi';
+  };
 }>;
 
 export interface ActivityFormProps {
@@ -98,6 +117,18 @@ export interface ActivityFormProps {
   initialValues?: ActivityFormInitialValues;
 }
 
+/** Maps freight/travel stage + travel mode to a routing API mode. */
+function inferRoutingMode(
+  stage: 'freight' | 'travel',
+  travelMode?: 'air' | 'rail' | 'taxi',
+): 'driving' | 'transit' | 'air' {
+  if (stage === 'freight') return 'driving';
+  if (travelMode === 'air') return 'air';
+  if (travelMode === 'rail') return 'transit';
+  // taxi or unknown → driving
+  return 'driving';
+}
+
 export function ActivityForm({
   organizationId,
   sources,
@@ -107,6 +138,20 @@ export function ActivityForm({
   initialValues,
 }: ActivityFormProps) {
   const queryClient = useQueryClient();
+
+  // ── Routing lookup ──────────────────────────────────────────────────────────
+  // Enabled for freight + travel rows that have origin + destination in the
+  // initial values. On success, fills `amount` (for travel rows where amount
+  // IS the distance in km) and shows a source badge.
+  const routingHint = initialValues?.routingHint;
+  const canLookup =
+    !!routingHint?.origin &&
+    !!routingHint?.destination &&
+    !!routingHint.stage;
+  const [lookupResult, setLookupResult] = useState<{
+    distance_km: number;
+    source: 'amap' | 'haversine';
+  } | null>(null);
 
   const periodsQuery = useQuery<ReportingPeriod[]>({
     queryKey: ['org:list-reporting-periods', organizationId],
@@ -188,6 +233,31 @@ export function ActivityForm({
         notes: value.notes || undefined,
       });
     },
+  });
+
+  // Routing lookup mutation — fires on explicit button click. On success:
+  // - updates `lookupResult` state (source badge display)
+  // - for travel rows, also fills `amount` with the returned distance_km
+  //   (since travel rows use distance as their emission quantity)
+  const lookupMutation = useMutation({
+    mutationFn: () => {
+      if (!routingHint) throw new Error('No routing hint available');
+      const mode = inferRoutingMode(routingHint.stage, routingHint.travelMode);
+      return routingApi.lookup({ mode, origin: routingHint.origin, destination: routingHint.destination });
+    },
+    onSuccess: (result) => {
+      if (result.ok) {
+        setLookupResult({ distance_km: result.distance_km, source: result.source });
+        // For travel rows, amount IS the distance — fill it automatically.
+        // For freight rows, the user sees the badge and can copy manually.
+        if (routingHint?.stage === 'travel') {
+          form.setFieldValue('amount', String(result.distance_km));
+        }
+      } else {
+        toast.error(result.error.message);
+      }
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : String(e)),
   });
 
   // Once periods load, populate the period + default date range. Idempotent;
@@ -468,6 +538,30 @@ export function ActivityForm({
           )}
         />
       </div>
+
+      {/* Routing lookup — shown for freight + travel rows when origin +
+       * destination are known. Click → call routingApi.lookup → fill amount
+       * (travel only) + show source badge. */}
+      {canLookup && (
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => lookupMutation.mutate()}
+            disabled={lookupMutation.isPending}
+          >
+            {lookupMutation.isPending ? m.routing_lookup_running() : m.routing_lookup_button()}
+          </Button>
+          {lookupResult && (
+            <span className="text-xs text-muted-foreground">
+              {lookupResult.source === 'amap'
+                ? m.routing_lookup_done_amap({ km: lookupResult.distance_km })
+                : m.routing_lookup_done_haversine({ km: lookupResult.distance_km })}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Recommended for this document — only shown when matcherHint is
        * present AND a source is selected AND the LLM either returned results

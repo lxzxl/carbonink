@@ -7,6 +7,11 @@
  */
 
 // Module-level mocks MUST precede any imports that reference the mocked modules.
+vi.mock('@renderer/lib/api/routing', () => ({
+  routingApi: {
+    lookup: vi.fn(),
+  },
+}));
 vi.mock('@renderer/lib/api/ef-matcher', () => ({
   efMatcherApi: {
     recommend: vi.fn(),
@@ -32,6 +37,7 @@ vi.mock('@renderer/lib/api/ef-library', () => ({
 
 import { ActivityForm } from '@renderer/components/ActivityForm';
 import { efApi } from '@renderer/lib/api/ef-library';
+import { routingApi } from '@renderer/lib/api/routing';
 import { efMatcherApi } from '@renderer/lib/api/ef-matcher';
 import { orgApi } from '@renderer/lib/api/organization';
 import type { EmissionFactor, EmissionSource, ReportingPeriod } from '@shared/types';
@@ -227,5 +233,95 @@ describe('ActivityForm — matcher recommended section', () => {
     await waitFor(() => {
       expect(efMatcherApi.recommend).not.toHaveBeenCalled();
     });
+  });
+});
+
+// ── Routing lookup button ────────────────────────────────────────────────────
+
+describe('ActivityForm — routing lookup button', () => {
+  beforeEach(() => {
+    vi.mocked(orgApi.listReportingPeriods).mockResolvedValue([FAKE_PERIOD]);
+    vi.mocked(efApi.list).mockResolvedValue([BASE_EF]);
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+  });
+
+  it('renders Look up distance button when freight row has origin+destination', async () => {
+    render(
+      buildHarness({
+        ...DEFAULT_PROPS,
+        initialValues: {
+          unit: 'kg',
+          routingHint: {
+            stage: 'freight',
+            origin: '北京',
+            destination: '上海',
+          },
+        },
+      }),
+    );
+
+    // Wait for form to mount.
+    await screen.findByLabelText(/Emission source|^排放源$/i);
+
+    // The "Look up distance" button should be present.
+    const btn = screen.getByRole('button', { name: /Look up distance|查询距离/i });
+    expect(btn).toBeTruthy();
+  });
+
+  it('does not render Look up distance button when routingHint is absent', async () => {
+    render(
+      buildHarness({
+        ...DEFAULT_PROPS,
+        initialValues: { unit: 'kg' },
+      }),
+    );
+
+    await screen.findByLabelText(/Emission source|^排放源$/i);
+
+    expect(screen.queryByRole('button', { name: /Look up distance|查询距离/i })).toBeNull();
+  });
+
+  it('calls routingApi.lookup with correct args on button click and shows badge', async () => {
+    vi.mocked(routingApi.lookup).mockResolvedValue({
+      ok: true,
+      distance_km: 1085,
+      source: 'amap',
+      cached: false,
+    });
+
+    render(
+      buildHarness({
+        ...DEFAULT_PROPS,
+        initialValues: {
+          unit: 'kg',
+          amount: '500',
+          routingHint: {
+            stage: 'freight',
+            origin: '北京',
+            destination: '上海',
+          },
+        },
+      }),
+    );
+
+    await screen.findByLabelText(/Emission source|^排放源$/i);
+
+    const btn = screen.getByRole('button', { name: /Look up distance|查询距离/i });
+    fireEvent.click(btn);
+
+    await waitFor(() => {
+      expect(routingApi.lookup).toHaveBeenCalledWith({
+        mode: 'driving',
+        origin: '北京',
+        destination: '上海',
+      });
+    });
+
+    // Source badge should show.
+    await screen.findByText(/AMap.*1085|高德.*1085/);
   });
 });

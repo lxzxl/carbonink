@@ -45,5 +45,14 @@ export function buildTravelInitialValues(
   }
   out.amount = typeof data.distance_km === 'number' ? String(data.distance_km) : '1';
   if (matcherHint) out.matcherHint = matcherHint;
+  if (data.origin && data.destination) {
+    const hint: NonNullable<typeof out.routingHint> = {
+      stage: 'travel',
+      origin: data.origin,
+      destination: data.destination,
+    };
+    if (data.mode) hint.travelMode = data.mode;
+    out.routingHint = hint;
+  }
   return out;
 }

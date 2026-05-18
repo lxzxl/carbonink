@@ -18,6 +18,10 @@ const pingProviderInput = z.object({
   apiKey: z.string().min(1).optional(),
 });
 
+const setAmapKeyInput = z.object({
+  value: z.string(),
+});
+
 /**
  * Phase 1b settings handlers — provider config CRUD + the "Test connection"
  * action used by the Settings drawer.
@@ -48,6 +52,11 @@ export function settingsHandlers(ctx: IpcContext): {
         return ctx.llmClient.pingWithKey(parsed.config, parsed.apiKey);
       }
       return ctx.llmClient.ping(parsed.config);
+    },
+    'settings:get-amap-key': () => ctx.settingsService.getAmapKey(),
+    'settings:set-amap-key': (input) => {
+      const parsed = setAmapKeyInput.parse(input);
+      ctx.settingsService.setAmapKey(parsed.value);
     },
   };
 }

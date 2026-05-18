@@ -18,6 +18,8 @@ import { useEffect, useState } from 'react';
  *   - API key plaintext → OS keychain via `CredentialService`. The
  *     renderer never sees the plaintext — only `apiKeyMasked` (e.g.
  *     `sk-...abcd`) once a key has been saved.
+ *   - AMap API key → sqlite `setting` table (not safeStorage; free dev
+ *     keys are not secrets in the same threat model as LLM keys).
  *
  * Replace-key flow:
  *   When a saved key exists we show "Saved · sk-...abcd · [Replace]"
@@ -149,6 +151,34 @@ export function SettingsDrawerContent({ onSaved }: SettingsDrawerContentProps = 
   // affordance. When the user clicks Replace we flip `isEditingKey` to
   // surface a normal password input again.
   const [isEditingKey, setIsEditingKey] = useState(false);
+
+  // ── AMap API key ────────────────────────────────────────────────────────────
+  // Stored in sqlite (not OS keychain) — AMap free dev keys are low-risk.
+  // We use a controlled input with a Save-on-submit style.
+  const [amapKey, setAmapKey] = useState('');
+  const amapKeyQuery = useQuery({
+    queryKey: ['settings:get-amap-key'],
+    queryFn: settingsApi.getAmapKey,
+  });
+  // Hydrate the AMap key input once the query resolves.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional: only re-run when the query data changes (not on every render)
+  useEffect(() => {
+    if (amapKeyQuery.data != null) {
+      setAmapKey(amapKeyQuery.data);
+    }
+  }, [amapKeyQuery.data]);
+
+  const saveAmapKeyMutation = useMutation({
+    mutationFn: (value: string) => settingsApi.setAmapKey({ value }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['settings:get-amap-key'] });
+      toast.success(m.settings_save_success());
+    },
+    onError: (err) => {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      toast.error(m.settings_save_failed(), { description: msg });
+    },
+  });
 
   const form = useForm({
     defaultValues: EMPTY_VALUES,
@@ -468,6 +498,36 @@ export function SettingsDrawerContent({ onSaved }: SettingsDrawerContentProps = 
         <Button type="submit" disabled={!canSave}>
           {saveMutation.isPending ? m.settings_saving() : m.settings_save()}
         </Button>
+      </div>
+
+      {/* AMap API key — used by the "Look up distance" feature on freight +
+       * travel activity rows. Free dev key (100,000 requests/day); stored in
+       * sqlite, not OS keychain, since it's a low-risk public dev credential.
+       * Get one at https://lbs.amap.com/dev/ */}
+      <div className="border-t border-border pt-4 mt-2 space-y-2">
+        <div className="space-y-1">
+          <Label htmlFor="settings-amap-key">AMap routing key</Label>
+          <div className="flex gap-2">
+            <Input
+              id="settings-amap-key"
+              value={amapKey}
+              onChange={(e) => setAmapKey(e.target.value)}
+              placeholder="amap key (optional)"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              aria-label="Save AMap key"
+              onClick={() => saveAmapKeyMutation.mutate(amapKey)}
+              disabled={saveAmapKeyMutation.isPending}
+            >
+              {saveAmapKeyMutation.isPending ? m.settings_saving() : m.settings_save()}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Get a free key at https://lbs.amap.com/dev/ (100,000 requests/day) · Used for "Look up distance" on freight + travel rows.
+          </p>
+        </div>
       </div>
     </form>
   );

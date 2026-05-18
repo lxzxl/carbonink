@@ -65,6 +65,8 @@ describe('preload bridge', () => {
       'settings:save-provider',
       'settings:clear-provider',
       'settings:ping-provider',
+      'settings:get-amap-key',
+      'settings:set-amap-key',
       // document domain (Phase 1b)
       'document:upload',
       'document:list',

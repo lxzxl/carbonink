@@ -14,6 +14,8 @@ vi.mock('@renderer/lib/api/settings', () => ({
     saveProvider: vi.fn(),
     clearProvider: vi.fn(),
     pingProvider: vi.fn(),
+    getAmapKey: vi.fn(),
+    setAmapKey: vi.fn(),
   },
 }));
 
@@ -31,6 +33,8 @@ describe('SettingsDrawerContent', () => {
     vi.mocked(settingsApi.getProvider).mockResolvedValue(null);
     vi.mocked(settingsApi.saveProvider).mockResolvedValue(undefined);
     vi.mocked(settingsApi.pingProvider).mockResolvedValue({ ok: true });
+    vi.mocked(settingsApi.getAmapKey).mockResolvedValue(null);
+    vi.mocked(settingsApi.setAmapKey).mockResolvedValue(undefined);
   });
 
   afterEach(() => {

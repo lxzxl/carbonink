@@ -274,5 +274,9 @@
   "dashboard_scope_3": "Scope 3",
   "dashboard_empty_hint": "No emissions data yet.",
   "dashboard_add_first_activity": "Add your first activity →",
-  "unit_kg_co2e": "kg CO2e"
+  "unit_kg_co2e": "kg CO2e",
+  "routing_lookup_button": "Look up distance",
+  "routing_lookup_running": "Looking up…",
+  "routing_lookup_done_amap": "AMap: {km} km",
+  "routing_lookup_done_haversine": "Haversine: {km} km"
 }

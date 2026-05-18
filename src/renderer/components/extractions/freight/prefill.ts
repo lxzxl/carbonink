@@ -34,5 +34,8 @@ export function buildFreightInitialValues(
   }
   if (typeof data.weight_kg === 'number') out.amount = String(data.weight_kg);
   if (matcherHint) out.matcherHint = matcherHint;
+  if (data.origin && data.destination) {
+    out.routingHint = { stage: 'freight', origin: data.origin, destination: data.destination };
+  }
   return out;
 }

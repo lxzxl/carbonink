@@ -85,13 +85,32 @@ export class SettingsService {
    * Returns the AMap API key stored in the `setting` table, or `null` if not
    * configured. Stored in sqlite (not safeStorage) since AMap keys are short
    * lived and the current threat model does not require OS-level encryption for
-   * them. T5 will add a Settings UI entry point to persist this value.
+   * them.
    */
   getAmapKey(): string | null {
     const row = this.ctx.db
       .prepare('SELECT value FROM setting WHERE key = ?')
       .get(AMAP_KEY_SETTING) as { value: string } | undefined;
     return row?.value ?? null;
+  }
+
+  /**
+   * Saves (or clears) the AMap API key. Pass an empty string to remove the
+   * stored value. Stored in sqlite alongside other settings (not safeStorage —
+   * AMap free-tier dev keys are not secrets in the same sense as LLM API keys).
+   */
+  setAmapKey(value: string): void {
+    if (!value.trim()) {
+      this.ctx.db.prepare('DELETE FROM setting WHERE key = ?').run(AMAP_KEY_SETTING);
+      return;
+    }
+    const ts = this.ctx.now();
+    this.ctx.db
+      .prepare(
+        `INSERT INTO setting (key, value, updated_at) VALUES (?, ?, ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+      )
+      .run(AMAP_KEY_SETTING, value.trim(), ts);
   }
 
   clearProviderConfig(): void {

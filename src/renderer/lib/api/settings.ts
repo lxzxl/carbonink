@@ -23,4 +23,6 @@ export const settingsApi = {
   clearProvider: () => invoke('settings:clear-provider'),
   pingProvider: (input: { config: ProviderConfig; apiKey?: string }) =>
     invoke('settings:ping-provider', input),
+  getAmapKey: () => invoke('settings:get-amap-key'),
+  setAmapKey: (input: { value: string }) => invoke('settings:set-amap-key', input),
 };

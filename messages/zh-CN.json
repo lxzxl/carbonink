@@ -274,5 +274,9 @@
   "dashboard_scope_3": "范围 3",
   "dashboard_empty_hint": "目前没有排放数据。",
   "dashboard_add_first_activity": "添加第一笔活动数据 →",
-  "unit_kg_co2e": "kg CO2e"
+  "unit_kg_co2e": "kg CO2e",
+  "routing_lookup_button": "查询距离",
+  "routing_lookup_running": "查询中…",
+  "routing_lookup_done_amap": "高德：{km} km",
+  "routing_lookup_done_haversine": "大圆距离：{km} km"
 }

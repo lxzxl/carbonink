@@ -93,6 +93,8 @@ export type IpcTypeMap = {
     config: ProviderConfig;
     apiKey?: string;
   }) => Promise<{ ok: true } | { ok: false; error: string }>;
+  'settings:get-amap-key': () => string | null;
+  'settings:set-amap-key': (input: { value: string }) => void;
 
   // document domain (Phase 1b — uploaded source files)
   // `document:upload` carries raw bytes as a `Uint8Array` so Electron's
