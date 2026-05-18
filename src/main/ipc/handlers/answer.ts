@@ -1,7 +1,7 @@
 import * as fs from 'node:fs/promises';
 import { type AnswerCell, writeAnswers } from '@main/excel/answer-writer.js';
 import * as answerSvc from '@main/services/answer-generation/index.js';
-import { Effect, Either } from 'effect';
+import { Cause, Effect, Either, Exit, Option } from 'effect';
 import { dialog } from 'electron';
 import { z } from 'zod';
 import type { IpcContext } from '../context.js';
@@ -26,9 +26,34 @@ export function answerHandlers(ctx: IpcContext): {
       if (!config) {
         throw new Error('AI provider not configured. Open Settings to set up.');
       }
-      return Effect.runPromise(
+      const exit = await Effect.runPromiseExit(
         answerSvc.generate(parsed.question_id, config).pipe(Effect.provide(ctx.answerLayer)),
       );
+      if (Exit.isSuccess(exit)) return exit.value;
+
+      // Map typed errors to user-friendly messages before throwing across IPC.
+      // Without this, Data.TaggedError instances reach the renderer with no
+      // .message — the user gets an empty toast.
+      const failure = Cause.failureOption(exit.cause);
+      const err = Option.getOrNull(failure) as { _tag?: string; reason?: string } | null;
+      switch (err?._tag) {
+        case 'LLMNoData':
+          throw new Error(
+            err.reason ? `LLM 无法从库存数据推断答案：${err.reason}` : 'LLM 无可用数据推断答案。',
+          );
+        case 'InventoryEmpty':
+          throw new Error('该年度暂无活动数据，无法推断答案。请先录入活动数据。');
+        case 'QuestionAlreadyAnswered':
+          throw new Error('该题已有答案。');
+        case 'LLMSchemaMismatch':
+          throw new Error('LLM 返回的内容格式不符合预期，请重试。');
+        case 'LLMCallFailed':
+          throw new Error('LLM 调用失败，请检查网络与 API key。');
+        case 'ProviderNotConfigured':
+          throw new Error('AI provider not configured. Open Settings to set up.');
+        default:
+          throw new Error(`生成答案失败：${err?._tag ?? '未知错误'}`);
+      }
     },
     'answer:save': async (input) => {
       const parsed = saveInput.parse(input);

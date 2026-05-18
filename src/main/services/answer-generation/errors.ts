@@ -12,6 +12,14 @@ export class LLMSchemaMismatch extends Data.TaggedError('LLMSchemaMismatch')<{ r
 export class LLMCallFailed extends Data.TaggedError('LLMCallFailed')<{ cause: unknown }> {}
 export class ProviderNotConfigured extends Data.TaggedError('ProviderNotConfigured')<{}> {}
 export class AnswerNotFound extends Data.TaggedError('AnswerNotFound')<{ question_id: string }> {}
+/**
+ * The LLM responded successfully but said it couldn't infer a value from the
+ * inventory data. The prompt explicitly instructs the model to return
+ * `value=""` in that case (see llm-client.ts). We surface it as a distinct
+ * error rather than persisting an empty-value answer that would later look
+ * indistinguishable from an "answered" row.
+ */
+export class LLMNoData extends Data.TaggedError('LLMNoData')<{ reason: string }> {}
 
 export type GenErr =
   | QuestionNotFound
@@ -20,6 +28,7 @@ export type GenErr =
   | InventoryEmpty
   | LLMSchemaMismatch
   | LLMCallFailed
+  | LLMNoData
   | ProviderNotConfigured;
 
 export type SaveErr = AnswerNotFound;

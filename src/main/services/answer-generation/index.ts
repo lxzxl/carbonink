@@ -10,6 +10,7 @@ import {
   type GenErr,
   InventoryEmpty,
   LLMCallFailed,
+  LLMNoData,
   LLMSchemaMismatch,
   ProviderNotConfigured,
   QuestionAlreadyAnswered,
@@ -84,6 +85,14 @@ export function generate(
         while: (err): err is LLMCallFailed => err._tag === 'LLMCallFailed',
       }),
     );
+
+    // The prompt instructs the LLM to return `value=""` when inventory data
+    // doesn't cover the question. Don't persist that — surface it as a
+    // distinct typed error so the UI can keep the card in "not generated"
+    // state and toast the reason.
+    if (llmResult.value.trim() === '') {
+      return yield* Effect.fail(new LLMNoData({ reason: llmResult.source_summary }));
+    }
 
     return yield* insertAnswer(db, {
       id: randomUUID(),

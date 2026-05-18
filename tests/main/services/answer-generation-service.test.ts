@@ -134,6 +134,24 @@ describe('answer-generation.generate (Effect Step 2)', () => {
     expect(row).toBeTruthy();
   });
 
+  it('LLMNoData when LLM returns an empty value (no inventory data)', async () => {
+    const { testLayer, db } = setup({
+      seedQuestionnaire: { id: 'qn-1', reporting_year: 2026, customer_name: 'Acme' },
+      seedQuestion: { id: 'q-1', questionnaire_id: 'qn-1', raw_text: '2026 total kWh?' },
+      activitiesForYear: 12,
+      totalsForYear: { total_co2e_kg: 8456.7 },
+      llmAnswer: { value: '', unit: null, source_summary: 'inventory missing' },
+    });
+    const exit = await Effect.runPromiseExit(
+      answerSvc.generate('q-1', FAKE_CONFIG).pipe(Effect.provide(testLayer)),
+    );
+    expect(failureTag(exit)).toBe('LLMNoData');
+    // Critically: nothing inserted to the DB. The bug we're guarding against
+    // is persisting a fake answer that downstream reads can't distinguish.
+    const row = db.prepare(`SELECT * FROM answer WHERE question_id = ?`).get('q-1');
+    expect(row).toBeUndefined();
+  });
+
   it('QuestionNotFound when id does not exist', async () => {
     const { testLayer } = setup({});
     const exit = await Effect.runPromiseExit(
