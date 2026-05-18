@@ -115,6 +115,17 @@ export async function launchApp(opts: LaunchOpts): Promise<StageE2ESetup> {
     },
   });
 
+  // Attach renderer log listeners to any window the app creates — must be
+  // wired before the window loads so we catch the bundle's first execution.
+  app.on('window', (page) => {
+    page.on('console', (m) => console.log(`[renderer.${m.type()}]`, m.text()));
+    page.on('pageerror', (e) => console.log('[renderer.pageerror]', e.message));
+    page.on('crash', () => console.log('[renderer.crash]'));
+    page.on('requestfailed', (req) =>
+      console.log('[renderer.requestfailed]', req.url(), req.failure()?.errorText),
+    );
+  });
+
   // Wait for the app to be ready before installing IPC overrides.
   await app.evaluate(({ app: electronApp }: typeof import('electron')) => electronApp.whenReady());
 
@@ -259,11 +270,6 @@ export async function launchApp(opts: LaunchOpts): Promise<StageE2ESetup> {
   // NOTE: no `waitForLoadState` here — the SPA's TanStack Router emits
   // continuous `commit` events during init/redirect and `domcontentloaded`
   // can't resolve cleanly. Specs use `locator.waitFor()` for hydration.
-
-  // Always log renderer console + errors to stdout during E2E — invaluable
-  // when a spec fails. Cheap when nothing's wrong.
-  window.on('console', (m) => console.log(`[renderer.${m.type()}]`, m.text()));
-  window.on('pageerror', (e) => console.log('[renderer.pageerror]', e.message));
 
   const setup: StageE2ESetup = { app, window, tempUserDataDir };
   if (savedFilePath) setup.savedFilePath = savedFilePath;
