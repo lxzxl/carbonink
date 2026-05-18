@@ -12,8 +12,5 @@ export interface RoutingDeps {
 }
 
 export function buildRoutingLayer(deps: RoutingDeps): Layer.Layer<RoutingR> {
-  return Layer.mergeAll(
-    Layer.succeed(DbTag, deps.db),
-    Layer.succeed(AmapKeyTag, deps.amapKey),
-  );
+  return Layer.mergeAll(Layer.succeed(DbTag, deps.db), Layer.succeed(AmapKeyTag, deps.amapKey));
 }

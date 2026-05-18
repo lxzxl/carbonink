@@ -1,12 +1,11 @@
+import { routingHandlers } from '@main/ipc/handlers/routing';
 import * as routingSvc from '@main/services/routing';
 import { Effect, Layer } from 'effect';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { routingHandlers } from '@main/ipc/handlers/routing';
 
 vi.mock('@main/services/routing', async () => {
-  const actual = await vi.importActual<typeof import('@main/services/routing')>(
-    '@main/services/routing',
-  );
+  const actual =
+    await vi.importActual<typeof import('@main/services/routing')>('@main/services/routing');
   return {
     ...actual,
     lookup: vi.fn(),

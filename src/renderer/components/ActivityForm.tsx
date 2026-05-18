@@ -144,10 +144,7 @@ export function ActivityForm({
   // initial values. On success, fills `amount` (for travel rows where amount
   // IS the distance in km) and shows a source badge.
   const routingHint = initialValues?.routingHint;
-  const canLookup =
-    !!routingHint?.origin &&
-    !!routingHint?.destination &&
-    !!routingHint.stage;
+  const canLookup = !!routingHint?.origin && !!routingHint?.destination && !!routingHint.stage;
   const [lookupResult, setLookupResult] = useState<{
     distance_km: number;
     source: 'amap' | 'haversine';
@@ -243,7 +240,11 @@ export function ActivityForm({
     mutationFn: () => {
       if (!routingHint) throw new Error('No routing hint available');
       const mode = inferRoutingMode(routingHint.stage, routingHint.travelMode);
-      return routingApi.lookup({ mode, origin: routingHint.origin, destination: routingHint.destination });
+      return routingApi.lookup({
+        mode,
+        origin: routingHint.origin,
+        destination: routingHint.destination,
+      });
     },
     onSuccess: (result) => {
       if (result.ok) {

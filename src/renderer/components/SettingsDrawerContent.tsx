@@ -525,7 +525,8 @@ export function SettingsDrawerContent({ onSaved }: SettingsDrawerContentProps = 
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            Get a free key at https://lbs.amap.com/dev/ (100,000 requests/day) · Used for "Look up distance" on freight + travel rows.
+            Get a free key at https://lbs.amap.com/dev/ (100,000 requests/day) · Used for "Look up
+            distance" on freight + travel rows.
           </p>
         </div>
       </div>

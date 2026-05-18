@@ -8,13 +8,13 @@
   { "iata": "XIY", "lat": 34.4471, "lng": 108.7516, "city": "Xi'an", "country": "CN" },
   { "iata": "KMG", "lat": 25.1019, "lng": 102.9292, "city": "Kunming", "country": "CN" },
   { "iata": "HGH", "lat": 30.2295, "lng": 120.4347, "city": "Hangzhou", "country": "CN" },
-  { "iata": "HKG", "lat": 22.3080, "lng": 113.9185, "city": "Hong Kong", "country": "HK" },
+  { "iata": "HKG", "lat": 22.308, "lng": 113.9185, "city": "Hong Kong", "country": "HK" },
   { "iata": "TPE", "lat": 25.0777, "lng": 121.2329, "city": "Taipei", "country": "TW" },
   { "iata": "NRT", "lat": 35.7647, "lng": 140.3863, "city": "Tokyo", "country": "JP" },
   { "iata": "ICN", "lat": 37.4691, "lng": 126.4505, "city": "Seoul", "country": "KR" },
   { "iata": "JFK", "lat": 40.6398, "lng": -73.7789, "city": "New York", "country": "US" },
   { "iata": "LAX", "lat": 33.9425, "lng": -118.4081, "city": "Los Angeles", "country": "US" },
-  { "iata": "LHR", "lat": 51.4700, "lng": -0.4543, "city": "London", "country": "GB" },
+  { "iata": "LHR", "lat": 51.47, "lng": -0.4543, "city": "London", "country": "GB" },
   { "iata": "FRA", "lat": 50.0379, "lng": 8.5622, "city": "Frankfurt", "country": "DE" },
   { "iata": "SIN", "lat": 1.3644, "lng": 103.9915, "city": "Singapore", "country": "SG" }
 ]

@@ -2,13 +2,15 @@ import { Effect, Schedule } from 'effect';
 import {
   AmapApiError,
   AmapApiKeyMissing,
+  type AmapErr,
   AmapRateLimited,
   AmapRouteNotFound,
-  type AmapErr,
 } from './errors.js';
 
 const AMAP_BASE = 'https://restapi.amap.com/v3';
-const RETRY_SCHEDULE = Schedule.exponential('200 millis').pipe(Schedule.compose(Schedule.recurs(2)));
+const RETRY_SCHEDULE = Schedule.exponential('200 millis').pipe(
+  Schedule.compose(Schedule.recurs(2)),
+);
 
 interface AmapDirectionResponse {
   status: '0' | '1';

@@ -10,7 +10,6 @@ import { LLMClient } from '@main/llm/llm-client.js';
 import { ActivityDataService } from '@main/services/activity-data-service.js';
 import type { AnswerR } from '@main/services/answer-generation/tags.js';
 import { buildAnswerLayer } from '@main/services/answer-generation/tags.js';
-import { buildRoutingLayer, type RoutingR } from '@main/services/routing/tags.js';
 import type { ServiceContext } from '@main/services/base.js';
 import { CalculationService } from '@main/services/calculation-service.js';
 import { ClassificationService } from '@main/services/classification-service.js';
@@ -23,6 +22,7 @@ import { EmissionSourceService } from '@main/services/emission-source-service.js
 import { ExtractionService } from '@main/services/extraction-service.js';
 import { OrganizationService } from '@main/services/organization-service.js';
 import { QuestionnaireService } from '@main/services/questionnaire-service.js';
+import { buildRoutingLayer, type RoutingR } from '@main/services/routing/tags.js';
 import { SettingsService } from '@main/services/settings-service.js';
 import { UnitConversionService } from '@main/services/unit-conversion-service.js';
 import type { ProviderConfig } from '@shared/types.js';

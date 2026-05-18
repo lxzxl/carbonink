@@ -22,7 +22,12 @@ describe('distanceByAddressAmap', () => {
       json: async () => VALID_AMAP_BODY,
     });
     const result = await Effect.runPromise(
-      distanceByAddressAmap({ apiKey: 'k', fetch: fakeFetch as never }, 'driving', 'Beijing', 'Shanghai'),
+      distanceByAddressAmap(
+        { apiKey: 'k', fetch: fakeFetch as never },
+        'driving',
+        'Beijing',
+        'Shanghai',
+      ),
     );
     expect(result).toBe(12); // 12345m → 12 km rounded
     expect(fakeFetch).toHaveBeenCalledTimes(1);

@@ -90,12 +90,5 @@ function writeCache(
   const k = normKey(input);
   db.prepare(
     `INSERT OR REPLACE INTO routing_cache (origin_norm, destination_norm, mode, distance_km, source, fetched_at) VALUES (?, ?, ?, ?, ?, ?)`,
-  ).run(
-    k.origin_norm,
-    k.destination_norm,
-    k.mode,
-    distance_km,
-    source,
-    new Date().toISOString(),
-  );
+  ).run(k.origin_norm, k.destination_norm, k.mode, distance_km, source, new Date().toISOString());
 }
