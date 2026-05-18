@@ -36,11 +36,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { _electron, type ElectronApplication, type Page } from '@playwright/test';
 import { stubDialog } from 'electron-playwright-helpers';
+import type { Organization } from '../../src/shared/schemas/organization.js';
 import type {
   Answer,
   ClassifyAndRunResult,
   Extraction,
   MatcherResult,
+  ProviderConfig,
 } from '../../src/shared/types.js';
 
 export type StageE2ESetup = {
@@ -83,6 +85,16 @@ export type LaunchOpts = {
   cannedClassification?: ClassifyAndRunResult;
   /** When set, `dialog.showSaveDialog` is stubbed to return `{tempUserDataDir}/{saveDialogFileName}`. */
   saveDialogFileName?: string;
+  /**
+   * When set, mocks `org:has-any` → true + `org:get-current` → org. Without
+   * this, the dashboard redirects to /onboarding/1 on first paint.
+   */
+  cannedOrg?: Organization;
+  /**
+   * When set, mocks `settings:get-provider`. Without this, the /documents
+   * page shows the "Provider Not Configured" banner instead of the upload UI.
+   */
+  cannedProvider?: ProviderConfig & { apiKeyMasked: string | null };
 };
 
 const MAIN_ENTRY = join(__dirname, '../../out/main/index.cjs');
@@ -96,6 +108,10 @@ export async function launchApp(opts: LaunchOpts): Promise<StageE2ESetup> {
       ...process.env,
       CARBONBOOK_TEST_USER_DATA_DIR: tempUserDataDir,
       CARBONBOOK_E2E: '1',
+      // Defer window creation until after we've installed IPC mocks. Without
+      // this, the renderer's `org:has-any` etc. queries can race the mock
+      // install. See src/main/index.ts for the corresponding handler.
+      CARBONBOOK_E2E_DEFER_WINDOW: '1',
     },
   });
 
@@ -201,6 +217,24 @@ export async function launchApp(opts: LaunchOpts): Promise<StageE2ESetup> {
     }, c);
   }
 
+  if (opts.cannedOrg) {
+    const org = opts.cannedOrg;
+    await app.evaluate(({ ipcMain }: typeof import('electron'), o) => {
+      ipcMain.removeHandler('org:has-any');
+      ipcMain.handle('org:has-any', () => true);
+      ipcMain.removeHandler('org:get-current');
+      ipcMain.handle('org:get-current', () => o);
+    }, org);
+  }
+
+  if (opts.cannedProvider) {
+    const provider = opts.cannedProvider;
+    await app.evaluate(({ ipcMain }: typeof import('electron'), p) => {
+      ipcMain.removeHandler('settings:get-provider');
+      ipcMain.handle('settings:get-provider', () => p);
+    }, provider);
+  }
+
   // -------------------------------------------------------------------------
   // Save dialog stub — Phase 2.2c export flow needs `dialog.showSaveDialog`.
   // -------------------------------------------------------------------------
@@ -213,10 +247,23 @@ export async function launchApp(opts: LaunchOpts): Promise<StageE2ESetup> {
     });
   }
 
+  // All mocks installed — now open the window. The main process captured
+  // `createMainWindow` on `globalThis.__e2eOpenWindow` when
+  // `CARBONBOOK_E2E_DEFER_WINDOW=1`.
+  await app.evaluate(() => {
+    const g = globalThis as unknown as { __e2eOpenWindow?: () => void };
+    g.__e2eOpenWindow?.();
+  });
+
   const window = await app.firstWindow();
   // NOTE: no `waitForLoadState` here — the SPA's TanStack Router emits
   // continuous `commit` events during init/redirect and `domcontentloaded`
   // can't resolve cleanly. Specs use `locator.waitFor()` for hydration.
+
+  // Always log renderer console + errors to stdout during E2E — invaluable
+  // when a spec fails. Cheap when nothing's wrong.
+  window.on('console', (m) => console.log(`[renderer.${m.type()}]`, m.text()));
+  window.on('pageerror', (e) => console.log('[renderer.pageerror]', e.message));
 
   const setup: StageE2ESetup = { app, window, tempUserDataDir };
   if (savedFilePath) setup.savedFilePath = savedFilePath;
