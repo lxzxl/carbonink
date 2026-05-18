@@ -61,6 +61,8 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   'answer:save',
   'answer:list-by-questionnaire',
   'answer:generate-all-unanswered',
+  // routing domain (Routing API)
+  'routing:lookup',
 ];
 
 /**

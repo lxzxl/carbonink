@@ -10,6 +10,7 @@ import { LLMClient } from '@main/llm/llm-client.js';
 import { ActivityDataService } from '@main/services/activity-data-service.js';
 import type { AnswerR } from '@main/services/answer-generation/tags.js';
 import { buildAnswerLayer } from '@main/services/answer-generation/tags.js';
+import { buildRoutingLayer, type RoutingR } from '@main/services/routing/tags.js';
 import type { ServiceContext } from '@main/services/base.js';
 import { CalculationService } from '@main/services/calculation-service.js';
 import { ClassificationService } from '@main/services/classification-service.js';
@@ -61,6 +62,8 @@ export interface IpcContext {
   // Phase 2.2b → Step 2 — answer generation via Effect Layer.
   answerLayer: Layer.Layer<AnswerR>;
   providerConfig: ProviderConfig | null;
+  // Routing API — distance lookup via AMap or haversine.
+  routingLayer: Layer.Layer<RoutingR>;
 }
 
 /**
@@ -152,6 +155,7 @@ export function createIpcContext(
   let questionnaireServiceInstance: QuestionnaireService | undefined =
     overrides.questionnaireService;
   let answerLayerInstance: Layer.Layer<AnswerR> | undefined;
+  let routingLayerInstance: Layer.Layer<RoutingR> | undefined;
 
   const getCredential = (): CredentialService => {
     if (!credentialServiceInstance) credentialServiceInstance = defaultCredentialService();
@@ -292,6 +296,13 @@ export function createIpcContext(
         });
       }
       return answerLayerInstance;
+    },
+    get routingLayer() {
+      if (!routingLayerInstance) {
+        const amapKey = getSettings().getAmapKey() ?? '';
+        routingLayerInstance = buildRoutingLayer({ db: svc.db, amapKey });
+      }
+      return routingLayerInstance;
     },
     get providerConfig() {
       const providerCfg = getSettings().getProviderConfigWithKey();

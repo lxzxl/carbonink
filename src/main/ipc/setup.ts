@@ -12,6 +12,7 @@ import { emissionSourceHandlers } from './handlers/emission-source.js';
 import { extractionHandlers } from './handlers/extraction.js';
 import { organizationHandlers } from './handlers/organization.js';
 import { questionnaireHandlers } from './handlers/questionnaire.js';
+import { routingHandlers } from './handlers/routing.js';
 import { settingsHandlers } from './handlers/settings.js';
 import { createProgressEmitter } from './progress.js';
 import { sanitize } from './sanitize.js';
@@ -33,6 +34,7 @@ const HANDLER_FACTORIES: ReadonlyArray<HandlerFactory> = [
   extractionHandlers,
   questionnaireHandlers,
   answerHandlers,
+  routingHandlers,
 ];
 
 export function setupIpc(): void {

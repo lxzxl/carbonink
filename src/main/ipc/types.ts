@@ -151,6 +151,16 @@ export type IpcTypeMap = {
   } | null;
   'questionnaire:finalize': (input: { id: string }) => void;
 
+  // routing domain (Routing API — distance lookup via AMap or haversine)
+  'routing:lookup': (input: {
+    mode: 'driving' | 'transit' | 'air';
+    origin: string;
+    destination: string;
+  }) => Promise<
+    | { ok: true; distance_km: number; source: 'amap' | 'haversine'; cached: boolean }
+    | { ok: false; error: { _tag: string; message: string } }
+  >;
+
   // answer domain (Phase 2.2b — auto-answer pipeline)
   'answer:generate': (input: { question_id: string }) => Promise<Answer>;
   'answer:save': (input: {

@@ -7,6 +7,7 @@ import type { ServiceContext } from './base.js';
  * Centralized as a constant so handlers/tests can't drift on the spelling.
  */
 const PROVIDER_SETTING_KEY = 'llm.provider';
+const AMAP_KEY_SETTING = 'routing.amap.apikey';
 
 /**
  * Persistence layer for the user-chosen LLM provider configuration.
@@ -78,6 +79,19 @@ export class SettingsService {
     const apiKey = this.ctx.credentials.get(config.apiKeyKeyref);
     if (apiKey === null) return null;
     return { config, apiKey };
+  }
+
+  /**
+   * Returns the AMap API key stored in the `setting` table, or `null` if not
+   * configured. Stored in sqlite (not safeStorage) since AMap keys are short
+   * lived and the current threat model does not require OS-level encryption for
+   * them. T5 will add a Settings UI entry point to persist this value.
+   */
+  getAmapKey(): string | null {
+    const row = this.ctx.db
+      .prepare('SELECT value FROM setting WHERE key = ?')
+      .get(AMAP_KEY_SETTING) as { value: string } | undefined;
+    return row?.value ?? null;
   }
 
   clearProviderConfig(): void {

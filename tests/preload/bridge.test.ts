@@ -92,6 +92,8 @@ describe('preload bridge', () => {
       'answer:save',
       'answer:list-by-questionnaire',
       'answer:generate-all-unanswered',
+      // routing domain (Routing API)
+      'routing:lookup',
     ]);
   });
 });
