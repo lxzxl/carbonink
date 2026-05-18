@@ -1,4 +1,4 @@
-import { Route as QuestionnairesDetailRoute } from '@renderer/routes/questionnaires.$id';
+import { Route as QuestionnairesDetailRoute } from '@renderer/routes/questionnaires_.$id';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   createMemoryHistory,

@@ -42,7 +42,7 @@ function QuestionnairesRoute() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{m.nav_questionnaires()}</h1>
         <Link
-          {...({ to: '/questionnaires/new' } as any)}
+          to="/questionnaires/new"
           className="rounded bg-primary px-3 py-1.5 text-sm text-primary-foreground hover:bg-primary/90"
         >
           {m.questionnaires_new_button()}
@@ -67,10 +67,8 @@ function QuestionnairesRoute() {
                 <tr key={r.id} className="cursor-pointer border-b border-border hover:bg-muted/30">
                   <td className="px-3 py-2">
                     <Link
-                      {...({
-                        to: '/questionnaires/$id',
-                        params: { id: r.id },
-                      } as any)}
+                      to="/questionnaires/$id"
+                      params={{ id: r.id }}
                       className="text-primary hover:underline"
                     >
                       {r.customer_name}

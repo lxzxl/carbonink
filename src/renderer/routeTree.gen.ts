@@ -14,8 +14,8 @@ import { Route as QuestionnairesRouteImport } from './routes/questionnaires'
 import { Route as DocumentsRouteImport } from './routes/documents'
 import { Route as ActivitiesRouteImport } from './routes/activities'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as QuestionnairesNewRouteImport } from './routes/questionnaires.new'
-import { Route as QuestionnairesIdRouteImport } from './routes/questionnaires.$id'
+import { Route as QuestionnairesNewRouteImport } from './routes/questionnaires_.new'
+import { Route as QuestionnairesIdRouteImport } from './routes/questionnaires_.$id'
 import { Route as OnboardingStepRouteImport } from './routes/onboarding.$step'
 import { Route as DocumentsIdRouteImport } from './routes/documents_.$id'
 
@@ -45,14 +45,14 @@ const IndexRoute = IndexRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const QuestionnairesNewRoute = QuestionnairesNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => QuestionnairesRoute,
+  id: '/questionnaires_/new',
+  path: '/questionnaires/new',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const QuestionnairesIdRoute = QuestionnairesIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => QuestionnairesRoute,
+  id: '/questionnaires_/$id',
+  path: '/questionnaires/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const OnboardingStepRoute = OnboardingStepRouteImport.update({
   id: '/onboarding/$step',
@@ -69,7 +69,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/activities': typeof ActivitiesRoute
   '/documents': typeof DocumentsRoute
-  '/questionnaires': typeof QuestionnairesRouteWithChildren
+  '/questionnaires': typeof QuestionnairesRoute
   '/sources': typeof SourcesRoute
   '/documents/$id': typeof DocumentsIdRoute
   '/onboarding/$step': typeof OnboardingStepRoute
@@ -80,7 +80,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/activities': typeof ActivitiesRoute
   '/documents': typeof DocumentsRoute
-  '/questionnaires': typeof QuestionnairesRouteWithChildren
+  '/questionnaires': typeof QuestionnairesRoute
   '/sources': typeof SourcesRoute
   '/documents/$id': typeof DocumentsIdRoute
   '/onboarding/$step': typeof OnboardingStepRoute
@@ -92,12 +92,12 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/activities': typeof ActivitiesRoute
   '/documents': typeof DocumentsRoute
-  '/questionnaires': typeof QuestionnairesRouteWithChildren
+  '/questionnaires': typeof QuestionnairesRoute
   '/sources': typeof SourcesRoute
   '/documents_/$id': typeof DocumentsIdRoute
   '/onboarding/$step': typeof OnboardingStepRoute
-  '/questionnaires/$id': typeof QuestionnairesIdRoute
-  '/questionnaires/new': typeof QuestionnairesNewRoute
+  '/questionnaires_/$id': typeof QuestionnairesIdRoute
+  '/questionnaires_/new': typeof QuestionnairesNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -131,18 +131,20 @@ export interface FileRouteTypes {
     | '/sources'
     | '/documents_/$id'
     | '/onboarding/$step'
-    | '/questionnaires/$id'
-    | '/questionnaires/new'
+    | '/questionnaires_/$id'
+    | '/questionnaires_/new'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ActivitiesRoute: typeof ActivitiesRoute
   DocumentsRoute: typeof DocumentsRoute
-  QuestionnairesRoute: typeof QuestionnairesRouteWithChildren
+  QuestionnairesRoute: typeof QuestionnairesRoute
   SourcesRoute: typeof SourcesRoute
   DocumentsIdRoute: typeof DocumentsIdRoute
   OnboardingStepRoute: typeof OnboardingStepRoute
+  QuestionnairesIdRoute: typeof QuestionnairesIdRoute
+  QuestionnairesNewRoute: typeof QuestionnairesNewRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -182,19 +184,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/questionnaires/new': {
-      id: '/questionnaires/new'
-      path: '/new'
+    '/questionnaires_/new': {
+      id: '/questionnaires_/new'
+      path: '/questionnaires/new'
       fullPath: '/questionnaires/new'
       preLoaderRoute: typeof QuestionnairesNewRouteImport
-      parentRoute: typeof QuestionnairesRoute
+      parentRoute: typeof rootRouteImport
     }
-    '/questionnaires/$id': {
-      id: '/questionnaires/$id'
-      path: '/$id'
+    '/questionnaires_/$id': {
+      id: '/questionnaires_/$id'
+      path: '/questionnaires/$id'
       fullPath: '/questionnaires/$id'
       preLoaderRoute: typeof QuestionnairesIdRouteImport
-      parentRoute: typeof QuestionnairesRoute
+      parentRoute: typeof rootRouteImport
     }
     '/onboarding/$step': {
       id: '/onboarding/$step'
@@ -213,28 +215,16 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface QuestionnairesRouteChildren {
-  QuestionnairesIdRoute: typeof QuestionnairesIdRoute
-  QuestionnairesNewRoute: typeof QuestionnairesNewRoute
-}
-
-const QuestionnairesRouteChildren: QuestionnairesRouteChildren = {
-  QuestionnairesIdRoute: QuestionnairesIdRoute,
-  QuestionnairesNewRoute: QuestionnairesNewRoute,
-}
-
-const QuestionnairesRouteWithChildren = QuestionnairesRoute._addFileChildren(
-  QuestionnairesRouteChildren,
-)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActivitiesRoute: ActivitiesRoute,
   DocumentsRoute: DocumentsRoute,
-  QuestionnairesRoute: QuestionnairesRouteWithChildren,
+  QuestionnairesRoute: QuestionnairesRoute,
   SourcesRoute: SourcesRoute,
   DocumentsIdRoute: DocumentsIdRoute,
   OnboardingStepRoute: OnboardingStepRoute,
+  QuestionnairesIdRoute: QuestionnairesIdRoute,
+  QuestionnairesNewRoute: QuestionnairesNewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

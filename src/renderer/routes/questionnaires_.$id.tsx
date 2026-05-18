@@ -8,7 +8,7 @@ import type { Answer } from '@shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 
-export const Route = createFileRoute('/questionnaires/$id')({
+export const Route = createFileRoute('/questionnaires_/$id')({
   component: QuestionnaireDetailRoute,
 });
 

@@ -8,7 +8,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useRef, useState } from 'react';
 
-export const Route = createFileRoute('/questionnaires/new')({
+export const Route = createFileRoute('/questionnaires_/new')({
   component: NewQuestionnaireRoute,
 });
 
