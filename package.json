@@ -1,6 +1,6 @@
 {
   "name": "carbonbook",
-  "version": "0.0.1-phase1c",
+  "version": "0.0.1-phase2a",
   "private": true,
   "main": "out/main/index.cjs",
   "engines": {
