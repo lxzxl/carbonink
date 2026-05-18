@@ -11,18 +11,44 @@
  *   The `app.evaluate()` callback receives `typeof import('electron')` as its
  *   first parameter; we type the destructured fields explicitly to satisfy
  *   strict-mode inference.
+ *
+ * --- Locator-wait policy ---
+ *
+ * Specs MUST NOT call `page.waitForLoadState('networkidle' | 'domcontentloaded')`
+ * as a sync barrier. TanStack Router hydration races make those flaky.
+ *
+ * Instead, every spec body starts with a stable-element wait:
+ *
+ *   await window.getByRole('heading', { name: /carbonbook/i }).waitFor();
+ *
+ * Or the most-stable thing of all — the page title:
+ *
+ *   await expect(setup.window).toHaveTitle(/carbonbook/i);
+ *
+ * Playwright's auto-wait absorbs hydration timing. If specs become flaky
+ * despite this, the renderer fix is adding a `useHydrated()` hook to root
+ * layout that sets `data-hydrated="true"`; specs then wait on
+ * `[data-hydrated="true"]`. Out of scope for v1.
  */
 
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { _electron, type ElectronApplication, type Page } from '@playwright/test';
-import type { Extraction, MatcherResult } from '../../src/shared/types.js';
+import { stubDialog } from 'electron-playwright-helpers';
+import type {
+  Answer,
+  ClassifyAndRunResult,
+  Extraction,
+  MatcherResult,
+} from '../../src/shared/types.js';
 
 export type StageE2ESetup = {
   app: ElectronApplication;
   window: Page;
   tempUserDataDir: string;
+  /** Path the save dialog was stubbed to write, when `saveDialogFileName` was set. */
+  savedFilePath?: string;
 };
 
 /**
@@ -36,10 +62,27 @@ export type StageE2ESetup = {
  * `cannedRecommendations` are keyed by the same `stage_id` value; the harness
  * decodes the stage from the mock `extraction_id` it generated during
  * `extraction:run` (format: `ext-<stage_id>-mock`).
+ *
+ * Phase 2 fields (`cannedAnswers`, `cannedAllUnanswered`, `cannedRoutingLookup`,
+ * `cannedClassification`, `saveDialogFileName`) are all optional. Phase 1
+ * stage specs leave them unset.
  */
 export type LaunchOpts = {
   cannedExtractions: Record<string, Omit<Extraction, 'id' | 'document_id' | 'created_at'>>;
   cannedRecommendations: Record<string, MatcherResult>;
+  /** Keyed by question_id. Override response for `answer:generate`. */
+  cannedAnswers?: Record<string, Answer>;
+  /** Override response for `answer:generate-all-unanswered`. */
+  cannedAllUnanswered?: Array<
+    | { ok: true; result: { value: Answer } }
+    | { ok: false; result: { error: { _tag: string; message: string } } }
+  >;
+  /** Override response for `routing:lookup`. Wrapped with `{ ok: true, ...result }` inside. */
+  cannedRoutingLookup?: { distance_km: number; source: 'amap' | 'haversine'; cached: boolean };
+  /** Override response for `extraction:classify-and-run`. */
+  cannedClassification?: ClassifyAndRunResult;
+  /** When set, `dialog.showSaveDialog` is stubbed to return `{tempUserDataDir}/{saveDialogFileName}`. */
+  saveDialogFileName?: string;
 };
 
 const MAIN_ENTRY = join(__dirname, '../../out/main/index.cjs');
@@ -115,10 +158,69 @@ export async function launchApp(opts: LaunchOpts): Promise<StageE2ESetup> {
     );
   }, recommendMap);
 
-  const window = await app.firstWindow();
-  await window.waitForLoadState('domcontentloaded');
+  // -------------------------------------------------------------------------
+  // Phase 2 IPC overrides (all optional)
+  // -------------------------------------------------------------------------
 
-  return { app, window, tempUserDataDir };
+  if (opts.cannedAnswers) {
+    type AnswerMap = Record<string, Answer>;
+    const map: AnswerMap = opts.cannedAnswers;
+    await app.evaluate(({ ipcMain }: typeof import('electron'), m: AnswerMap) => {
+      ipcMain.removeHandler('answer:generate');
+      ipcMain.handle('answer:generate', (_event, input: { question_id: string }) => {
+        const a = m[input.question_id];
+        if (!a) {
+          throw new Error(`[e2e harness] No canned answer for question_id "${input.question_id}"`);
+        }
+        return a;
+      });
+    }, map);
+  }
+
+  if (opts.cannedAllUnanswered) {
+    const results = opts.cannedAllUnanswered;
+    await app.evaluate(({ ipcMain }: typeof import('electron'), r) => {
+      ipcMain.removeHandler('answer:generate-all-unanswered');
+      ipcMain.handle('answer:generate-all-unanswered', () => r);
+    }, results);
+  }
+
+  if (opts.cannedRoutingLookup) {
+    const r = opts.cannedRoutingLookup;
+    await app.evaluate(({ ipcMain }: typeof import('electron'), result) => {
+      ipcMain.removeHandler('routing:lookup');
+      ipcMain.handle('routing:lookup', () => ({ ok: true, ...result }));
+    }, r);
+  }
+
+  if (opts.cannedClassification) {
+    const c = opts.cannedClassification;
+    await app.evaluate(({ ipcMain }: typeof import('electron'), classification) => {
+      ipcMain.removeHandler('extraction:classify-and-run');
+      ipcMain.handle('extraction:classify-and-run', () => classification);
+    }, c);
+  }
+
+  // -------------------------------------------------------------------------
+  // Save dialog stub — Phase 2.2c export flow needs `dialog.showSaveDialog`.
+  // -------------------------------------------------------------------------
+  let savedFilePath: string | undefined;
+  if (opts.saveDialogFileName) {
+    savedFilePath = join(tempUserDataDir, opts.saveDialogFileName);
+    await stubDialog(app, 'showSaveDialog', {
+      canceled: false,
+      filePath: savedFilePath,
+    });
+  }
+
+  const window = await app.firstWindow();
+  // NOTE: no `waitForLoadState` here — the SPA's TanStack Router emits
+  // continuous `commit` events during init/redirect and `domcontentloaded`
+  // can't resolve cleanly. Specs use `locator.waitFor()` for hydration.
+
+  const setup: StageE2ESetup = { app, window, tempUserDataDir };
+  if (savedFilePath) setup.savedFilePath = savedFilePath;
+  return setup;
 }
 
 export async function teardown(setup: StageE2ESetup): Promise<void> {
