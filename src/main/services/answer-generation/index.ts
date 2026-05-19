@@ -94,11 +94,15 @@ export function generate(
       return yield* Effect.fail(new LLMNoData({ reason: llmResult.source_summary }));
     }
 
+    // Force unit to null for non-numerical questions, regardless of what LLM returned.
+    // Only numerical questions should have a unit persisted.
+    const unit = question.question_kind === 'numerical' ? llmResult.unit : null;
+
     return yield* insertAnswer(db, {
       id: randomUUID(),
       question_id: questionId,
       value: llmResult.value,
-      unit: llmResult.unit,
+      unit,
       source_summary: llmResult.source_summary,
       created_at: now(),
     });

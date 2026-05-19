@@ -152,6 +152,30 @@ describe('answer-generation.generate (Effect Step 2)', () => {
     expect(row).toBeUndefined();
   });
 
+  it('narrative kind: unit stored as null even if LLM returned one', async () => {
+    const { testLayer, db } = setup({
+      seedQuestionnaire: { id: 'qn-1', reporting_year: 2026, customer_name: 'A' },
+      seedQuestion: {
+        id: 'q-n1',
+        questionnaire_id: 'qn-1',
+        raw_text: '请描述贵公司气候转型计划',
+      },
+      activitiesForYear: 5,
+      totalsForYear: { total_co2e_kg: 1000 },
+      llmAnswer: { value: '我司已制定 2030 净零路径', unit: '句', source_summary: '基于 inventory' },
+    });
+
+    // Override the seeded question's kind to 'narrative'. The setup helper
+    // currently seeds kind='numerical' by default; bypass via direct UPDATE.
+    db.prepare("UPDATE question SET question_kind = 'narrative' WHERE id = 'q-n1'").run();
+
+    const result = await Effect.runPromise(
+      answerSvc.generate('q-n1', FAKE_CONFIG).pipe(Effect.provide(testLayer)),
+    );
+    expect(result.value).toBe('我司已制定 2030 净零路径');
+    expect(result.unit).toBeNull();
+  });
+
   it('QuestionNotFound when id does not exist', async () => {
     const { testLayer } = setup({});
     const exit = await Effect.runPromiseExit(
