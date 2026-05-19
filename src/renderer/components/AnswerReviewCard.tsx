@@ -2,6 +2,7 @@ import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
 import { Input } from '@renderer/components/ui/input';
 import { Label } from '@renderer/components/ui/label';
+import { Textarea } from '@renderer/components/ui/textarea';
 import { answerApi } from '@renderer/lib/api/answer';
 import * as m from '@renderer/paraglide/messages';
 import type { Answer, Question } from '@shared/types';
@@ -104,26 +105,41 @@ export function AnswerReviewCard({ question, answer, questionnaireId }: AnswerRe
         )}
       </header>
 
-      <div className="flex flex-wrap gap-3">
-        <div className="flex flex-col gap-1 flex-1 min-w-[120px]">
+      {question.question_kind === 'narrative' ? (
+        <div className="flex flex-col gap-1">
           <Label>{m.answer_value()}</Label>
-          <Input
+          <Textarea
             value={value}
             onChange={(e) => setValue(e.target.value)}
+            rows={6}
             readOnly={isFinalized}
             disabled={isFinalized}
           />
         </div>
-        <div className="flex flex-col gap-1 flex-1 min-w-[100px]">
-          <Label>{m.answer_unit()}</Label>
-          <Input
-            value={unit}
-            onChange={(e) => setUnit(e.target.value)}
-            readOnly={isFinalized}
-            disabled={isFinalized}
-          />
+      ) : (
+        <div className="flex flex-wrap gap-3">
+          <div className="flex flex-col gap-1 flex-1 min-w-[120px]">
+            <Label>{m.answer_value()}</Label>
+            <Input
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              readOnly={isFinalized}
+              disabled={isFinalized}
+            />
+          </div>
+          {question.question_kind === 'numerical' && (
+            <div className="flex flex-col gap-1 flex-1 min-w-[100px]">
+              <Label>{m.answer_unit()}</Label>
+              <Input
+                value={unit}
+                onChange={(e) => setUnit(e.target.value)}
+                readOnly={isFinalized}
+                disabled={isFinalized}
+              />
+            </div>
+          )}
         </div>
-      </div>
+      )}
 
       {parsedSummary && (
         <p className="italic text-muted-foreground text-xs">
