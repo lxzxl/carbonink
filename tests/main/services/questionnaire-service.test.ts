@@ -308,20 +308,22 @@ describe('QuestionnaireService.createFromUpload — reuse from prior questionnai
       const customerService = new CustomerService({ db: db2 });
       let reuseDocCount = 0;
       const documentService = {
-        uploadFile: vi.fn().mockImplementation((input: { filename: string; mimeType: string; bytes: Buffer }) => {
-          const n = ++reuseDocCount;
-          return {
-            id: `doc-reuse-${n}`,
-            sha256: `sha256-reuse-${n}`,
-            filename: input.filename,
-            mime_type: input.mimeType,
-            size_bytes: input.bytes.length,
-            storage_path: `/tmp/doc-reuse-${n}.xlsx`,
-            uploaded_at: '2026-01-01T00:00:00Z',
-            uploaded_by: null,
-            doc_type: null,
-          };
-        }),
+        uploadFile: vi
+          .fn()
+          .mockImplementation((input: { filename: string; mimeType: string; bytes: Buffer }) => {
+            const n = ++reuseDocCount;
+            return {
+              id: `doc-reuse-${n}`,
+              sha256: `sha256-reuse-${n}`,
+              filename: input.filename,
+              mime_type: input.mimeType,
+              size_bytes: input.bytes.length,
+              storage_path: `/tmp/doc-reuse-${n}.xlsx`,
+              uploaded_at: '2026-01-01T00:00:00Z',
+              uploaded_by: null,
+              doc_type: null,
+            };
+          }),
       };
       const llmClient = {
         extractQuestions: vi.fn().mockResolvedValue({
@@ -391,9 +393,7 @@ describe('QuestionnaireService.createFromUpload — reuse from prior questionnai
     const q2 = db2
       .prepare(`SELECT id FROM question WHERE questionnaire_id = ?`)
       .get(r2.questionnaire_id) as { id: string };
-    const reusedAnswer = db2
-      .prepare(`SELECT * FROM answer WHERE question_id = ?`)
-      .get(q2.id) as {
+    const reusedAnswer = db2.prepare(`SELECT * FROM answer WHERE question_id = ?`).get(q2.id) as {
       source_kind: string;
       value: string;
       unit: string | null;
@@ -423,20 +423,22 @@ describe('QuestionnaireService.createFromUpload — reuse from prior questionnai
     const customerService = new CustomerService({ db: db2 });
     let draftDocCount = 0;
     const documentService = {
-      uploadFile: vi.fn().mockImplementation((input: { filename: string; mimeType: string; bytes: Buffer }) => {
-        const n = ++draftDocCount;
-        return {
-          id: `doc-draft-${n}`,
-          sha256: `sha256-draft-${n}`,
-          filename: input.filename,
-          mime_type: input.mimeType,
-          size_bytes: input.bytes.length,
-          storage_path: `/tmp/doc-draft-${n}.xlsx`,
-          uploaded_at: '2026-01-01T00:00:00Z',
-          uploaded_by: null,
-          doc_type: null,
-        };
-      }),
+      uploadFile: vi
+        .fn()
+        .mockImplementation((input: { filename: string; mimeType: string; bytes: Buffer }) => {
+          const n = ++draftDocCount;
+          return {
+            id: `doc-draft-${n}`,
+            sha256: `sha256-draft-${n}`,
+            filename: input.filename,
+            mime_type: input.mimeType,
+            size_bytes: input.bytes.length,
+            storage_path: `/tmp/doc-draft-${n}.xlsx`,
+            uploaded_at: '2026-01-01T00:00:00Z',
+            uploaded_by: null,
+            doc_type: null,
+          };
+        }),
     };
     let callCount = 0;
     const llmClient = {
@@ -506,20 +508,22 @@ describe('QuestionnaireService.createFromUpload — reuse from prior questionnai
     const customerService = new CustomerService({ db: db2 });
     let docCallCount = 0;
     const documentService = {
-      uploadFile: vi.fn().mockImplementation((input: { filename: string; mimeType: string; bytes: Buffer }) => {
-        const n = ++docCallCount;
-        return {
-          id: `doc-cross-${n}`,
-          sha256: `sha256-cross-${n}`,
-          filename: input.filename,
-          mime_type: input.mimeType,
-          size_bytes: input.bytes.length,
-          storage_path: `/tmp/doc-cross-${n}.xlsx`,
-          uploaded_at: '2026-01-01T00:00:00Z',
-          uploaded_by: null,
-          doc_type: null,
-        };
-      }),
+      uploadFile: vi
+        .fn()
+        .mockImplementation((input: { filename: string; mimeType: string; bytes: Buffer }) => {
+          const n = ++docCallCount;
+          return {
+            id: `doc-cross-${n}`,
+            sha256: `sha256-cross-${n}`,
+            filename: input.filename,
+            mime_type: input.mimeType,
+            size_bytes: input.bytes.length,
+            storage_path: `/tmp/doc-cross-${n}.xlsx`,
+            uploaded_at: '2026-01-01T00:00:00Z',
+            uploaded_by: null,
+            doc_type: null,
+          };
+        }),
     };
     const llmClient = {
       extractQuestions: vi.fn().mockResolvedValue({
