@@ -102,7 +102,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: 'create_activity',
-      description: '新增一条活动数据，通过已钉选的排放因子自动计算 co2e。若 EF 未钉选请先在 GUI 中使用一次。',
+      description:
+        '新增一条活动数据，通过已钉选的排放因子自动计算 co2e。若 EF 未钉选请先在 GUI 中使用一次。',
       inputSchema: {
         type: 'object',
         properties: {

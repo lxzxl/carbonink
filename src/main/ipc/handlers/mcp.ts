@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { app } from 'electron';
@@ -24,7 +24,11 @@ function resolveClaudeConfigPath(): string {
     return join(home, 'Library', 'Application Support', 'Claude', 'claude_desktop_config.json');
   }
   if (process.platform === 'win32') {
-    return join(process.env.APPDATA ?? join(home, 'AppData', 'Roaming'), 'Claude', 'claude_desktop_config.json');
+    return join(
+      process.env.APPDATA ?? join(home, 'AppData', 'Roaming'),
+      'Claude',
+      'claude_desktop_config.json',
+    );
   }
   return join(home, '.config', 'Claude', 'claude_desktop_config.json');
 }
@@ -52,8 +56,7 @@ export function mcpHandlers(_ctx: IpcContext): {
       const claudeConfigPath = resolveClaudeConfigPath();
       const config = readClaudeConfig(claudeConfigPath) as ClaudeConfig | null;
       const ourServer = config?.mcpServers?.carbonbook;
-      const referencesUs =
-        !!ourServer && ourServer.args?.includes(binaryPath);
+      const referencesUs = !!ourServer && ourServer.args?.includes(binaryPath);
       return {
         binary_path: binaryBuilt ? binaryPath : null,
         binary_built: binaryBuilt,
