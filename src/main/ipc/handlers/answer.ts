@@ -59,6 +59,12 @@ export function answerHandlers(ctx: IpcContext): {
       const parsed = saveInput.parse(input);
       return Effect.runPromise(answerSvc.save(parsed).pipe(Effect.provide(ctx.answerLayer)));
     },
+    'answer:unfinalize': async (input) => {
+      const parsed = generateInput.parse(input);
+      return Effect.runPromise(
+        answerSvc.unfinalize(parsed.question_id).pipe(Effect.provide(ctx.answerLayer)),
+      );
+    },
     'answer:list-by-questionnaire': async (input) => {
       const parsed = listInput.parse(input);
       return Effect.runPromise(

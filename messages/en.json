@@ -134,6 +134,8 @@
   "questionnaires_detail_inventory_empty_body": "Record electricity, fuel, freight, etc. for that year first so the AI has a basis to draft answers from.",
   "questionnaires_detail_inventory_empty_cta": "Add activity data →",
   "answer_generate_error_label": "Last generation failed",
+  "answer_unfinalize": "Unfinalize",
+  "answer_finalized_hint": "Finalized. Unfinalize to edit.",
   "questionnaires_detail_back": "← Questionnaires",
   "questionnaires_detail_question": "Question",
   "questionnaires_detail_kind": "Type",

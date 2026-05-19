@@ -92,6 +92,7 @@ describe('preload bridge', () => {
       'answer:export-to-xlsx',
       'answer:generate',
       'answer:save',
+      'answer:unfinalize',
       'answer:list-by-questionnaire',
       'answer:generate-all-unanswered',
       // routing domain (Routing API)

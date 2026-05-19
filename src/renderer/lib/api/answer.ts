@@ -6,6 +6,8 @@ export const answerApi = {
   save: (input: { question_id: string; value: string; unit: string | null; finalize: boolean }) =>
     invoke('answer:save', input),
 
+  unfinalize: (question_id: string) => invoke('answer:unfinalize', { question_id }),
+
   listByQuestionnaire: (questionnaire_id: string) =>
     invoke('answer:list-by-questionnaire', { questionnaire_id }),
 

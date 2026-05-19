@@ -39,6 +39,14 @@ export function AnswerReviewCard({ question, answer, questionnaireId }: AnswerRe
     onError: (e) => toast.error(e instanceof Error ? e.message : String(e)),
   });
 
+  const unfinalize = useMutation({
+    mutationFn: () => answerApi.unfinalize(question.id),
+    onSuccess: () => void invalidate(),
+    onError: (e) => toast.error(e instanceof Error ? e.message : String(e)),
+  });
+
+  const isFinalized = !!answer?.finalized_at;
+
   const parsedSummary =
     answer?.source_summary != null
       ? (() => {
@@ -99,11 +107,21 @@ export function AnswerReviewCard({ question, answer, questionnaireId }: AnswerRe
       <div className="flex flex-wrap gap-3">
         <div className="flex flex-col gap-1 flex-1 min-w-[120px]">
           <Label>{m.answer_value()}</Label>
-          <Input value={value} onChange={(e) => setValue(e.target.value)} />
+          <Input
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            readOnly={isFinalized}
+            disabled={isFinalized}
+          />
         </div>
         <div className="flex flex-col gap-1 flex-1 min-w-[100px]">
           <Label>{m.answer_unit()}</Label>
-          <Input value={unit} onChange={(e) => setUnit(e.target.value)} />
+          <Input
+            value={unit}
+            onChange={(e) => setUnit(e.target.value)}
+            readOnly={isFinalized}
+            disabled={isFinalized}
+          />
         </div>
       </div>
 
@@ -113,25 +131,43 @@ export function AnswerReviewCard({ question, answer, questionnaireId }: AnswerRe
         </p>
       )}
 
+      {isFinalized && (
+        <p className="text-xs text-muted-foreground">{m.answer_finalized_hint()}</p>
+      )}
+
       <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => save.mutate(false)}
-          disabled={save.isPending}
-        >
-          {m.answer_save()}
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          onClick={() => save.mutate(true)}
-          disabled={save.isPending || value.trim() === ''}
-          title={value.trim() === '' ? '请先填写数值后再定稿' : undefined}
-        >
-          {m.answer_save_finalize()}
-        </Button>
+        {isFinalized ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => unfinalize.mutate()}
+            disabled={unfinalize.isPending}
+          >
+            {m.answer_unfinalize()}
+          </Button>
+        ) : (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => save.mutate(false)}
+              disabled={save.isPending}
+            >
+              {m.answer_save()}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => save.mutate(true)}
+              disabled={save.isPending || value.trim() === ''}
+              title={value.trim() === '' ? '请先填写数值后再定稿' : undefined}
+            >
+              {m.answer_save_finalize()}
+            </Button>
+          </>
+        )}
       </div>
     </div>
   );

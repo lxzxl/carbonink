@@ -171,6 +171,7 @@ export type IpcTypeMap = {
     unit: string | null;
     finalize: boolean;
   }) => Promise<Answer>;
+  'answer:unfinalize': (input: { question_id: string }) => Promise<Answer>;
   'answer:list-by-questionnaire': (input: { questionnaire_id: string }) => Promise<Answer[]>;
   'answer:generate-all-unanswered': (input: {
     questionnaire_id: string;

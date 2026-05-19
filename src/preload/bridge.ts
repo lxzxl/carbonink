@@ -61,6 +61,7 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   'answer:export-to-xlsx',
   'answer:generate',
   'answer:save',
+  'answer:unfinalize',
   'answer:list-by-questionnaire',
   'answer:generate-all-unanswered',
   // routing domain (Routing API)

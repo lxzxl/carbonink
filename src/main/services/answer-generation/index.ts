@@ -138,6 +138,20 @@ export function save(input: SaveInput): Effect.Effect<Answer, SaveErr, DbTag | N
   });
 }
 
+export function unfinalize(questionId: string): Effect.Effect<Answer, SaveErr, DbTag> {
+  return Effect.gen(function* () {
+    const db = yield* DbTag;
+    const existing = yield* readAnswerByQuestion(db, questionId);
+    if (!existing) return yield* Effect.fail(new AnswerNotFound({ question_id: questionId }));
+    yield* Effect.sync(() => {
+      db.prepare(`UPDATE answer SET finalized_at = NULL WHERE question_id = ?`).run(questionId);
+    });
+    return yield* Effect.sync(
+      () => db.prepare(`SELECT * FROM answer WHERE question_id = ?`).get(questionId) as Answer,
+    );
+  });
+}
+
 export function listByQuestionnaire(
   questionnaireId: string,
 ): Effect.Effect<Answer[], never, DbTag> {

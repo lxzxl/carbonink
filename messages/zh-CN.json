@@ -134,6 +134,8 @@
   "questionnaires_detail_inventory_empty_body": "需要先在活动数据中录入该年度的电、油、运费等记录，AI 才能生成有依据的答案。",
   "questionnaires_detail_inventory_empty_cta": "去录入活动数据 →",
   "answer_generate_error_label": "上次生成失败",
+  "answer_unfinalize": "撤销定稿",
+  "answer_finalized_hint": "已定稿。如需修改请先撤销定稿。",
   "questionnaires_detail_back": "← 返回问卷列表",
   "questionnaires_detail_question": "题目",
   "questionnaires_detail_kind": "题型",
