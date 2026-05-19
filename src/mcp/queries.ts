@@ -280,3 +280,35 @@ export function createEmissionSource(
   );
   return db.prepare('SELECT * FROM emission_source WHERE id = ?').get(id);
 }
+
+// ---------------------------------------------------------------------------
+// 10. inventoryTotals (QUERY for resources)
+// ---------------------------------------------------------------------------
+
+export interface InventoryTotals {
+  total_co2e_kg: number;
+  scope1_kg: number;
+  scope2_kg: number;
+  scope3_kg: number;
+  activity_count: number;
+}
+
+export function inventoryTotals(db: DbLike, year: number): InventoryTotals {
+  const row = db
+    .prepare(
+      `
+      SELECT
+        COALESCE(SUM(a.computed_co2e_kg), 0) AS total_co2e_kg,
+        COALESCE(SUM(CASE WHEN es.scope = 1 THEN a.computed_co2e_kg ELSE 0 END), 0) AS scope1_kg,
+        COALESCE(SUM(CASE WHEN es.scope = 2 THEN a.computed_co2e_kg ELSE 0 END), 0) AS scope2_kg,
+        COALESCE(SUM(CASE WHEN es.scope = 3 THEN a.computed_co2e_kg ELSE 0 END), 0) AS scope3_kg,
+        COUNT(a.id) AS activity_count
+        FROM activity_data a
+        JOIN emission_source es ON es.id = a.emission_source_id
+        JOIN reporting_period rp ON rp.id = a.reporting_period_id
+       WHERE rp.year = ?
+    `,
+    )
+    .get(year);
+  return row as never;
+}

@@ -406,3 +406,85 @@ describe('mcp queries — write', () => {
     expect(rows).toHaveLength(1);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Resource query tests
+// ---------------------------------------------------------------------------
+
+describe('mcp queries — resources', () => {
+  it('inventoryTotals aggregates by scope', () => {
+    const db = setupDb();
+    seedOrganization(db);
+    seedSite(db);
+    seedReportingPeriod(db, { year: 2025 });
+    seedPinnedEf(db);
+
+    // Create emission sources for each scope
+    const es1 = seedEmissionSource(db, { id: 'es-1', scope: 1 });
+    const es2 = seedEmissionSource(db, { id: 'es-2', scope: 2 });
+    const es3 = seedEmissionSource(db, { id: 'es-3', scope: 3 });
+
+    // Create activity for each scope
+    db.prepare(
+      `INSERT INTO activity_data
+         (id, site_id, emission_source_id, reporting_period_id,
+          occurred_at_start, occurred_at_end, amount, unit,
+          ef_factor_code, ef_year, ef_source, ef_geography, ef_dataset_version,
+          computed_co2e_kg, computed_at, created_at, updated_at)
+       VALUES
+         ('act-scope1', 'site-1', ?, 'rp-1',
+          '2025-01-01', '2025-12-31', 100.0, 'kWh',
+          'electricity.grid.cn.national.2024', 2024, 'MEE_China', 'CN', '2024.q4',
+          58.39, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')`,
+    ).run(es1);
+
+    db.prepare(
+      `INSERT INTO activity_data
+         (id, site_id, emission_source_id, reporting_period_id,
+          occurred_at_start, occurred_at_end, amount, unit,
+          ef_factor_code, ef_year, ef_source, ef_geography, ef_dataset_version,
+          computed_co2e_kg, computed_at, created_at, updated_at)
+       VALUES
+         ('act-scope2', 'site-1', ?, 'rp-1',
+          '2025-01-01', '2025-12-31', 200.0, 'kWh',
+          'electricity.grid.cn.national.2024', 2024, 'MEE_China', 'CN', '2024.q4',
+          116.78, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')`,
+    ).run(es2);
+
+    db.prepare(
+      `INSERT INTO activity_data
+         (id, site_id, emission_source_id, reporting_period_id,
+          occurred_at_start, occurred_at_end, amount, unit,
+          ef_factor_code, ef_year, ef_source, ef_geography, ef_dataset_version,
+          computed_co2e_kg, computed_at, created_at, updated_at)
+       VALUES
+         ('act-scope3', 'site-1', ?, 'rp-1',
+          '2025-01-01', '2025-12-31', 300.0, 'kWh',
+          'electricity.grid.cn.national.2024', 2024, 'MEE_China', 'CN', '2024.q4',
+          175.17, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')`,
+    ).run(es3);
+
+    const result = q.inventoryTotals(db as never, 2025);
+
+    expect(result.total_co2e_kg).toBeCloseTo(58.39 + 116.78 + 175.17, 2);
+    expect(result.scope1_kg).toBeCloseTo(58.39, 2);
+    expect(result.scope2_kg).toBeCloseTo(116.78, 2);
+    expect(result.scope3_kg).toBeCloseTo(175.17, 2);
+    expect(result.activity_count).toBe(3);
+  });
+
+  it('inventoryTotals returns zeros when no activity data for year', () => {
+    const db = setupDb();
+    seedOrganization(db);
+    seedSite(db);
+    seedReportingPeriod(db, { year: 2099 });
+
+    const result = q.inventoryTotals(db as never, 2099);
+
+    expect(result.total_co2e_kg).toBe(0);
+    expect(result.scope1_kg).toBe(0);
+    expect(result.scope2_kg).toBe(0);
+    expect(result.scope3_kg).toBe(0);
+    expect(result.activity_count).toBe(0);
+  });
+});

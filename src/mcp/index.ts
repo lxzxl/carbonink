@@ -3,7 +3,9 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
   CallToolRequestSchema,
+  ListResourcesRequestSchema,
   ListToolsRequestSchema,
+  ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { openAppDb } from './db.js';
 import * as q from './queries.js';
@@ -207,6 +209,83 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 function ok(value: unknown) {
   return { content: [{ type: 'text' as const, text: JSON.stringify(value, null, 2) }] };
 }
+
+// ---------------------------------------------------------------------------
+// Resources: inventory://{year} and questionnaire://{id}
+// ---------------------------------------------------------------------------
+
+server.setRequestHandler(ListResourcesRequestSchema, async () => {
+  const rawDb = openAppDb();
+  try {
+    const db = rawDb as unknown as q.DbLike;
+    const periods = db
+      .prepare('SELECT DISTINCT year FROM reporting_period ORDER BY year DESC')
+      .all() as Array<{ year: number }>;
+    const questionnaires = q.listQuestionnaires(db);
+
+    return {
+      resources: [
+        ...periods.map((p) => ({
+          uri: `inventory://${p.year}`,
+          name: `Inventory ${p.year}`,
+          description: `Aggregated emissions totals for reporting year ${p.year}`,
+          mimeType: 'application/json',
+        })),
+        ...questionnaires.map((qn) => ({
+          uri: `questionnaire://${qn.id}`,
+          name: `Questionnaire ${qn.customer_name} ${qn.reporting_year}`,
+          description: `Full questionnaire detail for ${qn.customer_name} ${qn.reporting_year}`,
+          mimeType: 'application/json',
+        })),
+      ],
+    };
+  } finally {
+    rawDb.close();
+  }
+});
+
+server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+  const uri = request.params.uri ?? '';
+  const rawDb = openAppDb();
+  try {
+    const db = rawDb as unknown as q.DbLike;
+
+    const inventoryMatch = /^inventory:\/\/(\d{4})$/.exec(uri);
+    if (inventoryMatch) {
+      const year = Number(inventoryMatch[1]);
+      const totals = q.inventoryTotals(db, year);
+      return {
+        contents: [
+          {
+            uri,
+            mimeType: 'application/json',
+            text: JSON.stringify(totals, null, 2),
+          },
+        ],
+      };
+    }
+
+    const questionnaireMatch = /^questionnaire:\/\/(.+)$/.exec(uri);
+    if (questionnaireMatch) {
+      const id = questionnaireMatch[1] ?? '';
+      const detail = q.getQuestionnaire(db, id);
+      if (!detail) throw new Error(`Questionnaire not found: ${id}`);
+      return {
+        contents: [
+          {
+            uri,
+            mimeType: 'application/json',
+            text: JSON.stringify(detail, null, 2),
+          },
+        ],
+      };
+    }
+
+    throw new Error(`Unsupported resource URI: ${uri}`);
+  } finally {
+    rawDb.close();
+  }
+});
 
 const transport = new StdioServerTransport();
 (async () => {
