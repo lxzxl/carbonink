@@ -35,7 +35,11 @@ export default defineConfig({
         test: {
           name: 'node',
           environment: 'node',
-          include: ['tests/main/**/*.test.{ts,tsx}', 'tests/shared/**/*.test.{ts,tsx}'],
+          include: [
+            'tests/main/**/*.test.{ts,tsx}',
+            'tests/shared/**/*.test.{ts,tsx}',
+            'tests/mcp/**/*.test.{ts,tsx}',
+          ],
           exclude: ['tests/e2e/**'],
           globals: false,
         },
