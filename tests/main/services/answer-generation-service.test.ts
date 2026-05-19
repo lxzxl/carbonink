@@ -162,7 +162,11 @@ describe('answer-generation.generate (Effect Step 2)', () => {
       },
       activitiesForYear: 5,
       totalsForYear: { total_co2e_kg: 1000 },
-      llmAnswer: { value: '我司已制定 2030 净零路径', unit: '句', source_summary: '基于 inventory' },
+      llmAnswer: {
+        value: '我司已制定 2030 净零路径',
+        unit: '句',
+        source_summary: '基于 inventory',
+      },
     });
 
     // Override the seeded question's kind to 'narrative'. The setup helper

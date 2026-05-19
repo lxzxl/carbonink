@@ -25,8 +25,7 @@ app.whenReady().then(() => {
   // Avoids a race where the renderer's first IPC calls (org:has-any,
   // settings:get-provider) hit the real handlers before mocks are installed.
   if (process.env.CARBONBOOK_E2E_DEFER_WINDOW === '1') {
-    (globalThis as unknown as { __e2eOpenWindow?: () => void }).__e2eOpenWindow =
-      createMainWindow;
+    (globalThis as unknown as { __e2eOpenWindow?: () => void }).__e2eOpenWindow = createMainWindow;
   } else {
     createMainWindow();
   }

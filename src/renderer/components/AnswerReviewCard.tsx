@@ -147,9 +147,7 @@ export function AnswerReviewCard({ question, answer, questionnaireId }: AnswerRe
         </p>
       )}
 
-      {isFinalized && (
-        <p className="text-xs text-muted-foreground">{m.answer_finalized_hint()}</p>
-      )}
+      {isFinalized && <p className="text-xs text-muted-foreground">{m.answer_finalized_hint()}</p>}
 
       <div className="flex flex-wrap gap-2">
         {isFinalized ? (
