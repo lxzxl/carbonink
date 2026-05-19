@@ -173,14 +173,22 @@ function DetailBody({
       ) : (
         <>
           <div className="space-y-4">
-            {questions.map((question) => (
-              <AnswerReviewCard
-                key={question.id}
-                question={question}
-                answer={byQ.get(question.id) ?? null}
-                questionnaireId={id}
-              />
-            ))}
+            {questions.map((question) => {
+              const ans = byQ.get(question.id) ?? null;
+              // Key on answer.id when present — when the answer transitions
+              // from null (initial) to a real row, React remounts the card
+              // so its internal useState picks up the new value/unit.
+              // Without this remount, the inputs stay stuck on '' because
+              // useState only honors the initializer on the FIRST render.
+              return (
+                <AnswerReviewCard
+                  key={ans?.id ?? `pending-${question.id}`}
+                  question={question}
+                  answer={ans}
+                  questionnaireId={id}
+                />
+              );
+            })}
           </div>
           <div className="flex justify-end gap-2">
             <Button
