@@ -449,13 +449,23 @@ ${cellsText}
       } | null;
     },
   ): Promise<{ value: string; unit: string | null; source_summary: string }> {
+    const KIND_INSTRUCTIONS: Record<'numerical' | 'categorical' | 'narrative', string> = {
+      numerical: '请返回数字字符串 + 单位。优先从 inventory 总排放 / 活动数据中推算。',
+      categorical: '请返回一个短词答案（≤10 字），如"是"/"否"/"部分"/"不适用"或行业代码/类型名。',
+      narrative: '请返回 1-3 句中文叙述（≤300 字），结合 inventory 给出可审计的回答。',
+    };
+
+    const valueMax = question.question_kind === 'narrative' ? 2000 : 50;
     const schema = z.object({
-      value: z.string(),
+      value: z.string().max(valueMax),
       unit: z.string().nullable(),
       source_summary: z.string().max(500),
     });
 
     const prompt = `你是一名碳核算助理。下面是一道供应商问卷的题目，以及当前组织 ${inventory.year} 年度的 inventory 数据。请基于 inventory 给出答案。
+
+题目类型：${question.question_kind}
+${KIND_INSTRUCTIONS[question.question_kind]}
 
 <question>
 ${question.raw_text}
