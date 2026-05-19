@@ -125,7 +125,7 @@ export class QuestionnaireService {
            id, questionnaire_id, question_signature, signature_version,
            normalized_text, raw_text, parsed_intent, question_kind,
            expected_unit, position, required
-         ) VALUES (?, ?, ?, 'v1', ?, ?, NULL, 'numerical', ?, ?, 0)`,
+         ) VALUES (?, ?, ?, 'v1', ?, ?, NULL, ?, ?, ?, 0)`,
       );
 
       for (const q of llmResult.questions) {
@@ -136,6 +136,7 @@ export class QuestionnaireService {
           sig,
           q.normalized_text,
           q.raw_text,
+          q.question_kind,
           q.expected_unit,
           q.answer_cell_ref,
         );

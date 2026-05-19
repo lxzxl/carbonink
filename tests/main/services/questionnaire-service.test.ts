@@ -18,6 +18,7 @@ function setup(opts?: {
     expected_unit: string | null;
     sheet: string;
     question_row: number;
+    question_kind: 'numerical' | 'categorical' | 'narrative';
   }>;
   extractThrows?: Error;
 }) {
@@ -71,6 +72,7 @@ describe('QuestionnaireService.createFromUpload', () => {
           expected_unit: 'kWh',
           sheet: 'S',
           question_row: 1,
+          question_kind: 'numerical',
         },
         {
           raw_text: 'Q2',
@@ -79,6 +81,7 @@ describe('QuestionnaireService.createFromUpload', () => {
           expected_unit: null,
           sheet: 'S',
           question_row: 2,
+          question_kind: 'narrative',
         },
       ],
     });
@@ -109,7 +112,8 @@ describe('QuestionnaireService.createFromUpload', () => {
       position: string | null;
     }>;
     expect(qs.length).toBe(2);
-    expect(qs.every((q) => q.question_kind === 'numerical')).toBe(true);
+    expect(qs[0]?.question_kind).toBe('numerical');
+    expect(qs[1]?.question_kind).toBe('narrative');
     expect(qs[0]?.position).toBe('S!B1');
     expect(qs[0]?.expected_unit).toBe('kWh');
   });
@@ -179,6 +183,7 @@ describe('QuestionnaireService.list', () => {
           expected_unit: 'kWh',
           sheet: 'S',
           question_row: 1,
+          question_kind: 'numerical',
         },
       ],
     });
@@ -244,6 +249,7 @@ describe('QuestionnaireService.getById', () => {
           expected_unit: 'kWh',
           sheet: 'S',
           question_row: 1,
+          question_kind: 'categorical',
         },
       ],
     });
