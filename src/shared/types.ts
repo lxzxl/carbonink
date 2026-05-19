@@ -320,13 +320,13 @@ export type Extraction = {
 // Answer (Phase 2.2b — auto-answer pipeline)
 // ---------------------------------------------------------------------------
 
-/** Row shape mirroring the `answer` table. See migration 005. */
+/** Row shape mirroring the `answer` table. See migration 005, extended by migration 014. */
 export type Answer = {
   id: string;
   question_id: string;
   value: string;
   unit: string | null;
-  source_kind: 'mapped_inventory' | 'manual' | 'ai_suggested';
+  source_kind: 'mapped_inventory' | 'manual' | 'ai_suggested' | 'reused';
   source_calculation_snapshot_id: string | null;
   source_activity_data_id: string | null;
   source_company_profile_key: string | null;

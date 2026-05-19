@@ -43,7 +43,14 @@ function NewQuestionnaireRoute() {
     },
     onSuccess: (r) => {
       void queryClient.invalidateQueries({ queryKey: ['questionnaire:list'] });
-      toast.success(m.questionnaires_wizard_success({ count: r.question_count }));
+      const msg =
+        r.reused_count > 0
+          ? m.questionnaires_wizard_success_with_reused({
+              count: r.question_count,
+              reused: r.reused_count,
+            })
+          : m.questionnaires_wizard_success({ count: r.question_count });
+      toast.success(msg);
       void navigate({ to: '/questionnaires/$id', params: { id: r.questionnaire_id } });
     },
     onError: (err) => {
