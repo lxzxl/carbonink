@@ -51,6 +51,11 @@ export function AnswerReviewCard({ question, answer, questionnaireId }: AnswerRe
       : null;
 
   if (!answer) {
+    const lastError = generate.isError
+      ? generate.error instanceof Error
+        ? generate.error.message
+        : String(generate.error)
+      : null;
     return (
       <div className="rounded-md border border-border bg-muted/30 p-4 text-sm space-y-3">
         <header className="flex items-baseline gap-2">
@@ -68,6 +73,11 @@ export function AnswerReviewCard({ question, answer, questionnaireId }: AnswerRe
         >
           {generate.isPending ? m.answer_generating() : m.answer_generate()}
         </Button>
+        {lastError && (
+          <div className="rounded-sm border border-destructive/40 bg-destructive/5 p-2 text-xs text-destructive">
+            <span className="font-medium">{m.answer_generate_error_label()}：</span> {lastError}
+          </div>
+        )}
       </div>
     );
   }
