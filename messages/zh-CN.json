@@ -299,5 +299,8 @@
   "settings_mcp_write_button": "一键写入 Claude Desktop 配置",
   "settings_mcp_write_done": "已写入。重启 Claude Desktop 让改动生效。",
   "settings_mcp_write_failed": "写入失败",
-  "settings_mcp_copy_done": "已复制"
+  "settings_mcp_copy_done": "已复制",
+  "sidebar_mcp_label_available": "MCP",
+  "sidebar_mcp_label_pending": "MCP·待配置",
+  "sidebar_mcp_label_not_built": "MCP·未构建"
 }

@@ -1,6 +1,8 @@
 import { useSettingsDrawer } from '@renderer/components/settings-drawer-context';
+import { mcpApi } from '@renderer/lib/api/mcp';
 import { cn } from '@renderer/lib/utils';
 import * as m from '@renderer/paraglide/messages';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { Settings as SettingsIcon } from 'lucide-react';
 
@@ -9,6 +11,14 @@ export function Sidebar() {
   // at the renderer entry (see `src/renderer/main.tsx` / `__root.tsx`) so
   // both this Sidebar and the out-of-tree CommandPalette can toggle it.
   const { setOpen: setSettingsOpen } = useSettingsDrawer();
+
+  // Poll MCP status every 10 seconds to show binary build + Claude config state.
+  const mcpStatus = useQuery({
+    queryKey: ['mcp:status'],
+    queryFn: mcpApi.getStatus,
+    refetchInterval: 10_000,
+    refetchOnWindowFocus: true,
+  });
 
   return (
     <nav className="flex h-full w-56 flex-col border-r border-border bg-muted/30 px-4 pt-12 pb-4">
@@ -70,10 +80,37 @@ export function Sidebar() {
           </Link>
         </li>
       </ul>
-      {/* Settings button — opens the right-side drawer via shared context.
+      {/* MCP status chip + Settings button — both open the Settings drawer.
+       * MCP chip shows binary build + Claude config state with a colored dot.
        * Phase 1b replaces the Phase 0 Moon placeholder with a real gear.
        * Theme toggle is now part of the Settings panel itself. */}
-      <div className="mt-auto pt-4 border-t border-border/50">
+      <div className="mt-auto pt-4 border-t border-border/50 space-y-1">
+        {mcpStatus.data && (
+          <button
+            type="button"
+            onClick={() => setSettingsOpen(true)}
+            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-xs hover:bg-muted"
+          >
+            <span
+              className={cn(
+                'h-2 w-2 rounded-full',
+                mcpStatus.data.claude_config_references_us
+                  ? 'bg-green-500'
+                  : mcpStatus.data.binary_built
+                    ? 'bg-amber-500'
+                    : 'bg-muted-foreground/40',
+              )}
+              aria-hidden="true"
+            />
+            <span className="text-muted-foreground">
+              {mcpStatus.data.claude_config_references_us
+                ? m.sidebar_mcp_label_available()
+                : mcpStatus.data.binary_built
+                  ? m.sidebar_mcp_label_pending()
+                  : m.sidebar_mcp_label_not_built()}
+            </span>
+          </button>
+        )}
         <button
           type="button"
           onClick={() => setSettingsOpen(true)}

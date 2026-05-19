@@ -299,5 +299,8 @@
   "settings_mcp_write_button": "Write to Claude Desktop config",
   "settings_mcp_write_done": "Written. Restart Claude Desktop for changes to take effect.",
   "settings_mcp_write_failed": "Write failed",
-  "settings_mcp_copy_done": "Copied"
+  "settings_mcp_copy_done": "Copied",
+  "sidebar_mcp_label_available": "MCP",
+  "sidebar_mcp_label_pending": "MCP · Not configured",
+  "sidebar_mcp_label_not_built": "MCP · Not built"
 }
