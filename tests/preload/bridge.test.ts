@@ -97,6 +97,9 @@ describe('preload bridge', () => {
       'answer:generate-all-unanswered',
       // routing domain (Routing API)
       'routing:lookup',
+      // mcp domain (Phase 2 Block 4 — MCP server status / Claude Desktop config)
+      'mcp:get-status',
+      'mcp:write-claude-config',
     ]);
   });
 });

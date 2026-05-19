@@ -2,6 +2,7 @@ import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
 import { Input } from '@renderer/components/ui/input';
 import { Label } from '@renderer/components/ui/label';
+import { mcpApi } from '@renderer/lib/api/mcp';
 import { settingsApi } from '@renderer/lib/api/settings';
 import * as m from '@renderer/paraglide/messages';
 import type { ProviderConfig, ProviderKind } from '@shared/types';
@@ -179,6 +180,38 @@ export function SettingsDrawerContent({ onSaved }: SettingsDrawerContentProps = 
       toast.error(m.settings_save_failed(), { description: msg });
     },
   });
+
+  // ── MCP Server status ────────────────────────────────────────────────────────
+  // Polls every 10 s so the UI reflects an external `pnpm build` without
+  // requiring a manual refresh.
+  const mcpStatusQuery = useQuery({
+    queryKey: ['mcp:status'],
+    queryFn: mcpApi.getStatus,
+    refetchInterval: 10_000,
+  });
+
+  const writeClaudeConfig = useMutation({
+    mutationFn: mcpApi.writeClaudeConfig,
+    onSuccess: (r) => {
+      if (r.ok) {
+        toast.success(m.settings_mcp_write_done());
+        mcpStatusQuery.refetch();
+      } else {
+        toast.error(m.settings_mcp_write_failed(), { description: r.error });
+      }
+    },
+    onError: (err) => {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      toast.error(m.settings_mcp_write_failed(), { description: msg });
+    },
+  });
+
+  const mcpStatus = mcpStatusQuery.data;
+  const mcpStatusLabel = !mcpStatus?.binary_built
+    ? m.settings_mcp_status_not_built()
+    : mcpStatus.claude_config_references_us
+      ? m.settings_mcp_status_available()
+      : m.settings_mcp_status_pending();
 
   const form = useForm({
     defaultValues: EMPTY_VALUES,
@@ -529,6 +562,55 @@ export function SettingsDrawerContent({ onSaved }: SettingsDrawerContentProps = 
             distance" on freight + travel rows.
           </p>
         </div>
+      </div>
+
+      {/* MCP Server — Claude Desktop integration (Phase 2 Block 4).
+       * Shows binary build status + one-click config write. */}
+      <div className="border-t border-border pt-4 mt-2 space-y-3">
+        <h3 className="text-sm font-medium">{m.settings_mcp_title()}</h3>
+        <p className="text-sm">{mcpStatusLabel}</p>
+        {mcpStatus?.binary_path && (
+          <>
+            <div className="space-y-1">
+              <Label>{m.settings_mcp_binary_label()}</Label>
+              <div className="flex items-center gap-2">
+                <code className="text-xs truncate flex-1 font-mono">{mcpStatus.binary_path}</code>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    navigator.clipboard.writeText(mcpStatus.binary_path!);
+                    toast.success(m.settings_mcp_copy_done());
+                  }}
+                >
+                  复制
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label>{m.settings_mcp_config_label()}</Label>
+              <pre className="text-xs bg-muted p-2 rounded overflow-x-auto">
+                {JSON.stringify(
+                  {
+                    mcpServers: {
+                      carbonbook: { command: 'node', args: [mcpStatus.binary_path] },
+                    },
+                  },
+                  null,
+                  2,
+                )}
+              </pre>
+            </div>
+            <Button
+              type="button"
+              onClick={() => writeClaudeConfig.mutate()}
+              disabled={writeClaudeConfig.isPending || mcpStatus.claude_config_references_us}
+            >
+              {m.settings_mcp_write_button()}
+            </Button>
+          </>
+        )}
       </div>
     </form>
   );

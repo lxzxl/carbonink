@@ -289,5 +289,15 @@
   "routing_lookup_button": "Look up distance",
   "routing_lookup_running": "Looking up…",
   "routing_lookup_done_amap": "AMap: {km} km",
-  "routing_lookup_done_haversine": "Haversine: {km} km"
+  "routing_lookup_done_haversine": "Haversine: {km} km",
+  "settings_mcp_title": "MCP Server (Claude Desktop integration)",
+  "settings_mcp_status_available": "✓ Configured: Claude Desktop can connect to carbonbook",
+  "settings_mcp_status_pending": "⚠ Not configured: copy the config below to Claude Desktop",
+  "settings_mcp_status_not_built": "✗ Not built: run pnpm build first",
+  "settings_mcp_binary_label": "Binary path",
+  "settings_mcp_config_label": "Claude Desktop config snippet",
+  "settings_mcp_write_button": "Write to Claude Desktop config",
+  "settings_mcp_write_done": "Written. Restart Claude Desktop for changes to take effect.",
+  "settings_mcp_write_failed": "Write failed",
+  "settings_mcp_copy_done": "Copied"
 }

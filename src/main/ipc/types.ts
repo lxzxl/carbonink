@@ -153,6 +153,16 @@ export type IpcTypeMap = {
   } | null;
   'questionnaire:finalize': (input: { id: string }) => void;
 
+  // mcp domain (Phase 2 Block 4 — Model Context Protocol server status / config)
+  'mcp:get-status': () => {
+    binary_path: string | null;
+    binary_built: boolean;
+    claude_config_path: string;
+    claude_config_present: boolean;
+    claude_config_references_us: boolean;
+  };
+  'mcp:write-claude-config': () => { ok: true } | { ok: false; error: string };
+
   // routing domain (Routing API — distance lookup via AMap or haversine)
   'routing:lookup': (input: {
     mode: 'driving' | 'transit' | 'air';

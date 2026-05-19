@@ -289,5 +289,15 @@
   "routing_lookup_button": "查询距离",
   "routing_lookup_running": "查询中…",
   "routing_lookup_done_amap": "高德：{km} km",
-  "routing_lookup_done_haversine": "大圆距离：{km} km"
+  "routing_lookup_done_haversine": "大圆距离：{km} km",
+  "settings_mcp_title": "MCP 服务（Claude Desktop 集成）",
+  "settings_mcp_status_available": "✓ 已配置：Claude Desktop 已能连接 carbonbook",
+  "settings_mcp_status_pending": "⚠ 待配置：复制下方配置到 Claude Desktop",
+  "settings_mcp_status_not_built": "✗ 未构建：先运行 pnpm build",
+  "settings_mcp_binary_label": "Binary 路径",
+  "settings_mcp_config_label": "Claude Desktop 配置片段",
+  "settings_mcp_write_button": "一键写入 Claude Desktop 配置",
+  "settings_mcp_write_done": "已写入。重启 Claude Desktop 让改动生效。",
+  "settings_mcp_write_failed": "写入失败",
+  "settings_mcp_copy_done": "已复制"
 }
