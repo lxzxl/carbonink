@@ -83,6 +83,74 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         additionalProperties: false,
       },
     },
+    {
+      name: 'set_answer',
+      description: '新增或更新某道问题的答案（source_kind 固定为 manual）',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          question_id: { type: 'string', description: 'question id' },
+          value: { type: 'string', description: '答案文本' },
+          unit: { type: 'string', description: '单位（可选）', nullable: true },
+          finalize: { type: 'boolean', description: '是否标记为已完成（设置 finalized_at）' },
+        },
+        required: ['question_id', 'value'],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'create_activity',
+      description: '新增一条活动数据，通过已钉选的排放因子自动计算 co2e。若 EF 未钉选请先在 GUI 中使用一次。',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          site_id: { type: 'string' },
+          emission_source_id: { type: 'string' },
+          reporting_period_id: { type: 'string' },
+          occurred_at_start: { type: 'string', description: 'ISO date string, e.g. 2024-01-01' },
+          occurred_at_end: { type: 'string', description: 'ISO date string, e.g. 2024-12-31' },
+          amount: { type: 'number' },
+          unit: { type: 'string' },
+          ef_factor_code: { type: 'string' },
+          ef_year: { type: 'number' },
+          ef_source: { type: 'string' },
+          ef_geography: { type: 'string' },
+          ef_dataset_version: { type: 'string' },
+          notes: { type: 'string', nullable: true },
+        },
+        required: [
+          'site_id',
+          'emission_source_id',
+          'reporting_period_id',
+          'occurred_at_start',
+          'occurred_at_end',
+          'amount',
+          'unit',
+          'ef_factor_code',
+          'ef_year',
+          'ef_source',
+          'ef_geography',
+          'ef_dataset_version',
+        ],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: 'create_emission_source',
+      description: '新增一个排放源',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          site_id: { type: 'string' },
+          name: { type: 'string' },
+          scope: { type: 'number', enum: [1, 2, 3] },
+          category: { type: 'string', nullable: true },
+          ghg_protocol_path: { type: 'string', nullable: true },
+        },
+        required: ['site_id', 'name', 'scope'],
+        additionalProperties: false,
+      },
+    },
   ],
 }));
 
@@ -118,6 +186,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           opts.organization_id = String(args['organization_id']);
         return ok(q.listEmissionSources(db, opts));
       }
+
+      case 'set_answer':
+        return ok(q.setAnswer(db, args as never));
+
+      case 'create_activity':
+        return ok(q.createActivity(db, args as never));
+
+      case 'create_emission_source':
+        return ok(q.createEmissionSource(db, args as never));
 
       default:
         throw new Error(`Unknown tool: ${request.params.name}`);

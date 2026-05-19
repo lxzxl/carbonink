@@ -241,3 +241,168 @@ describe('mcp queries — read', () => {
     expect(result[0]?.id).toBe('es-1');
   });
 });
+
+// ---------------------------------------------------------------------------
+// Write tests
+// ---------------------------------------------------------------------------
+
+describe('mcp queries — write', () => {
+  // -----------------------------------------------------------------------
+  // set_answer
+  // -----------------------------------------------------------------------
+
+  it('setAnswer inserts a new answer with source_kind=manual', () => {
+    const db = setupDb();
+    seedCustomer(db);
+    seedDocument(db);
+    seedQuestionnaire(db);
+    seedQuestion(db);
+
+    const result = q.setAnswer(db as never, {
+      question_id: 'q-1',
+      value: '9999',
+      unit: 'kWh',
+      finalize: false,
+    }) as Record<string, unknown>;
+
+    expect(result).not.toBeNull();
+    expect(result['value']).toBe('9999');
+    expect(result['unit']).toBe('kWh');
+    expect(result['source_kind']).toBe('manual');
+    expect(result['finalized_at']).toBeNull();
+  });
+
+  it('setAnswer updates existing answer when row already exists', () => {
+    const db = setupDb();
+    seedCustomer(db);
+    seedDocument(db);
+    seedQuestionnaire(db);
+    seedQuestion(db);
+
+    // Seed an initial answer
+    db.prepare(
+      `INSERT INTO answer (id, question_id, value, unit, source_kind, finalized_at)
+       VALUES ('ans-seed', 'q-1', 'original', 'tCO2e', 'manual', NULL)`,
+    ).run();
+
+    const result = q.setAnswer(db as never, {
+      question_id: 'q-1',
+      value: 'updated',
+      unit: 'tCO2e',
+    }) as Record<string, unknown>;
+
+    expect(result['value']).toBe('updated');
+    expect(result['source_kind']).toBe('manual');
+    // Only one row should exist (UNIQUE on question_id)
+    const rows = db.prepare('SELECT * FROM answer WHERE question_id = ?').all('q-1');
+    expect(rows).toHaveLength(1);
+  });
+
+  it('setAnswer with finalize=true sets finalized_at', () => {
+    const db = setupDb();
+    seedCustomer(db);
+    seedDocument(db);
+    seedQuestionnaire(db);
+    seedQuestion(db);
+
+    const result = q.setAnswer(db as never, {
+      question_id: 'q-1',
+      value: '42',
+      unit: null,
+      finalize: true,
+    }) as Record<string, unknown>;
+
+    expect(result['finalized_at']).not.toBeNull();
+    expect(typeof result['finalized_at']).toBe('string');
+  });
+
+  // -----------------------------------------------------------------------
+  // create_activity
+  // -----------------------------------------------------------------------
+
+  it('createActivity computes co2e via pinned EF and inserts', () => {
+    const db = setupDb();
+    seedOrganization(db);
+    seedSite(db);
+    seedEmissionSource(db);
+    seedReportingPeriod(db);
+    seedPinnedEf(db);
+
+    const result = q.createActivity(db as never, {
+      site_id: 'site-1',
+      emission_source_id: 'es-1',
+      reporting_period_id: 'rp-1',
+      occurred_at_start: '2024-01-01',
+      occurred_at_end: '2024-12-31',
+      amount: 1000,
+      unit: 'kWh',
+      ef_factor_code: 'electricity.grid.cn.national.2024',
+      ef_year: 2024,
+      ef_source: 'MEE_China',
+      ef_geography: 'CN',
+      ef_dataset_version: '2024.q4',
+      notes: null,
+    }) as Record<string, unknown>;
+
+    expect(result).not.toBeNull();
+    // 1000 kWh * 0.5839 = 583.9
+    expect(result['computed_co2e_kg']).toBe(583.9);
+    expect(result['amount']).toBe(1000);
+    expect(result['unit']).toBe('kWh');
+  });
+
+  it('createActivity throws when EF is not pinned', () => {
+    const db = setupDb();
+    seedOrganization(db);
+    seedSite(db);
+    seedEmissionSource(db);
+    seedReportingPeriod(db);
+    // Note: no seedPinnedEf — intentionally absent
+
+    expect(() =>
+      q.createActivity(db as never, {
+        site_id: 'site-1',
+        emission_source_id: 'es-1',
+        reporting_period_id: 'rp-1',
+        occurred_at_start: '2024-01-01',
+        occurred_at_end: '2024-12-31',
+        amount: 500,
+        unit: 'kWh',
+        ef_factor_code: 'electricity.grid.cn.national.2024',
+        ef_year: 2024,
+        ef_source: 'MEE_China',
+        ef_geography: 'CN',
+        ef_dataset_version: '2024.q4',
+      }),
+    ).toThrow(/EF not pinned/);
+  });
+
+  // -----------------------------------------------------------------------
+  // create_emission_source
+  // -----------------------------------------------------------------------
+
+  it('createEmissionSource inserts a row', () => {
+    const db = setupDb();
+    seedOrganization(db);
+    seedSite(db);
+
+    const result = q.createEmissionSource(db as never, {
+      site_id: 'site-1',
+      name: 'Diesel generators',
+      scope: 1,
+      category: 'stationary_combustion',
+      ghg_protocol_path: null,
+    }) as Record<string, unknown>;
+
+    expect(result).not.toBeNull();
+    expect(result['name']).toBe('Diesel generators');
+    expect(result['scope']).toBe(1);
+    expect(result['category']).toBe('stationary_combustion');
+    expect(result['template_origin']).toBe('mcp');
+    expect(result['is_active']).toBe(1);
+
+    // Verify it's actually in the DB
+    const rows = db.prepare('SELECT * FROM emission_source WHERE site_id = ?').all('site-1');
+    expect(rows).toHaveLength(1);
+  });
+});
