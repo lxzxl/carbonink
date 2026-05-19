@@ -62,7 +62,7 @@ export class QuestionnaireService {
     due_date: string | null;
     file_bytes: Uint8Array;
     filename: string;
-  }): Promise<{ questionnaire_id: string; question_count: number }> {
+  }): Promise<{ questionnaire_id: string; question_count: number; reused_count: number }> {
     const nowFn = this.deps.now ?? (() => new Date().toISOString());
     const buf = Buffer.from(input.file_bytes);
 
@@ -73,6 +73,10 @@ export class QuestionnaireService {
 
     const questionnaireId = randomUUID();
     const createdAt = nowFn();
+
+    // Captures the reuse count from inside the transaction so the outer
+    // scope can return it without closing over a mutable let in the fn body.
+    let reusedCount = 0;
 
     // Step 3: all writes inside one transaction — customer, document,
     // questionnaire, and question rows all commit or all roll back together.
@@ -128,10 +132,13 @@ export class QuestionnaireService {
          ) VALUES (?, ?, ?, 'v1', ?, ?, NULL, ?, ?, ?, 0)`,
       );
 
+      const insertedQuestions: Array<{ id: string; signature: string }> = [];
+
       for (const q of llmResult.questions) {
         const sig = createHash('sha256').update(q.normalized_text).digest('hex');
+        const qid = randomUUID();
         insertQ.run(
-          randomUUID(),
+          qid,
           questionnaireId,
           sig,
           q.normalized_text,
@@ -140,7 +147,41 @@ export class QuestionnaireService {
           q.expected_unit,
           q.answer_cell_ref,
         );
+        insertedQuestions.push({ id: qid, signature: sig });
       }
+
+      // Reuse lookup: for each newly-inserted question, find the most recent
+      // finalized answer from the same customer's prior questionnaires where
+      // the question_signature matches, then pre-populate a draft answer row
+      // with source_kind='reused'.
+      const findPrev = this.deps.db.prepare(`
+        SELECT a.value, a.unit, a.source_summary
+          FROM answer a
+          JOIN question pq ON pq.id = a.question_id
+          JOIN questionnaire pqn ON pqn.id = pq.questionnaire_id
+         WHERE pqn.customer_id = ?
+           AND pq.question_signature = ?
+           AND pqn.id != ?
+           AND a.finalized_at IS NOT NULL
+         ORDER BY pqn.created_at DESC
+         LIMIT 1
+      `);
+
+      const insertReused = this.deps.db.prepare(`
+        INSERT INTO answer (id, question_id, value, unit, source_kind, source_summary, finalized_at)
+        VALUES (?, ?, ?, ?, 'reused', ?, NULL)
+      `);
+
+      let count = 0;
+      for (const { id: qid, signature } of insertedQuestions) {
+        const prev = findPrev.get(customer.id, signature, questionnaireId) as
+          | { value: string; unit: string | null; source_summary: string | null }
+          | undefined;
+        if (!prev) continue;
+        insertReused.run(randomUUID(), qid, prev.value, prev.unit, prev.source_summary);
+        count++;
+      }
+      reusedCount = count;
     });
 
     tx();
@@ -148,6 +189,7 @@ export class QuestionnaireService {
     return {
       questionnaire_id: questionnaireId,
       question_count: llmResult.questions.length,
+      reused_count: reusedCount,
     };
   }
 

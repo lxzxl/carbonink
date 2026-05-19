@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { runMigrations } from '@main/db/migrate';
 import { CustomerService } from '@main/services/customer-service';
 import { QuestionnaireService } from '@main/services/questionnaire-service';
@@ -271,5 +272,322 @@ describe('QuestionnaireService.getById', () => {
   it('getById returns null for unknown id', () => {
     const { svc } = setup({ llmQuestions: [] });
     expect(svc.getById('not-real')).toBeNull();
+  });
+});
+
+describe('QuestionnaireService.createFromUpload — reuse from prior questionnaires', () => {
+  // Helper: compute the same SHA-256 signature that the service uses.
+  function sig(normalizedText: string): string {
+    return createHash('sha256').update(normalizedText).digest('hex');
+  }
+
+  it('reuses finalized answers from same customer prior questionnaire', async () => {
+    // Use a counter so each call to now() returns a later timestamp,
+    // ensuring the first questionnaire sorts before the second.
+    let nowIndex = 0;
+    const timestamps = ['2026-01-01T00:00:00Z', '2026-06-01T00:00:00Z'];
+    const { db, svc } = setup({
+      llmQuestions: [
+        {
+          raw_text: 'Q: Total energy consumption?',
+          normalized_text: 'total energy consumption',
+          answer_cell_ref: 'S!B1',
+          expected_unit: 'kWh',
+          sheet: 'S',
+          question_row: 1,
+          question_kind: 'numerical',
+        },
+      ],
+    });
+
+    // Override now to return advancing timestamps.
+    // We re-create with a custom now that sequences.
+    const db2 = new Database(':memory:');
+    runMigrations(db2);
+    const { svc: sequentialSvc } = (() => {
+      const customerService = new CustomerService({ db: db2 });
+      let reuseDocCount = 0;
+      const documentService = {
+        uploadFile: vi.fn().mockImplementation((input: { filename: string; mimeType: string; bytes: Buffer }) => {
+          const n = ++reuseDocCount;
+          return {
+            id: `doc-reuse-${n}`,
+            sha256: `sha256-reuse-${n}`,
+            filename: input.filename,
+            mime_type: input.mimeType,
+            size_bytes: input.bytes.length,
+            storage_path: `/tmp/doc-reuse-${n}.xlsx`,
+            uploaded_at: '2026-01-01T00:00:00Z',
+            uploaded_by: null,
+            doc_type: null,
+          };
+        }),
+      };
+      const llmClient = {
+        extractQuestions: vi.fn().mockResolvedValue({
+          questions: [
+            {
+              raw_text: 'Q: Total energy consumption?',
+              normalized_text: 'total energy consumption',
+              answer_cell_ref: 'S!B1',
+              expected_unit: 'kWh',
+              sheet: 'S',
+              question_row: 1,
+              question_kind: 'numerical' as const,
+            },
+          ],
+        }),
+      };
+      return {
+        svc: new QuestionnaireService({
+          db: db2,
+          documentService: documentService as never,
+          customerService,
+          llmClient: llmClient as never,
+          config: FAKE_CONFIG,
+          excelParse: vi
+            .fn()
+            .mockResolvedValue([{ sheet: 'S', row: 1, col: 1, value: 'Q', ref: 'S!A1' }]),
+          now: () => timestamps[nowIndex++] ?? '2026-12-01T00:00:00Z',
+        }),
+      };
+    })();
+
+    void db; // silence unused — using db2 instead
+
+    // First upload: creates questionnaire qn-1 for customer "Acme"
+    const r1 = await sequentialSvc.createFromUpload({
+      customer_name: 'Acme',
+      reporting_year: 2025,
+      due_date: null,
+      file_bytes: new Uint8Array([0]),
+      filename: 'q2025.xlsx',
+    });
+    expect(r1.question_count).toBe(1);
+
+    // Seed a finalized answer for qn-1's question
+    const q1 = db2
+      .prepare(`SELECT id FROM question WHERE questionnaire_id = ?`)
+      .get(r1.questionnaire_id) as { id: string };
+    db2
+      .prepare(
+        `INSERT INTO answer (id, question_id, value, unit, source_kind, source_summary, finalized_at)
+         VALUES ('ans-seed-1', ?, 'abc', 'kWh', 'manual', NULL, '2026-01-02T00:00:00Z')`,
+      )
+      .run(q1.id);
+
+    // Second upload: same customer, matching normalized_text → same signature
+    const r2 = await sequentialSvc.createFromUpload({
+      customer_name: 'Acme',
+      reporting_year: 2026,
+      due_date: null,
+      file_bytes: new Uint8Array([0]),
+      filename: 'q2026.xlsx',
+    });
+
+    expect(r2.reused_count).toBe(1);
+
+    // Verify the pre-filled answer row
+    const q2 = db2
+      .prepare(`SELECT id FROM question WHERE questionnaire_id = ?`)
+      .get(r2.questionnaire_id) as { id: string };
+    const reusedAnswer = db2
+      .prepare(`SELECT * FROM answer WHERE question_id = ?`)
+      .get(q2.id) as {
+      source_kind: string;
+      value: string;
+      unit: string | null;
+      finalized_at: string | null;
+    };
+    expect(reusedAnswer).not.toBeNull();
+    expect(reusedAnswer.source_kind).toBe('reused');
+    expect(reusedAnswer.value).toBe('abc');
+    expect(reusedAnswer.unit).toBe('kWh');
+    expect(reusedAnswer.finalized_at).toBeNull();
+  });
+
+  it('does not reuse drafts (finalized_at IS NULL)', async () => {
+    const db2 = new Database(':memory:');
+    runMigrations(db2);
+    const llmQuestions = [
+      {
+        raw_text: 'GHG emissions?',
+        normalized_text: 'ghg emissions total',
+        answer_cell_ref: 'S!B1',
+        expected_unit: 'tCO2e',
+        sheet: 'S',
+        question_row: 1,
+        question_kind: 'numerical' as const,
+      },
+    ];
+    const customerService = new CustomerService({ db: db2 });
+    let draftDocCount = 0;
+    const documentService = {
+      uploadFile: vi.fn().mockImplementation((input: { filename: string; mimeType: string; bytes: Buffer }) => {
+        const n = ++draftDocCount;
+        return {
+          id: `doc-draft-${n}`,
+          sha256: `sha256-draft-${n}`,
+          filename: input.filename,
+          mime_type: input.mimeType,
+          size_bytes: input.bytes.length,
+          storage_path: `/tmp/doc-draft-${n}.xlsx`,
+          uploaded_at: '2026-01-01T00:00:00Z',
+          uploaded_by: null,
+          doc_type: null,
+        };
+      }),
+    };
+    let callCount = 0;
+    const llmClient = {
+      extractQuestions: vi.fn().mockImplementation(async () => {
+        callCount++;
+        return { questions: llmQuestions };
+      }),
+    };
+    let nowIdx = 0;
+    const svc2 = new QuestionnaireService({
+      db: db2,
+      documentService: documentService as never,
+      customerService,
+      llmClient: llmClient as never,
+      config: FAKE_CONFIG,
+      excelParse: vi
+        .fn()
+        .mockResolvedValue([{ sheet: 'S', row: 1, col: 1, value: 'Q', ref: 'S!A1' }]),
+      now: () => (nowIdx++ === 0 ? '2026-01-01T00:00:00Z' : '2026-06-01T00:00:00Z'),
+    });
+
+    // First questionnaire
+    const r1 = await svc2.createFromUpload({
+      customer_name: 'Beta',
+      reporting_year: 2025,
+      due_date: null,
+      file_bytes: new Uint8Array([0]),
+      filename: 'q2025.xlsx',
+    });
+
+    // Seed a DRAFT answer (finalized_at IS NULL) — should NOT be reused
+    const q1 = db2
+      .prepare(`SELECT id FROM question WHERE questionnaire_id = ?`)
+      .get(r1.questionnaire_id) as { id: string };
+    db2
+      .prepare(
+        `INSERT INTO answer (id, question_id, value, unit, source_kind, source_summary, finalized_at)
+         VALUES ('ans-draft-1', ?, '999', 'tCO2e', 'manual', NULL, NULL)`,
+      )
+      .run(q1.id);
+
+    // Second questionnaire — same normalized_text, same customer
+    const r2 = await svc2.createFromUpload({
+      customer_name: 'Beta',
+      reporting_year: 2026,
+      due_date: null,
+      file_bytes: new Uint8Array([0]),
+      filename: 'q2026.xlsx',
+    });
+
+    expect(r2.reused_count).toBe(0);
+
+    // No answer row should have been inserted for the new question
+    const q2 = db2
+      .prepare(`SELECT id FROM question WHERE questionnaire_id = ?`)
+      .get(r2.questionnaire_id) as { id: string };
+    const answerRow = db2.prepare(`SELECT id FROM answer WHERE question_id = ?`).get(q2.id);
+    expect(answerRow).toBeUndefined();
+
+    void callCount; // silence unused
+  });
+
+  it('does not reuse across different customers', async () => {
+    const normalizedText = 'water consumption total';
+    const db2 = new Database(':memory:');
+    runMigrations(db2);
+    const customerService = new CustomerService({ db: db2 });
+    let docCallCount = 0;
+    const documentService = {
+      uploadFile: vi.fn().mockImplementation((input: { filename: string; mimeType: string; bytes: Buffer }) => {
+        const n = ++docCallCount;
+        return {
+          id: `doc-cross-${n}`,
+          sha256: `sha256-cross-${n}`,
+          filename: input.filename,
+          mime_type: input.mimeType,
+          size_bytes: input.bytes.length,
+          storage_path: `/tmp/doc-cross-${n}.xlsx`,
+          uploaded_at: '2026-01-01T00:00:00Z',
+          uploaded_by: null,
+          doc_type: null,
+        };
+      }),
+    };
+    const llmClient = {
+      extractQuestions: vi.fn().mockResolvedValue({
+        questions: [
+          {
+            raw_text: 'Water usage?',
+            normalized_text: normalizedText,
+            answer_cell_ref: 'S!B1',
+            expected_unit: 'm3',
+            sheet: 'S',
+            question_row: 1,
+            question_kind: 'numerical' as const,
+          },
+        ],
+      }),
+    };
+    let nowIdx = 0;
+    const svc2 = new QuestionnaireService({
+      db: db2,
+      documentService: documentService as never,
+      customerService,
+      llmClient: llmClient as never,
+      config: FAKE_CONFIG,
+      excelParse: vi
+        .fn()
+        .mockResolvedValue([{ sheet: 'S', row: 1, col: 1, value: 'Q', ref: 'S!A1' }]),
+      now: () => (nowIdx++ === 0 ? '2026-01-01T00:00:00Z' : '2026-06-01T00:00:00Z'),
+    });
+
+    // Customer A: first questionnaire with a finalized answer
+    const r1 = await svc2.createFromUpload({
+      customer_name: 'CustomerA',
+      reporting_year: 2025,
+      due_date: null,
+      file_bytes: new Uint8Array([0]),
+      filename: 'qa.xlsx',
+    });
+    const q1 = db2
+      .prepare(`SELECT id FROM question WHERE questionnaire_id = ?`)
+      .get(r1.questionnaire_id) as { id: string };
+    db2
+      .prepare(
+        `INSERT INTO answer (id, question_id, value, unit, source_kind, source_summary, finalized_at)
+         VALUES ('ans-cross-1', ?, '5000', 'm3', 'manual', NULL, '2026-01-02T00:00:00Z')`,
+      )
+      .run(q1.id);
+
+    // Verify signatures match — sanity check
+    const q1Row = db2
+      .prepare(`SELECT question_signature FROM question WHERE id = ?`)
+      .get(q1.id) as { question_signature: string };
+    expect(q1Row.question_signature).toBe(sig(normalizedText));
+
+    // Customer B: different name → different customer_id → should NOT get reused answer
+    const r2 = await svc2.createFromUpload({
+      customer_name: 'CustomerB',
+      reporting_year: 2026,
+      due_date: null,
+      file_bytes: new Uint8Array([0]),
+      filename: 'qb.xlsx',
+    });
+
+    expect(r2.reused_count).toBe(0);
+
+    const q2 = db2
+      .prepare(`SELECT id FROM question WHERE questionnaire_id = ?`)
+      .get(r2.questionnaire_id) as { id: string };
+    const answerRow = db2.prepare(`SELECT id FROM answer WHERE question_id = ?`).get(q2.id);
+    expect(answerRow).toBeUndefined();
   });
 });

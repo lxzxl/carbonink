@@ -141,7 +141,7 @@ export type IpcTypeMap = {
     due_date: string | null;
     file_bytes: Uint8Array;
     filename: string;
-  }) => Promise<{ questionnaire_id: string; question_count: number }>;
+  }) => Promise<{ questionnaire_id: string; question_count: number; reused_count: number }>;
   'questionnaire:list': () => Array<
     Questionnaire & { customer_name: string; question_count: number }
   >;
