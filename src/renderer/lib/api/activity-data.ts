@@ -29,5 +29,7 @@ export const activityApi = {
       geography: string;
       dataset_version: string;
     };
+    /** Cross-family override: amount in the new EF's unit. See IpcTypeMap doc. */
+    override_amount?: number;
   }) => invoke('activity:rebind-ef', input),
 };

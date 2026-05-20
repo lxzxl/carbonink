@@ -48,6 +48,26 @@ export function RebindEfDrawer({ activityId, open, onClose }: RebindEfDrawerProp
     input_unit: string;
     co2e_kg_per_unit: number;
   } | null>(null);
+  // Cross-family override: amount the user types in the new unit. Kept as a
+  // string so an empty input is distinguishable from "0" (which would
+  // otherwise resolve to a falsy 0 and silently submit zero emissions).
+  // Parsed to a number only at preview / submit time.
+  const [overrideAmountText, setOverrideAmountText] = useState('');
+
+  // Reset the override field whenever the picked EF changes — a different
+  // candidate has a different unit, so the prior typed value no longer
+  // makes physical sense.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: setOverrideAmountText identity is stable; we only want to reset on EF PK change.
+  useMemo(() => {
+    setOverrideAmountText('');
+  }, [selectedEfPk]);
+
+  const overrideAmountNum = useMemo(() => {
+    const trimmed = overrideAmountText.trim();
+    if (trimmed === '') return null;
+    const n = Number(trimmed);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }, [overrideAmountText]);
 
   const preview = useMemo(() => {
     if (!activityQuery.data || !selectedEfPk || !pickedEfMeta) return null;
@@ -55,7 +75,18 @@ export function RebindEfDrawer({ activityId, open, onClose }: RebindEfDrawerProp
     const sameUnit = ad.unit === pickedEfMeta.input_unit;
     const crossFamily = !sameUnit && !sameFamily(ad.unit, pickedEfMeta.input_unit);
     if (crossFamily) {
-      return { crossFamily: true as const, fromUnit: ad.unit, toUnit: pickedEfMeta.input_unit };
+      // If the user has typed a valid override amount, attach a numeric
+      // preview so the new-co2e block can render alongside the input.
+      const newCo2eKg =
+        overrideAmountNum !== null ? overrideAmountNum * pickedEfMeta.co2e_kg_per_unit : null;
+      return {
+        crossFamily: true as const,
+        fromUnit: ad.unit,
+        toUnit: pickedEfMeta.input_unit,
+        overrideAmount: overrideAmountNum,
+        newCo2eKg,
+        oldCo2eKg: ad.computed_co2e_kg,
+      };
     }
     // Client-side optimistic preview. Server is authoritative; we just need a
     // plausible number for the UI. For same-family with conversion the server
@@ -70,10 +101,20 @@ export function RebindEfDrawer({ activityId, open, onClose }: RebindEfDrawerProp
       newCo2eKg: newCo2e,
       oldCo2eKg: ad.computed_co2e_kg,
     };
-  }, [activityQuery.data, selectedEfPk, pickedEfMeta]);
+  }, [activityQuery.data, selectedEfPk, pickedEfMeta, overrideAmountNum]);
 
   const rebindMutation = useMutation({
-    mutationFn: () => activityApi.rebindEf({ activity_id: activityId, new_ef_pk: selectedEfPk! }),
+    mutationFn: () =>
+      activityApi.rebindEf({
+        activity_id: activityId,
+        new_ef_pk: selectedEfPk!,
+        // Only pass override_amount when this is actually the cross-family path
+        // *and* the user has supplied a valid positive number. Same-family
+        // rebinds rely on the server's UnitConversionService.
+        ...(preview?.crossFamily && overrideAmountNum !== null
+          ? { override_amount: overrideAmountNum }
+          : {}),
+      }),
     onSuccess: (result) => {
       if (!result.ok) {
         toast.error(m.rebind_error_toast({ message: result.error.message }));
@@ -167,8 +208,34 @@ export function RebindEfDrawer({ activityId, open, onClose }: RebindEfDrawerProp
                 </section>
 
                 {preview && preview.crossFamily && (
-                  <div className="mb-6 rounded border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-                    {m.rebind_unit_cross_family({ from: preview.fromUnit, to: preview.toUnit })}
+                  <div className="mb-6 space-y-3 rounded border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+                    <p className="text-foreground">
+                      {m.rebind_unit_cross_family({ from: preview.fromUnit, to: preview.toUnit })}
+                    </p>
+                    <div className="space-y-1">
+                      <label
+                        htmlFor="rebind-override-amount"
+                        className="text-xs font-medium text-foreground"
+                      >
+                        {m.rebind_override_amount_label({ unit: preview.toUnit })}
+                      </label>
+                      <input
+                        id="rebind-override-amount"
+                        type="number"
+                        min="0"
+                        step="any"
+                        inputMode="decimal"
+                        value={overrideAmountText}
+                        onChange={(e) => setOverrideAmountText(e.target.value)}
+                        placeholder={m.rebind_override_amount_placeholder({ unit: preview.toUnit })}
+                        className="w-full rounded border border-border bg-background px-2 py-1 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                      />
+                    </div>
+                    {preview.newCo2eKg != null && (
+                      <div className="text-sm font-medium text-foreground">
+                        {m.rebind_new_co2e()}: {preview.newCo2eKg.toFixed(0)} kg CO2e
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -227,7 +294,11 @@ export function RebindEfDrawer({ activityId, open, onClose }: RebindEfDrawerProp
             <button
               type="button"
               disabled={
-                !selectedEfPk || rebindMutation.isPending || (preview?.crossFamily ?? false)
+                !selectedEfPk ||
+                rebindMutation.isPending ||
+                // Cross-family path requires a valid positive override amount.
+                // Same-family path: no extra gating beyond the EF selection.
+                (preview?.crossFamily === true && overrideAmountNum === null)
               }
               onClick={() => rebindMutation.mutate()}
               className="flex-1 rounded bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"

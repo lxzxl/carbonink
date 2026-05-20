@@ -1,12 +1,24 @@
 import { CommandPalette } from '@renderer/components/command-palette';
 import { Sidebar } from '@renderer/components/Sidebar';
-import { createRootRoute, Outlet } from '@tanstack/react-router';
+import { createRootRoute, Outlet, useRouterState } from '@tanstack/react-router';
 
 export const Route = createRootRoute({
   component: RootComponent,
 });
 
 function RootComponent() {
+  // /print-render is loaded inside a hidden BrowserWindow by
+  // ReportExportService.renderReportPdf / renderQuestionnairePdf to drive
+  // `webContents.printToPDF`. If we render the normal app shell around it,
+  // printToPDF captures the *entire window* — sidebar, titlebar, command
+  // palette — which is exactly the bug the user reported as "PDF 就是简单
+  // 的整个 app 截图". Bypass the shell on this route so the print payload
+  // owns the whole document.
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (pathname === '/print-render') {
+    return <Outlet />;
+  }
+
   // CommandPalette mounts at the route root so it sits inside <RouterProvider>
   // and can call `useNavigate()`. If it lives outside (as a sibling in
   // main.tsx) every render logs "useRouter must be used inside a

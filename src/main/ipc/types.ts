@@ -86,7 +86,20 @@ export type IpcTypeMap = {
     scope3_kg: number;
   };
   'activity:get-by-id': (input: { id: string }) => ActivityDataWithEf | null;
-  'activity:rebind-ef': (input: { activity_id: string; new_ef_pk: EfCompositePk }) => Promise<
+  'activity:rebind-ef': (input: {
+    activity_id: string;
+    new_ef_pk: EfCompositePk;
+    /**
+     * When the new EF's input_unit is in a different unit family than the
+     * current activity's unit (e.g. m³ vs. kWh — the same physical fuel
+     * cannot be auto-converted without a heating-value assumption the
+     * system can't safely fabricate), the renderer collects a new amount
+     * in the new unit from the user and passes it here. If provided, the
+     * service skips its unit-conversion path entirely and writes
+     * `amount = override_amount`, `unit = new_ef.input_unit` directly.
+     */
+    override_amount?: number;
+  }) => Promise<
     | {
         ok: true;
         updated: ActivityData;

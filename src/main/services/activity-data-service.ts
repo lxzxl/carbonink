@@ -265,8 +265,16 @@ export class ActivityDataService {
    * (with same-family unit conversion if needed) and writes an audit_event
    * row capturing the change. Returns a discriminated-union result —
    * the IPC layer surfaces the error variants without throwing.
+   *
+   * `override_amount` is the cross-family escape hatch. When the new EF's
+   * input_unit is in a different unit family than the current activity's
+   * unit (e.g. m³ vs. kWh for natural gas — the conversion requires a
+   * heating-value assumption that varies by gas composition and that the
+   * system cannot safely fabricate), the caller (UI) collects the new
+   * amount from the user and passes it here. With override_amount set,
+   * we bypass the unit-conversion step entirely and write the value as-is.
    */
-  rebindEf(input: { activity_id: string; new_ef_pk: EfCompositePk }):
+  rebindEf(input: { activity_id: string; new_ef_pk: EfCompositePk; override_amount?: number }):
     | {
         ok: true;
         updated: ActivityData;
@@ -312,9 +320,15 @@ export class ActivityDataService {
       };
     }
 
-    // 3. Resolve unit conversion (same-family allowed; cross-family rejected).
+    // 3. Resolve the new amount.
+    //   (a) override_amount provided → trust caller, skip conversion entirely.
+    //   (b) units match exactly → identity.
+    //   (c) same-family auto-convert via UnitConversionService.
+    //   (d) cross-family without override → UnitMismatch (UI prompts user to supply override).
     let newAmount: number;
-    if (current.unit === efRow.input_unit) {
+    if (input.override_amount !== undefined) {
+      newAmount = input.override_amount;
+    } else if (current.unit === efRow.input_unit) {
       newAmount = current.amount;
     } else {
       try {

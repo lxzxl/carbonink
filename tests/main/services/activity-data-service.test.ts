@@ -589,6 +589,49 @@ describe('ActivityDataService.rebindEf', () => {
     expect(audit.c).toBe(0);
   });
 
+  it('cross-family rebind with override_amount succeeds and bypasses conversion', () => {
+    seedActivity();
+    // 1000 L diesel → switch to grid_kWh at 0.5703 kg/kWh, override_amount = 250 kWh.
+    // Expected new co2e = 250 * 0.5703 = 142.575 kg.
+    const result = svc.rebindEf({
+      activity_id: 'act-1',
+      new_ef_pk: {
+        factor_code: 'grid_kWh',
+        year: 2025,
+        source: 'MEE',
+        geography: 'CN',
+        dataset_version: '2025.1',
+      },
+      override_amount: 250,
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.new_amount).toBe(250);
+      expect(result.new_unit).toBe('kWh');
+      expect(result.new_co2e_kg).toBeCloseTo(142.575, 3);
+      expect(result.old_amount).toBe(1000);
+      expect(result.old_unit).toBe('L');
+      expect(result.old_co2e_kg).toBe(2680);
+    }
+    // Activity row updated.
+    const row = db
+      .prepare(`SELECT amount, unit, computed_co2e_kg FROM activity_data WHERE id = 'act-1'`)
+      .get() as { amount: number; unit: string; computed_co2e_kg: number };
+    expect(row.amount).toBe(250);
+    expect(row.unit).toBe('kWh');
+    expect(row.computed_co2e_kg).toBeCloseTo(142.575, 3);
+    // Audit event recorded the cross-family rebind with new amount/unit.
+    const audit = db
+      .prepare(`SELECT payload FROM audit_event WHERE event_kind = 'activity_rebind_ef'`)
+      .all() as Array<{ payload: string }>;
+    expect(audit).toHaveLength(1);
+    const payload = JSON.parse(audit[0]!.payload);
+    expect(payload.old_unit).toBe('L');
+    expect(payload.new_unit).toBe('kWh');
+    expect(payload.old_amount).toBe(1000);
+    expect(payload.new_amount).toBe(250);
+  });
+
   it('returns NotFound when activity_id is unknown', () => {
     seedActivity();
     const result = svc.rebindEf({

@@ -14,6 +14,10 @@ const rebindInput = z.object({
     geography: z.string().min(1),
     dataset_version: z.string().min(1),
   }),
+  // Cross-family escape hatch: user supplies the new amount in the new
+  // EF's unit. Must be > 0 — zero/negative amounts are rejected before
+  // we even hit the service.
+  override_amount: z.number().positive().optional(),
 });
 
 /**
@@ -36,6 +40,19 @@ export function activityDataHandlers(ctx: IpcContext): {
     'activity:totals-by-period': (input) =>
       svc.totalsByPeriod(periodScopedInput.parse(input).reporting_period_id),
     'activity:get-by-id': (input) => svc.getByIdWithEf(idInput.parse(input).id),
-    'activity:rebind-ef': (input) => Promise.resolve(svc.rebindEf(rebindInput.parse(input))),
+    'activity:rebind-ef': (input) => {
+      // exactOptionalPropertyTypes is strict: zod's output type allows
+      // `override_amount: undefined`, but the service signature uses the
+      // narrower `override_amount?: number` (no explicit undefined). Strip
+      // the key when it isn't a number so the spread cleanly omits it.
+      const parsed = rebindInput.parse(input);
+      const { override_amount, ...rest } = parsed;
+      return Promise.resolve(
+        svc.rebindEf({
+          ...rest,
+          ...(override_amount !== undefined ? { override_amount } : {}),
+        }),
+      );
+    },
   };
 }

@@ -69,11 +69,17 @@ vi.mock('@renderer/components/toast', () => ({
 }));
 
 import { RebindEfDrawer } from '@renderer/components/RebindEfDrawer';
+import { activityApi } from '@renderer/lib/api/activity-data';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 describe('<RebindEfDrawer>', () => {
+  afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+  });
+
   it('renders current EF + activity info', async () => {
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
@@ -87,7 +93,7 @@ describe('<RebindEfDrawer>', () => {
     });
   });
 
-  it('disables confirm with cross-family message when picker selects an EF whose unit is cross-family', async () => {
+  it('cross-family pick shows override-amount input; confirm stays disabled until a positive number is entered', async () => {
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
       <QueryClientProvider client={qc}>
@@ -99,11 +105,68 @@ describe('<RebindEfDrawer>', () => {
     // Click the kWh EF row (cross-family from L).
     const row = screen.getByText(/Grid|电网/);
     row.click();
-    // Expect the cross-family message to appear and the confirm button to be disabled.
+    // Cross-family informational message + the new override-amount input
+    // both appear. Confirm is disabled until the input has a positive value.
     await waitFor(() => {
-      expect(screen.getByText(/cross|跨单位|fuel binding/i)).toBeTruthy();
+      expect(screen.getByText(/cross-unit|跨单位/i)).toBeTruthy();
     });
+    const overrideInput = screen.getByLabelText(
+      /new activity amount|新活动量/i,
+    ) as HTMLInputElement;
+    expect(overrideInput).toBeTruthy();
     const confirmBtn = screen.getByRole('button', { name: /confirm|确认/i });
     expect((confirmBtn as HTMLButtonElement).disabled).toBe(true);
+
+    // Typing a positive number enables confirm.
+    fireEvent.change(overrideInput, { target: { value: '500' } });
+    await waitFor(() => {
+      expect((confirmBtn as HTMLButtonElement).disabled).toBe(false);
+    });
+  });
+
+  it('cross-family confirm passes override_amount through to rebindEf', async () => {
+    vi.mocked(activityApi.rebindEf).mockResolvedValue({
+      ok: true,
+      updated: {} as unknown as ReturnType<typeof activityApi.rebindEf> extends Promise<infer R>
+        ? R extends { updated: infer U }
+          ? U
+          : never
+        : never,
+      old_co2e_kg: 2680,
+      new_co2e_kg: 285,
+      old_amount: 1000,
+      old_unit: 'L',
+      new_amount: 500,
+      new_unit: 'kWh',
+    });
+
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const onClose = vi.fn();
+    render(
+      <QueryClientProvider client={qc}>
+        <RebindEfDrawer activityId="act-1" open={true} onClose={onClose} />
+      </QueryClientProvider>,
+    );
+
+    // Pick the cross-family EF.
+    await waitFor(() => expect(screen.getByText(/Grid|电网/)).toBeTruthy());
+    screen.getByText(/Grid|电网/).click();
+
+    // Enter override amount in the new unit (kWh).
+    const overrideInput = (await screen.findByLabelText(
+      /new activity amount|新活动量/i,
+    )) as HTMLInputElement;
+    fireEvent.change(overrideInput, { target: { value: '500' } });
+
+    // Confirm — assert that the IPC wrapper was called with override_amount.
+    const confirmBtn = screen.getByRole('button', { name: /confirm|确认/i });
+    await waitFor(() => expect((confirmBtn as HTMLButtonElement).disabled).toBe(false));
+    confirmBtn.click();
+
+    await waitFor(() => expect(activityApi.rebindEf).toHaveBeenCalled());
+    const args = vi.mocked(activityApi.rebindEf).mock.calls[0]?.[0];
+    expect(args?.override_amount).toBe(500);
+    expect(args?.activity_id).toBe('act-1');
+    expect(args?.new_ef_pk.factor_code).toBe('grid_kWh');
   });
 });
