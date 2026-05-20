@@ -199,6 +199,11 @@ export type ActivityData = {
   updated_at: string;
 };
 
+/** ActivityData row joined with the currently pinned emission factor. */
+export type ActivityDataWithEf = ActivityData & {
+  pinned_ef: PinnedEmissionFactor;
+};
+
 export type EmissionSourceCreateInput = z.infer<typeof emissionSourceCreateInput>;
 export type EmissionSourceUpdateInput = z.infer<typeof emissionSourceUpdateInput>;
 export type ActivityDataCreateInput = z.infer<typeof activityDataCreateInput>;

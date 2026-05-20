@@ -154,6 +154,7 @@ export function createIpcContext(
     ...svc,
     efService,
     calculationService,
+    unitConversionService,
   });
 
   // Memoized lazy slots so the first getter call triggers construction once

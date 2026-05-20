@@ -77,6 +77,7 @@ beforeEach(() => {
     ...ctx,
     efService,
     calculationService: calcService,
+    unitConversionService: unitConv,
   });
 
   // Org + first site + reporting period.
@@ -475,5 +476,193 @@ describe('ActivityDataService.totalsByPeriod', () => {
     expect(t.scope2_kg).toBeCloseTo(570.3, 4);
     expect(t.scope3_kg).toBeCloseTo(98.5, 4);
     expect(t.total_co2e_kg).toBeCloseTo(187.9 + 570.3 + 98.5, 4);
+  });
+});
+
+describe('ActivityDataService.rebindEf', () => {
+  function seedActivity() {
+    // Three emission_factor rows so we can rebind between them.
+    db.prepare(
+      `INSERT INTO emission_factor (factor_code, year, source, geography, dataset_version,
+         scope, category, input_unit, co2e_kg_per_unit, gwp_basis, name_zh, name_en,
+         description_zh, description_en, ghg_protocol_path, notes, citation_url)
+       VALUES
+         ('diesel_L', 2024, 'MEE',  'CN', '2024.1', 1, 'fuel', 'L',  2.68, 'AR5', '柴油', 'Diesel', NULL, NULL, NULL, NULL, NULL),
+         ('diesel_kg', 2025, 'IPCC', 'CN', '2025.1', 1, 'fuel', 'kg', 3.17, 'AR5', '柴油', 'Diesel', NULL, NULL, NULL, NULL, NULL),
+         ('grid_kWh',  2025, 'MEE',  'CN', '2025.1', 2, 'electricity', 'kWh', 0.5703, 'AR5', '电网', 'Grid', NULL, NULL, NULL, NULL, NULL)`,
+    ).run();
+    // Pin diesel_L (the initial EF).
+    db.prepare(
+      `INSERT INTO pinned_emission_factor (factor_code, year, source, geography, dataset_version,
+         scope, category, input_unit, co2e_kg_per_unit, gwp_basis, name_zh, name_en,
+         description_zh, description_en, ghg_protocol_path, citation_url, pinned_at, pinned_from)
+       VALUES ('diesel_L', 2024, 'MEE', 'CN', '2024.1', 1, 'fuel', 'L', 2.68, 'AR5',
+               '柴油', 'Diesel', NULL, NULL, NULL, NULL, '2026-01-01', 'app.sqlite')`,
+    ).run();
+    // Activity with 1000 L diesel, pinned to diesel_L. computed_co2e_kg = 1000 * 2.68 = 2680.
+    const stmt = db.prepare(
+      `INSERT INTO activity_data (id, site_id, emission_source_id, reporting_period_id,
+         occurred_at_start, occurred_at_end, amount, unit,
+         ef_factor_code, ef_year, ef_source, ef_geography, ef_dataset_version,
+         computed_co2e_kg, computed_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?,
+               '2025-04-01', '2025-04-30', 1000, 'L',
+               'diesel_L', 2024, 'MEE', 'CN', '2024.1',
+               2680, '2025-05-01', '2025-05-01', '2025-05-01')`,
+    );
+    stmt.run('act-1', site.id, scope1Source.id, period.id);
+  }
+
+  it('rebinds when units match exactly', () => {
+    seedActivity();
+    const result = svc.rebindEf({
+      activity_id: 'act-1',
+      new_ef_pk: {
+        factor_code: 'diesel_L',
+        year: 2024,
+        source: 'MEE',
+        geography: 'CN',
+        dataset_version: '2024.1',
+      },
+    });
+    expect(result.ok).toBe(true);
+    // Trivial rebind to same EF — co2e unchanged.
+    if (result.ok) {
+      expect(result.old_co2e_kg).toBe(2680);
+      expect(result.new_co2e_kg).toBe(2680);
+    }
+    const audit = db
+      .prepare(`SELECT * FROM audit_event WHERE event_kind = 'activity_rebind_ef'`)
+      .all() as Array<{ payload: string }>;
+    expect(audit).toHaveLength(1);
+    expect(audit[0]).toBeDefined();
+    const payload = JSON.parse(audit[0]!.payload);
+    expect(payload.activity_id).toBe('act-1');
+    expect(payload.old_ef.factor_code).toBe('diesel_L');
+    expect(payload.new_ef.factor_code).toBe('diesel_L');
+  });
+
+  it('rebinds with same-family unit conversion (L → kg) or rejects with UnitMismatch', () => {
+    seedActivity();
+    const result = svc.rebindEf({
+      activity_id: 'act-1',
+      new_ef_pk: {
+        factor_code: 'diesel_kg',
+        year: 2025,
+        source: 'IPCC',
+        geography: 'CN',
+        dataset_version: '2025.1',
+      },
+    });
+    // L → kg without a fuel binding is cross-family in the existing
+    // unit-conversion-service (the family for L is "volume", for kg is "mass").
+    // Therefore expect UnitMismatch:
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error._tag).toBe('UnitMismatch');
+    }
+  });
+
+  it('refuses cross-family rebind (no fuel binding) with UnitMismatch', () => {
+    seedActivity();
+    const result = svc.rebindEf({
+      activity_id: 'act-1',
+      new_ef_pk: {
+        factor_code: 'grid_kWh',
+        year: 2025,
+        source: 'MEE',
+        geography: 'CN',
+        dataset_version: '2025.1',
+      },
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error._tag).toBe('UnitMismatch');
+    }
+    // Activity row unchanged.
+    const row = db
+      .prepare(`SELECT computed_co2e_kg FROM activity_data WHERE id = 'act-1'`)
+      .get() as { computed_co2e_kg: number };
+    expect(row.computed_co2e_kg).toBe(2680);
+    // No audit_event written.
+    const audit = db.prepare(`SELECT COUNT(*) AS c FROM audit_event`).get() as { c: number };
+    expect(audit.c).toBe(0);
+  });
+
+  it('returns NotFound when activity_id is unknown', () => {
+    seedActivity();
+    const result = svc.rebindEf({
+      activity_id: 'ghost',
+      new_ef_pk: {
+        factor_code: 'diesel_L',
+        year: 2024,
+        source: 'MEE',
+        geography: 'CN',
+        dataset_version: '2024.1',
+      },
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error._tag).toBe('NotFound');
+  });
+
+  it('returns EfNotFound when new_ef_pk has no matching emission_factor row', () => {
+    seedActivity();
+    const result = svc.rebindEf({
+      activity_id: 'act-1',
+      new_ef_pk: {
+        factor_code: 'phantom',
+        year: 2025,
+        source: 'NONE',
+        geography: 'CN',
+        dataset_version: '2025.1',
+      },
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error._tag).toBe('EfNotFound');
+  });
+});
+
+describe('ActivityDataService.getByIdWithEf', () => {
+  function seedActivity() {
+    db.prepare(
+      `INSERT INTO emission_factor (factor_code, year, source, geography, dataset_version,
+         scope, category, input_unit, co2e_kg_per_unit, gwp_basis, name_zh, name_en,
+         description_zh, description_en, ghg_protocol_path, notes, citation_url)
+       VALUES ('diesel_L', 2024, 'MEE',  'CN', '2024.1', 1, 'fuel', 'L',  2.68, 'AR5', '柴油', 'Diesel', NULL, NULL, NULL, NULL, NULL)`,
+    ).run();
+    db.prepare(
+      `INSERT INTO pinned_emission_factor (factor_code, year, source, geography, dataset_version,
+         scope, category, input_unit, co2e_kg_per_unit, gwp_basis, name_zh, name_en,
+         description_zh, description_en, ghg_protocol_path, citation_url, pinned_at, pinned_from)
+       VALUES ('diesel_L', 2024, 'MEE', 'CN', '2024.1', 1, 'fuel', 'L', 2.68, 'AR5',
+               '柴油', 'Diesel', NULL, NULL, NULL, NULL, '2026-01-01', 'app.sqlite')`,
+    ).run();
+    const stmt = db.prepare(
+      `INSERT INTO activity_data (id, site_id, emission_source_id, reporting_period_id,
+         occurred_at_start, occurred_at_end, amount, unit,
+         ef_factor_code, ef_year, ef_source, ef_geography, ef_dataset_version,
+         computed_co2e_kg, computed_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?,
+               '2025-04-01', '2025-04-30', 1000, 'L',
+               'diesel_L', 2024, 'MEE', 'CN', '2024.1',
+               2680, '2025-05-01', '2025-05-01', '2025-05-01')`,
+    );
+    stmt.run('act-1', site.id, scope1Source.id, period.id);
+  }
+
+  it('returns the activity joined with its pinned_ef', () => {
+    seedActivity();
+    const row = svc.getByIdWithEf('act-1');
+    expect(row).not.toBeNull();
+    if (row) {
+      expect(row.id).toBe('act-1');
+      expect(row.pinned_ef.factor_code).toBe('diesel_L');
+      expect(row.pinned_ef.year).toBe(2024);
+    }
+  });
+
+  it('returns null for unknown id', () => {
+    seedActivity();
+    expect(svc.getByIdWithEf('ghost')).toBeNull();
   });
 });

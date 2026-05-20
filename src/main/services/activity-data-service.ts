@@ -1,9 +1,16 @@
-import type { ActivityData, ActivityDataCreateInput, EfCompositePk } from '@shared/types.js';
+import type {
+  ActivityData,
+  ActivityDataCreateInput,
+  ActivityDataWithEf,
+  EfCompositePk,
+  PinnedEmissionFactor,
+} from '@shared/types.js';
 import { activityDataCreateInput } from '@shared/types.js';
 import { newId } from '@shared/ulid.js';
 import type { ServiceContext } from './base.js';
 import type { CalculationService } from './calculation-service.js';
 import type { EfService } from './ef-service.js';
+import type { UnitConversionService } from './unit-conversion-service.js';
 
 /**
  * Explicit column list mirrors `EmissionSourceService` style. activity_data
@@ -54,17 +61,20 @@ export class ActivityDataService {
   private readonly now: () => string;
   private readonly efService: EfService;
   private readonly calculationService: CalculationService;
+  private readonly unitConversionService: UnitConversionService;
 
   constructor(
     ctx: ServiceContext & {
       efService: EfService;
       calculationService: CalculationService;
+      unitConversionService: UnitConversionService;
     },
   ) {
     this.db = ctx.db;
     this.now = ctx.now;
     this.efService = ctx.efService;
     this.calculationService = ctx.calculationService;
+    this.unitConversionService = ctx.unitConversionService;
   }
 
   /**
@@ -248,5 +258,180 @@ export class ActivityDataService {
       scope3_kg: number;
     };
     return row;
+  }
+
+  /**
+   * Rebind the pinned EF on an existing activity. Recomputes co2e_kg
+   * (with same-family unit conversion if needed) and writes an audit_event
+   * row capturing the change. Returns a discriminated-union result —
+   * the IPC layer surfaces the error variants without throwing.
+   */
+  rebindEf(input: {
+    activity_id: string;
+    new_ef_pk: EfCompositePk;
+  }):
+    | {
+        ok: true;
+        updated: ActivityData;
+        old_co2e_kg: number;
+        new_co2e_kg: number;
+        old_amount: number;
+        old_unit: string;
+        new_amount: number;
+        new_unit: string;
+      }
+    | { ok: false; error: { _tag: 'NotFound' | 'EfNotFound' | 'UnitMismatch'; message: string } } {
+    // 1. Load current activity.
+    const current = this.db
+      .prepare(`${AD_SELECT} WHERE id = ?`)
+      .get(input.activity_id) as ActivityData | undefined;
+    if (!current) {
+      return {
+        ok: false,
+        error: { _tag: 'NotFound', message: `activity_data not found: ${input.activity_id}` },
+      };
+    }
+
+    // 2. Validate the new EF exists in emission_factor.
+    const efRow = this.db
+      .prepare(
+        `SELECT input_unit, co2e_kg_per_unit FROM emission_factor
+          WHERE factor_code = ? AND year = ? AND source = ? AND geography = ? AND dataset_version = ?`,
+      )
+      .get(
+        input.new_ef_pk.factor_code,
+        input.new_ef_pk.year,
+        input.new_ef_pk.source,
+        input.new_ef_pk.geography,
+        input.new_ef_pk.dataset_version,
+      ) as { input_unit: string; co2e_kg_per_unit: number } | undefined;
+    if (!efRow) {
+      return {
+        ok: false,
+        error: {
+          _tag: 'EfNotFound',
+          message: `emission_factor not found for PK ${JSON.stringify(input.new_ef_pk)}`,
+        },
+      };
+    }
+
+    // 3. Resolve unit conversion (same-family allowed; cross-family rejected).
+    let newAmount: number;
+    if (current.unit === efRow.input_unit) {
+      newAmount = current.amount;
+    } else {
+      try {
+        newAmount = this.unitConversionService.convert(current.amount, current.unit, efRow.input_unit);
+      } catch {
+        return {
+          ok: false,
+          error: {
+            _tag: 'UnitMismatch',
+            message: `Cannot convert ${current.unit} → ${efRow.input_unit} without fuel binding`,
+          },
+        };
+      }
+    }
+
+    // 4. Compute new co2e.
+    const newCo2eKg = newAmount * efRow.co2e_kg_per_unit;
+    const old_co2e_kg = current.computed_co2e_kg;
+    const old_amount = current.amount;
+    const old_unit = current.unit;
+    const old_ef_pk: EfCompositePk = {
+      factor_code: current.ef_factor_code,
+      year: current.ef_year,
+      source: current.ef_source,
+      geography: current.ef_geography,
+      dataset_version: current.ef_dataset_version,
+    };
+
+    // 5. Transaction: pin (idempotent via INSERT OR IGNORE inside EfService.pin)
+    //    + UPDATE activity_data + INSERT audit_event.
+    const now = this.now();
+    this.db.transaction(() => {
+      this.efService.pin(input.new_ef_pk);
+      this.db
+        .prepare(
+          `UPDATE activity_data
+              SET ef_factor_code = ?, ef_year = ?, ef_source = ?, ef_geography = ?, ef_dataset_version = ?,
+                  amount = ?, unit = ?,
+                  computed_co2e_kg = ?, computed_at = ?,
+                  updated_at = ?
+            WHERE id = ?`,
+        )
+        .run(
+          input.new_ef_pk.factor_code,
+          input.new_ef_pk.year,
+          input.new_ef_pk.source,
+          input.new_ef_pk.geography,
+          input.new_ef_pk.dataset_version,
+          newAmount,
+          efRow.input_unit,
+          newCo2eKg,
+          now,
+          now,
+          input.activity_id,
+        );
+      const auditId = newId();
+      this.db
+        .prepare(
+          `INSERT INTO audit_event (id, event_kind, payload, occurred_at)
+           VALUES (?, ?, ?, ?)`,
+        )
+        .run(
+          auditId,
+          'activity_rebind_ef',
+          JSON.stringify({
+            activity_id: input.activity_id,
+            old_ef: old_ef_pk,
+            new_ef: input.new_ef_pk,
+            old_amount,
+            old_unit,
+            old_computed_co2e_kg: old_co2e_kg,
+            new_amount: newAmount,
+            new_unit: efRow.input_unit,
+            new_computed_co2e_kg: newCo2eKg,
+          }),
+          now,
+        );
+    })();
+
+    const updated = this.db
+      .prepare(`${AD_SELECT} WHERE id = ?`)
+      .get(input.activity_id) as ActivityData;
+
+    return {
+      ok: true,
+      updated,
+      old_co2e_kg,
+      new_co2e_kg: newCo2eKg,
+      old_amount,
+      old_unit,
+      new_amount: newAmount,
+      new_unit: efRow.input_unit,
+    };
+  }
+
+  /** Read activity with the currently-pinned EF joined in. Null if not found. */
+  getByIdWithEf(id: string): ActivityDataWithEf | null {
+    const ad = this.db
+      .prepare(`${AD_SELECT} WHERE id = ?`)
+      .get(id) as ActivityData | undefined;
+    if (!ad) return null;
+    const pinned = this.db
+      .prepare(
+        `SELECT * FROM pinned_emission_factor
+          WHERE factor_code = ? AND year = ? AND source = ? AND geography = ? AND dataset_version = ?`,
+      )
+      .get(
+        ad.ef_factor_code,
+        ad.ef_year,
+        ad.ef_source,
+        ad.ef_geography,
+        ad.ef_dataset_version,
+      ) as PinnedEmissionFactor | undefined;
+    if (!pinned) return null;
+    return { ...ad, pinned_ef: pinned };
   }
 }
