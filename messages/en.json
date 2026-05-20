@@ -359,5 +359,12 @@
   "rebind_confirm": "Confirm rebind",
   "rebind_cancel": "Cancel",
   "rebind_success_toast": "Rebound — new emissions {co2e} kg CO2e ({pct_signed}%)",
-  "rebind_error_toast": "Rebind failed: {message}"
+  "rebind_error_toast": "Rebind failed: {message}",
+  "audit_event_kind_activity_rebind_ef": "Rebind emission factor",
+  "audit_show_raw": "Show raw payload",
+  "audit_hide_raw": "Hide raw payload",
+  "audit_rebind_summary": "Rebound activity {activity_id_short}: {old_ef} → {new_ef}",
+  "audit_rebind_delta": "CO2e: {old_co2e} kg → {new_co2e} kg ({delta_signed} kg, {pct_signed}%)",
+  "audit_unknown_event_kind": "Unknown event kind: {kind}",
+  "audit_malformed_payload": "Malformed payload"
 }

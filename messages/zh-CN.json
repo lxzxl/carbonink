@@ -359,5 +359,12 @@
   "rebind_confirm": "确认重新镶嵌",
   "rebind_cancel": "取消",
   "rebind_success_toast": "已重新镶嵌 — 新排放 {co2e} kg CO2e ({pct_signed}%)",
-  "rebind_error_toast": "重新镶嵌失败: {message}"
+  "rebind_error_toast": "重新镶嵌失败: {message}",
+  "audit_event_kind_activity_rebind_ef": "重新镶嵌排放因子",
+  "audit_show_raw": "显示原始数据",
+  "audit_hide_raw": "隐藏原始数据",
+  "audit_rebind_summary": "重新镶嵌活动 {activity_id_short}: {old_ef} → {new_ef}",
+  "audit_rebind_delta": "CO2e: {old_co2e} kg → {new_co2e} kg ({delta_signed} kg, {pct_signed}%)",
+  "audit_unknown_event_kind": "未知事件类型: {kind}",
+  "audit_malformed_payload": "数据格式异常"
 }
