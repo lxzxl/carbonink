@@ -1,7 +1,7 @@
 import { QuestionnairePdfPreview } from '@renderer/components/questionnaire-pdf/QuestionnairePdfPreview';
+import type { QuestionnairePdfData } from '@shared/types';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import type { QuestionnairePdfData } from '@shared/types';
 
 const data: QuestionnairePdfData = {
   customer: { name: 'Acme Corp' },
@@ -25,7 +25,12 @@ const data: QuestionnairePdfData = {
           parsed_intent: null,
           question_kind: 'numerical',
           expected_unit: '人',
-          answer: { value: '320', unit: '人', finalized_at: '2026-05-01T00:00:00Z', source_summary: null },
+          answer: {
+            value: '320',
+            unit: '人',
+            finalized_at: '2026-05-01T00:00:00Z',
+            source_summary: null,
+          },
         },
         {
           id: 'q-2',

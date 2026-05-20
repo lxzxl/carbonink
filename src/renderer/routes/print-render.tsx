@@ -1,10 +1,10 @@
+import type { ReportNarrative } from '@main/llm/report-narrative';
+import type { InventoryReportData } from '@main/services/report-data-service';
+import { QuestionnairePdfPreview } from '@renderer/components/questionnaire-pdf/QuestionnairePdfPreview';
+import { ReportPreview } from '@renderer/components/report/ReportPreview';
+import type { QuestionnairePdfData } from '@shared/types';
 import { createFileRoute } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
-import { ReportPreview } from '@renderer/components/report/ReportPreview';
-import { QuestionnairePdfPreview } from '@renderer/components/questionnaire-pdf/QuestionnairePdfPreview';
-import type { InventoryReportData } from '@main/services/report-data-service';
-import type { ReportNarrative } from '@main/llm/report-narrative';
-import type { QuestionnairePdfData } from '@shared/types';
 
 export const Route = createFileRoute('/print-render')({ component: PrintRender });
 
@@ -62,13 +62,7 @@ function PrintRender() {
   if (!payload) return <div>Loading payload…</div>;
 
   if (payload.kind === 'inventory_report') {
-    return (
-      <ReportPreview
-        data={payload.data}
-        narrative={payload.narrative}
-        printMode={true}
-      />
-    );
+    return <ReportPreview data={payload.data} narrative={payload.narrative} printMode={true} />;
   }
   if (payload.kind === 'questionnaire_pdf') {
     return <QuestionnairePdfPreview data={payload.data} />;

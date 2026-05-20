@@ -122,8 +122,7 @@ function DetailBody({
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
   const [pdfLanguage, setPdfLanguage] = useState<'zh-CN' | 'en'>('zh-CN');
   const exportPdf = useMutation({
-    mutationFn: () =>
-      questionnaireApi.exportPdf({ questionnaire_id: id, language: pdfLanguage }),
+    mutationFn: () => questionnaireApi.exportPdf({ questionnaire_id: id, language: pdfLanguage }),
     onSuccess: (result) => {
       if ('canceled' in result && result.canceled) return;
       if ('ok' in result && result.ok) {
@@ -225,10 +224,7 @@ function DetailBody({
             >
               {exportToExcel.isPending ? m.answer_export_running() : m.answer_export_button()}
             </Button>
-            <Button
-              type="button"
-              onClick={() => setPdfDialogOpen(true)}
-            >
+            <Button type="button" onClick={() => setPdfDialogOpen(true)}>
               {m.questionnaire_export_pdf_button()}
             </Button>
             <Button
@@ -242,10 +238,16 @@ function DetailBody({
         </>
       )}
       {pdfDialogOpen && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 bg-black/30 flex items-center justify-center z-50"
+        >
           <div className="bg-white rounded p-6 w-80 space-y-3 dark:bg-slate-900">
             <h2 className="text-lg font-semibold">{m.questionnaire_export_pdf_dialog_heading()}</h2>
-            <p className="text-sm text-muted-foreground">{m.questionnaire_export_pdf_dialog_subheading()}</p>
+            <p className="text-sm text-muted-foreground">
+              {m.questionnaire_export_pdf_dialog_subheading()}
+            </p>
             <label className="block text-sm">
               {m.questionnaire_export_pdf_lang_label()}
               <select
@@ -258,7 +260,11 @@ function DetailBody({
               </select>
             </label>
             <div className="flex justify-end gap-2 pt-2">
-              <button type="button" onClick={() => setPdfDialogOpen(false)} className="rounded border px-3 py-1 text-sm hover:bg-gray-50 dark:hover:bg-slate-800">
+              <button
+                type="button"
+                onClick={() => setPdfDialogOpen(false)}
+                className="rounded border px-3 py-1 text-sm hover:bg-gray-50 dark:hover:bg-slate-800"
+              >
                 {m.questionnaire_export_pdf_cancel()}
               </button>
               <button
@@ -267,7 +273,9 @@ function DetailBody({
                 disabled={exportPdf.isPending}
                 className="rounded bg-black text-white px-3 py-1 text-sm disabled:opacity-50 dark:bg-white dark:text-black"
               >
-                {exportPdf.isPending ? m.questionnaire_export_pdf_pending() : m.questionnaire_export_pdf_confirm()}
+                {exportPdf.isPending
+                  ? m.questionnaire_export_pdf_pending()
+                  : m.questionnaire_export_pdf_confirm()}
               </button>
             </div>
           </div>

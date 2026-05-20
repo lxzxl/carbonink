@@ -1,5 +1,5 @@
-import { QuestionnairePdfDataService } from '@main/services/questionnaire-pdf-data-service';
 import { runMigrations } from '@main/db/migrate';
+import { QuestionnairePdfDataService } from '@main/services/questionnaire-pdf-data-service';
 import Database from 'better-sqlite3';
 import { describe, expect, it } from 'vitest';
 
@@ -9,9 +9,7 @@ function seedQuestionnaire(db: Database.Database) {
     `INSERT INTO organization (id, name_zh, country_code, boundary_kind, created_at, updated_at)
      VALUES ('org-1', '测试', 'CN', 'operational_control', '2026-01-01', '2026-01-01')`,
   ).run();
-  db.prepare(
-    `INSERT INTO customer (id, name, notes) VALUES ('cust-1', 'Acme Corp', NULL)`,
-  ).run();
+  db.prepare(`INSERT INTO customer (id, name, notes) VALUES ('cust-1', 'Acme Corp', NULL)`).run();
   db.prepare(
     `INSERT INTO document (id, filename, mime_type, storage_path, sha256, size_bytes, doc_type, uploaded_at)
      VALUES ('doc-1', 'cdp.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -58,11 +56,7 @@ describe('QuestionnairePdfDataService.assemble', () => {
     expect(data.questionnaire.reporting_year).toBe(2025);
     expect(data.document.filename).toBe('cdp.xlsx');
     // Two real sheets + one "Unspecified" synthetic sheet at the end
-    expect(data.sheets.map((s) => s.sheet_name)).toEqual([
-      'Sheet1',
-      'Sheet2',
-      '未指定',
-    ]);
+    expect(data.sheets.map((s) => s.sheet_name)).toEqual(['Sheet1', 'Sheet2', '未指定']);
     // Sheet1 has q-2 (A3) before q-1 (B5)
     expect(data.sheets[0]!.questions.map((q) => q.id)).toEqual(['q-2', 'q-1']);
     // Sheet2 has just q-3

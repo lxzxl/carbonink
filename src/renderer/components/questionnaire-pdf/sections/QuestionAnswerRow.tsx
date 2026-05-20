@@ -18,9 +18,7 @@ export function QuestionAnswerRow({ question, index }: { question: Question; ind
 function AnswerBlock({ question }: { question: Question }) {
   const a = question.answer;
   if (a == null) {
-    return (
-      <div className="qpdf__qa-a qpdf__qa-unanswered">{m.questionnaire_pdf_unanswered()}</div>
-    );
+    return <div className="qpdf__qa-a qpdf__qa-unanswered">{m.questionnaire_pdf_unanswered()}</div>;
   }
   const unit = a.unit ? ` ${a.unit}` : '';
   const badge =

@@ -177,11 +177,7 @@ export type IpcTypeMap = {
   'questionnaire:export-pdf': (input: {
     questionnaire_id: string;
     language: 'zh-CN' | 'en';
-  }) => Promise<
-    | { canceled: true }
-    | { ok: true; path: string }
-    | { ok: false; error: string }
-  >;
+  }) => Promise<{ canceled: true } | { ok: true; path: string } | { ok: false; error: string }>;
 
   // mcp domain (Phase 2 Block 4 — Model Context Protocol server status / config)
   'mcp:get-status': () => {

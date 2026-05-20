@@ -1,9 +1,9 @@
+import * as fs from 'node:fs/promises';
+import { renderQuestionnairePdf } from '@main/services/report-export-service';
+import { dialog } from 'electron';
 import { z } from 'zod';
 import type { IpcContext } from '../context.js';
 import type { IpcTypeMap } from '../types.js';
-import { dialog } from 'electron';
-import * as fs from 'node:fs/promises';
-import { renderQuestionnairePdf } from '@main/services/report-export-service';
 
 const createInput = z.object({
   customer_name: z.string().min(1),
@@ -54,11 +54,12 @@ export function questionnaireHandlers(ctx: IpcContext): {
         language: input.language,
       });
 
-      const slug = (data.customer.name || 'questionnaire')
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '')
-        .slice(0, 40) || 'questionnaire';
+      const slug =
+        (data.customer.name || 'questionnaire')
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '')
+          .slice(0, 40) || 'questionnaire';
       const defaultPath = `${slug}-questionnaire-${data.questionnaire.reporting_year}-${input.language}.pdf`;
 
       const result = await dialog.showSaveDialog({
@@ -70,10 +71,7 @@ export function questionnaireHandlers(ctx: IpcContext): {
         return { canceled: true as const };
       }
       try {
-        const buf = await renderQuestionnairePdf(
-          { data },
-          { printRenderUrl: ctx.printRenderUrl },
-        );
+        const buf = await renderQuestionnairePdf({ data }, { printRenderUrl: ctx.printRenderUrl });
         await fs.writeFile(result.filePath, buf);
         return { ok: true as const, path: result.filePath };
       } catch (err) {

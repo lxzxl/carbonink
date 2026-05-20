@@ -1,5 +1,5 @@
-import type Database from 'better-sqlite3';
 import type { QuestionnairePdfData } from '@shared/types.js';
+import type Database from 'better-sqlite3';
 
 export interface QuestionnairePdfDataDeps {
   db: Database.Database;
@@ -50,10 +50,7 @@ function parsePosition(position: string): { sheet: string; addr: string } | null
 export class QuestionnairePdfDataService {
   constructor(private deps: QuestionnairePdfDataDeps) {}
 
-  assemble(input: {
-    questionnaire_id: string;
-    language: 'zh-CN' | 'en';
-  }): QuestionnairePdfData {
+  assemble(input: { questionnaire_id: string; language: 'zh-CN' | 'en' }): QuestionnairePdfData {
     const questionnaireRow = this.deps.db
       .prepare(
         `SELECT id, customer_id, document_id, template_kind, reporting_year, status, due_date, created_at
@@ -186,7 +183,9 @@ export class QuestionnairePdfDataService {
     };
   }
 
-  private mapAnswer(row: AnswerRow | undefined): QuestionnairePdfData['sheets'][number]['questions'][number]['answer'] {
+  private mapAnswer(
+    row: AnswerRow | undefined,
+  ): QuestionnairePdfData['sheets'][number]['questions'][number]['answer'] {
     if (!row) return null;
     return {
       value: row.value,
