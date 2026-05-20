@@ -1,4 +1,5 @@
 import { ActivityForm } from '@renderer/components/ActivityForm';
+import { RebindEfDrawer } from '@renderer/components/RebindEfDrawer';
 import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
 import { activityApi } from '@renderer/lib/api/activity-data';
@@ -44,6 +45,7 @@ function ActivitiesRoute() {
 
 function ActivitiesList({ organizationId }: { organizationId: string }) {
   const [formOpen, setFormOpen] = useState(false);
+  const [rebindActivityId, setRebindActivityId] = useState<string | null>(null);
 
   // Sources are loaded once at the page level and threaded into the form.
   // Doing the lookup here also gives us a `sourceById` map for joining the
@@ -119,6 +121,7 @@ function ActivitiesList({ organizationId }: { organizationId: string }) {
                 <th className="px-3 py-2 font-medium">{m.activities_table_amount()}</th>
                 <th className="px-3 py-2 font-medium">{m.activities_table_co2e()}</th>
                 <th className="px-3 py-2 font-medium">{m.activities_table_ef()}</th>
+                <th className="px-3 py-2 font-medium"></th>
               </tr>
             </thead>
             <tbody>
@@ -144,12 +147,29 @@ function ActivitiesList({ organizationId }: { organizationId: string }) {
                         ({a.ef_source} · {a.ef_year} · {a.ef_geography})
                       </span>
                     </td>
+                    <td className="px-3 py-2 text-right">
+                      <button
+                        type="button"
+                        onClick={() => setRebindActivityId(a.id)}
+                        className="text-sm underline"
+                      >
+                        {m.rebind_button()}
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
         </div>
+      )}
+
+      {rebindActivityId && (
+        <RebindEfDrawer
+          activityId={rebindActivityId}
+          open={true}
+          onClose={() => setRebindActivityId(null)}
+        />
       )}
     </div>
   );
