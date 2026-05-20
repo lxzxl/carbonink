@@ -59,14 +59,32 @@ export function runMigrations(db: Database): void {
 
   for (const m of migrations) {
     if (applied.has(m.version)) continue;
-    const tx = db.transaction(() => {
-      db.exec(m.sql);
-      db.prepare('INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)').run(
-        m.version,
-        m.name,
-        new Date().toISOString(),
+    // SQLite forbids toggling `PRAGMA foreign_keys` inside an active
+    // transaction (it's a silent no-op inside `db.transaction()`). Migrations
+    // that rebuild a table referenced by other tables' foreign keys — e.g.
+    // 015's organization rebuild — need FK enforcement OFF during their work;
+    // a DROP TABLE on a referenced table errors otherwise. Disable here,
+    // re-enable in `finally`, then `foreign_key_check` to surface any deferred
+    // violations the migration may have introduced.
+    db.pragma('foreign_keys = OFF');
+    try {
+      const tx = db.transaction(() => {
+        db.exec(m.sql);
+        db.prepare('INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)').run(
+          m.version,
+          m.name,
+          new Date().toISOString(),
+        );
+      });
+      tx();
+    } finally {
+      db.pragma('foreign_keys = ON');
+    }
+    const violations = db.pragma('foreign_key_check') as Array<unknown>;
+    if (violations.length > 0) {
+      throw new Error(
+        `Migration ${m.name} produced FK violations: ${JSON.stringify(violations)}`,
       );
-    });
-    tx();
+    }
   }
 }
