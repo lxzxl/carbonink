@@ -18,6 +18,7 @@ import { questionnaireHandlers } from './handlers/questionnaire.js';
 import { reportHandlers } from './handlers/report.js';
 import { routingHandlers } from './handlers/routing.js';
 import { settingsHandlers } from './handlers/settings.js';
+import { licenseGate } from './license-gate.js';
 import { createProgressEmitter } from './progress.js';
 import { sanitize } from './sanitize.js';
 import type { IpcTypeMap } from './types.js';
@@ -61,7 +62,19 @@ export function setupIpc(): void {
 
   for (const factory of HANDLER_FACTORIES) {
     for (const [channel, handler] of Object.entries(factory(ctx))) {
-      const wrapped = sanitize(channel, handler as (...a: unknown[]) => unknown);
+      // Compose: license gate runs first (cheap state read; throws
+      // LicenseReadOnlyError for blocked channels in expired/revoked state),
+      // then sanitize wraps that whole pipeline so the gate's tagged error
+      // passes through to the renderer while everything else gets the
+      // correlation-id treatment. `licenseHandlers` (license:get-state etc.)
+      // are also pumped through both — the gate fast-paths channels not in
+      // the blocked set, so license:* never hits getState recursion.
+      const gated = licenseGate(
+        channel,
+        ctx.licenseService,
+        handler as (...a: unknown[]) => unknown,
+      );
+      const wrapped = sanitize(channel, gated);
       // biome-ignore lint/suspicious/noExplicitAny: heterogeneous handler dispatch
       (l.handle as (c: string, h: (...a: any[]) => unknown) => void)(
         channel,

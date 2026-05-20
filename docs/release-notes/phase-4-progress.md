@@ -38,11 +38,38 @@ biome clean.
 Settings page License section: paste-key activation form, current-state
 display, device list, top-of-screen banner for grace / expired / revoked.
 
-## Sub-project C — Read-only mode gate (not started)
+## Sub-project C — Read-only mode gate (shipped)
 
-License-state-driven write gate on every IPC write handler
-(`activity:create`, `extraction:run`, `report:generate`, etc.). Full-screen
-overlay in read-only state.
+License-state-driven write gate on every IPC write handler. Per design
+spec §10's read-only-mode definition.
+
+**Shipped:**
+
+- **`licenseGate(channel, licenseService, fn)`** middleware in
+  `src/main/ipc/license-gate.ts`. Wraps every IPC handler. When the
+  channel is in the curated `READ_ONLY_BLOCKED_CHANNELS` set AND
+  `licenseService.getState().state` is `expired` or `revoked`, throws
+  `LicenseReadOnlyError` before the handler runs. Fast-paths channels
+  not in the blocked set (no `getState()` call) so list/get queries pay
+  zero gate cost.
+- **`LicenseReadOnlyError`** — tagged error class carrying
+  `{ state: 'expired' | 'revoked', _tag: 'LicenseReadOnlyError' }`.
+  Added to `sanitize.ts`'s passthrough whitelist so the renderer sees
+  the structured message instead of an opaque correlation id.
+- **Setup wiring** — `setup.ts` composes `sanitize(channel,
+  licenseGate(channel, ctx.licenseService, handler))` for every
+  registered handler. License gate runs first so the tagged error
+  flows out cleanly.
+- **Coverage** — 26 channels gated, including all `activity:*` /
+  `extraction:*` / `report:generate` / `answer:*` / `questionnaire:*`
+  write paths and `ef:recommend`. Settings + exports + reads stay
+  open.
+
+**Tests:** 9 new gate tests covering each state, the blocked set
+membership, and the never-blocked fast-path. 644/644 vitest, typecheck +
+biome clean.
+
+UI surface (banner + "renew now" CTA) is sub-project B.
 
 ## Sub-project D — Trial flow (not started)
 

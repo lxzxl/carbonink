@@ -1,7 +1,7 @@
 import {
   LicenseReadOnlyError,
-  READ_ONLY_BLOCKED_CHANNELS,
   licenseGate,
+  READ_ONLY_BLOCKED_CHANNELS,
 } from '@main/ipc/license-gate';
 import type { LicenseService } from '@main/services/license-service';
 import type { LicenseState, LicenseStateView } from '@shared/types';

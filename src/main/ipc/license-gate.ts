@@ -68,9 +68,7 @@ export class LicenseReadOnlyError extends Error {
   readonly state: 'expired' | 'revoked';
 
   constructor(state: 'expired' | 'revoked', channel: string) {
-    super(
-      `License is ${state}; cannot perform '${channel}' until the license is restored.`,
-    );
+    super(`License is ${state}; cannot perform '${channel}' until the license is restored.`);
     this.name = 'LicenseReadOnlyError';
     this.state = state;
   }
