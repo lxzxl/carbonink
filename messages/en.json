@@ -366,5 +366,15 @@
   "audit_rebind_summary": "Rebound activity {activity_id_short}: {old_ef} → {new_ef}",
   "audit_rebind_delta": "CO2e: {old_co2e} kg → {new_co2e} kg ({delta_signed} kg, {pct_signed}%)",
   "audit_unknown_event_kind": "Unknown event kind: {kind}",
-  "audit_malformed_payload": "Malformed payload"
+  "audit_malformed_payload": "Malformed payload",
+  "audit_nav": "Audit log",
+  "audit_heading": "Audit log",
+  "audit_subheading": "Track changes to your inventory.",
+  "audit_filter_event_kind_label": "Event kind",
+  "audit_filter_since_label": "Since",
+  "audit_filter_until_label": "Until",
+  "audit_filter_reset_button": "Reset filters",
+  "audit_load_older_button": "Load older",
+  "audit_empty_state_heading": "No audit events yet",
+  "audit_empty_state_body": "Events are recorded as you confirm extractions, finalize answers, or rebind emission factors."
 }

@@ -366,5 +366,15 @@
   "audit_rebind_summary": "重新镶嵌活动 {activity_id_short}: {old_ef} → {new_ef}",
   "audit_rebind_delta": "CO2e: {old_co2e} kg → {new_co2e} kg ({delta_signed} kg, {pct_signed}%)",
   "audit_unknown_event_kind": "未知事件类型: {kind}",
-  "audit_malformed_payload": "数据格式异常"
+  "audit_malformed_payload": "数据格式异常",
+  "audit_nav": "审计日志",
+  "audit_heading": "审计日志",
+  "audit_subheading": "查看清单的变更历史。",
+  "audit_filter_event_kind_label": "事件类型",
+  "audit_filter_since_label": "起始日期",
+  "audit_filter_until_label": "截止日期",
+  "audit_filter_reset_button": "重置筛选",
+  "audit_load_older_button": "加载更早",
+  "audit_empty_state_heading": "暂无审计事件",
+  "audit_empty_state_body": "在你确认抽取、定稿答案或重新镶嵌排放因子时会自动记录事件。"
 }

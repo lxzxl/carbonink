@@ -90,6 +90,17 @@ export function Sidebar() {
             {m.reports_nav()}
           </Link>
         </li>
+        <li>
+          <Link
+            to="/audit"
+            className={cn(
+              'block rounded-md px-3 py-2 text-sm hover:bg-muted',
+              '[&.active]:bg-primary [&.active]:text-primary-foreground',
+            )}
+          >
+            {m.audit_nav()}
+          </Link>
+        </li>
       </ul>
       {/* MCP status chip + Settings button — both open the Settings drawer.
        * MCP chip shows binary build + Claude config state with a colored dot.

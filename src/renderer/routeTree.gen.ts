@@ -13,6 +13,7 @@ import { Route as SourcesRouteImport } from './routes/sources'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as QuestionnairesRouteImport } from './routes/questionnaires'
 import { Route as DocumentsRouteImport } from './routes/documents'
+import { Route as AuditRouteImport } from './routes/audit'
 import { Route as ActivitiesRouteImport } from './routes/activities'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ReportsIdRouteImport } from './routes/reports_.$id'
@@ -39,6 +40,11 @@ const QuestionnairesRoute = QuestionnairesRouteImport.update({
 const DocumentsRoute = DocumentsRouteImport.update({
   id: '/documents',
   path: '/documents',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuditRoute = AuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ActivitiesRoute = ActivitiesRouteImport.update({
@@ -80,6 +86,7 @@ const DocumentsIdRoute = DocumentsIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/activities': typeof ActivitiesRoute
+  '/audit': typeof AuditRoute
   '/documents': typeof DocumentsRoute
   '/questionnaires': typeof QuestionnairesRoute
   '/reports': typeof ReportsRoute
@@ -93,6 +100,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/activities': typeof ActivitiesRoute
+  '/audit': typeof AuditRoute
   '/documents': typeof DocumentsRoute
   '/questionnaires': typeof QuestionnairesRoute
   '/reports': typeof ReportsRoute
@@ -107,6 +115,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/activities': typeof ActivitiesRoute
+  '/audit': typeof AuditRoute
   '/documents': typeof DocumentsRoute
   '/questionnaires': typeof QuestionnairesRoute
   '/reports': typeof ReportsRoute
@@ -122,6 +131,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/activities'
+    | '/audit'
     | '/documents'
     | '/questionnaires'
     | '/reports'
@@ -135,6 +145,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/activities'
+    | '/audit'
     | '/documents'
     | '/questionnaires'
     | '/reports'
@@ -148,6 +159,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/activities'
+    | '/audit'
     | '/documents'
     | '/questionnaires'
     | '/reports'
@@ -162,6 +174,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ActivitiesRoute: typeof ActivitiesRoute
+  AuditRoute: typeof AuditRoute
   DocumentsRoute: typeof DocumentsRoute
   QuestionnairesRoute: typeof QuestionnairesRoute
   ReportsRoute: typeof ReportsRoute
@@ -201,6 +214,13 @@ declare module '@tanstack/react-router' {
       path: '/documents'
       fullPath: '/documents'
       preLoaderRoute: typeof DocumentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/audit': {
+      id: '/audit'
+      path: '/audit'
+      fullPath: '/audit'
+      preLoaderRoute: typeof AuditRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/activities': {
@@ -258,6 +278,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActivitiesRoute: ActivitiesRoute,
+  AuditRoute: AuditRoute,
   DocumentsRoute: DocumentsRoute,
   QuestionnairesRoute: QuestionnairesRoute,
   ReportsRoute: ReportsRoute,
