@@ -7,8 +7,20 @@ const sampleRow = {
   event_kind: 'activity_rebind_ef',
   payload: JSON.stringify({
     activity_id: 'act-12345678',
-    old_ef: { factor_code: 'diesel_L', year: 2024, source: 'MEE', geography: 'CN', dataset_version: '2024.1' },
-    new_ef: { factor_code: 'diesel_kg', year: 2025, source: 'IPCC', geography: 'CN', dataset_version: '2025.1' },
+    old_ef: {
+      factor_code: 'diesel_L',
+      year: 2024,
+      source: 'MEE',
+      geography: 'CN',
+      dataset_version: '2024.1',
+    },
+    new_ef: {
+      factor_code: 'diesel_kg',
+      year: 2025,
+      source: 'IPCC',
+      geography: 'CN',
+      dataset_version: '2025.1',
+    },
     old_amount: 1000,
     old_unit: 'L',
     old_computed_co2e_kg: 2680,
@@ -56,9 +68,7 @@ describe('Audit page', () => {
 
     await waitFor(() => {
       // Match the English OR Chinese empty-state heading
-      expect(
-        screen.queryByText(/No audit events yet|暂无审计事件/),
-      ).toBeTruthy();
+      expect(screen.queryByText(/No audit events yet|暂无审计事件/)).toBeTruthy();
     });
   });
 });

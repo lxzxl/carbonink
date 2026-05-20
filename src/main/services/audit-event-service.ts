@@ -1,5 +1,5 @@
-import type Database from 'better-sqlite3';
 import type { AuditEvent } from '@shared/types.js';
+import type Database from 'better-sqlite3';
 
 export interface AuditEventDeps {
   db: Database.Database;

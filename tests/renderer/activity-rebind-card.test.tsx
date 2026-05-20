@@ -1,15 +1,27 @@
 import { ActivityRebindCard } from '@renderer/components/audit/ActivityRebindCard';
+import type { AuditEvent } from '@shared/types';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import type { AuditEvent } from '@shared/types';
 
 const event: AuditEvent = {
   id: 'aud-1',
   event_kind: 'activity_rebind_ef',
   payload: JSON.stringify({
     activity_id: '01HXX9YYABCDEFGHIJKLMNOPQR',
-    old_ef: { factor_code: 'diesel_L', year: 2024, source: 'MEE', geography: 'CN', dataset_version: '2024.1' },
-    new_ef: { factor_code: 'diesel_kg', year: 2025, source: 'IPCC', geography: 'CN', dataset_version: '2025.1' },
+    old_ef: {
+      factor_code: 'diesel_L',
+      year: 2024,
+      source: 'MEE',
+      geography: 'CN',
+      dataset_version: '2024.1',
+    },
+    new_ef: {
+      factor_code: 'diesel_kg',
+      year: 2025,
+      source: 'IPCC',
+      geography: 'CN',
+      dataset_version: '2025.1',
+    },
     old_amount: 1000,
     old_unit: 'L',
     old_computed_co2e_kg: 2680,

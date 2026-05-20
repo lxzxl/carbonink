@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import type { ActivityRebindEfPayload, AuditEvent } from '@shared/types';
 import * as m from '@renderer/paraglide/messages';
+import type { ActivityRebindEfPayload, AuditEvent } from '@shared/types';
+import { useState } from 'react';
 
 function formatNumber(n: number): string {
   return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(n);
@@ -25,10 +25,7 @@ export function ActivityRebindCard({ event }: { event: AuditEvent }) {
   }
 
   const delta = payload.new_computed_co2e_kg - payload.old_computed_co2e_kg;
-  const pct =
-    payload.old_computed_co2e_kg === 0
-      ? 0
-      : (delta / payload.old_computed_co2e_kg) * 100;
+  const pct = payload.old_computed_co2e_kg === 0 ? 0 : (delta / payload.old_computed_co2e_kg) * 100;
   const activityIdShort = payload.activity_id.slice(0, 8);
 
   return (

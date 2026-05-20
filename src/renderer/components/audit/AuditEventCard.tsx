@@ -1,7 +1,7 @@
+import * as m from '@renderer/paraglide/messages';
 import type { AuditEvent } from '@shared/types';
 import { ActivityRebindCard } from './ActivityRebindCard';
 import { RawJsonCard } from './RawJsonCard';
-import * as m from '@renderer/paraglide/messages';
 
 function formatDate(iso: string): string {
   try {

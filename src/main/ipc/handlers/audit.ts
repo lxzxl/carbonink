@@ -1,6 +1,6 @@
+import type { AuditEventListInput } from '@main/services/audit-event-service.js';
 import { z } from 'zod';
 import type { IpcContext } from '../context.js';
-import type { AuditEventListInput } from '@main/services/audit-event-service.js';
 import type { IpcTypeMap } from '../types.js';
 
 const listInput = z.object({

@@ -1,5 +1,5 @@
-import { AuditEventService } from '@main/services/audit-event-service';
 import { runMigrations } from '@main/db/migrate';
+import { AuditEventService } from '@main/services/audit-event-service';
 import Database from 'better-sqlite3';
 import { describe, expect, it } from 'vitest';
 
