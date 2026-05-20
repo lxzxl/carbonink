@@ -1,9 +1,9 @@
 import { execSync } from 'node:child_process';
 import {
-  type KeyObject,
   createPublicKey,
-  generateKeyPairSync,
   sign as cryptoSign,
+  generateKeyPairSync,
+  type KeyObject,
 } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import type { SafeStorageLike } from '@main/credentials/safe-storage';
@@ -185,9 +185,7 @@ describe('LicenseService', () => {
     svc.setJwt(signJwt(privateKey, makeClaims(NOW_SEC)));
     svc.getState(); // triggers the cached-state UPDATE
     const row = db
-      .prepare(
-        'SELECT last_known_state, last_known_state_at FROM license_local_state WHERE id = 1',
-      )
+      .prepare('SELECT last_known_state, last_known_state_at FROM license_local_state WHERE id = 1')
       .get() as { last_known_state: string; last_known_state_at: string };
     expect(row.last_known_state).toBe('active');
     expect(row.last_known_state_at).toBe(NOW_ISO);

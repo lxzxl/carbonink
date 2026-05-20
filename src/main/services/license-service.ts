@@ -1,4 +1,4 @@
-import { type KeyObject, createPublicKey, verify as cryptoVerify } from 'node:crypto';
+import { createPublicKey, verify as cryptoVerify, type KeyObject } from 'node:crypto';
 import type { CredentialStore } from '@main/credentials/safe-storage.js';
 import type {
   LicenseJwtClaims,
@@ -116,9 +116,7 @@ export class LicenseService {
       claims,
       now: this.nowSec(),
       lastVerifiedAt:
-        row.last_verified_at != null
-          ? Math.floor(Date.parse(row.last_verified_at) / 1000)
-          : null,
+        row.last_verified_at != null ? Math.floor(Date.parse(row.last_verified_at) / 1000) : null,
       consecutiveOfflineDays: row.consecutive_offline_days,
       revoked,
     });
@@ -220,14 +218,12 @@ export class LicenseService {
   }
 
   private readOrInitLocalState(): LicenseLocalStateRow {
-    const row = this.db
-      .prepare('SELECT * FROM license_local_state WHERE id = 1')
-      .get() as LicenseLocalStateRow | undefined;
+    const row = this.db.prepare('SELECT * FROM license_local_state WHERE id = 1').get() as
+      | LicenseLocalStateRow
+      | undefined;
     if (!row) {
       // Migration should have seeded this. Missing row = broken DB; bubble up.
-      throw new Error(
-        'license_local_state singleton row missing; migration 016 not applied?',
-      );
+      throw new Error('license_local_state singleton row missing; migration 016 not applied?');
     }
     if (row.device_id === 'pending-first-launch') {
       const fresh = this.newDeviceId();

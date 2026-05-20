@@ -35,9 +35,7 @@ export type ComputeLicenseStateResult = {
  * `revoked` from the caller (LicenseService). This module exists so the
  * state mapping is a single function the team can audit in isolation.
  */
-export function computeLicenseState(
-  input: ComputeLicenseStateInput,
-): ComputeLicenseStateResult {
+export function computeLicenseState(input: ComputeLicenseStateInput): ComputeLicenseStateResult {
   const { claims, now, consecutiveOfflineDays, revoked } = input;
 
   if (revoked) {

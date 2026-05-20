@@ -19,8 +19,7 @@ import { publicKeyFromRawBytes } from './license-service.js';
  * signature against a degenerate key would also fail the cryptographic
  * verify, but the explicit guard surfaces the misconfiguration earlier).
  */
-const DEV_PUBLIC_KEY_HEX =
-  '45137100977d34b17e6ae61ded3db7810215559157de81a0cdf4b6bcb49fb745';
+const DEV_PUBLIC_KEY_HEX = '45137100977d34b17e6ae61ded3db7810215559157de81a0cdf4b6bcb49fb745';
 
 export function loadLicensePublicKey() {
   if (/^0+$/.test(DEV_PUBLIC_KEY_HEX)) {
