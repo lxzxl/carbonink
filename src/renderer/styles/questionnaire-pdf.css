@@ -1,0 +1,43 @@
+.qpdf {
+  font-family: system-ui, -apple-system, sans-serif;
+  color: #111;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+.qpdf__cover {
+  text-align: center;
+  padding: 4rem 0 2rem 0;
+  border-bottom: 1px solid #ddd;
+  margin-bottom: 2rem;
+}
+.qpdf__cover h1 { font-size: 1.6rem; margin: 0 0 0.5rem; }
+.qpdf__cover h2 { font-size: 1.1rem; margin: 0.25rem 0; font-weight: normal; color: #444; }
+.qpdf__toc { margin: 1.5rem 0 2rem 0; }
+.qpdf__toc h2 { font-size: 1rem; }
+.qpdf__toc ol { padding-left: 1.4rem; }
+.qpdf__sheet { margin-top: 2rem; page-break-before: always; }
+.qpdf__sheet:first-of-type { page-break-before: auto; }
+.qpdf__sheet h2 { font-size: 1.2rem; margin: 0 0 0.75rem; border-bottom: 1px solid #ccc; padding-bottom: 0.25rem; }
+.qpdf__qa { margin: 0.6rem 0 0.9rem; page-break-inside: avoid; }
+.qpdf__qa-q { font-weight: 600; font-size: 0.95rem; }
+.qpdf__qa-intent { color: #666; font-style: italic; font-size: 0.8rem; margin-top: 0.1rem; }
+.qpdf__qa-a { margin-top: 0.3rem; font-size: 0.9rem; }
+.qpdf__qa-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 0.2rem;
+  margin-left: 0.4rem;
+  vertical-align: middle;
+}
+.qpdf__qa-badge--draft { background: #fee; color: #c00; border: 1px solid #ecb; }
+.qpdf__qa-badge--final { background: #efe; color: #060; border: 1px solid #cdc; }
+.qpdf__qa-unanswered { font-style: italic; color: #888; }
+.qpdf__qa-source { color: #666; font-style: italic; font-size: 0.78rem; margin-top: 0.15rem; }
+
+@media print {
+  .qpdf { padding: 0; max-width: none; }
+  @page { size: A4; margin: 18mm 16mm; }
+  @page :first { margin-top: 0; }
+}
