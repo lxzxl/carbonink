@@ -41,4 +41,32 @@ describe('runMigrations', () => {
     };
     expect(afterCount.c).toBe(beforeCount.c);
   });
+
+  it('migration 016 creates license_local_state with the singleton seed row', () => {
+    const db = openAppDb(dbPath);
+    runMigrations(db);
+    const row = db.prepare('SELECT * FROM license_local_state WHERE id = 1').get() as
+      | {
+          id: number;
+          device_id: string;
+          consecutive_offline_days: number;
+          last_known_state: string;
+        }
+      | undefined;
+    expect(row).toBeDefined();
+    expect(row?.id).toBe(1);
+    // Sentinel — LicenseService replaces with a real ULID on first read.
+    expect(row?.device_id).toBe('pending-first-launch');
+    expect(row?.consecutive_offline_days).toBe(0);
+    expect(row?.last_known_state).toBe('unverified');
+    // CHECK constraint on PK = 1: a second insert with id=2 must fail.
+    expect(() =>
+      db
+        .prepare(
+          `INSERT INTO license_local_state (id, device_id, created_at, updated_at)
+           VALUES (2, 'x', '1970-01-01T00:00:00.000Z', '1970-01-01T00:00:00.000Z')`,
+        )
+        .run(),
+    ).toThrow();
+  });
 });

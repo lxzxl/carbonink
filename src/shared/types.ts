@@ -444,3 +444,71 @@ export type ActivityRebindEfPayload = {
   new_unit: string;
   new_computed_co2e_kg: number;
 };
+
+// ---------------------------------------------------------------------------
+// License types (Phase 4 sub-project A — Ed25519 JWT + state machine)
+// ---------------------------------------------------------------------------
+
+/**
+ * The Ed25519-signed JWT claims carried by every carbonbook license.
+ * The cloud is the issuer; the client verifies the signature locally and
+ * reads `expires_at` / `grace_until` / `revocation_check_after` to drive
+ * the state machine. See design spec §10.
+ *
+ * `features` is open-ended (future modules like CBAM ship their own
+ * license JWT with `features: ['cbam']`). The Base license carries
+ * exactly `['inventory','questionnaire','iso14064']`.
+ */
+export type LicenseJwtClaims = {
+  iss: string; // 'carbonbook.app'
+  license_id: string; // 'lic_01H...'
+  user_id: string; // 'usr_01H...'
+  plan: string; // 'base@2026-q2', 'trial@14d', etc.
+  features: string[];
+  devices_max: number;
+  issued_at: number; // unix seconds
+  expires_at: number; // unix seconds
+  grace_until: number; // expires_at + 30 days
+  support_until?: number; // expires_at + N days for hotfix updates only
+  revocation_check_after: number; // unix seconds; next mandatory cloud ping
+};
+
+/**
+ * One of the four states from the design spec §10. `unverified` is a
+ * synthetic 5th value used only when no license has ever been activated
+ * on this device — distinct from `expired` so the UI can show a
+ * different welcome path (activate-license-now vs renew-now).
+ */
+export type LicenseState = 'unverified' | 'active' | 'grace' | 'expired' | 'revoked';
+
+/**
+ * The shape returned by `license:get-state`. `claims` is null when no
+ * JWT has been activated yet (state === 'unverified'). The UI uses
+ * `state` to pick a banner, and `claims` to render details (plan name,
+ * days remaining, etc.).
+ */
+export type LicenseStateView = {
+  state: LicenseState;
+  claims: LicenseJwtClaims | null;
+  device_id: string;
+  last_verified_at: string | null;
+  consecutive_offline_days: number;
+  /** Human-readable explanation; surfaced in diagnostics / dev logs. */
+  reason: string;
+};
+
+/**
+ * Row shape for the `license_local_state` table (migration 016).
+ * Internal — not exposed directly to the renderer; UI reads via
+ * LicenseStateView.
+ */
+export type LicenseLocalStateRow = {
+  id: 1;
+  device_id: string;
+  last_verified_at: string | null;
+  consecutive_offline_days: number;
+  last_known_state: LicenseState;
+  last_known_state_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
