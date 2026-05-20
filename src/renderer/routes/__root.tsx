@@ -1,8 +1,5 @@
 import { CommandPalette } from '@renderer/components/command-palette';
-import { SettingsDrawerContent } from '@renderer/components/SettingsDrawerContent';
 import { Sidebar } from '@renderer/components/Sidebar';
-import { SettingsDrawer } from '@renderer/components/settings-drawer';
-import { useSettingsDrawer } from '@renderer/components/settings-drawer-context';
 import { createRootRoute, Outlet } from '@tanstack/react-router';
 
 export const Route = createRootRoute({
@@ -10,18 +7,13 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
-  // SettingsDrawer + CommandPalette both mount at the route root:
-  //   - CommandPalette uses `useNavigate()` from TanStack Router; if it sits
-  //     outside <RouterProvider> (as a sibling in main.tsx) every render
-  //     logs "useRouter must be used inside a <RouterProvider> component!"
-  //     and the navigate stub becomes a no-op. That breakage also corrupts
-  //     in-tree TanStack <Link> click handlers (the cause of the /documents
-  //     row "click does nothing" bug). Keep it inside the route tree.
-  //   - SettingsDrawerProvider lives one level up in main.tsx so the
-  //     Sidebar gear (this subtree) and the CommandPalette (also this
-  //     subtree now) both consume the same open state via context.
-  const { open, setOpen } = useSettingsDrawer();
-
+  // CommandPalette mounts at the route root so it sits inside <RouterProvider>
+  // and can call `useNavigate()`. If it lives outside (as a sibling in
+  // main.tsx) every render logs "useRouter must be used inside a
+  // <RouterProvider> component!" and the navigate stub becomes a no-op —
+  // that breakage also corrupts in-tree TanStack <Link> click handlers (the
+  // cause of the historical /documents row "click does nothing" bug). Keep
+  // it inside the route tree.
   return (
     <>
       {/* macOS: traffic lights sit at left:18, top:16 inside this 32px-tall
@@ -40,9 +32,6 @@ function RootComponent() {
         </main>
       </div>
       <CommandPalette />
-      <SettingsDrawer open={open} onOpenChange={setOpen}>
-        <SettingsDrawerContent onSaved={() => setOpen(false)} />
-      </SettingsDrawer>
     </>
   );
 }

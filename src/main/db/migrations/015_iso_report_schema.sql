@@ -6,7 +6,12 @@
 -- 2. reporting_period: ADD significant_changes_text + recalculation_reason.
 -- 3. emission_factor: ADD biogenic_co2_factor.
 
-PRAGMA foreign_keys = OFF;
+-- Use defer_foreign_keys (not foreign_keys = OFF) — the migration runner
+-- wraps each migration in a transaction, and `PRAGMA foreign_keys` is a
+-- no-op inside an open transaction. `defer_foreign_keys = ON` is the
+-- per-transaction equivalent and *does* take effect here; FK constraints
+-- are checked at COMMIT, after the rebuild + rename are complete.
+PRAGMA defer_foreign_keys = ON;
 
 -- 1. Rebuild organization (CHECK constraint widening + new columns).
 CREATE TABLE organization_new (
@@ -45,5 +50,3 @@ ALTER TABLE reporting_period ADD COLUMN recalculation_reason     TEXT;
 
 -- 3. emission_factor: ADD COLUMN (additive).
 ALTER TABLE emission_factor ADD COLUMN biogenic_co2_factor REAL;
-
-PRAGMA foreign_keys = ON;

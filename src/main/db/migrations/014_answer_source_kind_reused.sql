@@ -3,7 +3,11 @@
 -- prior questionnaire of the same customer). SQLite can't ALTER CHECK;
 -- rebuild the table.
 
-PRAGMA foreign_keys = OFF;
+-- Use defer_foreign_keys (not foreign_keys = OFF) — the migration runner
+-- wraps each migration in a transaction, and `PRAGMA foreign_keys` is a
+-- no-op inside an open transaction. `defer_foreign_keys = ON` is the
+-- per-transaction equivalent and *does* take effect here.
+PRAGMA defer_foreign_keys = ON;
 
 CREATE TABLE answer_new (
   id              TEXT PRIMARY KEY,
@@ -54,5 +58,3 @@ DROP TABLE answer;
 ALTER TABLE answer_new RENAME TO answer;
 
 -- No indexes or triggers existed on answer in the original schema.
-
-PRAGMA foreign_keys = ON;

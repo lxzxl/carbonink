@@ -1,4 +1,3 @@
-import { SettingsDrawerProvider } from '@renderer/components/settings-drawer-context';
 import { Toaster } from '@renderer/components/toast';
 import { initLocale } from '@renderer/lib/i18n';
 import { router } from '@renderer/router';
@@ -20,25 +19,19 @@ const queryClient = new QueryClient({
 const root = document.getElementById('root');
 if (!root) throw new Error('#root not found');
 
-// Provider order: QueryClient → SettingsDrawer (Context) → Router.
-// SettingsDrawerProvider wraps Router so consumers inside the route tree
-// (Sidebar's gear button AND CommandPalette, which now lives in __root.tsx)
-// can both call useSettingsDrawer().
+// Provider order: QueryClient → Router.
 //
 // CommandPalette MUST live inside RouterProvider — it calls useNavigate()
 // internally. Mounting it as a sibling here logs "useRouter must be used
 // inside a <RouterProvider>" 2× per render and silently breaks both the
-// cmdk nav commands AND in-tree TanStack <Link> click handlers (the
-// /documents row "click does nothing" bug surfaced at phase-1b smoke).
-// See __root.tsx for the actual <CommandPalette /> mount.
+// cmdk nav commands AND in-tree TanStack <Link> click handlers. See
+// __root.tsx for the actual <CommandPalette /> mount.
 createRoot(root).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <SettingsDrawerProvider>
-        <RouterProvider router={router} />
-        <Toaster />
-        <ReactQueryDevtools initialIsOpen={false} />
-      </SettingsDrawerProvider>
+      <RouterProvider router={router} />
+      <Toaster />
+      <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   </StrictMode>,
 );

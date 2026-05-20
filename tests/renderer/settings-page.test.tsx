@@ -1,4 +1,4 @@
-import { SettingsDrawerContent } from '@renderer/components/SettingsDrawerContent';
+import { SettingsPage } from '@renderer/components/SettingsPage';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -28,7 +28,7 @@ function harness(ui: React.ReactElement) {
   return <QueryClientProvider client={client}>{ui}</QueryClientProvider>;
 }
 
-describe('SettingsDrawerContent', () => {
+describe('SettingsPage', () => {
   beforeEach(() => {
     vi.mocked(settingsApi.getProvider).mockResolvedValue(null);
     vi.mocked(settingsApi.saveProvider).mockResolvedValue(undefined);
@@ -43,7 +43,7 @@ describe('SettingsDrawerContent', () => {
   });
 
   it('renders with default values (provider=openai, model=gpt-4o-mini, empty key)', async () => {
-    render(harness(<SettingsDrawerContent />));
+    render(harness(<SettingsPage />));
 
     // Wait for the getProvider query to settle (it resolves to null so no
     // hydration happens; we still want to be past the initial paint).
@@ -63,7 +63,7 @@ describe('SettingsDrawerContent', () => {
   });
 
   it('switching provider to Azure reveals resourceName field; switching back hides it', async () => {
-    render(harness(<SettingsDrawerContent />));
+    render(harness(<SettingsPage />));
 
     await waitFor(() => expect(settingsApi.getProvider).toHaveBeenCalled());
 
@@ -90,7 +90,7 @@ describe('SettingsDrawerContent', () => {
       apiKeyMasked: 'sk-...abcd',
     });
 
-    render(harness(<SettingsDrawerContent />));
+    render(harness(<SettingsPage />));
 
     // Wait for hydration. The masked widget replaces the password input.
     await waitFor(() => {
@@ -110,7 +110,7 @@ describe('SettingsDrawerContent', () => {
       apiKeyMasked: 'sk-...abcd',
     });
 
-    render(harness(<SettingsDrawerContent />));
+    render(harness(<SettingsPage />));
 
     const replace = await screen.findByRole('button', { name: /Replace/i });
     fireEvent.click(replace);
@@ -124,7 +124,7 @@ describe('SettingsDrawerContent', () => {
   });
 
   it('Save submits the expected payload to settingsApi.saveProvider', async () => {
-    render(harness(<SettingsDrawerContent />));
+    render(harness(<SettingsPage />));
 
     await waitFor(() => expect(settingsApi.getProvider).toHaveBeenCalled());
 

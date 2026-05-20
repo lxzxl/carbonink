@@ -24,10 +24,9 @@ vi.mock('@renderer/lib/api/document', () => ({
     readBytes: vi.fn(),
   },
 }));
-// `/documents` now queries the provider config to decide between upload
+// `/documents` queries the provider config to decide between upload
 // zone and "AI not configured" banner. Mock the wrapper so the route
-// thinks DeepSeek is configured in the test environment — otherwise the
-// banner mounts and calls `useSettingsDrawer()` outside its provider.
+// thinks DeepSeek is configured in the test environment.
 vi.mock('@renderer/lib/api/settings', () => ({
   settingsApi: {
     getProvider: vi.fn(),
@@ -38,7 +37,6 @@ vi.mock('@renderer/lib/api/settings', () => ({
   },
 }));
 
-import { SettingsDrawerProvider } from '@renderer/components/settings-drawer-context';
 import { documentApi } from '@renderer/lib/api/document';
 import { settingsApi } from '@renderer/lib/api/settings';
 
@@ -93,14 +91,9 @@ function buildHarnessWithRouter() {
   });
   return {
     ui: (
-      // SettingsDrawerProvider wraps router because ProviderNotConfiguredBanner
-      // (inside DocumentsRoute) calls `useSettingsDrawer()` — without this
-      // provider, every render path that hits the banner throws.
-      <SettingsDrawerProvider>
-        <QueryClientProvider client={queryClient}>
-          <RouterProvider router={router} />
-        </QueryClientProvider>
-      </SettingsDrawerProvider>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>
     ),
     router,
   };

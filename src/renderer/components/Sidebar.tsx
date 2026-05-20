@@ -1,4 +1,3 @@
-import { useSettingsDrawer } from '@renderer/components/settings-drawer-context';
 import { mcpApi } from '@renderer/lib/api/mcp';
 import { cn } from '@renderer/lib/utils';
 import * as m from '@renderer/paraglide/messages';
@@ -7,11 +6,6 @@ import { Link } from '@tanstack/react-router';
 import { Settings as SettingsIcon } from 'lucide-react';
 
 export function Sidebar() {
-  // Subscribe to the global Settings drawer state. The provider is mounted
-  // at the renderer entry (see `src/renderer/main.tsx` / `__root.tsx`) so
-  // both this Sidebar and the out-of-tree CommandPalette can toggle it.
-  const { setOpen: setSettingsOpen } = useSettingsDrawer();
-
   // Poll MCP status every 10 seconds to show binary build + Claude config state.
   const mcpStatus = useQuery({
     queryKey: ['mcp:status'],
@@ -102,15 +96,12 @@ export function Sidebar() {
           </Link>
         </li>
       </ul>
-      {/* MCP status chip + Settings button — both open the Settings drawer.
-       * MCP chip shows binary build + Claude config state with a colored dot.
-       * Phase 1b replaces the Phase 0 Moon placeholder with a real gear.
-       * Theme toggle is now part of the Settings panel itself. */}
+      {/* MCP status chip + Settings link — both navigate to the Settings page.
+       * MCP chip shows binary build + Claude config state with a colored dot. */}
       <div className="mt-auto pt-4 border-t border-border/50 space-y-1">
         {mcpStatus.data && (
-          <button
-            type="button"
-            onClick={() => setSettingsOpen(true)}
+          <Link
+            to="/settings"
             className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-xs hover:bg-muted"
           >
             <span
@@ -131,17 +122,19 @@ export function Sidebar() {
                   ? m.sidebar_mcp_label_pending()
                   : m.sidebar_mcp_label_not_built()}
             </span>
-          </button>
+          </Link>
         )}
-        <button
-          type="button"
-          onClick={() => setSettingsOpen(true)}
+        <Link
+          to="/settings"
           aria-label={m.nav_settings()}
-          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+          className={cn(
+            'flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground',
+            '[&.active]:bg-primary [&.active]:text-primary-foreground',
+          )}
         >
           <SettingsIcon className="h-4 w-4" />
           <span className="text-xs">{m.nav_settings()}</span>
-        </button>
+        </Link>
       </div>
     </nav>
   );

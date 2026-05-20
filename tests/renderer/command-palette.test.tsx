@@ -1,5 +1,4 @@
 import { CommandPalette } from '@renderer/components/command-palette';
-import { SettingsDrawerProvider } from '@renderer/components/settings-drawer-context';
 import {
   createMemoryHistory,
   createRootRoute,
@@ -14,10 +13,10 @@ import { afterEach, describe, expect, it } from 'vitest';
 function buildHarness(initialPath = '/') {
   const rootRoute = createRootRoute({
     component: () => (
-      <SettingsDrawerProvider>
+      <>
         <CommandPalette />
         <Outlet />
-      </SettingsDrawerProvider>
+      </>
     ),
   });
   const indexRoute = createRoute({

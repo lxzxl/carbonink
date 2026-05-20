@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SourcesRouteImport } from './routes/sources'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as QuestionnairesRouteImport } from './routes/questionnaires'
 import { Route as PrintRenderRouteImport } from './routes/print-render'
@@ -26,6 +27,11 @@ import { Route as DocumentsIdRouteImport } from './routes/documents_.$id'
 const SourcesRoute = SourcesRouteImport.update({
   id: '/sources',
   path: '/sources',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReportsRoute = ReportsRouteImport.update({
@@ -97,6 +103,7 @@ export interface FileRoutesByFullPath {
   '/print-render': typeof PrintRenderRoute
   '/questionnaires': typeof QuestionnairesRoute
   '/reports': typeof ReportsRoute
+  '/settings': typeof SettingsRoute
   '/sources': typeof SourcesRoute
   '/documents/$id': typeof DocumentsIdRoute
   '/onboarding/$step': typeof OnboardingStepRoute
@@ -112,6 +119,7 @@ export interface FileRoutesByTo {
   '/print-render': typeof PrintRenderRoute
   '/questionnaires': typeof QuestionnairesRoute
   '/reports': typeof ReportsRoute
+  '/settings': typeof SettingsRoute
   '/sources': typeof SourcesRoute
   '/documents/$id': typeof DocumentsIdRoute
   '/onboarding/$step': typeof OnboardingStepRoute
@@ -128,6 +136,7 @@ export interface FileRoutesById {
   '/print-render': typeof PrintRenderRoute
   '/questionnaires': typeof QuestionnairesRoute
   '/reports': typeof ReportsRoute
+  '/settings': typeof SettingsRoute
   '/sources': typeof SourcesRoute
   '/documents_/$id': typeof DocumentsIdRoute
   '/onboarding/$step': typeof OnboardingStepRoute
@@ -145,6 +154,7 @@ export interface FileRouteTypes {
     | '/print-render'
     | '/questionnaires'
     | '/reports'
+    | '/settings'
     | '/sources'
     | '/documents/$id'
     | '/onboarding/$step'
@@ -160,6 +170,7 @@ export interface FileRouteTypes {
     | '/print-render'
     | '/questionnaires'
     | '/reports'
+    | '/settings'
     | '/sources'
     | '/documents/$id'
     | '/onboarding/$step'
@@ -175,6 +186,7 @@ export interface FileRouteTypes {
     | '/print-render'
     | '/questionnaires'
     | '/reports'
+    | '/settings'
     | '/sources'
     | '/documents_/$id'
     | '/onboarding/$step'
@@ -191,6 +203,7 @@ export interface RootRouteChildren {
   PrintRenderRoute: typeof PrintRenderRoute
   QuestionnairesRoute: typeof QuestionnairesRoute
   ReportsRoute: typeof ReportsRoute
+  SettingsRoute: typeof SettingsRoute
   SourcesRoute: typeof SourcesRoute
   DocumentsIdRoute: typeof DocumentsIdRoute
   OnboardingStepRoute: typeof OnboardingStepRoute
@@ -206,6 +219,13 @@ declare module '@tanstack/react-router' {
       path: '/sources'
       fullPath: '/sources'
       preLoaderRoute: typeof SourcesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reports': {
@@ -303,6 +323,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrintRenderRoute: PrintRenderRoute,
   QuestionnairesRoute: QuestionnairesRoute,
   ReportsRoute: ReportsRoute,
+  SettingsRoute: SettingsRoute,
   SourcesRoute: SourcesRoute,
   DocumentsIdRoute: DocumentsIdRoute,
   OnboardingStepRoute: OnboardingStepRoute,

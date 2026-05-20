@@ -266,15 +266,14 @@ function OrganizationProfileSection() {
   );
 }
 
-export interface SettingsDrawerContentProps {
-  /**
-   * Called after a successful save so the host can close the drawer.
-   * The form itself doesn't touch open state — the parent owns it.
-   */
-  onSaved?: () => void;
-}
-
-export function SettingsDrawerContent({ onSaved }: SettingsDrawerContentProps = {}) {
+/**
+ * Settings form, rendered as its own route at `/settings`. Previously this
+ * lived inside a slide-out drawer; the move to a dedicated page lets users
+ * link/refresh/back-button their way through configuration and gives long
+ * sub-sections (provider config, AMap key, organization profile, MCP) room
+ * to breathe without a tiny side panel.
+ */
+export function SettingsPage() {
   const queryClient = useQueryClient();
 
   // Prefill from existing saved config. We don't render a loading state
@@ -399,7 +398,6 @@ export function SettingsDrawerContent({ onSaved }: SettingsDrawerContentProps = 
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['settings:get-provider'] });
       toast.success(m.settings_save_success());
-      onSaved?.();
     },
     onError: (err) => {
       const msg = err instanceof Error ? err.message : 'Unknown error';
