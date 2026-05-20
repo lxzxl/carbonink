@@ -1,6 +1,7 @@
 import type {
   ActivityData,
   ActivityDataCreateInput,
+  ActivityDataWithEf,
   Answer,
   ClassifyAndRunResult,
   CompleteOnboardingInput,
@@ -84,6 +85,23 @@ export type IpcTypeMap = {
     scope2_kg: number;
     scope3_kg: number;
   };
+  'activity:get-by-id': (input: { id: string }) => ActivityDataWithEf | null;
+  'activity:rebind-ef': (input: {
+    activity_id: string;
+    new_ef_pk: EfCompositePk;
+  }) => Promise<
+    | {
+        ok: true;
+        updated: ActivityData;
+        old_co2e_kg: number;
+        new_co2e_kg: number;
+        old_amount: number;
+        old_unit: string;
+        new_amount: number;
+        new_unit: string;
+      }
+    | { ok: false; error: { _tag: 'NotFound' | 'EfNotFound' | 'UnitMismatch'; message: string } }
+  >;
 
   // settings domain (Phase 1b — LLM provider config)
   // `settings:available` reports whether the OS-level keychain backend works.

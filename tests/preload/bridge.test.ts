@@ -60,6 +60,8 @@ describe('preload bridge', () => {
       'activity:create',
       'activity:list-by-period',
       'activity:totals-by-period',
+      'activity:get-by-id',
+      'activity:rebind-ef',
       // settings domain (Phase 1b)
       'settings:available',
       'settings:get-provider',
