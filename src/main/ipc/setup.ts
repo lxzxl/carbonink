@@ -44,9 +44,14 @@ const HANDLER_FACTORIES: ReadonlyArray<HandlerFactory> = [
 export function setupIpc(): void {
   if (listener) return;
 
+  // Derive printRenderUrl from ELECTRON_RENDERER_URL or use the built renderer path
+  const printRenderUrl = process.env.ELECTRON_RENDERER_URL
+    ? `${process.env.ELECTRON_RENDERER_URL}/print-render`
+    : 'about:blank/print-render';
+
   const ctx = createIpcContext(
     { db: getAppDb(), now: defaultNow },
-    { progressEmitter: createProgressEmitter(getMainWindow) },
+    { progressEmitter: createProgressEmitter(getMainWindow), printRenderUrl },
   );
   const l = new IpcListener<IpcTypeMap>();
 

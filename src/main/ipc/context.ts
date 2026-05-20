@@ -70,6 +70,8 @@ export interface IpcContext {
   // Phase 3 — report generation pipeline.
   reportDataService: import('@main/services/report-data-service').ReportDataService;
   llmNarrativeProvider: import('@main/llm/report-narrative').ReportNarrativeProvider;
+  // URL for the print-render route (used by PDF export for hidden BrowserWindow).
+  printRenderUrl: string;
   // Main→renderer push channel emitter, shared across all services.
   pushEvent: <C extends keyof IpcPushTypeMap>(channel: C, payload: IpcPushTypeMap[C]) => void;
 }
@@ -103,6 +105,11 @@ export interface IpcContextOverrides {
    * a real Electron BrowserWindow.
    */
   progressEmitter?: ProgressEmitter;
+  /**
+   * URL for the print-render route. In production, derived from the main
+   * renderer URL + `/print-render`; tests can override.
+   */
+  printRenderUrl?: string;
 }
 
 /**
@@ -338,6 +345,7 @@ export function createIpcContext(
       }
       return llmNarrativeProviderInstance;
     },
+    printRenderUrl: overrides.printRenderUrl ?? `${process.env.ELECTRON_RENDERER_URL || 'about:blank'}/print-render`,
     pushEvent: <C extends keyof IpcPushTypeMap>(channel: C, payload: IpcPushTypeMap[C]) => {
       // Use the progressEmitter if available; tests can inject a vi.fn()
       return;

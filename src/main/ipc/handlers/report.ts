@@ -1,4 +1,11 @@
+import { dialog } from 'electron';
+import * as fs from 'node:fs/promises';
 import { generateReportNarrative } from '@main/llm/report-narrative.js';
+import {
+  defaultExportFilename,
+  renderReportPdf,
+  writeAppendixXlsx,
+} from '@main/services/report-export-service.js';
 import type { IpcContext } from '../context.js';
 import type { IpcTypeMap } from '../types.js';
 import { z } from 'zod';
@@ -91,8 +98,53 @@ export function reportHandlers(ctx: IpcContext): {
       }
     },
 
-    // Stubs — Task 6 implements these properly.
-    'report:export-pdf': async () => ({ ok: false as const, error: 'not_implemented' }),
-    'report:export-xlsx': async () => ({ ok: false as const, error: 'not_implemented' }),
+    'report:export-pdf': async (raw) => {
+      const input = raw as Parameters<IpcTypeMap['report:export-pdf']>[0];
+      const result = await dialog.showSaveDialog({
+        title: 'Export ISO 14064-1 report (PDF)',
+        defaultPath: defaultExportFilename({
+          data: input.data,
+          language: input.language,
+          kind: 'pdf',
+        }),
+        filters: [{ name: 'PDF', extensions: ['pdf'] }],
+      });
+      if (result.canceled || !result.filePath) return { canceled: true as const };
+      try {
+        const buf = await renderReportPdf(
+          { data: input.data, narrative: input.narrative, language: input.language },
+          { printRenderUrl: ctx.printRenderUrl },
+        );
+        await fs.writeFile(result.filePath, buf);
+        return { ok: true as const, path: result.filePath };
+      } catch (err) {
+        return { ok: false as const, error: (err as Error).message };
+      }
+    },
+
+    'report:export-xlsx': async (raw) => {
+      const input = raw as Parameters<IpcTypeMap['report:export-xlsx']>[0];
+      const result = await dialog.showSaveDialog({
+        title: 'Export ISO 14064-1 appendix (Excel)',
+        defaultPath: defaultExportFilename({
+          data: input.data,
+          language: input.language,
+          kind: 'xlsx',
+        }),
+        filters: [{ name: 'Excel', extensions: ['xlsx'] }],
+      });
+      if (result.canceled || !result.filePath) return { canceled: true as const };
+      try {
+        const buf = await writeAppendixXlsx({
+          data: input.data,
+          narrative: input.narrative,
+          language: input.language,
+        });
+        await fs.writeFile(result.filePath, buf);
+        return { ok: true as const, path: result.filePath };
+      } catch (err) {
+        return { ok: false as const, error: (err as Error).message };
+      }
+    },
   };
 }
