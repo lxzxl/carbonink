@@ -48,6 +48,38 @@ export type Questionnaire = {
   created_at: string;
 };
 
+/** Assembled questionnaire data for PDF rendering: sheets grouped + questions sorted by cell position. */
+export type QuestionnairePdfData = {
+  customer: { name: string };
+  questionnaire: {
+    id: string;
+    reporting_year: number;
+    due_date: string | null;
+    created_at: string;
+    status: 'parsing' | 'mapping' | 'answering' | 'exported';
+  };
+  document: { filename: string };
+  sheets: Array<{
+    sheet_name: string;
+    questions: Array<{
+      id: string;
+      position: string | null;
+      raw_text: string;
+      normalized_text: string;
+      parsed_intent: string | null;
+      question_kind: 'numerical' | 'categorical' | 'narrative';
+      expected_unit: string | null;
+      answer: {
+        value: string;
+        unit: string | null;
+        finalized_at: string | null;
+        source_summary: string | null;
+      } | null;
+    }>;
+  }>;
+  language: 'zh-CN' | 'en';
+};
+
 // ---------------------------------------------------------------------------
 // Emission Factor types (Phase 1a — bare TS types; Zod schemas land in Task 6)
 // ---------------------------------------------------------------------------
