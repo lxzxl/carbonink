@@ -10,10 +10,12 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SourcesRouteImport } from './routes/sources'
+import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as QuestionnairesRouteImport } from './routes/questionnaires'
 import { Route as DocumentsRouteImport } from './routes/documents'
 import { Route as ActivitiesRouteImport } from './routes/activities'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ReportsIdRouteImport } from './routes/reports_.$id'
 import { Route as QuestionnairesNewRouteImport } from './routes/questionnaires_.new'
 import { Route as QuestionnairesIdRouteImport } from './routes/questionnaires_.$id'
 import { Route as OnboardingStepRouteImport } from './routes/onboarding.$step'
@@ -22,6 +24,11 @@ import { Route as DocumentsIdRouteImport } from './routes/documents_.$id'
 const SourcesRoute = SourcesRouteImport.update({
   id: '/sources',
   path: '/sources',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
   getParentRoute: () => rootRouteImport,
 } as any)
 const QuestionnairesRoute = QuestionnairesRouteImport.update({
@@ -42,6 +49,11 @@ const ActivitiesRoute = ActivitiesRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsIdRoute = ReportsIdRouteImport.update({
+  id: '/reports_/$id',
+  path: '/reports/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const QuestionnairesNewRoute = QuestionnairesNewRouteImport.update({
@@ -70,22 +82,26 @@ export interface FileRoutesByFullPath {
   '/activities': typeof ActivitiesRoute
   '/documents': typeof DocumentsRoute
   '/questionnaires': typeof QuestionnairesRoute
+  '/reports': typeof ReportsRoute
   '/sources': typeof SourcesRoute
   '/documents/$id': typeof DocumentsIdRoute
   '/onboarding/$step': typeof OnboardingStepRoute
   '/questionnaires/$id': typeof QuestionnairesIdRoute
   '/questionnaires/new': typeof QuestionnairesNewRoute
+  '/reports/$id': typeof ReportsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/activities': typeof ActivitiesRoute
   '/documents': typeof DocumentsRoute
   '/questionnaires': typeof QuestionnairesRoute
+  '/reports': typeof ReportsRoute
   '/sources': typeof SourcesRoute
   '/documents/$id': typeof DocumentsIdRoute
   '/onboarding/$step': typeof OnboardingStepRoute
   '/questionnaires/$id': typeof QuestionnairesIdRoute
   '/questionnaires/new': typeof QuestionnairesNewRoute
+  '/reports/$id': typeof ReportsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -93,11 +109,13 @@ export interface FileRoutesById {
   '/activities': typeof ActivitiesRoute
   '/documents': typeof DocumentsRoute
   '/questionnaires': typeof QuestionnairesRoute
+  '/reports': typeof ReportsRoute
   '/sources': typeof SourcesRoute
   '/documents_/$id': typeof DocumentsIdRoute
   '/onboarding/$step': typeof OnboardingStepRoute
   '/questionnaires_/$id': typeof QuestionnairesIdRoute
   '/questionnaires_/new': typeof QuestionnairesNewRoute
+  '/reports_/$id': typeof ReportsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -106,33 +124,39 @@ export interface FileRouteTypes {
     | '/activities'
     | '/documents'
     | '/questionnaires'
+    | '/reports'
     | '/sources'
     | '/documents/$id'
     | '/onboarding/$step'
     | '/questionnaires/$id'
     | '/questionnaires/new'
+    | '/reports/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/activities'
     | '/documents'
     | '/questionnaires'
+    | '/reports'
     | '/sources'
     | '/documents/$id'
     | '/onboarding/$step'
     | '/questionnaires/$id'
     | '/questionnaires/new'
+    | '/reports/$id'
   id:
     | '__root__'
     | '/'
     | '/activities'
     | '/documents'
     | '/questionnaires'
+    | '/reports'
     | '/sources'
     | '/documents_/$id'
     | '/onboarding/$step'
     | '/questionnaires_/$id'
     | '/questionnaires_/new'
+    | '/reports_/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -140,11 +164,13 @@ export interface RootRouteChildren {
   ActivitiesRoute: typeof ActivitiesRoute
   DocumentsRoute: typeof DocumentsRoute
   QuestionnairesRoute: typeof QuestionnairesRoute
+  ReportsRoute: typeof ReportsRoute
   SourcesRoute: typeof SourcesRoute
   DocumentsIdRoute: typeof DocumentsIdRoute
   OnboardingStepRoute: typeof OnboardingStepRoute
   QuestionnairesIdRoute: typeof QuestionnairesIdRoute
   QuestionnairesNewRoute: typeof QuestionnairesNewRoute
+  ReportsIdRoute: typeof ReportsIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -154,6 +180,13 @@ declare module '@tanstack/react-router' {
       path: '/sources'
       fullPath: '/sources'
       preLoaderRoute: typeof SourcesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/questionnaires': {
@@ -182,6 +215,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports_/$id': {
+      id: '/reports_/$id'
+      path: '/reports/$id'
+      fullPath: '/reports/$id'
+      preLoaderRoute: typeof ReportsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/questionnaires_/new': {
@@ -220,11 +260,13 @@ const rootRouteChildren: RootRouteChildren = {
   ActivitiesRoute: ActivitiesRoute,
   DocumentsRoute: DocumentsRoute,
   QuestionnairesRoute: QuestionnairesRoute,
+  ReportsRoute: ReportsRoute,
   SourcesRoute: SourcesRoute,
   DocumentsIdRoute: DocumentsIdRoute,
   OnboardingStepRoute: OnboardingStepRoute,
   QuestionnairesIdRoute: QuestionnairesIdRoute,
   QuestionnairesNewRoute: QuestionnairesNewRoute,
+  ReportsIdRoute: ReportsIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
