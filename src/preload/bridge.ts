@@ -60,6 +60,7 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   'questionnaire:list',
   'questionnaire:get-by-id',
   'questionnaire:finalize',
+  'questionnaire:export-pdf',
   // answer domain (Phase 2.2b — auto-answer pipeline)
   'answer:export-to-xlsx',
   'answer:generate',

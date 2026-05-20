@@ -14,6 +14,7 @@ import { buildAnswerLayer } from '@main/services/answer-generation/tags.js';
 import { AuditEventService } from '@main/services/audit-event-service.js';
 import type { ServiceContext } from '@main/services/base.js';
 import { CalculationService } from '@main/services/calculation-service.js';
+import { QuestionnairePdfDataService } from '@main/services/questionnaire-pdf-data-service.js';
 import { ClassificationService } from '@main/services/classification-service.js';
 import { CredentialService } from '@main/services/credential-service.js';
 import { CustomerService } from '@main/services/customer-service.js';
@@ -73,6 +74,8 @@ export interface IpcContext {
   llmNarrativeProvider: import('@main/llm/report-narrative').ReportNarrativeProvider;
   // Phase 3 sub-project 3 — audit event log viewer.
   auditEventService: AuditEventService;
+  // Phase 3 sub-project 4 — questionnaire PDF export.
+  questionnairePdfDataService: QuestionnairePdfDataService;
   // URL for the print-render route (used by PDF export for hidden BrowserWindow).
   printRenderUrl: string;
   // Main→renderer push channel emitter, shared across all services.
@@ -350,6 +353,7 @@ export function createIpcContext(
       return llmNarrativeProviderInstance;
     },
     auditEventService: new AuditEventService({ db: svc.db }),
+    questionnairePdfDataService: new QuestionnairePdfDataService({ db: svc.db }),
     printRenderUrl:
       overrides.printRenderUrl ??
       `${process.env.ELECTRON_RENDERER_URL || 'about:blank'}/print-render`,

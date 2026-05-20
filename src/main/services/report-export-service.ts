@@ -234,3 +234,14 @@ export function defaultExportFilename(args: {
   const base = `${slug}-iso-14064-1-${args.data.period.year}${granSuffix}-${args.language}`;
   return args.kind === 'pdf' ? `${base}.pdf` : `${base}-appendix.xlsx`;
 }
+
+export interface ExportPdfDeps {
+  printRenderUrl: string;
+}
+
+export async function renderQuestionnairePdf(
+  args: { data: import('@shared/types.js').QuestionnairePdfData; language: 'zh-CN' | 'en' },
+  deps: ExportPdfDeps,
+): Promise<Buffer> {
+  throw new Error('renderQuestionnairePdf not yet implemented — see Task 4');
+}

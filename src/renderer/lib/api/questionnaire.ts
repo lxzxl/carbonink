@@ -20,4 +20,7 @@ export const questionnaireApi = {
   getById: (input: { id: string }) => invoke('questionnaire:get-by-id', input),
 
   finalize: (input: { id: string }) => invoke('questionnaire:finalize', input),
+
+  exportPdf: (input: { questionnaire_id: string; language: 'zh-CN' | 'en' }) =>
+    invoke('questionnaire:export-pdf', input),
 };
