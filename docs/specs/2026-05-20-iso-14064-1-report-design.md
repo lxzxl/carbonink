@@ -111,15 +111,17 @@ All channels added to the preload allowlist (`src/preload/bridge.ts`) and `IpcTy
 
 One new migration: `015_iso_report_schema.sql`. All columns nullable + sensible defaults; existing data continues to work. ALTER-only (no temp-table rebuild). Wrapped by `migrate.ts`'s outer transaction (no inner BEGIN/COMMIT).
 
-### `organization` — 5 new columns
+### `organization` — extend existing column + 4 new columns
+
+`organization.boundary_kind` **already exists** (values `'equity_share' | 'operational_control'` per migration 001). Extend its CHECK to add `'financial_control'`. Since SQLite can't ALTER CHECK, this requires a one-table temp rebuild (same pattern as migration 014).
 
 | Column | Type | Notes |
 |---|---|---|
-| `organizational_boundary` | TEXT | CHECK in (`'equity'`, `'financial_control'`, `'operational_control'`). Nullable. |
-| `responsible_person_name` | TEXT | Nullable. Surfaced in cover + §9.3.2. |
-| `responsible_person_role` | TEXT | Nullable. e.g. "可持续发展负责人" / "Sustainability Officer". |
-| `base_year_period_id` | TEXT | FK → `reporting_period(id)`. Nullable. |
-| `recalc_threshold_pct` | REAL | Default `5.0`. Hidden in Settings v1 (advanced; expose if asked). |
+| `boundary_kind` (extend existing) | TEXT | CHECK extended to `('equity_share', 'financial_control', 'operational_control')`. Existing rows preserved. |
+| `responsible_person_name` | TEXT | New. Nullable. Surfaced in cover + §9.3.2. |
+| `responsible_person_role` | TEXT | New. Nullable. e.g. "可持续发展负责人" / "Sustainability Officer". |
+| `base_year_period_id` | TEXT | New. FK → `reporting_period(id)`. Nullable. |
+| `recalc_threshold_pct` | REAL | New. Default `5.0`. Hidden in Settings v1 (advanced; expose if asked). |
 
 ### `reporting_period` — 2 new columns
 
@@ -128,18 +130,19 @@ One new migration: `015_iso_report_schema.sql`. All columns nullable + sensible 
 | `significant_changes_text` | TEXT | Nullable. User-editable; LLM also fills. Surfaced in report §9.3.11. |
 | `recalculation_reason` | TEXT | Nullable. Set only when this period triggered a base-year recalc — captures *why*. |
 
-### `emission_factor` — 2 new columns
+### `emission_factor` — 1 new column
+
+Per-gas factors **already exist** as separate columns on `emission_factor`: `co2e_kg_per_unit`, `ch4_kg_per_unit`, `n2o_kg_per_unit`, `hfc_kg_per_unit`, `pfc_kg_per_unit`, `sf6_kg_per_unit`, `nf3_kg_per_unit`, plus `gwp_basis: 'AR5' | 'AR6'` (per migration 002). The report consumes these directly — no JSON column needed.
 
 | Column | Type | Notes |
 |---|---|---|
-| `gas_breakdown` | TEXT (JSON) | Nullable. Shape: `{ "CO2": 2.31, "CH4": 0.001, "N2O": 0.0002 }` in kg-gas-per-unit. If null, only CO2e total is known. |
-| `biogenic_co2_factor` | REAL | Nullable. Biogenic CO2 reported *separately* from inventory total per 14064-1 §6.4.7. |
+| `biogenic_co2_factor` | REAL | New. Nullable. Biogenic CO2 reported *separately* from inventory total per 14064-1 §6.4.7. |
 
-### Zod schema updates (`src/shared/types.ts`)
+### Zod schema updates
 
-- `Organization` gains 5 optional fields.
-- `ReportingPeriod` gains 2 optional fields.
-- `EmissionFactor` gains 2 optional fields (`gas_breakdown` parsed as `Record<string, number> | null`).
+- `src/shared/schemas/organization.ts` — `organizationKindEnum` extended to include `'financial_control'`; `organization` shape adds `responsible_person_name`, `responsible_person_role`, `base_year_period_id`, `recalc_threshold_pct` (all nullable / defaulted).
+- `src/shared/schemas/reporting-period.ts` — `reportingPeriod` adds `significant_changes_text`, `recalculation_reason` (both nullable).
+- `EmissionFactor` (already in `src/shared/types.ts`) gains `biogenic_co2_factor` nullable field.
 
 ### Settings UI changes
 
@@ -183,12 +186,21 @@ const ReportNarrative = z.object({
 ```ts
 type LlmInputBlock = {
   org: {
-    name: string;
-    boundary_type: 'equity' | 'financial_control' | 'operational_control';
-    responsible: { name: string; role: string };
+    name_zh: string | null;
+    name_en: string | null;
+    industry: string | null;
+    country_code: string;
+    boundary_kind: 'equity_share' | 'financial_control' | 'operational_control';
+    responsible: { name: string | null; role: string | null };
   };
-  period: { year: number; start: string; end: string; is_base_year: boolean };
-  sites: Array<{ name: string; address: string | null }>;
+  period: {
+    year: number;
+    granularity: 'annual' | 'quarterly' | 'monthly';
+    start: string;
+    end: string;
+    is_base_year: boolean;
+  };
+  sites: Array<{ name_zh: string | null; name_en: string | null; address: string | null }>;
   scope_totals: {
     scope1_kg: number;
     scope2_kg: number;
@@ -202,12 +214,14 @@ type LlmInputBlock = {
     co2e_kg: number;
     share_pct: number;
   }>;
-  ef_sources_used: Array<{ source: string; count: number }>;
+  ef_sources_used: Array<{ source: string; count: number; gwp_basis: 'AR5' | 'AR6' }>;
   language: 'zh-CN' | 'en';
   prior_period_summary: { year: number; total_kg: number } | null;
   base_year_summary: { year: number; total_kg: number } | null;
 };
 ```
+
+The `org.name_zh` / `name_en` pair lets the LLM pick the language-appropriate display name without a separate translation step. `ef_sources_used` includes `gwp_basis` so the methodology narrative can disclose AR5 vs AR6.
 
 ### Prompt strategy (hard rules)
 
@@ -309,12 +323,13 @@ Formatting: numbers right-aligned, dates ISO format, scope columns colored (scop
 ### File naming
 
 ```
-<org-slug>-iso-14064-1-<year>-<lang>.pdf
-<org-slug>-iso-14064-1-<year>-<lang>-appendix.xlsx
+<org-slug>-iso-14064-1-<year>[-<granularity>]-<lang>.pdf
+<org-slug>-iso-14064-1-<year>[-<granularity>]-<lang>-appendix.xlsx
 ```
 
-- `org-slug` = `organization.name` slugified (ASCII fallback; if name is all Chinese, first 8 chars of org id).
-- e.g. `acme-corp-iso-14064-1-2025-zh-CN.pdf`.
+- `org-slug` = `organization.name_en` if non-null else `organization.name_zh` if ASCII-slugifiable else first 8 chars of `organization.id`.
+- `granularity` suffix is omitted when the reporting period is `'annual'`; otherwise appended (e.g. `-q1`, `-q3`).
+- e.g. `acme-corp-iso-14064-1-2025-zh-CN.pdf` (annual zh) or `acme-corp-iso-14064-1-2025-q3-en.pdf` (quarterly en).
 
 ### Export sequence
 
