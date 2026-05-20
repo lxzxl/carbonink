@@ -383,5 +383,16 @@
   "audit_filter_reset_button": "Reset filters",
   "audit_load_older_button": "Load older",
   "audit_empty_state_heading": "No audit events yet",
-  "audit_empty_state_body": "Events are recorded as you confirm extractions, finalize answers, or rebind emission factors."
+  "audit_empty_state_body": "Events are recorded as you confirm extractions, finalize answers, or rebind emission factors.",
+  "questionnaire_export_pdf_button": "Export PDF",
+  "questionnaire_export_pdf_dialog_heading": "Export questionnaire as PDF",
+  "questionnaire_export_pdf_dialog_subheading": "Pick the export language.",
+  "questionnaire_export_pdf_lang_label": "Language",
+  "questionnaire_export_pdf_lang_zh": "Chinese (zh-CN)",
+  "questionnaire_export_pdf_lang_en": "English",
+  "questionnaire_export_pdf_cancel": "Cancel",
+  "questionnaire_export_pdf_confirm": "Export",
+  "questionnaire_export_pdf_pending": "Generating PDF...",
+  "questionnaire_export_pdf_success": "Exported PDF → {path}",
+  "questionnaire_export_pdf_failed": "PDF export failed: {message}"
 }

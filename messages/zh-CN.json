@@ -383,5 +383,16 @@
   "audit_filter_reset_button": "重置筛选",
   "audit_load_older_button": "加载更早",
   "audit_empty_state_heading": "暂无审计事件",
-  "audit_empty_state_body": "在你确认抽取、定稿答案或重新镶嵌排放因子时会自动记录事件。"
+  "audit_empty_state_body": "在你确认抽取、定稿答案或重新镶嵌排放因子时会自动记录事件。",
+  "questionnaire_export_pdf_button": "导出 PDF",
+  "questionnaire_export_pdf_dialog_heading": "导出问卷为 PDF",
+  "questionnaire_export_pdf_dialog_subheading": "选择导出语言。",
+  "questionnaire_export_pdf_lang_label": "语言",
+  "questionnaire_export_pdf_lang_zh": "中文 (zh-CN)",
+  "questionnaire_export_pdf_lang_en": "英语",
+  "questionnaire_export_pdf_cancel": "取消",
+  "questionnaire_export_pdf_confirm": "导出",
+  "questionnaire_export_pdf_pending": "正在生成 PDF...",
+  "questionnaire_export_pdf_success": "已导出 PDF → {path}",
+  "questionnaire_export_pdf_failed": "PDF 导出失败: {message}"
 }

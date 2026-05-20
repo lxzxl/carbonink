@@ -170,6 +170,7 @@ export async function renderReportPdf(
     // route reads window.__REPORT_PAYLOAD__ on mount.
     await win.webContents.executeJavaScript(
       `window.__REPORT_PAYLOAD__ = ${JSON.stringify({
+        kind: 'inventory_report',
         data: args.data,
         narrative: args.narrative,
         language: args.language,
@@ -240,8 +241,33 @@ export interface ExportPdfDeps {
 }
 
 export async function renderQuestionnairePdf(
-  args: { data: import('@shared/types.js').QuestionnairePdfData; language: 'zh-CN' | 'en' },
+  args: { data: import('@shared/types.js').QuestionnairePdfData },
   deps: ExportPdfDeps,
 ): Promise<Buffer> {
-  throw new Error('renderQuestionnairePdf not yet implemented — see Task 4');
+  const win = new BrowserWindow({
+    show: false,
+    webPreferences: {
+      offscreen: true,
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+  try {
+    await win.loadURL(deps.printRenderUrl);
+    await win.webContents.executeJavaScript(
+      `window.__REPORT_PAYLOAD__ = ${JSON.stringify({
+        kind: 'questionnaire_pdf',
+        data: args.data,
+      })};`,
+    );
+    await waitForTitle(win.webContents, 'READY', 30_000);
+    const buf = await win.webContents.printToPDF({
+      pageSize: 'A4',
+      printBackground: true,
+      margins: { top: 0.71, bottom: 0.71, left: 0.63, right: 0.63 }, // ~18/16mm
+    });
+    return buf;
+  } finally {
+    win.close();
+  }
 }

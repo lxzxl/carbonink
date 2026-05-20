@@ -10,6 +10,7 @@ import type { Answer, Question } from '@shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { AlertTriangle } from 'lucide-react';
+import { useState } from 'react';
 
 export const Route = createFileRoute('/questionnaires_/$id')({
   component: QuestionnaireDetailRoute,
@@ -118,6 +119,23 @@ function DetailBody({
   exportToExcel: { mutate: () => void; isPending: boolean };
   finalizeMutation: { mutate: () => void; isPending: boolean };
 }) {
+  const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
+  const [pdfLanguage, setPdfLanguage] = useState<'zh-CN' | 'en'>('zh-CN');
+  const exportPdf = useMutation({
+    mutationFn: () =>
+      questionnaireApi.exportPdf({ questionnaire_id: id, language: pdfLanguage }),
+    onSuccess: (result) => {
+      if ('canceled' in result && result.canceled) return;
+      if ('ok' in result && result.ok) {
+        toast.success(m.questionnaire_export_pdf_success({ path: result.path }));
+      } else if ('ok' in result && !result.ok) {
+        toast.error(m.questionnaire_export_pdf_failed({ message: result.error }));
+      }
+      setPdfDialogOpen(false);
+    },
+    onError: (e) =>
+      toast.error(m.questionnaire_export_pdf_failed({ message: (e as Error).message })),
+  });
   // Inventory availability chain — org → reporting periods (filter to this
   // questionnaire's year) → activities. If 0 activities, show a banner so
   // users understand WHY answer generation will fail before they click.
@@ -209,6 +227,12 @@ function DetailBody({
             </Button>
             <Button
               type="button"
+              onClick={() => setPdfDialogOpen(true)}
+            >
+              {m.questionnaire_export_pdf_button()}
+            </Button>
+            <Button
+              type="button"
               onClick={() => finalizeMutation.mutate()}
               disabled={finalizeMutation.isPending}
             >
@@ -216,6 +240,38 @@ function DetailBody({
             </Button>
           </div>
         </>
+      )}
+      {pdfDialogOpen && (
+        <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <div className="bg-white rounded p-6 w-80 space-y-3 dark:bg-slate-900">
+            <h2 className="text-lg font-semibold">{m.questionnaire_export_pdf_dialog_heading()}</h2>
+            <p className="text-sm text-muted-foreground">{m.questionnaire_export_pdf_dialog_subheading()}</p>
+            <label className="block text-sm">
+              {m.questionnaire_export_pdf_lang_label()}
+              <select
+                value={pdfLanguage}
+                onChange={(e) => setPdfLanguage(e.target.value as 'zh-CN' | 'en')}
+                className="block mt-1 border rounded px-2 py-1 w-full"
+              >
+                <option value="zh-CN">{m.questionnaire_export_pdf_lang_zh()}</option>
+                <option value="en">{m.questionnaire_export_pdf_lang_en()}</option>
+              </select>
+            </label>
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" onClick={() => setPdfDialogOpen(false)} className="rounded border px-3 py-1 text-sm hover:bg-gray-50 dark:hover:bg-slate-800">
+                {m.questionnaire_export_pdf_cancel()}
+              </button>
+              <button
+                type="button"
+                onClick={() => exportPdf.mutate()}
+                disabled={exportPdf.isPending}
+                className="rounded bg-black text-white px-3 py-1 text-sm disabled:opacity-50 dark:bg-white dark:text-black"
+              >
+                {exportPdf.isPending ? m.questionnaire_export_pdf_pending() : m.questionnaire_export_pdf_confirm()}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

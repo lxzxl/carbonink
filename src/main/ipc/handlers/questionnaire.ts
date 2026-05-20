@@ -71,7 +71,7 @@ export function questionnaireHandlers(ctx: IpcContext): {
       }
       try {
         const buf = await renderQuestionnairePdf(
-          { data, language: input.language },
+          { data },
           { printRenderUrl: ctx.printRenderUrl },
         );
         await fs.writeFile(result.filePath, buf);

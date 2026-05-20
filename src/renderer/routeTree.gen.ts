@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SourcesRouteImport } from './routes/sources'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as QuestionnairesRouteImport } from './routes/questionnaires'
+import { Route as PrintRenderRouteImport } from './routes/print-render'
 import { Route as DocumentsRouteImport } from './routes/documents'
 import { Route as AuditRouteImport } from './routes/audit'
 import { Route as ActivitiesRouteImport } from './routes/activities'
@@ -35,6 +36,11 @@ const ReportsRoute = ReportsRouteImport.update({
 const QuestionnairesRoute = QuestionnairesRouteImport.update({
   id: '/questionnaires',
   path: '/questionnaires',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrintRenderRoute = PrintRenderRouteImport.update({
+  id: '/print-render',
+  path: '/print-render',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocumentsRoute = DocumentsRouteImport.update({
@@ -88,6 +94,7 @@ export interface FileRoutesByFullPath {
   '/activities': typeof ActivitiesRoute
   '/audit': typeof AuditRoute
   '/documents': typeof DocumentsRoute
+  '/print-render': typeof PrintRenderRoute
   '/questionnaires': typeof QuestionnairesRoute
   '/reports': typeof ReportsRoute
   '/sources': typeof SourcesRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByTo {
   '/activities': typeof ActivitiesRoute
   '/audit': typeof AuditRoute
   '/documents': typeof DocumentsRoute
+  '/print-render': typeof PrintRenderRoute
   '/questionnaires': typeof QuestionnairesRoute
   '/reports': typeof ReportsRoute
   '/sources': typeof SourcesRoute
@@ -117,6 +125,7 @@ export interface FileRoutesById {
   '/activities': typeof ActivitiesRoute
   '/audit': typeof AuditRoute
   '/documents': typeof DocumentsRoute
+  '/print-render': typeof PrintRenderRoute
   '/questionnaires': typeof QuestionnairesRoute
   '/reports': typeof ReportsRoute
   '/sources': typeof SourcesRoute
@@ -133,6 +142,7 @@ export interface FileRouteTypes {
     | '/activities'
     | '/audit'
     | '/documents'
+    | '/print-render'
     | '/questionnaires'
     | '/reports'
     | '/sources'
@@ -147,6 +157,7 @@ export interface FileRouteTypes {
     | '/activities'
     | '/audit'
     | '/documents'
+    | '/print-render'
     | '/questionnaires'
     | '/reports'
     | '/sources'
@@ -161,6 +172,7 @@ export interface FileRouteTypes {
     | '/activities'
     | '/audit'
     | '/documents'
+    | '/print-render'
     | '/questionnaires'
     | '/reports'
     | '/sources'
@@ -176,6 +188,7 @@ export interface RootRouteChildren {
   ActivitiesRoute: typeof ActivitiesRoute
   AuditRoute: typeof AuditRoute
   DocumentsRoute: typeof DocumentsRoute
+  PrintRenderRoute: typeof PrintRenderRoute
   QuestionnairesRoute: typeof QuestionnairesRoute
   ReportsRoute: typeof ReportsRoute
   SourcesRoute: typeof SourcesRoute
@@ -207,6 +220,13 @@ declare module '@tanstack/react-router' {
       path: '/questionnaires'
       fullPath: '/questionnaires'
       preLoaderRoute: typeof QuestionnairesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/print-render': {
+      id: '/print-render'
+      path: '/print-render'
+      fullPath: '/print-render'
+      preLoaderRoute: typeof PrintRenderRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/documents': {
@@ -280,6 +300,7 @@ const rootRouteChildren: RootRouteChildren = {
   ActivitiesRoute: ActivitiesRoute,
   AuditRoute: AuditRoute,
   DocumentsRoute: DocumentsRoute,
+  PrintRenderRoute: PrintRenderRoute,
   QuestionnairesRoute: QuestionnairesRoute,
   ReportsRoute: ReportsRoute,
   SourcesRoute: SourcesRoute,
