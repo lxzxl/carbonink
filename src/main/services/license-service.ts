@@ -211,7 +211,12 @@ export class LicenseService {
     } catch {
       throw new Error('License JWT body is not valid JSON.');
     }
-    return licenseJwtClaimsSchema.parse(parsedBody);
+    const parsed = licenseJwtClaimsSchema.parse(parsedBody);
+    // exactOptionalPropertyTypes: drop the key when it's undefined rather
+    // than carrying an explicit `support_until: undefined` that the type
+    // alias (which only allows the key to be *absent*) rejects.
+    const { support_until, ...rest } = parsed;
+    return support_until !== undefined ? { ...rest, support_until } : rest;
   }
 
   private readOrInitLocalState(): LicenseLocalStateRow {

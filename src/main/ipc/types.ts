@@ -278,6 +278,20 @@ export type IpcTypeMap = {
     until?: string;
     limit?: number;
   }) => import('@shared/types.js').AuditEvent[];
+
+  // license domain (Phase 4 sub-project A — Ed25519 JWT + state machine)
+  // `license:get-state` is read-mostly (called on every UI render that
+  // shows the License section / banner). `license:set-jwt` validates +
+  // persists; failures come back as a discriminated `_tag` so the UI can
+  // render distinct messages without parsing error strings.
+  'license:get-state': () => import('@shared/types.js').LicenseStateView;
+  'license:set-jwt': (input: { jwt: string }) =>
+    | { ok: true }
+    | {
+        ok: false;
+        error: { _tag: 'BadSignature' | 'BadSchema' | 'Malformed'; message: string };
+      };
+  'license:clear': () => void;
 };
 
 /**

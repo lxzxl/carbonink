@@ -111,6 +111,10 @@ describe('preload bridge', () => {
       'report:export-xlsx',
       // audit domain (Phase 3 sub-project 3 — audit_event log viewer)
       'audit:list',
+      // license domain (Phase 4 sub-project A — Ed25519 JWT + state machine)
+      'license:get-state',
+      'license:set-jwt',
+      'license:clear',
     ]);
   });
 });

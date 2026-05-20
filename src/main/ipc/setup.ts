@@ -11,6 +11,7 @@ import { efLibraryHandlers } from './handlers/ef-library.js';
 import { efMatcherHandlers } from './handlers/ef-matcher.js';
 import { emissionSourceHandlers } from './handlers/emission-source.js';
 import { extractionHandlers } from './handlers/extraction.js';
+import { licenseHandlers } from './handlers/license.js';
 import { mcpHandlers } from './handlers/mcp.js';
 import { organizationHandlers } from './handlers/organization.js';
 import { questionnaireHandlers } from './handlers/questionnaire.js';
@@ -41,6 +42,7 @@ const HANDLER_FACTORIES: ReadonlyArray<HandlerFactory> = [
   mcpHandlers,
   reportHandlers,
   auditHandlers,
+  licenseHandlers,
 ];
 
 export function setupIpc(): void {
