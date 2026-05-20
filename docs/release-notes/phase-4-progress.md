@@ -94,18 +94,45 @@ biome clean.
 
 UI surface (banner + "renew now" CTA) is sub-project B.
 
-## Sub-project D — Trial flow (not started)
+## Sub-project D — Trial flow (no client-side work needed)
 
-Local logic of 14-day trial JWT. State machine is already in place; this
-sub-project mostly wires the cloud-side trial signup form to the existing
-`license:set-jwt` channel and adds a "Start free trial" CTA in the
-unverified-state UI.
+The local 14-day trial is structurally indistinguishable from a base
+license — only the `plan` value (`'trial@14d'`) and a shorter
+`expires_at` differ. The state machine in sub-project A treats them
+identically: same `active` → `grace` → `expired` progression, same gate
+behaviour from sub-project C.
 
-## Sub-project E — carbonbook-cloud spec (not started)
+The remaining trial-flow work is **cloud-side issuance** (signup form
+collecting email, mint trial JWT, email it to the user), which belongs
+to sub-project G. The client already accepts whatever signed JWT the
+cloud emits, including trial ones.
 
-Design document for the Cloudflare Workers + R2 + KV deployment:
-`/activate`, `/verify`, `/renew-webhook` endpoints; Stripe webhook
-integration; revocation list storage.
+A "Start free trial" CTA in the activation form (vs. "Activate a
+license") is a polish item rolled into sub-project G's UI changes when
+the trial signup endpoint goes live.
+
+## Sub-project E — carbonbook-cloud spec (shipped)
+
+Design document at `docs/specs/2026-05-21-carbonbook-cloud-design.md`.
+
+Highlights:
+
+- Cloudflare Workers (one worker, path-dispatched) + KV (`license_active`
+  + `revocation_set`) + D1 (customer/license/device tables) + R2
+  (binaries) + Pages (static + account portal).
+- REST endpoints: `POST /v1/activate`, `POST /v1/verify`, `POST
+  /v1/trial-signup`, `POST /v1/stripe-webhook`, `GET
+  /v1/updates/{channel}/manifest.json`.
+- Ed25519 signing key in Worker Secrets; public-key rotation procedure
+  documented (requires coordinated client release, only on suspected
+  compromise).
+- Humanized license keys (`cbk-XXXX-XXXX-XXXX-XXXX`) separate from
+  internal `lic_01H...` ULIDs so leaked logs aren't directly
+  weaponisable.
+- Cost projection: < $5/month year-1 (Cloudflare free tier covers all
+  primary use cases at our expected ≤ 200k req/month).
+
+Implementation = sub-project G.
 
 ## Sub-project F — Landing page spec (not started)
 
