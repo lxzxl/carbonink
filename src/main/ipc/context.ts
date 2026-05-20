@@ -9,6 +9,7 @@ import { ExcelParser } from '@main/excel/parser.js';
 import { LLMClient } from '@main/llm/llm-client.js';
 import type { ReportNarrativeProvider } from '@main/llm/report-narrative.js';
 import { ActivityDataService } from '@main/services/activity-data-service.js';
+import { AuditEventService } from '@main/services/audit-event-service.js';
 import type { AnswerR } from '@main/services/answer-generation/tags.js';
 import { buildAnswerLayer } from '@main/services/answer-generation/tags.js';
 import type { ServiceContext } from '@main/services/base.js';
@@ -70,6 +71,8 @@ export interface IpcContext {
   // Phase 3 — report generation pipeline.
   reportDataService: import('@main/services/report-data-service').ReportDataService;
   llmNarrativeProvider: import('@main/llm/report-narrative').ReportNarrativeProvider;
+  // Phase 3 sub-project 3 — audit event log viewer.
+  auditEventService: AuditEventService;
   // URL for the print-render route (used by PDF export for hidden BrowserWindow).
   printRenderUrl: string;
   // Main→renderer push channel emitter, shared across all services.
@@ -346,6 +349,7 @@ export function createIpcContext(
       }
       return llmNarrativeProviderInstance;
     },
+    auditEventService: new AuditEventService({ db: svc.db }),
     printRenderUrl:
       overrides.printRenderUrl ??
       `${process.env.ELECTRON_RENDERER_URL || 'about:blank'}/print-render`,

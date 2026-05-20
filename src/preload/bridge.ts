@@ -77,6 +77,8 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   'report:cancel',
   'report:export-pdf',
   'report:export-xlsx',
+  // audit domain (Phase 3 sub-project 3 — audit_event log viewer)
+  'audit:list',
 ];
 
 /**

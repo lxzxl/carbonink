@@ -253,6 +253,14 @@ export type IpcTypeMap = {
     narrative: import('@main/llm/report-narrative').ReportNarrative;
     language: 'zh-CN' | 'en';
   }) => Promise<{ canceled: true } | { ok: true; path: string } | { ok: false; error: string }>;
+
+  // audit domain (Phase 3 sub-project 3 — audit_event log viewer)
+  'audit:list': (input: {
+    event_kinds?: string[];
+    since?: string;
+    until?: string;
+    limit?: number;
+  }) => import('@shared/types.js').AuditEvent[];
 };
 
 /**
