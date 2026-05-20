@@ -1,18 +1,15 @@
 import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
+import { EfPicker } from '@renderer/components/EfPicker';
 import { Input } from '@renderer/components/ui/input';
 import { Label } from '@renderer/components/ui/label';
 import { activityApi } from '@renderer/lib/api/activity-data';
-import { efApi } from '@renderer/lib/api/ef-library';
-import { efMatcherApi } from '@renderer/lib/api/ef-matcher';
 import { orgApi } from '@renderer/lib/api/organization';
 import { routingApi } from '@renderer/lib/api/routing';
 import * as m from '@renderer/paraglide/messages';
 import type {
   ActivityData,
-  EmissionFactor,
   EmissionSource,
-  MatcherResult,
   ReportingPeriod,
 } from '@shared/types';
 import { useForm, useStore } from '@tanstack/react-form';
@@ -277,57 +274,12 @@ export function ActivityForm({
   }, [defaultPeriodId, defaultStart, defaultEnd, form]);
 
   // Subscribe to emission_source_id so the parent component re-renders when
-  // the user picks a source. Reading `form.state.values.x` synchronously here
-  // would NOT subscribe — only the <form.Field> for that name would re-render,
-  // leaving the EF candidate query stuck on the initial empty state.
+  // the user picks a source.
   const selectedSourceId = useStore(form.store, (s) => s.values.emission_source_id);
   const selectedSource = sources.find((s) => s.id === selectedSourceId);
 
-  // EF candidate query — only enabled once a source is chosen. We pass
-  // category when the source has one set; if not (e.g. a generic source row),
-  // fall back to scope-only filtering. Both branches AND on the scope itself
-  // so we never surface a Scope 2 EF for a Scope 1 source.
-  const efQuery = useQuery<EmissionFactor[]>({
-    queryKey: ['ef:list', selectedSource?.category ?? null, selectedSource?.scope ?? null],
-    queryFn: () => {
-      // Type narrowing: the query is `enabled` only when selectedSource
-      // exists, so this branch is unreachable, but the queryFn signature
-      // still must be sound for `exactOptionalPropertyTypes`.
-      if (!selectedSource) return Promise.resolve([]);
-      return efApi.list(
-        selectedSource.category
-          ? { category: selectedSource.category, scope: selectedSource.scope }
-          : { scope: selectedSource.scope },
-      );
-    },
-    enabled: !!selectedSource,
-  });
-  const efs = efQuery.data ?? [];
-
-  // Matcher query — only fires when a matcherHint was passed AND a source is
-  // selected. On LLM failure (reject) we intentionally fall back to the full
-  // EF list silently (retry: false keeps the UI clean).
-  const matcherHintRef = initialValues?.matcherHint;
-  const matcherQuery = useQuery({
-    queryKey: ['ef:recommend', matcherHintRef?.extraction_id ?? '', selectedSourceId ?? ''],
-    queryFn: () =>
-      efMatcherApi.recommend({
-        extraction_id: matcherHintRef!.extraction_id,
-        emission_source_id: selectedSourceId!,
-      }),
-    enabled: !!matcherHintRef && !!selectedSourceId,
-    staleTime: Number.POSITIVE_INFINITY,
-    retry: false,
-  });
-
-  // Build a stable key for radio rendering / matching (composite PK joined).
-  const efKey = (ef: EmissionFactor) =>
-    `${ef.factor_code}|${ef.year}|${ef.source}|${ef.geography}|${ef.dataset_version}`;
-
-  // Subscribe to the 5 composite-PK ef_* fields so the EF radio "checked"
-  // state + submit-button disabled state both reactively follow form state.
-  // Without subscription, pickEf() would mutate state but radio visuals stay
-  // unchecked (same trap as emission_source_id above).
+  // Subscribe to the 5 composite-PK ef_* fields so submit-button disabled state
+  // reactively follows form state.
   const selectedEfKey = useStore(form.store, (s) =>
     [
       s.values.ef_factor_code,
@@ -337,20 +289,10 @@ export function ActivityForm({
       s.values.ef_dataset_version,
     ].join('|'),
   );
-  const selectedEf = efs.find((ef) => efKey(ef) === selectedEfKey);
+  // selectedEf is truthy when an EF has actually been selected (all 5 PK fields are non-empty/non-zero).
+  const selectedEf = form.state.values.ef_factor_code ? { key: selectedEfKey } : null;
 
-  const pickEf = (ef: EmissionFactor) => {
-    form.setFieldValue('ef_factor_code', ef.factor_code);
-    form.setFieldValue('ef_year', ef.year);
-    form.setFieldValue('ef_source', ef.source);
-    form.setFieldValue('ef_geography', ef.geography);
-    form.setFieldValue('ef_dataset_version', ef.dataset_version);
-    // Pre-fill the unit field with the EF's input_unit if the user hasn't
-    // typed one yet — same-family is the common path, so this saves a step.
-    if (!form.state.values.unit) {
-      form.setFieldValue('unit', ef.input_unit);
-    }
-  };
+  const matcherHintRef = initialValues?.matcherHint;
 
   const noSources = sources.length === 0;
   const noPeriods = !periodsQuery.isLoading && periods.length === 0;
@@ -564,106 +506,35 @@ export function ActivityForm({
         </div>
       )}
 
-      {/* Recommended for this document — only shown when matcherHint is
-       * present AND a source is selected AND the LLM either returned results
-       * or is still loading. On LLM failure the block stays hidden and the
-       * full EF list below remains the sole picker. */}
-      {matcherHintRef &&
-        selectedSourceId &&
-        (matcherQuery.isLoading || (matcherQuery.data?.recommended?.length ?? 0) > 0) && (
-          <div className="rounded-md border border-[color:var(--color-primary)]/40 bg-[color:var(--color-primary)]/5 p-3">
-            <h4 className="text-sm font-medium">{m.ef_matcher_recommended_heading()}</h4>
-            {matcherQuery.isLoading ? (
-              <p className="text-xs text-muted-foreground">{m.ef_matcher_loading()}</p>
-            ) : (
-              <ul className="mt-2 space-y-2">
-                {matcherQuery.data?.recommended.map((rec) => (
-                  <li key={efKey(rec.ef)} className="text-sm">
-                    <label className="flex items-start gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="ef"
-                        className="mt-1"
-                        checked={selectedEfKey === efKey(rec.ef)}
-                        onChange={() => pickEf(rec.ef)}
-                      />
-                      <span>
-                        <span className="font-medium">
-                          ⭐ {rec.ef.name_zh ?? rec.ef.name_en ?? rec.ef.factor_code}
-                        </span>
-                        <span className="ml-2 text-xs text-muted-foreground">
-                          {rec.ef.co2e_kg_per_unit} kgCO₂e/{rec.ef.input_unit}
-                        </span>
-                        <span className="block text-xs text-muted-foreground">
-                          <span>{m.ef_matcher_reasoning_label()}</span>{' '}
-                          <span>{rec.reasoning_zh}</span>
-                        </span>
-                      </span>
-                    </label>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
-
-      {/* EF Matcher: auto-filtered by (source.category, source.scope).
-       * Radio-per-candidate keeps the picker scannable when there are 1–10
-       * EFs (the Phase 1a catalog size). We can swap for a typeahead later
-       * when the EF library grows. */}
-      <fieldset className="space-y-2 rounded-md border border-border bg-background/40 p-3">
-        <legend className="px-1 text-sm font-medium">
-          {matcherHintRef && selectedSourceId
-            ? m.ef_matcher_all_candidates()
-            : m.activities_form_ef()}
-        </legend>
-        {!selectedSource ? (
-          <p className="text-xs text-muted-foreground">
-            {m.activities_form_ef_pick_source_first()}
-          </p>
-        ) : efQuery.isLoading ? (
-          <p className="text-xs text-muted-foreground">{m.activities_form_ef_loading()}</p>
-        ) : efs.length === 0 ? (
-          <p className="text-xs text-muted-foreground">{m.activities_form_ef_none()}</p>
-        ) : (
-          <div className="space-y-1">
-            {efs.map((ef) => {
-              const key = efKey(ef);
-              const isSelected = selectedEfKey === key;
-              return (
-                <label
-                  key={key}
-                  className="flex items-start gap-2 text-sm cursor-pointer rounded px-1 py-1 hover:bg-muted/40"
-                >
-                  <input
-                    type="radio"
-                    name="ef"
-                    className="mt-1"
-                    checked={isSelected}
-                    onChange={() => pickEf(ef)}
-                  />
-                  <span className="flex-1">
-                    <span className="font-medium">
-                      {ef.name_zh ?? ef.name_en ?? ef.factor_code}
-                    </span>
-                    <span className="text-muted-foreground">
-                      {' '}
-                      · {ef.geography} · {ef.year} · {ef.co2e_kg_per_unit} kg CO2e/{ef.input_unit}
-                    </span>
-                  </span>
-                </label>
-              );
-            })}
-            {selectedEf && (
-              <p className="mt-2 text-xs text-muted-foreground">
-                {m.activities_form_ef_selected()}:{' '}
-                {selectedEf.name_zh ?? selectedEf.name_en ?? selectedEf.factor_code} (
-                {selectedEf.co2e_kg_per_unit} kg CO2e/{selectedEf.input_unit})
-              </p>
-            )}
-          </div>
-        )}
-      </fieldset>
+      {/* EF Picker — handles both Recommended (if matcherHint provided) and Browse panes.
+       * The component manages the queries and state internally.
+       * We pass the source's scope to filter the EF list. */}
+      <EfPicker
+        selectedSourceId={selectedSourceId}
+        currentEfPk={selectedEf ? {
+          factor_code: form.state.values.ef_factor_code,
+          year: form.state.values.ef_year,
+          source: form.state.values.ef_source,
+          geography: form.state.values.ef_geography,
+          dataset_version: form.state.values.ef_dataset_version,
+        } : null}
+        scopeFilter={selectedSource?.scope}
+        matcherHint={matcherHintRef ?? undefined}
+        onChange={(pk, row) => {
+          if (pk && row) {
+            form.setFieldValue('ef_factor_code', pk.factor_code);
+            form.setFieldValue('ef_year', pk.year);
+            form.setFieldValue('ef_source', pk.source);
+            form.setFieldValue('ef_geography', pk.geography);
+            form.setFieldValue('ef_dataset_version', pk.dataset_version);
+            // Pre-fill the unit field with the EF's input_unit if the user hasn't
+            // typed one yet — same-family is the common path, so this saves a step.
+            if (!form.state.values.unit) {
+              form.setFieldValue('unit', row.input_unit);
+            }
+          }
+        }}
+      />
 
       <form.Field
         name="fuel_code"
