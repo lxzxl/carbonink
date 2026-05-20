@@ -124,7 +124,9 @@ describe('Reports list page', () => {
     });
 
     // Banner should be visible with the setup message
-    const banner = screen.getByText(/请先在设置中填写组织档案|Set organization profile in Settings first/);
+    const banner = screen.getByText(
+      /请先在设置中填写组织档案|Set organization profile in Settings first/,
+    );
     expect(banner).toBeTruthy();
 
     // When profile is not ready, verify the banner is shown (which indicates responsible_person_name is null)

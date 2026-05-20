@@ -1,4 +1,3 @@
-import { dialog } from 'electron';
 import * as fs from 'node:fs/promises';
 import { generateReportNarrative } from '@main/llm/report-narrative.js';
 import {
@@ -6,9 +5,10 @@ import {
   renderReportPdf,
   writeAppendixXlsx,
 } from '@main/services/report-export-service.js';
+import { dialog } from 'electron';
+import { z } from 'zod';
 import type { IpcContext } from '../context.js';
 import type { IpcTypeMap } from '../types.js';
-import { z } from 'zod';
 
 const generateInput = z.object({
   report_id: z.string().min(1),
@@ -72,7 +72,11 @@ export function reportHandlers(ctx: IpcContext): {
         return { canceled: false as const, data, narrative };
       } catch (err) {
         const e = err as { _tag?: string; message?: string; name?: string };
-        if (controller.signal.aborted || e.name === 'AbortError' || e._tag === 'LlmNarrativeCanceled') {
+        if (
+          controller.signal.aborted ||
+          e.name === 'AbortError' ||
+          e._tag === 'LlmNarrativeCanceled'
+        ) {
           return { canceled: true as const };
         }
         if (e._tag === 'LlmNarrativeRefused') {

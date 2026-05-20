@@ -219,7 +219,10 @@ export type IpcTypeMap = {
       }
     | {
         canceled: false;
-        error: { _tag: 'NoProvider' | 'Refused' | 'RateLimit' | 'Timeout'; message?: string | undefined };
+        error: {
+          _tag: 'NoProvider' | 'Refused' | 'RateLimit' | 'Timeout';
+          message?: string | undefined;
+        };
         data?: never;
         narrative?: never;
       }

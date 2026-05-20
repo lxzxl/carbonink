@@ -1,7 +1,7 @@
-import { BrowserWindow, type WebContents } from 'electron';
-import ExcelJS from 'exceljs';
 import * as fs from 'node:fs/promises';
 import type { ReportNarrative } from '@main/llm/report-narrative';
+import { BrowserWindow, type WebContents } from 'electron';
+import ExcelJS from 'exceljs';
 import type { InventoryReportData } from './report-data-service.js';
 
 const SHEET_NAMES = {
@@ -59,13 +59,34 @@ export async function writeAppendixXlsx(args: {
 
   // 1. Overview
   const overview = wb.addWorksheet(labels.overview);
-  overview.addRow([language === 'zh-CN' ? '组织' : 'Organization', data.org.name_zh ?? data.org.name_en ?? '']);
-  overview.addRow([language === 'zh-CN' ? '报告期' : 'Reporting period', `${data.period.year} ${data.period.granularity}`]);
-  overview.addRow([language === 'zh-CN' ? '范围一 (kg CO2e)' : 'Scope 1 (kg CO2e)', data.scope_totals.scope1_kg]);
-  overview.addRow([language === 'zh-CN' ? '范围二 (kg CO2e)' : 'Scope 2 (kg CO2e)', data.scope_totals.scope2_kg]);
-  overview.addRow([language === 'zh-CN' ? '范围三 (kg CO2e)' : 'Scope 3 (kg CO2e)', data.scope_totals.scope3_kg]);
-  overview.addRow([language === 'zh-CN' ? '合计 (kg CO2e)' : 'Total (kg CO2e)', data.scope_totals.total_kg]);
-  overview.addRow([language === 'zh-CN' ? '生物质 (单独)' : 'Biogenic (separate)', data.scope_totals.biogenic_kg]);
+  overview.addRow([
+    language === 'zh-CN' ? '组织' : 'Organization',
+    data.org.name_zh ?? data.org.name_en ?? '',
+  ]);
+  overview.addRow([
+    language === 'zh-CN' ? '报告期' : 'Reporting period',
+    `${data.period.year} ${data.period.granularity}`,
+  ]);
+  overview.addRow([
+    language === 'zh-CN' ? '范围一 (kg CO2e)' : 'Scope 1 (kg CO2e)',
+    data.scope_totals.scope1_kg,
+  ]);
+  overview.addRow([
+    language === 'zh-CN' ? '范围二 (kg CO2e)' : 'Scope 2 (kg CO2e)',
+    data.scope_totals.scope2_kg,
+  ]);
+  overview.addRow([
+    language === 'zh-CN' ? '范围三 (kg CO2e)' : 'Scope 3 (kg CO2e)',
+    data.scope_totals.scope3_kg,
+  ]);
+  overview.addRow([
+    language === 'zh-CN' ? '合计 (kg CO2e)' : 'Total (kg CO2e)',
+    data.scope_totals.total_kg,
+  ]);
+  overview.addRow([
+    language === 'zh-CN' ? '生物质 (单独)' : 'Biogenic (separate)',
+    data.scope_totals.biogenic_kg,
+  ]);
 
   // 2. Activities — every activity_data row from data.activities.
   const activities = wb.addWorksheet(labels.activities);
@@ -90,9 +111,7 @@ export async function writeAppendixXlsx(args: {
   // 3. Factors — derived from ef_sources_used aggregate.
   const factors = wb.addWorksheet(labels.factors);
   factors.addRow(
-    language === 'zh-CN'
-      ? ['来源', '使用次数', 'GWP 基准']
-      : ['Source', 'Count', 'GWP basis'],
+    language === 'zh-CN' ? ['来源', '使用次数', 'GWP 基准'] : ['Source', 'Count', 'GWP basis'],
   );
   for (const f of data.ef_sources_used) {
     factors.addRow([f.source, f.count, f.gwp_basis]);
@@ -195,11 +214,13 @@ function waitForTitle(wc: WebContents, expected: string, timeoutMs: number): Pro
 
 export function slugifyOrgName(data: InventoryReportData): string {
   const candidate = data.org.name_en ?? data.org.name_zh ?? data.org.id.slice(0, 8);
-  return candidate
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 40) || data.org.id.slice(0, 8);
+  return (
+    candidate
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40) || data.org.id.slice(0, 8)
+  );
 }
 
 export function defaultExportFilename(args: {
@@ -208,7 +229,8 @@ export function defaultExportFilename(args: {
   kind: 'pdf' | 'xlsx';
 }): string {
   const slug = slugifyOrgName(args.data);
-  const granSuffix = args.data.period.granularity === 'annual' ? '' : `-${args.data.period.granularity}`;
+  const granSuffix =
+    args.data.period.granularity === 'annual' ? '' : `-${args.data.period.granularity}`;
   const base = `${slug}-iso-14064-1-${args.data.period.year}${granSuffix}-${args.language}`;
   return args.kind === 'pdf' ? `${base}.pdf` : `${base}-appendix.xlsx`;
 }

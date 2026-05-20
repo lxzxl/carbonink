@@ -120,7 +120,9 @@ export async function generateReportNarrative(args: {
     const final = await object;
     const parsed = ReportNarrativeSchema.safeParse(final);
     if (!parsed.success) {
-      throw new LlmNarrativeRefused(`LLM returned schema-invalid narrative: ${parsed.error.message}`);
+      throw new LlmNarrativeRefused(
+        `LLM returned schema-invalid narrative: ${parsed.error.message}`,
+      );
     }
     return parsed.data;
   } catch (err) {

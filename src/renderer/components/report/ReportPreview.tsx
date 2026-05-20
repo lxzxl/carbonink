@@ -82,8 +82,8 @@ function CoverPage({ data }: { data: InventoryReportData }) {
   const lang = data.language;
   const orgName =
     lang === 'zh-CN'
-      ? data.org.name_zh ?? data.org.name_en ?? ''
-      : data.org.name_en ?? data.org.name_zh ?? '';
+      ? (data.org.name_zh ?? data.org.name_en ?? '')
+      : (data.org.name_en ?? data.org.name_zh ?? '');
   const title =
     lang === 'zh-CN' ? 'ISO 14064-1 温室气体盘查报告' : 'ISO 14064-1 GHG Inventory Report';
   return (
@@ -91,7 +91,8 @@ function CoverPage({ data }: { data: InventoryReportData }) {
       <h1>{title}</h1>
       <h2>{orgName}</h2>
       <p>
-        {lang === 'zh-CN' ? '报告期' : 'Reporting period'}: {data.period.year} ({data.period.granularity})
+        {lang === 'zh-CN' ? '报告期' : 'Reporting period'}: {data.period.year} (
+        {data.period.granularity})
       </p>
     </section>
   );

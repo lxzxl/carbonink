@@ -1,8 +1,8 @@
+import type { ReportNarrative } from '@main/llm/report-narrative';
+import type { InventoryReportData } from '@main/services/report-data-service';
 import { ReportPreview } from '@renderer/components/report/ReportPreview';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import type { InventoryReportData } from '@main/services/report-data-service';
-import type { ReportNarrative } from '@main/llm/report-narrative';
 
 const data: InventoryReportData = {
   org: {
@@ -54,7 +54,9 @@ describe('ReportPreview', () => {
   });
 
   it('renders the scope totals table', () => {
-    const { container } = render(<ReportPreview data={data} narrative={narrative} printMode={false} />);
+    const { container } = render(
+      <ReportPreview data={data} narrative={narrative} printMode={false} />,
+    );
     const table = container.querySelector('.report-preview__scope-table table');
     expect(table).toBeTruthy();
     expect(table?.textContent).toContain('100'); // scope1

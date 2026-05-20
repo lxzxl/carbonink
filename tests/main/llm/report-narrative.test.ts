@@ -23,7 +23,13 @@ function fakeData(): InventoryReportData {
       significant_changes_text: null,
     },
     sites: [{ id: 'site-1', name_zh: '北京工厂', name_en: 'Beijing Plant', address: '北京市' }],
-    scope_totals: { scope1_kg: 3160, scope2_kg: 34218, scope3_kg: 22, total_kg: 37400, biogenic_kg: 0 },
+    scope_totals: {
+      scope1_kg: 3160,
+      scope2_kg: 34218,
+      scope3_kg: 22,
+      total_kg: 37400,
+      biogenic_kg: 0,
+    },
     all_sources: [],
     activities: [],
     ef_sources_used: [{ source: 'MEE', count: 2, gwp_basis: 'AR5' }],
@@ -34,12 +40,18 @@ function fakeData(): InventoryReportData {
 }
 
 const FAKE_NARRATIVE = {
-  boundary_description: '本盘查采用运营控制法定义组织边界，覆盖测试公司的北京工厂。该方法符合 ISO 14064-1:2018 §5.1 要求，确保所有权益股东的直接或间接排放均纳入统计范围。',
-  reporting_boundary_description: '报告范围涵盖范围一直接排放、范围二外购电力的间接排放，以及范围三外购运输服务的间接排放。本期未涉及生物质排放，单独披露为零。',
-  methodology_description: '排放量按 IPCC 与生态环境部公布的排放因子计算，所有因子均采用 AR5 GWP 基准。所有活动数据均通过单据来源识别并人工复核。数据来源包括生产部门报表、采购发票、能源账单等，确保完整性和准确性。',
-  emissions_summary: '本期总排放量约 37.4 吨 CO2e，其中范围二占比最高，约为 91.7%，主要来自外购电力 50000 + 10000 kWh。范围一柴油使用产生约 3.16 吨排放，范围三外购运输服务各占小份额。',
-  significant_changes: '本盘查为首次进行的 2025 年度盘查，无历史可比期，亦未设定基准年。后续年度将建立趋势分析基础。',
-  notable_observations: '电网电力为最大排放源，年度排放量约 34.2 吨 CO2e，占总量 91% 以上。建议优先考虑可再生能源替代以降低范围二排放。',
+  boundary_description:
+    '本盘查采用运营控制法定义组织边界，覆盖测试公司的北京工厂。该方法符合 ISO 14064-1:2018 §5.1 要求，确保所有权益股东的直接或间接排放均纳入统计范围。',
+  reporting_boundary_description:
+    '报告范围涵盖范围一直接排放、范围二外购电力的间接排放，以及范围三外购运输服务的间接排放。本期未涉及生物质排放，单独披露为零。',
+  methodology_description:
+    '排放量按 IPCC 与生态环境部公布的排放因子计算，所有因子均采用 AR5 GWP 基准。所有活动数据均通过单据来源识别并人工复核。数据来源包括生产部门报表、采购发票、能源账单等，确保完整性和准确性。',
+  emissions_summary:
+    '本期总排放量约 37.4 吨 CO2e，其中范围二占比最高，约为 91.7%，主要来自外购电力 50000 + 10000 kWh。范围一柴油使用产生约 3.16 吨排放，范围三外购运输服务各占小份额。',
+  significant_changes:
+    '本盘查为首次进行的 2025 年度盘查，无历史可比期，亦未设定基准年。后续年度将建立趋势分析基础。',
+  notable_observations:
+    '电网电力为最大排放源，年度排放量约 34.2 吨 CO2e，占总量 91% 以上。建议优先考虑可再生能源替代以降低范围二排放。',
 };
 
 describe('generateReportNarrative', () => {

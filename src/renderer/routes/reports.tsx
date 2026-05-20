@@ -1,7 +1,7 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
-import { useQuery } from '@tanstack/react-query';
 import { orgApi } from '@renderer/lib/api/organization';
 import * as m from '@renderer/paraglide/messages';
+import { useQuery } from '@tanstack/react-query';
+import { createFileRoute, Link } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/reports')({
   component: ReportsList,
@@ -35,7 +35,9 @@ export function ReportsList() {
         {periodsQuery.data?.length ? (
           periodsQuery.data.map((p) => (
             <li key={p.id} className="rounded border p-3 flex items-center justify-between">
-              <span>{p.year} · {p.granularity}</span>
+              <span>
+                {p.year} · {p.granularity}
+              </span>
               <Link
                 to="/reports/$id"
                 params={{ id: p.id }}

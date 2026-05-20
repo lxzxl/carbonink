@@ -345,7 +345,9 @@ export function createIpcContext(
       }
       return llmNarrativeProviderInstance;
     },
-    printRenderUrl: overrides.printRenderUrl ?? `${process.env.ELECTRON_RENDERER_URL || 'about:blank'}/print-render`,
+    printRenderUrl:
+      overrides.printRenderUrl ??
+      `${process.env.ELECTRON_RENDERER_URL || 'about:blank'}/print-render`,
     pushEvent: <C extends keyof IpcPushTypeMap>(channel: C, payload: IpcPushTypeMap[C]) => {
       // Use the progressEmitter if available; tests can inject a vi.fn()
       return;

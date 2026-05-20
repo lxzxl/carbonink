@@ -6,7 +6,7 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import type { VisionMessages } from '@main/llm/stages/types.js';
 import type { CredentialService } from '@main/services/credential-service.js';
 import type { ProviderConfig } from '@shared/types.js';
-import { generateObject, streamObject, type LanguageModel, NoObjectGeneratedError } from 'ai';
+import { generateObject, type LanguageModel, NoObjectGeneratedError, streamObject } from 'ai';
 import { z } from 'zod';
 
 /**

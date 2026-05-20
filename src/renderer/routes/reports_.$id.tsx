@@ -1,14 +1,14 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { useMutation } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
-import { ulid } from 'ulid';
-import { reportApi } from '@renderer/lib/api/report';
+import type { ReportNarrative } from '@main/llm/report-narrative';
+import type { InventoryReportData } from '@main/services/report-data-service';
 import { ReportPreview } from '@renderer/components/report/ReportPreview';
+import { toast } from '@renderer/components/toast';
+import { reportApi } from '@renderer/lib/api/report';
 import { subscribe } from '@renderer/lib/ipc';
 import * as m from '@renderer/paraglide/messages';
-import { toast } from '@renderer/components/toast';
-import type { InventoryReportData } from '@main/services/report-data-service';
-import type { ReportNarrative } from '@main/llm/report-narrative';
+import { useMutation } from '@tanstack/react-query';
+import { createFileRoute } from '@tanstack/react-router';
+import { useEffect, useState } from 'react';
+import { ulid } from 'ulid';
 
 export const Route = createFileRoute('/reports_/$id')({ component: ReportDetail });
 

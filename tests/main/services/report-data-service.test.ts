@@ -1,5 +1,5 @@
-import { ReportDataService } from '@main/services/report-data-service';
 import { runMigrations } from '@main/db/migrate';
+import { ReportDataService } from '@main/services/report-data-service';
 import Database from 'better-sqlite3';
 import { describe, expect, it } from 'vitest';
 

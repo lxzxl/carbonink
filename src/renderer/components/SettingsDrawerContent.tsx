@@ -149,9 +149,9 @@ function OrganizationProfileSection() {
   });
 
   // Local state for form fields
-  const [boundary, setBoundary] = useState<'equity_share' | 'financial_control' | 'operational_control'>(
-    'operational_control',
-  );
+  const [boundary, setBoundary] = useState<
+    'equity_share' | 'financial_control' | 'operational_control'
+  >('operational_control');
   const [respName, setRespName] = useState('');
   const [respRole, setRespRole] = useState('');
   const [baseYearId, setBaseYearId] = useState<string | null>(null);
@@ -201,7 +201,9 @@ function OrganizationProfileSection() {
           id="settings-boundary"
           value={boundary}
           onChange={(e) =>
-            setBoundary(e.target.value as 'equity_share' | 'financial_control' | 'operational_control')
+            setBoundary(
+              e.target.value as 'equity_share' | 'financial_control' | 'operational_control',
+            )
           }
           className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2"
         >

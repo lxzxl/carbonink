@@ -65,7 +65,9 @@ describe('reportHandlers', () => {
     // Make the streamObject hang until aborted.
     ctx.llmNarrativeProvider.streamObject = vi.fn().mockImplementation(({ abortSignal }) => {
       return new Promise((_resolve, reject) => {
-        abortSignal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+        abortSignal.addEventListener('abort', () =>
+          reject(new DOMException('aborted', 'AbortError')),
+        );
       });
     });
     const handlers = reportHandlers(ctx as never);

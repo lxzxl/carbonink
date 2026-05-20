@@ -170,9 +170,15 @@ export class ReportDataService {
     }
     const sourcesArr = [...sourceMap.values()].sort((a, b) => b.co2e_kg - a.co2e_kg);
 
-    const scope1_kg = sourcesArr.filter((s) => s.scope === 1).reduce((acc, s) => acc + s.co2e_kg, 0);
-    const scope2_kg = sourcesArr.filter((s) => s.scope === 2).reduce((acc, s) => acc + s.co2e_kg, 0);
-    const scope3_kg = sourcesArr.filter((s) => s.scope === 3).reduce((acc, s) => acc + s.co2e_kg, 0);
+    const scope1_kg = sourcesArr
+      .filter((s) => s.scope === 1)
+      .reduce((acc, s) => acc + s.co2e_kg, 0);
+    const scope2_kg = sourcesArr
+      .filter((s) => s.scope === 2)
+      .reduce((acc, s) => acc + s.co2e_kg, 0);
+    const scope3_kg = sourcesArr
+      .filter((s) => s.scope === 3)
+      .reduce((acc, s) => acc + s.co2e_kg, 0);
     const total_kg = scope1_kg + scope2_kg + scope3_kg;
 
     const all_sources = sourcesArr.map((s) => ({
@@ -181,7 +187,10 @@ export class ReportDataService {
     }));
 
     // Group EF source provenance.
-    const efSourceMap = new Map<string, { source: string; count: number; gwp_basis: 'AR5' | 'AR6' }>();
+    const efSourceMap = new Map<
+      string,
+      { source: string; count: number; gwp_basis: 'AR5' | 'AR6' }
+    >();
     for (const row of rawActivities) {
       const k = row.ef_source;
       const ex = efSourceMap.get(k);
@@ -199,7 +208,7 @@ export class ReportDataService {
     // Biogenic separated total.
     // Note: biogenic_co2_factor is on emission_factor table, not pinned_emission_factor.
     // For now, default to 0; future versions may need to reference emission_factor.
-    let biogenic_kg = 0;
+    const biogenic_kg = 0;
 
     // Prior period (immediately previous year).
     const priorRow = this.deps.db
@@ -212,7 +221,9 @@ export class ReportDataService {
     let prior_period_summary: { year: number; total_kg: number } | null = null;
     if (priorRow) {
       const sum = this.deps.db
-        .prepare(`SELECT COALESCE(SUM(computed_co2e_kg), 0) AS total_kg FROM activity_data WHERE reporting_period_id = ?`)
+        .prepare(
+          `SELECT COALESCE(SUM(computed_co2e_kg), 0) AS total_kg FROM activity_data WHERE reporting_period_id = ?`,
+        )
         .get(priorRow.id) as { total_kg: number };
       prior_period_summary = { year: priorRow.year, total_kg: sum.total_kg };
     }
@@ -225,7 +236,9 @@ export class ReportDataService {
         .get(org.base_year_period_id) as { id: string; year: number } | undefined;
       if (baseRow) {
         const sum = this.deps.db
-          .prepare(`SELECT COALESCE(SUM(computed_co2e_kg), 0) AS total_kg FROM activity_data WHERE reporting_period_id = ?`)
+          .prepare(
+            `SELECT COALESCE(SUM(computed_co2e_kg), 0) AS total_kg FROM activity_data WHERE reporting_period_id = ?`,
+          )
           .get(baseRow.id) as { total_kg: number };
         base_year_summary = { year: baseRow.year, total_kg: sum.total_kg };
       }

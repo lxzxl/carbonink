@@ -1,6 +1,6 @@
-import { writeAppendixXlsx } from '@main/services/report-export-service';
-import type { InventoryReportData } from '@main/services/report-data-service';
 import type { ReportNarrative } from '@main/llm/report-narrative';
+import type { InventoryReportData } from '@main/services/report-data-service';
+import { writeAppendixXlsx } from '@main/services/report-export-service';
 import ExcelJS from 'exceljs';
 import { describe, expect, it } from 'vitest';
 
@@ -31,8 +31,26 @@ function fakeData(): InventoryReportData {
       { id: 's2', name: 'B', scope: 2, co2e_kg: 200, share_pct: 57.1 },
     ],
     activities: [
-      { id: 'a1', site_name: '北京', source_name: 'A', scope: 1, amount: 32, unit: 'kg', pinned_ef_source: 'IPCC', co2e_kg: 100 },
-      { id: 'a2', site_name: '北京', source_name: 'B', scope: 2, amount: 1000, unit: 'kWh', pinned_ef_source: 'IPCC', co2e_kg: 200 },
+      {
+        id: 'a1',
+        site_name: '北京',
+        source_name: 'A',
+        scope: 1,
+        amount: 32,
+        unit: 'kg',
+        pinned_ef_source: 'IPCC',
+        co2e_kg: 100,
+      },
+      {
+        id: 'a2',
+        site_name: '北京',
+        source_name: 'B',
+        scope: 2,
+        amount: 1000,
+        unit: 'kWh',
+        pinned_ef_source: 'IPCC',
+        co2e_kg: 200,
+      },
     ],
     ef_sources_used: [{ source: 'IPCC', count: 2, gwp_basis: 'AR5' }],
     language: 'zh-CN',
