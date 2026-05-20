@@ -1,0 +1,48 @@
+.report-preview {
+  font-family: system-ui, -apple-system, sans-serif;
+  color: #111;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.report-preview__section {
+  margin: 1.5rem 0;
+}
+
+.report-preview__cover {
+  text-align: center;
+  padding: 3rem 0;
+}
+
+.report-preview table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.report-preview th,
+.report-preview td {
+  border: 1px solid #ccc;
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+}
+
+@media print {
+  .report-preview {
+    padding: 0;
+    max-width: none;
+  }
+
+  @page {
+    size: A4;
+    margin: 20mm 18mm;
+  }
+
+  @page :first {
+    margin-top: 0;
+  }
+}
+
+.report-preview--print {
+  background: white;
+}
