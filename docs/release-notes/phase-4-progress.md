@@ -134,9 +134,17 @@ Highlights:
 
 Implementation = sub-project G.
 
-## Sub-project F — Landing page spec (not started)
+## Sub-project F — Landing page spec (shipped)
 
-Pricing / activate / account pages (Cloudflare Pages).
+Design document at `docs/specs/2026-05-21-carbonbook-landing-pages-design.md`.
+
+Covers `carbonbook.app` (marketing + pricing + download), 
+`activate.carbonbook.app` (post-checkout activation helper), and
+`account.carbonbook.app` (magic-link auth + my-plan + devices list +
+Stripe Customer Portal handoff). Astro 5 + Tailwind, bilingual,
+privacy posture aligned with main spec §10.
+
+Implementation = sub-project G.
 
 ## Sub-projects G, H, I — External dependencies (deferred)
 
