@@ -20,6 +20,8 @@ export const reportingPeriod = z.object({
   ends_at: z.string(),
   is_active: z.number(),
   created_at: z.string(),
+  significant_changes_text: z.string().nullable(),
+  recalculation_reason: z.string().nullable(),
 });
 
 export type ReportingPeriod = z.infer<typeof reportingPeriod>;

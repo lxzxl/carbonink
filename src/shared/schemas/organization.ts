@@ -1,7 +1,11 @@
 import { z } from 'zod';
 import { optionalString } from './_helpers.js';
 
-export const organizationKindEnum = z.enum(['equity_share', 'operational_control']);
+export const organizationKindEnum = z.enum([
+  'equity_share',
+  'financial_control',
+  'operational_control',
+]);
 
 export const organizationCreateInput = z
   .object({
@@ -22,6 +26,10 @@ export const organization = z.object({
   industry: z.string().nullable(),
   country_code: z.string(),
   boundary_kind: organizationKindEnum,
+  responsible_person_name: z.string().nullable(),
+  responsible_person_role: z.string().nullable(),
+  base_year_period_id: z.string().nullable(),
+  recalc_threshold_pct: z.number(),
   created_at: z.string(),
   updated_at: z.string(),
 });

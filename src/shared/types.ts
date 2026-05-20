@@ -98,6 +98,7 @@ export type EmissionFactor = {
   description_zh: string | null;
   description_en: string | null;
   notes: string | null;
+  biogenic_co2_factor: number | null;
   citation_url: string | null;
 };
 
@@ -105,7 +106,7 @@ export type EmissionFactor = {
  * Row shape for `pinned_emission_factor`. Mirrors `EmissionFactor` minus
  * `notes`, plus pin metadata. See migration 002.
  */
-export type PinnedEmissionFactor = Omit<EmissionFactor, 'notes'> & {
+export type PinnedEmissionFactor = Omit<EmissionFactor, 'notes' | 'biogenic_co2_factor'> & {
   pinned_at: string;
   /**
    * Which RO snapshot the pin was copied from. In Phase 1a both source and
