@@ -46,6 +46,7 @@ const EF_CHINA_UTILITY: EmissionFactor = {
   description_zh: null,
   description_en: null,
   notes: null,
+  biogenic_co2_factor: null,
   citation_url: 'https://www.mee.gov.cn/',
 };
 
@@ -73,6 +74,7 @@ const EF_FUEL_DIESEL: EmissionFactor = {
   description_zh: null,
   description_en: null,
   notes: null,
+  biogenic_co2_factor: null,
   citation_url: 'https://www.ipcc.ch/report/ar6/',
 };
 
@@ -100,6 +102,7 @@ const EF_FREIGHT_ROAD: EmissionFactor = {
   description_zh: null,
   description_en: null,
   notes: null,
+  biogenic_co2_factor: null,
   citation_url:
     'https://www.gov.uk/government/collections/government-conversion-factors-for-company-reporting',
 };
@@ -128,6 +131,7 @@ const EF_PURCHASE_STEEL: EmissionFactor = {
   description_zh: null,
   description_en: null,
   notes: null,
+  biogenic_co2_factor: null,
   citation_url: 'https://www.ecoinvent.org/',
 };
 
@@ -155,6 +159,7 @@ const EF_TRAVEL_AIR: EmissionFactor = {
   description_zh: null,
   description_en: null,
   notes: null,
+  biogenic_co2_factor: null,
   citation_url:
     'https://www.gov.uk/government/collections/government-conversion-factors-for-company-reporting',
 };

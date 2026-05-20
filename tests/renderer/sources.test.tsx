@@ -37,6 +37,10 @@ const FAKE_ORG = {
   industry: null,
   country_code: 'CN',
   boundary_kind: 'operational_control' as const,
+  responsible_person_name: null,
+  responsible_person_role: null,
+  base_year_period_id: null,
+  recalc_threshold_pct: 5.0,
   created_at: '2026-05-11T00:00:00Z',
   updated_at: '2026-05-11T00:00:00Z',
 };

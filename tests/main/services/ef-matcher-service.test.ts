@@ -33,6 +33,7 @@ const CANDIDATE_DIESEL: EmissionFactor = {
   description_zh: null,
   description_en: null,
   notes: null,
+  biogenic_co2_factor: null,
   citation_url: 'https://example.com',
 };
 

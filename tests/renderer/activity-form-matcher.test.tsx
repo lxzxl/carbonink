@@ -68,6 +68,8 @@ const FAKE_PERIOD: ReportingPeriod = {
   ends_at: '2026-12-31',
   is_active: 1,
   created_at: '2026-05-11T00:00:00Z',
+  significant_changes_text: null,
+  recalculation_reason: null,
 };
 
 const BASE_EF: EmissionFactor = {
@@ -93,6 +95,7 @@ const BASE_EF: EmissionFactor = {
   description_zh: null,
   description_en: null,
   notes: null,
+  biogenic_co2_factor: null,
   citation_url: null,
 };
 
