@@ -1,4 +1,4 @@
-import { allowedChannels, createBridge } from '@preload/bridge';
+import { allowedChannels, allowedPushChannels, createBridge } from '@preload/bridge';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('preload bridge', () => {
@@ -101,7 +101,18 @@ describe('preload bridge', () => {
       // mcp domain (Phase 2 Block 4 — MCP server status / Claude Desktop config)
       'mcp:get-status',
       'mcp:write-claude-config',
+      // report domain (Phase 3 — ISO 14064-1 inventory report)
+      'report:generate',
+      'report:cancel',
+      'report:export-pdf',
+      'report:export-xlsx',
     ]);
+  });
+});
+
+describe('push allowlist', () => {
+  it('push allowlist covers exactly the registered push channels', () => {
+    expect(allowedPushChannels).toEqual(['extraction:progress', 'report:progress']);
   });
 });
 

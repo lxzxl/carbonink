@@ -7,6 +7,7 @@ import {
 } from '@main/credentials/safe-storage-backend.js';
 import { ExcelParser } from '@main/excel/parser.js';
 import { LLMClient } from '@main/llm/llm-client.js';
+import type { ReportNarrativeProvider } from '@main/llm/report-narrative.js';
 import { ActivityDataService } from '@main/services/activity-data-service.js';
 import type { AnswerR } from '@main/services/answer-generation/tags.js';
 import { buildAnswerLayer } from '@main/services/answer-generation/tags.js';
@@ -22,6 +23,7 @@ import { EmissionSourceService } from '@main/services/emission-source-service.js
 import { ExtractionService } from '@main/services/extraction-service.js';
 import { OrganizationService } from '@main/services/organization-service.js';
 import { QuestionnaireService } from '@main/services/questionnaire-service.js';
+import { ReportDataService } from '@main/services/report-data-service.js';
 import { buildRoutingLayer, type RoutingR } from '@main/services/routing/tags.js';
 import { SettingsService } from '@main/services/settings-service.js';
 import { UnitConversionService } from '@main/services/unit-conversion-service.js';
@@ -29,6 +31,7 @@ import type { ProviderConfig } from '@shared/types.js';
 import type { Layer } from 'effect';
 import { app } from 'electron';
 import type { ProgressEmitter } from './progress.js';
+import type { IpcPushTypeMap } from './types.js';
 
 /**
  * Service-layer container injected into every IPC handler factory. Wiring
@@ -64,6 +67,11 @@ export interface IpcContext {
   providerConfig: ProviderConfig | null;
   // Routing API — distance lookup via AMap or haversine.
   routingLayer: Layer.Layer<RoutingR>;
+  // Phase 3 — report generation pipeline.
+  reportDataService: import('@main/services/report-data-service').ReportDataService;
+  llmNarrativeProvider: import('@main/llm/report-narrative').ReportNarrativeProvider;
+  // Main→renderer push channel emitter, shared across all services.
+  pushEvent: <C extends keyof IpcPushTypeMap>(channel: C, payload: IpcPushTypeMap[C]) => void;
 }
 
 /**
@@ -156,6 +164,8 @@ export function createIpcContext(
     overrides.questionnaireService;
   let answerLayerInstance: Layer.Layer<AnswerR> | undefined;
   let routingLayerInstance: Layer.Layer<RoutingR> | undefined;
+  let reportDataServiceInstance: ReportDataService | undefined;
+  let llmNarrativeProviderInstance: ReportNarrativeProvider | undefined;
 
   const getCredential = (): CredentialService => {
     if (!credentialServiceInstance) credentialServiceInstance = defaultCredentialService();
@@ -308,6 +318,39 @@ export function createIpcContext(
       const providerCfg = getSettings().getProviderConfigWithKey();
       return providerCfg ? providerCfg.config : null;
     },
+    get reportDataService() {
+      if (!reportDataServiceInstance) {
+        reportDataServiceInstance = new ReportDataService({ db: svc.db });
+      }
+      return reportDataServiceInstance;
+    },
+    get llmNarrativeProvider() {
+      if (!llmNarrativeProviderInstance) {
+        const llm = getLlm();
+        const providerCfg = getSettings().getProviderConfigWithKey();
+        if (!providerCfg) {
+          throw new Error('AI provider not configured. Open Settings to set up.');
+        }
+        llmNarrativeProviderInstance = {
+          streamObject: ({ schema, system, user, abortSignal }) =>
+            llm.streamObject(providerCfg.config, schema, system, user, abortSignal),
+        };
+      }
+      return llmNarrativeProviderInstance;
+    },
+    pushEvent: <C extends keyof IpcPushTypeMap>(channel: C, payload: IpcPushTypeMap[C]) => {
+      // Use the progressEmitter if available; tests can inject a vi.fn()
+      return;
+    },
   };
+
+  // Inject the progressEmitter as pushEvent if provided
+  if (overrides.progressEmitter) {
+    const emitter = overrides.progressEmitter;
+    ctx.pushEvent = <C extends keyof IpcPushTypeMap>(channel: C, payload: IpcPushTypeMap[C]) => {
+      emitter(channel, payload);
+    };
+  }
+
   return ctx;
 }

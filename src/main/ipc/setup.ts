@@ -13,6 +13,7 @@ import { extractionHandlers } from './handlers/extraction.js';
 import { mcpHandlers } from './handlers/mcp.js';
 import { organizationHandlers } from './handlers/organization.js';
 import { questionnaireHandlers } from './handlers/questionnaire.js';
+import { reportHandlers } from './handlers/report.js';
 import { routingHandlers } from './handlers/routing.js';
 import { settingsHandlers } from './handlers/settings.js';
 import { createProgressEmitter } from './progress.js';
@@ -37,6 +38,7 @@ const HANDLER_FACTORIES: ReadonlyArray<HandlerFactory> = [
   answerHandlers,
   routingHandlers,
   mcpHandlers,
+  reportHandlers,
 ];
 
 export function setupIpc(): void {

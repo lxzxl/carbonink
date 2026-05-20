@@ -70,6 +70,11 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   // mcp domain (Phase 2 Block 4 — MCP server status / Claude Desktop config)
   'mcp:get-status',
   'mcp:write-claude-config',
+  // report domain (Phase 3 — ISO 14064-1 inventory report)
+  'report:generate',
+  'report:cancel',
+  'report:export-pdf',
+  'report:export-xlsx',
 ];
 
 /**
@@ -77,7 +82,10 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
  * Subscribe-side counterpart to `allowedChannels`. Keep aligned with
  * `IpcPushTypeMap` keys in `src/main/ipc/types.ts`.
  */
-export const allowedPushChannels: ReadonlyArray<keyof IpcPushTypeMap> = ['extraction:progress'];
+export const allowedPushChannels: ReadonlyArray<keyof IpcPushTypeMap> = [
+  'extraction:progress',
+  'report:progress',
+];
 
 export type InvokeFn = (channel: string, ...args: unknown[]) => Promise<unknown>;
 

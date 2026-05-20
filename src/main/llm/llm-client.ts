@@ -6,7 +6,7 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import type { VisionMessages } from '@main/llm/stages/types.js';
 import type { CredentialService } from '@main/services/credential-service.js';
 import type { ProviderConfig } from '@shared/types.js';
-import { generateObject, type LanguageModel, NoObjectGeneratedError } from 'ai';
+import { generateObject, streamObject, type LanguageModel, NoObjectGeneratedError } from 'ai';
 import { z } from 'zod';
 
 /**
@@ -544,6 +544,40 @@ ${text || '(no parsed text — see attached images)'}
     return {
       doc_type: result.doc_type === 'unknown' ? null : result.doc_type,
       confidence: result.confidence,
+    };
+  }
+
+  /**
+   * Streaming variant of `extract` for structured generation. Returns both a
+   * `Promise<T>` for the final object and an `AsyncIterable<Partial<T>>`
+   * for incremental partial updates as the model streams.
+   *
+   * Used by the report narrative generator to:
+   * - Emit progress events as each section completes
+   * - Cancel via `abortSignal` mid-stream
+   */
+  async streamObject<T>(
+    config: ProviderConfig,
+    schema: z.ZodType<T>,
+    system: string,
+    prompt: string,
+    abortSignal: AbortSignal,
+  ): Promise<{
+    object: Promise<T>;
+    partialObjectStream: AsyncIterable<Partial<T>>;
+  }> {
+    const model = this.getModel(config);
+    const result = await streamObject({
+      model,
+      schema,
+      system,
+      prompt,
+      mode: 'json',
+      abortSignal,
+    });
+    return {
+      object: result.object,
+      partialObjectStream: result.partialObjectStream as AsyncIterable<Partial<T>>,
     };
   }
 }

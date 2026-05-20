@@ -203,6 +203,38 @@ export type IpcTypeMap = {
   }) => Promise<
     { canceled: true } | { canceled: false; path: string; written: number; drafts: number }
   >;
+
+  // report domain (Phase 3 — ISO 14064-1 inventory report)
+  'report:generate': (input: {
+    report_id: string;
+    reporting_period_id: string;
+    language: 'zh-CN' | 'en';
+  }) => Promise<
+    | { canceled: true }
+    | {
+        canceled: false;
+        data: import('@main/services/report-data-service').InventoryReportData;
+        narrative: import('@main/llm/report-narrative').ReportNarrative;
+        error?: never;
+      }
+    | {
+        canceled: false;
+        error: { _tag: 'NoProvider' | 'Refused' | 'RateLimit' | 'Timeout'; message?: string | undefined };
+        data?: never;
+        narrative?: never;
+      }
+  >;
+  'report:cancel': (input: { report_id: string }) => void;
+  'report:export-pdf': (input: {
+    data: import('@main/services/report-data-service').InventoryReportData;
+    narrative: import('@main/llm/report-narrative').ReportNarrative;
+    language: 'zh-CN' | 'en';
+  }) => Promise<{ canceled: true } | { ok: true; path: string } | { ok: false; error: string }>;
+  'report:export-xlsx': (input: {
+    data: import('@main/services/report-data-service').InventoryReportData;
+    narrative: import('@main/llm/report-narrative').ReportNarrative;
+    language: 'zh-CN' | 'en';
+  }) => Promise<{ canceled: true } | { ok: true; path: string } | { ok: false; error: string }>;
 };
 
 /**
@@ -222,5 +254,17 @@ export type IpcPushTypeMap = {
     document_id: string;
     /** Stage of the pipeline the event was emitted from. */
     phase: 'vision';
+  };
+  'report:progress': {
+    report_id: string;
+    phase: 'assembling' | 'narrative' | 'finalizing';
+    sub_phase:
+      | 'boundary'
+      | 'reporting-boundary'
+      | 'methodology'
+      | 'emissions'
+      | 'changes'
+      | 'observations'
+      | null;
   };
 };
