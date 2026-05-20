@@ -1,9 +1,16 @@
-import { type KeyObject, generateKeyPairSync, sign as cryptoSign } from 'node:crypto';
-import Database from 'better-sqlite3';
+import { execSync } from 'node:child_process';
+import {
+  type KeyObject,
+  createPublicKey,
+  generateKeyPairSync,
+  sign as cryptoSign,
+} from 'node:crypto';
+import { existsSync, readFileSync } from 'node:fs';
 import type { SafeStorageLike } from '@main/credentials/safe-storage';
 import { CredentialStore } from '@main/credentials/safe-storage';
 import { runMigrations } from '@main/db/migrate';
 import { LicenseService } from '@main/services/license-service';
+import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 /**
@@ -184,5 +191,56 @@ describe('LicenseService', () => {
       .get() as { last_known_state: string; last_known_state_at: string };
     expect(row.last_known_state).toBe('active');
     expect(row.last_known_state_at).toBe(NOW_ISO);
+  });
+});
+
+describe('LicenseService — round-trip with the dev issuer CLI', () => {
+  /**
+   * Production-shape integration: load the *real* dev public key from disk,
+   * spawn the CLI to mint a JWT, feed it through LicenseService. If this
+   * test breaks after `scripts/issue-dev-license.mjs` is edited or the
+   * dev keypair is rotated, the issuer / verifier are out of sync.
+   */
+  it('accepts a JWT minted by scripts/issue-dev-license.mjs', () => {
+    const hexPath = 'scripts/dev/license-keypair/public.hex';
+    if (!existsSync(hexPath)) {
+      // Skipping rather than failing: someone may have just checked out
+      // pre-Task-5 history. Task 6 also tracks this.
+      return;
+    }
+    const hex = readFileSync(hexPath, 'utf8').trim();
+    const rawPub = Buffer.from(hex, 'hex');
+    const SPKI_PREFIX = Buffer.from('302a300506032b6570032100', 'hex');
+    const realPublicKey = createPublicKey({
+      key: Buffer.concat([SPKI_PREFIX, rawPub]),
+      format: 'der',
+      type: 'spki',
+    });
+
+    const localBlobs = inMemoryBlobStore();
+    const localDb = new Database(':memory:');
+    localDb.pragma('foreign_keys = ON');
+    runMigrations(localDb);
+    const localStore = new CredentialStore({
+      safeStorage: passthroughSafeStorage(),
+      readBlob: localBlobs.read,
+      writeBlob: localBlobs.write,
+      platform: 'darwin',
+    });
+    const localSvc = new LicenseService({
+      db: localDb,
+      now: () => new Date().toISOString(),
+      nowSeconds: () => Math.floor(Date.now() / 1000),
+      publicKey: realPublicKey,
+      credentialStore: localStore,
+      deleteBlob: localBlobs.del,
+    });
+
+    const jwt = execSync('node scripts/issue-dev-license.mjs --plan base --days 30')
+      .toString('utf8')
+      .trim();
+    expect(() => localSvc.setJwt(jwt)).not.toThrow();
+    expect(localSvc.getState().state).toBe('active');
+    localDb.close();
   });
 });
