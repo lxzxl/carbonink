@@ -346,5 +346,18 @@
   "sources_table_category": "分类",
   "sources_table_name": "名称",
   "sources_table_scope": "范围",
-  "unit_kg_co2e": "kg CO2e"
+  "unit_kg_co2e": "kg CO2e",
+  "rebind_button": "重新镶嵌",
+  "rebind_drawer_heading": "重新镶嵌排放因子",
+  "rebind_current_label": "当前",
+  "rebind_current_co2e": "当前排放",
+  "rebind_preview_heading": "预览",
+  "rebind_unit_conversion": "单位换算: {from_amt} {from_unit} → {to_amt} {to_unit}",
+  "rebind_unit_cross_family": "无法跨单位族自动换算 ({from} → {to})：请删除并重建该活动。",
+  "rebind_new_co2e": "新排放",
+  "rebind_delta": "变化: {delta_signed} kg ({pct_signed}%)",
+  "rebind_confirm": "确认重新镶嵌",
+  "rebind_cancel": "取消",
+  "rebind_success_toast": "已重新镶嵌 — 新排放 {co2e} kg CO2e ({pct_signed}%)",
+  "rebind_error_toast": "重新镶嵌失败: {message}"
 }

@@ -346,5 +346,18 @@
   "sources_table_category": "Category",
   "sources_table_name": "Name",
   "sources_table_scope": "Scope",
-  "unit_kg_co2e": "kg CO2e"
+  "unit_kg_co2e": "kg CO2e",
+  "rebind_button": "Rebind",
+  "rebind_drawer_heading": "Rebind emission factor",
+  "rebind_current_label": "Current",
+  "rebind_current_co2e": "Current emissions",
+  "rebind_preview_heading": "Preview",
+  "rebind_unit_conversion": "Unit conversion: {from_amt} {from_unit} → {to_amt} {to_unit}",
+  "rebind_unit_cross_family": "Cannot convert {from} → {to} without fuel binding. Delete and re-create the activity.",
+  "rebind_new_co2e": "New emissions",
+  "rebind_delta": "Change: {delta_signed} kg ({pct_signed}%)",
+  "rebind_confirm": "Confirm rebind",
+  "rebind_cancel": "Cancel",
+  "rebind_success_toast": "Rebound — new emissions {co2e} kg CO2e ({pct_signed}%)",
+  "rebind_error_toast": "Rebind failed: {message}"
 }
