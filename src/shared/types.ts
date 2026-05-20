@@ -380,3 +380,35 @@ export type MatcherResult = {
   recommended: MatcherRecommendation[];
   ranked_full: EmissionFactor[];
 };
+
+// ---------------------------------------------------------------------------
+// Audit Event types (Phase 3 sub-project 3 — audit log viewer)
+// ---------------------------------------------------------------------------
+
+/**
+ * Row shape mirroring the `audit_event` table (migration 006).
+ * Append-only via DB triggers; readers parse `payload` as JSON.
+ */
+export type AuditEvent = {
+  id: string;
+  event_kind: string;
+  /** JSON-text payload. Caller parses with `JSON.parse`. */
+  payload: string;
+  occurred_at: string;
+};
+
+/**
+ * Typed shape of the `payload` for `event_kind === 'activity_rebind_ef'`.
+ * Written by `ActivityDataService.rebindEf` (Phase 3 sub-project 2).
+ */
+export type ActivityRebindEfPayload = {
+  activity_id: string;
+  old_ef: EfCompositePk;
+  new_ef: EfCompositePk;
+  old_amount: number;
+  old_unit: string;
+  old_computed_co2e_kg: number;
+  new_amount: number;
+  new_unit: string;
+  new_computed_co2e_kg: number;
+};
