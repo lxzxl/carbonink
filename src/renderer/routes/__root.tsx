@@ -1,4 +1,5 @@
 import { CommandPalette } from '@renderer/components/command-palette';
+import { LicenseBanner } from '@renderer/components/LicenseBanner';
 import { Sidebar } from '@renderer/components/Sidebar';
 import { createRootRoute, Outlet, useRouterState } from '@tanstack/react-router';
 
@@ -37,11 +38,17 @@ function RootComponent() {
       {/* NOTE: bg-background omitted from this wrapper so macOS vibrancy /
        * Windows Mica show through. text-foreground stays for inherited
        * text color tokens. */}
-      <div className="flex h-screen pt-8 text-foreground">
-        <Sidebar />
-        <main className="flex-1 overflow-auto p-8">
-          <Outlet />
-        </main>
+      <div className="flex h-screen pt-8 text-foreground flex-col">
+        {/* License banner sits above the sidebar+main flex so it spans
+         * the full app width. Renders nothing when license is active /
+         * unverified. (Phase 4 sub-project B) */}
+        <LicenseBanner />
+        <div className="flex flex-1 min-h-0">
+          <Sidebar />
+          <main className="flex-1 overflow-auto p-8">
+            <Outlet />
+          </main>
+        </div>
       </div>
       <CommandPalette />
     </>

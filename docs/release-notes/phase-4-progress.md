@@ -33,10 +33,33 @@ Cloud-side issuance / `/activate` / `/verify` deferred to sub-project G.
 **Tests:** 25 added across 4 files. 635/635 vitest passing, typecheck +
 biome clean.
 
-## Sub-project B — License UI (not started)
+## Sub-project B — License UI (shipped)
 
-Settings page License section: paste-key activation form, current-state
-display, device list, top-of-screen banner for grace / expired / revoked.
+Renderer-side surface for sub-project A's IPC channels.
+
+**Shipped:**
+
+- **`LicenseSection`** (`src/renderer/components/LicenseSection.tsx`) —
+  added to the bottom of `/settings`. Renders a state chip + the JWT
+  claims (plan, features, expiry, device_id, last verified) when active,
+  otherwise renders the paste-JWT activation form. Activation errors
+  branch per tagged result (`BadSignature` / `Malformed` / `BadSchema`)
+  with localized messages. Deactivation behind `window.confirm`.
+- **`LicenseBanner`** (`src/renderer/components/LicenseBanner.tsx`) —
+  top-of-app banner mounted in `__root.tsx`. Renders only on `grace`,
+  `expired`, `revoked`; nothing on `active`/`unverified`. Includes a
+  "Open License settings" link. Polls `license:get-state` every 60 s so
+  state transitions surface within a minute without a manual refresh.
+- **i18n** — 30 new keys across en + zh-CN.
+- **__root layout** — restructured to `flex-col` so the banner spans the
+  full window width above the sidebar+main flex.
+
+**Tests:** 9 component tests (4 LicenseSection + 5 LicenseBanner).
+653/653 vitest, typecheck + biome clean.
+
+Cloud-side issuance is sub-project G; until then a developer mints a
+local dev JWT with `node scripts/issue-dev-license.mjs` and pastes it
+into the new activation form.
 
 ## Sub-project C — Read-only mode gate (shipped)
 

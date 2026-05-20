@@ -1,3 +1,4 @@
+import { LicenseSection } from '@renderer/components/LicenseSection';
 import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
 import { Input } from '@renderer/components/ui/input';
@@ -751,6 +752,9 @@ export function SettingsPage() {
 
       {/* Organization Profile — ISO 14064-1 metadata (Phase 3) */}
       <OrganizationProfileSection />
+
+      {/* License — Ed25519 JWT activation + state display (Phase 4 sub-project B) */}
+      <LicenseSection />
     </form>
   );
 }
