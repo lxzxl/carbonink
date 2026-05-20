@@ -174,4 +174,38 @@ describe('OrganizationService', () => {
       original;
     expect(orgSvc.hasAnyOrganization()).toBe(false);
   });
+
+  describe('OrganizationService.updateReportingProfile', () => {
+    it('updates responsible person + boundary + base_year_period_id', () => {
+      const org = svc.createOrganization({
+        name_zh: '中山钢铁有限公司',
+        country_code: 'CN',
+        boundary_kind: 'operational_control',
+      });
+      svc.createReportingPeriod({
+        organization_id: org.id,
+        year: 2024,
+        granularity: 'annual',
+      });
+      const period = svc.createReportingPeriod({
+        organization_id: org.id,
+        year: 2025,
+        granularity: 'annual',
+      });
+
+      svc.updateReportingProfile({
+        id: org.id,
+        boundary_kind: 'financial_control',
+        responsible_person_name: '张三',
+        responsible_person_role: '可持续发展负责人',
+        base_year_period_id: period.id,
+      });
+
+      const updated = svc.getOrganization(org.id);
+      expect(updated?.boundary_kind).toBe('financial_control');
+      expect(updated?.responsible_person_name).toBe('张三');
+      expect(updated?.responsible_person_role).toBe('可持续发展负责人');
+      expect(updated?.base_year_period_id).toBe(period.id);
+    });
+  });
 });

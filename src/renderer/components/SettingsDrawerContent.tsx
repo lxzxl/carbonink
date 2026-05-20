@@ -3,6 +3,7 @@ import { Button } from '@renderer/components/ui/button';
 import { Input } from '@renderer/components/ui/input';
 import { Label } from '@renderer/components/ui/label';
 import { mcpApi } from '@renderer/lib/api/mcp';
+import { orgApi } from '@renderer/lib/api/organization';
 import { settingsApi } from '@renderer/lib/api/settings';
 import * as m from '@renderer/paraglide/messages';
 import type { ProviderConfig, ProviderKind } from '@shared/types';
@@ -126,6 +127,141 @@ function buildProviderConfig(v: SettingsFormValues): ProviderConfig | null {
       };
     }
   }
+}
+
+/**
+ * Organization Profile section (ISO 14064-1 metadata).
+ * Allows editing boundary_kind, responsible_person_name/role, and base_year_period_id.
+ */
+function OrganizationProfileSection() {
+  const queryClient = useQueryClient();
+
+  // Fetch current org + reporting periods
+  const orgQuery = useQuery({
+    queryKey: ['org:get-current'],
+    queryFn: () => orgApi.getCurrent(),
+  });
+
+  const periodsQuery = useQuery({
+    queryKey: ['org:list-reporting-periods', orgQuery.data?.id],
+    queryFn: () => orgApi.listReportingPeriods({ organization_id: orgQuery.data!.id }),
+    enabled: !!orgQuery.data?.id,
+  });
+
+  // Local state for form fields
+  const [boundary, setBoundary] = useState<'equity_share' | 'financial_control' | 'operational_control'>(
+    'operational_control',
+  );
+  const [respName, setRespName] = useState('');
+  const [respRole, setRespRole] = useState('');
+  const [baseYearId, setBaseYearId] = useState<string | null>(null);
+
+  // Hydrate from org data when it loads
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional: only re-run when the query data changes
+  useEffect(() => {
+    if (orgQuery.data) {
+      setBoundary(orgQuery.data.boundary_kind);
+      setRespName(orgQuery.data.responsible_person_name ?? '');
+      setRespRole(orgQuery.data.responsible_person_role ?? '');
+      setBaseYearId(orgQuery.data.base_year_period_id ?? null);
+    }
+  }, [orgQuery.data]);
+
+  // Save mutation
+  const saveMutation = useMutation({
+    mutationFn: () =>
+      orgApi.updateReportingProfile({
+        id: orgQuery.data!.id,
+        boundary_kind: boundary,
+        responsible_person_name: respName || null,
+        responsible_person_role: respRole || null,
+        base_year_period_id: baseYearId,
+      }),
+    onSuccess: () => {
+      toast.success(m.settings_reporting_profile_saved());
+      queryClient.invalidateQueries({ queryKey: ['org:get-current'] });
+    },
+    onError: (err) => {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      toast.error(m.settings_save_failed(), { description: msg });
+    },
+  });
+
+  if (!orgQuery.data) return null;
+
+  return (
+    <div className="border-t border-border pt-4 mt-2 space-y-3">
+      <h3 className="text-sm font-medium">{m.settings_org_profile_heading()}</h3>
+      <p className="text-sm text-muted-foreground">{m.settings_org_profile_subheading()}</p>
+
+      {/* Boundary kind radio group (using select for simplicity) */}
+      <div className="space-y-1">
+        <Label htmlFor="settings-boundary">{m.settings_boundary_label()}</Label>
+        <select
+          id="settings-boundary"
+          value={boundary}
+          onChange={(e) =>
+            setBoundary(e.target.value as 'equity_share' | 'financial_control' | 'operational_control')
+          }
+          className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2"
+        >
+          <option value="equity_share">{m.settings_boundary_equity_share()}</option>
+          <option value="financial_control">{m.settings_boundary_financial_control()}</option>
+          <option value="operational_control">{m.settings_boundary_operational_control()}</option>
+        </select>
+      </div>
+
+      {/* Responsible person name */}
+      <div className="space-y-1">
+        <Label htmlFor="settings-resp-name">{m.settings_responsible_name_label()}</Label>
+        <Input
+          id="settings-resp-name"
+          value={respName}
+          onChange={(e) => setRespName(e.target.value)}
+          placeholder=""
+        />
+      </div>
+
+      {/* Responsible person role */}
+      <div className="space-y-1">
+        <Label htmlFor="settings-resp-role">{m.settings_responsible_role_label()}</Label>
+        <Input
+          id="settings-resp-role"
+          value={respRole}
+          onChange={(e) => setRespRole(e.target.value)}
+          placeholder=""
+        />
+      </div>
+
+      {/* Base year period dropdown */}
+      <div className="space-y-1">
+        <Label htmlFor="settings-base-year">{m.settings_base_year_label()}</Label>
+        <select
+          id="settings-base-year"
+          value={baseYearId ?? ''}
+          onChange={(e) => setBaseYearId(e.target.value === '' ? null : e.target.value)}
+          className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2"
+        >
+          <option value="">{m.settings_base_year_none()}</option>
+          {periodsQuery.data?.map((period) => (
+            <option key={period.id} value={period.id}>
+              {period.year}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Save button */}
+      <Button
+        type="button"
+        onClick={() => saveMutation.mutate()}
+        disabled={saveMutation.isPending}
+        className="w-full"
+      >
+        {saveMutation.isPending ? m.settings_saving() : m.settings_reporting_profile_save()}
+      </Button>
+    </div>
+  );
 }
 
 export interface SettingsDrawerContentProps {
@@ -612,6 +748,9 @@ export function SettingsDrawerContent({ onSaved }: SettingsDrawerContentProps = 
           </>
         )}
       </div>
+
+      {/* Organization Profile — ISO 14064-1 metadata (Phase 3) */}
+      <OrganizationProfileSection />
     </form>
   );
 }

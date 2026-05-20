@@ -11,6 +11,7 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   'org:list-reporting-periods',
   'org:create-reporting-period',
   'org:complete-onboarding',
+  'org:update-reporting-profile',
   // ef-library domain (read-only catalog)
   'ef:list',
   'ef:get-by-pk',

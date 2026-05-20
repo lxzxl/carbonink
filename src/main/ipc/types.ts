@@ -51,6 +51,13 @@ export type IpcTypeMap = {
     site: Site;
     reporting_period: ReportingPeriod;
   };
+  'org:update-reporting-profile': (input: {
+    id: string;
+    boundary_kind: 'equity_share' | 'financial_control' | 'operational_control';
+    responsible_person_name: string | null;
+    responsible_person_role: string | null;
+    base_year_period_id: string | null;
+  }) => void;
 
   // ef-library domain (read-only catalog: emission factors + unit definitions)
   'ef:list': (input: EfLookupQuery) => EmissionFactor[];

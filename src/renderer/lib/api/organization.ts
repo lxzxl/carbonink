@@ -29,4 +29,11 @@ export const orgApi = {
   createReportingPeriod: (input: ReportingPeriodCreateInput) =>
     invoke('org:create-reporting-period', input),
   completeOnboarding: (input: CompleteOnboardingInput) => invoke('org:complete-onboarding', input),
+  updateReportingProfile: (input: {
+    id: string;
+    boundary_kind: 'equity_share' | 'financial_control' | 'operational_control';
+    responsible_person_name: string | null;
+    responsible_person_role: string | null;
+    base_year_period_id: string | null;
+  }) => invoke('org:update-reporting-profile', input),
 };

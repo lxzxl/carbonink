@@ -167,4 +167,38 @@ export class OrganizationService {
     });
     return tx();
   }
+
+  /**
+   * Update organization reporting profile (ISO 14064-1 metadata):
+   * - boundary_kind (consolidation approach: equity_share / financial_control / operational_control)
+   * - responsible_person_name + responsible_person_role
+   * - base_year_period_id (reference year for comparisons)
+   */
+  updateReportingProfile(input: {
+    id: string;
+    boundary_kind: 'equity_share' | 'financial_control' | 'operational_control';
+    responsible_person_name: string | null;
+    responsible_person_role: string | null;
+    base_year_period_id: string | null;
+  }): void {
+    const now = this.ctx.now();
+    this.ctx.db
+      .prepare(
+        `UPDATE organization
+            SET boundary_kind = ?,
+                responsible_person_name = ?,
+                responsible_person_role = ?,
+                base_year_period_id = ?,
+                updated_at = ?
+          WHERE id = ?`,
+      )
+      .run(
+        input.boundary_kind,
+        input.responsible_person_name,
+        input.responsible_person_role,
+        input.base_year_period_id,
+        now,
+        input.id,
+      );
+  }
 }

@@ -37,5 +37,17 @@ export function organizationHandlers(ctx: IpcContext): {
       svc.createReportingPeriod(reportingPeriodCreateInput.parse(input)),
     'org:complete-onboarding': (input) =>
       svc.completeOnboarding(completeOnboardingInput.parse(input)),
+    'org:update-reporting-profile': (input) => {
+      const parsed = z
+        .object({
+          id: z.string(),
+          boundary_kind: z.enum(['equity_share', 'financial_control', 'operational_control']),
+          responsible_person_name: z.string().nullable(),
+          responsible_person_role: z.string().nullable(),
+          base_year_period_id: z.string().nullable(),
+        })
+        .parse(input);
+      svc.updateReportingProfile(parsed);
+    },
   };
 }
