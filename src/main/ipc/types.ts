@@ -86,10 +86,7 @@ export type IpcTypeMap = {
     scope3_kg: number;
   };
   'activity:get-by-id': (input: { id: string }) => ActivityDataWithEf | null;
-  'activity:rebind-ef': (input: {
-    activity_id: string;
-    new_ef_pk: EfCompositePk;
-  }) => Promise<
+  'activity:rebind-ef': (input: { activity_id: string; new_ef_pk: EfCompositePk }) => Promise<
     | {
         ok: true;
         updated: ActivityData;

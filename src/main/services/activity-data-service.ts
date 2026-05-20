@@ -266,10 +266,7 @@ export class ActivityDataService {
    * row capturing the change. Returns a discriminated-union result —
    * the IPC layer surfaces the error variants without throwing.
    */
-  rebindEf(input: {
-    activity_id: string;
-    new_ef_pk: EfCompositePk;
-  }):
+  rebindEf(input: { activity_id: string; new_ef_pk: EfCompositePk }):
     | {
         ok: true;
         updated: ActivityData;
@@ -282,9 +279,9 @@ export class ActivityDataService {
       }
     | { ok: false; error: { _tag: 'NotFound' | 'EfNotFound' | 'UnitMismatch'; message: string } } {
     // 1. Load current activity.
-    const current = this.db
-      .prepare(`${AD_SELECT} WHERE id = ?`)
-      .get(input.activity_id) as ActivityData | undefined;
+    const current = this.db.prepare(`${AD_SELECT} WHERE id = ?`).get(input.activity_id) as
+      | ActivityData
+      | undefined;
     if (!current) {
       return {
         ok: false,
@@ -321,7 +318,11 @@ export class ActivityDataService {
       newAmount = current.amount;
     } else {
       try {
-        newAmount = this.unitConversionService.convert(current.amount, current.unit, efRow.input_unit);
+        newAmount = this.unitConversionService.convert(
+          current.amount,
+          current.unit,
+          efRow.input_unit,
+        );
       } catch {
         return {
           ok: false,
@@ -415,22 +416,16 @@ export class ActivityDataService {
 
   /** Read activity with the currently-pinned EF joined in. Null if not found. */
   getByIdWithEf(id: string): ActivityDataWithEf | null {
-    const ad = this.db
-      .prepare(`${AD_SELECT} WHERE id = ?`)
-      .get(id) as ActivityData | undefined;
+    const ad = this.db.prepare(`${AD_SELECT} WHERE id = ?`).get(id) as ActivityData | undefined;
     if (!ad) return null;
     const pinned = this.db
       .prepare(
         `SELECT * FROM pinned_emission_factor
           WHERE factor_code = ? AND year = ? AND source = ? AND geography = ? AND dataset_version = ?`,
       )
-      .get(
-        ad.ef_factor_code,
-        ad.ef_year,
-        ad.ef_source,
-        ad.ef_geography,
-        ad.ef_dataset_version,
-      ) as PinnedEmissionFactor | undefined;
+      .get(ad.ef_factor_code, ad.ef_year, ad.ef_source, ad.ef_geography, ad.ef_dataset_version) as
+      | PinnedEmissionFactor
+      | undefined;
     if (!pinned) return null;
     return { ...ad, pinned_ef: pinned };
   }

@@ -1,9 +1,9 @@
-import { useQuery } from '@tanstack/react-query';
-import { useMemo } from 'react';
 import { efApi } from '@renderer/lib/api/ef-library';
 import { efMatcherApi } from '@renderer/lib/api/ef-matcher';
-import type { EfCompositePk, EmissionFactor, MatcherResult } from '@shared/types';
 import * as m from '@renderer/paraglide/messages';
+import type { EfCompositePk, EmissionFactor, MatcherResult } from '@shared/types';
+import { useQuery } from '@tanstack/react-query';
+import { useMemo } from 'react';
 
 export interface EfPickerProps {
   selectedSourceId: string | null;
@@ -45,7 +45,6 @@ export function EfPicker({
   scopeFilter,
   onChange,
 }: EfPickerProps) {
-
   const recommendQuery = useQuery<MatcherResult>({
     queryKey: ['ef:recommend', matcherHint?.extraction_id ?? '', selectedSourceId ?? ''],
     queryFn: (): Promise<MatcherResult> =>
@@ -70,41 +69,46 @@ export function EfPicker({
   return (
     <div className="ef-picker">
       {/* Recommended section — only shown when matcherHint + loading/has candidates */}
-      {matcherHint && (recommendQuery.isPending || (recommendQuery.data?.recommended?.length ?? 0) > 0) && (
-        <div className="rounded-md border border-[color:var(--color-primary)]/40 bg-[color:var(--color-primary)]/5 p-3">
-          <h4 className="text-sm font-medium">{m.ef_matcher_recommended_heading()}</h4>
-          {recommendQuery.isPending ? (
-            <p className="text-xs text-muted-foreground mt-2">{m.ef_picker_loading()}</p>
-          ) : (
-            <ul className="mt-2 space-y-2">
-              {recommendQuery.data?.recommended.map((rec) => (
-                <li key={`${rec.ef.factor_code}-${rec.ef.year}-${rec.ef.source}-${rec.ef.geography}-${rec.ef.dataset_version}`} className="text-sm">
-                  <label className="flex items-start gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="ef"
-                      className="mt-1"
-                      checked={efPkEqual(pkOf(rec.ef), currentEfPk)}
-                      onChange={() => onChange(pkOf(rec.ef), rec.ef)}
-                    />
-                    <span>
-                      <span className="font-medium">
-                        ⭐ {rec.ef.name_zh ?? rec.ef.name_en ?? rec.ef.factor_code}
+      {matcherHint &&
+        (recommendQuery.isPending || (recommendQuery.data?.recommended?.length ?? 0) > 0) && (
+          <div className="rounded-md border border-[color:var(--color-primary)]/40 bg-[color:var(--color-primary)]/5 p-3">
+            <h4 className="text-sm font-medium">{m.ef_matcher_recommended_heading()}</h4>
+            {recommendQuery.isPending ? (
+              <p className="text-xs text-muted-foreground mt-2">{m.ef_picker_loading()}</p>
+            ) : (
+              <ul className="mt-2 space-y-2">
+                {recommendQuery.data?.recommended.map((rec) => (
+                  <li
+                    key={`${rec.ef.factor_code}-${rec.ef.year}-${rec.ef.source}-${rec.ef.geography}-${rec.ef.dataset_version}`}
+                    className="text-sm"
+                  >
+                    <label className="flex items-start gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="ef"
+                        className="mt-1"
+                        checked={efPkEqual(pkOf(rec.ef), currentEfPk)}
+                        onChange={() => onChange(pkOf(rec.ef), rec.ef)}
+                      />
+                      <span>
+                        <span className="font-medium">
+                          ⭐ {rec.ef.name_zh ?? rec.ef.name_en ?? rec.ef.factor_code}
+                        </span>
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          {rec.ef.co2e_kg_per_unit} kgCO₂e/{rec.ef.input_unit}
+                        </span>
+                        <span className="block text-xs text-muted-foreground">
+                          <span>{m.ef_matcher_reasoning_label()}</span>{' '}
+                          <span>{rec.reasoning_zh}</span>
+                        </span>
                       </span>
-                      <span className="ml-2 text-xs text-muted-foreground">
-                        {rec.ef.co2e_kg_per_unit} kgCO₂e/{rec.ef.input_unit}
-                      </span>
-                      <span className="block text-xs text-muted-foreground">
-                        <span>{m.ef_matcher_reasoning_label()}</span> <span>{rec.reasoning_zh}</span>
-                      </span>
-                    </span>
-                  </label>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
 
       {/* Browse/All fieldset - always shown when a source is selected */}
       <fieldset className="space-y-2 rounded-md border border-border bg-background/40 p-3">
@@ -112,7 +116,9 @@ export function EfPicker({
           {matcherHint && selectedSourceId ? m.ef_matcher_all_candidates() : m.activities_form_ef()}
         </legend>
         {!selectedSourceId ? (
-          <p className="text-xs text-muted-foreground">{m.activities_form_ef_pick_source_first()}</p>
+          <p className="text-xs text-muted-foreground">
+            {m.activities_form_ef_pick_source_first()}
+          </p>
         ) : listQuery.isPending ? (
           <p className="text-xs text-muted-foreground">{m.activities_form_ef_loading()}</p>
         ) : efRows.length === 0 ? (
@@ -138,20 +144,16 @@ function EfRow({
   ef,
   selected,
   onClick,
-}: { ef: EmissionFactor; selected: boolean; onClick: () => void }) {
+}: {
+  ef: EmissionFactor;
+  selected: boolean;
+  onClick: () => void;
+}) {
   return (
     <label className="flex items-start gap-2 text-sm cursor-pointer rounded px-1 py-1 hover:bg-muted/40">
-      <input
-        type="radio"
-        name="ef"
-        className="mt-1"
-        checked={selected}
-        onChange={onClick}
-      />
+      <input type="radio" name="ef" className="mt-1" checked={selected} onChange={onClick} />
       <span className="flex-1">
-        <span className="font-medium">
-          {ef.name_zh ?? ef.name_en ?? ef.factor_code}
-        </span>
+        <span className="font-medium">{ef.name_zh ?? ef.name_en ?? ef.factor_code}</span>
         <span className="text-muted-foreground">
           {' '}
           · {ef.geography} · {ef.year} · {ef.co2e_kg_per_unit} kg CO2e/{ef.input_unit}

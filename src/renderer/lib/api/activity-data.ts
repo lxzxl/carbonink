@@ -22,6 +22,12 @@ export const activityApi = {
   getById: (input: { id: string }) => invoke('activity:get-by-id', input),
   rebindEf: (input: {
     activity_id: string;
-    new_ef_pk: { factor_code: string; year: number; source: string; geography: string; dataset_version: string };
+    new_ef_pk: {
+      factor_code: string;
+      year: number;
+      source: string;
+      geography: string;
+      dataset_version: string;
+    };
   }) => invoke('activity:rebind-ef', input),
 };

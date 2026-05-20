@@ -1,17 +1,13 @@
+import { EfPicker } from '@renderer/components/EfPicker';
 import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
-import { EfPicker } from '@renderer/components/EfPicker';
 import { Input } from '@renderer/components/ui/input';
 import { Label } from '@renderer/components/ui/label';
 import { activityApi } from '@renderer/lib/api/activity-data';
 import { orgApi } from '@renderer/lib/api/organization';
 import { routingApi } from '@renderer/lib/api/routing';
 import * as m from '@renderer/paraglide/messages';
-import type {
-  ActivityData,
-  EmissionSource,
-  ReportingPeriod,
-} from '@shared/types';
+import type { ActivityData, EmissionSource, ReportingPeriod } from '@shared/types';
 import { useForm, useStore } from '@tanstack/react-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
@@ -511,13 +507,17 @@ export function ActivityForm({
        * We pass the source's scope to filter the EF list. */}
       <EfPicker
         selectedSourceId={selectedSourceId}
-        currentEfPk={selectedEf ? {
-          factor_code: form.state.values.ef_factor_code,
-          year: form.state.values.ef_year,
-          source: form.state.values.ef_source,
-          geography: form.state.values.ef_geography,
-          dataset_version: form.state.values.ef_dataset_version,
-        } : null}
+        currentEfPk={
+          selectedEf
+            ? {
+                factor_code: form.state.values.ef_factor_code,
+                year: form.state.values.ef_year,
+                source: form.state.values.ef_source,
+                geography: form.state.values.ef_geography,
+                dataset_version: form.state.values.ef_dataset_version,
+              }
+            : null
+        }
         scopeFilter={selectedSource?.scope}
         matcherHint={matcherHintRef ?? undefined}
         onChange={(pk, row) => {

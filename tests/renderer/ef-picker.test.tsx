@@ -45,11 +45,7 @@ describe('<EfPicker>', () => {
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
       <QueryClientProvider client={qc}>
-        <EfPicker
-          selectedSourceId="src-1"
-          currentEfPk={null}
-          onChange={vi.fn()}
-        />
+        <EfPicker selectedSourceId="src-1" currentEfPk={null} onChange={vi.fn()} />
       </QueryClientProvider>,
     );
     await waitFor(() => {
@@ -61,11 +57,7 @@ describe('<EfPicker>', () => {
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
       <QueryClientProvider client={qc}>
-        <EfPicker
-          selectedSourceId="src-1"
-          currentEfPk={null}
-          onChange={vi.fn()}
-        />
+        <EfPicker selectedSourceId="src-1" currentEfPk={null} onChange={vi.fn()} />
       </QueryClientProvider>,
     );
     expect(efMatcherApi.recommend).not.toHaveBeenCalled();

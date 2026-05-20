@@ -1,12 +1,12 @@
-import type { CSSProperties, ReactNode } from 'react';
+import { activityApi } from '@renderer/lib/api/activity-data';
+import * as m from '@renderer/paraglide/messages';
+import type { EfCompositePk, EmissionFactor } from '@shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { CSSProperties, ReactNode } from 'react';
 import { useMemo, useState } from 'react';
 import { Drawer } from 'vaul';
-import { activityApi } from '@renderer/lib/api/activity-data';
 import { EfPicker } from './EfPicker';
 import { toast } from './toast';
-import type { EfCompositePk, EmissionFactor } from '@shared/types';
-import * as m from '@renderer/paraglide/messages';
 
 const NO_DRAG: CSSProperties = { WebkitAppRegion: 'no-drag' } as CSSProperties;
 
@@ -44,7 +44,10 @@ export function RebindEfDrawer({ activityId, open, onClose }: RebindEfDrawerProp
   });
   const [selectedEfPk, setSelectedEfPk] = useState<EfCompositePk | null>(null);
   // Hold the picked EF's full row so we can compute a preview without a roundtrip.
-  const [pickedEfMeta, setPickedEfMeta] = useState<{ input_unit: string; co2e_kg_per_unit: number } | null>(null);
+  const [pickedEfMeta, setPickedEfMeta] = useState<{
+    input_unit: string;
+    co2e_kg_per_unit: number;
+  } | null>(null);
 
   const preview = useMemo(() => {
     if (!activityQuery.data || !selectedEfPk || !pickedEfMeta) return null;
@@ -77,7 +80,9 @@ export function RebindEfDrawer({ activityId, open, onClose }: RebindEfDrawerProp
         return;
       }
       const pct =
-        result.old_co2e_kg === 0 ? 0 : ((result.new_co2e_kg - result.old_co2e_kg) / result.old_co2e_kg) * 100;
+        result.old_co2e_kg === 0
+          ? 0
+          : ((result.new_co2e_kg - result.old_co2e_kg) / result.old_co2e_kg) * 100;
       toast.success(
         m.rebind_success_toast({
           co2e: result.new_co2e_kg.toFixed(0),
@@ -121,21 +126,26 @@ export function RebindEfDrawer({ activityId, open, onClose }: RebindEfDrawerProp
             {activityQuery.data && (
               <>
                 <section className="mb-6 space-y-2 rounded border border-border bg-secondary/30 p-3">
-                  <div className="text-sm font-semibold text-foreground">{m.rebind_current_label()}</div>
+                  <div className="text-sm font-semibold text-foreground">
+                    {m.rebind_current_label()}
+                  </div>
                   <div className="text-sm text-muted-foreground">
                     {activityQuery.data.amount} {activityQuery.data.unit}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {activityQuery.data.pinned_ef.factor_code} @ {activityQuery.data.pinned_ef.source}{' '}
-                    {activityQuery.data.pinned_ef.year}
+                    {activityQuery.data.pinned_ef.factor_code} @{' '}
+                    {activityQuery.data.pinned_ef.source} {activityQuery.data.pinned_ef.year}
                   </div>
                   <div className="text-sm font-medium text-foreground">
-                    {m.rebind_current_co2e()}: {activityQuery.data.computed_co2e_kg.toFixed(0)} kg CO2e
+                    {m.rebind_current_co2e()}: {activityQuery.data.computed_co2e_kg.toFixed(0)} kg
+                    CO2e
                   </div>
                 </section>
 
                 <section className="mb-6 space-y-3">
-                  <div className="text-sm font-semibold text-foreground">Pick a new emission factor</div>
+                  <div className="text-sm font-semibold text-foreground">
+                    Pick a new emission factor
+                  </div>
                   <EfPicker
                     selectedSourceId={activityQuery.data.emission_source_id}
                     currentEfPk={{
@@ -148,7 +158,9 @@ export function RebindEfDrawer({ activityId, open, onClose }: RebindEfDrawerProp
                     onChange={(pk, row) => {
                       setSelectedEfPk(pk);
                       setPickedEfMeta(
-                        row ? { input_unit: row.input_unit, co2e_kg_per_unit: row.co2e_kg_per_unit } : null,
+                        row
+                          ? { input_unit: row.input_unit, co2e_kg_per_unit: row.co2e_kg_per_unit }
+                          : null,
                       );
                     }}
                   />
@@ -162,17 +174,20 @@ export function RebindEfDrawer({ activityId, open, onClose }: RebindEfDrawerProp
 
                 {preview && !preview.crossFamily && preview.newCo2eKg != null && (
                   <section className="mb-6 space-y-2 rounded border border-border bg-secondary/30 p-3">
-                    <div className="text-sm font-semibold text-foreground">{m.rebind_preview_heading()}</div>
-                    {preview.newAmount != null && preview.newAmount !== activityQuery.data.amount && (
-                      <div className="text-sm text-muted-foreground">
-                        {m.rebind_unit_conversion({
-                          from_amt: activityQuery.data.amount.toString(),
-                          from_unit: activityQuery.data.unit,
-                          to_amt: preview.newAmount.toFixed(2),
-                          to_unit: preview.newUnit,
-                        })}
-                      </div>
-                    )}
+                    <div className="text-sm font-semibold text-foreground">
+                      {m.rebind_preview_heading()}
+                    </div>
+                    {preview.newAmount != null &&
+                      preview.newAmount !== activityQuery.data.amount && (
+                        <div className="text-sm text-muted-foreground">
+                          {m.rebind_unit_conversion({
+                            from_amt: activityQuery.data.amount.toString(),
+                            from_unit: activityQuery.data.unit,
+                            to_amt: preview.newAmount.toFixed(2),
+                            to_unit: preview.newUnit,
+                          })}
+                        </div>
+                      )}
                     <div className="text-sm font-medium text-foreground">
                       {m.rebind_new_co2e()}: {preview.newCo2eKg.toFixed(0)} kg CO2e
                     </div>
@@ -184,12 +199,14 @@ export function RebindEfDrawer({ activityId, open, onClose }: RebindEfDrawerProp
                         pct_signed:
                           (preview.oldCo2eKg === 0
                             ? 0
-                            : ((preview.newCo2eKg - preview.oldCo2eKg) / preview.oldCo2eKg) * 100) >= 0
+                            : ((preview.newCo2eKg - preview.oldCo2eKg) / preview.oldCo2eKg) *
+                              100) >= 0
                             ? '+'
                             : '' +
                               (preview.oldCo2eKg === 0
                                 ? 0
-                                : ((preview.newCo2eKg - preview.oldCo2eKg) / preview.oldCo2eKg) * 100
+                                : ((preview.newCo2eKg - preview.oldCo2eKg) / preview.oldCo2eKg) *
+                                  100
                               ).toFixed(1),
                       })}
                     </div>
@@ -209,7 +226,9 @@ export function RebindEfDrawer({ activityId, open, onClose }: RebindEfDrawerProp
             </button>
             <button
               type="button"
-              disabled={!selectedEfPk || rebindMutation.isPending || (preview?.crossFamily ?? false)}
+              disabled={
+                !selectedEfPk || rebindMutation.isPending || (preview?.crossFamily ?? false)
+              }
               onClick={() => rebindMutation.mutate()}
               className="flex-1 rounded bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
