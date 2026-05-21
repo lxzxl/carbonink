@@ -1,3 +1,4 @@
+import { useIsScrolled } from '@renderer/components/layout/scroll-context';
 import { Separator } from '@renderer/components/ui/separator';
 import { SidebarTrigger } from '@renderer/components/ui/sidebar';
 import { cn } from '@renderer/lib/utils';
@@ -38,10 +39,16 @@ type HeaderProps = React.HTMLAttributes<HTMLElement> & {
 };
 
 export function Header({ className, children, ...props }: HeaderProps) {
+  const scrolled = useIsScrolled();
   return (
     <header
       className={cn(
-        'titlebar-region sticky top-0 z-30 flex h-12 shrink-0 items-center gap-3 border-b border-border/40 bg-background px-6',
+        'titlebar-region sticky top-0 z-30 flex h-12 shrink-0 items-center gap-3 border-b border-border/40 bg-background px-6 transition-shadow duration-150',
+        // When the content area has scrolled past the threshold, lift
+        // the bar with a soft shadow. Matches the shadcn-admin scroll-
+        // aware Header pattern adapted for our internal scroll container
+        // (see ScrollContext).
+        scrolled && 'shadow-sm',
         className,
       )}
       {...props}

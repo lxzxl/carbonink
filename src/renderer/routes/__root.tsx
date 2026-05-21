@@ -4,12 +4,16 @@ import { LicenseBanner } from '@renderer/components/LicenseBanner';
 import { Header } from '@renderer/components/layout/header';
 import { NavArrows } from '@renderer/components/layout/nav-arrows';
 import { NavigationProgress } from '@renderer/components/layout/navigation-progress';
+import { ScrollProvider } from '@renderer/components/layout/scroll-context';
 import { SidebarInset, SidebarProvider } from '@renderer/components/ui/sidebar';
 import { createRootRoute, Outlet, useRouterState } from '@tanstack/react-router';
+import { type UIEvent, useState } from 'react';
 
 export const Route = createRootRoute({
   component: RootComponent,
 });
+
+const SCROLL_SHADOW_THRESHOLD_PX = 10;
 
 /**
  * Root layout — shadcn-admin template adoption.
@@ -20,35 +24,43 @@ export const Route = createRootRoute({
  * Otherwise:
  *
  *   <SidebarProvider>
- *     <NavigationProgress />            ← route transition bar
- *     <AppSidebar />                    ← shadcn-admin layout pattern
+ *     <NavigationProgress />              ← route transition bar
+ *     <AppSidebar />                      ← data-driven nav groups
  *     <SidebarInset>
- *       <Header><NavArrows /></Header>  ← chrome row, children-slot
- *       <LicenseBanner />
- *       <div @container/content overflow-auto>  ← scroll container
- *         <Outlet />
- *       </div>
+ *       <ScrollProvider>                  ← lifts scroll-past-threshold
+ *         <Header><NavArrows /></Header>  ← gets shadow when scrolled
+ *         <LicenseBanner />
+ *         <div @container/content overflow-auto onScroll>
+ *           <Outlet />
+ *         </div>
+ *       </ScrollProvider>
  *       <CommandPalette />
  *     </SidebarInset>
  *   </SidebarProvider>
  *
- * The scroll container declares `@container/content` so any
- * `<Main fluid={false}>` inside (the shadcn-admin Main wrapper) can
- * cap content at `max-w-7xl` only once the named container reaches
- * `@7xl` (≈80rem). On a laptop the cap is never reached so layout is
- * unaffected; on a 32" external display it prevents dashboard cards
- * from stretching ~3000px edge-to-edge.
+ * The `@container/content` named container lets nested `<Main>` opt
+ * into `@7xl/content:max-w-7xl` capping on wide displays.
  *
- * Single-pane routes currently rely on the `p-6` on this scroll div
- * for their inset. A follow-up may move that into per-route `<Main>`
- * wrappers (so two-pane routes don't need the `-m-6` break-out hack);
- * for now the global p-6 stays to keep the diff small.
+ * `ScrollProvider` exposes a boolean ("has scroll passed the chrome
+ * threshold?") that `Header` reads to decide whether to render a soft
+ * shadow. We only flip the boolean when the scroll crosses 10px, so
+ * the Outlet content tree doesn't re-render on every scroll pixel.
  */
 function RootComponent() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const [scrolled, setScrolled] = useState(false);
+
   if (pathname === '/print-render') {
     return <Outlet />;
   }
+
+  const handleScroll = (event: UIEvent<HTMLDivElement>) => {
+    const past = event.currentTarget.scrollTop > SCROLL_SHADOW_THRESHOLD_PX;
+    // Only commit a state update when we actually cross the threshold.
+    // setState bails out on identical values but the comparison-then-skip
+    // also dodges allocating an event-bound closure in the React queue.
+    if (past !== scrolled) setScrolled(past);
+  };
 
   return (
     // h-svh (not min-h-svh, shadcn's default) caps the outer wrapper's
@@ -60,22 +72,19 @@ function RootComponent() {
       <NavigationProgress />
       <AppSidebar />
       <SidebarInset className="flex flex-col min-h-0">
-        <Header>
-          <NavArrows />
-        </Header>
-        <LicenseBanner />
-        {/* `@container/content` lets nested `<Main>` opt-in to the
-         * `@7xl/content:max-w-7xl` cap on wide displays. `flex-1
-         * min-h-0 overflow-auto` makes this the scroll container.
-         *
-         * Padding has moved OUT of this wrapper and INTO each route's
-         * `<Main>` wrapper (single-pane routes opt in; two-pane routes
-         * stay edge-to-edge for their resizable splits). The old
-         * `-m-6` break-out hack in two-pane routes is no longer
-         * needed. */}
-        <div className="@container/content flex-1 min-h-0 overflow-auto">
-          <Outlet />
-        </div>
+        <ScrollProvider scrolled={scrolled}>
+          <Header>
+            <NavArrows />
+          </Header>
+          <LicenseBanner />
+          {/* `@container/content` lets nested `<Main>` opt-in to the
+           * `@7xl/content:max-w-7xl` cap on wide displays. `flex-1
+           * min-h-0 overflow-auto` makes this the scroll container.
+           * Padding lives in each route's `<Main>` wrapper, not here. */}
+          <div className="@container/content flex-1 min-h-0 overflow-auto" onScroll={handleScroll}>
+            <Outlet />
+          </div>
+        </ScrollProvider>
         <CommandPalette />
       </SidebarInset>
     </SidebarProvider>
