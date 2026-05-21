@@ -438,5 +438,8 @@
   "nav_section_documents_questionnaires": "输入资料",
   "nav_section_misc": "其他",
   "nav_documents_all": "全部文档",
-  "nav_questionnaires_all": "全部问卷"
+  "nav_questionnaires_all": "全部问卷",
+  "topbar_back": "后退",
+  "topbar_forward": "前进",
+  "topbar_detail": "详情"
 }

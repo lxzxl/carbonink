@@ -438,5 +438,8 @@
   "nav_section_documents_questionnaires": "Inputs",
   "nav_section_misc": "More",
   "nav_documents_all": "All documents",
-  "nav_questionnaires_all": "All questionnaires"
+  "nav_questionnaires_all": "All questionnaires",
+  "topbar_back": "Go back",
+  "topbar_forward": "Go forward",
+  "topbar_detail": "Detail"
 }
