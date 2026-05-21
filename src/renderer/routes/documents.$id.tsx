@@ -6,35 +6,30 @@ import { extractionApi } from '@renderer/lib/api/extraction';
 import * as m from '@renderer/paraglide/messages';
 import type { Document, Extraction } from '@shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { createFileRoute, Link, useParams } from '@tanstack/react-router';
-import { ArrowLeft } from 'lucide-react';
+import { createFileRoute, useParams } from '@tanstack/react-router';
 import { useEffect, useMemo } from 'react';
 
 /**
- * /documents/$id — document review detail.
+ * /documents/$id — document review detail (Phase C nested route).
  *
- * Two-column layout: PDF preview (left ~55%) + ExtractionReview (right ~45%).
- * The PDF is rendered via an `<iframe>` pointed at a `Blob` URL we build
- * from bytes fetched over IPC (see `documentApi.readBytes`). This avoids:
- *   - file:// URLs (Electron's renderer default CSP blocks them with our
- *     contextIsolation setup),
- *   - a custom protocol handler (Phase 1c can add one if memory cost
- *     matters; for now PDFs are <1MB and the cost is negligible).
+ * This file is the right-pane content; the left-pane list is rendered by
+ * the parent `documents.tsx` layout via `<Outlet />`. The previous
+ * `/documents_/$id` (underscore = flat) route used a top-level <BackLink>
+ * because the list disappeared on detail-load — gone now since the
+ * list is always visible alongside.
  *
- * The Blob URL lifecycle is tied to the document id — when the user
- * navigates away or to a different doc, the URL is `URL.revokeObjectURL`'d
- * in the effect's cleanup. Forgetting this leaks ~filesize bytes per
- * navigation; the cleanup keeps the renderer flat over long sessions.
+ * Two-column body within this pane:
+ *   - PDF preview (~55% width)
+ *   - ExtractionReview (~45% width) — chrome-hidden via the #toolbar=0
+ *     URL fragment (Round 2 polish).
  */
-export const Route = createFileRoute('/documents_/$id')({
+export const Route = createFileRoute('/documents/$id')({
   component: DocumentReviewRoute,
 });
 
 function DocumentReviewRoute() {
-  // strict:false lets useParams resolve from whichever route the component
-  // is mounted under — production routes it as `/documents_/$id` (per the
-  // flat-route id), but tests rebuild routes manually with `/documents/$id`.
-  // Either way, `id` is the single dynamic segment.
+  // strict:false lets useParams resolve without a hard route-id check —
+  // tests sometimes mount this component under a manually-built router.
   const { id } = useParams({ strict: false }) as { id: string };
 
   const docQuery = useQuery<Document | null>({
@@ -42,7 +37,7 @@ function DocumentReviewRoute() {
     queryFn: () => documentApi.getById({ id }),
   });
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: same pattern as the rest of the app — surface load errors via toast once per `isError` flip, don't refire on every retry.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: surface load errors via toast once per isError flip; refiring on each retry would dupe the toast.
   useEffect(() => {
     if (!docQuery.isError) return;
     const err = docQuery.error;
@@ -54,12 +49,7 @@ function DocumentReviewRoute() {
     return <p className="text-sm text-muted-foreground">{m.loading()}</p>;
   }
   if (!docQuery.data) {
-    return (
-      <div className="space-y-4">
-        <BackLink />
-        <p className="text-sm text-destructive">{m.documents_review_load_failed()}</p>
-      </div>
-    );
+    return <p className="text-sm text-destructive">{m.documents_review_load_failed()}</p>;
   }
 
   return <DocumentReview document={docQuery.data} />;
@@ -73,16 +63,9 @@ function DocumentReview({ document }: { document: Document }) {
     queryFn: () => extractionApi.listByDocument({ document_id: document.id }),
   });
 
-  // Rejected rows are soft-deletes (kept in `extraction` for forensics until
-  // the user explicitly re-extracts — see ExtractionService.run). The review
-  // pane treats them as "no extraction yet", so we pick the most-recent
-  // NON-rejected row as the active one.
   const extractions = extractionsQuery.data ?? [];
   const activeExtraction = extractions.find((e) => e.status !== 'rejected');
 
-  // Auto-classify pipeline: fires once when we observe an empty extraction
-  // list (no active extraction, no rejected history). This replaces the old
-  // manual "Run extraction" button for brand-new documents.
   const classifyMutation = useMutation({
     mutationFn: () => extractionApi.classifyAndRun({ document_id: document.id }),
     onSuccess: () => {
@@ -93,9 +76,6 @@ function DocumentReview({ document }: { document: Document }) {
   });
 
   useEffect(() => {
-    // Only fire once on first observation of a truly empty extraction list
-    // (no rows at all — not just no active extraction). If there's rejected
-    // history, fall through to the ManualStagePicker via the hasDiscarded path.
     if (
       extractionsQuery.data &&
       extractionsQuery.data.length === 0 &&
@@ -112,9 +92,8 @@ function DocumentReview({ document }: { document: Document }) {
 
   return (
     <div className="space-y-4">
-      <BackLink />
       <header className="space-y-1">
-        <h1 className="text-2xl font-semibold">{document.filename}</h1>
+        <h1 className="text-xl font-semibold">{document.filename}</h1>
         <p className="text-xs text-muted-foreground">
           {m.documents_review_uploaded_on({ date: document.uploaded_at.slice(0, 10) })} ·{' '}
           {m.documents_review_sha_label()}:{' '}
@@ -122,7 +101,7 @@ function DocumentReview({ document }: { document: Document }) {
         </p>
       </header>
 
-      <div className="grid h-[calc(100vh-220px)] grid-cols-1 gap-4 lg:grid-cols-[55fr_45fr]">
+      <div className="grid h-[calc(100vh-200px)] grid-cols-1 gap-4 lg:grid-cols-[55fr_45fr]">
         <PdfPreview documentId={document.id} />
         <div className="overflow-y-auto">
           {extractionsQuery.isLoading ? (
@@ -149,41 +128,15 @@ function DocumentReview({ document }: { document: Document }) {
   );
 }
 
-function BackLink() {
-  return (
-    <Link
-      to="/documents"
-      className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-    >
-      <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-      {m.documents_review_back()}
-    </Link>
-  );
-}
-
 function PdfPreview({ documentId }: { documentId: string }) {
-  // Pulling bytes through IPC keeps the renderer from needing direct
-  // filesystem access. The Blob URL is constructed from the returned
-  // Uint8Array inside `useMemo` so it's stable for as long as the bytes
-  // are; effect below revokes the previous URL when bytes change or the
-  // component unmounts. This is the option-(C) approach from the Phase 1b
-  // task 15 plan — simpler than wiring a custom protocol handler.
   const bytesQuery = useQuery({
     queryKey: ['document:read-bytes', documentId],
     queryFn: () => documentApi.readBytes({ id: documentId }),
-    // Refetching here is expensive (re-reads entire PDF) and pointless —
-    // bytes are immutable for a given doc id (content-addressed sha256).
     staleTime: Infinity,
   });
 
   const pdfUrl = useMemo(() => {
     if (!bytesQuery.data) return null;
-    // `Blob` constructor declares its parts as `BlobPart[]` where ArrayBuffer
-    // (not `ArrayBufferLike`) is the only buffer variant accepted under
-    // strict TS lib defs. A fresh `Uint8Array(...)` allocates an
-    // `ArrayBuffer`-backed view, so we copy the IPC-returned bytes into one
-    // — paying one O(n) copy to satisfy the type checker without disabling
-    // strict mode for this one call site.
     const copy = new Uint8Array(bytesQuery.data);
     return URL.createObjectURL(new Blob([copy.buffer], { type: 'application/pdf' }));
   }, [bytesQuery.data]);
@@ -209,14 +162,7 @@ function PdfPreview({ documentId }: { documentId: string }) {
       </div>
     );
   }
-
-  // Append the chromium-PDF-viewer URL fragment that hides the top toolbar
-  // (print/download/etc.) + nav panel + scrollbar. Without this the embedded
-  // PDF chrome screams "I'm a webpage" — the single most diagnostic native-
-  // feel tell in carbonbook (skill 06 — replace WebKit's chrome with native
-  // affordances). The fragment is non-standard but supported by every
-  // Chromium-derived viewer including Electron's; non-supporting viewers
-  // ignore it harmlessly.
+  // #toolbar=0 hides Chromium's PDF chrome — see Round 2 polish.
   return (
     <iframe
       title={`PDF preview ${documentId}`}

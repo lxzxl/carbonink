@@ -18,11 +18,12 @@ import { Route as DocumentsRouteImport } from './routes/documents'
 import { Route as AuditRouteImport } from './routes/audit'
 import { Route as ActivitiesRouteImport } from './routes/activities'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DocumentsIndexRouteImport } from './routes/documents.index'
 import { Route as ReportsIdRouteImport } from './routes/reports_.$id'
 import { Route as QuestionnairesNewRouteImport } from './routes/questionnaires_.new'
 import { Route as QuestionnairesIdRouteImport } from './routes/questionnaires_.$id'
 import { Route as OnboardingStepRouteImport } from './routes/onboarding.$step'
-import { Route as DocumentsIdRouteImport } from './routes/documents_.$id'
+import { Route as DocumentsIdRouteImport } from './routes/documents.$id'
 
 const SourcesRoute = SourcesRouteImport.update({
   id: '/sources',
@@ -69,6 +70,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DocumentsIndexRoute = DocumentsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DocumentsRoute,
+} as any)
 const ReportsIdRoute = ReportsIdRouteImport.update({
   id: '/reports_/$id',
   path: '/reports/$id',
@@ -90,16 +96,16 @@ const OnboardingStepRoute = OnboardingStepRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocumentsIdRoute = DocumentsIdRouteImport.update({
-  id: '/documents_/$id',
-  path: '/documents/$id',
-  getParentRoute: () => rootRouteImport,
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => DocumentsRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/activities': typeof ActivitiesRoute
   '/audit': typeof AuditRoute
-  '/documents': typeof DocumentsRoute
+  '/documents': typeof DocumentsRouteWithChildren
   '/print-render': typeof PrintRenderRoute
   '/questionnaires': typeof QuestionnairesRoute
   '/reports': typeof ReportsRoute
@@ -110,12 +116,12 @@ export interface FileRoutesByFullPath {
   '/questionnaires/$id': typeof QuestionnairesIdRoute
   '/questionnaires/new': typeof QuestionnairesNewRoute
   '/reports/$id': typeof ReportsIdRoute
+  '/documents/': typeof DocumentsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/activities': typeof ActivitiesRoute
   '/audit': typeof AuditRoute
-  '/documents': typeof DocumentsRoute
   '/print-render': typeof PrintRenderRoute
   '/questionnaires': typeof QuestionnairesRoute
   '/reports': typeof ReportsRoute
@@ -126,23 +132,25 @@ export interface FileRoutesByTo {
   '/questionnaires/$id': typeof QuestionnairesIdRoute
   '/questionnaires/new': typeof QuestionnairesNewRoute
   '/reports/$id': typeof ReportsIdRoute
+  '/documents': typeof DocumentsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/activities': typeof ActivitiesRoute
   '/audit': typeof AuditRoute
-  '/documents': typeof DocumentsRoute
+  '/documents': typeof DocumentsRouteWithChildren
   '/print-render': typeof PrintRenderRoute
   '/questionnaires': typeof QuestionnairesRoute
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRoute
   '/sources': typeof SourcesRoute
-  '/documents_/$id': typeof DocumentsIdRoute
+  '/documents/$id': typeof DocumentsIdRoute
   '/onboarding/$step': typeof OnboardingStepRoute
   '/questionnaires_/$id': typeof QuestionnairesIdRoute
   '/questionnaires_/new': typeof QuestionnairesNewRoute
   '/reports_/$id': typeof ReportsIdRoute
+  '/documents/': typeof DocumentsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -161,12 +169,12 @@ export interface FileRouteTypes {
     | '/questionnaires/$id'
     | '/questionnaires/new'
     | '/reports/$id'
+    | '/documents/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/activities'
     | '/audit'
-    | '/documents'
     | '/print-render'
     | '/questionnaires'
     | '/reports'
@@ -177,6 +185,7 @@ export interface FileRouteTypes {
     | '/questionnaires/$id'
     | '/questionnaires/new'
     | '/reports/$id'
+    | '/documents'
   id:
     | '__root__'
     | '/'
@@ -188,24 +197,24 @@ export interface FileRouteTypes {
     | '/reports'
     | '/settings'
     | '/sources'
-    | '/documents_/$id'
+    | '/documents/$id'
     | '/onboarding/$step'
     | '/questionnaires_/$id'
     | '/questionnaires_/new'
     | '/reports_/$id'
+    | '/documents/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ActivitiesRoute: typeof ActivitiesRoute
   AuditRoute: typeof AuditRoute
-  DocumentsRoute: typeof DocumentsRoute
+  DocumentsRoute: typeof DocumentsRouteWithChildren
   PrintRenderRoute: typeof PrintRenderRoute
   QuestionnairesRoute: typeof QuestionnairesRoute
   ReportsRoute: typeof ReportsRoute
   SettingsRoute: typeof SettingsRoute
   SourcesRoute: typeof SourcesRoute
-  DocumentsIdRoute: typeof DocumentsIdRoute
   OnboardingStepRoute: typeof OnboardingStepRoute
   QuestionnairesIdRoute: typeof QuestionnairesIdRoute
   QuestionnairesNewRoute: typeof QuestionnairesNewRoute
@@ -277,6 +286,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/documents/': {
+      id: '/documents/'
+      path: '/'
+      fullPath: '/documents/'
+      preLoaderRoute: typeof DocumentsIndexRouteImport
+      parentRoute: typeof DocumentsRoute
+    }
     '/reports_/$id': {
       id: '/reports_/$id'
       path: '/reports/$id'
@@ -305,27 +321,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OnboardingStepRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/documents_/$id': {
-      id: '/documents_/$id'
-      path: '/documents/$id'
+    '/documents/$id': {
+      id: '/documents/$id'
+      path: '/$id'
       fullPath: '/documents/$id'
       preLoaderRoute: typeof DocumentsIdRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof DocumentsRoute
     }
   }
 }
+
+interface DocumentsRouteChildren {
+  DocumentsIdRoute: typeof DocumentsIdRoute
+  DocumentsIndexRoute: typeof DocumentsIndexRoute
+}
+
+const DocumentsRouteChildren: DocumentsRouteChildren = {
+  DocumentsIdRoute: DocumentsIdRoute,
+  DocumentsIndexRoute: DocumentsIndexRoute,
+}
+
+const DocumentsRouteWithChildren = DocumentsRoute._addFileChildren(
+  DocumentsRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActivitiesRoute: ActivitiesRoute,
   AuditRoute: AuditRoute,
-  DocumentsRoute: DocumentsRoute,
+  DocumentsRoute: DocumentsRouteWithChildren,
   PrintRenderRoute: PrintRenderRoute,
   QuestionnairesRoute: QuestionnairesRoute,
   ReportsRoute: ReportsRoute,
   SettingsRoute: SettingsRoute,
   SourcesRoute: SourcesRoute,
-  DocumentsIdRoute: DocumentsIdRoute,
   OnboardingStepRoute: OnboardingStepRoute,
   QuestionnairesIdRoute: QuestionnairesIdRoute,
   QuestionnairesNewRoute: QuestionnairesNewRoute,

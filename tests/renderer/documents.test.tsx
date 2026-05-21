@@ -136,10 +136,12 @@ describe('/documents route', () => {
   it('renders rows after documents:list resolves', async () => {
     vi.mocked(documentApi.list).mockResolvedValue([FAKE_DOC]);
     render(buildHarness());
-    // Filename appears in the row.
+    // Phase C compact list: filename + upload date + stage label visible per row.
+    // The sha column was dropped — the parent layout's narrower column doesn't
+    // have room for it, and detail page already shows the full sha.
     expect(await screen.findByText('bill.pdf')).toBeTruthy();
-    // First 8 chars of the sha column.
-    expect(screen.getByText(FAKE_DOC.sha256.slice(0, 8))).toBeTruthy();
+    // Date prefix appears (YYYY-MM-DD slice).
+    expect(screen.getByText('2026-05-12')).toBeTruthy();
   });
 
   it('uploads a file and invalidates the document list query', async () => {

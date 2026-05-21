@@ -6,7 +6,7 @@
  *  2. classify_failed — mutation resolves with {status:'classify_failed'} → ManualStagePicker
  *  3. classify_succeeded — mutation resolves with {status:'classified'} → ExtractionReview
  */
-import { Route as DocumentReviewRoute } from '@renderer/routes/documents_.$id';
+import { Route as DocumentReviewRoute } from '@renderer/routes/documents.$id';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   createMemoryHistory,
