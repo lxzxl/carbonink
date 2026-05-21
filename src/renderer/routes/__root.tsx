@@ -2,6 +2,7 @@ import { AppSidebar } from '@renderer/components/AppSidebar';
 import { TopBar } from '@renderer/components/app-shell/TopBar';
 import { CommandPalette } from '@renderer/components/command-palette';
 import { LicenseBanner } from '@renderer/components/LicenseBanner';
+import { NavigationProgress } from '@renderer/components/layout/navigation-progress';
 import { SidebarInset, SidebarProvider } from '@renderer/components/ui/sidebar';
 import { createRootRoute, Outlet, useRouterState } from '@tanstack/react-router';
 
@@ -33,6 +34,11 @@ function RootComponent() {
     // OUTER wrapper grows past 100vh, which is why the resizable panels
     // ended up with 0 free space and the list column squeezed to ~32 px.
     <SidebarProvider className="h-svh">
+      {/* NavigationProgress renders a fixed-position thin bar at top:0;
+       * z-index sits above everything except modal overlays. Placed
+       * OUTSIDE SidebarInset so it spans the full window (incl. the
+       * sidebar column) rather than just the content area. */}
+      <NavigationProgress />
       <AppSidebar />
       <SidebarInset className="flex flex-col min-h-0">
         <TopBar />
