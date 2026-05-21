@@ -71,7 +71,24 @@ function RootComponent() {
     <SidebarProvider className="h-svh">
       <NavigationProgress />
       <AppSidebar />
-      <SidebarInset className="flex flex-col min-h-0">
+      {/* `peer-data-[state=collapsed]:pl-2` shifts the entire inset
+       * (Header + content + footer) 8px to the right when the sidebar
+       * is collapsed.
+       *
+       * Why: in collapsed mode the sidebar is 48px wide, but the
+       * macOS hiddenInset traffic-light cluster extends to x=72.
+       * That leaves the strip x=48–72 inside the inset overlapped
+       * by OS chrome. With the default `px-6` on Header / Main, the
+       * sidebar toggle and content's first column both land at x=72
+       * — flush against the green light. The 8px nudge gives ~10px
+       * breathing room *and* keeps toggle and content vertically
+       * aligned (both shift together).
+       *
+       * In expanded mode (sidebar=256px) the traffic lights are
+       * entirely behind the sidebar — no overlap — so the rule
+       * (gated by `peer-data-[state=collapsed]`) doesn't apply and
+       * layout returns to flush 24px alignment. */}
+      <SidebarInset className="flex flex-col min-h-0 peer-data-[state=collapsed]:pl-2">
         <ScrollProvider scrolled={scrolled}>
           <Header>
             <NavArrows />
