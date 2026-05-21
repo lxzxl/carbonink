@@ -15,32 +15,32 @@ import * as React from 'react';
  *   `secondary`. The questionnaire detail page's 4-button bar is the
  *   counter-example we just fixed.
  */
-// Focus indicator: shadcn-admin pattern instead of the original
-// `focus-visible:ring-2` (2px hard solid). User-reported "难看的一圈
-// 边框" on the SidebarTrigger came from this rule rendering as a
-// second stacked outline OUTSIDE the button's own border — especially
-// loud on small icon-only chrome buttons (28px target with 1px border
-// + 2px focus ring = 3 stacked lines).
+// Focus indicator — minimal, ring-less.
 //
-// New rule:
-//   - `outline-none` always (kills the browser's default focus outline)
-//   - `focus-visible:border-ring` — the button's own border shifts to
-//     ring color. For outlined buttons the focus state reads via the
-//     button's own boundary, no extra layer needed.
-//   - `focus-visible:ring-ring focus-visible:ring-[3px]` — a 3px halo
-//     at our `--color-ring` token. The token is already at 50% alpha
-//     (see globals.css), so the halo reads as a soft glow rather than
-//     a hard line. Matches admin's "ring-[3px] ring-ring/50" effect
-//     without needing the extra /50 modifier.
+// Iteration history:
+//   1. Original: `focus-visible:ring-2` — harsh 2px solid ring (user
+//      reported the "ugly 边框" on SidebarTrigger).
+//   2. Then: switched to shadcn-admin's `focus-visible:ring-[3px]
+//      ring-ring border-ring` (3px green halo). User: still 难看,
+//      "删除" (just remove the ring entirely).
+//   3. Now: NO ring halo at all. Focus communicated via:
+//        - `focus-visible:border-ring` — outlined buttons (incl.
+//          SidebarTrigger) shift their existing border to the ring
+//          color. Subtle, native-feeling.
+//        - `focus-visible:bg-foreground/8` on the `ghost` variant
+//          (which has no border to recolor) — mimics the hover bg so
+//          keyboard users still see focus. WCAG 2.4.7 satisfied.
+//   `outline-none` kills the browser's default 2px blue outline; the
+//   above rules replace it.
 const buttonVariants = cva(
-  'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors outline-none focus-visible:border-ring focus-visible:ring-ring focus-visible:ring-[3px] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50',
+  'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors outline-none focus-visible:border-ring active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50',
   {
     variants: {
       variant: {
         default: 'bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/95',
         outline: 'border border-border bg-card/40 text-foreground hover:bg-card/80 active:bg-card',
         secondary: 'bg-foreground/8 text-foreground hover:bg-foreground/12 active:bg-foreground/15',
-        ghost: 'hover:bg-foreground/5 active:bg-foreground/8',
+        ghost: 'hover:bg-foreground/5 active:bg-foreground/8 focus-visible:bg-foreground/8',
         destructive:
           'bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/15 active:bg-destructive/20',
       },
