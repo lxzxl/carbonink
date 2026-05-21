@@ -153,6 +153,77 @@ What did ship:
 - Additional `ListItem` slots if a future list adopts richer per-row
   layouts
 
+## Round 4 (shipped) — detail polish from screenshot review
+
+A second design-review pass identified ~15 issues. All addressed across
+five commits (a-e):
+
+### Batch A — `ui(round-4-a)`: humanize + hide internals
+- **Extraction panel** no longer shows the raw prompt registry
+  description ("Chinese electricity bill — classify + extract") nor
+  the LLM provider/model chip. Just stage label ("电费账单") +
+  confidence chip. Prompt version still hoverable via `title` for
+  debugging.
+- **Question raw codes** ("公司信息IB2") moved from a visible chip to
+  a `title` tooltip on the question text. Useful for audit; not
+  important during answering.
+- **`AnswerReviewCard.生成答案`** changed from `default` (filled green)
+  to `outline`. Per-card primaries created a wall of green buttons —
+  reserved primary for the page-level batch + finalize actions.
+- **`questionnaires/$id` back link** removed — the parent two-pane
+  layout keeps the questionnaire list visible on the left, so the
+  back navigation is redundant.
+
+### Batch B — `ui(round-4-b)`: audit humanize
+- **EF transition** now resolves `factor_code` to `name_zh` via a
+  `useQuery(['ef:get-by-pk', pk])` lookup. `electricity.grid.cn.national.2024 →
+  electricity.grid.cn.east.2024` becomes `全国电网均值 (2024) → 华东电网 (2024)`.
+  Falls back to the raw code when EF library hasn't loaded; raw still
+  on hover via `title`.
+- **Activity ID** rendered as a `<Link to="/activities">` instead of
+  inline text. Click drops the user near the row.
+- **Filter section** rebuilt: kind selector is a row of toggle pills
+  (replaces bare checkbox), date range is a 2-column grid, reset
+  link sits on its own row right-aligned. Was cramped to two lines
+  pre-Round-4.
+
+### Batch C — `ui(round-4-c)`: layout
+- **Documents upload zone** collapsed by default to a "+ 上传文档"
+  button in the list-column header. Click expands the dropzone. Saves
+  ~120 px of permanent vertical real estate when the user has 10+ docs.
+- **PDF / extraction split** in `/documents/$id` shifted from 55/45 to
+  65/35. The detail panel didn't need ~45% of an already-narrow
+  column.
+- **TopBar gap** between the sidebar toggle and the back/forward pair
+  widened to `gap-3` so they read as two groups, not one cramped row.
+
+### Batch D — `ui(round-4-d)`: refinements
+- **`lib/format.ts`** — single source of truth for number formatting:
+  `formatCo2e`, `formatInteger`, `formatSignedInteger`,
+  `formatSignedPercent`. Replaced ad-hoc `Intl.NumberFormat` calls in
+  the dashboard + audit card. No more `14501.820000000002` (12 decimal
+  digits) anywhere.
+- **Sidebar IA**: audit log moved from a single-item "更多" group up
+  to the top section beside the dashboard. A group label longer than
+  its only child was visual noise.
+- **Brand glyph**: leaf icon (`lucide.Leaf`, tinted with
+  `--color-primary`) now sits to the left of the "carbonbook" wordmark
+  in the sidebar header. Remains visible in icon-collapsed mode while
+  the wordmark hides.
+
+### Batch E — `ui(round-4-e)`: dashboard widgets
+- **Monthly trend bar chart**: pure-divs bar chart of the last 12
+  months' total CO2e. Empty months render a 1 px baseline so the axis
+  reads continuously. Hover title shows exact value.
+- **Recent activities widget**: 5 most-recent activities by
+  `occurred_at_end`, showing source name + date + CO2e. "View all"
+  link to `/activities`. Replaces the previously-empty bottom 80%
+  of the dashboard.
+- Both widgets share one cached `activity:list-by-period` query — no
+  extra IPC roundtrips.
+
+655/655 vitest, typecheck + biome clean on every commit.
+
 ## File summary
 
 | Added | Modified | Deleted |
