@@ -132,6 +132,22 @@ dd a[href],
   --radius: 0.5rem;
   --radius-sm: 0.25rem;
   --radius-md: 0.5rem;
+
+  /* ── Sidebar tokens (Phase A redesign) ────────────────────────────
+   * shadcn's <Sidebar> primitive consumes these via the `bg-sidebar`,
+   * `text-sidebar-foreground`, `bg-sidebar-accent`, `border-sidebar-border`,
+   * `ring-sidebar-ring` Tailwind utilities. The values intentionally use
+   * `transparent` for the base bg so macOS sidebar-vibrancy shows through
+   * (Round 1 — T8 baseline-respecting design). Accent + border are tinted
+   * on top of the vibrancy. */
+  --color-sidebar: transparent;
+  --color-sidebar-foreground: var(--color-foreground);
+  --color-sidebar-accent: color-mix(in oklab, var(--color-foreground) 6%, transparent);
+  --color-sidebar-accent-foreground: var(--color-foreground);
+  --color-sidebar-border: var(--color-border);
+  --color-sidebar-ring: var(--color-ring);
+  --color-sidebar-primary: var(--color-primary);
+  --color-sidebar-primary-foreground: var(--color-primary-foreground);
 }
 
 /* ── Dark mode override ─────────────────────────────────────────────
@@ -164,6 +180,17 @@ dd a[href],
   --color-border: oklch(0.3 0.012 95);
   --color-input: oklch(0.3 0.012 95);
   --color-ring: oklch(0.65 0.18 160 / 0.5);
+
+  /* Sidebar dark-mode tokens — mirror the light-mode definitions but
+   * over the darker vibrancy. accent uses foreground/8 over dark. */
+  --color-sidebar: transparent;
+  --color-sidebar-foreground: var(--color-foreground);
+  --color-sidebar-accent: color-mix(in oklab, var(--color-foreground) 8%, transparent);
+  --color-sidebar-accent-foreground: var(--color-foreground);
+  --color-sidebar-border: var(--color-border);
+  --color-sidebar-ring: var(--color-ring);
+  --color-sidebar-primary: var(--color-primary);
+  --color-sidebar-primary-foreground: var(--color-primary-foreground);
 }
 
 @layer base {

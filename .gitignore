@@ -57,3 +57,7 @@ coverage/
 # Playwright artifacts
 test-results/
 playwright-report/
+
+# Ad-hoc UI screenshots dropped by the user for design review.
+# Not part of the source tree; kept locally for reference.
+screenshots/

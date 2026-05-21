@@ -1,56 +1,67 @@
+import { AppSidebar } from '@renderer/components/AppSidebar';
 import { CommandPalette } from '@renderer/components/command-palette';
 import { LicenseBanner } from '@renderer/components/LicenseBanner';
-import { Sidebar } from '@renderer/components/Sidebar';
+import { Separator } from '@renderer/components/ui/separator';
+import { SidebarInset, SidebarProvider, SidebarTrigger } from '@renderer/components/ui/sidebar';
 import { createRootRoute, Outlet, useRouterState } from '@tanstack/react-router';
 
 export const Route = createRootRoute({
   component: RootComponent,
 });
 
+/**
+ * Root layout (UI redesign Phase A).
+ *
+ * Bypass for the hidden /print-render BrowserWindow remains — that route
+ * is loaded by ReportExportService into a separate window for printToPDF
+ * and must render content-only (no sidebar, no chrome).
+ *
+ * Otherwise the app uses shadcn's <SidebarProvider> + <Sidebar> +
+ * <SidebarInset> three-piece layout. SidebarProvider:
+ *   - Owns the collapsed/expanded state (persisted to cookie + Cmd/Ctrl+B)
+ *   - Threads the state into Sidebar (resizes 16rem ↔ 3rem on collapse)
+ *     and SidebarInset (the right-hand main pane that adapts to fill).
+ *
+ * Top chrome row sits at the very top of SidebarInset:
+ *   - macOS hiddenInset reserves left-18, top-16 for traffic lights, so
+ *     the trigger button needs `ml-12` left-inset (skill 06: don't paint
+ *     buttons over the OS's traffic-light hit zone).
+ *   - The titlebar-region drag div is now ONLY in the topbar (not full
+ *     window width) — clicking inside the main content shouldn't trigger
+ *     window-move on a stray empty space.
+ */
 function RootComponent() {
-  // /print-render is loaded inside a hidden BrowserWindow by
-  // ReportExportService.renderReportPdf / renderQuestionnairePdf to drive
-  // `webContents.printToPDF`. If we render the normal app shell around it,
-  // printToPDF captures the *entire window* — sidebar, titlebar, command
-  // palette — which is exactly the bug the user reported as "PDF 就是简单
-  // 的整个 app 截图". Bypass the shell on this route so the print payload
-  // owns the whole document.
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   if (pathname === '/print-render') {
     return <Outlet />;
   }
 
-  // CommandPalette mounts at the route root so it sits inside <RouterProvider>
-  // and can call `useNavigate()`. If it lives outside (as a sibling in
-  // main.tsx) every render logs "useRouter must be used inside a
-  // <RouterProvider> component!" and the navigate stub becomes a no-op —
-  // that breakage also corrupts in-tree TanStack <Link> click handlers (the
-  // cause of the historical /documents row "click does nothing" bug). Keep
-  // it inside the route tree.
   return (
-    <>
-      {/* macOS: traffic lights sit at left:18, top:16 inside this 32px-tall
-       *        drag region. Sidebar must offset its content downward so
-       *        nothing collides with the traffic lights.
-       * Windows: this region is a normal draggable area (no traffic lights).
-       *        autoHideMenuBar makes the legacy menu disappear. */}
-      <div className="titlebar-region fixed top-0 left-0 right-0 h-8 z-50" />
-      {/* NOTE: bg-background omitted from this wrapper so macOS vibrancy /
-       * Windows Mica show through. text-foreground stays for inherited
-       * text color tokens. */}
-      <div className="flex h-screen pt-8 text-foreground flex-col">
-        {/* License banner sits above the sidebar+main flex so it spans
-         * the full app width. Renders nothing when license is active /
-         * unverified. (Phase 4 sub-project B) */}
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        {/* TopBar — h-12 / drag region / SidebarTrigger.
+         * `titlebar-region` makes this band a window-move handle (mac
+         * hiddenInset). Children explicitly opt-out via `no-drag` so
+         * clicks on the trigger button + future back/forward arrows
+         * actually fire instead of being eaten by the OS. */}
+        <header className="titlebar-region sticky top-0 z-30 flex h-12 shrink-0 items-center gap-2 border-b border-border/40 bg-background/40 backdrop-blur-sm px-3">
+          {/* Mac: ml-16 clears the traffic-light cluster (~18px left, 70px
+           * wide). Win: the OS chrome is on the right, so left-inset can
+           * be small. We don't currently branch on platform — picking the
+           * larger inset works on both (Win just sees extra left padding,
+           * harmless). */}
+          <div className="ml-16 flex items-center gap-2 [-webkit-app-region:no-drag]">
+            <SidebarTrigger />
+            <Separator orientation="vertical" className="h-4" />
+          </div>
+        </header>
         <LicenseBanner />
-        <div className="flex flex-1 min-h-0">
-          <Sidebar />
-          <main className="flex-1 overflow-auto p-8">
-            <Outlet />
-          </main>
-        </div>
-      </div>
-      <CommandPalette />
-    </>
+        <main className="flex-1 overflow-auto p-6">
+          <Outlet />
+        </main>
+        <CommandPalette />
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
