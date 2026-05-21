@@ -146,7 +146,25 @@ dd a[href],
   --color-destructive: oklch(0.55 0.2 25);
   --color-destructive-foreground: oklch(0.99 0.005 95);
 
-  --color-border: oklch(0.9 0.008 95);
+  /* Border color — softened to match shadcn-admin's density.
+   *
+   * Previous: oklch(0.9 0.008 95) — lightness 0.9 (10% step from white),
+   * warm hue 95 (slight cream tint). Read as "drawn line" against pure-
+   * white content; users reported dividers feeling heavier than the
+   * shadcn-admin reference. The vertical Separator in the Header was
+   * the loudest culprit (a full-opacity 1px line draws the eye).
+   *
+   * Now: oklch(0.929 0 0) — lightness 0.929 (7.1% step) and pure
+   * neutral (chroma 0). Matches shadcn-admin's `--border: oklch(0.929
+   * 0.013 255.508)` density while dropping the cool blue tint they use
+   * (we keep neutral so the divider doesn't fight the slight warmth in
+   * the rest of carbonbook's palette).
+   *
+   * Header bottom (`border-b border-border/40`), Header vertical
+   * Separator (`h-5 bg-border`), and the sidebar `::after` rule all
+   * derive from this — they soften together without any per-component
+   * tuning. */
+  --color-border: oklch(0.929 0 0);
   --color-input: oklch(0.9 0.008 95);
   --color-ring: oklch(0.55 0.16 160 / 0.5);
 
