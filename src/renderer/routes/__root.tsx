@@ -34,7 +34,16 @@ function RootComponent() {
     // ended up with 0 free space and the list column squeezed to ~32 px.
     <SidebarProvider className="h-svh">
       <AppSidebar />
-      <SidebarInset className="flex flex-col min-h-0">
+      {/* `bg-transparent` overrides shadcn's default `bg-background`
+       * (opaque cream from our theme). Without this override, the inset
+       * painted an opaque cream rectangle while the sidebar stayed
+       * vibrancy-transparent — creating a hard color boundary at
+       * x=sidebar-width that visually CUT THROUGH the traffic-light
+       * cluster (light extends ~72px, boundary at 48px collapsed = light
+       * was half-on-vibrancy-gray, half-on-cream). Transparent inset lets
+       * the same vibrancy carry across the whole window; cards inside
+       * keep their own `bg-card` for readability. */}
+      <SidebarInset className="flex flex-col min-h-0 bg-transparent">
         <TopBar />
         <LicenseBanner />
         {/* Content area: flex-1 + min-h-0 makes the flex child shrinkable;

@@ -110,8 +110,17 @@ export function AppSidebar() {
     refetchOnWindowFocus: true,
   });
 
+  // Round 4 hotfix3: `border-r` removed from the sidebar wrapper.
+  // The full-height vertical line at x = sidebar-width cut RIGHT
+  // THROUGH the macOS traffic-light cluster (which spans x=18-72) in
+  // icon-collapsed mode (sidebar width = 48px), creating the "menu
+  // block splits the window buttons" effect the user reported.
+  // Replacement: globals.css draws an absolute-positioned right
+  // border via `::after` on the sidebar-container, starting at
+  // top=3rem (below the traffic-light zone). Same visual divider,
+  // but only below where the OS controls live.
   return (
-    <Sidebar collapsible="icon" className="border-r border-sidebar-border/60">
+    <Sidebar collapsible="icon">
       {/* macOS hiddenInset: traffic lights are at top:16 with ~12px
        * diameter → bottom of cluster at y≈28. Earlier I had this at
        * pt-7 (28px) which left no breathing room — brand glyph sat
