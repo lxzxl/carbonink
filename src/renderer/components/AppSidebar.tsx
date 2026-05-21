@@ -25,7 +25,6 @@ import {
   Flame,
   LayoutDashboard,
   Leaf,
-  Package,
   ScrollText,
   Settings as SettingsIcon,
   Sliders,
@@ -113,23 +112,18 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border/60">
-      {/* macOS hiddenInset: traffic lights are at top:16, ~12px tall
-       * → end at y≈28. The brand row needs to sit at y > 28 to avoid
-       * overlap, but not much lower (a yawning gap reads as "broken
-       * layout").
+      {/* macOS hiddenInset: traffic lights are at top:16 with ~12px
+       * diameter → bottom of cluster at y≈28. Earlier I had this at
+       * pt-7 (28px) which left no breathing room — brand glyph sat
+       * RIGHT at the traffic-light bottom edge, especially obvious
+       * in icon-collapsed mode where the leaf was practically touching
+       * the green button.
        *
-       * The default SidebarHeader has `flex flex-col gap-2 p-2` (8px
-       * all-around). Adding `pt-8` (32px) on the brand row inside it
-       * stacked: 8 + 32 = 40px. The actual on-screen distance was
-       * larger because the Sidebar's own wrapper-div added more inset
-       * (varies between collapsed/expanded states).
-       *
-       * Fix: drop the brand-row pt-8 entirely; override SidebarHeader's
-       * own p-2 to `pt-7 pb-1` (28px top + 4px bottom). That puts the
-       * brand glyph at y≈28-32px, right below the traffic-light row,
-       * with consistent height between icon-collapsed and expanded
-       * modes (icon-mode used to suffer extra collapse-state padding). */}
-      <SidebarHeader className="pt-7 pb-1">
+       * pt-11 (44px) gives ~16px clearance below the traffic lights.
+       * Header layout: pt-11 (44) + brand-row (~24px content) + pb-3
+       * (12) = ~80px total header height. The expanded-mode wordmark
+       * + the icon-mode glyph both sit at the same y in both states. */}
+      <SidebarHeader className="pt-11 pb-3">
         <div className="flex items-center gap-2 px-2">
           <Leaf className="size-5 shrink-0 text-primary" strokeWidth={2} aria-hidden="true" />
           <span className="text-lg font-semibold group-data-[collapsible=icon]:hidden">
@@ -150,10 +144,18 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Inventory: sources / activities / reports */}
+        {/* Section labels: native macOS-style "SECTION HEADER" treatment
+         * (uppercase + tracking + smaller + more muted). The previous
+         * implementation had Package/FileText icons + standard text-xs
+         * font-medium label, which read as "clickable nav row" — the
+         * icon especially fooled the eye into thinking it was a menu
+         * item. Sub-items beneath looked larger than their parent
+         * label, which is backwards from any list hierarchy convention.
+         *
+         * Now: no icon, uppercase 10px, 50% foreground opacity, extra
+         * letter-spacing. Reads unambiguously as "section name". */}
         <SidebarGroup>
-          <SidebarGroupLabel>
-            <Package className="mr-1.5 size-3.5" aria-hidden="true" />
+          <SidebarGroupLabel className="px-3 text-[10px] font-medium uppercase tracking-wider text-sidebar-foreground/50">
             {m.nav_section_inventory()}
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -165,10 +167,8 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Inputs: documents + questionnaires */}
         <SidebarGroup>
-          <SidebarGroupLabel>
-            <FileText className="mr-1.5 size-3.5" aria-hidden="true" />
+          <SidebarGroupLabel className="px-3 text-[10px] font-medium uppercase tracking-wider text-sidebar-foreground/50">
             {m.nav_section_documents_questionnaires()}
           </SidebarGroupLabel>
           <SidebarGroupContent>
