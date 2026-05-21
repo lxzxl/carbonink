@@ -66,36 +66,55 @@ dd a[href],
   pointer-events: none;
 }
 
-/* Icon-collapsed mode: expand the click target.
+/* Icon-collapsed mode — button alignment + click target.
  *
- * shadcn's `SidebarMenuButton` base forces `group-data-[collapsible=icon]:size-8!`
- * — a 32×32 button in a 48×N column. The 8px "gap" on each side reads
- * as part of the row visually but is NOT a click target — clicks there
- * fall through to the column background and do nothing. User reported
- * "几乎不能点击，只有图标周围很小以部分可以点".
+ * Problem chain:
+ *   - shadcn forces `size-8!` on menu buttons in collapsed mode (32×32)
+ *   - SidebarGroup/Header/Footer each have `p-2` (8px padding all sides)
+ *   - Sidebar column is 48px wide → inner content area is 32px
+ *   - So the 32px button fills the 32px content area, anchored to
+ *     inline-start of that content area (x=8 in column coords)
+ *   - Visually the button (and its icon) reads as 8px LEFT of the
+ *     column's geometric center (which sits at x=24)
+ *   - User: "图标改的完全不居中了"
  *
- * Override to `size-10` (40×40): icon stays visually centered inside,
- * but the active-state highlight + click target both expand. Only 4px
- * gap each side remains — well within the "looks like the same chip"
- * threshold while doubling the per-axis hit budget.
+ * Plus: clicks anywhere in the 8px padding strips fall through to
+ * the column background — user: "几乎不能点击".
  *
- * Also force `justify-center`: shadcn's base is `text-left + items-center`,
- * which left-anchors the icon. In collapsed mode where only the icon
- * renders, anchoring left puts it at the start of the button content
- * area (not visually centered in the button). justify-center fixes
- * that for *every* menu button in the sidebar at once.
+ * Fix: zero the p-2 on Header/Footer/Group ONLY in icon-collapsed
+ * mode, then center the menu-item itself as a flex container. Result:
+ *   - button stays at shadcn's default 32×32 (no overflow risk)
+ *   - it now centers in the *full* 48px column (icon at column-x=24)
+ *   - a `::before` pseudo-element fills the remaining 8px on each
+ *     side as a transparent click extender — total hit-rect 48×32,
+ *     click anywhere in the row triggers the button. The pseudo
+ *     doesn't have its own focus/hover state (it's `pointer-events`
+ *     is the default `auto` and clicks bubble to the parent button).
  *
- * Tailwind utility specificity equals ours; we use `!important` to
- * override shadcn's own `!` on `size-8`. Targets specific data-slot so
- * we don't accidentally affect a NavMenu primitive elsewhere. */
-[data-collapsible="icon"] [data-sidebar="menu-button"] {
-  width: 2.5rem !important;
-  height: 2.5rem !important;
+ * Specificity (0,2,0) matches shadcn's `group-data-[collapsible=icon]`
+ * rules; un-layered globals.css wins over Tailwind's @layer utilities
+ * at equal specificity per the CSS layer cascade. */
+[data-collapsible="icon"] [data-sidebar="header"],
+[data-collapsible="icon"] [data-sidebar="footer"],
+[data-collapsible="icon"] [data-sidebar="group"] {
+  padding-inline: 0 !important;
+}
+[data-collapsible="icon"] [data-sidebar="menu-item"] {
+  display: flex !important;
   justify-content: center !important;
-  /* Center the 40×40 button in the 48px sidebar column. Without this
-   * the button anchors to inline-start (left) and reads as off-center
-   * — same root cause as the "leaf logo 不水平居中" report. */
-  margin-inline: auto !important;
+}
+[data-collapsible="icon"] [data-sidebar="menu-button"] {
+  position: relative;
+  justify-content: center !important;
+}
+/* Transparent click extender — fills the 8px strip on each side of
+ * the 32×32 button so the entire 48×32 row is a click target. */
+[data-collapsible="icon"] [data-sidebar="menu-button"]::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline: -0.5rem;
+  z-index: 0;
 }
 
 /* Honor the OS "reduce motion" accessibility preference (skill 06,
