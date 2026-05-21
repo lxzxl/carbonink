@@ -1,9 +1,17 @@
+import { ListItem } from '@renderer/components/app-shell/ListItem';
 import { AuditEventCard } from '@renderer/components/audit/AuditEventCard';
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from '@renderer/components/ui/resizable';
 import { auditApi } from '@renderer/lib/api/audit';
 import * as m from '@renderer/paraglide/messages';
+import type { AuditEvent } from '@shared/types';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { useMemo, useState } from 'react';
+import { FileSearch } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 
 export const Route = createFileRoute('/audit')({ component: AuditPage });
 
@@ -16,15 +24,6 @@ function defaultSinceIso(): string {
 const KNOWN_EVENT_KINDS = ['activity_rebind_ef'] as const;
 type KnownEventKind = (typeof KNOWN_EVENT_KINDS)[number];
 
-/**
- * Translate the DB `event_kind` enum value (snake_case English) into a
- * localized human label. The audit table stores the raw key for forward
- * compatibility (new event kinds don't require a migration), so the
- * label lookup lives here in the UI layer rather than in the DB row.
- *
- * Keep `KNOWN_EVENT_KINDS` and this mapper aligned — any kind in the
- * array must have a label below or the user sees the raw key.
- */
 function eventKindLabel(kind: KnownEventKind): string {
   switch (kind) {
     case 'activity_rebind_ef':
@@ -32,11 +31,45 @@ function eventKindLabel(kind: KnownEventKind): string {
   }
 }
 
+function eventKindShortLabel(kind: string): string {
+  if (kind === 'activity_rebind_ef') return m.audit_event_kind_activity_rebind_ef();
+  return kind;
+}
+
+function formatTime(iso: string): string {
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
+}
+
+/**
+ * /audit — two-pane (Round 3 redesign).
+ *
+ *   ┌──────────────────────┬─────────────────────────────────┐
+ *   │   Filter section     │   Selected event detail         │
+ *   │   - kind chips       │     (AuditEventCard full body)  │
+ *   │   - date range       │                                 │
+ *   │   - event list rows  │                                 │
+ *   └──────────────────────┴─────────────────────────────────┘
+ *
+ * Selection is local state (no `audit/$id` route) — audit events rarely
+ * need to be deep-linkable, and a routed approach would add a 4th
+ * "must update routeTree" file for marginal benefit.
+ */
 export function AuditPage() {
   const [selectedKinds, setSelectedKinds] = useState<string[]>([]);
-  const [since, setSince] = useState<string>(defaultSinceIso().slice(0, 10)); // YYYY-MM-DD
+  const [since, setSince] = useState<string>(defaultSinceIso().slice(0, 10));
   const [until, setUntil] = useState<string>(new Date().toISOString().slice(0, 10));
   const [limit, setLimit] = useState<number>(500);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
   const queryInput = useMemo(() => {
     const input: {
@@ -56,8 +89,26 @@ export function AuditPage() {
     queryFn: () => auditApi.list(queryInput),
   });
 
-  const events = eventsQuery.data ?? [];
+  const events = useMemo(() => eventsQuery.data ?? [], [eventsQuery.data]);
   const canLoadOlder = events.length >= limit;
+  const selectedEvent = useMemo(
+    () => events.find((e) => e.id === selectedEventId) ?? null,
+    [events, selectedEventId],
+  );
+
+  // Auto-select the first event whenever the list refreshes and the
+  // current selection is no longer in it (e.g. filter changed). Saves a
+  // click — most of the time the user wants to see the freshest event
+  // anyway.
+  useEffect(() => {
+    if (events.length === 0) {
+      setSelectedEventId(null);
+      return;
+    }
+    if (!selectedEventId || !events.find((e) => e.id === selectedEventId)) {
+      setSelectedEventId(events[0]?.id ?? null);
+    }
+  }, [events, selectedEventId]);
 
   const toggleKind = (kind: string) => {
     setSelectedKinds((prev) =>
@@ -73,75 +124,132 @@ export function AuditPage() {
   };
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-3xl">
-      <h1 className="text-2xl font-semibold mb-1">{m.audit_heading()}</h1>
-      <p className="text-sm text-muted-foreground mb-6">{m.audit_subheading()}</p>
+    <ResizablePanelGroup orientation="horizontal" className="h-full -m-6">
+      <ResizablePanel
+        defaultSize={36}
+        minSize={26}
+        maxSize={55}
+        className="border-r border-border/60"
+      >
+        <div className="flex h-full flex-col">
+          <header className="sticky top-0 z-10 border-b border-border/60 bg-background/85 px-4 py-3 backdrop-blur-sm">
+            <h1 className="text-sm font-semibold">{m.audit_heading()}</h1>
+            <p className="mt-0.5 text-xs text-muted-foreground">{m.audit_subheading()}</p>
+          </header>
 
-      <section className="border rounded p-3 mb-4 space-y-2">
-        <div>
-          {/* Group title, not a single-input label — pre-existing markup
-           * before the i18n change. Switched to <span> so biome's
-           * `noLabelWithoutControl` doesn't trip on a label that has
-           * no `htmlFor` and no nested input. */}
-          <span className="text-sm font-medium">{m.audit_filter_event_kind_label()}: </span>
-          {KNOWN_EVENT_KINDS.map((kind) => (
-            <label key={kind} className="inline-flex items-center gap-1 ml-3 text-sm">
-              <input
-                type="checkbox"
-                checked={selectedKinds.includes(kind)}
-                onChange={() => toggleKind(kind)}
+          <section className="space-y-2 border-b border-border/40 px-4 py-3 text-xs">
+            <div>
+              <span className="font-medium">{m.audit_filter_event_kind_label()}:</span>
+              {KNOWN_EVENT_KINDS.map((kind) => (
+                <label key={kind} className="ml-3 inline-flex items-center gap-1">
+                  <input
+                    type="checkbox"
+                    checked={selectedKinds.includes(kind)}
+                    onChange={() => toggleKind(kind)}
+                  />
+                  {eventKindLabel(kind)}
+                </label>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="flex items-center gap-1">
+                {m.audit_filter_since_label()}:
+                <input
+                  type="date"
+                  value={since}
+                  onChange={(e) => setSince(e.target.value)}
+                  className="rounded border border-border bg-background px-1"
+                />
+              </label>
+              <label className="flex items-center gap-1">
+                {m.audit_filter_until_label()}:
+                <input
+                  type="date"
+                  value={until}
+                  onChange={(e) => setUntil(e.target.value)}
+                  className="rounded border border-border bg-background px-1"
+                />
+              </label>
+              <button type="button" onClick={reset} className="ml-auto underline">
+                {m.audit_filter_reset_button()}
+              </button>
+            </div>
+          </section>
+
+          <div className="flex-1 overflow-y-auto">
+            {eventsQuery.isPending && (
+              <p className="px-4 py-3 text-sm text-muted-foreground">{m.loading()}</p>
+            )}
+            {!eventsQuery.isPending && events.length === 0 && (
+              <div className="py-12 text-center">
+                <h2 className="text-sm font-medium">{m.audit_empty_state_heading()}</h2>
+                <p className="mt-2 px-4 text-xs text-muted-foreground">
+                  {m.audit_empty_state_body()}
+                </p>
+              </div>
+            )}
+            <ul className="py-1">
+              {events.map((ev) => (
+                <AuditListItem
+                  key={ev.id}
+                  event={ev}
+                  isSelected={ev.id === selectedEventId}
+                  onSelect={() => setSelectedEventId(ev.id)}
+                />
+              ))}
+            </ul>
+            {canLoadOlder && (
+              <div className="px-4 py-3">
+                <button
+                  type="button"
+                  onClick={() => setLimit((l) => l + 500)}
+                  className="w-full rounded border border-border px-3 py-2 text-sm hover:bg-foreground/5"
+                >
+                  {m.audit_load_older_button()}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </ResizablePanel>
+
+      <ResizableHandle />
+
+      <ResizablePanel defaultSize={64}>
+        <div className="h-full overflow-auto p-6">
+          {selectedEvent ? (
+            <AuditEventCard event={selectedEvent} />
+          ) : (
+            <div className="flex h-full flex-col items-center justify-center text-center">
+              <FileSearch
+                className="size-12 text-muted-foreground/50"
+                strokeWidth={1.5}
+                aria-hidden="true"
               />
-              {eventKindLabel(kind)}
-            </label>
-          ))}
+              <p className="mt-3 text-sm text-muted-foreground">{m.audit_empty_state_heading()}</p>
+            </div>
+          )}
         </div>
-        <div className="flex gap-3 items-center text-sm">
-          <label className="flex items-center gap-1">
-            {m.audit_filter_since_label()}:
-            <input
-              type="date"
-              value={since}
-              onChange={(e) => setSince(e.target.value)}
-              className="border rounded px-1"
-            />
-          </label>
-          <label className="flex items-center gap-1">
-            {m.audit_filter_until_label()}:
-            <input
-              type="date"
-              value={until}
-              onChange={(e) => setUntil(e.target.value)}
-              className="border rounded px-1"
-            />
-          </label>
-          <button type="button" onClick={reset} className="text-sm underline ml-auto">
-            {m.audit_filter_reset_button()}
-          </button>
-        </div>
-      </section>
+      </ResizablePanel>
+    </ResizablePanelGroup>
+  );
+}
 
-      {eventsQuery.isPending && <p>Loading…</p>}
-
-      {!eventsQuery.isPending && events.length === 0 && (
-        <div className="text-center py-12">
-          <h2 className="text-base font-medium">{m.audit_empty_state_heading()}</h2>
-          <p className="text-sm text-muted-foreground mt-2">{m.audit_empty_state_body()}</p>
-        </div>
-      )}
-
-      {events.map((ev) => (
-        <AuditEventCard key={ev.id} event={ev} />
-      ))}
-
-      {canLoadOlder && (
-        <button
-          type="button"
-          onClick={() => setLimit((l) => l + 500)}
-          className="mt-4 rounded border px-3 py-2 text-sm"
-        >
-          {m.audit_load_older_button()}
-        </button>
-      )}
-    </div>
+function AuditListItem({
+  event,
+  isSelected,
+  onSelect,
+}: {
+  event: AuditEvent;
+  isSelected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <ListItem
+      onClick={onSelect}
+      isSelected={isSelected}
+      title={eventKindShortLabel(event.event_kind)}
+      meta={<span>{formatTime(event.occurred_at)}</span>}
+    />
   );
 }

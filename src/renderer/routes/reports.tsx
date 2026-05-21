@@ -1,13 +1,13 @@
+import { ListItem } from '@renderer/components/app-shell/ListItem';
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
 } from '@renderer/components/ui/resizable';
 import { orgApi } from '@renderer/lib/api/organization';
-import { cn } from '@renderer/lib/utils';
 import * as m from '@renderer/paraglide/messages';
 import { useQuery } from '@tanstack/react-query';
-import { createFileRoute, Link, Outlet, useParams } from '@tanstack/react-router';
+import { createFileRoute, Outlet, useParams } from '@tanstack/react-router';
 
 /**
  * /reports — two-pane layout (Phase D of the UI redesign).
@@ -73,25 +73,17 @@ function ReportsListColumn() {
         <p className="px-4 py-3 text-sm text-muted-foreground">{m.loading()}</p>
       ) : periodsQuery.data?.length ? (
         <ul className="py-1">
-          {periodsQuery.data.map((p) => {
-            const isSelected = p.id === selectedId;
-            return (
-              <li key={p.id}>
-                <Link
-                  to="/reports/$id"
-                  params={{ id: p.id }}
-                  className={cn(
-                    'block px-4 py-2 text-sm transition-colors hover:bg-sidebar-accent/60',
-                    isSelected && 'bg-sidebar-accent',
-                    !profileReady && 'pointer-events-none opacity-40',
-                  )}
-                >
-                  <div className="font-medium text-foreground">{p.year}</div>
-                  <div className="mt-0.5 text-xs text-muted-foreground">{p.granularity}</div>
-                </Link>
-              </li>
-            );
-          })}
+          {periodsQuery.data.map((p) => (
+            <ListItem
+              key={p.id}
+              to="/reports/$id"
+              params={{ id: p.id }}
+              isSelected={p.id === selectedId}
+              className={profileReady ? undefined : 'pointer-events-none opacity-40'}
+              title={p.year}
+              meta={<span>{p.granularity}</span>}
+            />
+          ))}
         </ul>
       ) : (
         <div className="flex flex-col items-center py-12 px-4 text-center">

@@ -1,3 +1,4 @@
+import { ListItem } from '@renderer/components/app-shell/ListItem';
 import { Button } from '@renderer/components/ui/button';
 import {
   ResizableHandle,
@@ -5,7 +6,6 @@ import {
   ResizablePanelGroup,
 } from '@renderer/components/ui/resizable';
 import { questionnaireApi } from '@renderer/lib/api/questionnaire';
-import { cn } from '@renderer/lib/utils';
 import * as m from '@renderer/paraglide/messages';
 import type { Questionnaire } from '@shared/types';
 import { useQuery } from '@tanstack/react-query';
@@ -91,40 +91,35 @@ function QuestionnairesListColumn() {
         <p className="px-4 py-6 text-sm text-muted-foreground">{m.questionnaires_empty()}</p>
       ) : (
         <ul className="py-1">
-          {list.map((r) => {
-            const isSelected = r.id === selectedId;
-            return (
-              <li key={r.id}>
-                <Link
-                  to="/questionnaires/$id"
-                  params={{ id: r.id }}
-                  className={cn(
-                    'block px-4 py-2 text-sm transition-colors hover:bg-sidebar-accent/60',
-                    isSelected && 'bg-sidebar-accent',
+          {list.map((r) => (
+            <ListItem
+              key={r.id}
+              to="/questionnaires/$id"
+              params={{ id: r.id }}
+              isSelected={r.id === selectedId}
+              title={r.customer_name}
+              titleAttr={r.customer_name}
+              meta={
+                <>
+                  <span>{r.reporting_year}</span>
+                  <span>·</span>
+                  <span>{statusLabel(r.status)}</span>
+                  <span>·</span>
+                  <span>
+                    {r.question_count} {m.questionnaires_table_questions()}
+                  </span>
+                  {r.due_date && (
+                    <>
+                      <span>·</span>
+                      <span>
+                        {m.questionnaires_table_due()} {r.due_date}
+                      </span>
+                    </>
                   )}
-                >
-                  <div className="truncate font-medium text-foreground">{r.customer_name}</div>
-                  <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                    <span>{r.reporting_year}</span>
-                    <span>·</span>
-                    <span>{statusLabel(r.status)}</span>
-                    <span>·</span>
-                    <span>
-                      {r.question_count} {m.questionnaires_table_questions()}
-                    </span>
-                    {r.due_date && (
-                      <>
-                        <span>·</span>
-                        <span>
-                          {m.questionnaires_table_due()} {r.due_date}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                </Link>
-              </li>
-            );
-          })}
+                </>
+              }
+            />
+          ))}
         </ul>
       )}
     </div>

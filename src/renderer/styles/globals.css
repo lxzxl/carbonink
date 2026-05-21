@@ -42,6 +42,21 @@ dd a[href],
   cursor: pointer;
 }
 
+/* Honor the OS "reduce motion" accessibility preference (skill 06,
+ * ship-readiness item #39). Pinning durations to 0.01ms (not 0) keeps
+ * onTransitionEnd handlers firing — some shadcn primitives rely on
+ * them — while making every motion imperceptible. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* On macOS hiddenInset the titlebar zone (top 32px) has traffic lights
  * at x:18, y:16. Make it -webkit-app-region: drag so users can grab
  * empty header space to move the window. */

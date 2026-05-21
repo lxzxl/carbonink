@@ -111,15 +111,47 @@ Approx +500 KB minified across all new deps. The shadcn primitives are
 copied into the repo (philosophy: own your UI) — only the Radix runtime
 deps ship to users.
 
-## What's deferred to Round 3
+## Round 3 (shipped)
 
-- Toast → OS-native style
-- `<select>` → shadcn `Select` (combobox) in Settings page
-- macOS `systemPreferences.getAccentColor()` → drive `--color-primary`
-- Dark-mode toggle + `nativeTheme.shouldUseDarkColors`
-- `prefers-reduced-motion` honor for all transitions
-- ListItem primitive extraction (when a 4th list adopts the pattern)
-- `/audit` two-pane (needs a detail UI design first)
+Continuing the native-feel polish after Phases A-F. Two items from the
+original deferred list were dropped after re-evaluation:
+
+- **macOS `systemPreferences.getAccentColor()`** — user decision during
+  the redesign was "保留 carbonbook 绿" (keep brand green). System
+  accent would have replaced our brand identity color.
+- **shadcn `Select` for native `<select>`** — native `<select>` is the
+  OS-native dropdown widget on both macOS and Windows. Replacing it
+  with Radix Select would make it *less* native (more web-styled).
+  Per skill T3 "adopt the platform; don't compete with it".
+
+What did ship:
+
+- **Sonner toast styling**: softer 2-line shadow tuned for vibrancy
+  backdrops, `bg-card` 80%-opaque so vibrancy edges through, 13px text
+  (system convention). Replaces the harsher web-banner default chrome.
+- **`prefers-reduced-motion` global rule**: every transition/animation
+  capped at 0.01ms (not 0 — keeps `onTransitionEnd` handlers firing
+  that shadcn primitives rely on). `scroll-behavior: auto` too.
+  Skill ship-readiness item #39.
+- **`/audit` two-pane**: filter section + compact event list on left,
+  selected event detail on right. Selection is local state (no
+  `audit/$id` route — events rarely need deep-linking and adding a
+  routed approach would bloat the route tree for marginal benefit).
+- **`ListItem` primitive** (`src/renderer/components/app-shell/ListItem.tsx`):
+  shared compact-row component used by `/documents`, `/questionnaires`,
+  `/reports`, and `/audit` list columns. Removes ~70 LoC of duplication
+  across those routes. Slot-based API: `leading` / `title` / `meta` /
+  `right`. Renders as either `<Link>` (when `to` provided) or `<button>`
+  (when `onClick` provided — for local-state selection). `<StatusDot>`
+  companion component standardizes the leading colored dot used by
+  documents.
+
+## What's deferred to a future round
+
+- Dark mode (user explicitly said "暂不考虑暗色" — keep light-only)
+- `/audit/$id` routed deep-links (if export/share use cases emerge)
+- Additional `ListItem` slots if a future list adopts richer per-row
+  layouts
 
 ## File summary
 

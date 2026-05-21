@@ -1,3 +1,4 @@
+import { ListItem, StatusDot } from '@renderer/components/app-shell/ListItem';
 import { DocumentsUpload } from '@renderer/components/DocumentsUpload';
 import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
@@ -10,7 +11,6 @@ import { documentApi } from '@renderer/lib/api/document';
 import { extractionApi } from '@renderer/lib/api/extraction';
 import { settingsApi } from '@renderer/lib/api/settings';
 import { stageLabel } from '@renderer/lib/stage-labels';
-import { cn } from '@renderer/lib/utils';
 import * as m from '@renderer/paraglide/messages';
 import type { Document, ExtractionStatus } from '@shared/types';
 import { useQuery } from '@tanstack/react-query';
@@ -174,34 +174,24 @@ function DocumentsList() {
           statusByDocId.get(d.id)?.active ?? null,
           statusByDocId.get(d.id)?.hasRejected ?? false,
         );
-        const isSelected = d.id === selectedId;
         return (
-          <li key={d.id}>
-            <Link
-              to="/documents/$id"
-              params={{ id: d.id }}
-              aria-label={`${m.documents_open_row()} ${d.filename}`}
-              className={cn(
-                'flex items-start gap-2 px-4 py-2 text-sm transition-colors hover:bg-sidebar-accent/60',
-                isSelected && 'bg-sidebar-accent',
-              )}
-            >
-              <span
-                className={cn('mt-1.5 h-2 w-2 shrink-0 rounded-full', STATUS_DOT_CLASSES[chip])}
-                aria-label={STATUS_CHIP_LABELS[chip]()}
-              />
-              <div className="min-w-0 flex-1">
-                <div className="truncate font-medium text-foreground" title={d.filename}>
-                  {d.filename}
-                </div>
-                <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>{d.uploaded_at.slice(0, 10)}</span>
-                  <span>·</span>
-                  <span>{stageLabel(d.doc_type)}</span>
-                </div>
-              </div>
-            </Link>
-          </li>
+          <ListItem
+            key={d.id}
+            to="/documents/$id"
+            params={{ id: d.id }}
+            ariaLabel={`${m.documents_open_row()} ${d.filename}`}
+            isSelected={d.id === selectedId}
+            leading={<StatusDot className={STATUS_DOT_CLASSES[chip]} />}
+            title={d.filename}
+            titleAttr={d.filename}
+            meta={
+              <>
+                <span>{d.uploaded_at.slice(0, 10)}</span>
+                <span>·</span>
+                <span>{stageLabel(d.doc_type)}</span>
+              </>
+            }
+          />
         );
       })}
     </ul>
