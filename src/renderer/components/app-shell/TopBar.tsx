@@ -21,16 +21,14 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
  * - `titlebar-region` makes the bar a window-drag handle; the inner
  *   `[-webkit-app-region:no-drag]` wrapper lets the buttons still fire.
  */
-// Round 4 hotfix3: dropped `bg-background/40` + `backdrop-blur-sm` from
-// the header className. The opaque-ish tint behind the topbar broke the
-// vibrancy carry-through between sidebar and main area (introducing yet
-// another background-color seam in the title-bar zone). Now the topbar
-// is fully transparent; the SidebarInset is also transparent above so
-// the OS vibrancy is uninterrupted from x=0 across the whole top strip.
-// Border-b stays — it's at y=48, below the traffic lights.
+// Round 4 hotfix4: TopBar inherits the inset's bg-background (pure white)
+// implicitly — no explicit bg needed. The previous backdrop-blur was an
+// artifact of the vibrancy era; without vibrancy underneath there's
+// nothing to blur, and the previous semi-transparent bg created a band
+// of slightly-different white that read as a seam. Now: clean inheritance.
 export function TopBar() {
   return (
-    <header className="titlebar-region sticky top-0 z-30 flex h-12 shrink-0 items-center gap-2 border-b border-border/40 px-3">
+    <header className="titlebar-region sticky top-0 z-30 flex h-12 shrink-0 items-center gap-2 border-b border-border/40 bg-background px-3">
       {/* Round 4 #9: visually separated the sidebar toggle from the
        * back/forward pair. Previously [☰] [|] [<] [>] read as one
        * cramped group; now [☰]   [< >] with breathing room. */}

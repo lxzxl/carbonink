@@ -1,12 +1,12 @@
 @import "tailwindcss";
 
-/* Let macOS vibrancy / Windows Mica show through.
- * Without this the body's opaque background covers the blur layer.
- * The base layer below intentionally omits `bg-background` on body so we
- * don't need !important here. */
+/* Round 4 hotfix4: switched from vibrancy-through-transparent to opaque
+ * pure-white background. body now paints `--color-background` so there's
+ * no flash on first paint (previously body was transparent and you'd see
+ * the window's default OS background for ~1 frame). */
 html,
 body {
-  background: transparent;
+  background: var(--color-background);
   /* Native cursor on chrome. Inputs / textareas / [contenteditable]
    * restore the I-beam below via :where() so app-shell elements never
    * show `cursor: pointer` — the most common "this is a web app" tell
@@ -16,7 +16,7 @@ body {
 }
 
 #root {
-  background: transparent;
+  background: var(--color-background);
 }
 
 /* Inputs + editable surfaces restore the I-beam. */
@@ -104,25 +104,29 @@ dd a[href],
 @theme {
   /* ── Base palette (OKLch) ─────────────────────────────────────────
    *
-   * Light mode background is a warm off-white (slight yellow), foreground
-   * is a near-black with the same hue rotation — better contrast on
-   * vibrancy backdrops than pure #FFF / #000.
+   * Round 4 hotfix4: switched from warm-cream-over-vibrancy to pure
+   * opaque white. The vibrancy approach kept introducing background-
+   * color seams at sidebar/inset/topbar boundaries (the "menu block
+   * splits the window buttons" issue). Pure white sidebar+inset+topbar
+   * means no transparency edge cases; cards differentiate via subtle
+   * border + tiny shade tint, not via opacity over blur.
+   *
+   * Sidebar is a near-imperceptible step (oklch 0.985) so the user
+   * can still feel where the sidebar ends, but the title-bar zone
+   * stays unified across the boundary.
    *
    * Note: Tailwind v4 requires the `--color-*` prefix to auto-generate
-   * the matching utilities (bg-background, text-foreground, etc.). The
-   * --foreground-N ladder below references --color-foreground directly
-   * via color-mix() so the two stay in sync.
+   * the matching utilities (bg-background, text-foreground, etc.).
    */
-  --color-background: oklch(0.99 0.005 95);
+  --color-background: oklch(1 0 0); /* pure white */
   --color-foreground: oklch(0.18 0.012 95);
 
-  /* Card token: 80% white over vibrancy. 60% looked murky (the underlying
-   * blur dominated the card content); 80% reads clearly while still
-   * letting the vibrancy show through edges + shadows. Skill T8 — accept
-   * the baseline (vibrancy) and design WITH it, not around it. */
-  --color-card: oklch(1 0 0 / 0.8);
+  /* Card token: pure white (matches background) so card-on-page reads
+   * as elevation-by-border, not as a different surface. The previous
+   * 80%-white-over-vibrancy contract is obsolete now that we're opaque. */
+  --color-card: oklch(1 0 0);
   --color-card-foreground: oklch(0.18 0.012 95);
-  --color-popover: oklch(0.99 0.005 95);
+  --color-popover: oklch(1 0 0);
   --color-popover-foreground: oklch(0.18 0.012 95);
 
   /* Brand: carbonbook green. OKLch L=0.55 C=0.16 H=160 is a balanced
@@ -172,14 +176,17 @@ dd a[href],
   --radius-sm: 0.25rem;
   --radius-md: 0.5rem;
 
-  /* ── Sidebar tokens (Phase A redesign) ────────────────────────────
-   * shadcn's <Sidebar> primitive consumes these via the `bg-sidebar`,
-   * `text-sidebar-foreground`, `bg-sidebar-accent`, `border-sidebar-border`,
-   * `ring-sidebar-ring` Tailwind utilities. The values intentionally use
-   * `transparent` for the base bg so macOS sidebar-vibrancy shows through
-   * (Round 1 — T8 baseline-respecting design). Accent + border are tinted
-   * on top of the vibrancy. */
-  --color-sidebar: transparent;
+  /* ── Sidebar tokens ─────────────────────────────────────────────
+   * Round 4 hotfix4: sidebar is now an opaque near-white (oklch 0.985)
+   * — a 1.5% step down from pure-white background. The user can tell
+   * where the sidebar ends (subtle but enough), and the title-bar zone
+   * still reads as unified white because:
+   *   - the difference is only 1.5%, imperceptible in the small area
+   *     traffic-lights overlap
+   *   - the `::after` border below the title-bar zone provides the
+   *     clear divider once you're past the OS chrome
+   */
+  --color-sidebar: oklch(0.985 0 0);
   --color-sidebar-foreground: var(--color-foreground);
   --color-sidebar-accent: color-mix(in oklab, var(--color-foreground) 6%, transparent);
   --color-sidebar-accent-foreground: var(--color-foreground);
