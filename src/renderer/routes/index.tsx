@@ -1,5 +1,6 @@
 import { activityApi } from '@renderer/lib/api/activity-data';
 import { orgApi } from '@renderer/lib/api/organization';
+import { formatCo2e } from '@renderer/lib/format';
 import * as m from '@renderer/paraglide/messages';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, Navigate } from '@tanstack/react-router';
@@ -8,16 +9,9 @@ export const Route = createFileRoute('/')({
   component: Dashboard,
 });
 
-/**
- * Format a CO2e value (kg) with the zh-CN locale's thousands separator and
- * a single decimal place. Used uniformly across the four scope cards so a
- * "0" value still renders as "0" (not "0.0") via maximumFractionDigits.
- *
- * Defined at module scope so the test harness can rely on stable output
- * without re-mounting the component.
- */
-const format = (n: number | undefined) =>
-  new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 1 }).format(n ?? 0);
+// Round 4 #12: number formatting unified across the app via
+// `formatCo2e` (see `lib/format.ts`). Dashboard, audit cards, and
+// reports now use the same zh-CN locale + max-1-decimal contract.
 
 function Dashboard() {
   // Onboarding gate: if no org exists, redirect into the wizard. This is the
@@ -103,7 +97,7 @@ function ScopeCard({ label, value }: { label: string; value: number | undefined 
       <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </div>
-      <div className="mt-2 text-2xl font-semibold tabular-nums">{format(value)}</div>
+      <div className="mt-2 text-2xl font-semibold tabular-nums">{formatCo2e(value)}</div>
       <div className="mt-0.5 text-xs text-muted-foreground">{m.unit_kg_co2e()}</div>
     </div>
   );

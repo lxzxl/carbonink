@@ -1,18 +1,10 @@
 import { efApi } from '@renderer/lib/api/ef-library';
+import { formatCo2e, formatSignedInteger, formatSignedPercent } from '@renderer/lib/format';
 import * as m from '@renderer/paraglide/messages';
 import type { ActivityRebindEfPayload, AuditEvent, EfCompositePk } from '@shared/types';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { useState } from 'react';
-
-function formatNumber(n: number): string {
-  return new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 0 }).format(n);
-}
-
-function signed(n: number, digits = 0): string {
-  const fixed = n.toFixed(digits);
-  return n >= 0 ? `+${fixed}` : fixed;
-}
 
 /**
  * Resolve an EF composite-PK to its `name_zh` (or factor_code on miss).
@@ -84,10 +76,10 @@ export function ActivityRebindCard({ event }: { event: AuditEvent }) {
       </div>
       <div className="text-sm text-muted-foreground">
         {m.audit_rebind_delta({
-          old_co2e: formatNumber(payload.old_computed_co2e_kg),
-          new_co2e: formatNumber(payload.new_computed_co2e_kg),
-          delta_signed: signed(delta),
-          pct_signed: signed(pct, 1),
+          old_co2e: formatCo2e(payload.old_computed_co2e_kg),
+          new_co2e: formatCo2e(payload.new_computed_co2e_kg),
+          delta_signed: formatSignedInteger(delta),
+          pct_signed: formatSignedPercent(pct),
         })}
       </div>
       <button

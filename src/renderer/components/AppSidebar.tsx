@@ -24,6 +24,7 @@ import {
   FileText,
   Flame,
   LayoutDashboard,
+  Leaf,
   Package,
   ScrollText,
   Settings as SettingsIcon,
@@ -59,12 +60,14 @@ type NavItem = {
   label: () => string;
 };
 
-const TOP_NAV: NavItem = {
-  id: 'dashboard',
-  to: '/',
-  icon: LayoutDashboard,
-  label: m.nav_dashboard,
-};
+// Round 4 #13: audit log moved from a single-item "更多" group into the
+// top section beside the dashboard. A single-item group with a section
+// label was visual noise — the section label was longer than its only
+// child.
+const TOP_NAV: ReadonlyArray<NavItem> = [
+  { id: 'dashboard', to: '/', icon: LayoutDashboard, label: m.nav_dashboard },
+  { id: 'audit', to: '/audit', icon: FileSearch, label: m.audit_nav },
+];
 
 const INVENTORY_GROUP: ReadonlyArray<NavItem> = [
   { id: 'sources', to: '/sources', icon: Sliders, label: m.nav_sources },
@@ -75,10 +78,6 @@ const INVENTORY_GROUP: ReadonlyArray<NavItem> = [
 const INPUTS_GROUP: ReadonlyArray<NavItem> = [
   { id: 'documents', to: '/documents', icon: FileText, label: m.nav_documents },
   { id: 'questionnaires', to: '/questionnaires', icon: ClipboardList, label: m.nav_questionnaires },
-];
-
-const MORE_GROUP: ReadonlyArray<NavItem> = [
-  { id: 'audit', to: '/audit', icon: FileSearch, label: m.audit_nav },
 ];
 
 function isPathActive(pathname: string, to: string): boolean {
@@ -116,20 +115,28 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r border-sidebar-border/60">
       <SidebarHeader>
         {/* macOS hiddenInset reserves top ~32px for traffic lights. The
-         * pt-8 inset clears them. group-data-[collapsible=icon] hides the
-         * wordmark when sidebar collapses to icon-only — the brand text
-         * doesn't fit at 3rem and we don't have a logo glyph yet. */}
-        <div className="px-2 pt-8 pb-2 text-lg font-semibold group-data-[collapsible=icon]:hidden">
-          {m.app_title()}
+         * pt-8 inset clears them.
+         *
+         * Round 4 #15: brand row now has a leaf-shaped glyph (built from
+         * the lucide `Leaf` icon tinted with --color-primary) + wordmark.
+         * In icon-collapsed mode only the glyph remains — sidebar narrows
+         * to 3rem and the wordmark would clip. */}
+        <div className="flex items-center gap-2 px-2 pt-8 pb-2">
+          <Leaf className="size-5 shrink-0 text-primary" strokeWidth={2} aria-hidden="true" />
+          <span className="text-lg font-semibold group-data-[collapsible=icon]:hidden">
+            {m.app_title()}
+          </span>
         </div>
       </SidebarHeader>
 
       <SidebarContent>
-        {/* Dashboard at the very top — no group label, single item. */}
+        {/* Top: dashboard + audit, no group label. */}
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              <NavMenuItem item={TOP_NAV} pathname={pathname} />
+              {TOP_NAV.map((item) => (
+                <NavMenuItem key={item.id} item={item} pathname={pathname} />
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -158,18 +165,6 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {INPUTS_GROUP.map((item) => (
-                <NavMenuItem key={item.id} item={item} pathname={pathname} />
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* More: audit (+ future) */}
-        <SidebarGroup>
-          <SidebarGroupLabel>{m.nav_section_misc()}</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {MORE_GROUP.map((item) => (
                 <NavMenuItem key={item.id} item={item} pathname={pathname} />
               ))}
             </SidebarMenu>
