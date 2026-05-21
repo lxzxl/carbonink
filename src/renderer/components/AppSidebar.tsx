@@ -14,37 +14,62 @@ import { mcpApi } from '@renderer/lib/api/mcp';
 import { cn } from '@renderer/lib/utils';
 import * as m from '@renderer/paraglide/messages';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from '@tanstack/react-router';
+import { Link, useLocation } from '@tanstack/react-router';
+import { Settings as SettingsIcon } from 'lucide-react';
 
 /**
  * AppSidebar — adopted from the shadcn-admin layout pattern.
  *
- * Structure:
  *   <Sidebar collapsible="icon">
- *     <SidebarHeader>        — Leaf + "carbonbook" wordmark (AppTitle)
- *     <SidebarContent>       — N x NavGroup, driven by sidebar-data.ts
- *     <SidebarFooter>        — MCP status indicator
+ *     <SidebarHeader>     — Leaf + "carbonbook" wordmark (AppTitle)
+ *     <SidebarContent>    — N x NavGroup, driven by sidebar-data.ts
+ *     <SidebarFooter>     — Settings link with inline MCP status dot
  *   </Sidebar>
  *
+ * Footer choice — single Settings item, with MCP status as a trailing
+ * colored dot rather than its own row. Previously the footer had two
+ * items (an MCP status pill + a Settings button), and both linked to
+ * /settings — when the sidebar collapsed to icon mode this rendered
+ * as two stacked icons going to the same destination. Now: one row,
+ * one click target, status visible inline.
+ *
+ * The MCP dot hides in icon-collapsed mode (the button shrinks to its
+ * icon-only width with no room for trailing content; the gear icon
+ * itself communicates "settings" sufficiently for the collapsed
+ * state).
+ *
  * Differences from upstream shadcn-admin:
- *   - No `<TeamSwitcher>` — single org, no multi-tenancy.
- *   - No `<NavUser>` — no auth / sign-out (single-user desktop app).
- *   - No `<SidebarRail>` — fixed-width column. Drag-to-resize would
+ *   - No `<TeamSwitcher>` — single org.
+ *   - No `<NavUser>` — no auth / sign-out (single-user desktop).
+ *   - No `<SidebarRail>` — fixed-width collapse instead, to avoid
  *     conflict with the macOS hiddenInset traffic-light cluster
  *     (x=18-72) when the sidebar is collapsed.
- *   - `SidebarHeader` has `pt-11 pb-3` to clear macOS traffic lights
- *     (cluster bottom ≈ y=28 + 16px breathing room = 44px top padding).
- *   - Footer carries an MCP status pill instead of `<NavUser>` — tells
- *     users whether their Claude config can reach the embedded MCP
- *     server, which is more useful for our user than "signed in as".
+ *   - `SidebarHeader` has `pt-11 pb-3` to clear macOS traffic lights.
  */
 export function AppSidebar() {
+  const pathname = useLocation({ select: (s) => s.pathname });
   const mcpStatus = useQuery({
     queryKey: ['mcp:status'],
     queryFn: mcpApi.getStatus,
     refetchInterval: 10_000,
     refetchOnWindowFocus: true,
   });
+
+  const mcp = mcpStatus.data;
+  const mcpDotClass = mcp
+    ? mcp.claude_config_references_us
+      ? 'bg-green-500'
+      : mcp.binary_built
+        ? 'bg-amber-500'
+        : 'bg-muted-foreground/40'
+    : '';
+  const mcpStatusLabel = mcp
+    ? mcp.claude_config_references_us
+      ? m.sidebar_mcp_label_available()
+      : mcp.binary_built
+        ? m.sidebar_mcp_label_pending()
+        : m.sidebar_mcp_label_not_built()
+    : '';
 
   return (
     <Sidebar collapsible="icon">
@@ -62,32 +87,34 @@ export function AppSidebar() {
 
       <SidebarFooter>
         <SidebarMenu>
-          {mcpStatus.data && (
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip={m.sidebar_mcp_label_available()}>
-                <Link to="/settings" className="text-xs">
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname.startsWith('/settings')}
+              tooltip={m.nav_settings()}
+            >
+              <Link to="/settings" aria-label={m.nav_settings()}>
+                <SettingsIcon />
+                <span>{m.nav_settings()}</span>
+                {mcp && (
                   <span
+                    role="status"
+                    aria-label={mcpStatusLabel}
+                    title={mcpStatusLabel}
                     className={cn(
-                      'h-2 w-2 rounded-full shrink-0',
-                      mcpStatus.data.claude_config_references_us
-                        ? 'bg-green-500'
-                        : mcpStatus.data.binary_built
-                          ? 'bg-amber-500'
-                          : 'bg-muted-foreground/40',
+                      // ms-auto pushes the dot to the trailing edge of
+                      // the expanded button. Hidden in icon-collapsed
+                      // mode so it doesn't fight for the centered icon
+                      // slot (no room for trailing content in a square
+                      // 32px button).
+                      'ms-auto h-2 w-2 rounded-full shrink-0 group-data-[collapsible=icon]:hidden',
+                      mcpDotClass,
                     )}
-                    aria-hidden="true"
                   />
-                  <span className="text-muted-foreground">
-                    {mcpStatus.data.claude_config_references_us
-                      ? m.sidebar_mcp_label_available()
-                      : mcpStatus.data.binary_built
-                        ? m.sidebar_mcp_label_pending()
-                        : m.sidebar_mcp_label_not_built()}
-                  </span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          )}
+                )}
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>

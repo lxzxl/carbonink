@@ -6,7 +6,6 @@ import {
   Flame,
   LayoutDashboard,
   ScrollText,
-  Settings as SettingsIcon,
   Sliders,
 } from 'lucide-react';
 import type { NavGroup } from './types';
@@ -16,9 +15,8 @@ import type { NavGroup } from './types';
  *
  * Three top-level sections (matching the shadcn-admin pattern):
  *
- *   1. **General** (no label visible — using empty string suppresses the
- *      uppercase header for the first group). Dashboard + audit trail —
- *      "where do I look at the system as a whole".
+ *   1. **General** — Dashboard + audit trail: "look at the system as
+ *      a whole".
  *
  *   2. **Inventory** (排放清单) — the three "compute the number" routes:
  *      emission sources, activity data, and reports.
@@ -26,10 +24,11 @@ import type { NavGroup } from './types';
  *   3. **Inputs** (输入资料) — the data-feeding routes: documents and
  *      questionnaires. These are where users put raw data IN.
  *
- *   4. **System** — settings (single item; not a real "group" but the
- *      flat shadcn-admin pattern doesn't have a footer-area concept
- *      separate from groups, so settings lives in its own pseudo-group
- *      at the bottom).
+ * Settings is intentionally NOT in a NavGroup — it lives in the
+ * Sidebar footer, composed with the MCP status indicator into a
+ * single click target. (Having Settings both in a "System" group AND
+ * a footer MCP-pill that also linked to /settings was the user-
+ * reported "menu item 重复" — two icons, same destination.)
  *
  * `m.X` (the paraglide message accessor) is called at render time inside
  * `<NavGroup>`, so language switches re-render the labels without a
@@ -59,10 +58,6 @@ export const sidebarData = {
         { title: m.nav_documents(), url: '/documents', icon: FileText },
         { title: m.nav_questionnaires(), url: '/questionnaires', icon: ClipboardList },
       ],
-    },
-    {
-      title: m.nav_section_system(),
-      items: [{ title: m.nav_settings(), url: '/settings', icon: SettingsIcon }],
     },
   ] satisfies NavGroup[],
 };

@@ -54,7 +54,14 @@ export function Header({ className, children, ...props }: HeaderProps) {
       {...props}
     >
       <div className="flex items-center gap-3 [-webkit-app-region:no-drag]">
-        <SidebarTrigger />
+        {/* `variant='outline'` matches shadcn-admin's chrome treatment
+         * — the visible border defines the button shape so the icon
+         * doesn't read as floating chrome. `size-7 [&_svg]:size-3.5`
+         * shrinks the trigger and its PanelLeftIcon to align visually
+         * with the h-7 ChevronLeft/Right NavArrows that sit beside it.
+         * (Without that, PanelLeft's denser geometry made the trigger
+         * read as ~30% bulkier than the chevrons.) */}
+        <SidebarTrigger variant="outline" className="size-7 [&_svg]:size-3.5" />
         <Separator orientation="vertical" className="h-5" />
         {children}
       </div>
