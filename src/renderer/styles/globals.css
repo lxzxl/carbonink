@@ -66,55 +66,58 @@ dd a[href],
   pointer-events: none;
 }
 
-/* Icon-collapsed mode — button alignment + click target.
+/* Icon-collapsed mode — directly take over sizing.
  *
- * Problem chain:
- *   - shadcn forces `size-8!` on menu buttons in collapsed mode (32×32)
- *   - SidebarGroup/Header/Footer each have `p-2` (8px padding all sides)
- *   - Sidebar column is 48px wide → inner content area is 32px
- *   - So the 32px button fills the 32px content area, anchored to
- *     inline-start of that content area (x=8 in column coords)
- *   - Visually the button (and its icon) reads as 8px LEFT of the
- *     column's geometric center (which sits at x=24)
- *   - User: "图标改的完全不居中了"
+ * shadcn's `group-data-[collapsible=icon]:size-8!` rule has specificity
+ * (0,3,0) (`.group[data-collapsible="icon"] .group-data-...`); my
+ * earlier (0,2,0) selectors couldn't override it consistently, and
+ * the lg variant's `p-0!` left the AppTitle leaf anchored to inline-
+ * start in collapsed mode. Plus the user reported the gear button's
+ * "设置" text leaking out — i.e. `overflow-hidden` wasn't doing its
+ * job either.
  *
- * Plus: clicks anywhere in the 8px padding strips fall through to
- * the column background — user: "几乎不能点击".
+ * Defensive rewrite — chain `[data-size]` (which shadcn always
+ * renders, line 518) to land at specificity (0,3,0), guaranteed to
+ * win the cascade as un-layered CSS over Tailwind utilities:
  *
- * Fix: zero the p-2 on Header/Footer/Group ONLY in icon-collapsed
- * mode, then center the menu-item itself as a flex container. Result:
- *   - button stays at shadcn's default 32×32 (no overflow risk)
- *   - it now centers in the *full* 48px column (icon at column-x=24)
- *   - a `::before` pseudo-element fills the remaining 8px on each
- *     side as a transparent click extender — total hit-rect 48×32,
- *     click anywhere in the row triggers the button. The pseudo
- *     doesn't have its own focus/hover state (it's `pointer-events`
- *     is the default `auto` and clicks bubble to the parent button).
- *
- * Specificity (0,2,0) matches shadcn's `group-data-[collapsible=icon]`
- * rules; un-layered globals.css wins over Tailwind's @layer utilities
- * at equal specificity per the CSS layer cascade. */
-[data-collapsible="icon"] [data-sidebar="header"],
-[data-collapsible="icon"] [data-sidebar="footer"],
-[data-collapsible="icon"] [data-sidebar="group"] {
-  padding-inline: 0 !important;
-}
-[data-collapsible="icon"] [data-sidebar="menu-item"] {
-  display: flex !important;
+ *   1. Force every menu-button to a square 32x32 chip with 8px
+ *      padding in collapsed mode (overrides both `size-8!` and lg's
+ *      `p-0!` predictably).
+ *   2. `justify-content: center` so the icon is centered in the inner
+ *      16x16 content area (matters for lg, harmless elsewhere).
+ *   3. Hide direct-child spans (and badge slots) — covers the
+ *      "settings text leaking" case without relying on overflow-hidden.
+ *   4. Set the button `position: relative` and add a `::before`
+ *      pseudo extending ±8px horizontally — effective hit-rect is
+ *      the full 48x32 row. Pseudo at `z-index: -1` stays behind the
+ *      icon visually; clicks on it bubble to the button (= the `<a>`,
+ *      via asChild Link) and fire navigation.
+ *   5. `overflow: visible` so the pseudo isn't clipped to the chip
+ *      bounds. We've already hidden the text spans, so nothing else
+ *      escapes. */
+
+[data-collapsible="icon"] [data-sidebar="menu-button"][data-size="default"],
+[data-collapsible="icon"] [data-sidebar="menu-button"][data-size="sm"],
+[data-collapsible="icon"] [data-sidebar="menu-button"][data-size="lg"] {
+  width: 2rem !important;
+  height: 2rem !important;
+  padding: 0.5rem !important;
   justify-content: center !important;
-}
-[data-collapsible="icon"] [data-sidebar="menu-button"] {
+  overflow: visible !important;
   position: relative;
-  justify-content: center !important;
 }
-/* Transparent click extender — fills the 8px strip on each side of
- * the 32×32 button so the entire 48×32 row is a click target. */
+
+[data-collapsible="icon"] [data-sidebar="menu-button"] > span,
+[data-collapsible="icon"] [data-sidebar="menu-button"] > [data-slot="badge"] {
+  display: none !important;
+}
+
 [data-collapsible="icon"] [data-sidebar="menu-button"]::before {
   content: "";
   position: absolute;
   inset-block: 0;
   inset-inline: -0.5rem;
-  z-index: 0;
+  z-index: -1;
 }
 
 /* Honor the OS "reduce motion" accessibility preference (skill 06,
