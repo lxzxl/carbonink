@@ -444,5 +444,10 @@
   "topbar_detail": "Detail",
   "audit_rebind_activity_label": "Activity",
   "documents_upload_button": "Upload",
-  "documents_upload_collapse": "Hide upload"
+  "documents_upload_collapse": "Hide upload",
+  "dashboard_recent_activities": "Recent activities",
+  "dashboard_recent_empty": "No activities yet",
+  "dashboard_monthly_trend": "Monthly emissions",
+  "dashboard_no_data_for_chart": "Once activities are recorded, monthly totals appear here.",
+  "dashboard_widget_view_all": "View all"
 }

@@ -444,5 +444,10 @@
   "topbar_detail": "详情",
   "audit_rebind_activity_label": "活动",
   "documents_upload_button": "上传文档",
-  "documents_upload_collapse": "收起上传"
+  "documents_upload_collapse": "收起上传",
+  "dashboard_recent_activities": "最近活动",
+  "dashboard_recent_empty": "暂无活动数据",
+  "dashboard_monthly_trend": "月度排放趋势",
+  "dashboard_no_data_for_chart": "录入活动数据后，按月汇总会显示在这里。",
+  "dashboard_widget_view_all": "查看全部"
 }

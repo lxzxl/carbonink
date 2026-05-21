@@ -1,9 +1,12 @@
 import { activityApi } from '@renderer/lib/api/activity-data';
+import { sourceApi } from '@renderer/lib/api/emission-source';
 import { orgApi } from '@renderer/lib/api/organization';
 import { formatCo2e } from '@renderer/lib/format';
 import * as m from '@renderer/paraglide/messages';
+import type { ActivityData, EmissionSource } from '@shared/types';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, Navigate } from '@tanstack/react-router';
+import { useMemo } from 'react';
 
 export const Route = createFileRoute('/')({
   component: Dashboard,
@@ -14,19 +17,8 @@ export const Route = createFileRoute('/')({
 // reports now use the same zh-CN locale + max-1-decimal contract.
 
 function Dashboard() {
-  // Onboarding gate: if no org exists, redirect into the wizard. This is the
-  // same check the Phase 0 placeholder did — kept verbatim so users who never
-  // ran onboarding still land on /onboarding/1 first.
-  const hasAny = useQuery({
-    queryKey: ['org:has-any'],
-    queryFn: orgApi.hasAny,
-  });
+  const hasAny = useQuery({ queryKey: ['org:has-any'], queryFn: orgApi.hasAny });
 
-  // Once we know an org exists, resolve the current org → its reporting
-  // periods → totals for the first period. Each step gates the next via
-  // `enabled` so we never fire a query with an undefined argument.
-  // Phase 1a assumes single org / single period (wizard creates exactly one);
-  // Phase 1b adds a period switcher and this chain stays the same shape.
   const orgQuery = useQuery({
     queryKey: ['org:get-current'],
     queryFn: orgApi.getCurrent,
@@ -47,6 +39,24 @@ function Dashboard() {
     enabled: !!currentPeriodId,
   });
 
+  // Round 4 #5: pull the full activity list once so the recent-activities
+  // widget + monthly-trend widget can derive their data without two more
+  // round-trips. The activity:list-by-period query is already cached, so
+  // adding a second consumer is free.
+  const activitiesQuery = useQuery({
+    queryKey: ['activity:list-by-period', currentPeriodId],
+    queryFn: () => activityApi.listByPeriod({ reporting_period_id: currentPeriodId! }),
+    enabled: !!currentPeriodId,
+  });
+
+  // Sources lookup so the recent-activities row can render
+  // "厂区电表" instead of the raw emission_source_id.
+  const sourcesQuery = useQuery<EmissionSource[]>({
+    queryKey: ['source:list-by-org', orgId],
+    queryFn: () => sourceApi.listByOrg({ organization_id: orgId! }),
+    enabled: !!orgId,
+  });
+
   if (hasAny.isLoading) {
     return <p className="text-muted-foreground">{m.loading()}</p>;
   }
@@ -56,6 +66,8 @@ function Dashboard() {
 
   const totals = totalsQuery.data;
   const showEmptyHint = totals?.total_co2e_kg === 0;
+  const activities = activitiesQuery.data ?? [];
+  const sourceById = new Map((sourcesQuery.data ?? []).map((s) => [s.id, s]));
 
   return (
     <div className="space-y-6">
@@ -79,17 +91,24 @@ function Dashboard() {
           </Link>
         </div>
       )}
+
+      {/* Two-column widget row below the KPI cards. Round 4 #5: was empty
+       * space until now. Left = monthly trend (bar chart); right = recent
+       * activities list. */}
+      {!showEmptyHint && activities.length > 0 && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[3fr_2fr]">
+          <MonthlyTrendCard activities={activities} />
+          <RecentActivitiesCard activities={activities} sourceById={sourceById} />
+        </div>
+      )}
     </div>
   );
 }
 
 /**
- * Single scope/total card. The previous layout put the unit (kg CO2e)
- * inline after the value with a much smaller size — visually the number
- * dominated and the unit looked like a footnote. Native KPI cards put
- * the unit on its own row below the number at a calmer size, so the
- * eye reads `label → value → unit` as three peers, not "MASSIVE NUMBER
- * with tiny suffix". Skill 06 — chrome typography should be calm.
+ * Single scope/total card. Round 2: label (uppercase tracking-wide) →
+ * number (text-2xl) → unit (text-xs muted) read as three peers, not
+ * "MASSIVE NUMBER with tiny suffix".
  */
 function ScopeCard({ label, value }: { label: string; value: number | undefined }) {
   return (
@@ -101,4 +120,137 @@ function ScopeCard({ label, value }: { label: string; value: number | undefined 
       <div className="mt-0.5 text-xs text-muted-foreground">{m.unit_kg_co2e()}</div>
     </div>
   );
+}
+
+/**
+ * Recent activities widget — 5 most-recent activities by occurred_at_end.
+ * Each row: source name, date, value. No emission factor / unit display
+ * to keep it scannable; user clicks through to /activities for the full
+ * table.
+ */
+function RecentActivitiesCard({
+  activities,
+  sourceById,
+}: {
+  activities: ActivityData[];
+  sourceById: Map<string, EmissionSource>;
+}) {
+  // Sort desc by occurred_at_end so the freshest entries appear first.
+  // listByPeriod returns ascending so we copy + reverse rather than
+  // mutating the cached array.
+  const recent = useMemo(
+    () =>
+      [...activities]
+        .sort((a, b) => b.occurred_at_end.localeCompare(a.occurred_at_end))
+        .slice(0, 5),
+    [activities],
+  );
+
+  return (
+    <div className="rounded-lg border border-border/60 bg-card/40 p-5">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold">{m.dashboard_recent_activities()}</h2>
+        <Link
+          to="/activities"
+          className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+        >
+          {m.dashboard_widget_view_all()} →
+        </Link>
+      </div>
+      {recent.length === 0 ? (
+        <p className="mt-3 text-sm text-muted-foreground">{m.dashboard_recent_empty()}</p>
+      ) : (
+        <ul className="mt-3 divide-y divide-border/40">
+          {recent.map((a) => {
+            const source = sourceById.get(a.emission_source_id);
+            return (
+              <li key={a.id} className="flex items-center justify-between py-2 text-sm">
+                <div className="min-w-0 flex-1 truncate">
+                  <span className="font-medium">{source?.name ?? a.emission_source_id}</span>
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    {a.occurred_at_end.slice(0, 10)}
+                  </span>
+                </div>
+                <span className="ml-3 shrink-0 font-mono tabular-nums text-foreground">
+                  {formatCo2e(a.computed_co2e_kg)}{' '}
+                  <span className="text-xs text-muted-foreground">{m.unit_kg_co2e()}</span>
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Monthly trend bar chart. Round 4 #5: no chart library — divs sized by
+ * percentage of the max month. Simple, reads at a glance.
+ *
+ * Aggregation: bucket by YYYY-MM (occurred_at_end's month). Show last
+ * 12 months. Months with no data render as a 1px-tall track so the eye
+ * still sees the time axis without thinking "data missing".
+ */
+function MonthlyTrendCard({ activities }: { activities: ActivityData[] }) {
+  const months = useMemo(() => buildMonthBuckets(activities), [activities]);
+  const max = months.reduce((m, b) => Math.max(m, b.total), 0);
+
+  return (
+    <div className="rounded-lg border border-border/60 bg-card/40 p-5">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold">{m.dashboard_monthly_trend()}</h2>
+      </div>
+      {max === 0 ? (
+        <p className="mt-3 text-sm text-muted-foreground">{m.dashboard_no_data_for_chart()}</p>
+      ) : (
+        <div
+          className="mt-4 grid items-end gap-1"
+          style={{ gridTemplateColumns: `repeat(${months.length}, minmax(0, 1fr))`, height: 120 }}
+        >
+          {months.map((b) => {
+            // Height as a percentage of the tallest bar; 1px floor so
+            // empty months still render the axis baseline.
+            const heightPct = b.total === 0 ? 1 : Math.max(2, (b.total / max) * 100);
+            return (
+              <div key={b.label} className="flex flex-col items-stretch gap-1">
+                <div
+                  className="flex items-end justify-center"
+                  style={{ height: `${heightPct}%` }}
+                  title={`${b.label} · ${formatCo2e(b.total)} kg CO2e`}
+                >
+                  <div className="w-full rounded-t bg-primary/60 hover:bg-primary transition-colors" />
+                </div>
+                <div className="text-center text-[10px] text-muted-foreground">{b.shortLabel}</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+type Bucket = { label: string; shortLabel: string; total: number };
+
+function buildMonthBuckets(activities: ActivityData[]): Bucket[] {
+  // Last 12 calendar months including current month.
+  const now = new Date();
+  const months: Bucket[] = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const yyyymm = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    months.push({
+      label: yyyymm,
+      shortLabel: `${d.getMonth() + 1}`, // "1", "2", ... — bar labels are tight
+      total: 0,
+    });
+  }
+  const byMonth = new Map(months.map((b) => [b.label, b]));
+  for (const a of activities) {
+    const key = a.occurred_at_end.slice(0, 7); // YYYY-MM
+    const bucket = byMonth.get(key);
+    if (bucket) bucket.total += a.computed_co2e_kg;
+  }
+  return months;
 }
