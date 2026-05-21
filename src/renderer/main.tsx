@@ -2,19 +2,16 @@ import { Toaster } from '@renderer/components/toast';
 import { initLocale } from '@renderer/lib/i18n';
 import { router } from '@renderer/router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { RouterProvider } from '@tanstack/react-router';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles/globals.css';
 
-// Show the React Query devtools (the floating 🌴 button in the corner)
-// only when running via `pnpm dev`. Production builds skip it entirely.
-// Without this gate the palm-tree icon ships to end users — the most
-// obvious "this is a web app" tell in carbonbook's current chrome.
-// Vite's import.meta.env.DEV is statically replaced at build time so
-// the devtools module is tree-shaken out of the prod bundle.
-const IS_DEV = import.meta.env.DEV;
+// React Query devtools removed entirely (Round 3 hotfix). Previously
+// gated behind `import.meta.env.DEV` but the floating palm-tree button
+// was distracting even in dev. Vitest covers query behavior; if a
+// production query bug needs interactive inspection, re-add the import
+// temporarily.
 
 initLocale();
 
@@ -39,7 +36,6 @@ createRoot(root).render(
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
       <Toaster />
-      {IS_DEV && <ReactQueryDevtools initialIsOpen={false} />}
     </QueryClientProvider>
   </StrictMode>,
 );

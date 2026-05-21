@@ -27,14 +27,24 @@ function RootComponent() {
   }
 
   return (
-    <SidebarProvider>
+    // h-svh (not min-h-svh, shadcn's default) caps the outer wrapper's
+    // height to the viewport. Without this cap, `flex-1 overflow-auto`
+    // inside doesn't actually clip — the inner pane just expands and the
+    // OUTER wrapper grows past 100vh, which is why the resizable panels
+    // ended up with 0 free space and the list column squeezed to ~32 px.
+    <SidebarProvider className="h-svh">
       <AppSidebar />
-      <SidebarInset className="flex flex-col">
+      <SidebarInset className="flex flex-col min-h-0">
         <TopBar />
         <LicenseBanner />
-        <main className="flex-1 overflow-auto p-6 min-h-0">
+        {/* Content area: flex-1 + min-h-0 makes the flex child shrinkable;
+         * overflow-auto clips overflow so the page scrolls inside (not the
+         * whole window). Padding is applied here so single-pane routes get
+         * a comfortable inset; two-pane routes use `-m-6` to break back
+         * out to flush edges (see documents.tsx etc.). */}
+        <div className="flex-1 min-h-0 overflow-auto p-6">
           <Outlet />
-        </main>
+        </div>
         <CommandPalette />
       </SidebarInset>
     </SidebarProvider>

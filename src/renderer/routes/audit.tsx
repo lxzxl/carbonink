@@ -125,10 +125,11 @@ export function AuditPage() {
 
   return (
     <ResizablePanelGroup orientation="horizontal" className="h-full -m-6">
+      {/* v4 breaking: sizes are strings with "%" suffix (numbers = px). */}
       <ResizablePanel
-        defaultSize={36}
-        minSize={26}
-        maxSize={55}
+        defaultSize="36%"
+        minSize="26%"
+        maxSize="55%"
         className="border-r border-border/60"
       >
         <div className="flex h-full flex-col">
@@ -215,7 +216,7 @@ export function AuditPage() {
 
       <ResizableHandle />
 
-      <ResizablePanel defaultSize={64}>
+      <ResizablePanel defaultSize="64%">
         <div className="h-full overflow-auto p-6">
           {selectedEvent ? (
             <AuditEventCard event={selectedEvent} />

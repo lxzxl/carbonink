@@ -23,16 +23,17 @@ export const Route = createFileRoute('/reports')({
 export function ReportsLayout() {
   return (
     <ResizablePanelGroup orientation="horizontal" className="h-full -m-6">
+      {/* v4 breaking: sizes are strings with "%" suffix (numbers = px). */}
       <ResizablePanel
-        defaultSize={28}
-        minSize={20}
-        maxSize={45}
+        defaultSize="28%"
+        minSize="20%"
+        maxSize="45%"
         className="border-r border-border/60"
       >
         <ReportsListColumn />
       </ResizablePanel>
       <ResizableHandle />
-      <ResizablePanel defaultSize={72}>
+      <ResizablePanel defaultSize="72%">
         <div className="h-full overflow-auto p-6">
           <Outlet />
         </div>

@@ -52,16 +52,20 @@ function DocumentsLayout() {
 
   return (
     <ResizablePanelGroup orientation="horizontal" className="h-full -m-6">
+      {/* react-resizable-panels v4: bare numbers are interpreted as `px`
+       * (v3 was `%`). Always pass strings with "%" suffix. Without this
+       * the list column collapsed to ~32 px and content wrapped one
+       * Chinese character per line. */}
       <ResizablePanel
-        defaultSize={32}
-        minSize={22}
-        maxSize={50}
+        defaultSize="32%"
+        minSize="22%"
+        maxSize="50%"
         className="border-r border-border/60"
       >
         <DocumentsListColumn providerConfigured={providerQuery.data != null} />
       </ResizablePanel>
       <ResizableHandle />
-      <ResizablePanel defaultSize={68}>
+      <ResizablePanel defaultSize="68%">
         <div className="h-full overflow-auto p-6">
           <Outlet />
         </div>
