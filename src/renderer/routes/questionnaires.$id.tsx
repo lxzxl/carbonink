@@ -158,9 +158,9 @@ function DetailBody({
 
   return (
     <div className="space-y-6">
-      <Link to="/questionnaires" className="text-sm text-primary hover:underline">
-        {m.questionnaires_detail_back()}
-      </Link>
+      {/* Round 4: "返回问卷列表" back link removed — with the Phase C/D
+       * two-pane layout the list is always visible on the left, so a
+       * "back" link is redundant + visual clutter. */}
       <div>
         <h1 className="text-2xl font-semibold">{customer.name}</h1>
         <p className="mt-1 text-sm text-muted-foreground">

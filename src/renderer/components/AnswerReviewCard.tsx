@@ -68,14 +68,23 @@ export function AnswerReviewCard({ question, answer, questionnaireId }: AnswerRe
     return (
       <div className="rounded-md border border-border bg-muted/30 p-4 text-sm space-y-3">
         <header className="flex items-baseline gap-2">
-          <span className="font-medium">{question.raw_text}</span>
-          {question.position && (
-            <span className="text-xs text-muted-foreground">{question.position}</span>
-          )}
+          {/* Round 4: raw position code ("公司信息IB2", "Sheet1!B5") moved
+           * from visible chip → hover tooltip. It's useful for audit /
+           * debugging but the question text itself is enough id during
+           * answering, and a wall of cards each carrying a sheet ref
+           * cluttered the page. */}
+          <span className="font-medium" title={question.position ?? undefined}>
+            {question.raw_text}
+          </span>
         </header>
         <p className="text-muted-foreground">{m.answer_not_generated()}</p>
+        {/* Round 4: per-card "生成答案" was filled brand-green; with N
+         * cards on a page the result was a wall of green buttons. Now
+         * outline variant — primary visual weight reserved for the
+         * page-bottom "批量生成" + "确认全部答案". */}
         <Button
           type="button"
+          variant="outline"
           onClick={() => generate.mutate()}
           disabled={generate.isPending}
           size="sm"

@@ -172,9 +172,9 @@ describe('/questionnaires/$id detail route', () => {
 
     // Verify the finalize button is present
     expect(screen.getByRole('button', { name: /Finalize answers|确认全部答案/ })).toBeTruthy();
-
-    // Verify back link
-    expect(screen.getAllByText(/← Questionnaires|← 返回问卷列表/)).toBeTruthy();
+    // Round 4: removed redundant "返回问卷列表" back link from the detail
+    // body — the parent layout keeps the questionnaire list visible on
+    // the left, so a separate back affordance is no longer needed.
   });
 
   it('renders not-found state when questionnaire does not exist', async () => {

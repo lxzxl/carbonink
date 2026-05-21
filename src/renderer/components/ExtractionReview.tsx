@@ -17,7 +17,7 @@ import { Button } from '@renderer/components/ui/button';
 import { sourceApi } from '@renderer/lib/api/emission-source';
 import { extractionApi } from '@renderer/lib/api/extraction';
 import { orgApi } from '@renderer/lib/api/organization';
-import { stagesApi } from '@renderer/lib/api/stages';
+import { stageLabel } from '@renderer/lib/stage-labels';
 import * as m from '@renderer/paraglide/messages';
 import type { Document, EmissionSource, Extraction } from '@shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -73,16 +73,13 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
     stage_id: extraction.prompt_version,
   };
 
-  // Stage description for the chip — falls back to the raw id if the
-  // stages:list query hasn't resolved yet or the stage isn't registered.
-  const stagesQuery = useQuery({
-    queryKey: ['stages:list'],
-    queryFn: stagesApi.list,
-    staleTime: Infinity,
-  });
-  const stageDescription =
-    stagesQuery.data?.find((s) => s.id === extraction.prompt_version)?.description ??
-    extraction.prompt_version;
+  // Humanized stage label via the i18n map used elsewhere in the app
+  // (documents list, extractions). Previously this rendered the raw
+  // English description from the stages registry ("Chinese electricity
+  // bill (国网/南方电网 风格) — classify + extract") which exposed
+  // internal prompt-engineering language to users. Now: "电费账单",
+  // "加油发票", etc. matching the documents-list chip labels.
+  const stageHuman = stageLabel(extraction.prompt_version);
 
   const orgQuery = useQuery({
     queryKey: ['org:get-current'],
@@ -173,20 +170,23 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
   return (
     <div className="space-y-4">
       <div className="rounded-md border border-border bg-muted/30 p-4 text-sm">
+        {/* Round 4 humanize:
+         *   - Stage chip now shows the i18n'd label ("电费账单") instead
+         *     of the registry's verbose English description.
+         *   - LLM provider/model chip removed entirely — the user doesn't
+         *     need to know we used deepseek-v4-flash; they need to know
+         *     "did the AI understand this?" which the confidence chip
+         *     answers.
+         *   - Confidence stays, with the existing color coding. Raw
+         *     prompt_version available on hover via `title` for debugging. */}
         <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <span
             className="rounded border border-border bg-background px-2 py-0.5"
             title={extraction.prompt_version}
           >
-            {m.documents_review_stage()}: {stageDescription}
+            {stageHuman}
           </span>
-          <span className="rounded border border-border bg-background px-2 py-0.5">
-            {m.documents_review_provider()}: {extraction.llm_provider} · {extraction.llm_model}
-          </span>
-          <span
-            className={`rounded border px-2 py-0.5 font-medium ${confidenceClass}`}
-            title={`${m.documents_review_confidence()}: ${confidenceLabel}`}
-          >
+          <span className={`rounded border px-2 py-0.5 font-medium ${confidenceClass}`}>
             {m.documents_review_confidence()}: {confidenceLabel}
           </span>
         </div>
