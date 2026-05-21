@@ -31,6 +31,10 @@ const buttonVariants = cva(
         default: 'h-10 px-4',
         sm: 'h-8 px-3 text-xs',
         lg: 'h-11 px-6',
+        // Square icon-button used by shadcn's Sidebar (`SidebarTrigger`).
+        // h-9 / w-9 + no padding gives a 36×36 hit target. The inner
+        // <svg> sizes via lucide's default `size-4`.
+        icon: 'h-9 w-9 p-0',
       },
     },
     defaultVariants: { variant: 'default', size: 'default' },
