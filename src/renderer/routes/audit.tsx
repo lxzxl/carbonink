@@ -13,7 +13,24 @@ function defaultSinceIso(): string {
   return d.toISOString();
 }
 
-const KNOWN_EVENT_KINDS = ['activity_rebind_ef'];
+const KNOWN_EVENT_KINDS = ['activity_rebind_ef'] as const;
+type KnownEventKind = (typeof KNOWN_EVENT_KINDS)[number];
+
+/**
+ * Translate the DB `event_kind` enum value (snake_case English) into a
+ * localized human label. The audit table stores the raw key for forward
+ * compatibility (new event kinds don't require a migration), so the
+ * label lookup lives here in the UI layer rather than in the DB row.
+ *
+ * Keep `KNOWN_EVENT_KINDS` and this mapper aligned — any kind in the
+ * array must have a label below or the user sees the raw key.
+ */
+function eventKindLabel(kind: KnownEventKind): string {
+  switch (kind) {
+    case 'activity_rebind_ef':
+      return m.audit_event_kind_activity_rebind_ef();
+  }
+}
 
 export function AuditPage() {
   const [selectedKinds, setSelectedKinds] = useState<string[]>([]);
@@ -62,7 +79,11 @@ export function AuditPage() {
 
       <section className="border rounded p-3 mb-4 space-y-2">
         <div>
-          <label className="text-sm font-medium">{m.audit_filter_event_kind_label()}: </label>
+          {/* Group title, not a single-input label — pre-existing markup
+           * before the i18n change. Switched to <span> so biome's
+           * `noLabelWithoutControl` doesn't trip on a label that has
+           * no `htmlFor` and no nested input. */}
+          <span className="text-sm font-medium">{m.audit_filter_event_kind_label()}: </span>
           {KNOWN_EVENT_KINDS.map((kind) => (
             <label key={kind} className="inline-flex items-center gap-1 ml-3 text-sm">
               <input
@@ -70,7 +91,7 @@ export function AuditPage() {
                 checked={selectedKinds.includes(kind)}
                 onChange={() => toggleKind(kind)}
               />
-              {kind}
+              {eventKindLabel(kind)}
             </label>
           ))}
         </div>

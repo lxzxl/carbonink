@@ -15,15 +15,18 @@ export function Sidebar() {
   });
 
   return (
-    <nav className="flex h-full w-56 flex-col border-r border-border bg-muted/30 px-4 pt-12 pb-4">
+    <nav className="flex h-full w-56 flex-col border-r border-border/60 bg-transparent px-4 pt-12 pb-4">
+      {/* bg-transparent (not bg-muted/30) so the OS sidebar-vibrancy
+       * shows through cleanly. The border-r at 60% opacity keeps the
+       * column edge soft — a hard 1px line over vibrancy looks dated. */}
       <h2 className="mb-6 text-lg font-semibold">{m.app_title()}</h2>
       <ul className="space-y-1 flex-1">
         <li>
           <Link
             to="/"
             className={cn(
-              'block rounded-md px-3 py-2 text-sm hover:bg-muted',
-              '[&.active]:bg-primary [&.active]:text-primary-foreground',
+              'block rounded-md px-3 py-2 text-sm hover:bg-foreground/5',
+              '[&.active]:bg-primary/15 [&.active]:text-primary [&.active]:font-medium',
             )}
           >
             {m.nav_dashboard()}
@@ -33,8 +36,8 @@ export function Sidebar() {
           <Link
             to="/sources"
             className={cn(
-              'block rounded-md px-3 py-2 text-sm hover:bg-muted',
-              '[&.active]:bg-primary [&.active]:text-primary-foreground',
+              'block rounded-md px-3 py-2 text-sm hover:bg-foreground/5',
+              '[&.active]:bg-primary/15 [&.active]:text-primary [&.active]:font-medium',
             )}
           >
             {m.nav_sources()}
@@ -44,8 +47,8 @@ export function Sidebar() {
           <Link
             to="/activities"
             className={cn(
-              'block rounded-md px-3 py-2 text-sm hover:bg-muted',
-              '[&.active]:bg-primary [&.active]:text-primary-foreground',
+              'block rounded-md px-3 py-2 text-sm hover:bg-foreground/5',
+              '[&.active]:bg-primary/15 [&.active]:text-primary [&.active]:font-medium',
             )}
           >
             {m.nav_activities()}
@@ -55,8 +58,8 @@ export function Sidebar() {
           <Link
             to="/documents"
             className={cn(
-              'block rounded-md px-3 py-2 text-sm hover:bg-muted',
-              '[&.active]:bg-primary [&.active]:text-primary-foreground',
+              'block rounded-md px-3 py-2 text-sm hover:bg-foreground/5',
+              '[&.active]:bg-primary/15 [&.active]:text-primary [&.active]:font-medium',
             )}
           >
             {m.nav_documents()}
@@ -66,8 +69,8 @@ export function Sidebar() {
           <Link
             to="/questionnaires"
             className={cn(
-              'block rounded-md px-3 py-2 text-sm hover:bg-muted',
-              '[&.active]:bg-primary [&.active]:text-primary-foreground',
+              'block rounded-md px-3 py-2 text-sm hover:bg-foreground/5',
+              '[&.active]:bg-primary/15 [&.active]:text-primary [&.active]:font-medium',
             )}
           >
             {m.nav_questionnaires()}
@@ -77,8 +80,8 @@ export function Sidebar() {
           <Link
             to="/reports"
             className={cn(
-              'block rounded-md px-3 py-2 text-sm hover:bg-muted',
-              '[&.active]:bg-primary [&.active]:text-primary-foreground',
+              'block rounded-md px-3 py-2 text-sm hover:bg-foreground/5',
+              '[&.active]:bg-primary/15 [&.active]:text-primary [&.active]:font-medium',
             )}
           >
             {m.reports_nav()}
@@ -88,8 +91,8 @@ export function Sidebar() {
           <Link
             to="/audit"
             className={cn(
-              'block rounded-md px-3 py-2 text-sm hover:bg-muted',
-              '[&.active]:bg-primary [&.active]:text-primary-foreground',
+              'block rounded-md px-3 py-2 text-sm hover:bg-foreground/5',
+              '[&.active]:bg-primary/15 [&.active]:text-primary [&.active]:font-medium',
             )}
           >
             {m.audit_nav()}
@@ -102,7 +105,7 @@ export function Sidebar() {
         {mcpStatus.data && (
           <Link
             to="/settings"
-            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-xs hover:bg-muted"
+            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-xs hover:bg-foreground/5"
           >
             <span
               className={cn(
@@ -128,8 +131,8 @@ export function Sidebar() {
           to="/settings"
           aria-label={m.nav_settings()}
           className={cn(
-            'flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground',
-            '[&.active]:bg-primary [&.active]:text-primary-foreground',
+            'flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-foreground/5 hover:text-foreground',
+            '[&.active]:bg-primary/15 [&.active]:text-primary',
           )}
         >
           <SettingsIcon className="h-4 w-4" />

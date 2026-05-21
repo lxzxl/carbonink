@@ -8,6 +8,14 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles/globals.css';
 
+// Show the React Query devtools (the floating 🌴 button in the corner)
+// only when running via `pnpm dev`. Production builds skip it entirely.
+// Without this gate the palm-tree icon ships to end users — the most
+// obvious "this is a web app" tell in carbonbook's current chrome.
+// Vite's import.meta.env.DEV is statically replaced at build time so
+// the devtools module is tree-shaken out of the prod bundle.
+const IS_DEV = import.meta.env.DEV;
+
 initLocale();
 
 const queryClient = new QueryClient({
@@ -31,7 +39,7 @@ createRoot(root).render(
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
       <Toaster />
-      <ReactQueryDevtools initialIsOpen={false} />
+      {IS_DEV && <ReactQueryDevtools initialIsOpen={false} />}
     </QueryClientProvider>
   </StrictMode>,
 );

@@ -7,10 +7,39 @@
 html,
 body {
   background: transparent;
+  /* Native cursor on chrome. Inputs / textareas / [contenteditable]
+   * restore the I-beam below via :where() so app-shell elements never
+   * show `cursor: pointer` — the most common "this is a web app" tell
+   * (skill ship-readiness item #21 + #38, the only item listed twice).
+   * Inline links restored via the `a[href]` rule. */
+  cursor: default;
 }
 
 #root {
   background: transparent;
+}
+
+/* Inputs + editable surfaces restore the I-beam. */
+input,
+textarea,
+[contenteditable="true"] {
+  cursor: text;
+}
+/* Disabled controls show the not-allowed cursor (system convention). */
+[disabled],
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+/* Inline `<a href>` links restore pointer — but only inside content
+ * (prose / dl / table cell), never on full-row navigation links in the
+ * sidebar. TanStack <Link> renders as `<a>` so a global rule would put
+ * pointer back on every nav row. Sidebar/buttons stay cursor:default.
+ * Selectors ordered ascending by specificity so biome's
+ * `noDescendingSpecificity` is satisfied. */
+td a[href],
+dd a[href],
+.prose a[href] {
+  cursor: pointer;
 }
 
 /* On macOS hiddenInset the titlebar zone (top 32px) has traffic lights
@@ -48,7 +77,11 @@ body {
   --color-background: oklch(0.99 0.005 95);
   --color-foreground: oklch(0.18 0.012 95);
 
-  --color-card: oklch(1 0 0 / 0.6); /* translucent over vibrancy */
+  /* Card token: 80% white over vibrancy. 60% looked murky (the underlying
+   * blur dominated the card content); 80% reads clearly while still
+   * letting the vibrancy show through edges + shadows. Skill T8 — accept
+   * the baseline (vibrancy) and design WITH it, not around it. */
+  --color-card: oklch(1 0 0 / 0.8);
   --color-card-foreground: oklch(0.18 0.012 95);
   --color-popover: oklch(0.99 0.005 95);
   --color-popover-foreground: oklch(0.18 0.012 95);
@@ -108,7 +141,7 @@ body {
   --color-background: oklch(0.18 0.012 95);
   --color-foreground: oklch(0.95 0.008 95);
 
-  --color-card: oklch(0.22 0.012 95 / 0.6);
+  --color-card: oklch(0.22 0.012 95 / 0.8);
   --color-card-foreground: oklch(0.95 0.008 95);
   --color-popover: oklch(0.2 0.012 95);
   --color-popover-foreground: oklch(0.95 0.008 95);
@@ -143,6 +176,22 @@ body {
      * Windows Mica show through. Inner containers (cards, popovers,
      * sidebar) carry the surface tokens instead. */
     @apply text-foreground;
-    font-family: system-ui, -apple-system, sans-serif;
+    /* System-font stack: mac uses SF Pro Text + PingFang SC for CJK;
+     * Win11 uses Segoe UI Variable Text + Microsoft YaHei UI for CJK.
+     * The CJK families are listed *after* the Latin ones so browser
+     * font selection picks Latin glyphs from SF/Segoe (their hinting
+     * is tuned for Apple/Microsoft text rendering) and CJK glyphs from
+     * the matching CJK family. Skill ship-readiness item #34. */
+    font-family:
+      -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", "PingFang SC",
+      "Microsoft YaHei UI", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+    /* OS-tuned font smoothing — mac uses subpixel antialiasing by default
+     * on opaque backgrounds, but over vibrancy the standard hint is
+     * `-webkit-font-smoothing: antialiased` (grayscale). Win renders
+     * Segoe UI Variable best at default browser settings — no override. */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* OS handles window corner radius via `roundedCorners: true` on the
+     * BrowserWindow; do NOT paint a CSS `border-radius` here. */
   }
 }

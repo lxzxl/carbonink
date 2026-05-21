@@ -33,10 +33,21 @@ export function createMainWindow(): BrowserWindow {
     ...(isMac && {
       titleBarStyle: 'hiddenInset' as const,
       trafficLightPosition: { x: 18, y: 16 },
-      vibrancy: 'under-window' as const,
+      // 'sidebar' is the darker, more saturated vibrancy AppKit uses on
+      // Finder's source list, Mail's mailbox list, Notes' folder column —
+      // any place a real native app has a sidebar. 'under-window' was too
+      // washed-out and made the cards look murky over the blur. The
+      // skill's tenet T3 (adopt the platform) — pick the material that
+      // matches the equivalent native control.
+      vibrancy: 'sidebar' as const,
       visualEffectState: 'active' as const,
+      // 11px (Tahoe) corner radius — let the OS clip; CSS no longer paints
+      // the rounded corners (see globals.css).
+      roundedCorners: true,
     }),
     ...(isWin && {
+      // Win11 mica = stationary tint behind the window, only visible
+      // through transparent regions (which globals.css now guarantees).
       backgroundMaterial: 'mica' as const,
       autoHideMenuBar: true,
     }),
