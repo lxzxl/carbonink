@@ -65,10 +65,15 @@ function RootComponent() {
         </Header>
         <LicenseBanner />
         {/* `@container/content` lets nested `<Main>` opt-in to the
-         * `@7xl/content:max-w-7xl` cap. `flex-1 min-h-0 overflow-auto`
-         * makes this the scroll container. `p-6` stays for single-pane
-         * routes; two-pane routes break out with `-m-6`. */}
-        <div className="@container/content flex-1 min-h-0 overflow-auto p-6">
+         * `@7xl/content:max-w-7xl` cap on wide displays. `flex-1
+         * min-h-0 overflow-auto` makes this the scroll container.
+         *
+         * Padding has moved OUT of this wrapper and INTO each route's
+         * `<Main>` wrapper (single-pane routes opt in; two-pane routes
+         * stay edge-to-edge for their resizable splits). The old
+         * `-m-6` break-out hack in two-pane routes is no longer
+         * needed. */}
+        <div className="@container/content flex-1 min-h-0 overflow-auto">
           <Outlet />
         </div>
         <CommandPalette />

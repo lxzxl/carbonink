@@ -1,4 +1,5 @@
 import { ActivityForm } from '@renderer/components/ActivityForm';
+import { Main } from '@renderer/components/layout/main';
 import { RebindEfDrawer } from '@renderer/components/RebindEfDrawer';
 import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
@@ -92,7 +93,7 @@ function ActivitiesList({ organizationId }: { organizationId: string }) {
   }, [sources]);
 
   return (
-    <div className="space-y-6">
+    <Main className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{m.nav_activities()}</h1>
         <Button onClick={() => setFormOpen((v) => !v)}>
@@ -171,6 +172,6 @@ function ActivitiesList({ organizationId }: { organizationId: string }) {
           onClose={() => setRebindActivityId(null)}
         />
       )}
-    </div>
+    </Main>
   );
 }

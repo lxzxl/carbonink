@@ -1,3 +1,4 @@
+import { Main } from '@renderer/components/layout/main';
 import { StepAIProvider } from '@renderer/features/onboarding/components/StepAIProvider';
 import { StepBoundary } from '@renderer/features/onboarding/components/StepBoundary';
 import { StepCompanyInfo } from '@renderer/features/onboarding/components/StepCompanyInfo';
@@ -59,9 +60,11 @@ function OnboardingShell() {
 
 function Page({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mx-auto max-w-2xl">
-      <h1 className="mb-6 text-2xl font-semibold">{m.onboarding_title()}</h1>
-      {children}
-    </div>
+    <Main>
+      <div className="mx-auto max-w-2xl">
+        <h1 className="mb-6 text-2xl font-semibold">{m.onboarding_title()}</h1>
+        {children}
+      </div>
+    </Main>
   );
 }

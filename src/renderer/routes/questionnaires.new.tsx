@@ -1,3 +1,4 @@
+import { Main } from '@renderer/components/layout/main';
 import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
 import { Input } from '@renderer/components/ui/input';
@@ -88,7 +89,7 @@ function NewQuestionnaireRoute() {
   }
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <Main className="max-w-2xl space-y-6">
       <h1 className="text-2xl font-semibold">{m.questionnaires_wizard_title()}</h1>
 
       <div className="rounded-md border border-border bg-card p-6 space-y-5">
@@ -198,6 +199,6 @@ function NewQuestionnaireRoute() {
           )}
         </div>
       </div>
-    </div>
+    </Main>
   );
 }

@@ -1,3 +1,4 @@
+import { Main } from '@renderer/components/layout/main';
 import { SourceForm } from '@renderer/components/SourceForm';
 import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
@@ -59,7 +60,7 @@ function SourcesList({ organizationId }: { organizationId: string }) {
   const sources = sourcesQuery.data ?? [];
 
   return (
-    <div className="space-y-6">
+    <Main className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{m.nav_sources()}</h1>
         <Button onClick={() => setFormOpen((v) => !v)}>
@@ -103,6 +104,6 @@ function SourcesList({ organizationId }: { organizationId: string }) {
           </table>
         </div>
       )}
-    </div>
+    </Main>
   );
 }

@@ -1,3 +1,4 @@
+import { Main } from '@renderer/components/layout/main';
 import { activityApi } from '@renderer/lib/api/activity-data';
 import { sourceApi } from '@renderer/lib/api/emission-source';
 import { orgApi } from '@renderer/lib/api/organization';
@@ -70,7 +71,7 @@ function Dashboard() {
   const sourceById = new Map((sourcesQuery.data ?? []).map((s) => [s.id, s]));
 
   return (
-    <div className="space-y-6">
+    <Main className="space-y-6">
       <h1 className="text-2xl font-semibold">{m.dashboard_inventory_title()}</h1>
 
       <div className="grid grid-cols-4 gap-4">
@@ -101,7 +102,7 @@ function Dashboard() {
           <RecentActivitiesCard activities={activities} sourceById={sourceById} />
         </div>
       )}
-    </div>
+    </Main>
   );
 }
 

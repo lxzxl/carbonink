@@ -52,7 +52,7 @@ function DocumentsLayout() {
   });
 
   return (
-    <ResizablePanelGroup orientation="horizontal" className="h-full -m-6">
+    <ResizablePanelGroup orientation="horizontal" className="h-full">
       {/* react-resizable-panels v4: bare numbers are interpreted as `px`
        * (v3 was `%`). Always pass strings with "%" suffix. Without this
        * the list column collapsed to ~32 px and content wrapped one
