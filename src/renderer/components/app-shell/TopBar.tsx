@@ -21,32 +21,27 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
  * - `titlebar-region` makes the bar a window-drag handle; the inner
  *   `[-webkit-app-region:no-drag]` wrapper lets the buttons still fire.
  */
+// Round 4 hotfix3: dropped `bg-background/40` + `backdrop-blur-sm` from
+// the header className. The opaque-ish tint behind the topbar broke the
+// vibrancy carry-through between sidebar and main area (introducing yet
+// another background-color seam in the title-bar zone). Now the topbar
+// is fully transparent; the SidebarInset is also transparent above so
+// the OS vibrancy is uninterrupted from x=0 across the whole top strip.
+// Border-b stays — it's at y=48, below the traffic lights.
 export function TopBar() {
   return (
-    {/* Round 4 hotfix3: dropped `bg-background/40` + `backdrop-blur-sm`.
-     * The opaque-ish tint behind the topbar broke the vibrancy carry-
-     * through between sidebar and main area (introducing yet another
-     * background-color seam in the title-bar zone). Now the topbar is
-     * fully transparent; the SidebarInset is also transparent above so
-     * the OS vibrancy is uninterrupted from x=0 across the whole top
-     * strip. Border-b stays — it's at y=48, below the traffic lights. */}
-    <header
-  className =
-    'titlebar-region sticky top-0 z-30 flex h-12 shrink-0 items-center gap-2 border-b border-border/40 px-3' >
-    {
-      /* Round 4 #9: visually separated the sidebar toggle from the
+    <header className="titlebar-region sticky top-0 z-30 flex h-12 shrink-0 items-center gap-2 border-b border-border/40 px-3">
+      {/* Round 4 #9: visually separated the sidebar toggle from the
        * back/forward pair. Previously [☰] [|] [<] [>] read as one
-       * cramped group; now [☰]   [< >] with breathing room and the
-       * separator removed (gap-3 carries the visual divide). */
-    } <
-    div;
-  className =
-    'ml-16 flex items-center gap-3 [-webkit-app-region:no-drag]' > <SidebarTrigger /> < div;
-  className = 'flex items-center gap-1' > <NavArrows />;
-  </div>
+       * cramped group; now [☰]   [< >] with breathing room. */}
+      <div className="ml-16 flex items-center gap-3 [-webkit-app-region:no-drag]">
+        <SidebarTrigger />
+        <div className="flex items-center gap-1">
+          <NavArrows />
+        </div>
       </div>
     </header>
-  )
+  );
 }
 
 function NavArrows() {
