@@ -66,6 +66,38 @@ dd a[href],
   pointer-events: none;
 }
 
+/* Icon-collapsed mode: expand the click target.
+ *
+ * shadcn's `SidebarMenuButton` base forces `group-data-[collapsible=icon]:size-8!`
+ * — a 32×32 button in a 48×N column. The 8px "gap" on each side reads
+ * as part of the row visually but is NOT a click target — clicks there
+ * fall through to the column background and do nothing. User reported
+ * "几乎不能点击，只有图标周围很小以部分可以点".
+ *
+ * Override to `size-10` (40×40): icon stays visually centered inside,
+ * but the active-state highlight + click target both expand. Only 4px
+ * gap each side remains — well within the "looks like the same chip"
+ * threshold while doubling the per-axis hit budget.
+ *
+ * Also force `justify-center`: shadcn's base is `text-left + items-center`,
+ * which left-anchors the icon. In collapsed mode where only the icon
+ * renders, anchoring left puts it at the start of the button content
+ * area (not visually centered in the button). justify-center fixes
+ * that for *every* menu button in the sidebar at once.
+ *
+ * Tailwind utility specificity equals ours; we use `!important` to
+ * override shadcn's own `!` on `size-8`. Targets specific data-slot so
+ * we don't accidentally affect a NavMenu primitive elsewhere. */
+[data-collapsible="icon"] [data-sidebar="menu-button"] {
+  width: 2.5rem !important;
+  height: 2.5rem !important;
+  justify-content: center !important;
+  /* Center the 40×40 button in the 48px sidebar column. Without this
+   * the button anchors to inline-start (left) and reads as off-center
+   * — same root cause as the "leaf logo 不水平居中" report. */
+  margin-inline: auto !important;
+}
+
 /* Honor the OS "reduce motion" accessibility preference (skill 06,
  * ship-readiness item #39). Pinning durations to 0.01ms (not 0) keeps
  * onTransitionEnd handlers firing — some shadcn primitives rely on
