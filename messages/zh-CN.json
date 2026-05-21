@@ -441,5 +441,6 @@
   "nav_questionnaires_all": "全部问卷",
   "topbar_back": "后退",
   "topbar_forward": "前进",
-  "topbar_detail": "详情"
+  "topbar_detail": "详情",
+  "audit_rebind_activity_label": "活动"
 }

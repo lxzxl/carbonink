@@ -1,6 +1,18 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import {
+  createMemoryHistory,
+  createRootRoute,
+  createRoute,
+  createRouter,
+  Outlet,
+  RouterProvider,
+} from '@tanstack/react-router';
 import { render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('@renderer/lib/api/ef-library', () => ({
+  efApi: { list: vi.fn(), getByPk: vi.fn().mockResolvedValue(null) },
+}));
 
 const sampleRow = {
   id: 'aud-1',
@@ -42,9 +54,26 @@ describe('Audit page', () => {
 
     const { AuditPage } = await import('@renderer/routes/audit');
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    // Round 4: ActivityRebindCard renders a TanStack <Link> for the
+    // activity id, so the page must be inside a RouterProvider.
+    const rootRoute = createRootRoute({ component: Outlet });
+    const indexRoute = createRoute({
+      getParentRoute: () => rootRoute,
+      path: '/',
+      component: AuditPage,
+    });
+    const activitiesRoute = createRoute({
+      getParentRoute: () => rootRoute,
+      path: '/activities',
+      component: () => <div>activities</div>,
+    });
+    const router = createRouter({
+      routeTree: rootRoute.addChildren([indexRoute, activitiesRoute]),
+      history: createMemoryHistory({ initialEntries: ['/'] }),
+    });
     render(
       <QueryClientProvider client={qc}>
-        <AuditPage />
+        <RouterProvider router={router} />
       </QueryClientProvider>,
     );
 
@@ -60,9 +89,26 @@ describe('Audit page', () => {
 
     const { AuditPage } = await import('@renderer/routes/audit');
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    // Round 4: ActivityRebindCard renders a TanStack <Link> for the
+    // activity id, so the page must be inside a RouterProvider.
+    const rootRoute = createRootRoute({ component: Outlet });
+    const indexRoute = createRoute({
+      getParentRoute: () => rootRoute,
+      path: '/',
+      component: AuditPage,
+    });
+    const activitiesRoute = createRoute({
+      getParentRoute: () => rootRoute,
+      path: '/activities',
+      component: () => <div>activities</div>,
+    });
+    const router = createRouter({
+      routeTree: rootRoute.addChildren([indexRoute, activitiesRoute]),
+      history: createMemoryHistory({ initialEntries: ['/'] }),
+    });
     render(
       <QueryClientProvider client={qc}>
-        <AuditPage />
+        <RouterProvider router={router} />
       </QueryClientProvider>,
     );
 

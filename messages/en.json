@@ -441,5 +441,6 @@
   "nav_questionnaires_all": "All questionnaires",
   "topbar_back": "Go back",
   "topbar_forward": "Go forward",
-  "topbar_detail": "Detail"
+  "topbar_detail": "Detail",
+  "audit_rebind_activity_label": "Activity"
 }

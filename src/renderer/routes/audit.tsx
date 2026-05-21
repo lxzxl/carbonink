@@ -138,40 +138,60 @@ export function AuditPage() {
             <p className="mt-0.5 text-xs text-muted-foreground">{m.audit_subheading()}</p>
           </header>
 
-          <section className="space-y-2 border-b border-border/40 px-4 py-3 text-xs">
+          {/* Round 4 #14: filter section rebuilt with breathing room.
+           * - Event-kind chips on row 1 (each is a clickable pill).
+           * - Date range on row 2 with proper spacing.
+           * - Reset on row 3 right-aligned (was cramped on row 2).
+           * Pill toggle replaces the bare checkbox — easier to tap. */}
+          <section className="space-y-3 border-b border-border/40 px-4 py-3 text-xs">
             <div>
-              <span className="font-medium">{m.audit_filter_event_kind_label()}:</span>
-              {KNOWN_EVENT_KINDS.map((kind) => (
-                <label key={kind} className="ml-3 inline-flex items-center gap-1">
-                  <input
-                    type="checkbox"
-                    checked={selectedKinds.includes(kind)}
-                    onChange={() => toggleKind(kind)}
-                  />
-                  {eventKindLabel(kind)}
-                </label>
-              ))}
+              <div className="mb-1.5 font-medium">{m.audit_filter_event_kind_label()}</div>
+              <div className="flex flex-wrap gap-1.5">
+                {KNOWN_EVENT_KINDS.map((kind) => {
+                  const active = selectedKinds.includes(kind);
+                  return (
+                    <button
+                      key={kind}
+                      type="button"
+                      onClick={() => toggleKind(kind)}
+                      className={
+                        active
+                          ? 'rounded-full border border-primary/40 bg-primary/15 px-2.5 py-0.5 text-primary'
+                          : 'rounded-full border border-border bg-background px-2.5 py-0.5 text-foreground hover:bg-foreground/5'
+                      }
+                    >
+                      {eventKindLabel(kind)}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <label className="flex items-center gap-1">
-                {m.audit_filter_since_label()}:
+            <div className="grid grid-cols-2 gap-2">
+              <label className="flex flex-col gap-1">
+                <span className="font-medium">{m.audit_filter_since_label()}</span>
                 <input
                   type="date"
                   value={since}
                   onChange={(e) => setSince(e.target.value)}
-                  className="rounded border border-border bg-background px-1"
+                  className="h-7 rounded border border-border bg-background px-1.5"
                 />
               </label>
-              <label className="flex items-center gap-1">
-                {m.audit_filter_until_label()}:
+              <label className="flex flex-col gap-1">
+                <span className="font-medium">{m.audit_filter_until_label()}</span>
                 <input
                   type="date"
                   value={until}
                   onChange={(e) => setUntil(e.target.value)}
-                  className="rounded border border-border bg-background px-1"
+                  className="h-7 rounded border border-border bg-background px-1.5"
                 />
               </label>
-              <button type="button" onClick={reset} className="ml-auto underline">
+            </div>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={reset}
+                className="text-muted-foreground hover:text-foreground hover:underline"
+              >
                 {m.audit_filter_reset_button()}
               </button>
             </div>
