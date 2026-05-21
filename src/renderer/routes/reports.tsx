@@ -5,6 +5,7 @@ import {
   ResizablePanelGroup,
 } from '@renderer/components/ui/resizable';
 import { orgApi } from '@renderer/lib/api/organization';
+import { granularityLabel } from '@renderer/lib/format';
 import * as m from '@renderer/paraglide/messages';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Outlet, useParams } from '@tanstack/react-router';
@@ -82,7 +83,7 @@ function ReportsListColumn() {
               isSelected={p.id === selectedId}
               className={profileReady ? undefined : 'pointer-events-none opacity-40'}
               title={p.year}
-              meta={<span>{p.granularity}</span>}
+              meta={<span>{granularityLabel(p.granularity)}</span>}
             />
           ))}
         </ul>

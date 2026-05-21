@@ -113,15 +113,24 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border/60">
-      <SidebarHeader>
-        {/* macOS hiddenInset reserves top ~32px for traffic lights. The
-         * pt-8 inset clears them.
-         *
-         * Round 4 #15: brand row now has a leaf-shaped glyph (built from
-         * the lucide `Leaf` icon tinted with --color-primary) + wordmark.
-         * In icon-collapsed mode only the glyph remains — sidebar narrows
-         * to 3rem and the wordmark would clip. */}
-        <div className="flex items-center gap-2 px-2 pt-8 pb-2">
+      {/* macOS hiddenInset: traffic lights are at top:16, ~12px tall
+       * → end at y≈28. The brand row needs to sit at y > 28 to avoid
+       * overlap, but not much lower (a yawning gap reads as "broken
+       * layout").
+       *
+       * The default SidebarHeader has `flex flex-col gap-2 p-2` (8px
+       * all-around). Adding `pt-8` (32px) on the brand row inside it
+       * stacked: 8 + 32 = 40px. The actual on-screen distance was
+       * larger because the Sidebar's own wrapper-div added more inset
+       * (varies between collapsed/expanded states).
+       *
+       * Fix: drop the brand-row pt-8 entirely; override SidebarHeader's
+       * own p-2 to `pt-7 pb-1` (28px top + 4px bottom). That puts the
+       * brand glyph at y≈28-32px, right below the traffic-light row,
+       * with consistent height between icon-collapsed and expanded
+       * modes (icon-mode used to suffer extra collapse-state padding). */}
+      <SidebarHeader className="pt-7 pb-1">
+        <div className="flex items-center gap-2 px-2">
           <Leaf className="size-5 shrink-0 text-primary" strokeWidth={2} aria-hidden="true" />
           <span className="text-lg font-semibold group-data-[collapsible=icon]:hidden">
             {m.app_title()}

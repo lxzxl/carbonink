@@ -1,6 +1,7 @@
 import '@renderer/styles/report-preview.css';
 import type { ReportNarrative } from '@main/llm/report-narrative';
 import type { InventoryReportData } from '@main/services/report-data-service';
+import { boundaryKindLabel, granularityLabel } from '@renderer/lib/format';
 
 export interface ReportPreviewProps {
   data: InventoryReportData;
@@ -107,7 +108,7 @@ function OrgProfile({ data }: { data: InventoryReportData }) {
         <dt>{lang === 'zh-CN' ? '行业' : 'Industry'}</dt>
         <dd>{data.org.industry ?? (lang === 'zh-CN' ? '未填写' : 'Not provided')}</dd>
         <dt>{lang === 'zh-CN' ? '边界方法' : 'Consolidation approach'}</dt>
-        <dd>{data.org.boundary_kind}</dd>
+        <dd>{boundaryKindLabel(data.org.boundary_kind)}</dd>
         <dt>{lang === 'zh-CN' ? '责任人' : 'Responsible person'}</dt>
         <dd>
           {data.org.responsible.name ?? '—'}

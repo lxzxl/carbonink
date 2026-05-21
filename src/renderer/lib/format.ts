@@ -51,3 +51,43 @@ export function formatSignedInteger(n: number): string {
   const formatted = INTEGER_FORMATTER.format(Math.abs(n));
   return n >= 0 ? `+${formatted}` : `-${formatted}`;
 }
+
+/**
+ * Translate a reporting-period granularity enum into a localized label.
+ * The DB stores the snake_case English value (`annual` / `quarterly` /
+ * `monthly`) for forward compatibility; the UI should never show the
+ * raw key. Falls back to the input on unknown values (defensive).
+ */
+import * as m from '@renderer/paraglide/messages';
+
+export function granularityLabel(g: string): string {
+  switch (g) {
+    case 'annual':
+      return m.period_granularity_annual();
+    case 'quarterly':
+      return m.period_granularity_quarterly();
+    case 'monthly':
+      return m.period_granularity_monthly();
+    default:
+      return g;
+  }
+}
+
+/**
+ * Translate `boundary_kind` enum (`equity_share` / `financial_control` /
+ * `operational_control`) into the localized label. Reuses the existing
+ * Settings-page i18n keys so the label is consistent between the
+ * Settings form and the report narrative.
+ */
+export function boundaryKindLabel(b: string): string {
+  switch (b) {
+    case 'equity_share':
+      return m.settings_boundary_equity_share();
+    case 'financial_control':
+      return m.settings_boundary_financial_control();
+    case 'operational_control':
+      return m.settings_boundary_operational_control();
+    default:
+      return b;
+  }
+}

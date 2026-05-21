@@ -449,5 +449,8 @@
   "dashboard_recent_empty": "No activities yet",
   "dashboard_monthly_trend": "Monthly emissions",
   "dashboard_no_data_for_chart": "Once activities are recorded, monthly totals appear here.",
-  "dashboard_widget_view_all": "View all"
+  "dashboard_widget_view_all": "View all",
+  "period_granularity_annual": "Annual",
+  "period_granularity_quarterly": "Quarterly",
+  "period_granularity_monthly": "Monthly"
 }

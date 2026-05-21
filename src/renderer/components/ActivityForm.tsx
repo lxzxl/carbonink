@@ -6,6 +6,7 @@ import { Label } from '@renderer/components/ui/label';
 import { activityApi } from '@renderer/lib/api/activity-data';
 import { orgApi } from '@renderer/lib/api/organization';
 import { routingApi } from '@renderer/lib/api/routing';
+import { granularityLabel } from '@renderer/lib/format';
 import * as m from '@renderer/paraglide/messages';
 import type { ActivityData, EmissionSource, ReportingPeriod } from '@shared/types';
 import { useForm, useStore } from '@tanstack/react-form';

@@ -449,5 +449,8 @@
   "dashboard_recent_empty": "暂无活动数据",
   "dashboard_monthly_trend": "月度排放趋势",
   "dashboard_no_data_for_chart": "录入活动数据后，按月汇总会显示在这里。",
-  "dashboard_widget_view_all": "查看全部"
+  "dashboard_widget_view_all": "查看全部",
+  "period_granularity_annual": "年度",
+  "period_granularity_quarterly": "季度",
+  "period_granularity_monthly": "月度"
 }
