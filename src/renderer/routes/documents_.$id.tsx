@@ -210,11 +210,18 @@ function PdfPreview({ documentId }: { documentId: string }) {
     );
   }
 
+  // Append the chromium-PDF-viewer URL fragment that hides the top toolbar
+  // (print/download/etc.) + nav panel + scrollbar. Without this the embedded
+  // PDF chrome screams "I'm a webpage" — the single most diagnostic native-
+  // feel tell in carbonbook (skill 06 — replace WebKit's chrome with native
+  // affordances). The fragment is non-standard but supported by every
+  // Chromium-derived viewer including Electron's; non-supporting viewers
+  // ignore it harmlessly.
   return (
     <iframe
       title={`PDF preview ${documentId}`}
-      src={pdfUrl}
-      className="h-full w-full rounded-md border border-border bg-muted/30"
+      src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+      className="h-full w-full rounded-md border border-border/60 bg-card/30"
     />
   );
 }

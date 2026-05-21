@@ -97,7 +97,7 @@ describe('Reports list page', () => {
     cleanup();
   });
 
-  it('shows the period and new-report link when profile is set', async () => {
+  it('renders the reporting period as a clickable card linking to its detail page', async () => {
     vi.mocked(orgApi.getCurrent).mockResolvedValueOnce(FAKE_ORG_WITH_PROFILE);
     vi.mocked(orgApi.listReportingPeriods).mockResolvedValueOnce([FAKE_REPORTING_PERIOD]);
 
@@ -107,8 +107,10 @@ describe('Reports list page', () => {
       expect(screen.getByText(/2025/)).toBeTruthy();
     });
 
-    // CTA link rendered and enabled
-    const link = screen.getByRole('link', { name: /新建报告|New report/i });
+    // Round-2 redesign: each row is itself a Link card (no per-row CTA
+    // text). Assert there's exactly one Link to /reports/per-2025 and that
+    // it's not disabled (when profile is set).
+    const link = screen.getByRole('link');
     expect(link.getAttribute('href')).toContain('/reports/per-2025');
     expect(link.classList.contains('pointer-events-none')).toBe(false);
   });

@@ -3,18 +3,33 @@ import { cn } from '@renderer/lib/utils';
 import { cva, type VariantProps } from 'class-variance-authority';
 import * as React from 'react';
 
+/**
+ * Native-feel notes (skill `06-native-conventions.md`):
+ * - `:active` rule gives the button a real *pressed* state distinct from
+ *   hover (NSButton has both; many web-only designs only style hover).
+ * - Hover treatment is subtle. Filled primary darkens; outline tints the
+ *   border + bg lightly. Native buttons do NOT change background fully
+ *   on hover.
+ * - Reserve `default` (filled primary) for the ONE most important action
+ *   on each page. Secondary / tertiary actions should use `outline` or
+ *   `secondary`. The questionnaire detail page's 4-button bar is the
+ *   counter-example we just fixed.
+ */
 const buttonVariants = cva(
-  'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50',
+  'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50',
   {
     variants: {
       variant: {
-        default: 'bg-primary text-primary-foreground hover:bg-primary/90',
-        outline: 'border border-border bg-transparent hover:bg-muted',
-        ghost: 'hover:bg-muted',
+        default: 'bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/95',
+        outline: 'border border-border bg-card/40 text-foreground hover:bg-card/80 active:bg-card',
+        secondary: 'bg-foreground/8 text-foreground hover:bg-foreground/12 active:bg-foreground/15',
+        ghost: 'hover:bg-foreground/5 active:bg-foreground/8',
+        destructive:
+          'bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/15 active:bg-destructive/20',
       },
       size: {
         default: 'h-10 px-4',
-        sm: 'h-9 px-3',
+        sm: 'h-8 px-3 text-xs',
         lg: 'h-11 px-6',
       },
     },

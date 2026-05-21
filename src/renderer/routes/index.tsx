@@ -75,31 +75,36 @@ function Dashboard() {
       </div>
 
       {showEmptyHint && (
-        <p className="text-muted-foreground">
+        <div className="mt-4 rounded-lg border border-border/60 bg-card/40 p-6 text-sm text-muted-foreground">
           {m.dashboard_empty_hint()}{' '}
-          <Link to="/activities" className="text-primary underline">
-            {m.dashboard_add_first_activity()}
+          <Link
+            to="/activities"
+            className="text-primary font-medium hover:underline underline-offset-4"
+          >
+            {m.dashboard_add_first_activity()} →
           </Link>
-        </p>
+        </div>
       )}
     </div>
   );
 }
 
 /**
- * Single scope/total card. Inlined rather than reaching for shadcn `<Card>`
- * because the project's ui/ folder only ships button/input/label so far —
- * adding a Card primitive just for four divs would be premature factoring.
- * When more pages need cards we can extract this into components/ui/card.tsx.
+ * Single scope/total card. The previous layout put the unit (kg CO2e)
+ * inline after the value with a much smaller size — visually the number
+ * dominated and the unit looked like a footnote. Native KPI cards put
+ * the unit on its own row below the number at a calmer size, so the
+ * eye reads `label → value → unit` as three peers, not "MASSIVE NUMBER
+ * with tiny suffix". Skill 06 — chrome typography should be calm.
  */
 function ScopeCard({ label, value }: { label: string; value: number | undefined }) {
   return (
-    <div className="bg-card text-card-foreground rounded-lg border border-border p-6">
-      <div className="text-sm text-muted-foreground">{label}</div>
-      <div className="mt-2 text-2xl font-semibold tabular-nums">
-        {format(value)}{' '}
-        <span className="text-base font-normal text-muted-foreground">{m.unit_kg_co2e()}</span>
+    <div className="bg-card text-card-foreground rounded-lg border border-border/60 p-5">
+      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
       </div>
+      <div className="mt-2 text-2xl font-semibold tabular-nums">{format(value)}</div>
+      <div className="mt-0.5 text-xs text-muted-foreground">{m.unit_kg_co2e()}</div>
     </div>
   );
 }

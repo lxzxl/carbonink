@@ -207,9 +207,16 @@ function DetailBody({
               );
             })}
           </div>
+          {/* Native action-bar hierarchy: one primary (filled green) for
+           * the page's hero action — "确认全部答案" (finalize), the only
+           * irreversible / state-mutating one. The other three are
+           * exports / AI-batch generation — secondary by intent, so they
+           * use `outline`. Avoids the previous "wall of identical green
+           * buttons" pattern (skill 06 — reserve filled for ONE action). */}
           <div className="flex justify-end gap-2">
             <Button
               type="button"
+              variant="outline"
               onClick={() => generateAll.mutate()}
               disabled={generateAll.isPending}
             >
@@ -219,12 +226,13 @@ function DetailBody({
             </Button>
             <Button
               type="button"
+              variant="outline"
               onClick={() => exportToExcel.mutate()}
               disabled={exportToExcel.isPending}
             >
               {exportToExcel.isPending ? m.answer_export_running() : m.answer_export_button()}
             </Button>
-            <Button type="button" onClick={() => setPdfDialogOpen(true)}>
+            <Button type="button" variant="outline" onClick={() => setPdfDialogOpen(true)}>
               {m.questionnaire_export_pdf_button()}
             </Button>
             <Button
