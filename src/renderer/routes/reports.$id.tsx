@@ -10,7 +10,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { ulid } from 'ulid';
 
-export const Route = createFileRoute('/reports_/$id')({ component: ReportDetail });
+export const Route = createFileRoute('/reports/$id')({ component: ReportDetail });
 
 function ReportDetail() {
   const { id } = Route.useParams();

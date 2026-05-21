@@ -1,13 +1,50 @@
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from '@renderer/components/ui/resizable';
 import { orgApi } from '@renderer/lib/api/organization';
+import { cn } from '@renderer/lib/utils';
 import * as m from '@renderer/paraglide/messages';
 import { useQuery } from '@tanstack/react-query';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Link, Outlet, useParams } from '@tanstack/react-router';
 
+/**
+ * /reports — two-pane layout (Phase D of the UI redesign).
+ *
+ * Periods on the left (compact rows); the active period's report editor in
+ * the right Outlet. The previous flat `/reports_/$id` route is now nested
+ * here as `/reports/$id`.
+ */
 export const Route = createFileRoute('/reports')({
-  component: ReportsList,
+  component: ReportsLayout,
 });
 
-export function ReportsList() {
+export function ReportsLayout() {
+  return (
+    <ResizablePanelGroup orientation="horizontal" className="h-full -m-6">
+      <ResizablePanel
+        defaultSize={28}
+        minSize={20}
+        maxSize={45}
+        className="border-r border-border/60"
+      >
+        <ReportsListColumn />
+      </ResizablePanel>
+      <ResizableHandle />
+      <ResizablePanel defaultSize={72}>
+        <div className="h-full overflow-auto p-6">
+          <Outlet />
+        </div>
+      </ResizablePanel>
+    </ResizablePanelGroup>
+  );
+}
+
+function ReportsListColumn() {
+  const params = useParams({ strict: false }) as { id?: string };
+  const selectedId = params.id;
+
   const orgQuery = useQuery({
     queryKey: ['org:get-current'],
     queryFn: () => orgApi.getCurrent(),
@@ -17,54 +54,57 @@ export function ReportsList() {
     queryFn: () => orgApi.listReportingPeriods({ organization_id: orgQuery.data!.id }),
     enabled: !!orgQuery.data?.id,
   });
-
   const profileReady = !!orgQuery.data?.responsible_person_name;
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-3xl">
-      <h1 className="text-2xl font-semibold mb-1">{m.reports_list_heading()}</h1>
-      <p className="text-sm text-muted-foreground mb-6">{m.reports_list_subheading()}</p>
+    <div className="h-full overflow-y-auto">
+      <header className="sticky top-0 z-10 bg-background/85 backdrop-blur-sm px-4 py-3 border-b border-border/60">
+        <h1 className="text-sm font-semibold">{m.reports_list_heading()}</h1>
+        <p className="mt-0.5 text-xs text-muted-foreground">{m.reports_list_subheading()}</p>
+      </header>
 
       {!profileReady && (
-        <div className="rounded-md border border-amber-300/60 bg-amber-50/70 dark:bg-amber-500/10 dark:border-amber-500/40 p-3 mb-4 text-sm">
+        <div className="m-3 rounded-md border border-amber-300/60 bg-amber-50/70 dark:border-amber-500/40 dark:bg-amber-500/10 p-3 text-xs">
           {m.reports_setup_required()}
         </div>
       )}
 
-      {/* Three render paths:
-       *   - No periods at all → terse native empty state (icon + 1 line)
-       *   - 1+ periods → card-style rows (border + bg + chevron)
-       * The previous treatment was a single underlined link per row which
-       * left the page feeling like a sparse list of footnotes. Skill 06 —
-       * native apps over-explain empty states less and use real cards
-       * for navigable rows. */}
-      {periodsQuery.data?.length ? (
-        <ul className="space-y-2">
-          {periodsQuery.data.map((p) => (
-            <li key={p.id}>
-              <Link
-                to="/reports/$id"
-                params={{ id: p.id }}
-                className={`block rounded-lg border border-border/60 bg-card/40 p-4 text-sm transition-colors hover:bg-card/80 ${profileReady ? '' : 'pointer-events-none opacity-40'}`}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-medium">{p.year}</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">{p.granularity}</div>
-                  </div>
-                  <span className="text-muted-foreground" aria-hidden>
-                    →
-                  </span>
-                </div>
-              </Link>
-            </li>
-          ))}
+      {periodsQuery.isLoading ? (
+        <p className="px-4 py-3 text-sm text-muted-foreground">{m.loading()}</p>
+      ) : periodsQuery.data?.length ? (
+        <ul className="py-1">
+          {periodsQuery.data.map((p) => {
+            const isSelected = p.id === selectedId;
+            return (
+              <li key={p.id}>
+                <Link
+                  to="/reports/$id"
+                  params={{ id: p.id }}
+                  className={cn(
+                    'block px-4 py-2 text-sm transition-colors hover:bg-sidebar-accent/60',
+                    isSelected && 'bg-sidebar-accent',
+                    !profileReady && 'pointer-events-none opacity-40',
+                  )}
+                >
+                  <div className="font-medium text-foreground">{p.year}</div>
+                  <div className="mt-0.5 text-xs text-muted-foreground">{p.granularity}</div>
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       ) : (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="text-sm font-medium text-foreground">{m.reports_no_periods()}</div>
+        <div className="flex flex-col items-center py-12 px-4 text-center">
+          <div className="text-sm text-muted-foreground">{m.reports_no_periods()}</div>
         </div>
       )}
     </div>
   );
 }
+
+/**
+ * Kept for the import compatibility of `tests/renderer/reports-page.test.tsx`
+ * which imports `ReportsList` directly. Re-exports the layout so existing
+ * assertions about the page heading + link continue to pass.
+ */
+export { ReportsLayout as ReportsList };

@@ -1,12 +1,47 @@
+import { Button } from '@renderer/components/ui/button';
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from '@renderer/components/ui/resizable';
 import { questionnaireApi } from '@renderer/lib/api/questionnaire';
+import { cn } from '@renderer/lib/utils';
 import * as m from '@renderer/paraglide/messages';
 import type { Questionnaire } from '@shared/types';
 import { useQuery } from '@tanstack/react-query';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Link, Outlet, useParams } from '@tanstack/react-router';
+import { Plus } from 'lucide-react';
 
+/**
+ * /questionnaires — two-pane layout (Phase D of the UI redesign).
+ * Mirrors the documents two-pane pattern: list on left, detail in Outlet
+ * on right. The previous flat `/questionnaires_/$id` route is now
+ * nested under this layout as `/questionnaires/$id`.
+ */
 export const Route = createFileRoute('/questionnaires')({
-  component: QuestionnairesRoute,
+  component: QuestionnairesLayout,
 });
+
+function QuestionnairesLayout() {
+  return (
+    <ResizablePanelGroup orientation="horizontal" className="h-full -m-6">
+      <ResizablePanel
+        defaultSize={32}
+        minSize={22}
+        maxSize={50}
+        className="border-r border-border/60"
+      >
+        <QuestionnairesListColumn />
+      </ResizablePanel>
+      <ResizableHandle />
+      <ResizablePanel defaultSize={68}>
+        <div className="h-full overflow-auto p-6">
+          <Outlet />
+        </div>
+      </ResizablePanel>
+    </ResizablePanelGroup>
+  );
+}
 
 function statusLabel(status: string): string {
   switch (status) {
@@ -23,66 +58,74 @@ function statusLabel(status: string): string {
   }
 }
 
-function QuestionnairesRoute() {
+function QuestionnairesListColumn() {
+  const params = useParams({ strict: false }) as { id?: string };
+  const selectedId = params.id;
   const q = useQuery({
     queryKey: ['questionnaire:list'],
     queryFn: questionnaireApi.list,
   });
 
-  if (q.isLoading) return <p className="text-muted-foreground">{m.loading()}</p>;
-
-  // The API returns Array<Questionnaire & { customer_name; question_count }>
-  // Type assertion needed since the IPC response isn't fully typed yet.
   const list = (q.data ?? []) as Array<
     Questionnaire & { customer_name: string; question_count: number }
   >;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">{m.nav_questionnaires()}</h1>
-        <Link
-          to="/questionnaires/new"
-          className="rounded bg-primary px-3 py-1.5 text-sm text-primary-foreground hover:bg-primary/90"
-        >
-          {m.questionnaires_new_button()}
-        </Link>
-      </div>
-      {list.length === 0 ? (
-        <p className="text-muted-foreground">{m.questionnaires_empty()}</p>
+    <div className="h-full overflow-y-auto">
+      <header className="sticky top-0 z-10 flex items-center justify-between gap-2 bg-background/85 backdrop-blur-sm px-4 py-3 border-b border-border/60">
+        <h1 className="text-sm font-semibold">{m.nav_questionnaires()}</h1>
+        {/* New-questionnaire CTA promoted to a compact icon-text button in
+         * the list-column header. The previous list-page used a heavier
+         * `bg-primary` filled button at the top — too loud for native chrome. */}
+        <Button asChild variant="outline" size="sm">
+          <Link to="/questionnaires/new" className="gap-1">
+            <Plus className="size-3.5" aria-hidden="true" />
+            {m.questionnaires_new_button()}
+          </Link>
+        </Button>
+      </header>
+
+      {q.isLoading ? (
+        <p className="px-4 py-3 text-sm text-muted-foreground">{m.loading()}</p>
+      ) : list.length === 0 ? (
+        <p className="px-4 py-6 text-sm text-muted-foreground">{m.questionnaires_empty()}</p>
       ) : (
-        <div className="overflow-x-auto rounded-md border border-border">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/40 text-left">
-              <tr>
-                <th className="px-3 py-2 font-medium">{m.questionnaires_table_customer()}</th>
-                <th className="px-3 py-2 font-medium">{m.questionnaires_table_year()}</th>
-                <th className="px-3 py-2 font-medium">{m.questionnaires_table_status()}</th>
-                <th className="px-3 py-2 font-medium">{m.questionnaires_table_questions()}</th>
-                <th className="px-3 py-2 font-medium">{m.questionnaires_table_due()}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {list.map((r) => (
-                <tr key={r.id} className="cursor-pointer border-b border-border hover:bg-muted/30">
-                  <td className="px-3 py-2">
-                    <Link
-                      to="/questionnaires/$id"
-                      params={{ id: r.id }}
-                      className="text-primary hover:underline"
-                    >
-                      {r.customer_name}
-                    </Link>
-                  </td>
-                  <td className="px-3 py-2">{r.reporting_year}</td>
-                  <td className="px-3 py-2">{statusLabel(r.status)}</td>
-                  <td className="px-3 py-2">{r.question_count}</td>
-                  <td className="px-3 py-2">{r.due_date ?? '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ul className="py-1">
+          {list.map((r) => {
+            const isSelected = r.id === selectedId;
+            return (
+              <li key={r.id}>
+                <Link
+                  to="/questionnaires/$id"
+                  params={{ id: r.id }}
+                  className={cn(
+                    'block px-4 py-2 text-sm transition-colors hover:bg-sidebar-accent/60',
+                    isSelected && 'bg-sidebar-accent',
+                  )}
+                >
+                  <div className="truncate font-medium text-foreground">{r.customer_name}</div>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                    <span>{r.reporting_year}</span>
+                    <span>·</span>
+                    <span>{statusLabel(r.status)}</span>
+                    <span>·</span>
+                    <span>
+                      {r.question_count} {m.questionnaires_table_questions()}
+                    </span>
+                    {r.due_date && (
+                      <>
+                        <span>·</span>
+                        <span>
+                          {m.questionnaires_table_due()} {r.due_date}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
       )}
     </div>
   );

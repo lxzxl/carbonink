@@ -9,7 +9,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { FileSpreadsheet, UploadCloud } from 'lucide-react';
 import { useRef, useState } from 'react';
 
-export const Route = createFileRoute('/questionnaires_/new')({
+export const Route = createFileRoute('/questionnaires/new')({
   component: NewQuestionnaireRoute,
 });
 

@@ -12,7 +12,7 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { AlertTriangle } from 'lucide-react';
 import { useState } from 'react';
 
-export const Route = createFileRoute('/questionnaires_/$id')({
+export const Route = createFileRoute('/questionnaires/$id')({
   component: QuestionnaireDetailRoute,
 });
 
