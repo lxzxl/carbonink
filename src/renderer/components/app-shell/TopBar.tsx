@@ -28,11 +28,20 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 // of slightly-different white that read as a seam. Now: clean inheritance.
 export function TopBar() {
   return (
-    <header className="titlebar-region sticky top-0 z-30 flex h-12 shrink-0 items-center gap-2 border-b border-border/40 bg-background px-3">
+    <header className="titlebar-region sticky top-0 z-30 flex h-12 shrink-0 items-center gap-2 border-b border-border/40 bg-background px-6">
       {/* Round 4 #9: visually separated the sidebar toggle from the
-       * back/forward pair. Previously [☰] [|] [<] [>] read as one
-       * cramped group; now [☰]   [< >] with breathing room. */}
-      <div className="ml-16 flex items-center gap-3 [-webkit-app-region:no-drag]">
+       * back/forward pair: [☰]   [< >] with gap-3 between groups.
+       *
+       * Round 4 hotfix5: changed wrapper inset from `ml-16` (64px) to
+       * align with content's `p-6` (24px) padding. Now nav buttons sit
+       * on the same vertical line as the content area below.
+       *
+       * In sidebar-collapsed mode (inset starts at x=48), button-left
+       * is at x=48+24=72 — flush with the end of the traffic-light
+       * cluster (which spans x=18-70). When expanded (inset at x=224),
+       * traffic lights are entirely within the sidebar so they don't
+       * interfere with the topbar at all. */}
+      <div className="flex items-center gap-3 [-webkit-app-region:no-drag]">
         <SidebarTrigger />
         <div className="flex items-center gap-1">
           <NavArrows />
