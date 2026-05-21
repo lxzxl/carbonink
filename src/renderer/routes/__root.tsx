@@ -1,7 +1,8 @@
 import { AppSidebar } from '@renderer/components/AppSidebar';
-import { TopBar } from '@renderer/components/app-shell/TopBar';
 import { CommandPalette } from '@renderer/components/command-palette';
 import { LicenseBanner } from '@renderer/components/LicenseBanner';
+import { Header } from '@renderer/components/layout/header';
+import { NavArrows } from '@renderer/components/layout/nav-arrows';
 import { NavigationProgress } from '@renderer/components/layout/navigation-progress';
 import { SidebarInset, SidebarProvider } from '@renderer/components/ui/sidebar';
 import { createRootRoute, Outlet, useRouterState } from '@tanstack/react-router';
@@ -11,15 +12,37 @@ export const Route = createRootRoute({
 });
 
 /**
- * Root layout — UI redesign Phase F.
+ * Root layout — shadcn-admin template adoption.
  *
  * Print-render bypass remains (hidden BrowserWindow for printToPDF must
  * render content-only).
  *
- * Otherwise: SidebarProvider > AppSidebar + SidebarInset(TopBar +
- * LicenseBanner + main Outlet + CommandPalette). The TopBar component
- * now owns the chrome-row content (back/forward arrows, breadcrumb,
- * sidebar toggle); __root just composes them.
+ * Otherwise:
+ *
+ *   <SidebarProvider>
+ *     <NavigationProgress />            ← route transition bar
+ *     <AppSidebar />                    ← shadcn-admin layout pattern
+ *     <SidebarInset>
+ *       <Header><NavArrows /></Header>  ← chrome row, children-slot
+ *       <LicenseBanner />
+ *       <div @container/content overflow-auto>  ← scroll container
+ *         <Outlet />
+ *       </div>
+ *       <CommandPalette />
+ *     </SidebarInset>
+ *   </SidebarProvider>
+ *
+ * The scroll container declares `@container/content` so any
+ * `<Main fluid={false}>` inside (the shadcn-admin Main wrapper) can
+ * cap content at `max-w-7xl` only once the named container reaches
+ * `@7xl` (≈80rem). On a laptop the cap is never reached so layout is
+ * unaffected; on a 32" external display it prevents dashboard cards
+ * from stretching ~3000px edge-to-edge.
+ *
+ * Single-pane routes currently rely on the `p-6` on this scroll div
+ * for their inset. A follow-up may move that into per-route `<Main>`
+ * wrappers (so two-pane routes don't need the `-m-6` break-out hack);
+ * for now the global p-6 stays to keep the diff small.
  */
 function RootComponent() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -34,21 +57,18 @@ function RootComponent() {
     // OUTER wrapper grows past 100vh, which is why the resizable panels
     // ended up with 0 free space and the list column squeezed to ~32 px.
     <SidebarProvider className="h-svh">
-      {/* NavigationProgress renders a fixed-position thin bar at top:0;
-       * z-index sits above everything except modal overlays. Placed
-       * OUTSIDE SidebarInset so it spans the full window (incl. the
-       * sidebar column) rather than just the content area. */}
       <NavigationProgress />
       <AppSidebar />
       <SidebarInset className="flex flex-col min-h-0">
-        <TopBar />
+        <Header>
+          <NavArrows />
+        </Header>
         <LicenseBanner />
-        {/* Content area: flex-1 + min-h-0 makes the flex child shrinkable;
-         * overflow-auto clips overflow so the page scrolls inside (not the
-         * whole window). Padding is applied here so single-pane routes get
-         * a comfortable inset; two-pane routes use `-m-6` to break back
-         * out to flush edges (see documents.tsx etc.). */}
-        <div className="flex-1 min-h-0 overflow-auto p-6">
+        {/* `@container/content` lets nested `<Main>` opt-in to the
+         * `@7xl/content:max-w-7xl` cap. `flex-1 min-h-0 overflow-auto`
+         * makes this the scroll container. `p-6` stays for single-pane
+         * routes; two-pane routes break out with `-m-6`. */}
+        <div className="@container/content flex-1 min-h-0 overflow-auto p-6">
           <Outlet />
         </div>
         <CommandPalette />
