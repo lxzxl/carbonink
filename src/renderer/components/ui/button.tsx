@@ -15,8 +15,25 @@ import * as React from 'react';
  *   `secondary`. The questionnaire detail page's 4-button bar is the
  *   counter-example we just fixed.
  */
+// Focus indicator: shadcn-admin pattern instead of the original
+// `focus-visible:ring-2` (2px hard solid). User-reported "难看的一圈
+// 边框" on the SidebarTrigger came from this rule rendering as a
+// second stacked outline OUTSIDE the button's own border — especially
+// loud on small icon-only chrome buttons (28px target with 1px border
+// + 2px focus ring = 3 stacked lines).
+//
+// New rule:
+//   - `outline-none` always (kills the browser's default focus outline)
+//   - `focus-visible:border-ring` — the button's own border shifts to
+//     ring color. For outlined buttons the focus state reads via the
+//     button's own boundary, no extra layer needed.
+//   - `focus-visible:ring-ring focus-visible:ring-[3px]` — a 3px halo
+//     at our `--color-ring` token. The token is already at 50% alpha
+//     (see globals.css), so the halo reads as a soft glow rather than
+//     a hard line. Matches admin's "ring-[3px] ring-ring/50" effect
+//     without needing the extra /50 modifier.
 const buttonVariants = cva(
-  'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50',
+  'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors outline-none focus-visible:border-ring focus-visible:ring-ring focus-visible:ring-[3px] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50',
   {
     variants: {
       variant: {
