@@ -442,5 +442,7 @@
   "topbar_back": "后退",
   "topbar_forward": "前进",
   "topbar_detail": "详情",
-  "audit_rebind_activity_label": "活动"
+  "audit_rebind_activity_label": "活动",
+  "documents_upload_button": "上传文档",
+  "documents_upload_collapse": "收起上传"
 }

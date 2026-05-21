@@ -1,5 +1,4 @@
 import { Button } from '@renderer/components/ui/button';
-import { Separator } from '@renderer/components/ui/separator';
 import { SidebarTrigger } from '@renderer/components/ui/sidebar';
 import * as m from '@renderer/paraglide/messages';
 import { useRouter } from '@tanstack/react-router';
@@ -25,10 +24,15 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 export function TopBar() {
   return (
     <header className="titlebar-region sticky top-0 z-30 flex h-12 shrink-0 items-center gap-2 border-b border-border/40 bg-background/40 backdrop-blur-sm px-3">
-      <div className="ml-16 flex items-center gap-1 [-webkit-app-region:no-drag]">
+      {/* Round 4 #9: visually separated the sidebar toggle from the
+       * back/forward pair. Previously [☰] [|] [<] [>] read as one
+       * cramped group; now [☰]   [< >] with breathing room and the
+       * separator removed (gap-3 carries the visual divide). */}
+      <div className="ml-16 flex items-center gap-3 [-webkit-app-region:no-drag]">
         <SidebarTrigger />
-        <Separator orientation="vertical" className="mx-1 h-4" />
-        <NavArrows />
+        <div className="flex items-center gap-1">
+          <NavArrows />
+        </div>
       </div>
     </header>
   );

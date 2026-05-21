@@ -442,5 +442,7 @@
   "topbar_back": "Go back",
   "topbar_forward": "Go forward",
   "topbar_detail": "Detail",
-  "audit_rebind_activity_label": "Activity"
+  "audit_rebind_activity_label": "Activity",
+  "documents_upload_button": "Upload",
+  "documents_upload_collapse": "Hide upload"
 }

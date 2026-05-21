@@ -117,14 +117,15 @@ describe('/documents route', () => {
     vi.clearAllMocks();
   });
 
-  it('renders the page heading and the upload zone', async () => {
+  it('renders the page heading and the upload affordance', async () => {
     render(buildHarness());
     // Heading from m.nav_documents(): "Documents" (en) / "文档" (zh).
     expect(await screen.findByRole('heading', { name: /Documents|文档/ })).toBeTruthy();
-    // Upload-zone instructional text (works in either locale). Use findByText
-    // so we wait for the provider query to resolve — getByText is sync and
-    // races against the "Loading…" placeholder while settings:get-provider
-    // is in-flight.
+    // Round 4: upload zone collapsed by default; the trigger button is
+    // what's always visible. Clicking expands the dropzone.
+    const uploadBtn = await screen.findByRole('button', { name: /Upload|上传文档/ });
+    expect(uploadBtn).toBeTruthy();
+    fireEvent.click(uploadBtn);
     expect(await screen.findByText(/Drop one or more PDFs|把 PDF 拖到这里/)).toBeTruthy();
   });
 
@@ -152,9 +153,13 @@ describe('/documents route', () => {
 
     render(buildHarness());
     // Wait for the empty state to settle so the next render is the post-load
-    // state (the file input ref is mounted from the start, but waiting here
-    // keeps the assertion ordering predictable).
+    // state.
     await screen.findByText(/No documents yet|还没有文档/);
+
+    // Round 4: upload zone is collapsed by default — expand it so the
+    // <input id="documents-upload-input"> mounts.
+    const uploadBtn = await screen.findByRole('button', { name: /Upload|上传文档/ });
+    fireEvent.click(uploadBtn);
 
     // Construct a minimal PDF File. `arrayBuffer` is the only method our
     // upload path uses — happy-dom supplies it out of the box.

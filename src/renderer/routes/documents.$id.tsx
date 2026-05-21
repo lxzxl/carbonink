@@ -101,7 +101,11 @@ function DocumentReview({ document }: { document: Document }) {
         </p>
       </header>
 
-      <div className="grid h-[calc(100vh-200px)] grid-cols-1 gap-4 lg:grid-cols-[55fr_45fr]">
+      {/* Round 4 #10: shifted PDF/extraction split from 55/45 to 65/35.
+       * The detail panel didn't need ~45% of an already-narrow column —
+       * the PDF benefited more from extra room (especially for documents
+       * with dense Chinese text). */}
+      <div className="grid h-[calc(100vh-200px)] grid-cols-1 gap-4 lg:grid-cols-[65fr_35fr]">
         <PdfPreview documentId={document.id} />
         <div className="overflow-y-auto">
           {extractionsQuery.isLoading ? (

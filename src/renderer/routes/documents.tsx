@@ -15,7 +15,8 @@ import * as m from '@renderer/paraglide/messages';
 import type { Document, ExtractionStatus } from '@shared/types';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, Outlet, useParams } from '@tanstack/react-router';
-import { useEffect, useMemo } from 'react';
+import { ChevronDown, Plus } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 
 /**
  * /documents — two-pane layout (Phase C of the UI redesign).
@@ -75,14 +76,40 @@ function DocumentsLayout() {
 }
 
 function DocumentsListColumn({ providerConfigured }: { providerConfigured: boolean }) {
+  // Round 4 #6: upload zone used to permanently occupy ~120px at the top
+  // of the list (3-line dropzone). With 10+ documents you'd see only 4
+  // rows + the giant dropzone. Collapsed by default to a single
+  // "+ 上传文档" button; expands to the full dropzone on click. State is
+  // local to the column — no need to persist across navigations.
+  const [uploadOpen, setUploadOpen] = useState(false);
   return (
     <div className="h-full overflow-y-auto">
-      <header className="sticky top-0 z-10 bg-background/85 backdrop-blur-sm px-4 py-3 border-b border-border/60">
+      <header className="sticky top-0 z-10 flex items-center justify-between gap-2 bg-background/85 backdrop-blur-sm px-4 py-3 border-b border-border/60">
         <h1 className="text-sm font-semibold">{m.nav_documents()}</h1>
-        {/* Provider gate banner is rendered in DocumentsIndex (right pane);
-         * here we just keep the column header lean. */}
+        {providerConfigured && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setUploadOpen((v) => !v)}
+            aria-expanded={uploadOpen}
+            className="gap-1"
+          >
+            {uploadOpen ? (
+              <>
+                <ChevronDown className="size-3.5" aria-hidden="true" />
+                {m.documents_upload_collapse()}
+              </>
+            ) : (
+              <>
+                <Plus className="size-3.5" aria-hidden="true" />
+                {m.documents_upload_button()}
+              </>
+            )}
+          </Button>
+        )}
       </header>
-      {providerConfigured && (
+      {providerConfigured && uploadOpen && (
         <div className="px-4 py-3 border-b border-border/40">
           <DocumentsUpload />
         </div>
