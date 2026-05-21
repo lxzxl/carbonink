@@ -4,10 +4,14 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
 } from '@renderer/components/ui/sidebar';
 import { mcpApi } from '@renderer/lib/api/mcp';
 import { cn } from '@renderer/lib/utils';
@@ -20,28 +24,32 @@ import {
   FileText,
   Flame,
   LayoutDashboard,
+  Package,
   ScrollText,
   Settings as SettingsIcon,
   Sliders,
 } from 'lucide-react';
 
 /**
- * New AppSidebar (UI redesign Phase A) — wires our nav data to shadcn's
- * SidebarProvider/Sidebar primitive set. Mirrors the existing flat IA for
- * now so the rest of the app keeps working unchanged; Phase B introduces
- * the Inventory/Documents/Questionnaires grouping.
+ * AppSidebar — UI redesign Phase B IA.
  *
- * Why shadcn primitives instead of rolling our own (per the redesign plan):
- *   - Built-in collapsible state (offcanvas / icon / hidden) + cookie
- *     persistence + Cmd/Ctrl+B hotkey + mobile Sheet fallback.
- *   - Tooltip on collapsed-icon-mode without extra wiring.
- *   - SidebarMenuButton's `isActive` prop handles selected-row treatment
- *     using our `--sidebar-accent` token.
+ * Three-tier nav:
+ *   - Top: Dashboard (no group) — the hub.
+ *   - Group "Inventory" (排放清单) — the three "compute the number" routes.
+ *   - Group "Inputs" (输入资料) — the data-feeding routes (documents,
+ *     questionnaires). Status-filter sub-items (待审核/已确认/已否决)
+ *     deferred to Phase E once the list-column query-param work lands.
+ *   - Group "More" (其他) — audit log + future settings.
  *
- * Native-feel notes: the `--sidebar` token resolves to `transparent` so
- * the macOS vibrancy / Windows mica blur shows through. The accent on
- * the selected row is `--sidebar-accent` (foreground/6) — calmer than the
- * old `bg-primary` filled-green. Matches Round 1 sidebar treatment.
+ * The grouping mirrors how a small-team ESG manager mentally splits
+ * their work: "feed the system raw data" (Inputs) vs "look at the
+ * numbers" (Inventory) vs "trace what changed" (More).
+ *
+ * Why not nested SidebarMenuSub everywhere: shadcn's sub-menus need an
+ * expand/collapse trigger per parent, which adds another click layer
+ * to reach a route. SidebarGroup with a static label is one render of
+ * the group title + flat list of sub-items; less interaction, better
+ * for our small route count.
  */
 
 type NavItem = {
@@ -51,15 +59,49 @@ type NavItem = {
   label: () => string;
 };
 
-const PRIMARY_NAV: ReadonlyArray<NavItem> = [
-  { id: 'dashboard', to: '/', icon: LayoutDashboard, label: m.nav_dashboard },
+const TOP_NAV: NavItem = {
+  id: 'dashboard',
+  to: '/',
+  icon: LayoutDashboard,
+  label: m.nav_dashboard,
+};
+
+const INVENTORY_GROUP: ReadonlyArray<NavItem> = [
   { id: 'sources', to: '/sources', icon: Sliders, label: m.nav_sources },
   { id: 'activities', to: '/activities', icon: Flame, label: m.nav_activities },
+  { id: 'reports', to: '/reports', icon: ScrollText, label: m.reports_nav },
+];
+
+const INPUTS_GROUP: ReadonlyArray<NavItem> = [
   { id: 'documents', to: '/documents', icon: FileText, label: m.nav_documents },
   { id: 'questionnaires', to: '/questionnaires', icon: ClipboardList, label: m.nav_questionnaires },
-  { id: 'reports', to: '/reports', icon: ScrollText, label: m.reports_nav },
+];
+
+const MORE_GROUP: ReadonlyArray<NavItem> = [
   { id: 'audit', to: '/audit', icon: FileSearch, label: m.audit_nav },
 ];
+
+function isPathActive(pathname: string, to: string): boolean {
+  // Dashboard matches "/" exactly; everything else matches by prefix so
+  // detail routes light up their parent nav.
+  if (to === '/') return pathname === '/';
+  return pathname.startsWith(to);
+}
+
+function NavMenuItem({ item, pathname }: { item: NavItem; pathname: string }) {
+  const Icon = item.icon;
+  const active = isPathActive(pathname, item.to);
+  return (
+    <SidebarMenuItem key={item.id}>
+      <SidebarMenuButton asChild isActive={active} tooltip={item.label()}>
+        <Link to={item.to}>
+          <Icon />
+          <span>{item.label()}</span>
+        </Link>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+}
 
 export function AppSidebar() {
   const pathname = useLocation({ select: (s) => s.pathname });
@@ -73,34 +115,63 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border/60">
       <SidebarHeader>
-        {/* macOS hiddenInset reserves the top ~32px for traffic lights.
-         * The titlebar-region drag div in __root.tsx covers the same band,
-         * so this header just gives the brand wordmark a comfortable
-         * top inset. */}
-        <div className="px-2 pt-8 pb-2 text-lg font-semibold">{m.app_title()}</div>
+        {/* macOS hiddenInset reserves top ~32px for traffic lights. The
+         * pt-8 inset clears them. group-data-[collapsible=icon] hides the
+         * wordmark when sidebar collapses to icon-only — the brand text
+         * doesn't fit at 3rem and we don't have a logo glyph yet. */}
+        <div className="px-2 pt-8 pb-2 text-lg font-semibold group-data-[collapsible=icon]:hidden">
+          {m.app_title()}
+        </div>
       </SidebarHeader>
 
       <SidebarContent>
+        {/* Dashboard at the very top — no group label, single item. */}
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {PRIMARY_NAV.map((item) => {
-                const Icon = item.icon;
-                // Active rule: dashboard matches exact "/"; all others
-                // match by-prefix so detail routes (e.g. /documents/abc)
-                // still light up their parent nav.
-                const isActive = item.to === '/' ? pathname === '/' : pathname.startsWith(item.to);
-                return (
-                  <SidebarMenuItem key={item.id}>
-                    <SidebarMenuButton asChild isActive={isActive} tooltip={item.label()}>
-                      <Link to={item.to}>
-                        <Icon />
-                        <span>{item.label()}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
+              <NavMenuItem item={TOP_NAV} pathname={pathname} />
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Inventory: sources / activities / reports */}
+        <SidebarGroup>
+          <SidebarGroupLabel>
+            <Package className="mr-1.5 size-3.5" aria-hidden="true" />
+            {m.nav_section_inventory()}
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {INVENTORY_GROUP.map((item) => (
+                <NavMenuItem key={item.id} item={item} pathname={pathname} />
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Inputs: documents + questionnaires */}
+        <SidebarGroup>
+          <SidebarGroupLabel>
+            <FileText className="mr-1.5 size-3.5" aria-hidden="true" />
+            {m.nav_section_documents_questionnaires()}
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {INPUTS_GROUP.map((item) => (
+                <NavMenuItem key={item.id} item={item} pathname={pathname} />
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* More: audit (+ future) */}
+        <SidebarGroup>
+          <SidebarGroupLabel>{m.nav_section_misc()}</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {MORE_GROUP.map((item) => (
+                <NavMenuItem key={item.id} item={item} pathname={pathname} />
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

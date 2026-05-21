@@ -433,5 +433,10 @@
   "license_banner_expired_body": "已有数据保持完整。续费后即可继续录入。",
   "license_banner_revoked_title": "授权已撤销 — carbonbook 现已进入只读模式。",
   "license_banner_revoked_body": "若你认为有误，请联系客服。",
-  "license_banner_renew_cta": "打开授权设置"
+  "license_banner_renew_cta": "打开授权设置",
+  "nav_section_inventory": "排放清单",
+  "nav_section_documents_questionnaires": "输入资料",
+  "nav_section_misc": "其他",
+  "nav_documents_all": "全部文档",
+  "nav_questionnaires_all": "全部问卷"
 }
