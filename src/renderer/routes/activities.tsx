@@ -113,56 +113,59 @@ function ActivitiesList({ organizationId }: { organizationId: string }) {
       {activities.length === 0 ? (
         <p className="text-sm text-muted-foreground">{m.activities_empty()}</p>
       ) : (
-        <div className="overflow-x-auto rounded-md border border-border">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/40 text-left">
-              <tr>
-                <th className="px-3 py-2 font-medium">{m.activities_table_occurred()}</th>
-                <th className="px-3 py-2 font-medium">{m.activities_table_source()}</th>
-                <th className="px-3 py-2 font-medium">{m.activities_table_amount()}</th>
-                <th className="px-3 py-2 font-medium">{m.activities_table_co2e()}</th>
-                <th className="px-3 py-2 font-medium">{m.activities_table_ef()}</th>
-                <th className="px-3 py-2 font-medium"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {activities.map((a) => {
-                const src = sourceById.get(a.emission_source_id);
-                return (
-                  <tr key={a.id} className="border-t border-border">
-                    <td className="px-3 py-2 whitespace-nowrap">
-                      {/* occurred_at_start may be a full ISO datetime or a
-                       * bare date; in either case we just want the first
-                       * 10 chars (YYYY-MM-DD) so the column is scannable. */}
+        // Scrollable list (was a table). Each row stacks three lines vertically
+        // so wide EF descriptors / long source names breathe instead of
+        // pushing the table off-screen horizontally. The Rebind action sits
+        // top-right as a ghost button — still discoverable, no underlined link.
+        // occurred_at_start may be ISO datetime or bare date; first 10 chars
+        // are always YYYY-MM-DD for scannability.
+        <ul className="divide-y divide-border rounded-md border border-border bg-card">
+          {activities.map((a) => {
+            const src = sourceById.get(a.emission_source_id);
+            return (
+              <li
+                key={a.id}
+                className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-muted/30"
+              >
+                <div className="min-w-0 flex-1 space-y-1">
+                  <div className="flex flex-wrap items-baseline gap-x-2">
+                    <span
+                      className="truncate font-medium text-foreground"
+                      title={src?.name ?? a.emission_source_id}
+                    >
+                      {src?.name ?? a.emission_source_id}
+                    </span>
+                    <span className="text-xs text-muted-foreground tabular-nums">
                       {a.occurred_at_start.slice(0, 10)}
-                    </td>
-                    <td className="px-3 py-2">{src?.name ?? a.emission_source_id}</td>
-                    <td className="px-3 py-2 whitespace-nowrap">
+                    </span>
+                  </div>
+                  <div className="text-sm text-foreground">
+                    <span className="tabular-nums">
                       {a.amount} {a.unit}
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap">{a.computed_co2e_kg} kg CO2e</td>
-                    <td className="px-3 py-2 text-muted-foreground">
-                      {a.ef_factor_code}
-                      <span className="text-xs">
-                        {' '}
-                        ({a.ef_source} · {a.ef_year} · {a.ef_geography})
-                      </span>
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      <button
-                        type="button"
-                        onClick={() => setRebindActivityId(a.id)}
-                        className="text-sm underline"
-                      >
-                        {m.rebind_button()}
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                    </span>
+                    <span className="mx-1.5 text-muted-foreground">→</span>
+                    <span className="font-medium tabular-nums">{a.computed_co2e_kg} kg CO2e</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    <span className="font-mono">{a.ef_factor_code}</span>
+                    <span className="ml-1.5">
+                      ({a.ef_source} · {a.ef_year} · {a.ef_geography})
+                    </span>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setRebindActivityId(a.id)}
+                  className="shrink-0"
+                >
+                  {m.rebind_button()}
+                </Button>
+              </li>
+            );
+          })}
+        </ul>
       )}
 
       {rebindActivityId && (

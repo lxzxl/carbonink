@@ -4,6 +4,7 @@ import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
 import { sourceApi } from '@renderer/lib/api/emission-source';
 import { orgApi } from '@renderer/lib/api/organization';
+import { cn } from '@renderer/lib/utils';
 import * as m from '@renderer/paraglide/messages';
 import type { EmissionSource } from '@shared/types';
 import { useQuery } from '@tanstack/react-query';
@@ -79,30 +80,48 @@ function SourcesList({ organizationId }: { organizationId: string }) {
       {sources.length === 0 ? (
         <p className="text-sm text-muted-foreground">{m.sources_empty()}</p>
       ) : (
-        <div className="overflow-x-auto rounded-md border border-border">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/40 text-left">
-              <tr>
-                <th className="px-3 py-2 font-medium">{m.sources_table_name()}</th>
-                <th className="px-3 py-2 font-medium">{m.sources_table_scope()}</th>
-                <th className="px-3 py-2 font-medium">{m.sources_table_category()}</th>
-                <th className="px-3 py-2 font-medium">{m.sources_table_active()}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sources.map((src) => (
-                <tr key={src.id} className="border-t border-border">
-                  <td className="px-3 py-2">{src.name}</td>
-                  <td className="px-3 py-2">{src.scope}</td>
-                  <td className="px-3 py-2 text-muted-foreground">{src.category ?? '—'}</td>
-                  <td className="px-3 py-2">
-                    {src.is_active ? m.sources_active_yes() : m.sources_active_no()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        // Scrollable list (was a table). Page scroll handles overflow — each
+        // row is free to grow vertically without a horizontal-scroll bar.
+        // Layout per row: name (title) on row 1; scope chip + category meta
+        // on row 2; active-state dot pinned right.
+        <ul className="divide-y divide-border rounded-md border border-border bg-card">
+          {sources.map((src) => (
+            <li
+              key={src.id}
+              className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-muted/30"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-medium text-foreground" title={src.name}>
+                  {src.name}
+                </div>
+                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                  <span className="rounded-md bg-secondary px-1.5 py-0.5 font-medium uppercase tracking-wide text-foreground/80">
+                    {src.scope}
+                  </span>
+                  <span>·</span>
+                  <span>{src.category ?? '—'}</span>
+                </div>
+              </div>
+              <span
+                role="status"
+                aria-label={src.is_active ? m.sources_active_yes() : m.sources_active_no()}
+                className={cn(
+                  'flex shrink-0 items-center gap-1.5 text-xs',
+                  src.is_active ? 'text-foreground' : 'text-muted-foreground',
+                )}
+              >
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    'h-2 w-2 rounded-full',
+                    src.is_active ? 'bg-emerald-500' : 'bg-muted-foreground/40',
+                  )}
+                />
+                {src.is_active ? m.sources_active_yes() : m.sources_active_no()}
+              </span>
+            </li>
+          ))}
+        </ul>
       )}
     </Main>
   );
