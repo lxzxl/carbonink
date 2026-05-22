@@ -20,9 +20,12 @@ carbonbook/
 │   ├── tests/                ← vitest (target: 662 passing)
 │   └── …                     ← electron-vite, electron-builder, paraglide
 └── cloud/                    ← Cloudflare backend (license + payments)
-    ├── worker/               ← @carbonbook-cloud/worker (Hono-ish router)
+    ├── worker/               ← @carbonbook-cloud/worker (API)
     ├── packages/shared/      ← @carbonbook-cloud/shared (Zod + types)
-    └── pages/                ← @carbonbook-cloud/{marketing,activate,account}
+    └── sites/                ← @carbonbook-cloud/{marketing,activate,account}
+                                 (each is its own Worker with Static
+                                  Assets binding — Cloudflare's modern
+                                  replacement for Pages)
 ```
 
 **Top-level scripts** (run from repo root):
@@ -52,6 +55,36 @@ means a single PR can update both sides atomically, and a future
 warns if it's at a sub-package). Includes `better-sqlite3`, `electron`,
 `esbuild`, `sharp`, `workerd`, `@napi-rs/canvas-*`. New native deps
 must be added here before pnpm will run their postinstall.
+
+## Cloud deploy primitives — Workers everywhere
+
+Every cloud package is a Cloudflare Worker (the API + each of the 3
+sites). We do NOT use Cloudflare Pages — Cloudflare's recommended
+path now is Workers + the Static Assets binding, which subsumes Pages'
+capabilities and gets all the new platform features first.
+
+Per cloud package:
+
+- **`cloud/worker/`** — pure Worker (API endpoints + scheduled cron).
+  Deploy: `cd cloud/worker && wrangler deploy`.
+- **`cloud/sites/marketing/`** — static-only Astro site. No SSR
+  adapter. wrangler.toml has just `assets.directory = "./dist"` +
+  `not_found_handling = "single-page-application"`. Deploy:
+  `pnpm --filter @carbonbook-cloud/marketing deploy` →
+  `astro build && wrangler deploy`.
+- **`cloud/sites/activate/`** + **`cloud/sites/account/`** — SSR
+  Astro sites via `@astrojs/cloudflare` v13. Build emits
+  `dist/client/` (static) + `dist/server/entry.mjs` (Worker entry) +
+  `dist/server/wrangler.json` (adapter-generated final config). The
+  user-level `wrangler.toml` carries name/compat-flags/[vars]; the
+  adapter augments at build time. Deploy: `astro build && wrangler
+  deploy --config dist/server/wrangler.json`.
+
+**Gotcha**: don't put `main` in a user-level `wrangler.toml` for SSR
+sites. The `@cloudflare/vite-plugin` bundled into `@astrojs/cloudflare`
+v13 resolves `main` at vite-config time, before astro emits the
+build output → ENOENT. The adapter sets `main` itself in
+`dist/server/wrangler.json`.
 
 ## Scroll containment
 
