@@ -1,0 +1,164 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Swap production public key
+        env:
+          PROD_PUBLIC_KEY_HEX: ${{ secrets.PROD_PUBLIC_KEY_HEX }}
+        run: |
+          # Replace the dev key with the production key in license-public-key.ts
+          sed -i '' "s/45137100977d34b17e6ae61ded3db7810215559157de81a0cdf4b6bcb49fb745/${PROD_PUBLIC_KEY_HEX}/" \
+            src/main/services/license-public-key.ts
+          # Verify the guard passes
+          node scripts/guard-prod-key.mjs
+
+      - name: Set version from tag
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          # `pnpm version` is cross-platform (matches the Windows job
+          # and avoids quoting surprises on either runner).
+          pnpm version --no-git-tag-version $VERSION
+
+      - name: Build + sign + notarize
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: pnpm build && pnpm exec electron-builder --mac --publish never
+
+      - name: Upload to R2
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        run: node scripts/upload-to-r2.mjs --platform darwin
+
+      - name: Upload artifacts to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*.dmg
+          draft: true
+
+  build-win:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Swap production public key
+        env:
+          PROD_PUBLIC_KEY_HEX: ${{ secrets.PROD_PUBLIC_KEY_HEX }}
+        shell: pwsh
+        run: |
+          $content = Get-Content src/main/services/license-public-key.ts -Raw
+          $content = $content -replace '45137100977d34b17e6ae61ded3db7810215559157de81a0cdf4b6bcb49fb745', $env:PROD_PUBLIC_KEY_HEX
+          Set-Content src/main/services/license-public-key.ts $content
+          node scripts/guard-prod-key.mjs
+
+      - name: Set version from tag
+        shell: pwsh
+        run: |
+          $version = $env:GITHUB_REF_NAME -replace '^v', ''
+          # `pnpm version` is cross-platform and avoids pwsh quoting
+          # surprises around `pnpm pkg set version=...`.
+          pnpm version --no-git-tag-version $version
+
+      - name: Write Azure Trusted Signing metadata
+        shell: pwsh
+        env:
+          AZURE_ENDPOINT: ${{ secrets.AZURE_ENDPOINT }}
+          AZURE_TRUSTED_SIGNING_ACCOUNT_NAME: ${{ secrets.AZURE_TRUSTED_SIGNING_ACCOUNT_NAME }}
+          AZURE_TRUSTED_SIGNING_PROFILE_NAME: ${{ secrets.AZURE_TRUSTED_SIGNING_PROFILE_NAME }}
+        run: |
+          $metadata = @{
+            Endpoint               = $env:AZURE_ENDPOINT
+            CodeSigningAccountName = $env:AZURE_TRUSTED_SIGNING_ACCOUNT_NAME
+            CertificateProfileName = $env:AZURE_TRUSTED_SIGNING_PROFILE_NAME
+          } | ConvertTo-Json
+          $metadata | Out-File -FilePath build/trusted-signing.json -Encoding utf8
+
+      - name: Install Azure Trusted Signing tooling (signtool + dlib)
+        uses: azure/trusted-signing-action@v0.5.1
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ secrets.AZURE_ENDPOINT }}
+          trusted-signing-account-name: ${{ secrets.AZURE_TRUSTED_SIGNING_ACCOUNT_NAME }}
+          certificate-profile-name: ${{ secrets.AZURE_TRUSTED_SIGNING_PROFILE_NAME }}
+          # `files-folder: release` is set in a no-op pattern so the
+          # action installs signtool + the dlib and exports SIGNTOOL_PATH
+          # + DLIB_PATH for the build/sign-windows.js hook below. We
+          # deliberately do NOT let the action sign here — electron-builder
+          # owns the signing lifecycle so it can re-sign the NSIS installer
+          # after wrapping the signed .exe inside it.
+          files-folder: ${{ github.workspace }}\\build
+          files-folder-filter: trusted-signing.json
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+
+      - name: Build + sign (Azure Trusted Signing via build/sign-windows.js hook)
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+        run: pnpm build && pnpm exec electron-builder --win --publish never
+
+      - name: Upload to R2
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        run: node scripts/upload-to-r2.mjs --platform win32
+
+      - name: Upload artifacts to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*.exe
+          draft: true
+
+  publish-release:
+    needs: [build-mac, build-win]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: false
+          generate_release_notes: true
