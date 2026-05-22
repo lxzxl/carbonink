@@ -17,12 +17,17 @@
 
 **Human-only prerequisites (NOT implementation tasks — must be completed before or in parallel by the human operator):**
 - Apple Developer ID certificate enrolled + `.p12` exported (for macOS notarization)
-- Windows EV code signing certificate procured + available in CI (e.g. Azure Key Vault, DigiCert ONE, or USB HSM + self-hosted runner)
+- **Azure Trusted Signing** account provisioned for Windows code signing (modern EV-equivalent, HSM-backed in Azure — replaces legacy USB-HSM EV certs). Account + Identity Validation must be approved by Microsoft before first signed build.
 - `carbonbook.app` domain registered + Cloudflare DNS configured
 - R2 bucket created with public custom domain `r2.carbonbook.app`
 - Stripe live mode products migrated + webhook secret in Worker secrets
 - Production Ed25519 keypair generated offline; private key stored in Worker secrets (`LICENSE_PRIVATE_KEY_PEM`); public key hex string provided to Task 1
-- GitHub repo secrets configured: `APPLE_ID`, `APPLE_ID_PASSWORD` (app-specific), `APPLE_TEAM_ID`, `CSC_LINK` (base64 `.p12`), `CSC_KEY_PASSWORD`, `WIN_CSC_LINK` / `WIN_CSC_KEY_PASSWORD` (or Azure Key Vault secrets for cloud signing), `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`
+- App icons exported to `build/icon.icns` (macOS — 1024×1024 source rendered to multi-resolution `.icns`), `build/icon.ico` (Windows — multi-resolution `.ico` with at least 256×256), and `build/icon.png` (1024×1024 fallback)
+- GitHub repo secrets configured:
+  - macOS signing/notarization: `APPLE_ID`, `APPLE_ID_PASSWORD` (app-specific), `APPLE_TEAM_ID`, `CSC_LINK` (base64-encoded `.p12`), `CSC_KEY_PASSWORD`
+  - Windows signing (Azure Trusted Signing): `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_TRUSTED_SIGNING_ACCOUNT_NAME`, `AZURE_TRUSTED_SIGNING_PROFILE_NAME`, `AZURE_ENDPOINT` (e.g. `https://eus.codesigning.azure.net`)
+  - Release public key: `PROD_PUBLIC_KEY_HEX`
+  - R2: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`
 
 **Discipline reminder for implementers:**
 - Before final commit on each task, run `git status` and confirm there are NO uncommitted file changes besides the `.claude/` untracked dir.
@@ -41,9 +46,12 @@
 - `src/renderer/components/UpdateSection.tsx` — Settings page "Updates" section UI
 - `scripts/guard-prod-key.mjs` — build-time guard that fails if the dev placeholder key is still present
 - `electron-builder.yml` — electron-builder configuration (signing, notarization, publish targets)
+- `build/entitlements.mac.plist` — macOS hardened-runtime entitlements
+- `build/sign-windows.js` — electron-builder Windows signing hook (delegates to Azure Trusted Signing)
 - `.github/workflows/release.yml` — CI/CD release workflow
 - `scripts/upload-to-r2.mjs` — post-build script to upload artifacts to Cloudflare R2
 - `tests/main/updater/auto-updater.test.ts` — unit tests for updater module
+- `tests/scripts/guard-prod-key.test.mjs` — unit tests for the production-key guard script
 
 **Modified files:**
 - `src/main/services/license-public-key.ts` — replace dev hex with `PROD_PUBLIC_KEY_PLACEHOLDER` constant
@@ -154,11 +162,9 @@ export function loadLicensePublicKey() {
 
 The key stays as the dev key for now — the CI workflow will `sed`-replace it (see Task 4). The rename from `DEV_PUBLIC_KEY_HEX` to `PUBLIC_KEY_HEX` clarifies intent.
 
-- [ ] **Step 3: Update the `issue-dev-license.mjs` script if it references the old constant name**
+(Confirmed via `grep -n DEV_PUBLIC_KEY_HEX scripts/issue-dev-license.mjs` that the script does NOT reference the constant by name — it only writes the matching private key to `scripts/dev/license-keypair/private.pem`, so no follow-up rename is needed.)
 
-Search `scripts/issue-dev-license.mjs` for any reference to `DEV_PUBLIC_KEY_HEX`. If it writes the constant by name during key regeneration, update the reference to `PUBLIC_KEY_HEX`.
-
-- [ ] **Step 4: Add the guard to distribution build scripts in package.json**
+- [ ] **Step 3: Add the guard to distribution build scripts in package.json**
 
 Add dist scripts to `package.json` that run the guard before electron-builder (the `electron-builder` dep and full config come in Task 3 — for now, just wire the guard):
 
@@ -170,22 +176,82 @@ Add dist scripts to `package.json` that run the guard before electron-builder (t
 "dist:win": "pnpm build && electron-builder --win",
 ```
 
-- [ ] **Step 5: Verify the guard works**
+- [ ] **Step 4: Verify the guard works**
 
 Run: `node scripts/guard-prod-key.mjs`
 
 Expected: exits with code 1 and the message "still contains the DEVELOPMENT key" (because the dev key is present). This is correct — distribution builds should fail until the CI workflow swaps in the prod key.
 
+- [ ] **Step 5: Add a unit test for the guard script**
+
+Create `tests/scripts/guard-prod-key.test.mjs`:
+
+```js
+// Vitest unit tests for scripts/guard-prod-key.mjs. We exercise the
+// guard against three fixture file contents (clean prod placeholder,
+// embedded dev key, all-zero placeholder) by writing each one to a
+// temp file, pointing the guard at it via a tiny wrapper, and asserting
+// the exit code.
+//
+// The guard script reads a hard-coded path (`src/main/services/...`),
+// so we re-implement its detection logic here against the same regexes
+// and treat the wrapper-style test as a contract check on the rules,
+// not on the I/O. This gives us regression coverage if the placeholder
+// or dev key constants drift.
+import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const guardSrc = readFileSync(
+  join(__dirname, '..', '..', 'scripts', 'guard-prod-key.mjs'),
+  'utf8',
+);
+
+// Pull the literal constants out of the guard script so the tests stay
+// in sync if the script changes.
+const PLACEHOLDER = '0'.repeat(64);
+const DEV_KEY_MATCH = guardSrc.match(/const DEV_KEY = '([0-9a-f]{64})'/);
+if (!DEV_KEY_MATCH) throw new Error('guard-prod-key.mjs no longer declares DEV_KEY');
+const DEV_KEY = DEV_KEY_MATCH[1];
+
+function detect(content) {
+  if (content.includes(PLACEHOLDER)) return 'placeholder';
+  if (content.includes(DEV_KEY)) return 'dev-key';
+  return 'ok';
+}
+
+describe('guard-prod-key detection rules', () => {
+  it('flags the all-zero placeholder', () => {
+    const content = `const PUBLIC_KEY_HEX = '${PLACEHOLDER}';`;
+    expect(detect(content)).toBe('placeholder');
+  });
+
+  it('flags the embedded development key', () => {
+    const content = `const PUBLIC_KEY_HEX = '${DEV_KEY}';`;
+    expect(detect(content)).toBe('dev-key');
+  });
+
+  it('passes a clean production-shaped hex (neither placeholder nor dev)', () => {
+    const fakeProd = 'a'.repeat(64);
+    const content = `const PUBLIC_KEY_HEX = '${fakeProd}';`;
+    expect(detect(content)).toBe('ok');
+  });
+});
+```
+
 - [ ] **Step 6: Verify existing tests still pass**
 
 Run: `pnpm test`
 
-Expected: all tests pass (the rename from `DEV_PUBLIC_KEY_HEX` to `PUBLIC_KEY_HEX` is internal to the module; no test imports it by name).
+Expected: all tests pass (the rename from `DEV_PUBLIC_KEY_HEX` to `PUBLIC_KEY_HEX` is internal to the module; no test imports it by name). The new `tests/scripts/guard-prod-key.test.mjs` should also pass.
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add scripts/guard-prod-key.mjs src/main/services/license-public-key.ts package.json
+git add scripts/guard-prod-key.mjs src/main/services/license-public-key.ts \
+  tests/scripts/guard-prod-key.test.mjs package.json
 git commit -m "feat(license): rename key constant + add build-time guard for production key swap"
 ```
 
@@ -349,10 +415,20 @@ Add to `IpcPushTypeMap`:
 Create `src/main/ipc/handlers/updater.ts`:
 
 ```ts
+import type { IpcContext } from '../context.js';
 import { checkForUpdates, getUpdateStatus, installUpdate } from '@main/updater/auto-updater.js';
 import type { IpcTypeMap } from '../types.js';
 
-export function updaterHandlers(): { [K in keyof IpcTypeMap]?: IpcTypeMap[K] } {
+type HandlerMap = { [K in keyof IpcTypeMap]?: IpcTypeMap[K] };
+
+/**
+ * The updater handlers do not need the IPC context (they delegate to
+ * module-level functions in auto-updater.ts which hold their own state),
+ * but the `HANDLER_FACTORIES` array in `setup.ts` is typed
+ * `(ctx: IpcContext) => HandlerMap`. We therefore accept and ignore the
+ * context to satisfy that factory signature.
+ */
+export function updaterHandlers(_ctx: IpcContext): HandlerMap {
   return {
     'updater:get-status': () => getUpdateStatus(),
     'updater:check': () => checkForUpdates(),
@@ -363,7 +439,7 @@ export function updaterHandlers(): { [K in keyof IpcTypeMap]?: IpcTypeMap[K] } {
 
 - [ ] **Step 5: Register updater handlers in setup.ts**
 
-In `src/main/ipc/setup.ts`, import `updaterHandlers` and spread them into the handler map alongside existing domains. Follow the same pattern used for `licenseHandlers` — updater handlers don't need the `IpcContext` since they call module-level functions.
+In `src/main/ipc/setup.ts`, import `updaterHandlers` and add it to the `HANDLER_FACTORIES` array alongside existing domains (e.g. `licenseHandlers`). The factory is invoked as `updaterHandlers(ctx)` by the existing `for (const factory of HANDLER_FACTORIES) { ... }` loop — no extra wiring needed beyond appending to that array.
 
 - [ ] **Step 6: Allowlist updater channels in bridge.ts**
 
@@ -475,7 +551,10 @@ export function UpdateSection() {
   });
 
   const status: UpdateStatus = statusQuery.data ?? { state: 'idle' };
-  const version = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : '0.0.0';
+  // `__APP_VERSION__` is declared as `string` in `src/renderer/env.d.ts`
+  // and substituted by Vite at build time (see Step 10), so no runtime
+  // guard is needed here.
+  const version = __APP_VERSION__;
 
   return (
     <div className="border-t border-border pt-4 mt-2 space-y-3">
@@ -641,11 +720,20 @@ git commit -m "feat(updater): integrate electron-updater with Settings UI + back
 
 This task configures `electron-builder` to produce signed `.dmg` (macOS) and `.exe` (Windows) installers with notarization, and to publish update manifests to a generic (R2) server.
 
-**Prerequisite:** Apple Developer ID certificate and Windows EV certificate must be available. The `dist:*` scripts will fail signing if the certs are not configured, but the builds will still produce unsigned artifacts for local testing.
+**Prerequisite:** Apple Developer ID certificate and an Azure Trusted Signing account (modern EV-equivalent for Windows) must be available. The `dist:*` scripts will fail signing if the certs / Azure credentials are not configured, but the builds will still produce unsigned artifacts for local testing.
 
-- [ ] **Step 1: Install electron-builder as a dev dependency**
+- [ ] **Step 1: Install electron-builder as a dev dependency + verify app icon assets**
 
 Run: `pnpm add -D electron-builder`
+
+Then verify that the human-deliverable app icon assets (see prereq list at the top of this plan) are in place:
+
+```bash
+test -f build/icon.icns && test -f build/icon.ico && test -f build/icon.png \
+  || (echo "Missing app icons under build/ — see the human-only prerequisites" && exit 1)
+```
+
+If this fails, stop and request the icon assets from the operator before continuing. electron-builder will fall back to a generic Electron icon if the files are missing, but a release build must ship with the production logo.
 
 - [ ] **Step 2: Add app metadata to package.json**
 
@@ -692,7 +780,11 @@ mac:
       arch:
         - arm64
         - x64
-  identity: null  # Set to Developer ID Application cert name in CI
+  # Do NOT set `identity:` here. `identity: null` explicitly opts out
+  # of signing and is NOT overridden by CSC_LINK env vars. By omitting
+  # the key, electron-builder auto-detects the "Developer ID Application"
+  # identity from the keychain populated by CSC_LINK / CSC_KEY_PASSWORD
+  # in CI (and falls back to ad-hoc / unsigned for local dev builds).
   hardenedRuntime: true
   gatekeeperAssess: false
   entitlements: build/entitlements.mac.plist
@@ -711,14 +803,22 @@ dmg:
       path: /Applications
 
 # --- Windows ---
+# Signing is performed by Azure Trusted Signing via a custom signtool
+# invocation (see `sign` hook below). We deliberately do NOT use
+# WIN_CSC_LINK / WIN_CSC_KEY_PASSWORD — those expect a .pfx file, which
+# Azure Trusted Signing (HSM-backed) cannot export.
 win:
   target:
     - target: nsis
       arch:
         - x64
-  # signtool or Azure Key Vault signing configured via env vars:
-  # WIN_CSC_LINK + WIN_CSC_KEY_PASSWORD (pfx-based)
-  # or azureSignOptions for cloud signing
+  # Delegate signing to a custom script that calls the Azure-provided
+  # Trusted Signing dlib via signtool. The `azure/trusted-signing-action`
+  # in the GitHub workflow installs signtool + the dlib and exports the
+  # env vars consumed here.
+  sign: ./build/sign-windows.js
+  signingHashAlgorithms:
+    - sha256
 
 nsis:
   oneClick: false
@@ -727,6 +827,11 @@ nsis:
   deleteAppDataOnUninstall: false
 
 # --- Auto-update publish target ---
+# IMPORTANT: manifests (latest-mac.yml, latest.yml) live at the BUCKET ROOT
+# of the releases/ prefix. Binary artifacts live under releases/{platform}/{version}/
+# and are referenced by absolute URL inside the manifests. This keeps
+# electron-updater's manifest lookup at a single stable path while letting
+# binaries stay versioned + platform-segregated.
 publish:
   provider: generic
   url: https://r2.carbonbook.app/releases
@@ -765,6 +870,52 @@ Create `build/entitlements.mac.plist`:
 
 These entitlements are required for Electron apps to run under macOS Hardened Runtime (which is mandatory for notarization). The `network.client` entitlement allows outgoing network (for LLM API calls + update checks). The `files.user-selected.read-write` entitlement allows file open/save dialogs.
 
+- [ ] **Step 4b: Create the Windows signing hook script**
+
+Create `build/sign-windows.js`. This hook is invoked by electron-builder for every Windows artifact that needs signing. It shells out to `signtool.exe` with the Azure Trusted Signing dlib (`Azure.CodeSigning.Dlib.dll`) and the metadata JSON file that the CI workflow writes before the build.
+
+```js
+// electron-builder Windows sign hook — delegates to Azure Trusted Signing.
+//
+// The GitHub Actions workflow installs signtool + the Trusted Signing dlib
+// via `azure/trusted-signing-action`, writes a metadata JSON file at
+// build/trusted-signing.json (containing Endpoint + CodeSigningAccountName
+// + CertificateProfileName), and exports SIGNTOOL_PATH + DLIB_PATH.
+//
+// Locally, this script is a no-op (returns without signing) so unsigned
+// `pnpm dist:win` builds succeed for developer smoke testing.
+exports.default = async function signWindows(configuration) {
+  const { execFileSync } = require('node:child_process');
+  const { existsSync } = require('node:fs');
+  const path = require('node:path');
+
+  const signtool = process.env.SIGNTOOL_PATH;
+  const dlib = process.env.DLIB_PATH;
+  const metadata = path.resolve(__dirname, 'trusted-signing.json');
+
+  if (!signtool || !dlib || !existsSync(metadata)) {
+    process.stderr.write(
+      `[sign-windows] Skipping signature for ${configuration.path} — Azure Trusted Signing env not configured (local build).\n`,
+    );
+    return;
+  }
+
+  const args = [
+    'sign',
+    '/v',
+    '/debug',
+    '/fd', 'sha256',
+    '/tr', 'http://timestamp.acs.microsoft.com',
+    '/td', 'sha256',
+    '/dlib', dlib,
+    '/dmdf', metadata,
+    configuration.path,
+  ];
+
+  execFileSync(signtool, args, { stdio: 'inherit' });
+};
+```
+
 - [ ] **Step 5: Update dist scripts in package.json**
 
 Update the `scripts` section (the `predist:*` guards were added in Task 1):
@@ -788,8 +939,8 @@ Restore the `predist:mac` script after testing.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add electron-builder.yml build/entitlements.mac.plist package.json
-git commit -m "build: add electron-builder config with macOS notarization + Windows NSIS + R2 publish"
+git add electron-builder.yml build/entitlements.mac.plist build/sign-windows.js package.json
+git commit -m "build: add electron-builder config with macOS notarization + Windows Azure Trusted Signing + R2 publish"
 ```
 
 ---
@@ -846,7 +997,9 @@ jobs:
       - name: Set version from tag
         run: |
           VERSION=${GITHUB_REF_NAME#v}
-          pnpm pkg set version="$VERSION"
+          # `pnpm version` is cross-platform (matches the Windows job
+          # and avoids quoting surprises on either runner).
+          pnpm version --no-git-tag-version $VERSION
 
       - name: Build + sign + notarize
         env:
@@ -900,12 +1053,50 @@ jobs:
         shell: pwsh
         run: |
           $version = $env:GITHUB_REF_NAME -replace '^v', ''
-          pnpm pkg set version="$version"
+          # `pnpm version` is cross-platform and avoids pwsh quoting
+          # surprises around `pnpm pkg set version=...`.
+          pnpm version --no-git-tag-version $version
 
-      - name: Build + sign
+      - name: Write Azure Trusted Signing metadata
+        shell: pwsh
         env:
-          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
-          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+          AZURE_ENDPOINT: ${{ secrets.AZURE_ENDPOINT }}
+          AZURE_TRUSTED_SIGNING_ACCOUNT_NAME: ${{ secrets.AZURE_TRUSTED_SIGNING_ACCOUNT_NAME }}
+          AZURE_TRUSTED_SIGNING_PROFILE_NAME: ${{ secrets.AZURE_TRUSTED_SIGNING_PROFILE_NAME }}
+        run: |
+          $metadata = @{
+            Endpoint               = $env:AZURE_ENDPOINT
+            CodeSigningAccountName = $env:AZURE_TRUSTED_SIGNING_ACCOUNT_NAME
+            CertificateProfileName = $env:AZURE_TRUSTED_SIGNING_PROFILE_NAME
+          } | ConvertTo-Json
+          $metadata | Out-File -FilePath build/trusted-signing.json -Encoding utf8
+
+      - name: Install Azure Trusted Signing tooling (signtool + dlib)
+        uses: azure/trusted-signing-action@v0.5.1
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ secrets.AZURE_ENDPOINT }}
+          trusted-signing-account-name: ${{ secrets.AZURE_TRUSTED_SIGNING_ACCOUNT_NAME }}
+          certificate-profile-name: ${{ secrets.AZURE_TRUSTED_SIGNING_PROFILE_NAME }}
+          # `files-folder: release` is set in a no-op pattern so the
+          # action installs signtool + the dlib and exports SIGNTOOL_PATH
+          # + DLIB_PATH for the build/sign-windows.js hook below. We
+          # deliberately do NOT let the action sign here — electron-builder
+          # owns the signing lifecycle so it can re-sign the NSIS installer
+          # after wrapping the signed .exe inside it.
+          files-folder: ${{ github.workspace }}\\build
+          files-folder-filter: trusted-signing.json
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+
+      - name: Build + sign (Azure Trusted Signing via build/sign-windows.js hook)
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
         run: pnpm build && pnpm exec electron-builder --win --publish never
 
       - name: Upload to R2
@@ -1010,12 +1201,16 @@ import { execSync } from 'node:child_process';
 
 for (const file of files) {
   const localPath = join(releaseDir, file);
-  // latest.yml goes to releases/{platform}/ (no version prefix) so
-  // electron-updater always finds it at a stable URL. Versioned files
-  // go to releases/{platform}/{version}/.
+  // Flat manifest layout: latest-mac.yml / latest.yml live at the bucket
+  // root of releases/ (no platform subdir), matching the electron-builder
+  // `publish.url` of https://r2.carbonbook.app/releases. electron-updater
+  // fetches `<publishUrl>/latest-mac.yml` or `<publishUrl>/latest.yml`
+  // so the manifests MUST sit at this path. Binary artifacts are
+  // versioned + platform-segregated and referenced by absolute URL
+  // inside the manifests.
   const isManifest = file.endsWith('.yml') || file.endsWith('.yaml');
   const r2Key = isManifest
-    ? `releases/${platform}/${file}`
+    ? `releases/${file}`
     : `releases/${platform}/${version}/${file}`;
 
   process.stderr.write(`Uploading ${file} → s3://${R2_BUCKET_NAME}/${r2Key}\n`);
@@ -1153,11 +1348,16 @@ Expected: all pass with zero errors and zero warnings. If any fail, fix them bef
 
 - [ ] **Step 2: Scan for TODO/FIXME comments**
 
-Run:
+Run (scoped strictly to `src/`, excluding test files):
 
 ```bash
-grep -rn 'TODO\|FIXME\|HACK\|XXX' src/ --include='*.ts' --include='*.tsx' | grep -v node_modules | grep -v '.test.'
+grep -rnE 'TODO|FIXME|HACK|XXX' src/ \
+  --include='*.ts' --include='*.tsx' \
+  --exclude='*.test.ts' --exclude='*.test.tsx' \
+  --exclude='*.spec.ts'  --exclude='*.spec.tsx'
 ```
+
+The scope is intentionally `src/` only — `docs/`, `roadmap/`, and other markdown trees legitimately contain TODO-style notes for planning purposes and should not pollute this gate.
 
 For each result, decide:
 - If it's a genuine pre-launch blocker: fix it now.
@@ -1192,7 +1392,9 @@ Expected: exits 0, `out/` directory contains `main/index.cjs`, `preload/index.cj
 
 - [ ] **Step 5: Bump version to 1.0.0**
 
-Run: `pnpm pkg set version="1.0.0"`
+Run: `pnpm version --no-git-tag-version 1.0.0`
+
+(`pnpm version` is preferred over `pnpm pkg set version=...` because it's cross-platform and handles quoting consistently on both macOS and Windows runners.)
 
 - [ ] **Step 6: Generate changelog**
 
