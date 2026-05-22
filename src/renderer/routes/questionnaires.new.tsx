@@ -89,116 +89,120 @@ function NewQuestionnaireRoute() {
   }
 
   return (
-    <Main className="max-w-2xl space-y-6">
-      <h1 className="text-2xl font-semibold">{m.questionnaires_wizard_title()}</h1>
+    // Parent right-pane is overflow-hidden (see questionnaires.tsx); wrap
+    // Main so the form scrolls within this route, not on the body.
+    <div className="h-full overflow-auto">
+      <Main className="max-w-2xl space-y-6">
+        <h1 className="text-2xl font-semibold">{m.questionnaires_wizard_title()}</h1>
 
-      <div className="rounded-md border border-border bg-card p-6 space-y-5">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5 col-span-2">
-            <Label htmlFor="qa-customer">
-              {m.questionnaires_wizard_customer()}
+        <div className="rounded-md border border-border bg-card p-6 space-y-5">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5 col-span-2">
+              <Label htmlFor="qa-customer">
+                {m.questionnaires_wizard_customer()}
+                <span className="ml-0.5 text-destructive">*</span>
+              </Label>
+              <Input
+                id="qa-customer"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                disabled={disabled}
+                placeholder="例：上海某科技有限公司"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="qa-year">{m.questionnaires_wizard_year()}</Label>
+              <Input
+                id="qa-year"
+                type="number"
+                value={year}
+                onChange={(e) => setYear(Number(e.target.value))}
+                min={2020}
+                max={2100}
+                disabled={disabled}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="qa-due">{m.questionnaires_wizard_due()}</Label>
+              <Input
+                id="qa-due"
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                disabled={disabled}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="qa-file">
+              .xlsx
               <span className="ml-0.5 text-destructive">*</span>
             </Label>
-            <Input
-              id="qa-customer"
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              disabled={disabled}
-              placeholder="例：上海某科技有限公司"
-            />
+            <label
+              htmlFor="qa-file"
+              onDragOver={(e) => {
+                e.preventDefault();
+                if (!disabled) setIsDragging(true);
+              }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={onDrop}
+              data-dragging={isDragging || undefined}
+              data-has-file={hasFile || undefined}
+              className={[
+                'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-md',
+                'border-2 border-dashed border-border bg-muted/30 px-6 py-8 text-sm transition-colors',
+                'hover:border-primary/60 hover:bg-muted/50',
+                'data-[dragging]:border-primary data-[dragging]:bg-primary/5',
+                'data-[has-file]:border-primary/60 data-[has-file]:bg-primary/5',
+                disabled ? 'pointer-events-none opacity-60' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+            >
+              {hasFile ? (
+                <>
+                  <FileSpreadsheet className="h-7 w-7 text-primary" aria-hidden="true" />
+                  <span className="font-medium text-foreground">
+                    {m.questionnaires_wizard_file_chosen({ filename: fileName ?? '' })}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <UploadCloud className="h-7 w-7 text-muted-foreground" aria-hidden="true" />
+                  <span className="font-medium text-foreground">
+                    {m.questionnaires_wizard_file_choose()}
+                  </span>
+                </>
+              )}
+              <input
+                id="qa-file"
+                ref={fileRef}
+                type="file"
+                accept={`${XLSX_MIME},.xlsx`}
+                onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)}
+                disabled={disabled}
+                className="sr-only"
+              />
+            </label>
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="qa-year">{m.questionnaires_wizard_year()}</Label>
-            <Input
-              id="qa-year"
-              type="number"
-              value={year}
-              onChange={(e) => setYear(Number(e.target.value))}
-              min={2020}
-              max={2100}
-              disabled={disabled}
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="qa-due">{m.questionnaires_wizard_due()}</Label>
-            <Input
-              id="qa-due"
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-              disabled={disabled}
-            />
-          </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <Label htmlFor="qa-file">
-            .xlsx
-            <span className="ml-0.5 text-destructive">*</span>
-          </Label>
-          <label
-            htmlFor="qa-file"
-            onDragOver={(e) => {
-              e.preventDefault();
-              if (!disabled) setIsDragging(true);
-            }}
-            onDragLeave={() => setIsDragging(false)}
-            onDrop={onDrop}
-            data-dragging={isDragging || undefined}
-            data-has-file={hasFile || undefined}
-            className={[
-              'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-md',
-              'border-2 border-dashed border-border bg-muted/30 px-6 py-8 text-sm transition-colors',
-              'hover:border-primary/60 hover:bg-muted/50',
-              'data-[dragging]:border-primary data-[dragging]:bg-primary/5',
-              'data-[has-file]:border-primary/60 data-[has-file]:bg-primary/5',
-              disabled ? 'pointer-events-none opacity-60' : '',
-            ]
-              .filter(Boolean)
-              .join(' ')}
-          >
-            {hasFile ? (
-              <>
-                <FileSpreadsheet className="h-7 w-7 text-primary" aria-hidden="true" />
-                <span className="font-medium text-foreground">
-                  {m.questionnaires_wizard_file_chosen({ filename: fileName ?? '' })}
-                </span>
-              </>
-            ) : (
-              <>
-                <UploadCloud className="h-7 w-7 text-muted-foreground" aria-hidden="true" />
-                <span className="font-medium text-foreground">
-                  {m.questionnaires_wizard_file_choose()}
-                </span>
-              </>
+          <div className="flex items-center gap-3 pt-2">
+            <Button type="button" onClick={() => mutation.mutate()} disabled={!canSubmit}>
+              {mutation.isPending
+                ? m.questionnaires_wizard_parsing()
+                : m.questionnaires_wizard_upload()}
+            </Button>
+            {!canSubmit && !disabled && (
+              <span className="text-xs text-muted-foreground">
+                {m.questionnaires_wizard_hint_required()}
+              </span>
             )}
-            <input
-              id="qa-file"
-              ref={fileRef}
-              type="file"
-              accept={`${XLSX_MIME},.xlsx`}
-              onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)}
-              disabled={disabled}
-              className="sr-only"
-            />
-          </label>
+          </div>
         </div>
-
-        <div className="flex items-center gap-3 pt-2">
-          <Button type="button" onClick={() => mutation.mutate()} disabled={!canSubmit}>
-            {mutation.isPending
-              ? m.questionnaires_wizard_parsing()
-              : m.questionnaires_wizard_upload()}
-          </Button>
-          {!canSubmit && !disabled && (
-            <span className="text-xs text-muted-foreground">
-              {m.questionnaires_wizard_hint_required()}
-            </span>
-          )}
-        </div>
-      </div>
-    </Main>
+      </Main>
+    </div>
   );
 }

@@ -36,7 +36,14 @@ function QuestionnairesLayout() {
       </ResizablePanel>
       <ResizableHandle />
       <ResizablePanel defaultSize="68%">
-        <div className="h-full overflow-auto p-6">
+        {/* Right pane is overflow-hidden — each Outlet child owns its
+         * own padding + scroll container. This lets the questionnaire
+         * detail use the sticky-top / scroll-middle / sticky-bottom
+         * pattern (h1 + action bar stay pinned; only the answer cards
+         * scroll). Centralizing scroll here would force every detail
+         * page through one rigid wrapper. See CLAUDE.md → Scroll
+         * containment. */}
+        <div className="h-full overflow-hidden">
           <Outlet />
         </div>
       </ResizablePanel>

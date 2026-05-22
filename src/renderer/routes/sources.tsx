@@ -61,30 +61,34 @@ function SourcesList({ organizationId }: { organizationId: string }) {
   const sources = sourcesQuery.data ?? [];
 
   return (
-    <Main className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">{m.nav_sources()}</h1>
-        <Button onClick={() => setFormOpen((v) => !v)}>
-          {formOpen ? m.sources_cancel_button() : m.sources_add_button()}
-        </Button>
+    // Sticky top + scrolling list (see CLAUDE.md → Scroll containment).
+    // Heading + Add button + open form stay pinned; only the source rows
+    // scroll inside the list container.
+    <Main className="flex h-full flex-col gap-4">
+      <div className="shrink-0 space-y-4">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-semibold">{m.nav_sources()}</h1>
+          <Button onClick={() => setFormOpen((v) => !v)}>
+            {formOpen ? m.sources_cancel_button() : m.sources_add_button()}
+          </Button>
+        </div>
+
+        {formOpen && (
+          <SourceForm
+            organizationId={organizationId}
+            onCancel={() => setFormOpen(false)}
+            onSuccess={() => setFormOpen(false)}
+          />
+        )}
       </div>
 
-      {formOpen && (
-        <SourceForm
-          organizationId={organizationId}
-          onCancel={() => setFormOpen(false)}
-          onSuccess={() => setFormOpen(false)}
-        />
-      )}
-
       {sources.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{m.sources_empty()}</p>
+        <p className="shrink-0 text-sm text-muted-foreground">{m.sources_empty()}</p>
       ) : (
-        // Scrollable list (was a table). Page scroll handles overflow — each
-        // row is free to grow vertically without a horizontal-scroll bar.
+        // List container claims the remaining height and owns the scroll.
         // Layout per row: name (title) on row 1; scope chip + category meta
         // on row 2; active-state dot pinned right.
-        <ul className="divide-y divide-border rounded-md border border-border bg-card">
+        <ul className="flex-1 min-h-0 divide-y divide-border overflow-auto rounded-md border border-border bg-card">
           {sources.map((src) => (
             <li
               key={src.id}

@@ -157,39 +157,50 @@ function DetailBody({
     (!period || (activitiesQuery.isSuccess && (activitiesQuery.data?.length ?? 0) === 0));
 
   return (
-    <div className="space-y-6">
-      {/* Round 4: "返回问卷列表" back link removed — with the Phase C/D
-       * two-pane layout the list is always visible on the left, so a
-       * "back" link is redundant + visual clutter. */}
-      <div>
-        <h1 className="text-2xl font-semibold">{customer.name}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {questionnaire.reporting_year} · {questionnaire.status} · {document.filename}
-        </p>
-      </div>
-      {inventoryEmpty && (
-        <div className="flex items-start gap-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-300">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-          <div className="flex-1">
-            <p className="font-medium">
-              {m.questionnaires_detail_inventory_empty_title({
-                year: questionnaire.reporting_year,
-              })}
-            </p>
-            <p className="mt-0.5">
-              {m.questionnaires_detail_inventory_empty_body()}{' '}
-              <Link to="/activities" className="font-medium underline">
-                {m.questionnaires_detail_inventory_empty_cta()}
-              </Link>
-            </p>
-          </div>
+    // Sticky-top / scroll-middle / sticky-bottom layout (see CLAUDE.md
+    // → Scroll containment). The h1 + meta + inventory warning stay
+    // pinned at the top; the answer-card list scrolls in the middle;
+    // the action bar (Generate all / Export Excel / Export PDF /
+    // Finalize) stays pinned at the bottom so users don't have to
+    // scroll past dozens of questions to reach Finalize. Parent
+    // right-pane is overflow-hidden — see questionnaires.tsx.
+    // Round 4: "返回问卷列表" back link removed — with the two-pane
+    // layout the list is always visible on the left.
+    <div className="flex h-full flex-col">
+      {/* === Fixed top === */}
+      <div className="shrink-0 space-y-4 px-6 pt-6 pb-3">
+        <div>
+          <h1 className="text-2xl font-semibold">{customer.name}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {questionnaire.reporting_year} · {questionnaire.status} · {document.filename}
+          </p>
         </div>
-      )}
-      {questions.length === 0 ? (
-        <p className="text-muted-foreground italic">{m.questionnaires_detail_answer_pending()}</p>
-      ) : (
-        <>
-          <div className="space-y-4">
+        {inventoryEmpty && (
+          <div className="flex items-start gap-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-300">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            <div className="flex-1">
+              <p className="font-medium">
+                {m.questionnaires_detail_inventory_empty_title({
+                  year: questionnaire.reporting_year,
+                })}
+              </p>
+              <p className="mt-0.5">
+                {m.questionnaires_detail_inventory_empty_body()}{' '}
+                <Link to="/activities" className="font-medium underline">
+                  {m.questionnaires_detail_inventory_empty_cta()}
+                </Link>
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* === Scrolling middle === */}
+      <div className="flex-1 min-h-0 overflow-auto px-6">
+        {questions.length === 0 ? (
+          <p className="text-muted-foreground italic">{m.questionnaires_detail_answer_pending()}</p>
+        ) : (
+          <div className="space-y-4 py-3">
             {questions.map((question) => {
               const ans = byQ.get(question.id) ?? null;
               // Key on answer.id when present — when the answer transitions
@@ -207,43 +218,47 @@ function DetailBody({
               );
             })}
           </div>
-          {/* Native action-bar hierarchy: one primary (filled green) for
-           * the page's hero action — "确认全部答案" (finalize), the only
-           * irreversible / state-mutating one. The other three are
-           * exports / AI-batch generation — secondary by intent, so they
-           * use `outline`. Avoids the previous "wall of identical green
-           * buttons" pattern (skill 06 — reserve filled for ONE action). */}
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => generateAll.mutate()}
-              disabled={generateAll.isPending}
-            >
-              {generateAll.isPending
-                ? m.answer_generate_all_running()
-                : m.answer_generate_all_button()}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => exportToExcel.mutate()}
-              disabled={exportToExcel.isPending}
-            >
-              {exportToExcel.isPending ? m.answer_export_running() : m.answer_export_button()}
-            </Button>
-            <Button type="button" variant="outline" onClick={() => setPdfDialogOpen(true)}>
-              {m.questionnaire_export_pdf_button()}
-            </Button>
-            <Button
-              type="button"
-              onClick={() => finalizeMutation.mutate()}
-              disabled={finalizeMutation.isPending}
-            >
-              {m.questionnaires_finalize_button()}
-            </Button>
-          </div>
-        </>
+        )}
+      </div>
+
+      {/* === Fixed bottom action bar === */}
+      {questions.length > 0 && (
+        // Native action-bar hierarchy: one primary (filled green) for
+        // the page's hero action — "确认全部答案" (finalize), the only
+        // irreversible / state-mutating one. The other three are
+        // exports / AI-batch generation — secondary by intent, so they
+        // use `outline`. Avoids the previous "wall of identical green
+        // buttons" pattern (skill 06 — reserve filled for ONE action).
+        <div className="shrink-0 flex justify-end gap-2 border-t border-border bg-background/95 backdrop-blur px-6 py-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => generateAll.mutate()}
+            disabled={generateAll.isPending}
+          >
+            {generateAll.isPending
+              ? m.answer_generate_all_running()
+              : m.answer_generate_all_button()}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => exportToExcel.mutate()}
+            disabled={exportToExcel.isPending}
+          >
+            {exportToExcel.isPending ? m.answer_export_running() : m.answer_export_button()}
+          </Button>
+          <Button type="button" variant="outline" onClick={() => setPdfDialogOpen(true)}>
+            {m.questionnaire_export_pdf_button()}
+          </Button>
+          <Button
+            type="button"
+            onClick={() => finalizeMutation.mutate()}
+            disabled={finalizeMutation.isPending}
+          >
+            {m.questionnaires_finalize_button()}
+          </Button>
+        </div>
       )}
       {pdfDialogOpen && (
         <div

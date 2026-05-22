@@ -93,33 +93,38 @@ function ActivitiesList({ organizationId }: { organizationId: string }) {
   }, [sources]);
 
   return (
-    <Main className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">{m.nav_activities()}</h1>
-        <Button onClick={() => setFormOpen((v) => !v)}>
-          {formOpen ? m.sources_cancel_button() : m.activities_add_button()}
-        </Button>
+    // Sticky top + scrolling list (see CLAUDE.md → Scroll containment).
+    // Heading + Add button + open form stay pinned; only the activity rows
+    // scroll inside the list container.
+    <Main className="flex h-full flex-col gap-4">
+      <div className="shrink-0 space-y-4">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-semibold">{m.nav_activities()}</h1>
+          <Button onClick={() => setFormOpen((v) => !v)}>
+            {formOpen ? m.sources_cancel_button() : m.activities_add_button()}
+          </Button>
+        </div>
+
+        {formOpen && (
+          <ActivityForm
+            organizationId={organizationId}
+            sources={sources}
+            onCancel={() => setFormOpen(false)}
+            onSuccess={() => setFormOpen(false)}
+          />
+        )}
       </div>
 
-      {formOpen && (
-        <ActivityForm
-          organizationId={organizationId}
-          sources={sources}
-          onCancel={() => setFormOpen(false)}
-          onSuccess={() => setFormOpen(false)}
-        />
-      )}
-
       {activities.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{m.activities_empty()}</p>
+        <p className="shrink-0 text-sm text-muted-foreground">{m.activities_empty()}</p>
       ) : (
-        // Scrollable list (was a table). Each row stacks three lines vertically
-        // so wide EF descriptors / long source names breathe instead of
-        // pushing the table off-screen horizontally. The Rebind action sits
-        // top-right as a ghost button — still discoverable, no underlined link.
+        // List container claims the remaining height and owns the scroll.
+        // Each row stacks three lines vertically so wide EF descriptors and
+        // long source names breathe instead of pushing the table off-screen
+        // horizontally. The Rebind action sits top-right as a ghost button.
         // occurred_at_start may be ISO datetime or bare date; first 10 chars
         // are always YYYY-MM-DD for scannability.
-        <ul className="divide-y divide-border rounded-md border border-border bg-card">
+        <ul className="flex-1 min-h-0 divide-y divide-border overflow-auto rounded-md border border-border bg-card">
           {activities.map((a) => {
             const src = sourceById.get(a.emission_source_id);
             return (
