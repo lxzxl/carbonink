@@ -1,0 +1,35 @@
+---
+const { lang } = Astro.props as { lang: 'zh-CN' | 'en' };
+const t = lang === 'zh-CN'
+  ? { trial: '14 天试用', base: 'Base', buy: '立即购买', try: '开始试用' }
+  : { trial: '14-day trial', base: 'Base', buy: 'Buy now', try: 'Start trial' };
+---
+<div class="mt-8 grid gap-6 sm:grid-cols-2">
+  <article class="rounded-xl border p-6">
+    <h2 class="text-xl font-semibold">{t.trial}</h2>
+    <p class="mt-3 text-3xl font-bold">¥0</p>
+    <a href="/download" class="mt-6 inline-block rounded-md border px-4 py-2">{t.try}</a>
+  </article>
+  <article class="rounded-xl border p-6 ring-2 ring-[color:var(--color-brand-500)]">
+    <h2 class="text-xl font-semibold">{t.base}</h2>
+    <p class="mt-3 text-3xl font-bold">¥1,499 / 年</p>
+    <button id="buy-base" data-plan="base@2026-q2" class="mt-6 inline-block rounded-md bg-[color:var(--color-brand-500)] px-4 py-2 text-white">{t.buy}</button>
+  </article>
+</div>
+<script>
+  const btn = document.getElementById('buy-base');
+  btn?.addEventListener('click', async () => {
+    const plan = btn.getAttribute('data-plan');
+    const res = await fetch('https://api.carbonbook.app/v1/checkout-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan }),
+    });
+    if (!res.ok) {
+      alert('Unable to start checkout. Try again.');
+      return;
+    }
+    const { checkout_url } = await res.json();
+    window.location.href = checkout_url;
+  });
+</script>

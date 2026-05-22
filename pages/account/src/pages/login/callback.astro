@@ -1,0 +1,35 @@
+---
+import Base from '../../layouts/Base.astro';
+// biome-ignore lint/suspicious/noExplicitAny: Astro.locals.runtime is untyped
+const env = (Astro.locals as any).runtime?.env as { API_ORIGIN?: string } | undefined;
+const apiOrigin = env?.API_ORIGIN ?? 'https://api.carbonbook.app';
+const token = new URL(Astro.request.url).searchParams.get('t');
+
+let ok = false;
+let setCookie: string | null = null;
+if (token) {
+  const res = await fetch(`${apiOrigin}/v1/auth/exchange`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token }),
+  });
+  ok = res.ok;
+  setCookie = res.headers.get('Set-Cookie');
+}
+
+if (ok && setCookie) {
+  return new Response(null, {
+    status: 302,
+    headers: { Location: '/', 'Set-Cookie': setCookie },
+  });
+}
+---
+<Base title="Sign-in failed — carbonbook" lang="en">
+  <h1 class="text-2xl font-bold">Sign-in link invalid</h1>
+  <p class="mt-2 text-[color:var(--color-ink-500)]">
+    The link is expired or has already been used.
+  </p>
+  <p class="mt-4">
+    <a href="/login" class="underline text-[color:var(--color-brand-500)]">Request a new link</a>
+  </p>
+</Base>

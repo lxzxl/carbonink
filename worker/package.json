@@ -1,0 +1,22 @@
+{
+  "name": "@carbonbook-cloud/worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@carbonbook-cloud/shared": "workspace:*",
+    "@noble/curves": "^1.8.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.8.0",
+    "@cloudflare/workers-types": "^4.20250501.0",
+    "vitest": "^3.2.0",
+    "wrangler": "^4.14.0"
+  }
+}

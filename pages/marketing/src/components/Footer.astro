@@ -1,0 +1,9 @@
+---
+const { lang } = Astro.props as { lang: 'zh-CN' | 'en' };
+const blurb = lang === 'zh-CN'
+  ? '本网站不使用第三方分析。所有数据存储于用户本地设备。'
+  : 'No third-party analytics on this site. All data stays on your device.';
+---
+<footer class="mx-auto max-w-5xl px-6 py-12 text-sm text-[color:var(--color-ink-500)]">
+  <p>{blurb}</p>
+</footer>

@@ -1,0 +1,59 @@
+---
+import Base from '../layouts/Base.astro';
+// biome-ignore lint/suspicious/noExplicitAny: Astro.locals.runtime is untyped
+const env = (Astro.locals as any).runtime?.env as { API_ORIGIN?: string } | undefined;
+const apiOrigin = env?.API_ORIGIN ?? 'https://api.carbonbook.app';
+---
+<Base title="Sign in — carbonbook" lang="en">
+  <h1 class="text-2xl font-bold">Sign in</h1>
+  <p class="mt-2 text-[color:var(--color-ink-500)]">
+    Enter your email and we'll send you a sign-in link.
+  </p>
+  <form id="login-form" class="mt-6 space-y-4">
+    <label class="block text-sm">Email
+      <input
+        name="email"
+        type="email"
+        required
+        autocomplete="email"
+        class="mt-1 w-full rounded-md border px-3 py-2"
+      />
+    </label>
+    <button
+      type="submit"
+      class="rounded-md bg-[color:var(--color-brand-500)] px-4 py-2 text-white hover:bg-[color:var(--color-brand-700)]"
+    >
+      Send sign-in link
+    </button>
+    <p id="sent" class="hidden text-sm text-green-700">
+      Check your inbox for the sign-in link. It expires in 15 minutes.
+    </p>
+    <p id="error" class="hidden text-sm text-red-600"></p>
+  </form>
+  <script is:inline define:vars={{ apiOrigin }}>
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = new FormData(e.target);
+      const sent = document.getElementById('sent');
+      const error = document.getElementById('error');
+      sent.classList.add('hidden');
+      error.classList.add('hidden');
+      try {
+        const res = await fetch(apiOrigin + '/v1/auth/magic-link', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: data.get('email') }),
+        });
+        if (res.ok) {
+          sent.classList.remove('hidden');
+        } else {
+          error.textContent = 'Could not send the sign-in link. Please try again.';
+          error.classList.remove('hidden');
+        }
+      } catch {
+        error.textContent = 'Network error. Please try again.';
+        error.classList.remove('hidden');
+      }
+    });
+  </script>
+</Base>

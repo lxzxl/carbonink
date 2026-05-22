@@ -1,0 +1,53 @@
+name = "carbonbook-cloud-api"
+main = "src/index.ts"
+compatibility_date = "2025-05-01"
+# No nodejs_compat needed: we use @noble/curves (pure-JS WebCrypto-based)
+# for Ed25519 and raw fetch() calls (no stripe SDK) for Stripe + Resend.
+# If a future contributor adds the `stripe` npm package, they MUST also
+# add `compatibility_flags = ["nodejs_compat"]` here and re-measure the
+# bundle size against the free-tier limit (see Task 10 Step 4).
+
+# ---------- D1 ----------
+[[d1_databases]]
+binding = "DB"
+database_name = "carbonbook-cloud"
+database_id = "local"
+migrations_dir = "migrations"
+
+# ---------- KV ----------
+[[kv_namespaces]]
+binding = "LICENSE_ACTIVE"
+id = "local"
+
+[[kv_namespaces]]
+binding = "REVOCATION_SET"
+id = "local"
+
+[[kv_namespaces]]
+binding = "HUMANIZED_KEYS"
+id = "local"
+
+[[kv_namespaces]]
+binding = "RATE_LIMIT"
+id = "local"
+
+# ---------- R2 ----------
+[[r2_buckets]]
+binding = "RELEASES"
+bucket_name = "carbonbook-releases"
+
+# ---------- Secrets (never in this file — set via wrangler secret put) ----------
+# LICENSE_PRIVATE_KEY_HEX   — Ed25519 64-byte hex (seed+pubkey) for @noble/ed25519
+# SESSION_PRIVATE_KEY_HEX   — Separate Ed25519 key for account portal session JWTs
+# STRIPE_SECRET_KEY          — Stripe secret key
+# STRIPE_WEBHOOK_SECRET      — Stripe webhook signing secret
+# RESEND_API_KEY             — Resend API key
+
+[vars]
+ENVIRONMENT = "development"
+STRIPE_PUBLISHABLE_KEY = "pk_test_placeholder"
+STRIPE_PRICE_BASE_2026Q2 = "price_placeholder_replace_in_prod"
+
+# ---------- Cron triggers ----------
+[triggers]
+crons = ["0 3 * * *"]   # 03:00 UTC every day — revocation sweep
