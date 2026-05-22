@@ -4,6 +4,55 @@ Local conventions any agent working in this repo should follow. Skills and
 plans build on top of these; when a skill conflicts with this file, this
 file wins (per the user's explicit instructions).
 
+## Repo layout — monorepo
+
+This is a pnpm workspace. Two top-level apps share tooling + docs:
+
+```
+carbonbook/
+├── package.json              ← workspace root, monorepo scripts
+├── pnpm-workspace.yaml       ← lists desktop + cloud/* packages
+├── docs/                     ← shared (specs, plans, release notes)
+├── CLAUDE.md                 ← this file
+├── desktop/                  ← Electron app (the user-facing v1)
+│   ├── package.json          ← name: "carbonbook"
+│   ├── src/                  ← main, preload, renderer, shared
+│   ├── tests/                ← vitest (target: 662 passing)
+│   └── …                     ← electron-vite, electron-builder, paraglide
+└── cloud/                    ← Cloudflare backend (license + payments)
+    ├── worker/               ← @carbonbook-cloud/worker (Hono-ish router)
+    ├── packages/shared/      ← @carbonbook-cloud/shared (Zod + types)
+    └── pages/                ← @carbonbook-cloud/{marketing,activate,account}
+```
+
+**Top-level scripts** (run from repo root):
+
+```bash
+pnpm desktop:test         # 662 vitest tests in desktop/
+pnpm desktop:typecheck    # tsc --noEmit on desktop/
+pnpm cloud:test           # 72 worker tests under cloud/worker/
+pnpm test                 # all packages (workspace-concurrency=1)
+```
+
+**Per-package scripts** still work via filter:
+
+```bash
+pnpm --filter carbonbook dev          # electron-vite dev (desktop)
+pnpm --filter @carbonbook-cloud/worker test
+pnpm --filter @carbonbook-cloud/marketing build
+```
+
+**Why monorepo**: desktop's `Env`/`LicenseJwtClaims` types and cloud's
+`@carbonbook-cloud/shared` JWT claims schema must stay in lockstep —
+they describe the same protocol. Having both in one repo + workspace
+means a single PR can update both sides atomically, and a future
+`packages/shared-protocol` could replace the parallel definitions.
+
+**`onlyBuiltDependencies`** lives in the top-level `package.json` (pnpm
+warns if it's at a sub-package). Includes `better-sqlite3`, `electron`,
+`esbuild`, `sharp`, `workerd`, `@napi-rs/canvas-*`. New native deps
+must be added here before pnpm will run their postinstall.
+
 ## Scroll containment
 
 **Default**: page chrome stays put; only the content the user is reading scrolls.

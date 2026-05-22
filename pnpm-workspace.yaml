@@ -1,1 +1,5 @@
-packages: []
+packages:
+  - desktop
+  - cloud/worker
+  - cloud/packages/*
+  - cloud/pages/*
