@@ -237,9 +237,14 @@ export function AuditPage() {
       <ResizableHandle />
 
       <ResizablePanel defaultSize="64%">
-        <div className="h-full overflow-auto p-6">
+        {/* Right pane is overflow-hidden — the empty state centers via
+         * `h-full`, and the AuditEventCard owns its own scroll when an
+         * event is selected. See CLAUDE.md → Scroll containment. */}
+        <div className="h-full overflow-hidden">
           {selectedEvent ? (
-            <AuditEventCard event={selectedEvent} />
+            <div className="h-full overflow-auto p-6">
+              <AuditEventCard event={selectedEvent} />
+            </div>
           ) : (
             <div className="flex h-full flex-col items-center justify-center text-center">
               <FileSearch

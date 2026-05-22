@@ -67,7 +67,10 @@ function DocumentsLayout() {
       </ResizablePanel>
       <ResizableHandle />
       <ResizablePanel defaultSize="68%">
-        <div className="h-full overflow-auto p-6">
+        {/* Right pane is overflow-hidden — each Outlet child owns its
+         * own padding + scroll container. See CLAUDE.md → Scroll
+         * containment. */}
+        <div className="h-full overflow-hidden">
           <Outlet />
         </div>
       </ResizablePanel>

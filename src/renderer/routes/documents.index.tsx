@@ -25,11 +25,19 @@ function DocumentsIndex() {
     queryFn: settingsApi.getProvider,
   });
 
+  // Parent right-pane is overflow-hidden with no padding (see documents.tsx
+  // — CLAUDE.md → Scroll containment). Each branch supplies its own
+  // padding so content doesn't touch the panel edge. The empty-state
+  // branch is centered both axes via `h-full`, so it needs no padding.
   if (providerQuery.isLoading) {
-    return <p className="text-sm text-muted-foreground">{m.loading()}</p>;
+    return <p className="p-6 text-sm text-muted-foreground">{m.loading()}</p>;
   }
   if (providerQuery.data == null) {
-    return <ProviderNotConfiguredBanner />;
+    return (
+      <div className="p-6">
+        <ProviderNotConfiguredBanner />
+      </div>
+    );
   }
 
   return (

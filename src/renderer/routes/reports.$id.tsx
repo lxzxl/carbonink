@@ -114,42 +114,52 @@ function ReportDetail() {
   });
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-4xl">
+    // Sticky-top action bar + scrolling report body (see CLAUDE.md →
+    // Scroll containment). Parent right-pane is overflow-hidden — see
+    // reports.tsx. When generating, the report is potentially many
+    // screens tall; the Export / Regenerate buttons stay pinned so the
+    // user doesn't have to scroll back to the top to re-export.
+    <div className="flex h-full flex-col">
       {!generated && (
-        <div className="space-y-4">
-          <label className="block">
-            <span className="text-sm">{m.reports_lang_label()}</span>
-            <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value as 'zh-CN' | 'en')}
-              className="block mt-1 border rounded px-2 py-1"
-            >
-              <option value="zh-CN">{m.reports_lang_zh()}</option>
-              <option value="en">{m.reports_lang_en()}</option>
-            </select>
-          </label>
-          {generateMutation.isPending ? (
-            <div className="flex items-center gap-2">
-              <span>{progressLabel}</span>
-              <button onClick={cancel} className="rounded border px-2 py-1 text-sm">
-                {m.reports_cancel_button()}
+        <div className="flex-1 min-h-0 overflow-auto">
+          <div className="container mx-auto max-w-4xl space-y-4 px-4 py-8">
+            <label className="block">
+              <span className="text-sm">{m.reports_lang_label()}</span>
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as 'zh-CN' | 'en')}
+                className="block mt-1 border rounded px-2 py-1"
+              >
+                <option value="zh-CN">{m.reports_lang_zh()}</option>
+                <option value="en">{m.reports_lang_en()}</option>
+              </select>
+            </label>
+            {generateMutation.isPending ? (
+              <div className="flex items-center gap-2">
+                <span>{progressLabel}</span>
+                <button type="button" onClick={cancel} className="rounded border px-2 py-1 text-sm">
+                  {m.reports_cancel_button()}
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => generateMutation.mutate()}
+                className="rounded bg-black text-white px-3 py-2"
+              >
+                {m.reports_generate_button()}
               </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => generateMutation.mutate()}
-              className="rounded bg-black text-white px-3 py-2"
-            >
-              {m.reports_generate_button()}
-            </button>
-          )}
+            )}
+          </div>
         </div>
       )}
 
       {generated && (
         <>
-          <div className="flex gap-2 mb-4">
+          {/* === Sticky top action bar === */}
+          <div className="shrink-0 flex gap-2 border-b border-border bg-background/95 backdrop-blur px-4 py-3">
             <button
+              type="button"
               onClick={() => exportBoth.mutate()}
               disabled={exportBoth.isPending}
               className="rounded bg-black text-white px-3 py-2"
@@ -157,6 +167,7 @@ function ReportDetail() {
               {m.reports_export_both_button()}
             </button>
             <button
+              type="button"
               onClick={() => {
                 if (window.confirm(m.reports_regenerate_warning())) {
                   setGenerated(null);
@@ -168,15 +179,20 @@ function ReportDetail() {
               {m.reports_regenerate_button()}
             </button>
           </div>
-          <ReportPreview
-            data={generated.data}
-            narrative={generated.narrative}
-            printMode={false}
-            editable
-            onChange={(next) =>
-              setGenerated((prev) => (prev ? { ...prev, narrative: next } : prev))
-            }
-          />
+          {/* === Scrolling report body === */}
+          <div className="flex-1 min-h-0 overflow-auto">
+            <div className="container mx-auto max-w-4xl px-4 py-8">
+              <ReportPreview
+                data={generated.data}
+                narrative={generated.narrative}
+                printMode={false}
+                editable
+                onChange={(next) =>
+                  setGenerated((prev) => (prev ? { ...prev, narrative: next } : prev))
+                }
+              />
+            </div>
+          </div>
         </>
       )}
     </div>

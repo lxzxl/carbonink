@@ -91,8 +91,13 @@ function DocumentReview({ document }: { document: Document }) {
   const hasDiscarded = !activeExtraction && extractions.some((e) => e.status === 'rejected');
 
   return (
-    <div className="space-y-4">
-      <header className="space-y-1">
+    // Sticky header + scrolling body (see CLAUDE.md → Scroll containment).
+    // Parent right-pane is overflow-hidden — see documents.tsx. The PDF
+    // takes the left 65%; the extraction panel scrolls inside the right
+    // 35%. Header (filename + upload date) stays pinned at the top so
+    // long extraction reviews don't push it offscreen.
+    <div className="flex h-full flex-col gap-4 p-6">
+      <header className="shrink-0 space-y-1">
         <h1 className="text-xl font-semibold">{document.filename}</h1>
         <p className="text-xs text-muted-foreground">
           {m.documents_review_uploaded_on({ date: document.uploaded_at.slice(0, 10) })} ·{' '}
@@ -105,7 +110,7 @@ function DocumentReview({ document }: { document: Document }) {
        * The detail panel didn't need ~45% of an already-narrow column —
        * the PDF benefited more from extra room (especially for documents
        * with dense Chinese text). */}
-      <div className="grid h-[calc(100vh-200px)] grid-cols-1 gap-4 lg:grid-cols-[65fr_35fr]">
+      <div className="grid flex-1 min-h-0 grid-cols-1 gap-4 lg:grid-cols-[65fr_35fr]">
         <PdfPreview documentId={document.id} />
         <div className="overflow-y-auto">
           {extractionsQuery.isLoading ? (
