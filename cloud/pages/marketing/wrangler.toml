@@ -1,0 +1,14 @@
+# Marketing site — pure static (no SSR), deployed as Cloudflare Worker
+# with the Static Assets binding (the modern replacement for Cloudflare
+# Pages — see CLAUDE.md → Repo layout). No `main` because there's no
+# runtime code: Astro builds `dist/` and wrangler serves it directly.
+#
+# Production domain: carbonbook.app
+
+name = "carbonbook-marketing"
+compatibility_date = "2025-05-23"
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"

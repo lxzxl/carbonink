@@ -1,0 +1,23 @@
+# Account portal — SSR via @astrojs/cloudflare v13. Reads/sets cookie
+# `session` for magic-link auth (cookie domain `.carbonbook.app` so
+# api.carbonbook.app fetches are credentialed).
+#
+# Production domain: account.carbonbook.app
+#
+# Secrets via `wrangler secret put`:
+#   (none — all auth talks to the API worker which holds the secrets)
+
+name = "carbonbook-account"
+# `main` is intentionally absent — @astrojs/cloudflare v13 injects it
+# at build time pointing to `dist/_worker.js/index.js`. Putting it
+# here triggers the bundled @cloudflare/vite-plugin to try resolving
+# the path BEFORE astro produces it, which fails.
+compatibility_date = "2025-05-23"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+API_ORIGIN = "https://api.carbonbook.app"
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
