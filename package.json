@@ -1,6 +1,12 @@
 {
   "name": "carbonbook",
-  "version": "0.0.1-phase2a",
+  "version": "1.0.0",
+  "productName": "carbonbook",
+  "appId": "app.carbonbook.desktop",
+  "author": {
+    "name": "Seneca ESG Limited",
+    "email": "support@carbonbook.app"
+  },
   "private": true,
   "main": "out/main/index.cjs",
   "engines": {
@@ -25,8 +31,9 @@
     "rebuild:node": "pnpm rebuild better-sqlite3",
     "predist:mac": "node scripts/guard-prod-key.mjs",
     "predist:win": "node scripts/guard-prod-key.mjs",
-    "dist:mac": "pnpm build && electron-builder --mac",
-    "dist:win": "pnpm build && electron-builder --win"
+    "dist:mac": "pnpm build && electron-builder --mac --publish never",
+    "dist:win": "pnpm build && electron-builder --win --publish never",
+    "dist:publish": "pnpm build && electron-builder --mac --win --publish always"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.15",
@@ -44,6 +51,7 @@
     "@vitejs/plugin-react": "^4.7.0",
     "@vitest/ui": "^4.1.5",
     "autoprefixer": "^10.5.0",
+    "electron-builder": "^26.8.1",
     "electron-playwright-helpers": "^2.1.0",
     "happy-dom": "^20.9.0",
     "postcss": "^8.5.14",

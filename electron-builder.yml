@@ -1,0 +1,88 @@
+# electron-builder configuration
+# Docs: https://www.electron.build/configuration
+
+appId: app.carbonbook.desktop
+productName: carbonbook
+copyright: Copyright © 2026 Seneca ESG Limited
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - out/**/*
+  - "!out/main/**/*.map"
+  - "!out/preload/**/*.map"
+  - "!out/renderer/**/*.map"
+
+# --- macOS ---
+mac:
+  category: public.app-category.business
+  target:
+    - target: dmg
+      arch:
+        - arm64
+        - x64
+  # Do NOT set `identity:` here. `identity: null` explicitly opts out
+  # of signing and is NOT overridden by CSC_LINK env vars. By omitting
+  # the key, electron-builder auto-detects the "Developer ID Application"
+  # identity from the keychain populated by CSC_LINK / CSC_KEY_PASSWORD
+  # in CI (and falls back to ad-hoc / unsigned for local dev builds).
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  notarize:
+    teamId: ${env.APPLE_TEAM_ID}
+
+dmg:
+  sign: false
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+
+# --- Windows ---
+# Signing is performed by Azure Trusted Signing via a custom signtool
+# invocation (see `sign` hook below). We deliberately do NOT use
+# WIN_CSC_LINK / WIN_CSC_KEY_PASSWORD — those expect a .pfx file, which
+# Azure Trusted Signing (HSM-backed) cannot export.
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  # Delegate signing to a custom script that calls the Azure-provided
+  # Trusted Signing dlib via signtool. The `azure/trusted-signing-action`
+  # in the GitHub workflow installs signtool + the dlib and exports the
+  # env vars consumed here.
+  sign: ./build/sign-windows.js
+  signingHashAlgorithms:
+    - sha256
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: false
+
+# --- Auto-update publish target ---
+# IMPORTANT: manifests (latest-mac.yml, latest.yml) live at the BUCKET ROOT
+# of the releases/ prefix. Binary artifacts live under releases/{platform}/{version}/
+# and are referenced by absolute URL inside the manifests. This keeps
+# electron-updater's manifest lookup at a single stable path while letting
+# binaries stay versioned + platform-segregated.
+publish:
+  provider: generic
+  url: https://r2.carbonbook.app/releases
+  channel: stable
+
+# --- electron-builder will look for these build resources ---
+# build/
+#   icon.icns        (macOS)
+#   icon.ico         (Windows)
+#   icon.png         (fallback)
+#   entitlements.mac.plist

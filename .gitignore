@@ -6,8 +6,10 @@ node_modules/
 # Build artifacts
 dist/
 out/
-build/
 release/
+# NOTE: `build/` is NOT ignored. It holds committed electron-builder
+# resources (app icons, macOS entitlements, Windows sign hook). See
+# `build/README.md`.
 
 # Electron
 *.app
