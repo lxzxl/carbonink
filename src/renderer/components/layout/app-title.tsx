@@ -62,7 +62,19 @@ export function AppTitle() {
           asChild
         >
           <Link to="/" onClick={() => setOpenMobile(false)}>
-            <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary">
+            {/* Brand mark — boxed in expanded mode (28×28 tinted square),
+             * bare in collapsed mode (16×16, matches nav-item rhythm).
+             *
+             * Why degrade in collapsed mode: the menu-button is forced
+             * to 32×32 with 8px padding by globals.css, giving a 16×16
+             * content area. A 28×28 icon box overflows that area, and
+             * flex's negative-free-space centering can fall back to
+             * flex-start in some browsers — visually shifting the box
+             * left of the button center. Shrinking the box to exactly
+             * 16×16 + dropping the bg/rounded treatment removes the
+             * overflow entirely and matches what every other nav item
+             * looks like collapsed. */}
+            <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary group-data-[collapsible=icon]:size-4 group-data-[collapsible=icon]:rounded-none group-data-[collapsible=icon]:bg-transparent">
               <Leaf className="size-4" strokeWidth={2.25} aria-hidden="true" />
             </div>
             <span className="flex min-w-0 flex-col leading-tight">
