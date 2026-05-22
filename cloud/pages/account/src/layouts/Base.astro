@@ -1,0 +1,15 @@
+---
+import '../styles/global.css';
+const { title, lang = 'en' } = Astro.props as { title: string; lang?: 'zh-CN' | 'en' };
+---
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+  </head>
+  <body class="bg-[color:var(--color-bg)] text-[color:var(--color-ink-900)] font-[family-name:var(--font-body)]">
+    <main class="mx-auto max-w-3xl px-6 py-12"><slot /></main>
+  </body>
+</html>

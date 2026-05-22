@@ -1,0 +1,27 @@
+---
+const { licenseKey, lang } = Astro.props as { licenseKey: string; lang: 'zh-CN' | 'en' };
+const steps = lang === 'zh-CN'
+  ? ['打开 carbonbook 桌面应用', '点击右上角头像 → 设置 → 激活', '粘贴下方密钥并点击「激活」']
+  : ['Open the carbonbook desktop app', 'Click the avatar (top-right) → Settings → Activate', 'Paste the key below and click "Activate"'];
+const copyLabel = lang === 'zh-CN' ? '复制' : 'Copy';
+---
+<section class="mx-auto max-w-xl">
+  <div class="rounded-xl border bg-[color:var(--color-bg-muted)] p-6 text-center">
+    <p class="font-mono text-2xl tracking-wider">{licenseKey}</p>
+    <button id="copy-key" data-key={licenseKey} class="mt-4 rounded-md bg-[color:var(--color-brand-500)] px-4 py-2 text-white">
+      {copyLabel}
+    </button>
+  </div>
+  <ol class="mt-8 list-decimal space-y-2 pl-6 text-[color:var(--color-ink-500)]">
+    {steps.map((s) => <li>{s}</li>)}
+  </ol>
+</section>
+<script>
+  const btn = document.getElementById('copy-key');
+  btn?.addEventListener('click', async () => {
+    const key = btn.getAttribute('data-key');
+    if (!key) return;
+    await navigator.clipboard.writeText(key);
+    btn.textContent = 'OK';
+  });
+</script>

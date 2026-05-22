@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-50: #f0f9ff;
+  --color-brand-500: #0ea5e9;
+  --color-brand-700: #0369a1;
+  --color-ink-900: #0f172a;
+  --color-ink-500: #64748b;
+  --color-bg: #ffffff;
+  --color-bg-muted: #f8fafc;
+
+  --font-display: "Inter Variable", "Source Han Sans SC", system-ui, sans-serif;
+  --font-body: "Inter Variable", "Source Han Sans SC", system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #0f172a;
+    --color-bg-muted: #1e293b;
+    --color-ink-900: #f8fafc;
+    --color-ink-500: #94a3b8;
+  }
+}

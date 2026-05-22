@@ -1,0 +1,9 @@
+export const JWT_HEADER = { alg: 'EdDSA', typ: 'JWT' } as const;
+export const JWT_ISSUER = 'carbonbook.app';
+export const BASE_FEATURES = ['inventory', 'questionnaire', 'iso14064'] as const;
+export const TRIAL_DURATION_S = 14 * 24 * 60 * 60;
+export const GRACE_PERIOD_S = 30 * 24 * 60 * 60;
+export const REVOCATION_CHECK_INTERVAL_S = 7 * 24 * 60 * 60;
+export const RATE_LIMIT_ACTIVATE = { max: 10, windowS: 60 } as const;
+export const RATE_LIMIT_VERIFY = { max: 6, windowS: 60 } as const;
+export const RATE_LIMIT_TRIAL = { max: 5, windowS: 24 * 60 * 60 } as const;

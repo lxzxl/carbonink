@@ -1,0 +1,38 @@
+---
+import LicenseKeyCard from '../components/LicenseKeyCard.astro';
+import Base from '../layouts/Base.astro';
+import { lookupLicenseForSession } from '../lib/stripe-lookup.ts';
+
+const url = new URL(Astro.request.url);
+const sessionId = url.searchParams.get('session_id');
+const directKey = url.searchParams.get('key');
+const accept = Astro.request.headers.get('accept-language') ?? '';
+const lang: 'zh-CN' | 'en' =
+  url.searchParams.get('lang') === 'en' || accept.toLowerCase().startsWith('en') ? 'en' : 'zh-CN';
+
+let licenseKey: string | null = null;
+let lookupError: string | null = null;
+if (directKey) {
+  licenseKey = directKey;
+} else if (sessionId) {
+  const env = Astro.locals.runtime?.env as { STRIPE_SECRET_KEY: string; API_ORIGIN: string };
+  const result = await lookupLicenseForSession({
+    sessionId,
+    stripeSecretKey: env.STRIPE_SECRET_KEY,
+    apiOrigin: env.API_ORIGIN,
+  });
+  if (result) licenseKey = result.licenseKey;
+  else
+    lookupError =
+      lang === 'zh-CN'
+        ? '无法找到对应的密钥，请检查邮箱。'
+        : 'We could not locate your key — please check your inbox.';
+}
+
+const emptyMsg = lang === 'zh-CN' ? '请查收邮件中的激活链接。' : 'Check your email for the activation link.';
+---
+<Base title={lang === 'zh-CN' ? '激活 carbonbook' : 'Activate carbonbook'} lang={lang}>
+  {licenseKey && <LicenseKeyCard licenseKey={licenseKey} lang={lang} />}
+  {!licenseKey && lookupError && <p class="text-red-600">{lookupError}</p>}
+  {!licenseKey && !lookupError && <p class="text-[color:var(--color-ink-500)]">{emptyMsg}</p>}
+</Base>

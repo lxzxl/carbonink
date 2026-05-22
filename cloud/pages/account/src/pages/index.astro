@@ -1,0 +1,133 @@
+---
+import Base from '../layouts/Base.astro';
+// biome-ignore lint/suspicious/noExplicitAny: Astro.locals.runtime is untyped
+const env = (Astro.locals as any).runtime?.env as { API_ORIGIN?: string } | undefined;
+const apiOrigin = env?.API_ORIGIN ?? 'https://api.carbonbook.app';
+const cookie = Astro.request.headers.get('Cookie') ?? '';
+
+type Device = {
+  device_id: string;
+  os: string | null;
+  app_version: string | null;
+  last_ping_at: number;
+  first_seen_at: number;
+};
+
+let devices: Device[] = [];
+try {
+  const res = await fetch(`${apiOrigin}/v1/account/devices`, { headers: { Cookie: cookie } });
+  if (res.ok) {
+    const body = (await res.json()) as { devices: Device[] };
+    devices = body.devices;
+  }
+} catch {
+  // network or shape error — show empty list rather than failing the page
+}
+---
+<Base title="Account — carbonbook" lang="en">
+  <header class="mb-8">
+    <h1 class="text-2xl font-bold">Your carbonbook account</h1>
+    <p class="text-[color:var(--color-ink-500)]">Manage devices, billing, and account.</p>
+  </header>
+
+  <section>
+    <h2 class="text-xl font-bold">My devices</h2>
+    {devices.length === 0 ? (
+      <p class="mt-2 text-[color:var(--color-ink-500)]">No devices activated yet.</p>
+    ) : (
+      <ul class="mt-4 divide-y rounded-lg border">
+        {devices.map((d) => (
+          <li class="flex items-center justify-between px-4 py-3">
+            <div>
+              <p class="font-mono text-sm">{d.device_id}</p>
+              <p class="text-xs text-[color:var(--color-ink-500)]">
+                {d.os ?? 'unknown OS'} · {d.app_version ?? '—'}
+              </p>
+            </div>
+            <button
+              data-device={d.device_id}
+              class="deact rounded-md border px-3 py-1 text-sm hover:bg-[color:var(--color-bg-muted)]"
+            >
+              Deactivate
+            </button>
+          </li>
+        ))}
+      </ul>
+    )}
+  </section>
+
+  <section class="mt-10">
+    <h2 class="text-xl font-bold">Billing</h2>
+    <p class="mt-2 text-sm text-[color:var(--color-ink-500)]">
+      Update card, change plan, download invoices.
+    </p>
+    <button
+      id="portal"
+      class="mt-3 rounded-md bg-[color:var(--color-brand-500)] px-4 py-2 text-white hover:bg-[color:var(--color-brand-700)]"
+    >
+      Open Stripe portal
+    </button>
+    <p id="portal-error" class="hidden mt-2 text-sm text-red-600"></p>
+  </section>
+
+  <section class="mt-10 rounded-lg border border-red-300 p-4">
+    <h2 class="text-lg font-bold text-red-700">Danger zone</h2>
+    <p class="mt-1 text-sm text-[color:var(--color-ink-500)]">
+      Deletes your account, cancels active subscriptions, and removes all devices.
+      This cannot be undone.
+    </p>
+    <button
+      id="delete-account"
+      class="mt-3 rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+    >
+      Delete account
+    </button>
+  </section>
+
+  <script is:inline define:vars={{ apiOrigin }}>
+    document.querySelectorAll('.deact').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-device');
+        if (!id) return;
+        const res = await fetch(apiOrigin + '/v1/devices/' + encodeURIComponent(id) + '/deactivate', {
+          method: 'POST',
+          credentials: 'include',
+        });
+        if (res.ok) {
+          const li = btn.closest('li');
+          if (li) li.remove();
+        }
+      });
+    });
+
+    document.getElementById('portal').addEventListener('click', async () => {
+      const err = document.getElementById('portal-error');
+      err.classList.add('hidden');
+      const ret = encodeURIComponent(location.href);
+      const res = await fetch(apiOrigin + '/v1/account/billing-portal?return_url=' + ret, {
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        err.textContent = 'Could not open billing portal — no Stripe customer linked yet.';
+        err.classList.remove('hidden');
+        return;
+      }
+      const body = await res.json();
+      location.href = body.url;
+    });
+
+    document.getElementById('delete-account').addEventListener('click', async () => {
+      const ok = confirm(
+        'This permanently deletes your account, cancels active subscriptions, and removes every device. Continue?',
+      );
+      if (!ok) return;
+      const res = await fetch(apiOrigin + '/v1/account', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ confirm: 'DELETE' }),
+      });
+      if (res.ok) location.href = '/login';
+    });
+  </script>
+</Base>
