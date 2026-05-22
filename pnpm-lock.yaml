@@ -18,7 +18,7 @@ importers:
         specifier: ^3.25.76
         version: 3.25.76
 
-  cloud/pages/account:
+  cloud/sites/account:
     dependencies:
       '@astrojs/cloudflare':
         specifier: ^13.5.0
@@ -37,7 +37,7 @@ importers:
         specifier: ^4.14.0
         version: 4.94.0(@cloudflare/workers-types@4.20260522.1)
 
-  cloud/pages/activate:
+  cloud/sites/activate:
     dependencies:
       '@astrojs/cloudflare':
         specifier: ^13.5.0
@@ -56,7 +56,7 @@ importers:
         specifier: ^4.14.0
         version: 4.94.0(@cloudflare/workers-types@4.20260522.1)
 
-  cloud/pages/marketing:
+  cloud/sites/marketing:
     dependencies:
       '@astrojs/mdx':
         specifier: ^5.0.0

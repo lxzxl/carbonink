@@ -2,4 +2,4 @@ packages:
   - desktop
   - cloud/worker
   - cloud/packages/*
-  - cloud/pages/*
+  - cloud/sites/*
