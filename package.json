@@ -22,7 +22,11 @@
     "lint": "biome check .",
     "format": "biome format --write .",
     "rebuild:native": "electron-rebuild -f -w better-sqlite3",
-    "rebuild:node": "pnpm rebuild better-sqlite3"
+    "rebuild:node": "pnpm rebuild better-sqlite3",
+    "predist:mac": "node scripts/guard-prod-key.mjs",
+    "predist:win": "node scripts/guard-prod-key.mjs",
+    "dist:mac": "pnpm build && electron-builder --mac",
+    "dist:win": "pnpm build && electron-builder --win"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.15",

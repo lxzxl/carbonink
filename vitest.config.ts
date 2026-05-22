@@ -39,6 +39,7 @@ export default defineConfig({
             'tests/main/**/*.test.{ts,tsx}',
             'tests/shared/**/*.test.{ts,tsx}',
             'tests/mcp/**/*.test.{ts,tsx}',
+            'tests/scripts/**/*.test.{ts,tsx,mjs}',
           ],
           exclude: ['tests/e2e/**'],
           globals: false,
