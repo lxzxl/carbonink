@@ -292,6 +292,16 @@ export type IpcTypeMap = {
         error: { _tag: 'BadSignature' | 'BadSchema' | 'Malformed'; message: string };
       };
   'license:clear': () => void;
+
+  // updater domain (Phase 5 — auto-update via electron-updater)
+  // `updater:get-status` is a cheap read of the in-memory status slot in
+  // `auto-updater.ts`; the renderer subscribes to `updater:status` (push)
+  // for real-time progress and falls back to this for the initial value.
+  // `updater:check` and `updater:install` are fire-and-forget — actual
+  // results arrive asynchronously via the push channel.
+  'updater:get-status': () => import('@main/updater/auto-updater.js').UpdateStatus;
+  'updater:check': () => void;
+  'updater:install': () => void;
 };
 
 /**
@@ -324,4 +334,8 @@ export type IpcPushTypeMap = {
       | 'observations'
       | null;
   };
+  // Phase 5 — auto-updater lifecycle status pushed from main to renderer.
+  // Each transition (`checking`, `available`, `downloading`, …) fires one
+  // event; the renderer mirrors the payload into its TanStack Query cache.
+  'updater:status': import('@main/updater/auto-updater.js').UpdateStatus;
 };

@@ -115,13 +115,21 @@ describe('preload bridge', () => {
       'license:get-state',
       'license:set-jwt',
       'license:clear',
+      // updater domain (Phase 5 — auto-update via electron-updater)
+      'updater:get-status',
+      'updater:check',
+      'updater:install',
     ]);
   });
 });
 
 describe('push allowlist', () => {
   it('push allowlist covers exactly the registered push channels', () => {
-    expect(allowedPushChannels).toEqual(['extraction:progress', 'report:progress']);
+    expect(allowedPushChannels).toEqual([
+      'extraction:progress',
+      'report:progress',
+      'updater:status',
+    ]);
   });
 });
 

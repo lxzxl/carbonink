@@ -1,5 +1,6 @@
 import { LicenseSection } from '@renderer/components/LicenseSection';
 import { toast } from '@renderer/components/toast';
+import { UpdateSection } from '@renderer/components/UpdateSection';
 import { Button } from '@renderer/components/ui/button';
 import { Input } from '@renderer/components/ui/input';
 import { Label } from '@renderer/components/ui/label';
@@ -755,6 +756,9 @@ export function SettingsPage() {
 
       {/* License — Ed25519 JWT activation + state display (Phase 4 sub-project B) */}
       <LicenseSection />
+
+      {/* Software Updates — electron-updater integration (Phase 5) */}
+      <UpdateSection />
     </form>
   );
 }

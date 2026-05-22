@@ -84,6 +84,10 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   'license:get-state',
   'license:set-jwt',
   'license:clear',
+  // updater domain (Phase 5 — auto-update via electron-updater)
+  'updater:get-status',
+  'updater:check',
+  'updater:install',
 ];
 
 /**
@@ -94,6 +98,7 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
 export const allowedPushChannels: ReadonlyArray<keyof IpcPushTypeMap> = [
   'extraction:progress',
   'report:progress',
+  'updater:status',
 ];
 
 export type InvokeFn = (channel: string, ...args: unknown[]) => Promise<unknown>;

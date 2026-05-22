@@ -53,6 +53,12 @@ export default defineConfig({
         '@renderer': resolve('src/renderer'),
       },
     },
+    // Phase 5 — make the app version available to the renderer at build
+    // time. UpdateSection uses this for the "Current version: …" label so
+    // we don't have to round-trip an IPC call just to read `app.getVersion()`.
+    define: {
+      __APP_VERSION__: JSON.stringify(process.env.npm_package_version ?? '0.0.0'),
+    },
     root: 'src/renderer',
     build: {
       outDir: 'out/renderer',

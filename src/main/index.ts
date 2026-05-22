@@ -2,6 +2,7 @@ import { join } from 'node:path';
 import { openAppDb } from '@main/db/connection.js';
 import { runMigrations } from '@main/db/migrate.js';
 import { cleanupIpc, setupIpc } from '@main/ipc/setup.js';
+import { initAutoUpdater } from '@main/updater/auto-updater.js';
 import { app, BrowserWindow } from 'electron';
 import { createMainWindow } from './window.js';
 
@@ -18,6 +19,11 @@ app.whenReady().then(() => {
   runMigrations(db);
 
   setupIpc();
+
+  // Phase 5 — wire electron-updater. No-ops in non-packaged dev runs
+  // (gated inside initAutoUpdater) and fires a silent check 10s after
+  // the renderer comes up.
+  initAutoUpdater();
 
   // E2E test hook: when `CARBONBOOK_E2E_DEFER_WINDOW=1`, defer opening the
   // window. The harness installs IPC mocks first, then invokes the captured

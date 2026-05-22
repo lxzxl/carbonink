@@ -454,5 +454,17 @@
   "dashboard_widget_view_all": "View all",
   "period_granularity_annual": "Annual",
   "period_granularity_quarterly": "Quarterly",
-  "period_granularity_monthly": "Monthly"
+  "period_granularity_monthly": "Monthly",
+  "updater_section_heading": "Software Updates",
+  "updater_section_subheading": "Keep carbonbook up to date for the latest features and fixes.",
+  "updater_status_idle": "No update check performed yet.",
+  "updater_status_checking": "Checking for updates...",
+  "updater_status_available": "Version {version} is available.",
+  "updater_status_not_available": "You are running the latest version.",
+  "updater_status_downloading": "Downloading update... {percent}%",
+  "updater_status_downloaded": "Version {version} is ready to install. It will be applied on next restart.",
+  "updater_status_error": "Update check failed: {message}",
+  "updater_check_button": "Check for Updates",
+  "updater_install_button": "Restart & Update",
+  "updater_current_version": "Current version: {version}"
 }

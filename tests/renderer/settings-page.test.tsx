@@ -19,6 +19,22 @@ vi.mock('@renderer/lib/api/settings', () => ({
   },
 }));
 
+// Phase 5: UpdateSection (rendered as part of SettingsPage) calls
+// `updaterApi.getStatus` via TanStack Query and `subscribe` from
+// `@renderer/lib/ipc` inside a useEffect. Stub both so the render doesn't
+// trip on a missing `window.ipc` shim.
+vi.mock('@renderer/lib/api/updater', () => ({
+  updaterApi: {
+    getStatus: vi.fn().mockResolvedValue({ state: 'idle' }),
+    check: vi.fn(),
+    install: vi.fn(),
+  },
+}));
+vi.mock('@renderer/lib/ipc', () => ({
+  invoke: vi.fn(),
+  subscribe: vi.fn(() => () => {}),
+}));
+
 import { settingsApi } from '@renderer/lib/api/settings';
 
 function harness(ui: React.ReactElement) {

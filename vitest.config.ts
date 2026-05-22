@@ -20,6 +20,13 @@ export default defineConfig({
           globals: false,
         },
         resolve: { alias },
+        // Mirror `electron.vite.config.ts` renderer `define`. Tests that
+        // mount components reading `__APP_VERSION__` (e.g. UpdateSection
+        // inside SettingsPage) need the same compile-time substitution
+        // Vite performs in production builds.
+        define: {
+          __APP_VERSION__: JSON.stringify(process.env.npm_package_version ?? '0.0.0'),
+        },
       }),
       defineProject({
         test: {
