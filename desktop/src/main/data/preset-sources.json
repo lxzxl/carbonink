@@ -3,7 +3,7 @@
   "entries": [
     {
       "id": "electricity-supply_grid-source_supplier_mix",
-      "name_zh": "Electricity supplied from grid",
+      "name_zh": "电网供电",
       "name_en": "Electricity supplied from grid",
       "scope": 2,
       "category": "Electricity",
@@ -14,7 +14,7 @@
     },
     {
       "id": "electricity-supply_grid-source_supplier_mix_losses",
-      "name_zh": "Electricity supplied from grid: T&D losses",
+      "name_zh": "电网供电：输配损耗",
       "name_en": "Electricity supplied from grid: T&D losses",
       "scope": 2,
       "category": "Electricity",
@@ -25,7 +25,7 @@
     },
     {
       "id": "electricity-supply_grid-source_supplier_mix_managed_assets",
-      "name_zh": "Electricity supplied from grid (managed assets- electricity)",
+      "name_zh": "电网供电（托管资产-电力）",
       "name_en": "Electricity supplied from grid (managed assets- electricity)",
       "scope": 2,
       "category": "Electricity",
@@ -36,7 +36,7 @@
     },
     {
       "id": "heat_and_steam-type_district",
-      "name_zh": "District heat and steam",
+      "name_zh": "区域供热和蒸汽",
       "name_en": "District heat and steam",
       "scope": 2,
       "category": "Heat and Steam",
@@ -47,7 +47,7 @@
     },
     {
       "id": "heat_and_steam-type_district_losses",
-      "name_zh": "District heat & steam distribution 5% loss",
+      "name_zh": "区域供热及蒸汽分配5%损耗",
       "name_en": "District heat & steam distribution 5% loss",
       "scope": 2,
       "category": "Heat and Steam",
@@ -58,7 +58,7 @@
     },
     {
       "id": "heat_and_steam-type_onsite",
-      "name_zh": "Onsite heat and steam",
+      "name_zh": "现场供热和蒸汽",
       "name_en": "Onsite heat and steam",
       "scope": 2,
       "category": "Heat and Steam",
@@ -69,7 +69,7 @@
     },
     {
       "id": "cooling-type_district_chilled_water-tech_absorption_chiller-fuel_natural_gas",
-      "name_zh": "District chilled water - absorption chiller using natural gas",
+      "name_zh": "区域冷水-吸收式制冷机（天然气）",
       "name_en": "District chilled water - absorption chiller using natural gas",
       "scope": 2,
       "category": "Cooling",
@@ -80,7 +80,7 @@
     },
     {
       "id": "cooling-type_district_chilled_water-tech_electric_driven_chiller-fuel_electricity",
-      "name_zh": "District chilled water - electric driven chiller",
+      "name_zh": "区域冷水-电动制冷机",
       "name_en": "District chilled water - electric driven chiller",
       "scope": 2,
       "category": "Cooling",
@@ -91,7 +91,7 @@
     },
     {
       "id": "cooling-type_district_chilled_water-tech_engine_driven_chiller-fuel_natural_gas",
-      "name_zh": "District chilled water - engine-driven chiller natural gas",
+      "name_zh": "区域冷水-发动机驱动制冷机（天然气）",
       "name_en": "District chilled water - engine-driven chiller natural gas",
       "scope": 2,
       "category": "Cooling",
@@ -102,7 +102,7 @@
     },
     {
       "id": "heat_and_steam-type_district_hot_water",
-      "name_zh": "District hot water",
+      "name_zh": "区域热水",
       "name_en": "District hot water",
       "scope": 2,
       "category": "Heat and Steam",
@@ -113,7 +113,7 @@
     },
     {
       "id": "heat_and_steam-type_district_steam",
-      "name_zh": "District steam",
+      "name_zh": "区域蒸汽",
       "name_en": "District steam",
       "scope": 2,
       "category": "Heat and Steam",
@@ -124,7 +124,7 @@
     },
     {
       "id": "electricity-supply_grid-source_supplier_mix_non_baseload",
-      "name_zh": "Electricity supplied from grid (non-baseload)",
+      "name_zh": "电网供电（非基荷）",
       "name_en": "Electricity supplied from grid (non-baseload)",
       "scope": 2,
       "category": "Electricity",
@@ -135,7 +135,7 @@
     },
     {
       "id": "fuel-type_aviation_gasoline-fuel_use_mobile_aviation",
-      "name_zh": "Aviation spirit",
+      "name_zh": "航空汽油",
       "name_en": "Aviation spirit",
       "scope": 1,
       "category": "Fuel",
@@ -146,7 +146,7 @@
     },
     {
       "id": "fuel-type_aviation_gasoline_net-fuel_use_mobile_aviation",
-      "name_zh": "Aviation spirit (net CV)",
+      "name_zh": "航空汽油（净热值）",
       "name_en": "Aviation spirit (net CV)",
       "scope": 1,
       "category": "Fuel",
@@ -157,7 +157,7 @@
     },
     {
       "id": "fuel-type_aviation_turbine_fuel-fuel_use_mobile_aviation",
-      "name_zh": "Aviation turbine fuel",
+      "name_zh": "航空涡轮燃料",
       "name_en": "Aviation turbine fuel",
       "scope": 1,
       "category": "Fuel",
@@ -168,7 +168,7 @@
     },
     {
       "id": "fuel-type_aviation_turbine_fuel_net-fuel_use_mobile_aviation",
-      "name_zh": "Aviation turbine fuel (net CV)",
+      "name_zh": "航空涡轮燃料（净热值）",
       "name_en": "Aviation turbine fuel (net CV)",
       "scope": 1,
       "category": "Fuel",
@@ -179,7 +179,7 @@
     },
     {
       "id": "fuel-type_aviation_turbine_fuel_renewable_bio_average-fuel_use_mobile_aviation",
-      "name_zh": "Aviation turbine fuel - renewable",
+      "name_zh": "可再生航空涡轮燃料",
       "name_en": "Aviation turbine fuel - renewable",
       "scope": 1,
       "category": "Fuel",
@@ -190,7 +190,7 @@
     },
     {
       "id": "fuel-type_aviation_turbine_fuel_renewable_bio_average_net-fuel_use_mobile_aviation",
-      "name_zh": "Aviation turbine fuel - renewable (net CV)",
+      "name_zh": "可再生航空涡轮燃料（净热值）",
       "name_en": "Aviation turbine fuel - renewable (net CV)",
       "scope": 1,
       "category": "Fuel",
@@ -201,7 +201,7 @@
     },
     {
       "id": "fuel-type_biodiesel_bio_100-fuel_use_na",
-      "name_zh": "Off road biodiesel",
+      "name_zh": "非道路用生物柴油",
       "name_en": "Off road biodiesel",
       "scope": 1,
       "category": "Fuel",
@@ -212,7 +212,7 @@
     },
     {
       "id": "fuel-type_biodiesel_bio_100_net-fuel_use_na",
-      "name_zh": "Off road biodiesel (net CV)",
+      "name_zh": "非道路用生物柴油（净热值）",
       "name_en": "Off road biodiesel (net CV)",
       "scope": 1,
       "category": "Fuel",
@@ -223,7 +223,7 @@
     },
     {
       "id": "fuel-type_biodiesel_hvo_bio_100-fuel_use_na",
-      "name_zh": "Biodiesel HVO",
+      "name_zh": "生物柴油 HVO",
       "name_en": "Biodiesel HVO",
       "scope": 1,
       "category": "Fuel",
@@ -234,7 +234,7 @@
     },
     {
       "id": "fuel-type_biodiesel_hvo_bio_100_net-fuel_use_na",
-      "name_zh": "Biodiesel HVO (net CV)",
+      "name_zh": "生物柴油 HVO（净热值）",
       "name_en": "Biodiesel HVO (net CV)",
       "scope": 1,
       "category": "Fuel",
@@ -245,7 +245,7 @@
     },
     {
       "id": "fuel-type_biodiesel_me_bio_100-fuel_use_na",
-      "name_zh": "Biodiesel ME",
+      "name_zh": "生物柴油 ME",
       "name_en": "Biodiesel ME",
       "scope": 1,
       "category": "Fuel",
@@ -256,7 +256,7 @@
     },
     {
       "id": "fuel-type_biodiesel_me_bio_100_net-fuel_use_na",
-      "name_zh": "Biodiesel ME (net CV)",
+      "name_zh": "生物柴油 ME（净热值）",
       "name_en": "Biodiesel ME (net CV)",
       "scope": 1,
       "category": "Fuel",
@@ -267,7 +267,7 @@
     },
     {
       "id": "accommodation-type_hotel_stay",
-      "name_zh": "Hotel stay",
+      "name_zh": "酒店住宿",
       "name_en": "Hotel stay",
       "scope": 3,
       "category": "Accommodation",
@@ -278,7 +278,7 @@
     },
     {
       "id": "freight_flight-route_type_outside_uk-distance_na-weight_na-rf_excluded-distance_uplift_included",
-      "name_zh": "Air freight outside UK - without RF effect",
+      "name_zh": "英国境外空运 - 无RF效应",
       "name_en": "Air freight outside UK - without RF effect",
       "scope": 3,
       "category": "Air Freight",
@@ -289,7 +289,7 @@
     },
     {
       "id": "freight_flight-route_type_outside_uk-distance_na-weight_na-rf_included-distance_uplift_included",
-      "name_zh": "Air freight outside UK - with RF effect",
+      "name_zh": "英国境外空运 - 含RF效应",
       "name_en": "Air freight outside UK - with RF effect",
       "scope": 3,
       "category": "Air Freight",
@@ -300,7 +300,7 @@
     },
     {
       "id": "passenger_flight-route_type_outside_uk-aircraft_type_na-distance_na-class_business-rf_excluded-distance_uplift_included",
-      "name_zh": "Flight outside UK business class - without RF effect",
+      "name_zh": "英国境外航班商务舱 - 无RF效应",
       "name_en": "Flight outside UK business class - without RF effect",
       "scope": 3,
       "category": "Air Travel",
@@ -311,7 +311,7 @@
     },
     {
       "id": "passenger_flight-route_type_outside_uk-aircraft_type_na-distance_na-class_business-rf_included-distance_uplift_included",
-      "name_zh": "Flight outside UK business class - with RF effect",
+      "name_zh": "英国境外航班商务舱 - 含RF效应",
       "name_en": "Flight outside UK business class - with RF effect",
       "scope": 3,
       "category": "Air Travel",
@@ -322,7 +322,7 @@
     },
     {
       "id": "passenger_flight-route_type_outside_uk-aircraft_type_na-distance_na-class_economy-rf_excluded-distance_uplift_included",
-      "name_zh": "Flight outside UK economy class - without RF effect",
+      "name_zh": "英国境外航班经济舱 - 无RF效应",
       "name_en": "Flight outside UK economy class - without RF effect",
       "scope": 3,
       "category": "Air Travel",
@@ -333,7 +333,7 @@
     },
     {
       "id": "passenger_flight-route_type_outside_uk-aircraft_type_na-distance_na-class_economy-rf_included-distance_uplift_included",
-      "name_zh": "Flight outside UK economy class - with RF effect",
+      "name_zh": "英国境外航班经济舱 - 含RF效应",
       "name_en": "Flight outside UK economy class - with RF effect",
       "scope": 3,
       "category": "Air Travel",
@@ -344,7 +344,7 @@
     },
     {
       "id": "passenger_flight-route_type_outside_uk-aircraft_type_na-distance_na-class_first-rf_excluded-distance_uplift_included",
-      "name_zh": "Flight outside UK first class - without RF effect",
+      "name_zh": "英国境外航班头等舱 - 无RF效应",
       "name_en": "Flight outside UK first class - without RF effect",
       "scope": 3,
       "category": "Air Travel",
@@ -355,7 +355,7 @@
     },
     {
       "id": "passenger_flight-route_type_outside_uk-aircraft_type_na-distance_na-class_first-rf_included-distance_uplift_included",
-      "name_zh": "Flight outside UK first class - with RF effect",
+      "name_zh": "英国境外航班头等舱 - 含RF效应",
       "name_en": "Flight outside UK first class - with RF effect",
       "scope": 3,
       "category": "Air Travel",
@@ -366,7 +366,7 @@
     },
     {
       "id": "passenger_flight-route_type_outside_uk-aircraft_type_na-distance_na-class_na-rf_excluded-distance_uplift_included",
-      "name_zh": "Flight outside UK - without RF effect",
+      "name_zh": "英国境外航班 - 无RF效应",
       "name_en": "Flight outside UK - without RF effect",
       "scope": 3,
       "category": "Air Travel",
@@ -377,7 +377,7 @@
     },
     {
       "id": "passenger_flight-route_type_outside_uk-aircraft_type_na-distance_na-class_na-rf_included-distance_uplift_included",
-      "name_zh": "Flight outside UK - with RF effect",
+      "name_zh": "英国境外航班 - 含RF效应",
       "name_en": "Flight outside UK - with RF effect",
       "scope": 3,
       "category": "Air Travel",
@@ -388,7 +388,7 @@
     },
     {
       "id": "passenger_flight-route_type_outside_uk-aircraft_type_na-distance_na-class_premium_economy-rf_excluded-distance_uplift_included",
-      "name_zh": "Flight outside UK premium economy class - without RF effect",
+      "name_zh": "英国境外航班超级经济舱 - 无RF效应",
       "name_en": "Flight outside UK premium economy class - without RF effect",
       "scope": 3,
       "category": "Air Travel",
@@ -399,7 +399,7 @@
     },
     {
       "id": "passenger_flight-route_type_outside_uk-aircraft_type_na-distance_na-class_premium_economy-rf_included-distance_uplift_included",
-      "name_zh": "Flight outside UK premium economy class - with RF effect",
+      "name_zh": "英国境外航班超级经济舱 - 含RF效应",
       "name_en": "Flight outside UK premium economy class - with RF effect",
       "scope": 3,
       "category": "Air Travel",
@@ -410,7 +410,7 @@
     },
     {
       "id": "freight_flight-route_type_domestic-distance_na-weight_na-rf_excluded-distance_uplift_included",
-      "name_zh": "Domestic air freight - without RF effect",
+      "name_zh": "国内空运 - 无RF效应",
       "name_en": "Domestic air freight - without RF effect",
       "scope": 3,
       "category": "Air Freight",
@@ -421,7 +421,7 @@
     },
     {
       "id": "freight_flight-route_type_domestic-distance_na-weight_na-rf_included-distance_uplift_included",
-      "name_zh": "Domestic air freight - with RF effect",
+      "name_zh": "国内空运 - 含RF效应",
       "name_en": "Domestic air freight - with RF effect",
       "scope": 3,
       "category": "Air Freight",
@@ -432,7 +432,7 @@
     },
     {
       "id": "freight_flight-route_type_international-distance_long_haul_gt_3700km-weight_na-rf_excluded-distance_uplift_included",
-      "name_zh": "International air freight long haul - without RF effect",
+      "name_zh": "国际空运长途 - 无RF效应",
       "name_en": "International air freight long haul - without RF effect",
       "scope": 3,
       "category": "Air Freight",
@@ -443,7 +443,7 @@
     },
     {
       "id": "freight_flight-route_type_international-distance_long_haul_gt_3700km-weight_na-rf_included-distance_uplift_included",
-      "name_zh": "International air freight long haul - with RF effect",
+      "name_zh": "国际空运长途 - 含RF效应",
       "name_en": "International air freight long haul - with RF effect",
       "scope": 3,
       "category": "Air Freight",
@@ -454,7 +454,7 @@
     },
     {
       "id": "freight_flight-route_type_international-distance_short_haul_lt_3700km-weight_na-rf_excluded-distance_uplift_included",
-      "name_zh": "International air freight short haul - without RF effect",
+      "name_zh": "国际空运短途 - 无RF效应",
       "name_en": "International air freight short haul - without RF effect",
       "scope": 3,
       "category": "Air Freight",
@@ -465,7 +465,7 @@
     },
     {
       "id": "freight_flight-route_type_international-distance_short_haul_lt_3700km-weight_na-rf_included-distance_uplift_included",
-      "name_zh": "International air freight short haul - with RF effect",
+      "name_zh": "国际空运短途 - 含RF效应",
       "name_en": "International air freight short haul - with RF effect",
       "scope": 3,
       "category": "Air Freight",
@@ -476,7 +476,7 @@
     },
     {
       "id": "freight_train-route_type_na-fuel_type_na",
-      "name_zh": "Rail freight train",
+      "name_zh": "铁路货运列车",
       "name_en": "Rail freight train",
       "scope": 3,
       "category": "Rail Freight",
@@ -487,7 +487,7 @@
     },
     {
       "id": "freight_vehicle-vehicle_type_class_1_van-fuel_source_bev-engine_size_na-vehicle_age_na-vehicle_weight_lt_1.305t",
-      "name_zh": "Battery EV van - class 1 - (up to 1.305 tonnes) - UK electricity T&D for EVs",
+      "name_zh": "电池电动货车1级(≤1.305吨) - 英国EV输配电",
       "name_en": "Battery EV van - class 1 - (up to 1.305 tonnes) - UK electricity T&D for EVs",
       "scope": 3,
       "category": "Vehicles",
@@ -498,7 +498,7 @@
     },
     {
       "id": "freight_vehicle-vehicle_type_class_1_van-fuel_source_bev-vehicle_weight_lt_1.305t",
-      "name_zh": "Battery EV van - class 1 - (up to 1.305 tonnes)",
+      "name_zh": "电池电动货车1级(≤1.305吨)",
       "name_en": "Battery EV van - class 1 - (up to 1.305 tonnes)",
       "scope": 3,
       "category": "Road Freight",
@@ -509,7 +509,7 @@
     },
     {
       "id": "freight_vehicle-vehicle_type_class_1_van-fuel_source_diesel-engine_size_na-vehicle_age_na-vehicle_weight_lt_1.305t",
-      "name_zh": "Diesel van - class 1 - (up to 1.305 tonnes) - delivery vehicles",
+      "name_zh": "柴油货车1级(≤1.305吨) - 配送车辆",
       "name_en": "Diesel van - class 1 - (up to 1.305 tonnes) - delivery vehicles",
       "scope": 3,
       "category": "Vehicles",
@@ -520,7 +520,7 @@
     },
     {
       "id": "freight_vehicle-vehicle_type_class_1_van-fuel_source_diesel-vehicle_weight_lt_1.305t",
-      "name_zh": "Diesel van - class 1 - (up to 1.305 tonnes)",
+      "name_zh": "柴油货车1级(≤1.305吨)",
       "name_en": "Diesel van - class 1 - (up to 1.305 tonnes)",
       "scope": 3,
       "category": "Road Freight",
@@ -531,7 +531,7 @@
     },
     {
       "id": "freight_vehicle-vehicle_type_class_1_van-fuel_source_petrol-engine_size_na-vehicle_age_na-vehicle_weight_lt_1.305t",
-      "name_zh": "Petrol van - class 1 - (up to 1.305 tonnes) - delivery vehicles",
+      "name_zh": "汽油货车1级(≤1.305吨) - 配送车辆",
       "name_en": "Petrol van - class 1 - (up to 1.305 tonnes) - delivery vehicles",
       "scope": 3,
       "category": "Vehicles",
@@ -542,7 +542,7 @@
     },
     {
       "id": "freight_vehicle-vehicle_type_class_1_van-fuel_source_petrol-vehicle_weight_lt_1.305t",
-      "name_zh": "Petrol van - class 1 - (up to 1.305 tonnes)",
+      "name_zh": "汽油货车1级(≤1.305吨)",
       "name_en": "Petrol van - class 1 - (up to 1.305 tonnes)",
       "scope": 3,
       "category": "Road Freight",
@@ -553,7 +553,7 @@
     },
     {
       "id": "freight_vehicle-vehicle_type_class_2_van-fuel_source_bev-engine_size_na-vehicle_age_na-vehicle_weight_gt_1.305t_lt_1.74t",
-      "name_zh": "Battery EV van - class 2 - (1.305 to 1.74 tonnes) - UK electricity T&D for EVs",
+      "name_zh": "电池电动货车2级(1.305-1.74吨) - 英国EV输配电",
       "name_en": "Battery EV van - class 2 - (1.305 to 1.74 tonnes) - UK electricity T&D for EVs",
       "scope": 3,
       "category": "Vehicles",
@@ -564,7 +564,7 @@
     },
     {
       "id": "freight_vehicle-vehicle_type_class_2_van-fuel_source_bev-vehicle_weight_gt_1.305t_lt_1.74t",
-      "name_zh": "Battery EV van - class 2 - (1.305 to 1.74 tonnes)",
+      "name_zh": "电池电动货车2级(1.305-1.74吨)",
       "name_en": "Battery EV van - class 2 - (1.305 to 1.74 tonnes)",
       "scope": 3,
       "category": "Road Freight",
@@ -575,7 +575,7 @@
     },
     {
       "id": "freight_vehicle-vehicle_type_class_2_van-fuel_source_diesel-engine_size_na-vehicle_age_na-vehicle_weight_gt_1.305t_lt_1.74t",
-      "name_zh": "Diesel van - class 2 - (1.305 to 1.74 tonnes) - delivery vehicles",
+      "name_zh": "柴油货车2级(1.305-1.74吨) - 配送车辆",
       "name_en": "Diesel van - class 2 - (1.305 to 1.74 tonnes) - delivery vehicles",
       "scope": 3,
       "category": "Vehicles",
@@ -586,7 +586,7 @@
     },
     {
       "id": "freight_vehicle-vehicle_type_class_2_van-fuel_source_diesel-vehicle_weight_gt_1.305t_lt_1.74t",
-      "name_zh": "Diesel van - class 2 - (1.305 to 1.74 tonnes)",
+      "name_zh": "柴油货车2级(1.305-1.74吨)",
       "name_en": "Diesel van - class 2 - (1.305 to 1.74 tonnes)",
       "scope": 3,
       "category": "Road Freight",
@@ -597,7 +597,7 @@
     },
     {
       "id": "freight_vehicle-vehicle_type_class_2_van-fuel_source_petrol-engine_size_na-vehicle_age_na-vehicle_weight_gt_1.305t_lt_1.74t",
-      "name_zh": "Petrol van - class 2 - (1.305 to 1.74 tonnes) - delivery vehicles",
+      "name_zh": "汽油货车2级(1.305-1.74吨) - 配送车辆",
       "name_en": "Petrol van - class 2 - (1.305 to 1.74 tonnes) - delivery vehicles",
       "scope": 3,
       "category": "Vehicles",
@@ -608,7 +608,7 @@
     },
     {
       "id": "freight_vehicle-vehicle_type_class_2_van-fuel_source_petrol-vehicle_weight_gt_1.305t_lt_1.74t",
-      "name_zh": "Petrol van - class 2 - (1.305 to 1.74 tonnes)",
+      "name_zh": "汽油货车2级(1.305-1.74吨)",
       "name_en": "Petrol van - class 2 - (1.305 to 1.74 tonnes)",
       "scope": 3,
       "category": "Road Freight",
@@ -619,7 +619,7 @@
     },
     {
       "id": "freight_vehicle-vehicle_type_class_3_van-fuel_source_bev-engine_size_na-vehicle_age_na-vehicle_weight_gt_1.74t_lt_3.5t",
-      "name_zh": "Battery EV van - class 3 - (1.74 to 3.5 tonnes) - UK electricity T&D for EVs",
+      "name_zh": "电池电动货车3级(1.74-3.5吨) - 英国EV输配电",
       "name_en": "Battery EV van - class 3 - (1.74 to 3.5 tonnes) - UK electricity T&D for EVs",
       "scope": 3,
       "category": "Vehicles",
@@ -630,7 +630,7 @@
     },
     {
       "id": "freight_vehicle-vehicle_type_class_3_van-fuel_source_bev-vehicle_weight_gt_1.74t_lt_3.5t",
-      "name_zh": "Battery EV van - class 3 - (1.74 to 3.5 tonnes)",
+      "name_zh": "电池电动货车3级(1.74-3.5吨)",
       "name_en": "Battery EV van - class 3 - (1.74 to 3.5 tonnes)",
       "scope": 3,
       "category": "Road Freight",
@@ -641,7 +641,7 @@
     },
     {
       "id": "freight_vehicle-vehicle_type_class_3_van-fuel_source_diesel-engine_size_na-vehicle_age_na-vehicle_weight_gt_1.74t_lt_3.5t",
-      "name_zh": "Diesel van - class 3 - (1.74 to 3.5 tonnes) - delivery vehicles",
+      "name_zh": "柴油货车3级(1.74-3.5吨) - 配送车辆",
       "name_en": "Diesel van - class 3 - (1.74 to 3.5 tonnes) - delivery vehicles",
       "scope": 3,
       "category": "Vehicles",
@@ -652,7 +652,7 @@
     },
     {
       "id": "freight_vehicle-vehicle_type_class_3_van-fuel_source_diesel-vehicle_weight_gt_1.74t_lt_3.5t",
-      "name_zh": "Diesel van - class 3 - (1.74 to 3.5 tonnes)",
+      "name_zh": "柴油货车3级(1.74-3.5吨)",
       "name_en": "Diesel van - class 3 - (1.74 to 3.5 tonnes)",
       "scope": 3,
       "category": "Road Freight",
@@ -663,7 +663,7 @@
     },
     {
       "id": "freight_vehicle-vehicle_type_class_3_van-fuel_source_petrol-engine_size_na-vehicle_age_na-vehicle_weight_gt_1.74t_lt_3.5t",
-      "name_zh": "Petrol van - class 3 - (1.74 to 3.5 tonnes) - delivery vehicles",
+      "name_zh": "汽油货车3级(1.74-3.5吨) - 配送车辆",
       "name_en": "Petrol van - class 3 - (1.74 to 3.5 tonnes) - delivery vehicles",
       "scope": 3,
       "category": "Vehicles",
@@ -674,7 +674,7 @@
     },
     {
       "id": "freight_vehicle-vehicle_type_class_3_van-fuel_source_petrol-vehicle_weight_gt_1.74t_lt_3.5t",
-      "name_zh": "Petrol van - class 3 - (1.74 to 3.5 tonnes)",
+      "name_zh": "汽油货车3级(1.74-3.5吨)",
       "name_en": "Petrol van - class 3 - (1.74 to 3.5 tonnes)",
       "scope": 3,
       "category": "Road Freight",
@@ -685,7 +685,7 @@
     },
     {
       "id": "freight_vehicle-vehicle_type_class_3_van-fuel_source_phev-engine_size_na-vehicle_age_na-vehicle_weight_gt_1.74t_lt_3.5t",
-      "name_zh": "PHEV van - class 3 - (1.74 to 3.5 tonnes) - UK electricity T&D for EVs",
+      "name_zh": "插电混动货车3级(1.74-3.5吨) - 英国EV输配电",
       "name_en": "PHEV van - class 3 - (1.74 to 3.5 tonnes) - UK electricity T&D for EVs",
       "scope": 3,
       "category": "Vehicles",
@@ -696,7 +696,7 @@
     },
     {
       "id": "freight_vehicle-vehicle_type_class_3_van-fuel_source_phev-vehicle_weight_gt_1.74t_lt_3.5t",
-      "name_zh": "PHEV van - class 3 - (1.74 to 3.5 tonnes)",
+      "name_zh": "插电混动货车3级(1.74-3.5吨)",
       "name_en": "PHEV van - class 3 - (1.74 to 3.5 tonnes)",
       "scope": 3,
       "category": "Vehicles",
@@ -707,7 +707,7 @@
     },
     {
       "id": "freight_vehicle-vehicle_type_freighting_goods_class_1_van-fuel_source_bev-engine_size_na-vehicle_age_na-vehicle_weight_lt_1.305t",
-      "name_zh": "Battery EV van - class 1 - (up to 1.305 tonnes) - freighting goods",
+      "name_zh": "电池电动货车1级(≤1.305吨) - 运输货物",
       "name_en": "Battery EV van - class 1 - (up to 1.305 tonnes) - freighting goods",
       "scope": 3,
       "category": "Vehicles",
@@ -718,7 +718,7 @@
     },
     {
       "id": "freight_vehicle-vehicle_type_hgv-fuel_source_diesel-vehicle_weight_na-percentage_load_100",
-      "name_zh": "Road freight diesel HGV 100% Laden",
+      "name_zh": "道路货运柴油HGV满载",
       "name_en": "Road freight diesel HGV 100% Laden",
       "scope": 3,
       "category": "Road Freight",
@@ -729,7 +729,7 @@
     },
     {
       "id": "freight_vehicle-vehicle_type_hgv-fuel_source_diesel-vehicle_weight_na-percentage_load_50",
-      "name_zh": "Road freight diesel HGV 50% Laden",
+      "name_zh": "道路货运柴油HGV半载",
       "name_en": "Road freight diesel HGV 50% Laden",
       "scope": 3,
       "category": "Road Freight",
@@ -740,7 +740,7 @@
     },
     {
       "id": "freight_vehicle-vehicle_type_hgv-fuel_source_diesel-vehicle_weight_na-percentage_load_avg",
-      "name_zh": "Road freight diesel HGV average Laden",
+      "name_zh": "道路货运柴油HGV平均负载",
       "name_en": "Road freight diesel HGV average Laden",
       "scope": 3,
       "category": "Road Freight",
@@ -751,7 +751,7 @@
     },
     {
       "id": "passenger_ferry-route_type_car_passenger-fuel_source_na",
-      "name_zh": "Ferry (passenger with car)",
+      "name_zh": "渡轮（载车乘客）",
       "name_en": "Ferry (passenger with car)",
       "scope": 3,
       "category": "Sea Travel",
@@ -762,7 +762,7 @@
     },
     {
       "id": "passenger_ferry-route_type_foot_passenger-fuel_source_na",
-      "name_zh": "Ferry (foot passenger)",
+      "name_zh": "渡轮（步行乘客）",
       "name_en": "Ferry (foot passenger)",
       "scope": 3,
       "category": "Sea Travel",
@@ -773,7 +773,7 @@
     },
     {
       "id": "passenger_ferry-route_type_na-fuel_source_na",
-      "name_zh": "Ferry (average per passenger)",
+      "name_zh": "渡轮（每位乘客平均）",
       "name_en": "Ferry (average per passenger)",
       "scope": 3,
       "category": "Sea Travel",
@@ -784,7 +784,7 @@
     },
     {
       "id": "passenger_flight-route_type_domestic-aircraft_type_na-distance_na-class_na-rf_excluded-distance_uplift_included",
-      "name_zh": "Domestic flight - without RF effect",
+      "name_zh": "国内航班 - 无RF效应",
       "name_en": "Domestic flight - without RF effect",
       "scope": 3,
       "category": "Air Travel",
@@ -795,7 +795,7 @@
     },
     {
       "id": "passenger_flight-route_type_domestic-aircraft_type_na-distance_na-class_na-rf_included-distance_uplift_included",
-      "name_zh": "Domestic flight - with RF effect",
+      "name_zh": "国内航班 - 含RF效应",
       "name_en": "Domestic flight - with RF effect",
       "scope": 3,
       "category": "Air Travel",
@@ -806,7 +806,7 @@
     },
     {
       "id": "passenger_train-route_type_international_rail-fuel_source_na",
-      "name_zh": "International rail passenger train",
+      "name_zh": "国际铁路客运列车",
       "name_en": "International rail passenger train",
       "scope": 3,
       "category": "Rail Travel",
@@ -817,7 +817,7 @@
     },
     {
       "id": "passenger_train-route_type_light_rail_and_tram-fuel_source_na",
-      "name_zh": "Light rail and tram passenger train",
+      "name_zh": "轻轨及有轨电车客运列车",
       "name_en": "Light rail and tram passenger train",
       "scope": 3,
       "category": "Rail Travel",
@@ -828,7 +828,7 @@
     },
     {
       "id": "passenger_train-route_type_national_rail-fuel_source_na",
-      "name_zh": "National rail passenger train",
+      "name_zh": "国家铁路客运列车",
       "name_en": "National rail passenger train",
       "scope": 3,
       "category": "Rail Travel",
@@ -839,7 +839,7 @@
     },
     {
       "id": "passenger_vehicle-vehicle_type_black_cab-fuel_source_na-distance_na-engine_size_na",
-      "name_zh": "Black cab",
+      "name_zh": "黑色出租车",
       "name_en": "Black cab",
       "scope": 3,
       "category": "Road Travel",
@@ -850,7 +850,7 @@
     },
     {
       "id": "passenger_vehicle-vehicle_type_coach-fuel_source_na-distance_na-engine_size_na",
-      "name_zh": "Coach",
+      "name_zh": "长途客车",
       "name_en": "Coach",
       "scope": 3,
       "category": "Road Travel",
@@ -861,7 +861,7 @@
     },
     {
       "id": "passenger_vehicle-vehicle_type_local_bus-fuel_source_na-distance_na-engine_size_na",
-      "name_zh": "Average local bus",
+      "name_zh": "平均本地公交",
       "name_en": "Average local bus",
       "scope": 3,
       "category": "Road Travel",
@@ -872,7 +872,7 @@
     },
     {
       "id": "passenger_vehicle-vehicle_type_local_bus_not_london-fuel_source_na-distance_na-engine_size_na",
-      "name_zh": "Local bus (not London)",
+      "name_zh": "本地公交（非伦敦）",
       "name_en": "Local bus (not London)",
       "scope": 3,
       "category": "Road Travel",
@@ -883,7 +883,7 @@
     },
     {
       "id": "passenger_vehicle-vehicle_type_taxi-fuel_source_na-distance_na-engine_size_na",
-      "name_zh": "Regular taxi",
+      "name_zh": "常规出租车",
       "name_en": "Regular taxi",
       "scope": 3,
       "category": "Road Travel",
@@ -894,7 +894,7 @@
     },
     {
       "id": "sea_freight-vessel_type_bulk_carrier-route_type_na-vessel_length_na-tonnage_gt_0dwt_lt_9999dwt-fuel_source_na",
-      "name_zh": "Bulk carrier (0 to 9999 dwt)",
+      "name_zh": "散货船（0至9999载重吨）",
       "name_en": "Bulk carrier (0 to 9999 dwt)",
       "scope": 3,
       "category": "Sea Freight",
@@ -905,7 +905,7 @@
     },
     {
       "id": "sea_freight-vessel_type_bulk_carrier-route_type_na-vessel_length_na-tonnage_gt_100000dwt_lt_199999dwt-fuel_source_na",
-      "name_zh": "Bulk carrier (100000 dwt - 199999 dwt)",
+      "name_zh": "散货船（100000-199999载重吨）",
       "name_en": "Bulk carrier (100000 dwt - 199999 dwt)",
       "scope": 3,
       "category": "Sea Freight",
@@ -916,7 +916,7 @@
     },
     {
       "id": "sea_freight-vessel_type_bulk_carrier-route_type_na-vessel_length_na-tonnage_gt_10000dwt_lt_34999dwt-fuel_source_na",
-      "name_zh": "Bulk carrier (10000 dwt - 34999 dwt)",
+      "name_zh": "散货船（10000-34999载重吨）",
       "name_en": "Bulk carrier (10000 dwt - 34999 dwt)",
       "scope": 3,
       "category": "Sea Freight",
@@ -927,7 +927,7 @@
     },
     {
       "id": "sea_freight-vessel_type_bulk_carrier-route_type_na-vessel_length_na-tonnage_gt_200000dwt-fuel_source_na",
-      "name_zh": "Bulk carrier (over 200000 dwt)",
+      "name_zh": "散货船（超过200000载重吨）",
       "name_en": "Bulk carrier (over 200000 dwt)",
       "scope": 3,
       "category": "Sea Freight",
@@ -938,7 +938,7 @@
     },
     {
       "id": "sea_freight-vessel_type_bulk_carrier-route_type_na-vessel_length_na-tonnage_gt_35000dwt_lt_59999dwt-fuel_source_na",
-      "name_zh": "Bulk carrier (35000 dwt - 59999 dwt)",
+      "name_zh": "散货船（35000-59999载重吨）",
       "name_en": "Bulk carrier (35000 dwt - 59999 dwt)",
       "scope": 3,
       "category": "Sea Freight",
@@ -949,7 +949,7 @@
     },
     {
       "id": "sea_freight-vessel_type_bulk_carrier-route_type_na-vessel_length_na-tonnage_gt_60000dwt_lt_99999dwt-fuel_source_na",
-      "name_zh": "Bulk carrier (60000 dwt - 99999 dwt)",
+      "name_zh": "散货船（60000-99999载重吨）",
       "name_en": "Bulk carrier (60000 dwt - 99999 dwt)",
       "scope": 3,
       "category": "Sea Freight",
@@ -960,7 +960,7 @@
     },
     {
       "id": "sea_freight-vessel_type_bulk_carrier-route_type_na-vessel_length_na-tonnage_na-fuel_source_na",
-      "name_zh": "Bulk carrier (average)",
+      "name_zh": "散货船（平均）",
       "name_en": "Bulk carrier (average)",
       "scope": 3,
       "category": "Sea Freight",
@@ -971,7 +971,7 @@
     },
     {
       "id": "sea_freight-vessel_type_cargo-route_type_na-vessel_length_na-tonnage_gt_0dwt_lt_4999dwt-fuel_source_na",
-      "name_zh": "General cargo (0 to 4999 dwt)",
+      "name_zh": "杂货船（0至4999载重吨）",
       "name_en": "General cargo (0 to 4999 dwt)",
       "scope": 3,
       "category": "Sea Freight",
@@ -982,7 +982,7 @@
     },
     {
       "id": "sea_freight-vessel_type_cargo-route_type_na-vessel_length_na-tonnage_gt_0dwt_lt_4999dwt_gt_100teu-fuel_source_na",
-      "name_zh": "General cargo (0 to 4999 dwt over 100 TEU)",
+      "name_zh": "杂货船（0至4999载重吨，超过100TEU）",
       "name_en": "General cargo (0 to 4999 dwt over 100 TEU)",
       "scope": 3,
       "category": "Sea Freight",
@@ -993,7 +993,7 @@
     },
     {
       "id": "sea_freight-vessel_type_cargo-route_type_na-vessel_length_na-tonnage_gt_10000dwt-fuel_source_na",
-      "name_zh": "General cargo (over 10000 dwt)",
+      "name_zh": "杂货船（超过10000载重吨）",
       "name_en": "General cargo (over 10000 dwt)",
       "scope": 3,
       "category": "Sea Freight",
@@ -1004,7 +1004,7 @@
     },
     {
       "id": "sea_freight-vessel_type_cargo-route_type_na-vessel_length_na-tonnage_gt_10000dwt_gt_100teu-fuel_source_na",
-      "name_zh": "General cargo (over 10000 dwt over 100 TEU)",
+      "name_zh": "杂货船（超过10000载重吨，超过100TEU）",
       "name_en": "General cargo (over 10000 dwt over 100 TEU)",
       "scope": 3,
       "category": "Sea Freight",
@@ -1015,7 +1015,7 @@
     },
     {
       "id": "sea_freight-vessel_type_cargo-route_type_na-vessel_length_na-tonnage_gt_5000dwt_lt_9999dwt-fuel_source_na",
-      "name_zh": "General cargo (5000 to 9999 dwt)",
+      "name_zh": "杂货船（5000至9999载重吨）",
       "name_en": "General cargo (5000 to 9999 dwt)",
       "scope": 3,
       "category": "Sea Freight",
@@ -1026,7 +1026,7 @@
     },
     {
       "id": "accommodation-type_accommodation_services",
-      "name_zh": "Accommodation",
+      "name_zh": "住宿服务",
       "name_en": "Accommodation",
       "scope": 3,
       "category": "Accommodation",
@@ -1037,7 +1037,7 @@
     },
     {
       "id": "consumer_services-type_repair_and_maintenance_of_aircraft_and_spacecraft",
-      "name_zh": "Repair and maintenance of aircraft and spacecraft",
+      "name_zh": "飞机和航天器修理与维护",
       "name_en": "Repair and maintenance of aircraft and spacecraft",
       "scope": 3,
       "category": "Vehicle Maintenance and Services",
@@ -1048,7 +1048,7 @@
     },
     {
       "id": "consumer_services-type_repair_and_maintenance_of_ships_and_boats",
-      "name_zh": "Repair and maintenance of ships and boats",
+      "name_zh": "船舶修理与维护",
       "name_en": "Repair and maintenance of ships and boats",
       "scope": 3,
       "category": "Vehicle Maintenance and Services",
@@ -1059,7 +1059,7 @@
     },
     {
       "id": "freight_flight-route_type_na-distance_na-weight_na-rf_na",
-      "name_zh": "Air transport services",
+      "name_zh": "航空运输服务",
       "name_en": "Air transport services",
       "scope": 3,
       "category": "Air Freight",
@@ -1070,7 +1070,7 @@
     },
     {
       "id": "transport_services-type_land_transport_services_and_transport_services_via_pipelines_excl_rail_transport",
-      "name_zh": "Land transport services and transport services via pipelines (excluding rail transport)",
+      "name_zh": "陆路运输及管道运输服务（不含铁路）",
       "name_en": "Land transport services and transport services via pipelines (excluding rail transport)",
       "scope": 3,
       "category": "Transport Services and Warehousing",
@@ -1081,7 +1081,7 @@
     },
     {
       "id": "transport_services-type_warehousing_and_support_services_for_transportation",
-      "name_zh": "Warehousing and support services for transportation",
+      "name_zh": "仓储及运输支持服务",
       "name_en": "Warehousing and support services for transportation",
       "scope": 3,
       "category": "Transport Services and Warehousing",
@@ -1092,7 +1092,7 @@
     },
     {
       "id": "passenger_train-route_type_commuter_rail-fuel_source_na",
-      "name_zh": "Commuter rail",
+      "name_zh": "通勤铁路",
       "name_en": "Commuter rail",
       "scope": 3,
       "category": "Rail Travel",
@@ -1103,7 +1103,7 @@
     },
     {
       "id": "passenger_train-route_type_intercity-fuel_source_na",
-      "name_zh": "Intercity Rail - National Average",
+      "name_zh": "城际铁路 - 全国平均",
       "name_en": "Intercity Rail - National Average",
       "scope": 3,
       "category": "Rail Travel",
@@ -1114,7 +1114,7 @@
     },
     {
       "id": "passenger_train-route_type_intercity_northeast_corridor-fuel_source_na",
-      "name_zh": "Intercity Rail - Northeast Corridor",
+      "name_zh": "城际铁路 - 东北走廊",
       "name_en": "Intercity Rail - Northeast Corridor",
       "scope": 3,
       "category": "Rail Travel",
@@ -1125,7 +1125,7 @@
     },
     {
       "id": "passenger_train-route_type_intercity_other_routes-fuel_source_na",
-      "name_zh": "Intercity Rail - Other Routes",
+      "name_zh": "城际铁路 - 其他线路",
       "name_en": "Intercity Rail - Other Routes",
       "scope": 3,
       "category": "Rail Travel",
@@ -1136,7 +1136,7 @@
     },
     {
       "id": "passenger_train-route_type_urban-fuel_source_na",
-      "name_zh": "Transit rail (i.e. subway/tram)",
+      "name_zh": "城市轨道交通（如地铁/有轨电车）",
       "name_en": "Transit rail (i.e. subway/tram)",
       "scope": 3,
       "category": "Rail Travel",
@@ -1147,7 +1147,7 @@
     },
     {
       "id": "passenger_vehicle-vehicle_type_bus-fuel_source_na-distance_na-engine_size_na",
-      "name_zh": "Bus",
+      "name_zh": "公交车",
       "name_en": "Bus",
       "scope": 3,
       "category": "Road Travel",
@@ -1158,7 +1158,7 @@
     },
     {
       "id": "freight_flight-route_type_na-distance_na-weight_na-rf_excluded",
-      "name_zh": "Aircraft (freight - without RF effect)",
+      "name_zh": "飞机（货运 - 无辐射强迫效应）",
       "name_en": "Aircraft (freight - without RF effect)",
       "scope": 3,
       "category": "Air Freight",
@@ -1169,7 +1169,7 @@
     },
     {
       "id": "accommodation-type_all_other_traveler_accommodation",
-      "name_zh": "All other traveler accommodation",
+      "name_zh": "其他旅行者住宿",
       "name_en": "All other traveler accommodation",
       "scope": 3,
       "category": "Accommodation",
@@ -1180,7 +1180,7 @@
     },
     {
       "id": "accommodation-type_bed_and_breakfast_inns",
-      "name_zh": "Bed-and-breakfast inns",
+      "name_zh": "住宿加早餐旅馆",
       "name_en": "Bed-and-breakfast inns",
       "scope": 3,
       "category": "Accommodation",
@@ -1191,7 +1191,7 @@
     },
     {
       "id": "accommodation-type_casino_hotels",
-      "name_zh": "Casino hotels",
+      "name_zh": "赌场酒店",
       "name_en": "Casino hotels",
       "scope": 3,
       "category": "Accommodation",
@@ -1202,7 +1202,7 @@
     },
     {
       "id": "accommodation-type_hotels_except_casino_hotels_and_motels",
-      "name_zh": "Hotels (except casino hotels) and motels",
+      "name_zh": "酒店（不含赌场酒店）和汽车旅馆",
       "name_en": "Hotels (except casino hotels) and motels",
       "scope": 3,
       "category": "Accommodation",
@@ -1213,7 +1213,7 @@
     },
     {
       "id": "accommodation-type_recreational_and_vacation_camps_except_campgrounds",
-      "name_zh": "Recreational and vacation camps (except campgrounds)",
+      "name_zh": "休闲度假营地（不含露营地）",
       "name_en": "Recreational and vacation camps (except campgrounds)",
       "scope": 3,
       "category": "Accommodation",
@@ -1224,7 +1224,7 @@
     },
     {
       "id": "accommodation-type_rooming_and_boarding_houses_dormitories_and_workers_camps",
-      "name_zh": "Rooming and boarding houses/dormitories and workers' camps",
+      "name_zh": "寄宿公寓/宿舍和工人营地",
       "name_en": "Rooming and boarding houses/dormitories and workers' camps",
       "scope": 3,
       "category": "Accommodation",
@@ -1235,7 +1235,7 @@
     },
     {
       "id": "accommodation-type_rv_recreational_vehicle_parks_and_campgrounds",
-      "name_zh": "Rv (recreational vehicle) parks and campgrounds",
+      "name_zh": "房车公园和露营地",
       "name_en": "Rv (recreational vehicle) parks and campgrounds",
       "scope": 3,
       "category": "Accommodation",
@@ -1246,7 +1246,7 @@
     },
     {
       "id": "consumer_services-type_all_other_automotive_repair_and_maintenance",
-      "name_zh": "All other automotive repair and maintenance",
+      "name_zh": "其他汽车修理与维护",
       "name_en": "All other automotive repair and maintenance",
       "scope": 3,
       "category": "Vehicle Maintenance and Services",
@@ -1257,7 +1257,7 @@
     },
     {
       "id": "consumer_services-type_automotive_body_paint_and_interior_repair_and_maintenance",
-      "name_zh": "Automotive body / paint and interior repair and maintenance",
+      "name_zh": "汽车车身/喷漆及内饰修理与维护",
       "name_en": "Automotive body / paint and interior repair and maintenance",
       "scope": 3,
       "category": "Vehicle Maintenance and Services",
@@ -1268,7 +1268,7 @@
     },
     {
       "id": "consumer_services-type_automotive_exhaust_system_repair",
-      "name_zh": "Automotive exhaust system repair",
+      "name_zh": "汽车排气系统修理",
       "name_en": "Automotive exhaust system repair",
       "scope": 3,
       "category": "Vehicle Maintenance and Services",
@@ -1279,7 +1279,7 @@
     },
     {
       "id": "consumer_services-type_automotive_glass_replacement_shops",
-      "name_zh": "Automotive glass replacement shops",
+      "name_zh": "汽车玻璃更换店",
       "name_en": "Automotive glass replacement shops",
       "scope": 3,
       "category": "Vehicle Maintenance and Services",
@@ -1290,7 +1290,7 @@
     },
     {
       "id": "consumer_services-type_automotive_oil_change_and_lubrication_shops",
-      "name_zh": "Automotive oil change and lubrication shops",
+      "name_zh": "汽车换油与润滑店",
       "name_en": "Automotive oil change and lubrication shops",
       "scope": 3,
       "category": "Vehicle Maintenance and Services",
@@ -1301,7 +1301,7 @@
     },
     {
       "id": "consumer_services-type_automotive_transmission_repair",
-      "name_zh": "Automotive transmission repair",
+      "name_zh": "汽车变速箱修理",
       "name_en": "Automotive transmission repair",
       "scope": 3,
       "category": "Vehicle Maintenance and Services",
@@ -1312,7 +1312,7 @@
     },
     {
       "id": "consumer_services-type_car_washes",
-      "name_zh": "Car washes",
+      "name_zh": "洗车服务",
       "name_en": "Car washes",
       "scope": 3,
       "category": "Vehicle Maintenance and Services",
@@ -1323,7 +1323,7 @@
     },
     {
       "id": "consumer_services-type_general_automotive_repair",
-      "name_zh": "General automotive repair",
+      "name_zh": "一般汽车修理",
       "name_en": "General automotive repair",
       "scope": 3,
       "category": "Vehicle Maintenance and Services",
@@ -1334,7 +1334,7 @@
     },
     {
       "id": "consumer_services-type_other_automotive_mechanical_and_electrical_repair_and_maintenance",
-      "name_zh": "Other automotive mechanical and electrical repair and maintenance",
+      "name_zh": "其他汽车机电维修保养",
       "name_en": "Other automotive mechanical and electrical repair and maintenance",
       "scope": 3,
       "category": "Vehicle Maintenance and Services",
@@ -1345,7 +1345,7 @@
     },
     {
       "id": "passenger_ferry-route_type_coastal_and_great_lakes_freight_transportation-fuel_source_na",
-      "name_zh": "Coastal and great lakes freight transportation",
+      "name_zh": "沿海及大湖区货运",
       "name_en": "Coastal and great lakes freight transportation",
       "scope": 3,
       "category": "Sea Travel",
@@ -1356,7 +1356,7 @@
     },
     {
       "id": "passenger_ferry-route_type_coastal_and_great_lakes_passenger_transportation-fuel_source_na",
-      "name_zh": "Coastal and great lakes passenger transportation",
+      "name_zh": "沿海及大湖区客运",
       "name_en": "Coastal and great lakes passenger transportation",
       "scope": 3,
       "category": "Sea Travel",
@@ -1367,7 +1367,7 @@
     },
     {
       "id": "passenger_ferry-route_type_deep_sea_freight_transportation-fuel_source_na",
-      "name_zh": "Deep sea freight transportation",
+      "name_zh": "深海货运",
       "name_en": "Deep sea freight transportation",
       "scope": 3,
       "category": "Sea Travel",
@@ -1378,7 +1378,7 @@
     },
     {
       "id": "passenger_ferry-route_type_deep_sea_passenger_transportation-fuel_source_na",
-      "name_zh": "Deep sea passenger transportation",
+      "name_zh": "深海客运",
       "name_en": "Deep sea passenger transportation",
       "scope": 3,
       "category": "Sea Travel",
@@ -1389,7 +1389,7 @@
     },
     {
       "id": "passenger_ferry-route_type_inland_water_freight_transportation-fuel_source_na",
-      "name_zh": "Inland water freight transportation",
+      "name_zh": "内河货运",
       "name_en": "Inland water freight transportation",
       "scope": 3,
       "category": "Sea Travel",
@@ -1400,7 +1400,7 @@
     },
     {
       "id": "passenger_ferry-route_type_inland_water_passenger_transportation-fuel_source_na",
-      "name_zh": "Inland water passenger transportation",
+      "name_zh": "内河客运",
       "name_en": "Inland water passenger transportation",
       "scope": 3,
       "category": "Sea Travel",
@@ -1411,7 +1411,7 @@
     },
     {
       "id": "passenger_train-route_type_line_haul_railroads-fuel_source_na",
-      "name_zh": "Line-haul railroads",
+      "name_zh": "干线铁路",
       "name_en": "Line-haul railroads",
       "scope": 3,
       "category": "Rail Travel",
@@ -1422,7 +1422,7 @@
     },
     {
       "id": "passenger_train-route_type_short_line_railroads-fuel_source_na",
-      "name_zh": "Short line railroads",
+      "name_zh": "短途铁路",
       "name_en": "Short line railroads",
       "scope": 3,
       "category": "Rail Travel",
@@ -1433,7 +1433,7 @@
     },
     {
       "id": "passenger_vehicle-vehicle_type_all_other_transit_and_ground_passenger_transportation-fuel_source_na-engine_size_na-vehicle_age_na-vehicle_weight_na",
-      "name_zh": "All other transit and ground passenger transportation",
+      "name_zh": "其他公交及地面客运",
       "name_en": "All other transit and ground passenger transportation",
       "scope": 3,
       "category": "Road Travel",
@@ -1444,7 +1444,7 @@
     },
     {
       "id": "passenger_vehicle-vehicle_type_bus_and_other_motor_vehicle_transit_systems-fuel_source_na-engine_size_na-vehicle_age_na-vehicle_weight_na",
-      "name_zh": "Bus and other motor vehicle transit systems",
+      "name_zh": "公交及其他机动车公交系统",
       "name_en": "Bus and other motor vehicle transit systems",
       "scope": 3,
       "category": "Road Travel",
@@ -1455,7 +1455,7 @@
     },
     {
       "id": "passenger_vehicle-vehicle_type_charter_bus_industry-fuel_source_na-engine_size_na-vehicle_age_na-vehicle_weight_na",
-      "name_zh": "Charter bus industry",
+      "name_zh": "包车巴士行业",
       "name_en": "Charter bus industry",
       "scope": 3,
       "category": "Road Travel",
@@ -1466,7 +1466,7 @@
     },
     {
       "id": "passenger_vehicle-vehicle_type_commuter_rail_systems-fuel_source_na-engine_size_na-vehicle_age_na-vehicle_weight_na",
-      "name_zh": "Commuter rail systems",
+      "name_zh": "通勤铁路系统",
       "name_en": "Commuter rail systems",
       "scope": 3,
       "category": "Road Travel",
@@ -1477,7 +1477,7 @@
     },
     {
       "id": "passenger_vehicle-vehicle_type_interurban_and_rural_bus_transportation-fuel_source_na-engine_size_na-vehicle_age_na-vehicle_weight_na",
-      "name_zh": "Interurban and rural bus transportation",
+      "name_zh": "城际及乡村巴士运输",
       "name_en": "Interurban and rural bus transportation",
       "scope": 3,
       "category": "Road Travel",
@@ -1488,7 +1488,7 @@
     },
     {
       "id": "passenger_vehicle-vehicle_type_limousine_service-fuel_source_na-engine_size_na-vehicle_age_na-vehicle_weight_na",
-      "name_zh": "Limousine service",
+      "name_zh": "豪车服务",
       "name_en": "Limousine service",
       "scope": 3,
       "category": "Road Travel",
@@ -1499,7 +1499,7 @@
     },
     {
       "id": "transport_services-type_farm_product_warehousing_and_storage",
-      "name_zh": "Farm product warehousing and storage",
+      "name_zh": "农产品仓储",
       "name_en": "Farm product warehousing and storage",
       "scope": 3,
       "category": "Transport Services and Warehousing",
@@ -1510,7 +1510,7 @@
     },
     {
       "id": "transport_services-type_general_warehousing_and_storage",
-      "name_zh": "General warehousing and storage",
+      "name_zh": "一般仓储",
       "name_en": "General warehousing and storage",
       "scope": 3,
       "category": "Transport Services and Warehousing",
@@ -1521,7 +1521,7 @@
     },
     {
       "id": "transport_services-type_other_warehousing_and_storage",
-      "name_zh": "Other warehousing and storage",
+      "name_zh": "其他仓储",
       "name_en": "Other warehousing and storage",
       "scope": 3,
       "category": "Transport Services and Warehousing",
@@ -1532,7 +1532,7 @@
     },
     {
       "id": "transport_services-type_refrigerated_warehousing_and_storage",
-      "name_zh": "Refrigerated warehousing and storage",
+      "name_zh": "冷藏仓储",
       "name_en": "Refrigerated warehousing and storage",
       "scope": 3,
       "category": "Transport Services and Warehousing",
@@ -1543,7 +1543,7 @@
     },
     {
       "id": "vehicle_parts-type_aircraft_engines_parts",
-      "name_zh": "Aircraft engines and parts",
+      "name_zh": "飞机发动机及零件",
       "name_en": "Aircraft engines and parts",
       "scope": 3,
       "category": "Vehicle Parts",
@@ -1554,7 +1554,7 @@
     },
     {
       "id": "vehicle_parts-type_all_other_transportation_equipment",
-      "name_zh": "All other transportation equipment manufacturing",
+      "name_zh": "其他运输设备制造",
       "name_en": "All other transportation equipment manufacturing",
       "scope": 3,
       "category": "Vehicle Parts",
@@ -1565,7 +1565,7 @@
     },
     {
       "id": "vehicle_parts-type_automotive_parts_and_accessories_stores",
-      "name_zh": "Automotive parts and accessories stores",
+      "name_zh": "汽车零部件及配件店",
       "name_en": "Automotive parts and accessories stores",
       "scope": 3,
       "category": "Vehicle Parts",
@@ -1576,7 +1576,7 @@
     },
     {
       "id": "vehicle_parts-type_guided_missile_and_space_vehicle_propulsion_unit_and_propulsion_unit_parts",
-      "name_zh": "Guided missile and space vehicle propulsion unit and propulsion unit parts manufacturing",
+      "name_zh": "导弹及航天器推进装置制造",
       "name_en": "Guided missile and space vehicle propulsion unit and propulsion unit parts manufacturing",
       "scope": 3,
       "category": "Vehicle Parts",
@@ -1587,7 +1587,7 @@
     },
     {
       "id": "vehicle_parts-type_motor_vehicle_body",
-      "name_zh": "Motor vehicle body manufacturing",
+      "name_zh": "机动车车身制造",
       "name_en": "Motor vehicle body manufacturing",
       "scope": 3,
       "category": "Vehicle Parts",
@@ -1598,7 +1598,7 @@
     },
     {
       "id": "vehicle_parts-type_motor_vehicle_brake_system",
-      "name_zh": "Motor vehicle brake system manufacturing",
+      "name_zh": "机动车制动系统制造",
       "name_en": "Motor vehicle brake system manufacturing",
       "scope": 3,
       "category": "Vehicle Parts",
@@ -1609,7 +1609,7 @@
     },
     {
       "id": "vehicle_parts-type_motor_vehicle_electrical_and_electronic_equipment",
-      "name_zh": "Motor vehicle electrical and electronic equipment manufacturing",
+      "name_zh": "机动车电气电子设备制造",
       "name_en": "Motor vehicle electrical and electronic equipment manufacturing",
       "scope": 3,
       "category": "Vehicle Parts",
@@ -1620,7 +1620,7 @@
     },
     {
       "id": "vehicle_parts-type_motor_vehicle_gasoline_engine_and_engine_parts",
-      "name_zh": "Motor vehicle gasoline engine and engine parts manufacturing",
+      "name_zh": "机动车汽油发动机及零件制造",
       "name_en": "Motor vehicle gasoline engine and engine parts manufacturing",
       "scope": 3,
       "category": "Vehicle Parts",
@@ -1631,7 +1631,7 @@
     },
     {
       "id": "vehicle_parts-type_motor_vehicle_metal_stamping",
-      "name_zh": "Motor vehicle metal stamping",
+      "name_zh": "机动车金属冲压",
       "name_en": "Motor vehicle metal stamping",
       "scope": 3,
       "category": "Vehicle Parts",
@@ -1642,7 +1642,7 @@
     },
     {
       "id": "vehicle_parts-type_motor_vehicle_seating_and_interior_trim",
-      "name_zh": "Motor vehicle seating and interior trim manufacturing",
+      "name_zh": "机动车座椅及内饰制造",
       "name_en": "Motor vehicle seating and interior trim manufacturing",
       "scope": 3,
       "category": "Vehicle Parts",
@@ -1653,7 +1653,7 @@
     },
     {
       "id": "vehicle_parts-type_motor_vehicle_steering_suspension_components_except_spring_brake_systems",
-      "name_zh": "Motor vehicle steering and suspension components (except spring) manufacturing",
+      "name_zh": "机动车转向悬架部件制造",
       "name_en": "Motor vehicle steering and suspension components (except spring) manufacturing",
       "scope": 3,
       "category": "Vehicle Parts",
@@ -1664,7 +1664,7 @@
     },
     {
       "id": "vehicle_parts-type_motor_vehicle_transmission_and_power_train_parts",
-      "name_zh": "Motor vehicle transmission and power train parts manufacturing",
+      "name_zh": "机动车变速箱及动力传动零件制造",
       "name_en": "Motor vehicle transmission and power train parts manufacturing",
       "scope": 3,
       "category": "Vehicle Parts",
@@ -1675,7 +1675,7 @@
     },
     {
       "id": "building_materials-type_aggregates_closed_loop_source",
-      "name_zh": "Aggregates (closed-loop)",
+      "name_zh": "骨料（闭环）",
       "name_en": "Aggregates (closed-loop)",
       "scope": 3,
       "category": "Building Materials",
@@ -1686,7 +1686,7 @@
     },
     {
       "id": "building_materials-type_aggregates_primary_material_production",
-      "name_zh": "Aggregates (primary material production)",
+      "name_zh": "骨料（原生材料生产）",
       "name_en": "Aggregates (primary material production)",
       "scope": 3,
       "category": "Building Materials",
@@ -1697,7 +1697,7 @@
     },
     {
       "id": "building_materials-type_aggregates_reused",
-      "name_zh": "Aggregates (re-used)",
+      "name_zh": "骨料（再利用）",
       "name_en": "Aggregates (re-used)",
       "scope": 3,
       "category": "Building Materials",
@@ -1708,7 +1708,7 @@
     },
     {
       "id": "building_materials-type_asbestos_primary_material_production",
-      "name_zh": "Asbestos (primary material production)",
+      "name_zh": "石棉（原生材料生产）",
       "name_en": "Asbestos (primary material production)",
       "scope": 3,
       "category": "Building Materials",
@@ -1719,7 +1719,7 @@
     },
     {
       "id": "building_materials-type_asphalt_closed_loop_source",
-      "name_zh": "Asphalt (closed-loop)",
+      "name_zh": "沥青（闭环）",
       "name_en": "Asphalt (closed-loop)",
       "scope": 3,
       "category": "Building Materials",
@@ -1730,7 +1730,7 @@
     },
     {
       "id": "building_materials-type_asphalt_primary_material_production",
-      "name_zh": "Asphalt (primary material production)",
+      "name_zh": "沥青（原生材料生产）",
       "name_en": "Asphalt (primary material production)",
       "scope": 3,
       "category": "Building Materials",
@@ -1741,7 +1741,7 @@
     },
     {
       "id": "building_materials-type_asphalt_reused",
-      "name_zh": "Asphalt (re-used)",
+      "name_zh": "沥青（再利用）",
       "name_en": "Asphalt (re-used)",
       "scope": 3,
       "category": "Building Materials",
@@ -1752,7 +1752,7 @@
     },
     {
       "id": "building_materials-type_average_construction_primary_material_production",
-      "name_zh": "Average construction (primary material production)",
+      "name_zh": "一般建筑（原生材料生产）",
       "name_en": "Average construction (primary material production)",
       "scope": 3,
       "category": "Building Materials",
@@ -1763,7 +1763,7 @@
     },
     {
       "id": "building_materials-type_bricks_primary_material_production",
-      "name_zh": "Bricks (primary material production)",
+      "name_zh": "砖（原生材料生产）",
       "name_en": "Bricks (primary material production)",
       "scope": 3,
       "category": "Building Materials",
@@ -1774,7 +1774,7 @@
     },
     {
       "id": "building_materials-type_concrete_closed_loop_source",
-      "name_zh": "Concrete (closed-loop)",
+      "name_zh": "混凝土（闭环）",
       "name_en": "Concrete (closed-loop)",
       "scope": 3,
       "category": "Building Materials",
@@ -1785,7 +1785,7 @@
     },
     {
       "id": "building_materials-type_concrete_primary_material_production",
-      "name_zh": "Concrete (primary material production)",
+      "name_zh": "混凝土（原生材料生产）",
       "name_en": "Concrete (primary material production)",
       "scope": 3,
       "category": "Building Materials",
@@ -1796,7 +1796,7 @@
     },
     {
       "id": "building_materials-type_insulation_closed_loop_source",
-      "name_zh": "Insulation (closed-loop)",
+      "name_zh": "保温材料（闭环）",
       "name_en": "Insulation (closed-loop)",
       "scope": 3,
       "category": "Building Materials",
@@ -1807,7 +1807,7 @@
     },
     {
       "id": "consumer_goods-type_clothing_primary_material_production",
-      "name_zh": "Clothing (primary material production)",
+      "name_zh": "服装（原生材料生产）",
       "name_en": "Clothing (primary material production)",
       "scope": 3,
       "category": "Clothing and Footwear",
@@ -1818,7 +1818,7 @@
     },
     {
       "id": "consumer_goods-type_clothing_reused",
-      "name_zh": "Clothing (re-used)",
+      "name_zh": "服装（再利用）",
       "name_en": "Clothing (re-used)",
       "scope": 3,
       "category": "Clothing and Footwear",
@@ -1829,7 +1829,7 @@
     },
     {
       "id": "consumer_goods-type_food_and_drink_primary_material_production",
-      "name_zh": "Food and drink (primary material production)",
+      "name_zh": "食品饮料（原生材料生产）",
       "name_en": "Food and drink (primary material production)",
       "scope": 3,
       "category": "Food/Beverages/Tobacco",
@@ -1840,7 +1840,7 @@
     },
     {
       "id": "electrical_equipment-type_batteries_alkaline_primary_material_production",
-      "name_zh": "Batteries (alkaline - primary material production)",
+      "name_zh": "电池（碱性-原生材料生产）",
       "name_en": "Batteries (alkaline - primary material production)",
       "scope": 3,
       "category": "Electrical Equipment",
@@ -1851,7 +1851,7 @@
     },
     {
       "id": "electrical_equipment-type_batteries_li_ion_primary_material_production",
-      "name_zh": "Batteries (Li ion - primary material production)",
+      "name_zh": "电池（Li ion-原生材料生产）",
       "name_en": "Batteries (Li ion - primary material production)",
       "scope": 3,
       "category": "Electrical Equipment",
@@ -1862,7 +1862,7 @@
     },
     {
       "id": "electrical_equipment-type_batteries_nimh_primary_material_production",
-      "name_zh": "Batteries (NiMh - primary material production)",
+      "name_zh": "电池（NiMh-原生材料生产）",
       "name_en": "Batteries (NiMh - primary material production)",
       "scope": 3,
       "category": "Electrical Equipment",
@@ -1873,7 +1873,7 @@
     },
     {
       "id": "electrical_equipment-type_fridges_and_freezers_primary_material_production",
-      "name_zh": "Fridges and freezers (primary material production)",
+      "name_zh": "冰箱冰柜（原生材料生产）",
       "name_en": "Fridges and freezers (primary material production)",
       "scope": 3,
       "category": "Electrical Equipment",
@@ -1884,7 +1884,7 @@
     },
     {
       "id": "electrical_equipment-type_it_primary_material_production",
-      "name_zh": "IT (primary material production)",
+      "name_zh": "IT设备（原生材料生产）",
       "name_en": "IT (primary material production)",
       "scope": 3,
       "category": "Electrical Equipment",
@@ -1895,7 +1895,7 @@
     },
     {
       "id": "electrical_equipment-type_large_primary_material_production",
-      "name_zh": "Large electrical items (primary material production)",
+      "name_zh": "大型电器（原生材料生产）",
       "name_en": "Large electrical items (primary material production)",
       "scope": 3,
       "category": "Electrical Equipment",
@@ -1906,7 +1906,7 @@
     },
     {
       "id": "electrical_equipment-type_small_primary_material_production",
-      "name_zh": "Small electrical items (primary material production)",
+      "name_zh": "小型电器（原生材料生产）",
       "name_en": "Small electrical items (primary material production)",
       "scope": 3,
       "category": "Electrical Equipment",
@@ -1917,7 +1917,7 @@
     },
     {
       "id": "glass_products-type_glass_closed_loop_source",
-      "name_zh": "Glass (closed-loop)",
+      "name_zh": "玻璃（闭环）",
       "name_en": "Glass (closed-loop)",
       "scope": 3,
       "category": "Glass and Glass Products",
@@ -1928,7 +1928,7 @@
     },
     {
       "id": "glass_products-type_glass_primary_material_production",
-      "name_zh": "Glass (primary material production)",
+      "name_zh": "玻璃（原生材料生产）",
       "name_en": "Glass (primary material production)",
       "scope": 3,
       "category": "Glass and Glass Products",
@@ -1939,7 +1939,7 @@
     },
     {
       "id": "metal_products-type_aluminium_cans_and_foil_excluding_forming_closed_loop_source",
-      "name_zh": "Aluminium cans and foil - excluding forming (closed-loop)",
+      "name_zh": "铝罐铝箔（不含成型，闭环）",
       "name_en": "Aluminium cans and foil - excluding forming (closed-loop)",
       "scope": 3,
       "category": "Fabricated Metal Products",
@@ -1950,7 +1950,7 @@
     },
     {
       "id": "metal_products-type_aluminium_cans_and_foil_excluding_forming_primary_material_production",
-      "name_zh": "Aluminium cans and foil - excluding forming (primary material production)",
+      "name_zh": "铝罐铝箔（不含成型，原生材料生产）",
       "name_en": "Aluminium cans and foil - excluding forming (primary material production)",
       "scope": 3,
       "category": "Fabricated Metal Products",
@@ -1961,7 +1961,7 @@
     },
     {
       "id": "metal_products-type_mixed_cans_closed_loop_source",
-      "name_zh": "Mixed cans (closed-loop)",
+      "name_zh": "混合罐（闭环）",
       "name_en": "Mixed cans (closed-loop)",
       "scope": 3,
       "category": "Fabricated Metal Products",
@@ -1972,7 +1972,7 @@
     },
     {
       "id": "metal_products-type_mixed_cans_primary_material_production",
-      "name_zh": "Mixed cans (primary material production)",
+      "name_zh": "混合罐（原生材料生产）",
       "name_en": "Mixed cans (primary material production)",
       "scope": 3,
       "category": "Fabricated Metal Products",
@@ -1983,7 +1983,7 @@
     },
     {
       "id": "metal_products-type_steel_cans_closed_loop_source",
-      "name_zh": "Steel cans (closed-loop)",
+      "name_zh": "钢罐（闭环）",
       "name_en": "Steel cans (closed-loop)",
       "scope": 3,
       "category": "Fabricated Metal Products",
@@ -1994,7 +1994,7 @@
     },
     {
       "id": "metal_products-type_steel_cans_primary_material_production",
-      "name_zh": "Steel cans (primary material production)",
+      "name_zh": "钢罐（原生材料生产）",
       "name_en": "Steel cans (primary material production)",
       "scope": 3,
       "category": "Fabricated Metal Products",
@@ -2005,7 +2005,7 @@
     },
     {
       "id": "metals-type_closed_loop_source",
-      "name_zh": "Metals (closed-loop)",
+      "name_zh": "金属（闭环）",
       "name_en": "Metals (closed-loop)",
       "scope": 3,
       "category": "Metals",
@@ -2016,7 +2016,7 @@
     },
     {
       "id": "metals-type_primary_material_production",
-      "name_zh": "Metals (primary material production)",
+      "name_zh": "金属（原生材料生产）",
       "name_en": "Metals (primary material production)",
       "scope": 3,
       "category": "Metals",
@@ -2027,7 +2027,7 @@
     },
     {
       "id": "metals-type_scrap_metal_closed_loop_source",
-      "name_zh": "Scrap metal (closed-loop)",
+      "name_zh": "废金属（闭环）",
       "name_en": "Scrap metal (closed-loop)",
       "scope": 3,
       "category": "Metals",
@@ -2038,7 +2038,7 @@
     },
     {
       "id": "metals-type_scrap_metal_primary_material_production",
-      "name_zh": "Scrap metal (primary material production)",
+      "name_zh": "废金属（原生材料生产）",
       "name_en": "Scrap metal (primary material production)",
       "scope": 3,
       "category": "Metals",
@@ -2049,7 +2049,7 @@
     },
     {
       "id": "mined_materials-type_mineral_oil_closed_loop_source",
-      "name_zh": "Mineral oil (closed-loop)",
+      "name_zh": "矿物油（闭环）",
       "name_en": "Mineral oil (closed-loop)",
       "scope": 3,
       "category": "Mined Materials",
@@ -2060,7 +2060,7 @@
     },
     {
       "id": "mined_materials-type_mineral_oil_primary_material_production",
-      "name_zh": "Mineral oil (primary material production)",
+      "name_zh": "矿物油（原生材料生产）",
       "name_en": "Mineral oil (primary material production)",
       "scope": 3,
       "category": "Mined Materials",
@@ -2071,7 +2071,7 @@
     },
     {
       "id": "organic_products-type_compost_derived_from_food_and_garden_waste_primary_material_production",
-      "name_zh": "Compost derived from food and garden waste (primary material production)",
+      "name_zh": "厨余与花园垃圾堆肥（原生材料生产）",
       "name_en": "Compost derived from food and garden waste (primary material production)",
       "scope": 3,
       "category": "Organic Products",
@@ -2082,7 +2082,7 @@
     },
     {
       "id": "organic_products-type_compost_derived_from_garden_waste_primary_material_production",
-      "name_zh": "Compost derived from garden waste (primary material production)",
+      "name_zh": "花园垃圾堆肥（原生材料生产）",
       "name_en": "Compost derived from garden waste (primary material production)",
       "scope": 3,
       "category": "Organic Products",
@@ -2093,7 +2093,7 @@
     },
     {
       "id": "organic_products-type_soils_closed_loop_source",
-      "name_zh": "Soils (closed-loop)",
+      "name_zh": "土壤（闭环）",
       "name_en": "Soils (closed-loop)",
       "scope": 3,
       "category": "Organic Products",
@@ -2104,7 +2104,7 @@
     },
     {
       "id": "paper_and_cardboard-type_board_closed_loop_source",
-      "name_zh": "Board (closed-loop)",
+      "name_zh": "纸板（闭环）",
       "name_en": "Board (closed-loop)",
       "scope": 3,
       "category": "Paper and Cardboard",
@@ -2115,7 +2115,7 @@
     },
     {
       "id": "paper_and_cardboard-type_board_primary_material_production",
-      "name_zh": "Board (primary material production)",
+      "name_zh": "纸板（原生材料生产）",
       "name_en": "Board (primary material production)",
       "scope": 3,
       "category": "Paper and Cardboard",
@@ -2126,7 +2126,7 @@
     },
     {
       "id": "paper_and_cardboard-type_mixed_closed_loop_source",
-      "name_zh": "Mixed paper and board (closed-loop)",
+      "name_zh": "混合纸板（闭环）",
       "name_en": "Mixed paper and board (closed-loop)",
       "scope": 3,
       "category": "Paper and Cardboard",
@@ -2137,7 +2137,7 @@
     },
     {
       "id": "paper_and_cardboard-type_mixed_primary_material_production",
-      "name_zh": "Mixed paper and board (primary material production)",
+      "name_zh": "混合纸板（原生材料生产）",
       "name_en": "Mixed paper and board (primary material production)",
       "scope": 3,
       "category": "Paper and Cardboard",
@@ -2148,7 +2148,7 @@
     },
     {
       "id": "paper_and_cardboard-type_paper_closed_loop_source",
-      "name_zh": "Paper (closed-loop)",
+      "name_zh": "纸张（闭环）",
       "name_en": "Paper (closed-loop)",
       "scope": 3,
       "category": "Paper and Cardboard",
@@ -2159,7 +2159,7 @@
     },
     {
       "id": "paper_and_cardboard-type_paper_primary_material_production",
-      "name_zh": "Paper (primary material production)",
+      "name_zh": "纸张（原生材料生产）",
       "name_en": "Paper (primary material production)",
       "scope": 3,
       "category": "Paper and Cardboard",
@@ -2170,7 +2170,7 @@
     },
     {
       "id": "plastics_rubber-type_average_plastics_closed_loop_source",
-      "name_zh": "Average plastics (closed-loop)",
+      "name_zh": "普通塑料（闭环）",
       "name_en": "Average plastics (closed-loop)",
       "scope": 3,
       "category": "Plastics and Rubber Products",
@@ -2181,7 +2181,7 @@
     },
     {
       "id": "plastics_rubber-type_average_plastics_film_closed_loop_source",
-      "name_zh": "Average plastics film (closed-loop)",
+      "name_zh": "普通塑料薄膜（闭环）",
       "name_en": "Average plastics film (closed-loop)",
       "scope": 3,
       "category": "Plastics and Rubber Products",
@@ -2192,7 +2192,7 @@
     },
     {
       "id": "plastics_rubber-type_average_plastics_film_primary_material_production",
-      "name_zh": "Average plastics film (primary material production)",
+      "name_zh": "普通塑料薄膜（原生材料生产）",
       "name_en": "Average plastics film (primary material production)",
       "scope": 3,
       "category": "Plastics and Rubber Products",
@@ -2203,7 +2203,7 @@
     },
     {
       "id": "plastics_rubber-type_average_plastics_primary_material_production",
-      "name_zh": "Average plastics (primary material production)",
+      "name_zh": "平均塑料（原生材料生产）",
       "name_en": "Average plastics (primary material production)",
       "scope": 3,
       "category": "Plastics and Rubber Products",
@@ -2214,7 +2214,7 @@
     },
     {
       "id": "plastics_rubber-type_average_plastics_rigid_closed_loop_source",
-      "name_zh": "Average plastics rigid (closed-loop)",
+      "name_zh": "平均硬质塑料（闭环）",
       "name_en": "Average plastics rigid (closed-loop)",
       "scope": 3,
       "category": "Plastics and Rubber Products",
@@ -2225,7 +2225,7 @@
     },
     {
       "id": "plastics_rubber-type_average_plastics_rigid_primary_material_production",
-      "name_zh": "Average plastics rigid (primary material production)",
+      "name_zh": "平均硬质塑料（原生材料生产）",
       "name_en": "Average plastics rigid (primary material production)",
       "scope": 3,
       "category": "Plastics and Rubber Products",
@@ -2236,7 +2236,7 @@
     },
     {
       "id": "plastics_rubber-type_hdpe_including_forming_closed_loop_source",
-      "name_zh": "HDPE - including forming (closed-loop)",
+      "name_zh": "HDPE - 含成型（闭环）",
       "name_en": "HDPE - including forming (closed-loop)",
       "scope": 3,
       "category": "Plastics and Rubber Products",
@@ -2247,7 +2247,7 @@
     },
     {
       "id": "plastics_rubber-type_hdpe_including_forming_primary_material_production",
-      "name_zh": "HDPE - including forming (primary material production)",
+      "name_zh": "HDPE - 含成型（原生材料生产）",
       "name_en": "HDPE - including forming (primary material production)",
       "scope": 3,
       "category": "Plastics and Rubber Products",
@@ -2258,7 +2258,7 @@
     },
     {
       "id": "plastics_rubber-type_ldpe_and_lldpe_including_forming_closed_loop_source",
-      "name_zh": "LDPE and LLDPE - including forming (closed-loop)",
+      "name_zh": "LDPE和LLDPE - 含成型（闭环）",
       "name_en": "LDPE and LLDPE - including forming (closed-loop)",
       "scope": 3,
       "category": "Plastics and Rubber Products",
@@ -2269,7 +2269,7 @@
     },
     {
       "id": "plastics_rubber-type_ldpe_and_lldpe_including_forming_primary_material_production",
-      "name_zh": "LDPE and LLDPE - including forming (primary material production)",
+      "name_zh": "LDPE和LLDPE - 含成型（原生材料生产）",
       "name_en": "LDPE and LLDPE - including forming (primary material production)",
       "scope": 3,
       "category": "Plastics and Rubber Products",
@@ -2280,7 +2280,7 @@
     },
     {
       "id": "plastics_rubber-type_pet_including_forming_closed_loop_source",
-      "name_zh": "PET - including forming (closed-loop)",
+      "name_zh": "PET - 含成型（闭环）",
       "name_en": "PET - including forming (closed-loop)",
       "scope": 3,
       "category": "Plastics and Rubber Products",
@@ -2291,7 +2291,7 @@
     },
     {
       "id": "plastics_rubber-type_pet_including_forming_primary_material_production",
-      "name_zh": "PET - including forming (primary material production)",
+      "name_zh": "PET - 含成型（原生材料生产）",
       "name_en": "PET - including forming (primary material production)",
       "scope": 3,
       "category": "Plastics and Rubber Products",
@@ -2302,7 +2302,7 @@
     },
     {
       "id": "timber_forestry-type_wood_primary_material_production",
-      "name_zh": "Wood (primary material production)",
+      "name_zh": "木材（原生材料生产）",
       "name_en": "Wood (primary material production)",
       "scope": 3,
       "category": "Timber and Forestry Products",
@@ -2313,7 +2313,7 @@
     },
     {
       "id": "timber_forestry-type_wood_reused",
-      "name_zh": "Wood (re-used)",
+      "name_zh": "木材（再利用）",
       "name_en": "Wood (re-used)",
       "scope": 3,
       "category": "Timber and Forestry Products",
@@ -2335,7 +2335,7 @@
     },
     {
       "id": "timber_forestry-type_wood_closed_loop_source",
-      "name_zh": "Wood (closed-loop)",
+      "name_zh": "木材（闭环）",
       "name_en": "Wood (closed-loop)",
       "scope": 3,
       "category": "Timber and Forestry Products",
@@ -2346,7 +2346,7 @@
     },
     {
       "id": "chemicals-type_dyestuffs_agro_chemicals",
-      "name_zh": "Dyestuffs / agro-chemicals",
+      "name_zh": "染料/农用化学品",
       "name_en": "Dyestuffs / agro-chemicals",
       "scope": 3,
       "category": "Chemical Products",
@@ -2357,7 +2357,7 @@
     },
     {
       "id": "chemicals-type_industrial_gases_inorganics_and_fertilisers",
-      "name_zh": "Industrial gases / inorganics and fertilisers",
+      "name_zh": "工业气体/无机物和肥料",
       "name_en": "Industrial gases / inorganics and fertilisers",
       "scope": 3,
       "category": "Chemical Products",
@@ -2368,7 +2368,7 @@
     },
     {
       "id": "chemicals-type_other_chemical_products",
-      "name_zh": "Other chemical products",
+      "name_zh": "其他化工产品",
       "name_en": "Other chemical products",
       "scope": 3,
       "category": "Chemical Products",
@@ -2379,7 +2379,7 @@
     },
     {
       "id": "chemicals-type_paints_varnishes_and_similar_coatings_printing_ink_and_mastics",
-      "name_zh": "Paints / varnishes and similar coatings / printing ink and mastics",
+      "name_zh": "油漆/清漆及类似涂料/印刷油墨和胶粘剂",
       "name_en": "Paints / varnishes and similar coatings / printing ink and mastics",
       "scope": 3,
       "category": "Chemical Products",
@@ -2390,7 +2390,7 @@
     },
     {
       "id": "chemicals-type_petrochemicals",
-      "name_zh": "Petrochemicals",
+      "name_zh": "石油化工产品",
       "name_en": "Petrochemicals",
       "scope": 3,
       "category": "Chemical Products",
@@ -2401,7 +2401,7 @@
     },
     {
       "id": "construction-type_buildings_and_building_construction_works",
-      "name_zh": "Buildings and building construction works",
+      "name_zh": "建筑物和建筑施工工程",
       "name_en": "Buildings and building construction works",
       "scope": 3,
       "category": "Construction",
@@ -2412,7 +2412,7 @@
     },
     {
       "id": "construction-type_constructions_and_construction_works_for_civil_engineering",
-      "name_zh": "Constructions and construction works for civil engineering",
+      "name_zh": "土木工程建筑和施工工程",
       "name_en": "Constructions and construction works for civil engineering",
       "scope": 3,
       "category": "Construction",
@@ -2423,7 +2423,7 @@
     },
     {
       "id": "construction-type_specialised_construction_works",
-      "name_zh": "Specialised construction works",
+      "name_zh": "专业建筑工程",
       "name_en": "Specialised construction works",
       "scope": 3,
       "category": "Construction",
@@ -2434,7 +2434,7 @@
     },
     {
       "id": "consumer_goods-type_alcoholic_beverages",
-      "name_zh": "Alcoholic beverages",
+      "name_zh": "酒精饮料",
       "name_en": "Alcoholic beverages",
       "scope": 3,
       "category": "Food/Beverages/Tobacco",
@@ -2445,7 +2445,7 @@
     },
     {
       "id": "consumer_goods-type_bakery_and_farinaceous_products",
-      "name_zh": "Bakery and farinaceous products",
+      "name_zh": "烘焙和面制品",
       "name_en": "Bakery and farinaceous products",
       "scope": 3,
       "category": "Food/Beverages/Tobacco",
@@ -2456,7 +2456,7 @@
     },
     {
       "id": "consumer_goods-type_dairy_products",
-      "name_zh": "Dairy products",
+      "name_zh": "乳制品",
       "name_en": "Dairy products",
       "scope": 3,
       "category": "Food/Beverages/Tobacco",
@@ -2467,7 +2467,7 @@
     },
     {
       "id": "consumer_goods-type_furniture",
-      "name_zh": "Furniture",
+      "name_zh": "家具",
       "name_en": "Furniture",
       "scope": 3,
       "category": "Furnishings and Household",
@@ -2478,7 +2478,7 @@
     },
     {
       "id": "consumer_goods-type_grain_mill_products_starches_and_starch_products",
-      "name_zh": "Grain mill products / starches and starch products",
+      "name_zh": "谷物碾磨产品/淀粉及淀粉制品",
       "name_en": "Grain mill products / starches and starch products",
       "scope": 3,
       "category": "Food/Beverages/Tobacco",
@@ -2489,7 +2489,7 @@
     },
     {
       "id": "consumer_goods-type_leather_and_related_products",
-      "name_zh": "Leather and related products",
+      "name_zh": "皮革及相关产品",
       "name_en": "Leather and related products",
       "scope": 3,
       "category": "Clothing and Footwear",
@@ -2500,7 +2500,7 @@
     },
     {
       "id": "consumer_goods-type_other_food_products",
-      "name_zh": "Other food products",
+      "name_zh": "其他食品",
       "name_en": "Other food products",
       "scope": 3,
       "category": "Food/Beverages/Tobacco",
@@ -2511,7 +2511,7 @@
     },
     {
       "id": "consumer_goods-type_preserved_meat_and_meat_products",
-      "name_zh": "Preserved meat and meat products",
+      "name_zh": "腌肉和肉制品",
       "name_en": "Preserved meat and meat products",
       "scope": 3,
       "category": "Food/Beverages/Tobacco",
@@ -2522,7 +2522,7 @@
     },
     {
       "id": "consumer_goods-type_processed_and_preserved_fish_crustaceans_molluscs_fruit_and_vegetables",
-      "name_zh": "Processed and preserved fish / crustaceans / molluscs / fruit and vegetables",
+      "name_zh": "加工和保藏的鱼/甲壳类/软体动物/水果和蔬菜",
       "name_en": "Processed and preserved fish / crustaceans / molluscs / fruit and vegetables",
       "scope": 3,
       "category": "Food/Beverages/Tobacco",
@@ -2533,7 +2533,7 @@
     },
     {
       "id": "consumer_goods-type_soap_and_detergents_cleaning_and_polishing_preparations_perfumes_and_toilet_preparations",
-      "name_zh": "Soap and detergents / cleaning and polishing preparations / perfumes and toilet preparations",
+      "name_zh": "肥皂和洗涤剂/清洁和抛光剂/香水和盥洗用品",
       "name_en": "Soap and detergents / cleaning and polishing preparations / perfumes and toilet preparations",
       "scope": 3,
       "category": "Furnishings and Household",
@@ -2544,7 +2544,7 @@
     },
     {
       "id": "consumer_goods-type_soft_drinks",
-      "name_zh": "Soft drinks",
+      "name_zh": "软饮料",
       "name_en": "Soft drinks",
       "scope": 3,
       "category": "Food/Beverages/Tobacco",
@@ -2555,7 +2555,7 @@
     },
     {
       "id": "consumer_goods-type_tobacco_products",
-      "name_zh": "Tobacco products",
+      "name_zh": "烟草制品",
       "name_en": "Tobacco products",
       "scope": 3,
       "category": "Food/Beverages/Tobacco",
@@ -2566,7 +2566,7 @@
     },
     {
       "id": "consumer_goods-type_vegetable_and_animal_oils_and_fats",
-      "name_zh": "Vegetable and animal oils and fats",
+      "name_zh": "植物和动物油脂",
       "name_en": "Vegetable and animal oils and fats",
       "scope": 3,
       "category": "Food/Beverages/Tobacco",
@@ -2577,7 +2577,7 @@
     },
     {
       "id": "consumer_goods-type_wearing_apparel",
-      "name_zh": "Wearing apparel",
+      "name_zh": "服装",
       "name_en": "Wearing apparel",
       "scope": 3,
       "category": "Clothing and Footwear",
@@ -2588,7 +2588,7 @@
     },
     {
       "id": "consumer_services-type_food_and_beverage_serving_services",
-      "name_zh": "Food and beverage serving services",
+      "name_zh": "餐饮服务",
       "name_en": "Food and beverage serving services",
       "scope": 3,
       "category": "Food and Beverage Services",
@@ -2599,7 +2599,7 @@
     },
     {
       "id": "electrical_equipment-type_electrical_equipment",
-      "name_zh": "Electrical equipment",
+      "name_zh": "电气设备",
       "name_en": "Electrical equipment",
       "scope": 3,
       "category": "Electrical Equipment",
@@ -2610,7 +2610,7 @@
     },
     {
       "id": "electronics-type_computer_electronic_and_optical_products",
-      "name_zh": "Computer / electronic and optical products",
+      "name_zh": "计算机/电子和光学产品",
       "name_en": "Computer / electronic and optical products",
       "scope": 3,
       "category": "Electronics",
@@ -2621,7 +2621,7 @@
     },
     {
       "id": "machinery-type_air_and_spacecraft_and_related_machinery",
-      "name_zh": "Air and spacecraft and related machinery",
+      "name_zh": "航空和航天器及相关机械",
       "name_en": "Air and spacecraft and related machinery",
       "scope": 3,
       "category": "Machinery",
@@ -2632,7 +2632,7 @@
     },
     {
       "id": "machinery-type_machinery_and_equipment_not_specific",
-      "name_zh": "Machinery / equipment not specific",
+      "name_zh": "机械/设备（未特定）",
       "name_en": "Machinery / equipment not specific",
       "scope": 3,
       "category": "Machinery",
@@ -2643,7 +2643,7 @@
     },
     {
       "id": "manufacturing-type_other_manufactured_goods",
-      "name_zh": "Other manufactured goods",
+      "name_zh": "其他制成品",
       "name_en": "Other manufactured goods",
       "scope": 3,
       "category": "Manufacturing",
@@ -2654,7 +2654,7 @@
     },
     {
       "id": "metal_products-type_fabricated_metal_products_excl_machinery_and_equipment_and_weapons_ammunition",
-      "name_zh": "Fabricated metal products (except machinery and equipment and weapons / ammunition)",
+      "name_zh": "金属制品（不含机械设备和武器弹药）",
       "name_en": "Fabricated metal products (except machinery and equipment and weapons / ammunition)",
       "scope": 3,
       "category": "Fabricated Metal Products",
@@ -2665,7 +2665,7 @@
     },
     {
       "id": "metal_products-type_weapons_and_ammunition",
-      "name_zh": "Weapons and ammunition",
+      "name_zh": "武器和弹药",
       "name_en": "Weapons and ammunition",
       "scope": 3,
       "category": "Fabricated Metal Products",
@@ -2676,7 +2676,7 @@
     },
     {
       "id": "metals-type_basic_iron_and_steel",
-      "name_zh": "Basic iron and steel",
+      "name_zh": "基础钢铁",
       "name_en": "Basic iron and steel",
       "scope": 3,
       "category": "Metals",
@@ -2687,7 +2687,7 @@
     },
     {
       "id": "metals-type_other_basic_metals_and_casting",
-      "name_zh": "Other basic metals and casting",
+      "name_zh": "其他基础金属及铸造",
       "name_en": "Other basic metals and casting",
       "scope": 3,
       "category": "Metals",
@@ -2698,7 +2698,7 @@
     },
     {
       "id": "mining-type_mining_support_services",
-      "name_zh": "Mining support services",
+      "name_zh": "采矿支持服务",
       "name_en": "Mining support services",
       "scope": 3,
       "category": "Mining",
@@ -2709,7 +2709,7 @@
     },
     {
       "id": "mining-type_other_mining_and_quarrying_products",
-      "name_zh": "Other mining and quarrying products",
+      "name_zh": "其他采矿和采石产品",
       "name_en": "Other mining and quarrying products",
       "scope": 3,
       "category": "Mining",
@@ -2720,7 +2720,7 @@
     },
     {
       "id": "paper_products-type_paper_and_paper_products",
-      "name_zh": "Paper and paper products",
+      "name_zh": "纸和纸制品",
       "name_en": "Paper and paper products",
       "scope": 3,
       "category": "Paper Products",
@@ -2731,7 +2731,7 @@
     },
     {
       "id": "paper_products-type_printing_and_recording_services",
-      "name_zh": "Printing and recording services",
+      "name_zh": "印刷和记录服务",
       "name_en": "Printing and recording services",
       "scope": 3,
       "category": "Paper Products",
@@ -2742,7 +2742,7 @@
     },
     {
       "id": "textiles-type_textiles",
-      "name_zh": "Textiles",
+      "name_zh": "纺织品",
       "name_en": "Textiles",
       "scope": 3,
       "category": "Textiles",
@@ -2753,7 +2753,7 @@
     },
     {
       "id": "timber_forestry-type_products_of_forestry_logging_and_related_services",
-      "name_zh": "Products of forestry / logging and related services",
+      "name_zh": "林业/伐木及相关服务产品",
       "name_en": "Products of forestry / logging and related services",
       "scope": 3,
       "category": "Timber and Forestry Products",
@@ -2764,7 +2764,7 @@
     },
     {
       "id": "timber_forestry-type_wood_and_products_of_wood_and_cork_except_furniture_articles_of_straw_and_plaiting_materials",
-      "name_zh": "Wood and products of wood and cork (except furniture) / articles of straw and plaiting materials",
+      "name_zh": "木材及木/软木制品（不含家具）及秸秆编制材料",
       "name_en": "Wood and products of wood and cork (except furniture) / articles of straw and plaiting materials",
       "scope": 3,
       "category": "Timber and Forestry Products",
@@ -2775,7 +2775,7 @@
     },
     {
       "id": "ceramics-type_pottery_ceramics_and_plumbing_fixture-size_na",
-      "name_zh": "Pottery/ceramics and plumbing fixture manufacturing",
+      "name_zh": "陶器/陶瓷及卫浴洁具制造",
       "name_en": "Pottery/ceramics and plumbing fixture manufacturing",
       "scope": 3,
       "category": "Ceramic Goods",
@@ -2786,7 +2786,7 @@
     },
     {
       "id": "chemicals-type_adhesives",
-      "name_zh": "Adhesives",
+      "name_zh": "粘合剂",
       "name_en": "Adhesives",
       "scope": 3,
       "category": "Chemical Products",
@@ -2797,7 +2797,7 @@
     },
     {
       "id": "chemicals-type_all_other_basic_organic_chemicals",
-      "name_zh": "All other basic organic chemical manufacturing",
+      "name_zh": "所有其他基本有机化学品制造",
       "name_en": "All other basic organic chemical manufacturing",
       "scope": 3,
       "category": "Chemical Products",
@@ -2819,7 +2819,7 @@
     },
     {
       "id": "chemicals-type_artificial_and_synthetic_fibers_and_filaments",
-      "name_zh": "Artificial and synthetic fibers and filaments manufacturing",
+      "name_zh": "人造及合成纤维和长丝制造",
       "name_en": "Artificial and synthetic fibers and filaments manufacturing",
       "scope": 3,
       "category": "Chemical Products",
@@ -2830,7 +2830,7 @@
     },
     {
       "id": "chemicals-type_custom_compounding_of_purchased_resins",
-      "name_zh": "Custom compounding of purchased resins",
+      "name_zh": "定制树脂配制",
       "name_en": "Custom compounding of purchased resins",
       "scope": 3,
       "category": "Chemical Products",
@@ -2841,7 +2841,7 @@
     },
     {
       "id": "chemicals-type_cyclic_crude_intermediate_and_gum_and_wood_chemical",
-      "name_zh": "Cyclic crude/intermediate and gum and wood chemical manufacturing",
+      "name_zh": "环状原油/中间体及树胶/木材化学品制造",
       "name_en": "Cyclic crude/intermediate and gum and wood chemical manufacturing",
       "scope": 3,
       "category": "Chemical Products",
@@ -2852,7 +2852,7 @@
     },
     {
       "id": "construction-type_all_other_specialty_trade_contractors",
-      "name_zh": "All other specialty trade contractors",
+      "name_zh": "所有其他专业贸易承包商",
       "name_en": "All other specialty trade contractors",
       "scope": 3,
       "category": "Construction",
@@ -2863,7 +2863,7 @@
     },
     {
       "id": "construction-type_commercial_and_institutional_building_construction",
-      "name_zh": "Commercial and institutional building construction",
+      "name_zh": "商业和机构建筑建设",
       "name_en": "Commercial and institutional building construction",
       "scope": 3,
       "category": "Construction",
@@ -2874,7 +2874,7 @@
     },
     {
       "id": "construction-type_drywall_and_insulation_contractors",
-      "name_zh": "Drywall and insulation contractors",
+      "name_zh": "干墙和保温承包商",
       "name_en": "Drywall and insulation contractors",
       "scope": 3,
       "category": "Construction",
@@ -2885,7 +2885,7 @@
     },
     {
       "id": "construction-type_electrical_contractors_and_other_wiring_installation_contractors",
-      "name_zh": "Electrical contractors and other wiring installation contractors",
+      "name_zh": "电气承包商及其他布线安装承包商",
       "name_en": "Electrical contractors and other wiring installation contractors",
       "scope": 3,
       "category": "Construction",
@@ -2896,7 +2896,7 @@
     },
     {
       "id": "construction-type_finish_carpentry_contractors",
-      "name_zh": "Finish carpentry contractors",
+      "name_zh": "细木工承包商",
       "name_en": "Finish carpentry contractors",
       "scope": 3,
       "category": "Construction",
@@ -2907,7 +2907,7 @@
     },
     {
       "id": "construction-type_flooring_contractors",
-      "name_zh": "Flooring contractors",
+      "name_zh": "地板承包商",
       "name_en": "Flooring contractors",
       "scope": 3,
       "category": "Construction",
@@ -2918,7 +2918,7 @@
     },
     {
       "id": "construction-type_framing_contractors",
-      "name_zh": "Framing contractors",
+      "name_zh": "框架承包商",
       "name_en": "Framing contractors",
       "scope": 3,
       "category": "Construction",
@@ -2929,7 +2929,7 @@
     },
     {
       "id": "construction-type_glass_and_glazing_contractors",
-      "name_zh": "Glass and glazing contractors",
+      "name_zh": "玻璃和玻璃安装承包商",
       "name_en": "Glass and glazing contractors",
       "scope": 3,
       "category": "Construction",
@@ -2940,7 +2940,7 @@
     },
     {
       "id": "construction-type_highway_street_and_bridge_construction",
-      "name_zh": "Highway/street and bridge construction",
+      "name_zh": "公路/街道和桥梁建设",
       "name_en": "Highway/street and bridge construction",
       "scope": 3,
       "category": "Construction",
@@ -2951,7 +2951,7 @@
     },
     {
       "id": "consumer_goods-type_all_other_leather_good_and_allied_product",
-      "name_zh": "All other leather good and allied product manufacturing",
+      "name_zh": "所有其他皮革及同类产品制造",
       "name_en": "All other leather good and allied product manufacturing",
       "scope": 3,
       "category": "Clothing and Footwear",
@@ -2962,7 +2962,7 @@
     },
     {
       "id": "consumer_goods-type_all_other_miscellaneous",
-      "name_zh": "All other miscellaneous manufacturing",
+      "name_zh": "所有其他杂项制造",
       "name_en": "All other miscellaneous manufacturing",
       "scope": 3,
       "category": "Furnishings and Household",
@@ -2973,7 +2973,7 @@
     },
     {
       "id": "consumer_goods-type_all_other_miscellaneous_food",
-      "name_zh": "All other miscellaneous food manufacturing",
+      "name_zh": "所有其他杂项食品制造",
       "name_en": "All other miscellaneous food manufacturing",
       "scope": 3,
       "category": "Food/Beverages/Tobacco",
@@ -2984,7 +2984,7 @@
     },
     {
       "id": "consumer_goods-type_all_other_miscellaneous_textile_product_mills",
-      "name_zh": "All other miscellaneous textile product mills",
+      "name_zh": "所有其他杂项纺织产品厂",
       "name_en": "All other miscellaneous textile product mills",
       "scope": 3,
       "category": "Furnishings and Household",
@@ -2995,7 +2995,7 @@
     },
     {
       "id": "consumer_goods-type_all_other_miscellaneous_wood_products",
-      "name_zh": "All other miscellaneous wood product manufacturing",
+      "name_zh": "所有其他杂项木制品制造",
       "name_en": "All other miscellaneous wood product manufacturing",
       "scope": 3,
       "category": "Furnishings and Household",
@@ -3006,7 +3006,7 @@
     },
     {
       "id": "consumer_goods-type_apparel_accessories_and_other_apparel",
-      "name_zh": "Apparel accessories and other apparel manufacturing",
+      "name_zh": "服装配饰及其他服装制造",
       "name_en": "Apparel accessories and other apparel manufacturing",
       "scope": 3,
       "category": "Clothing and Footwear",
@@ -3017,7 +3017,7 @@
     },
     {
       "id": "consumer_goods-type_appliance_repair_and_maintenance",
-      "name_zh": "Appliance repair and maintenance",
+      "name_zh": "家电维修与保养",
       "name_en": "Appliance repair and maintenance",
       "scope": 3,
       "category": "Furnishings and Household",
@@ -3028,7 +3028,7 @@
     },
     {
       "id": "consumer_goods-type_barber_shops",
-      "name_zh": "Barber shops",
+      "name_zh": "理发店",
       "name_en": "Barber shops",
       "scope": 3,
       "category": "Personal Care and Accessories",
@@ -3039,7 +3039,7 @@
     },
     {
       "id": "consumer_goods-type_beauty_salons",
-      "name_zh": "Beauty salons",
+      "name_zh": "美容院",
       "name_en": "Beauty salons",
       "scope": 3,
       "category": "Personal Care and Accessories",
@@ -3050,7 +3050,7 @@
     },
     {
       "id": "consumer_goods-type_blind_and_shade",
-      "name_zh": "Blind and shade manufacturing",
+      "name_zh": "百叶窗和遮阳帘制造",
       "name_en": "Blind and shade manufacturing",
       "scope": 3,
       "category": "Furnishings and Household",
@@ -3061,7 +3061,7 @@
     },
     {
       "id": "consumer_goods-type_broadwoven_fabric_mills",
-      "name_zh": "Broadwoven fabric mills",
+      "name_zh": "阔幅织物厂",
       "name_en": "Broadwoven fabric mills",
       "scope": 3,
       "category": "Furnishings and Household",
@@ -3072,7 +3072,7 @@
     },
     {
       "id": "consumer_goods-type_broom_brush_and_mop",
-      "name_zh": "Broom/brush and mop manufacturing",
+      "name_zh": "扫帚/刷子和拖把制造",
       "name_en": "Broom/brush and mop manufacturing",
       "scope": 3,
       "category": "Furnishings and Household",
@@ -3083,7 +3083,7 @@
     },
     {
       "id": "consumer_goods-type_burial_casket",
-      "name_zh": "Burial casket manufacturing",
+      "name_zh": "棺材制造",
       "name_en": "Burial casket manufacturing",
       "scope": 3,
       "category": "Furnishings and Household",
@@ -3094,7 +3094,7 @@
     },
     {
       "id": "consumer_goods-type_carpets_rugs",
-      "name_zh": "Carpets and rugs",
+      "name_zh": "地毯和地垫",
       "name_en": "Carpets and rugs",
       "scope": 3,
       "category": "Furnishings and Household",
@@ -3105,7 +3105,7 @@
     },
     {
       "id": "consumer_goods-type_childrens_and_infants_clothing_stores",
-      "name_zh": "Children's and infants' clothing stores",
+      "name_zh": "童装和婴儿服装店",
       "name_en": "Children's and infants' clothing stores",
       "scope": 3,
       "category": "Clothing and Footwear",
@@ -3116,7 +3116,7 @@
     },
     {
       "id": "consumer_goods-type_clothing_accessories_stores",
-      "name_zh": "Clothing accessories stores",
+      "name_zh": "服装配饰店",
       "name_en": "Clothing accessories stores",
       "scope": 3,
       "category": "Clothing and Footwear",
@@ -3127,7 +3127,7 @@
     },
     {
       "id": "consumer_goods-type_coin_operated_laundries_and_drycleaners",
-      "name_zh": "Coin-operated laundries and drycleaners",
+      "name_zh": "投币洗衣店和干洗店",
       "name_en": "Coin-operated laundries and drycleaners",
       "scope": 3,
       "category": "Clothing and Footwear",
@@ -3138,7 +3138,7 @@
     },
     {
       "id": "consumer_goods-type_curtains_linens",
-      "name_zh": "Curtains and linens",
+      "name_zh": "窗帘和床品",
       "name_en": "Curtains and linens",
       "scope": 3,
       "category": "Furnishings and Household",
@@ -3149,7 +3149,7 @@
     },
     {
       "id": "consumer_goods-type_cut_and_sew_apparel_contractors",
-      "name_zh": "Cut and sew apparel contractors",
+      "name_zh": "剪裁缝制服装承包商",
       "name_en": "Cut and sew apparel contractors",
       "scope": 3,
       "category": "Clothing and Footwear",
@@ -3160,7 +3160,7 @@
     },
     {
       "id": "consumer_goods-type_diet_and_weight_reducing_centers",
-      "name_zh": "Diet and weight reducing centers",
+      "name_zh": "减肥中心",
       "name_en": "Diet and weight reducing centers",
       "scope": 3,
       "category": "Personal Care and Accessories",
@@ -3171,7 +3171,7 @@
     },
     {
       "id": "consumer_goods-type_drycleaning_and_laundry_services_except_coin_operated",
-      "name_zh": "Dry-cleaning and laundry",
+      "name_zh": "干洗和洗衣服务",
       "name_en": "Dry-cleaning and laundry",
       "scope": 3,
       "category": "Clothing and Footwear",
@@ -3182,7 +3182,7 @@
     },
     {
       "id": "consumer_goods-type_family_clothing_stores",
-      "name_zh": "Family clothing stores",
+      "name_zh": "家庭服装店",
       "name_en": "Family clothing stores",
       "scope": 3,
       "category": "Clothing and Footwear",
@@ -3193,7 +3193,7 @@
     },
     {
       "id": "consumer_goods-type_jewelry_silverware",
-      "name_zh": "Jewelry and silverware",
+      "name_zh": "珠宝和银器",
       "name_en": "Jewelry and silverware",
       "scope": 3,
       "category": "Personal Care and Accessories",
@@ -3204,7 +3204,7 @@
     },
     {
       "id": "consumer_goods-type_nail_salons",
-      "name_zh": "Nail salons",
+      "name_zh": "美甲沙龙",
       "name_en": "Nail salons",
       "scope": 3,
       "category": "Personal Care and Accessories",
@@ -3215,7 +3215,7 @@
     },
     {
       "id": "consumer_goods-type_other_personal_care_services",
-      "name_zh": "Other personal care services",
+      "name_zh": "其他个人护理服务",
       "name_en": "Other personal care services",
       "scope": 3,
       "category": "Personal Care and Accessories",
@@ -3226,7 +3226,7 @@
     },
     {
       "id": "consumer_goods-type_snack_foods",
-      "name_zh": "Snack and nonalcoholic beverage bars",
+      "name_zh": "小吃和非酒精饮料吧",
       "name_en": "Snack and nonalcoholic beverage bars",
       "scope": 3,
       "category": "Food and Beverage Services",
@@ -3237,7 +3237,7 @@
     },
     {
       "id": "consumer_goods-type_toiletries",
-      "name_zh": "Toilet preparation manufacturing",
+      "name_zh": "化妆品制造",
       "name_en": "Toilet preparation manufacturing",
       "scope": 3,
       "category": "Personal Care and Accessories",
@@ -3248,7 +3248,7 @@
     },
     {
       "id": "consumer_services-type_cafeterias_grill_buffets_and_buffets",
-      "name_zh": "Cafeterias/grill buffets and buffets",
+      "name_zh": "自助餐厅/烧烤自助",
       "name_en": "Cafeterias/grill buffets and buffets",
       "scope": 3,
       "category": "Food and Beverage Services",
@@ -3259,7 +3259,7 @@
     },
     {
       "id": "consumer_services-type_caterers",
-      "name_zh": "Caterers",
+      "name_zh": "餐饮服务商",
       "name_en": "Caterers",
       "scope": 3,
       "category": "Food and Beverage Services",
@@ -3270,7 +3270,7 @@
     },
     {
       "id": "consumer_services-type_drinking_places_alcoholic_beverages",
-      "name_zh": "Drinking places (alcoholic beverages)",
+      "name_zh": "饮酒场所（酒精饮料）",
       "name_en": "Drinking places (alcoholic beverages)",
       "scope": 3,
       "category": "Food and Beverage Services",
@@ -3281,7 +3281,7 @@
     },
     {
       "id": "consumer_services-type_food_service_contractors",
-      "name_zh": "Food service contractors",
+      "name_zh": "餐饮服务承包商",
       "name_en": "Food service contractors",
       "scope": 3,
       "category": "Food and Beverage Services",
@@ -3292,7 +3292,7 @@
     },
     {
       "id": "consumer_services-type_full_service_restaurants",
-      "name_zh": "Full-service restaurants",
+      "name_zh": "全服务餐厅",
       "name_en": "Full-service restaurants",
       "scope": 3,
       "category": "Food and Beverage Services",
