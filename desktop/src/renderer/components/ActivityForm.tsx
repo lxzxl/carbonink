@@ -316,7 +316,11 @@ export function ActivityForm({
         e.preventDefault();
         form.handleSubmit();
       }}
-      className="space-y-4 max-w-2xl mt-4 rounded-md border border-border bg-muted/30 p-4"
+      // max-w-3xl keeps fields readable while letting the form breathe
+      // now that it owns the content area (the parent route hides the
+      // list while the form is open, so we no longer have to fight a
+      // sibling list for vertical space).
+      className="space-y-5 max-w-3xl rounded-lg border border-border bg-card p-6 shadow-sm"
     >
       <form.Field
         name="emission_source_id"

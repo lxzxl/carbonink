@@ -227,9 +227,15 @@ function ActivitiesList({ organizationId }: { organizationId: string }) {
       <div className="shrink-0 space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold">{m.nav_activities()}</h1>
-          <Button onClick={() => setFormOpen((v) => !v)}>
-            {formOpen ? m.sources_cancel_button() : m.activities_add_button()}
-          </Button>
+          {/* Top-right CTA only shows in browse mode. While the form is
+           * open the page is in create-mode and the form has its own
+           * Cancel/Submit pair at the bottom — a second "取消" up here
+           * (previously rendered in filled-primary green) duplicated the
+           * action and broke the rule that filled primary is reserved
+           * for the ONE most important action on the page. */}
+          {!formOpen && (
+            <Button onClick={() => setFormOpen(true)}>{m.activities_add_button()}</Button>
+          )}
         </div>
 
         {formOpen && (
@@ -241,9 +247,10 @@ function ActivitiesList({ organizationId }: { organizationId: string }) {
           />
         )}
 
-        {/* Filter + sort. Hidden when the org has no activities yet (the
-         * empty-state CTA below is the only thing the user needs). */}
-        {activities.length > 0 && (
+        {/* Filter + sort. Hidden when the org has no activities yet OR
+         * when the create form is open — the user is in a different
+         * mode and search/scope/sort have nothing to control. */}
+        {!formOpen && activities.length > 0 && (
           <div className="space-y-3">
             <div className="relative">
               <Search
@@ -296,7 +303,10 @@ function ActivitiesList({ organizationId }: { organizationId: string }) {
         )}
       </div>
 
-      {activities.length === 0 ? (
+      {/* The list region disappears entirely while the user is creating
+       * an activity — the form already fills the content area and a
+       * second scrolling list below would compete for attention. */}
+      {formOpen ? null : activities.length === 0 ? (
         <p className="shrink-0 text-sm text-muted-foreground">{m.activities_empty()}</p>
       ) : visible.length === 0 ? (
         <div className="flex-1 flex min-h-0 flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border bg-card/40 p-8 text-sm text-muted-foreground">
