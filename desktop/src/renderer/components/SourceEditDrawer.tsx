@@ -65,7 +65,13 @@ export function SourceEditDrawer({ source, open, onClose }: SourceEditDrawerProp
     mutationFn: (input: Parameters<typeof sourceApi.update>[0]) => sourceApi.update(input),
     onSuccess: () => {
       toast.success(m.source_edit_success());
-      queryClient.invalidateQueries({ queryKey: ['source:list-by-org'] });
+      // Prefix-match invalidation covers both `source:list-by-org` and
+      // `source:list-by-org-with-stats` — see SourceCatalogDrawer for
+      // the longer rationale.
+      queryClient.invalidateQueries({
+        predicate: (q) =>
+          typeof q.queryKey[0] === 'string' && q.queryKey[0].startsWith('source:list-by-org'),
+      });
       onClose();
     },
     onError: (err) => {

@@ -41,7 +41,14 @@ export function SourceForm({ organizationId, onCancel, onSuccess }: SourceFormPr
   const createSource = useMutation({
     mutationFn: sourceApi.create,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['source:list-by-org', organizationId] });
+      // Both the plain `source:list-by-org` and the stats variant feed
+      // different surfaces — invalidate by prefix so a newly created
+      // source shows up everywhere without remembering which queries
+      // exist where.
+      await queryClient.invalidateQueries({
+        predicate: (q) =>
+          typeof q.queryKey[0] === 'string' && q.queryKey[0].startsWith('source:list-by-org'),
+      });
       onSuccess();
     },
     onError: (err) => {

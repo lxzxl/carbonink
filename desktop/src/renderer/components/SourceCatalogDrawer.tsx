@@ -190,7 +190,15 @@ export function SourceCatalogDrawer({ organizationId, open, onClose }: SourceCat
       sourceApi.addFromPresets({ organization_id: organizationId, preset_ids: presetIds }),
     onSuccess: (rows) => {
       toast.success(m.sources_catalog_batch_add_success({ count: String(rows.length) }));
-      queryClient.invalidateQueries({ queryKey: ['source:list-by-org', organizationId] });
+      // Invalidate every org-scoped source list — both the plain
+      // `source:list-by-org` (used by the catalog's own "already added"
+      // detection + dashboard + extraction review + activities picker)
+      // and `source:list-by-org-with-stats` (used by /sources cards).
+      // The predicate keeps us honest if a third variant ever shows up.
+      queryClient.invalidateQueries({
+        predicate: (q) =>
+          typeof q.queryKey[0] === 'string' && q.queryKey[0].startsWith('source:list-by-org'),
+      });
       setSelectedIds(new Set());
     },
     onError: (err) => {
