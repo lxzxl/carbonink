@@ -1,6 +1,8 @@
 import { ActivityForm } from '@renderer/components/ActivityForm';
 import { Main } from '@renderer/components/layout/main';
 import { RebindEfDrawer } from '@renderer/components/RebindEfDrawer';
+import { SortMenu, type SortMenuOption } from '@renderer/components/sort-menu';
+import { ChipCountBadge } from '@renderer/components/source-filters';
 import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
 import { activityApi } from '@renderer/lib/api/activity-data';
@@ -11,6 +13,7 @@ import * as m from '@renderer/paraglide/messages';
 import type { ActivityData, EmissionSource, ReportingPeriod } from '@shared/types';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Navigate } from '@tanstack/react-router';
+import { Search } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 /**
@@ -64,9 +67,18 @@ function ActivitiesRoute() {
   return <ActivitiesList organizationId={orgQuery.data.id} />;
 }
 
+type ActivitySort = 'recent' | 'oldest' | 'co2e_desc' | 'co2e_asc' | 'source';
+type ActivityScopeFilter = 'all' | 1 | 2 | 3;
+
 function ActivitiesList({ organizationId }: { organizationId: string }) {
   const [formOpen, setFormOpen] = useState(false);
   const [rebindActivityId, setRebindActivityId] = useState<string | null>(null);
+
+  // Filter + sort UI state. Persists for the life of the page (no URL
+  // sync — these filters are exploratory, not bookmarkable).
+  const [search, setSearch] = useState('');
+  const [scopeFilter, setScopeFilter] = useState<ActivityScopeFilter>('all');
+  const [sort, setSort] = useState<ActivitySort>('recent');
 
   // Deep-link target from `?highlight=<activity_id>`. When set, we scroll
   // the matching row into view + draw a ring around it. The audit
@@ -119,6 +131,82 @@ function ActivitiesList({ organizationId }: { organizationId: string }) {
     return map;
   }, [sources]);
 
+  // ---- Filter pipeline (search → scope → sort) ----
+  // Activities don't carry scope directly; we derive it from the joined
+  // emission_source. Rows for sources the user deleted (or for fixtures
+  // where the source row is absent) fall through to scope `null` and
+  // get included in the "all" view only.
+  const searched = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return activities;
+    return activities.filter((a) => {
+      const src = sourceById.get(a.emission_source_id);
+      const name = (src?.name ?? a.emission_source_id).toLowerCase();
+      const unit = a.unit.toLowerCase();
+      const ef = a.ef_factor_code.toLowerCase();
+      return name.includes(q) || unit.includes(q) || ef.includes(q);
+    });
+  }, [activities, search, sourceById]);
+
+  const scopeCounts = useMemo(() => {
+    const counts = { all: searched.length, 1: 0, 2: 0, 3: 0 };
+    for (const a of searched) {
+      const s = sourceById.get(a.emission_source_id)?.scope;
+      if (s === 1 || s === 2 || s === 3) counts[s] += 1;
+    }
+    return counts;
+  }, [searched, sourceById]);
+
+  const scopeFiltered = useMemo(() => {
+    if (scopeFilter === 'all') return searched;
+    return searched.filter((a) => sourceById.get(a.emission_source_id)?.scope === scopeFilter);
+  }, [searched, scopeFilter, sourceById]);
+
+  // Sort is the last step. We never mutate; the comparator returns a
+  // new array (sort defaults to mutating in place, hence the spread).
+  const visible = useMemo(() => {
+    const arr = [...scopeFiltered];
+    switch (sort) {
+      case 'recent':
+        arr.sort((a, b) => b.occurred_at_end.localeCompare(a.occurred_at_end));
+        break;
+      case 'oldest':
+        arr.sort((a, b) => a.occurred_at_start.localeCompare(b.occurred_at_start));
+        break;
+      case 'co2e_desc':
+        arr.sort((a, b) => b.computed_co2e_kg - a.computed_co2e_kg);
+        break;
+      case 'co2e_asc':
+        arr.sort((a, b) => a.computed_co2e_kg - b.computed_co2e_kg);
+        break;
+      case 'source':
+        arr.sort((a, b) => {
+          const na = sourceById.get(a.emission_source_id)?.name ?? '';
+          const nb = sourceById.get(b.emission_source_id)?.name ?? '';
+          return na.localeCompare(nb, 'zh-CN');
+        });
+        break;
+    }
+    return arr;
+  }, [scopeFiltered, sort, sourceById]);
+
+  const sortOptions = useMemo<SortMenuOption<ActivitySort>[]>(
+    () => [
+      { value: 'recent', label: m.activities_sort_recent() },
+      { value: 'oldest', label: m.activities_sort_oldest() },
+      { value: 'co2e_desc', label: m.activities_sort_co2e_desc() },
+      { value: 'co2e_asc', label: m.activities_sort_co2e_asc() },
+      { value: 'source', label: m.activities_sort_source() },
+    ],
+    [],
+  );
+
+  const resetFilters = () => {
+    setSearch('');
+    setScopeFilter('all');
+  };
+  const filtersActive = search !== '' || scopeFilter !== 'all';
+
   // Scroll the deep-link target into view once the list has actually
   // landed. `activities.length` in the deps gates the effect on the
   // first non-empty render — before that the ref is null. We don't
@@ -152,10 +240,77 @@ function ActivitiesList({ organizationId }: { organizationId: string }) {
             onSuccess={() => setFormOpen(false)}
           />
         )}
+
+        {/* Filter + sort. Hidden when the org has no activities yet (the
+         * empty-state CTA below is the only thing the user needs). */}
+        {activities.length > 0 && (
+          <div className="space-y-3">
+            <div className="relative">
+              <Search
+                className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden="true"
+              />
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={m.activities_search_placeholder()}
+                className="w-full rounded-md border border-border bg-background py-1.5 pl-8 pr-3 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring"
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex gap-1">
+                {(['all', 1, 2, 3] as const).map((s) => {
+                  const active = scopeFilter === s;
+                  const label =
+                    s === 'all'
+                      ? m.sources_catalog_scope_all()
+                      : s === 1
+                        ? m.sources_catalog_scope1_short()
+                        : s === 2
+                          ? m.sources_catalog_scope2_short()
+                          : m.sources_catalog_scope3_short();
+                  return (
+                    <button
+                      key={String(s)}
+                      type="button"
+                      onClick={() => setScopeFilter(s)}
+                      className={cn(
+                        'inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium transition-colors',
+                        active
+                          ? 'bg-foreground/12 text-foreground'
+                          : 'bg-transparent text-muted-foreground hover:bg-foreground/5',
+                      )}
+                    >
+                      <span>{label}</span>
+                      <ChipCountBadge count={scopeCounts[s]} active={active} />
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="ml-auto">
+                <SortMenu value={sort} onChange={setSort} options={sortOptions} />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {activities.length === 0 ? (
         <p className="shrink-0 text-sm text-muted-foreground">{m.activities_empty()}</p>
+      ) : visible.length === 0 ? (
+        <div className="flex-1 flex min-h-0 flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border bg-card/40 p-8 text-sm text-muted-foreground">
+          <p>{m.activities_filter_empty()}</p>
+          {filtersActive && (
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="rounded px-2 py-1 text-xs font-medium text-foreground/70 hover:bg-foreground/5"
+            >
+              {m.activities_filter_clear()}
+            </button>
+          )}
+        </div>
       ) : (
         // List container claims the remaining height and owns the scroll.
         // Each row stacks three lines vertically so wide EF descriptors and
@@ -164,7 +319,7 @@ function ActivitiesList({ organizationId }: { organizationId: string }) {
         // occurred_at_start may be ISO datetime or bare date; first 10 chars
         // are always YYYY-MM-DD for scannability.
         <ul className="flex-1 min-h-0 divide-y divide-border overflow-auto rounded-md border border-border bg-card">
-          {activities.map((a) => {
+          {visible.map((a) => {
             const src = sourceById.get(a.emission_source_id);
             const isHighlighted = a.id === highlight;
             return (

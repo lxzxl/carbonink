@@ -1,5 +1,6 @@
 import { ListItem } from '@renderer/components/app-shell/ListItem';
 import { AuditEventCard } from '@renderer/components/audit/AuditEventCard';
+import { SortMenu, type SortMenuOption } from '@renderer/components/sort-menu';
 import {
   ResizableHandle,
   ResizablePanel,
@@ -12,6 +13,8 @@ import { useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { FileSearch } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+
+type AuditSort = 'recent' | 'oldest';
 
 export const Route = createFileRoute('/audit')({ component: AuditPage });
 
@@ -70,6 +73,9 @@ export function AuditPage() {
   const [until, setUntil] = useState<string>(new Date().toISOString().slice(0, 10));
   const [limit, setLimit] = useState<number>(500);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  // Server returns recent-first; flipping is a client-side reverse since
+  // the dataset is bounded by `limit`.
+  const [sort, setSort] = useState<AuditSort>('recent');
 
   const queryInput = useMemo(() => {
     const input: {
@@ -89,11 +95,23 @@ export function AuditPage() {
     queryFn: () => auditApi.list(queryInput),
   });
 
-  const events = useMemo(() => eventsQuery.data ?? [], [eventsQuery.data]);
-  const canLoadOlder = events.length >= limit;
+  const rawEvents = useMemo(() => eventsQuery.data ?? [], [eventsQuery.data]);
+  const events = useMemo(() => {
+    if (sort === 'recent') return rawEvents;
+    return [...rawEvents].sort((a, b) => a.occurred_at.localeCompare(b.occurred_at));
+  }, [rawEvents, sort]);
+  const canLoadOlder = rawEvents.length >= limit;
   const selectedEvent = useMemo(
     () => events.find((e) => e.id === selectedEventId) ?? null,
     [events, selectedEventId],
+  );
+
+  const sortOptions = useMemo<SortMenuOption<AuditSort>[]>(
+    () => [
+      { value: 'recent', label: m.audit_sort_recent() },
+      { value: 'oldest', label: m.audit_sort_oldest() },
+    ],
+    [],
   );
 
   // Auto-select the first event whenever the list refreshes and the
@@ -186,7 +204,8 @@ export function AuditPage() {
                 />
               </label>
             </div>
-            <div className="flex justify-end">
+            <div className="flex items-center justify-between gap-2">
+              <SortMenu value={sort} onChange={setSort} options={sortOptions} />
               <button
                 type="button"
                 onClick={reset}

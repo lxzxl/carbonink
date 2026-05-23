@@ -160,7 +160,7 @@ function scopeLabel(scope: ScopeFilter): string {
  * as part of the label text. Without this, `燃料 12` parses visually
  * as "燃料12" — same color, same size, just an extra glyph.
  */
-function ChipCountBadge({ count, active }: { count: number; active: boolean }) {
+export function ChipCountBadge({ count, active }: { count: number; active: boolean }) {
   return (
     <span
       className={cn(

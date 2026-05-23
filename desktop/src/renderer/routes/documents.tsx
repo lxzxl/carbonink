@@ -1,5 +1,7 @@
 import { ListItem, StatusDot } from '@renderer/components/app-shell/ListItem';
 import { DocumentsUpload } from '@renderer/components/DocumentsUpload';
+import { SortMenu, type SortMenuOption } from '@renderer/components/sort-menu';
+import { ChipCountBadge } from '@renderer/components/source-filters';
 import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
 import {
@@ -11,11 +13,12 @@ import { documentApi } from '@renderer/lib/api/document';
 import { extractionApi } from '@renderer/lib/api/extraction';
 import { settingsApi } from '@renderer/lib/api/settings';
 import { stageLabel } from '@renderer/lib/stage-labels';
+import { cn } from '@renderer/lib/utils';
 import * as m from '@renderer/paraglide/messages';
 import type { Document, ExtractionStatus } from '@shared/types';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, Outlet, useParams } from '@tanstack/react-router';
-import { ChevronDown, Plus } from 'lucide-react';
+import { ChevronDown, Plus, Search } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 /**
@@ -159,6 +162,9 @@ function resolveStatusChip(
   return hasRejected ? 'rejected' : 'none';
 }
 
+type DocumentSort = 'recent' | 'oldest' | 'filename';
+type DocumentStatusFilter = 'all' | DocumentStatusChip;
+
 function DocumentsList() {
   // Detect the currently-selected doc id from the URL so the row gets a
   // selected highlight. strict:false because this component renders inside
@@ -175,6 +181,10 @@ function DocumentsList() {
     queryKey: ['extraction:list-statuses'],
     queryFn: extractionApi.listStatuses,
   });
+
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<DocumentStatusFilter>('all');
+  const [sort, setSort] = useState<DocumentSort>('recent');
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: deliberately excluding docsQuery.error from deps — refiring on each retry would dupe the toast.
   useEffect(() => {
@@ -194,6 +204,80 @@ function DocumentsList() {
     return map;
   }, [statusesQuery.data]);
 
+  /** Decorated docs carrying the resolved status chip — saves recomputing
+   *  it per render in the filter/sort pipeline below. */
+  const decoratedDocs = useMemo(() => {
+    return docs.map((d) => ({
+      doc: d,
+      chip: resolveStatusChip(
+        statusByDocId.get(d.id)?.active ?? null,
+        statusByDocId.get(d.id)?.hasRejected ?? false,
+      ),
+    }));
+  }, [docs, statusByDocId]);
+
+  const searched = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return decoratedDocs;
+    return decoratedDocs.filter(({ doc }) => doc.filename.toLowerCase().includes(q));
+  }, [decoratedDocs, search]);
+
+  const statusCounts = useMemo(() => {
+    const counts: Record<DocumentStatusFilter, number> = {
+      all: searched.length,
+      review_needed: 0,
+      parsed: 0,
+      rejected: 0,
+      none: 0,
+    };
+    for (const { chip } of searched) counts[chip] += 1;
+    return counts;
+  }, [searched]);
+
+  const statusFiltered = useMemo(() => {
+    if (statusFilter === 'all') return searched;
+    return searched.filter(({ chip }) => chip === statusFilter);
+  }, [searched, statusFilter]);
+
+  const visible = useMemo(() => {
+    const arr = [...statusFiltered];
+    switch (sort) {
+      case 'recent':
+        arr.sort((a, b) => b.doc.uploaded_at.localeCompare(a.doc.uploaded_at));
+        break;
+      case 'oldest':
+        arr.sort((a, b) => a.doc.uploaded_at.localeCompare(b.doc.uploaded_at));
+        break;
+      case 'filename':
+        arr.sort((a, b) => a.doc.filename.localeCompare(b.doc.filename, 'zh-CN'));
+        break;
+    }
+    return arr;
+  }, [statusFiltered, sort]);
+
+  const sortOptions = useMemo<SortMenuOption<DocumentSort>[]>(
+    () => [
+      { value: 'recent', label: m.documents_sort_recent() },
+      { value: 'oldest', label: m.documents_sort_oldest() },
+      { value: 'filename', label: m.documents_sort_filename() },
+    ],
+    [],
+  );
+
+  const STATUS_FILTERS: { value: DocumentStatusFilter; label: string }[] = [
+    { value: 'all', label: m.documents_filter_status_all() },
+    { value: 'parsed', label: STATUS_CHIP_LABELS.parsed() },
+    { value: 'review_needed', label: STATUS_CHIP_LABELS.review_needed() },
+    { value: 'rejected', label: STATUS_CHIP_LABELS.rejected() },
+    { value: 'none', label: STATUS_CHIP_LABELS.none() },
+  ];
+
+  const filtersActive = search !== '' || statusFilter !== 'all';
+  const resetFilters = () => {
+    setSearch('');
+    setStatusFilter('all');
+  };
+
   if (docsQuery.isLoading) {
     return <p className="px-4 py-3 text-sm text-muted-foreground">{m.loading()}</p>;
   }
@@ -202,32 +286,87 @@ function DocumentsList() {
   }
 
   return (
-    <ul className="py-1">
-      {docs.map((d) => {
-        const chip = resolveStatusChip(
-          statusByDocId.get(d.id)?.active ?? null,
-          statusByDocId.get(d.id)?.hasRejected ?? false,
-        );
-        return (
-          <ListItem
-            key={d.id}
-            to="/documents/$id"
-            params={{ id: d.id }}
-            ariaLabel={`${m.documents_open_row()} ${d.filename}`}
-            isSelected={d.id === selectedId}
-            leading={<StatusDot className={STATUS_DOT_CLASSES[chip]} />}
-            title={d.filename}
-            titleAttr={d.filename}
-            meta={
-              <>
-                <span>{d.uploaded_at.slice(0, 10)}</span>
-                <span>·</span>
-                <span>{stageLabel(d.doc_type)}</span>
-              </>
-            }
+    <div>
+      {/* Filter bar — sits under the upload panel inside the list column.
+       *  Compact: search box on row 1; status chip row + sort dropdown
+       *  on row 2 (chip row scrolls horizontally if many statuses, but
+       *  there are only 4 so it never does). */}
+      <div className="space-y-2 px-4 py-3 border-b border-border/40">
+        <div className="relative">
+          <Search
+            className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
+            aria-hidden="true"
           />
-        );
-      })}
-    </ul>
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={m.documents_search_placeholder()}
+            className="w-full rounded-md border border-border bg-background py-1 pl-7 pr-2 text-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring"
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-1">
+          {STATUS_FILTERS.map(({ value, label }) => {
+            const active = statusFilter === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setStatusFilter(value)}
+                className={cn(
+                  'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium transition-colors',
+                  active
+                    ? 'bg-foreground/12 text-foreground'
+                    : 'bg-transparent text-muted-foreground hover:bg-foreground/5',
+                )}
+              >
+                <span>{label}</span>
+                <ChipCountBadge count={statusCounts[value]} active={active} />
+              </button>
+            );
+          })}
+          <div className="ml-auto">
+            <SortMenu value={sort} onChange={setSort} options={sortOptions} />
+          </div>
+        </div>
+      </div>
+
+      {visible.length === 0 ? (
+        <div className="flex flex-col items-center gap-2 px-4 py-12 text-center text-sm text-muted-foreground">
+          <p>{m.documents_filter_empty()}</p>
+          {filtersActive && (
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="rounded px-2 py-1 text-xs font-medium text-foreground/70 hover:bg-foreground/5"
+            >
+              {m.documents_filter_clear()}
+            </button>
+          )}
+        </div>
+      ) : (
+        <ul className="py-1">
+          {visible.map(({ doc: d, chip }) => (
+            <ListItem
+              key={d.id}
+              to="/documents/$id"
+              params={{ id: d.id }}
+              ariaLabel={`${m.documents_open_row()} ${d.filename}`}
+              isSelected={d.id === selectedId}
+              leading={<StatusDot className={STATUS_DOT_CLASSES[chip]} />}
+              title={d.filename}
+              titleAttr={d.filename}
+              meta={
+                <>
+                  <span>{d.uploaded_at.slice(0, 10)}</span>
+                  <span>·</span>
+                  <span>{stageLabel(d.doc_type)}</span>
+                </>
+              }
+            />
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }

@@ -110,7 +110,9 @@ describe('/questionnaires route', () => {
 
     // Verify table content (use getAllByText for duplicate values)
     expect(screen.getAllByText('2025')).toHaveLength(2);
-    expect(screen.getByText(/Answering|答题中/)).toBeTruthy();
-    expect(screen.getByText(/Parsing|解析中/)).toBeTruthy();
+    // Status labels appear in both the filter chip row (top) and per-row
+    // meta, so getAllByText: at least 1 chip + 1 row = 2 matches.
+    expect(screen.getAllByText(/Answering|答题中/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Parsing|解析中/).length).toBeGreaterThanOrEqual(1);
   });
 });
