@@ -3,6 +3,7 @@ vi.mock('@renderer/lib/api/emission-source', () => ({
     listPresets: vi.fn(),
     listByOrg: vi.fn(),
     addFromPreset: vi.fn(),
+    addFromPresets: vi.fn(),
   },
 }));
 vi.mock('@renderer/components/toast', () => ({
@@ -46,57 +47,124 @@ const PRESETS: PresetSource[] = [
   },
 ];
 
+function mountDrawer() {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={qc}>
+      <SourceCatalogDrawer organizationId="org-1" open={true} onClose={vi.fn()} />
+    </QueryClientProvider>,
+  );
+}
+
 describe('<SourceCatalogDrawer>', () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
   });
 
-  it('groups presets by scope and adds one when the Add button is clicked', async () => {
+  it('renders all 3 presets and batches the selected ones into one IPC call', async () => {
     vi.mocked(sourceApi.listPresets).mockResolvedValue(PRESETS);
     vi.mocked(sourceApi.listByOrg).mockResolvedValue([] satisfies EmissionSource[]);
-    const firstPreset = PRESETS[0];
-    if (!firstPreset) throw new Error('test fixture must not be empty');
-    vi.mocked(sourceApi.addFromPreset).mockResolvedValue({
-      id: 'src-new',
-      site_id: 'site-1',
-      name: firstPreset.name_zh,
-      scope: firstPreset.scope,
-      category: firstPreset.category,
-      ghg_protocol_path: null,
-      default_ef_query: null,
-      template_origin: firstPreset.id,
-      is_active: true,
-    });
-
-    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    render(
-      <QueryClientProvider client={qc}>
-        <SourceCatalogDrawer organizationId="org-1" open={true} onClose={vi.fn()} />
-      </QueryClientProvider>,
+    vi.mocked(sourceApi.addFromPresets).mockResolvedValue(
+      [PRESETS[0], PRESETS[1]].map((p) => ({
+        // biome-ignore lint/style/noNonNullAssertion: fixtures are defined above
+        id: `src-${p!.id}`,
+        site_id: 'site-1',
+        // biome-ignore lint/style/noNonNullAssertion: same
+        name: p!.name_zh,
+        // biome-ignore lint/style/noNonNullAssertion: same
+        scope: p!.scope,
+        // biome-ignore lint/style/noNonNullAssertion: same
+        category: p!.category,
+        ghg_protocol_path: null,
+        default_ef_query: null,
+        // biome-ignore lint/style/noNonNullAssertion: same
+        template_origin: p!.id,
+        is_active: true,
+      })) as EmissionSource[],
     );
 
-    // Wait for presets to land + the 3 group headings to render.
+    mountDrawer();
+
+    // All three names land once the listPresets query resolves.
     await waitFor(() => {
-      expect(screen.getByText(/范围 1|Scope 1/)).toBeTruthy();
-      expect(screen.getByText(/范围 2|Scope 2/)).toBeTruthy();
-      expect(screen.getByText(/范围 3|Scope 3/)).toBeTruthy();
+      expect(screen.getByText('天然气燃烧')).toBeTruthy();
+      expect(screen.getByText('国家电网电力')).toBeTruthy();
+      expect(screen.getByText('国内商务机票')).toBeTruthy();
     });
 
-    // Three Add buttons (one per preset) since the org has no existing sources.
-    const addButtons = screen.getAllByRole('button', { name: /^Add$|^添加$/i });
-    expect(addButtons.length).toBe(3);
+    // One checkbox per preset (none of them are already in the org).
+    const checkboxes = screen.getAllByRole('checkbox');
+    expect(checkboxes).toHaveLength(3);
 
-    // Click the first Add button. We don't try to disambiguate which preset
-    // it maps to (DOM order ≡ scope-then-array order) — we only care that
-    // the IPC wrapper was called with *some* preset id.
-    const firstAdd = addButtons[0];
-    if (!firstAdd) throw new Error('expected at least one Add button');
-    fireEvent.click(firstAdd);
+    // Select the first two (natgas + grid electricity).
+    // biome-ignore lint/style/noNonNullAssertion: length asserted above
+    fireEvent.click(checkboxes[0]!);
+    // biome-ignore lint/style/noNonNullAssertion: same
+    fireEvent.click(checkboxes[1]!);
 
-    await waitFor(() => expect(sourceApi.addFromPreset).toHaveBeenCalled());
-    const args = vi.mocked(sourceApi.addFromPreset).mock.calls[0]?.[0];
+    // The batch button label tracks the selection count. We don't pin the
+    // exact wording (i18n) — just that there's a button whose label
+    // mentions "2".
+    const confirmButton = await waitFor(() => {
+      const candidates = screen.getAllByRole('button').filter((b) => /2/.test(b.textContent ?? ''));
+      if (candidates.length === 0) throw new Error('confirm button with count 2 not yet rendered');
+      // biome-ignore lint/style/noNonNullAssertion: candidates.length > 0
+      return candidates[candidates.length - 1]!;
+    });
+    fireEvent.click(confirmButton);
+
+    await waitFor(() => expect(sourceApi.addFromPresets).toHaveBeenCalledTimes(1));
+    const args = vi.mocked(sourceApi.addFromPresets).mock.calls[0]?.[0];
     expect(args?.organization_id).toBe('org-1');
-    expect(args?.preset_id).toMatch(/^preset_/);
+    expect(args?.preset_ids).toEqual(['preset_natgas_combustion', 'preset_grid_electricity_cn']);
+  });
+
+  it('search input filters the visible rows', async () => {
+    vi.mocked(sourceApi.listPresets).mockResolvedValue(PRESETS);
+    vi.mocked(sourceApi.listByOrg).mockResolvedValue([] satisfies EmissionSource[]);
+    mountDrawer();
+
+    await waitFor(() => expect(screen.getByText('天然气燃烧')).toBeTruthy());
+
+    // Search by the English name of just one preset — the other two
+    // should drop out of the DOM. We don't pin the placeholder; we
+    // grab the only searchbox in the drawer.
+    const searchbox = screen.getByRole('searchbox');
+    fireEvent.change(searchbox, { target: { value: 'flight' } });
+
+    await waitFor(() => {
+      expect(screen.queryByText('天然气燃烧')).toBeNull();
+      expect(screen.queryByText('国家电网电力')).toBeNull();
+      expect(screen.getByText('国内商务机票')).toBeTruthy();
+    });
+  });
+
+  it('hides the checkbox and shows the "added" badge for presets already in the org', async () => {
+    vi.mocked(sourceApi.listPresets).mockResolvedValue(PRESETS);
+    // Org already has the natgas source under the same zh name — that
+    // row should render without a checkbox and with the added badge.
+    vi.mocked(sourceApi.listByOrg).mockResolvedValue([
+      {
+        id: 'src-existing-natgas',
+        site_id: 'site-1',
+        name: '天然气燃烧',
+        scope: 1,
+        category: 'fuel.stationary',
+        ghg_protocol_path: null,
+        default_ef_query: null,
+        template_origin: 'preset_natgas_combustion',
+        is_active: true,
+      },
+    ]);
+    mountDrawer();
+
+    await waitFor(() => expect(screen.getByText('天然气燃烧')).toBeTruthy());
+
+    // Only 2 selectable presets remain (electricity + flight); natgas is
+    // covered by a ✓ badge instead of a checkbox.
+    const checkboxes = screen.getAllByRole('checkbox');
+    expect(checkboxes).toHaveLength(2);
+    expect(screen.getByText(/^已添加$|^Added$/)).toBeTruthy();
   });
 });

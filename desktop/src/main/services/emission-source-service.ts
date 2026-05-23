@@ -80,6 +80,27 @@ export class EmissionSourceService {
     return this.getById(id)!;
   }
 
+  /**
+   * Batch-insert N emission_sources inside a single transaction. Used by
+   * the catalog drawer's "add selected" action, so that flipping 30 presets
+   * into the org is one atomic operation (audit log records one event;
+   * any per-row validation failure rolls everything back).
+   *
+   * Returns the freshly-created rows in the same order as `inputs`. Throws
+   * on the first invalid input (Zod) or FK violation (better-sqlite3) —
+   * the transaction wrapper unwinds the partial inserts automatically.
+   *
+   * Empty `inputs` is a no-op that returns `[]` (callers don't have to
+   * guard).
+   */
+  createBatch(inputs: EmissionSourceCreateInput[]): EmissionSource[] {
+    if (inputs.length === 0) return [];
+    const run = this.ctx.db.transaction((batch: EmissionSourceCreateInput[]): EmissionSource[] => {
+      return batch.map((i) => this.create(i));
+    });
+    return run(inputs);
+  }
+
   /** Lookup a single emission_source by id, or null. */
   getById(id: string): EmissionSource | null {
     const row = this.ctx.db.prepare(`${ES_SELECT} WHERE id = ?`).get(id) as

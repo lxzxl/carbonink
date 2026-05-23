@@ -86,6 +86,18 @@ export type IpcTypeMap = {
     /** Optional override; defaults to the org's first active site. */
     site_id?: string;
   }) => EmissionSource;
+  /**
+   * Batch sibling of `add-from-preset` — flips many presets into the org
+   * in a single transaction. The catalog drawer's "添加选中" action uses
+   * this so 30 row toggles become one atomic operation (and one audit
+   * event downstream).
+   */
+  'source:add-from-presets': (input: {
+    organization_id: string;
+    preset_ids: string[];
+    /** Optional override; defaults to the org's first active site. */
+    site_id?: string;
+  }) => EmissionSource[];
 
   // activity-data domain (pinned EF + computed CO2e per amount entry)
   'activity:create': (input: ActivityDataCreateInput) => ActivityData;

@@ -16,6 +16,11 @@ const addFromPresetInput = z.object({
   preset_id: z.string().min(1),
   site_id: z.string().min(1).optional(),
 });
+const addFromPresetsInput = z.object({
+  organization_id: z.string().min(1),
+  preset_ids: z.array(z.string().min(1)).min(1),
+  site_id: z.string().min(1).optional(),
+});
 
 /**
  * Preset catalog: bundled at compile time via JSON import (same pattern as
@@ -47,33 +52,75 @@ export function emissionSourceHandlers(ctx: IpcContext): {
     'source:list-presets': () => PRESETS,
     'source:add-from-preset': (input) => {
       const parsed = addFromPresetInput.parse(input);
-      const preset = PRESETS.find((p) => p.id === parsed.preset_id);
-      if (!preset) {
-        throw new Error(`preset not found: ${parsed.preset_id}`);
-      }
-      let siteId = parsed.site_id;
-      if (!siteId) {
-        // Default to the org's first active site. Phase 1a/1b orgs always
-        // have exactly one site (created during onboarding), so this is
-        // the dominant path.
-        const sites = ctx.organizationService.listSitesByOrganization(parsed.organization_id);
-        const firstActive = sites.find((s) => s.is_active);
-        if (!firstActive) {
-          throw new Error('No active site found for organization. Create a site first.');
-        }
-        siteId = firstActive.id;
-      }
-      // Use the Chinese name as the source name (UI default locale is
-      // zh-CN; en users can rename via the edit drawer). category from
-      // the preset propagates so AI matchers / future EF defaults can
-      // pick it up.
-      return svc.create({
-        site_id: siteId,
-        name: preset.name_zh,
-        scope: preset.scope,
-        category: preset.category,
-        template_origin: preset.id,
-      });
+      const preset = lookupPreset(parsed.preset_id);
+      const siteId = resolveSiteId(ctx, parsed.organization_id, parsed.site_id);
+      return svc.create(presetToCreateInput(preset, siteId));
     },
+    'source:add-from-presets': (input) => {
+      const parsed = addFromPresetsInput.parse(input);
+      const presets = parsed.preset_ids.map(lookupPreset);
+      const siteId = resolveSiteId(ctx, parsed.organization_id, parsed.site_id);
+      return svc.createBatch(presets.map((p) => presetToCreateInput(p, siteId)));
+    },
+  };
+}
+
+/**
+ * Look up one preset by id; throws if absent. The two add-from-preset
+ * handlers share this so error wording stays identical between the
+ * single and batch paths.
+ */
+function lookupPreset(presetId: string): PresetSource {
+  const preset = PRESETS.find((p) => p.id === presetId);
+  if (!preset) {
+    throw new Error(`preset not found: ${presetId}`);
+  }
+  return preset;
+}
+
+/**
+ * Resolve which site to put the new emission_source into. If the caller
+ * supplied a site_id, use it. Otherwise fall back to the org's first
+ * active site — Phase 1a/1b orgs always have exactly one site (created
+ * during onboarding), so this is the dominant path.
+ */
+function resolveSiteId(
+  ctx: IpcContext,
+  organizationId: string,
+  override: string | undefined,
+): string {
+  if (override) return override;
+  const sites = ctx.organizationService.listSitesByOrganization(organizationId);
+  const firstActive = sites.find((s) => s.is_active);
+  if (!firstActive) {
+    throw new Error('No active site found for organization. Create a site first.');
+  }
+  return firstActive.id;
+}
+
+/**
+ * Translate a preset row into the EmissionSourceService.create input.
+ * Uses the zh name (UI default locale is zh-CN; en users can rename via
+ * the edit drawer). `template_origin = preset.id` so a future migration
+ * can tell which presets a customer has already adopted, and so the AERA-
+ * backed catalog can suppress already-adopted entries by id rather than
+ * by name match.
+ */
+function presetToCreateInput(
+  preset: PresetSource,
+  siteId: string,
+): {
+  site_id: string;
+  name: string;
+  scope: 1 | 2 | 3;
+  category: string;
+  template_origin: string;
+} {
+  return {
+    site_id: siteId,
+    name: preset.name_zh,
+    scope: preset.scope,
+    category: preset.category,
+    template_origin: preset.id,
   };
 }

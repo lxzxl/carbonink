@@ -79,6 +79,41 @@ describe('emission-source IPC handlers', () => {
     ).toThrow(z.ZodError);
   });
 
+  it('source:add-from-presets batches N presets into the org in one transaction', () => {
+    // Three real preset ids from `src/main/data/preset-sources.json` (Electricity).
+    const presetIds = [
+      'electricity-supply_grid-source_supplier_mix',
+      'electricity-supply_grid-source_supplier_mix_losses',
+      'electricity-supply_grid-source_supplier_mix_managed_assets',
+    ];
+    const result = handlers['source:add-from-presets']?.({
+      organization_id: org.id,
+      preset_ids: presetIds,
+    });
+    if (!result) throw new Error('handler returned undefined');
+    expect(result).toHaveLength(3);
+    // Names come from the preset's zh-CN label; template_origin tracks
+    // which preset each row was sourced from.
+    expect(result.map((r) => r.template_origin)).toEqual(presetIds);
+    expect(result[0]?.name).toBe('电网供电');
+    expect(result.every((r) => r.is_active)).toBe(true);
+    // All three landed on the org's only site.
+    const list = handlers['source:list-by-org']?.({ organization_id: org.id });
+    expect(list).toHaveLength(3);
+  });
+
+  it('source:add-from-presets rejects an unknown preset_id without committing any insert', () => {
+    expect(() =>
+      handlers['source:add-from-presets']?.({
+        organization_id: org.id,
+        preset_ids: ['electricity-supply_grid-source_supplier_mix', 'this-preset-does-not-exist'],
+      }),
+    ).toThrow(/preset not found/);
+    // Lookup happens before the transaction starts, so nothing was inserted.
+    const list = handlers['source:list-by-org']?.({ organization_id: org.id });
+    expect(list).toEqual([]);
+  });
+
   it('source:update patches name and source:delete soft-deletes', () => {
     const created = handlers['source:create']?.({
       site_id: site.id,

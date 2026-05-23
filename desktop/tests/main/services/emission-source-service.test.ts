@@ -172,3 +172,41 @@ describe('EmissionSourceService.delete', () => {
     expect(() => svc.delete('does_not_exist')).toThrow(/emission_source not found/);
   });
 });
+
+describe('EmissionSourceService.createBatch', () => {
+  it('inserts all rows in one transaction and returns them in input order', () => {
+    const inputs = [
+      { site_id: site1.id, name: 'A', scope: 1 as const, category: 'cat_A' },
+      { site_id: site1.id, name: 'B', scope: 2 as const, category: 'cat_B' },
+      { site_id: site1.id, name: 'C', scope: 3 as const, category: 'cat_C' },
+    ];
+    const rows = svc.createBatch(inputs);
+    expect(rows).toHaveLength(3);
+    expect(rows.map((r) => r.name)).toEqual(['A', 'B', 'C']);
+    expect(rows.map((r) => r.scope)).toEqual([1, 2, 3]);
+    for (const r of rows) {
+      expect(r.is_active).toBe(true);
+      expect(r.id).toMatch(/^[0-9A-HJKMNP-TV-Z]{26}$/);
+    }
+    // Persisted — listBySite picks them up.
+    expect(svc.listBySite(site1.id)).toHaveLength(3);
+  });
+
+  it('rolls back the entire batch when one input fails FK validation', () => {
+    // First two are valid, third points at a non-existent site → FK fires.
+    // The transaction wrapper must unwind the first two inserts too.
+    const inputs = [
+      { site_id: site1.id, name: 'Good 1', scope: 1 as const },
+      { site_id: site1.id, name: 'Good 2', scope: 2 as const },
+      { site_id: 'site_does_not_exist', name: 'Bad', scope: 1 as const },
+    ];
+    expect(() => svc.createBatch(inputs)).toThrow(/FOREIGN KEY/i);
+    // Nothing committed — table is empty.
+    expect(svc.listBySite(site1.id)).toEqual([]);
+  });
+
+  it('returns [] for empty input without touching the database', () => {
+    expect(svc.createBatch([])).toEqual([]);
+    expect(svc.listBySite(site1.id)).toEqual([]);
+  });
+});

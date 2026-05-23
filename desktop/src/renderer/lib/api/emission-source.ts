@@ -21,4 +21,11 @@ export const sourceApi = {
   listPresets: () => invoke('source:list-presets'),
   addFromPreset: (input: { organization_id: string; preset_id: string; site_id?: string }) =>
     invoke('source:add-from-preset', input),
+  /**
+   * Batch-add N presets in one atomic transaction. The catalog drawer uses
+   * this for its "添加选中" action so users can flip a whole category
+   * (e.g. all 12 Air Travel presets) into their org in a single click.
+   */
+  addFromPresets: (input: { organization_id: string; preset_ids: string[]; site_id?: string }) =>
+    invoke('source:add-from-presets', input),
 };

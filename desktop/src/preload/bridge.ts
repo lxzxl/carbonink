@@ -27,6 +27,7 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   'source:delete',
   'source:list-presets',
   'source:add-from-preset',
+  'source:add-from-presets',
   // activity-data domain
   'activity:create',
   'activity:list-by-period',
