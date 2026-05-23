@@ -29,27 +29,18 @@ export interface Env {
   ENVIRONMENT: string;
 }
 
-// Browser fetches with `credentials: 'include'` reject wildcard CORS. We echo
-// the request's Origin when it matches an allowlist and emit
-// Allow-Credentials: true. Non-browser callers (Electron auto-updater,
-// service-to-service) don't enforce CORS and aren't affected.
-const ALLOWED_ORIGINS = new Set<string>([
-  'https://carbonbook.app',
-  'https://activate.carbonbook.app',
-  'https://account.carbonbook.app',
-  // local dev
-  'http://localhost:4321',
-]);
-
-function corsHeaders(request: Request): Record<string, string> {
-  const origin = request.headers.get('Origin') ?? '';
-  const allowed = ALLOWED_ORIGINS.has(origin) ? origin : '';
+// Single-domain deployment: web clients (marketing, activate, account
+// portal) all live under carbonbook.app and call /api/* same-origin —
+// no CORS needed for them. The Electron desktop client talks to the API
+// from a file://-ish origin without browser cookies (auth is the
+// license JWT in the request body). Permissive `*` CORS with no
+// credentials suffices for both — and avoids the credentialed-origin
+// allowlist we used to maintain in this file.
+function corsHeaders(_request: Request): Record<string, string> {
   return {
-    'Access-Control-Allow-Origin': allowed,
+    'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Credentials': 'true',
-    Vary: 'Origin',
   };
 }
 

@@ -62,17 +62,14 @@ export async function handleAccountDelete(request: Request, env: Env): Promise<R
   await env.DB.prepare('DELETE FROM license WHERE user_id = ?').bind(session.sub).run();
   await env.DB.prepare('DELETE FROM customer WHERE user_id = ?').bind(session.sub).run();
 
-  // Expire the session cookie immediately. Must match the Domain used at
-  // Set-Cookie time (.carbonbook.app) or the browser will leave the
-  // host-only cookie in place.
-  const host = request.headers.get('Host') ?? '';
-  const domainAttr =
-    host === 'localhost' || host.startsWith('localhost:') ? '' : ' Domain=.carbonbook.app;';
+  // Expire the session cookie immediately. Same-origin cookie has no
+  // Domain attribute (see auth.ts), so clearing it doesn't need one
+  // either — Path=/ is enough to match.
   return new Response(JSON.stringify({ deleted: true }), {
     status: 200,
     headers: {
       'Content-Type': 'application/json',
-      'Set-Cookie': `session=;${domainAttr} Path=/; Max-Age=0; HttpOnly; SameSite=Lax; Secure`,
+      'Set-Cookie': `session=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax; Secure`,
     },
   });
 }

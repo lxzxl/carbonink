@@ -33,7 +33,7 @@ export async function handleMagicLink(
     { expirationTtl: MAGIC_LINK_TTL_S },
   );
 
-  const url = `https://account.carbonbook.app/login/callback?t=${token}`;
+  const url = `https://carbonbook.app/account/login/callback?t=${token}`;
   ctx.waitUntil(
     sendMagicLinkEmail({ apiKey: env.RESEND_API_KEY, to: parsed.data.email, url, lang: 'en' }),
   );
@@ -61,17 +61,14 @@ export async function handleExchange(request: Request, env: Env): Promise<Respon
     },
     env.SESSION_PRIVATE_KEY_HEX,
   );
-  // Domain=.carbonbook.app so the cookie is sent to api.carbonbook.app on
-  // cross-origin dashboard fetches from account.carbonbook.app. Skip the
-  // Domain attribute on localhost (Domain doesn't apply to bare hosts).
-  const host = request.headers.get('Host') ?? '';
-  const domainAttr =
-    host === 'localhost' || host.startsWith('localhost:') ? '' : ' Domain=.carbonbook.app;';
+  // Single-origin cookie: no Domain attribute needed — every page that
+  // reads this session (account portal, API) lives under carbonbook.app
+  // and same-origin requests carry the cookie automatically.
   return new Response(JSON.stringify({ session: sessionJwt }), {
     status: 200,
     headers: {
       'Content-Type': 'application/json',
-      'Set-Cookie': `session=${encodeURIComponent(sessionJwt)};${domainAttr} Path=/; Max-Age=${SESSION_TTL_S}; HttpOnly; SameSite=Lax; Secure`,
+      'Set-Cookie': `session=${encodeURIComponent(sessionJwt)}; Path=/; Max-Age=${SESSION_TTL_S}; HttpOnly; SameSite=Lax; Secure`,
     },
   });
 }

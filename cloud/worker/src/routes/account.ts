@@ -24,7 +24,7 @@ export async function handleBillingPortal(request: Request, env: Env): Promise<R
   if (session instanceof Response) return session;
 
   const url = new URL(request.url);
-  const returnUrl = url.searchParams.get('return_url') ?? 'https://account.carbonbook.app/';
+  const returnUrl = url.searchParams.get('return_url') ?? 'https://carbonbook.app/account/';
   const cust = await env.DB.prepare('SELECT stripe_customer_id FROM customer WHERE user_id = ?')
     .bind(session.sub)
     .first<{ stripe_customer_id: string | null }>();
