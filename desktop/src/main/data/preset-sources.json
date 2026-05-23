@@ -1,0 +1,221 @@
+{
+  "__comment__": "v1 placeholder preset catalog — ~25 typical China-context emission sources covering all three scopes. To be replaced by Seneca AERA's Climatiq-derived export in a future iteration. Pure data: read once on handler boot in emission-source.ts, no compile-time imports. ids are stable (preset_*) so adding entries doesn't break references; do not renumber existing ids.",
+  "entries": [
+    {
+      "id": "preset_natgas_combustion",
+      "name_zh": "天然气燃烧（锅炉/灶具）",
+      "name_en": "Natural gas combustion (boiler/burner)",
+      "scope": 1,
+      "category": "fuel.stationary",
+      "hint_unit": "m3"
+    },
+    {
+      "id": "preset_diesel_stationary",
+      "name_zh": "柴油（厂内运输/发电）",
+      "name_en": "Diesel (on-site transport / generator)",
+      "scope": 1,
+      "category": "fuel.stationary",
+      "hint_unit": "L"
+    },
+    {
+      "id": "preset_gasoline_fleet",
+      "name_zh": "汽油（公司车辆）",
+      "name_en": "Gasoline (company vehicles)",
+      "scope": 1,
+      "category": "fuel.mobile",
+      "hint_unit": "L"
+    },
+    {
+      "id": "preset_lpg_combustion",
+      "name_zh": "液化石油气 / 丙烷",
+      "name_en": "LPG / propane",
+      "scope": 1,
+      "category": "fuel.stationary",
+      "hint_unit": "kg"
+    },
+    {
+      "id": "preset_biomass_combustion",
+      "name_zh": "生物质燃烧",
+      "name_en": "Biomass combustion",
+      "scope": 1,
+      "category": "fuel.stationary",
+      "hint_unit": "kg"
+    },
+    {
+      "id": "preset_refrigerant_hfc",
+      "name_zh": "制冷剂泄漏（HFC）",
+      "name_en": "Refrigerant leakage (HFC)",
+      "scope": 1,
+      "category": "fugitive.refrigerant",
+      "hint_unit": "kg"
+    },
+    {
+      "id": "preset_grid_electricity_cn",
+      "name_zh": "国家电网电力",
+      "name_en": "National grid electricity (China)",
+      "scope": 2,
+      "category": "electricity.grid",
+      "hint_unit": "kWh"
+    },
+    {
+      "id": "preset_grid_electricity_regional",
+      "name_zh": "地方电网电力（区域）",
+      "name_en": "Regional grid electricity (province)",
+      "scope": 2,
+      "category": "electricity.grid",
+      "hint_unit": "kWh"
+    },
+    {
+      "id": "preset_purchased_steam",
+      "name_zh": "外购蒸汽",
+      "name_en": "Purchased steam",
+      "scope": 2,
+      "category": "heat.steam",
+      "hint_unit": "GJ"
+    },
+    {
+      "id": "preset_purchased_heat",
+      "name_zh": "外购热力",
+      "name_en": "Purchased heat",
+      "scope": 2,
+      "category": "heat.hot_water",
+      "hint_unit": "GJ"
+    },
+    {
+      "id": "preset_purchased_cooling",
+      "name_zh": "外购冷气",
+      "name_en": "Purchased cooling",
+      "scope": 2,
+      "category": "cooling.chilled_water",
+      "hint_unit": "GJ"
+    },
+    {
+      "id": "preset_business_flight_domestic_short",
+      "name_zh": "国内商务机票（短途 < 1500km）",
+      "name_en": "Domestic business flight (short-haul)",
+      "scope": 3,
+      "category": "travel.air.short",
+      "hint_unit": "person-km"
+    },
+    {
+      "id": "preset_business_flight_domestic_long",
+      "name_zh": "国内商务机票（长途 ≥ 1500km）",
+      "name_en": "Domestic business flight (long-haul)",
+      "scope": 3,
+      "category": "travel.air.long",
+      "hint_unit": "person-km"
+    },
+    {
+      "id": "preset_business_flight_intl",
+      "name_zh": "国际机票",
+      "name_en": "International business flight",
+      "scope": 3,
+      "category": "travel.air.intl",
+      "hint_unit": "person-km"
+    },
+    {
+      "id": "preset_business_rail_hsr",
+      "name_zh": "高铁 / 动车出差",
+      "name_en": "High-speed rail business travel",
+      "scope": 3,
+      "category": "travel.rail",
+      "hint_unit": "person-km"
+    },
+    {
+      "id": "preset_business_taxi",
+      "name_zh": "出租车 / 网约车",
+      "name_en": "Taxi / ride-hailing",
+      "scope": 3,
+      "category": "travel.taxi",
+      "hint_unit": "person-km"
+    },
+    {
+      "id": "preset_commute_transit",
+      "name_zh": "员工通勤（地铁 / 公交）",
+      "name_en": "Employee commuting (metro / bus)",
+      "scope": 3,
+      "category": "commute.transit",
+      "hint_unit": "person-km"
+    },
+    {
+      "id": "preset_commute_private_car",
+      "name_zh": "员工通勤（私家车）",
+      "name_en": "Employee commuting (private car)",
+      "scope": 3,
+      "category": "commute.car",
+      "hint_unit": "person-km"
+    },
+    {
+      "id": "preset_office_paper",
+      "name_zh": "办公耗材（A4 纸张）",
+      "name_en": "Office consumables (A4 paper)",
+      "scope": 3,
+      "category": "goods.paper",
+      "hint_unit": "kg"
+    },
+    {
+      "id": "preset_office_electricity_allocated",
+      "name_zh": "办公电费分摊（租赁场所）",
+      "name_en": "Allocated office electricity (leased premises)",
+      "scope": 3,
+      "category": "leased.electricity",
+      "hint_unit": "kWh"
+    },
+    {
+      "id": "preset_upstream_freight_road",
+      "name_zh": "上游原材料运输（公路）",
+      "name_en": "Upstream raw-material transport (road)",
+      "scope": 3,
+      "category": "freight.upstream.road",
+      "hint_unit": "t-km"
+    },
+    {
+      "id": "preset_upstream_freight_water",
+      "name_zh": "上游原材料运输（水运）",
+      "name_en": "Upstream raw-material transport (water)",
+      "scope": 3,
+      "category": "freight.upstream.water",
+      "hint_unit": "t-km"
+    },
+    {
+      "id": "preset_downstream_freight",
+      "name_zh": "下游产品运输",
+      "name_en": "Downstream product transport",
+      "scope": 3,
+      "category": "freight.downstream",
+      "hint_unit": "t-km"
+    },
+    {
+      "id": "preset_use_phase",
+      "name_zh": "客户使用阶段（已售产品）",
+      "name_en": "Use of sold products (customer use phase)",
+      "scope": 3,
+      "category": "use_phase.products",
+      "hint_unit": "kWh"
+    },
+    {
+      "id": "preset_waste_landfill",
+      "name_zh": "废弃物处理（填埋）",
+      "name_en": "Waste disposal (landfill)",
+      "scope": 3,
+      "category": "waste.landfill",
+      "hint_unit": "kg"
+    },
+    {
+      "id": "preset_waste_incineration",
+      "name_zh": "废弃物处理（焚烧）",
+      "name_en": "Waste disposal (incineration)",
+      "scope": 3,
+      "category": "waste.incineration",
+      "hint_unit": "kg"
+    },
+    {
+      "id": "preset_office_wastewater",
+      "name_zh": "办公污水处理",
+      "name_en": "Office wastewater treatment",
+      "scope": 3,
+      "category": "waste.wastewater",
+      "hint_unit": "m3"
+    }
+  ]
+}

@@ -17,4 +17,8 @@ export const sourceApi = {
   listByOrg: (input: { organization_id: string }) => invoke('source:list-by-org', input),
   update: (input: Parameters<typeof invoke<'source:update'>>[1]) => invoke('source:update', input),
   delete: (input: { id: string }) => invoke('source:delete', input),
+  // Preset catalog — built-in seed of typical sources (browse + 1-click add).
+  listPresets: () => invoke('source:list-presets'),
+  addFromPreset: (input: { organization_id: string; preset_id: string; site_id?: string }) =>
+    invoke('source:add-from-preset', input),
 };

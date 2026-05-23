@@ -1,4 +1,5 @@
 import { Main } from '@renderer/components/layout/main';
+import { SourceCatalogDrawer } from '@renderer/components/SourceCatalogDrawer';
 import { SourceEditDrawer } from '@renderer/components/SourceEditDrawer';
 import { SourceForm } from '@renderer/components/SourceForm';
 import { toast } from '@renderer/components/toast';
@@ -10,6 +11,7 @@ import * as m from '@renderer/paraglide/messages';
 import type { EmissionSource } from '@shared/types';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Navigate } from '@tanstack/react-router';
+import { Library } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 /**
@@ -42,6 +44,7 @@ function SourcesRoute() {
 function SourcesList({ organizationId }: { organizationId: string }) {
   const [formOpen, setFormOpen] = useState(false);
   const [editingSource, setEditingSource] = useState<EmissionSource | null>(null);
+  const [catalogOpen, setCatalogOpen] = useState(false);
 
   const sourcesQuery = useQuery<EmissionSource[]>({
     queryKey: ['source:list-by-org', organizationId],
@@ -70,9 +73,15 @@ function SourcesList({ organizationId }: { organizationId: string }) {
       <div className="shrink-0 space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold">{m.nav_sources()}</h1>
-          <Button onClick={() => setFormOpen((v) => !v)}>
-            {formOpen ? m.sources_cancel_button() : m.sources_add_button()}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setCatalogOpen(true)}>
+              <Library className="mr-1 h-4 w-4" aria-hidden="true" />
+              {m.sources_catalog_button()}
+            </Button>
+            <Button onClick={() => setFormOpen((v) => !v)}>
+              {formOpen ? m.sources_cancel_button() : m.sources_add_button()}
+            </Button>
+          </div>
         </div>
 
         {formOpen && (
@@ -137,6 +146,11 @@ function SourcesList({ organizationId }: { organizationId: string }) {
         source={editingSource}
         open={editingSource != null}
         onClose={() => setEditingSource(null)}
+      />
+      <SourceCatalogDrawer
+        organizationId={organizationId}
+        open={catalogOpen}
+        onClose={() => setCatalogOpen(false)}
       />
     </Main>
   );

@@ -240,6 +240,23 @@ export type EmissionSourceCreateInput = z.infer<typeof emissionSourceCreateInput
 export type EmissionSourceUpdateInput = z.infer<typeof emissionSourceUpdateInput>;
 export type ActivityDataCreateInput = z.infer<typeof activityDataCreateInput>;
 
+/**
+ * One entry in the built-in preset emission-source catalog.
+ *
+ * v1 ships as a static JSON seed at `src/main/data/preset-sources.json`;
+ * the main process exposes the list via `source:list-presets` and
+ * `source:add-from-preset` IPC channels. Future iteration replaces the
+ * seed with Seneca AERA's Climatiq-exported mappings.
+ */
+export type PresetSource = {
+  id: string;
+  name_zh: string;
+  name_en: string;
+  scope: 1 | 2 | 3;
+  category: string;
+  hint_unit: string;
+};
+
 // ---------------------------------------------------------------------------
 // Unit definition (read-only catalog row, exposed via `units:list` IPC channel)
 // ---------------------------------------------------------------------------

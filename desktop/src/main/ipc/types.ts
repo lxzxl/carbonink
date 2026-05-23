@@ -18,6 +18,7 @@ import type {
   MatcherResult,
   Organization,
   OrganizationCreateInput,
+  PresetSource,
   ProviderConfig,
   Question,
   Questionnaire,
@@ -75,6 +76,16 @@ export type IpcTypeMap = {
   'source:list-by-org': (input: { organization_id: string }) => EmissionSource[];
   'source:update': (input: EmissionSourceUpdateInput) => EmissionSource;
   'source:delete': (input: { id: string }) => void;
+  // Built-in catalog of typical sources (read-only seed shipped with the app;
+  // see src/main/data/preset-sources.json). The renderer browses these and
+  // one-click adds entries into the user's org via `add-from-preset`.
+  'source:list-presets': () => PresetSource[];
+  'source:add-from-preset': (input: {
+    organization_id: string;
+    preset_id: string;
+    /** Optional override; defaults to the org's first active site. */
+    site_id?: string;
+  }) => EmissionSource;
 
   // activity-data domain (pinned EF + computed CO2e per amount entry)
   'activity:create': (input: ActivityDataCreateInput) => ActivityData;
