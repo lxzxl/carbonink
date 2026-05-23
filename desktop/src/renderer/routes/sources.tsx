@@ -11,7 +11,11 @@ import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
 import { sourceApi } from '@renderer/lib/api/emission-source';
 import { orgApi } from '@renderer/lib/api/organization';
-import { categoryLabel } from '@renderer/lib/category-labels';
+import {
+  categoryLabel,
+  isPathRedundantWithCategory,
+  pathLabel,
+} from '@renderer/lib/category-labels';
 import { formatCo2e, formatInteger } from '@renderer/lib/format';
 import { cn } from '@renderer/lib/utils';
 import * as m from '@renderer/paraglide/messages';
@@ -248,12 +252,15 @@ function SourcesList({ organizationId }: { organizationId: string }) {
                           <span title={src.category}>{categoryLabel(src.category)}</span>
                         </>
                       )}
-                      {src.ghg_protocol_path && (
-                        <>
-                          <span>·</span>
-                          <span className="font-mono text-[11px]">{src.ghg_protocol_path}</span>
-                        </>
-                      )}
+                      {src.ghg_protocol_path &&
+                        !isPathRedundantWithCategory(src.ghg_protocol_path, src.category) && (
+                          <>
+                            <span>·</span>
+                            <span title={src.ghg_protocol_path}>
+                              {pathLabel(src.ghg_protocol_path)}
+                            </span>
+                          </>
+                        )}
                     </div>
 
                     {/* Row 3 — usage stats. "尚未使用" replaces the trio of

@@ -154,6 +154,25 @@ function scopeLabel(scope: ScopeFilter): string {
   return m.sources_catalog_scope3_short();
 }
 
+/**
+ * Tiny inline badge for "label · count" pairs in chips. Distinct
+ * background + tighter typography so the count reads as metadata, not
+ * as part of the label text. Without this, `燃料 12` parses visually
+ * as "燃料12" — same color, same size, just an extra glyph.
+ */
+function ChipCountBadge({ count, active }: { count: number; active: boolean }) {
+  return (
+    <span
+      className={cn(
+        'inline-flex h-[18px] min-w-[18px] items-center justify-center rounded px-1 text-[10px] font-semibold tabular-nums',
+        active ? 'bg-foreground/20 text-foreground' : 'bg-foreground/8 text-muted-foreground/80',
+      )}
+    >
+      {count}
+    </span>
+  );
+}
+
 export interface SourceFilterHeaderProps {
   search: string;
   onSearchChange: (s: string) => void;
@@ -212,13 +231,14 @@ export function SourceFilterHeader({
               type="button"
               onClick={() => onScopeChange(scope)}
               className={cn(
-                'flex-1 rounded-md px-2 py-1 text-xs font-medium transition-colors',
+                'flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium transition-colors',
                 active
                   ? 'bg-foreground/12 text-foreground'
                   : 'bg-transparent text-muted-foreground hover:bg-foreground/5',
               )}
             >
-              {scopeLabel(scope)} <span className="tabular-nums opacity-60">{count}</span>
+              <span>{scopeLabel(scope)}</span>
+              <ChipCountBadge count={count} active={active} />
             </button>
           );
         })}
@@ -230,14 +250,14 @@ export function SourceFilterHeader({
             type="button"
             onClick={() => onCategoryChange(null)}
             className={cn(
-              'shrink-0 rounded-full border px-2.5 py-0.5 text-xs transition-colors',
+              'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs transition-colors',
               categoryFilter === null
                 ? 'border-foreground/30 bg-foreground/10 text-foreground'
                 : 'border-border bg-transparent text-muted-foreground hover:bg-foreground/5',
             )}
           >
-            {m.sources_catalog_category_all()}{' '}
-            <span className="tabular-nums opacity-60">{scopeFilteredCount}</span>
+            <span>{m.sources_catalog_category_all()}</span>
+            <ChipCountBadge count={scopeFilteredCount} active={categoryFilter === null} />
           </button>
           {categories.map(([cat, count]) => {
             const active = categoryFilter === cat;
@@ -248,13 +268,14 @@ export function SourceFilterHeader({
                 onClick={() => onCategoryChange(active ? null : cat)}
                 title={cat}
                 className={cn(
-                  'shrink-0 rounded-full border px-2.5 py-0.5 text-xs transition-colors',
+                  'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs transition-colors',
                   active
                     ? 'border-foreground/30 bg-foreground/10 text-foreground'
                     : 'border-border bg-transparent text-muted-foreground hover:bg-foreground/5',
                 )}
               >
-                {categoryLabel(cat)} <span className="tabular-nums opacity-60">{count}</span>
+                <span>{categoryLabel(cat)}</span>
+                <ChipCountBadge count={count} active={active} />
               </button>
             );
           })}
