@@ -153,6 +153,13 @@ export function SourceCatalogDrawer({ organizationId, open, onClose }: SourceCat
                                 <span>·</span>
                                 <span>{preset.hint_unit}</span>
                               </div>
+                              {(preset.source || preset.region || preset.year) && (
+                                <div className="mt-0.5 truncate text-[11px] text-muted-foreground/80">
+                                  {[preset.source, preset.region, preset.year]
+                                    .filter((v) => v !== undefined && v !== null && v !== '')
+                                    .join(' · ')}
+                                </div>
+                              )}
                             </div>
                             {already ? (
                               <span

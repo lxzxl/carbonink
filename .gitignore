@@ -63,3 +63,7 @@ playwright-report/
 # Ad-hoc UI screenshots dropped by the user for design review.
 # Not part of the source tree; kept locally for reference.
 screenshots/
+
+# Climatiq API page dumps cached by desktop/scripts/climatiq-to-presets.mjs.
+# Regenerable from the public API; the OUTPUT (preset-sources.json) IS committed.
+desktop/scripts/.climatiq-cache/
