@@ -3,7 +3,7 @@
 # (static assets). Workers Static Assets binding serves anything not
 # matched by `main`'s router; SSR routes go through `main`.
 #
-# Production domain: activate.carbonbook.app
+# Mounted at carbonbook.app/activate (Astro `base: '/activate'`).
 #
 # Secrets set via `wrangler secret put`:
 #   STRIPE_SECRET_KEY   — Stripe API key for session lookup
@@ -16,8 +16,10 @@ name = "carbonbook-activate"
 compatibility_date = "2025-05-23"
 compatibility_flags = ["nodejs_compat"]
 
-[vars]
-API_ORIGIN = "https://api.carbonbook.app"
+routes = [
+  { pattern = "carbonbook.app/activate", zone_name = "carbonbook.app" },
+  { pattern = "carbonbook.app/activate/*", zone_name = "carbonbook.app" },
+]
 
 [assets]
 directory = "./dist"

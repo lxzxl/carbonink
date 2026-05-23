@@ -1,33 +1,36 @@
 import { defineMiddleware } from 'astro:middleware';
 
 /**
- * Session middleware for account.carbonbook.app.
+ * Session middleware for the account portal at carbonbook.app/account.
  *
- * Anything under /login (login + callback) is public. For everything else
- * we require a `session=` cookie and probe the Worker — a 401 response from
- * /v1/account/devices means the JWT is bad, expired, or for a user that no
- * longer exists, so we kick back to /login.
+ * Anything under /account/login (login + callback) is public. For
+ * everything else we require a `session=` cookie and probe the Worker
+ * — a 401 response from /api/v1/account/devices means the JWT is bad,
+ * expired, or for a user that no longer exists, so we kick back to
+ * /account/login.
  *
- * We deliberately delegate session validation to the Worker rather than
- * shipping the Ed25519 verifier into the Pages bundle. It costs one extra
- * fetch per request but keeps the SESSION_PRIVATE_KEY_HEX off this site
- * entirely.
+ * We deliberately delegate session validation to the Worker rather
+ * than shipping the Ed25519 verifier into this site's bundle. It costs
+ * one extra fetch per request but keeps SESSION_PRIVATE_KEY_HEX off
+ * this site entirely. The probe is same-origin (carbonbook.app), so
+ * the cookie flows automatically.
  */
 export const onRequest = defineMiddleware(async (context, next) => {
   const url = new URL(context.request.url);
-  if (url.pathname.startsWith('/login')) return next();
-
-  // biome-ignore lint/suspicious/noExplicitAny: Astro.locals.runtime is untyped
-  const runtime = (context.locals as any).runtime as { env: { API_ORIGIN?: string } } | undefined;
-  const apiOrigin = runtime?.env?.API_ORIGIN ?? 'https://api.carbonbook.app';
+  // Astro's `base: '/account'` only rewrites internal links — the raw
+  // request pathname still includes the prefix.
+  if (url.pathname.startsWith('/account/login') || url.pathname === '/account/login') {
+    return next();
+  }
 
   const cookieHeader = context.request.headers.get('Cookie') ?? '';
   const sessionCookie = cookieHeader.split(/;\s*/).find((c) => c.startsWith('session='));
-  if (!sessionCookie) return context.redirect('/login');
+  if (!sessionCookie) return context.redirect('/account/login');
 
-  const probe = await fetch(`${apiOrigin}/v1/account/devices`, {
+  const probeUrl = new URL('/api/v1/account/devices', url.origin);
+  const probe = await fetch(probeUrl.toString(), {
     headers: { Cookie: sessionCookie },
   });
-  if (probe.status === 401) return context.redirect('/login');
+  if (probe.status === 401) return context.redirect('/account/login');
   return next();
 });

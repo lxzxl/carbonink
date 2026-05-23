@@ -15,11 +15,13 @@ let lookupError: string | null = null;
 if (directKey) {
   licenseKey = directKey;
 } else if (sessionId) {
-  const env = Astro.locals.runtime?.env as { STRIPE_SECRET_KEY: string; API_ORIGIN: string };
+  const env = Astro.locals.runtime?.env as { STRIPE_SECRET_KEY: string };
   const result = await lookupLicenseForSession({
     sessionId,
     stripeSecretKey: env.STRIPE_SECRET_KEY,
-    apiOrigin: env.API_ORIGIN,
+    // Same-origin call to /api/* — derive the absolute base from the
+    // current request so the Worker fetch has a valid origin.
+    apiBaseUrl: new URL(Astro.request.url).origin,
   });
   if (result) licenseKey = result.licenseKey;
   else

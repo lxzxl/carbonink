@@ -20,7 +20,7 @@ const t = lang === 'zh-CN'
   const btn = document.getElementById('buy-base');
   btn?.addEventListener('click', async () => {
     const plan = btn.getAttribute('data-plan');
-    const res = await fetch('https://api.carbonbook.app/v1/checkout-session', {
+    const res = await fetch('/api/v1/checkout-session', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ plan }),

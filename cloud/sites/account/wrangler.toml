@@ -1,8 +1,9 @@
 # Account portal — SSR via @astrojs/cloudflare v13. Reads/sets cookie
-# `session` for magic-link auth (cookie domain `.carbonbook.app` so
-# api.carbonbook.app fetches are credentialed).
+# `session` for magic-link auth. Cookie is host-only (no Domain
+# attribute) since the whole product lives under carbonbook.app and
+# /api/* calls are same-origin.
 #
-# Production domain: account.carbonbook.app
+# Mounted at carbonbook.app/account (Astro `base: '/account'`).
 #
 # Secrets via `wrangler secret put`:
 #   (none — all auth talks to the API worker which holds the secrets)
@@ -15,8 +16,10 @@ name = "carbonbook-account"
 compatibility_date = "2025-05-23"
 compatibility_flags = ["nodejs_compat"]
 
-[vars]
-API_ORIGIN = "https://api.carbonbook.app"
+routes = [
+  { pattern = "carbonbook.app/account", zone_name = "carbonbook.app" },
+  { pattern = "carbonbook.app/account/*", zone_name = "carbonbook.app" },
+]
 
 [assets]
 directory = "./dist"

@@ -1,8 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
-// biome-ignore lint/suspicious/noExplicitAny: Astro.locals.runtime is untyped
-const env = (Astro.locals as any).runtime?.env as { API_ORIGIN?: string } | undefined;
-const apiOrigin = env?.API_ORIGIN ?? 'https://api.carbonbook.app';
+// API lives on the same origin (carbonbook.app/api). Client fetches
+// use a relative URL, so no env wiring is needed here.
 ---
 <Base title="Sign in — carbonbook" lang="en">
   <h1 class="text-2xl font-bold">Sign in</h1>
@@ -30,7 +29,7 @@ const apiOrigin = env?.API_ORIGIN ?? 'https://api.carbonbook.app';
     </p>
     <p id="error" class="hidden text-sm text-red-600"></p>
   </form>
-  <script is:inline define:vars={{ apiOrigin }}>
+  <script is:inline>
     document.getElementById('login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const data = new FormData(e.target);
@@ -39,7 +38,7 @@ const apiOrigin = env?.API_ORIGIN ?? 'https://api.carbonbook.app';
       sent.classList.add('hidden');
       error.classList.add('hidden');
       try {
-        const res = await fetch(apiOrigin + '/v1/auth/magic-link', {
+        const res = await fetch('/api/v1/auth/magic-link', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: data.get('email') }),

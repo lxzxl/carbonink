@@ -1,8 +1,5 @@
 ---
 import Base from '../layouts/Base.astro';
-// biome-ignore lint/suspicious/noExplicitAny: Astro.locals.runtime is untyped
-const env = (Astro.locals as any).runtime?.env as { API_ORIGIN?: string } | undefined;
-const apiOrigin = env?.API_ORIGIN ?? 'https://api.carbonbook.app';
 const cookie = Astro.request.headers.get('Cookie') ?? '';
 
 type Device = {
@@ -13,9 +10,12 @@ type Device = {
   first_seen_at: number;
 };
 
+// Same-origin SSR fetch — build an absolute URL from the incoming
+// request so the Worker fetch has a valid origin.
+const devicesUrl = new URL('/api/v1/account/devices', new URL(Astro.request.url).origin);
 let devices: Device[] = [];
 try {
-  const res = await fetch(`${apiOrigin}/v1/account/devices`, { headers: { Cookie: cookie } });
+  const res = await fetch(devicesUrl.toString(), { headers: { Cookie: cookie } });
   if (res.ok) {
     const body = (await res.json()) as { devices: Device[] };
     devices = body.devices;
@@ -84,14 +84,15 @@ try {
     </button>
   </section>
 
-  <script is:inline define:vars={{ apiOrigin }}>
+  <script is:inline>
+    // Same-origin: relative URLs are enough; the browser sends the
+    // session cookie automatically without `credentials: 'include'`.
     document.querySelectorAll('.deact').forEach((btn) => {
       btn.addEventListener('click', async () => {
         const id = btn.getAttribute('data-device');
         if (!id) return;
-        const res = await fetch(apiOrigin + '/v1/devices/' + encodeURIComponent(id) + '/deactivate', {
+        const res = await fetch('/api/v1/devices/' + encodeURIComponent(id) + '/deactivate', {
           method: 'POST',
-          credentials: 'include',
         });
         if (res.ok) {
           const li = btn.closest('li');
@@ -104,9 +105,7 @@ try {
       const err = document.getElementById('portal-error');
       err.classList.add('hidden');
       const ret = encodeURIComponent(location.href);
-      const res = await fetch(apiOrigin + '/v1/account/billing-portal?return_url=' + ret, {
-        credentials: 'include',
-      });
+      const res = await fetch('/api/v1/account/billing-portal?return_url=' + ret);
       if (!res.ok) {
         err.textContent = 'Could not open billing portal — no Stripe customer linked yet.';
         err.classList.remove('hidden');
@@ -121,13 +120,12 @@ try {
         'This permanently deletes your account, cancels active subscriptions, and removes every device. Continue?',
       );
       if (!ok) return;
-      const res = await fetch(apiOrigin + '/v1/account', {
+      const res = await fetch('/api/v1/account', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ confirm: 'DELETE' }),
       });
-      if (res.ok) location.href = '/login';
+      if (res.ok) location.href = '/account/login';
     });
   </script>
 </Base>

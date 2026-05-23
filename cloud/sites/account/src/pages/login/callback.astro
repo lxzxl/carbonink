@@ -1,14 +1,15 @@
 ---
 import Base from '../../layouts/Base.astro';
-// biome-ignore lint/suspicious/noExplicitAny: Astro.locals.runtime is untyped
-const env = (Astro.locals as any).runtime?.env as { API_ORIGIN?: string } | undefined;
-const apiOrigin = env?.API_ORIGIN ?? 'https://api.carbonbook.app';
-const token = new URL(Astro.request.url).searchParams.get('t');
+const reqUrl = new URL(Astro.request.url);
+const token = reqUrl.searchParams.get('t');
 
 let ok = false;
 let setCookie: string | null = null;
 if (token) {
-  const res = await fetch(`${apiOrigin}/v1/auth/exchange`, {
+  // Same-origin call; build an absolute URL from the incoming request
+  // so the Worker fetch has a valid origin.
+  const exchangeUrl = new URL('/api/v1/auth/exchange', reqUrl.origin);
+  const res = await fetch(exchangeUrl.toString(), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ token }),
@@ -18,9 +19,10 @@ if (token) {
 }
 
 if (ok && setCookie) {
+  // Redirect to the account portal root (Astro `base: '/account'`).
   return new Response(null, {
     status: 302,
-    headers: { Location: '/', 'Set-Cookie': setCookie },
+    headers: { Location: '/account/', 'Set-Cookie': setCookie },
   });
 }
 ---
@@ -30,6 +32,6 @@ if (ok && setCookie) {
     The link is expired or has already been used.
   </p>
   <p class="mt-4">
-    <a href="/login" class="underline text-[color:var(--color-brand-500)]">Request a new link</a>
+    <a href="/account/login" class="underline text-[color:var(--color-brand-500)]">Request a new link</a>
   </p>
 </Base>

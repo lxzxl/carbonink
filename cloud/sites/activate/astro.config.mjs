@@ -5,6 +5,8 @@ import { defineConfig } from 'astro/config';
 export default defineConfig({
   output: 'server',
   adapter: cloudflare(),
+  // Mounted at carbonbook.app/activate via Workers Routes.
+  base: '/activate',
   vite: { plugins: [tailwindcss()] },
   i18n: {
     defaultLocale: 'zh-CN',

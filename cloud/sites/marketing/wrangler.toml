@@ -3,10 +3,16 @@
 # Pages — see CLAUDE.md → Repo layout). No `main` because there's no
 # runtime code: Astro builds `dist/` and wrangler serves it directly.
 #
-# Production domain: carbonbook.app
+# Catch-all at carbonbook.app: more-specific routes (/api/*, /activate,
+# /account) win via Cloudflare's longest-prefix match, so this only
+# serves what's left over (marketing pages, /pricing, /download, etc.).
 
 name = "carbonbook-marketing"
 compatibility_date = "2025-05-23"
+
+routes = [
+  { pattern = "carbonbook.app/*", zone_name = "carbonbook.app" },
+]
 
 [assets]
 directory = "./dist"
