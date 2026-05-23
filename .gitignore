@@ -27,6 +27,9 @@ release/
 data/
 local/
 .cache/
+# Bundled preset catalog files live under desktop/src/main/data/ — committed.
+!desktop/src/main/data/
+!desktop/src/main/data/**
 
 # Env / secrets
 .env
