@@ -9,17 +9,19 @@
  *   3. Filters factors (public, recent, sensible region, has unit + category + name)
  *   4. Dedupes by `activity_id` (preferred region/year picked)
  *   5. Assigns scope 1/2/3 via a hand-maintained CATEGORY_TO_SCOPE table
- *   6. Picks a curated slice (favoring Scope 1/2 + select Scope 3 categories)
- *   7. Translates names to simplified Chinese via the Vercel AI SDK (gpt-4o-mini)
+ *   6. Picks a curated slice (favoring Scope 1/2 + select Scope 3 categories,
+ *      capping each category at MAX_PER_CATEGORY entries for balance)
+ *   7. Translates names to simplified Chinese via the Vercel AI SDK (deepseek-chat)
  *   8. Writes `desktop/src/main/data/preset-sources.json`
  *
  * Cache:
  *   - Raw API pages cached under `desktop/scripts/.climatiq-cache/` (gitignored)
  *   - Translations cached under the same dir, keyed by activity_id
+ *     (provider-agnostic — value is just a Chinese string)
  *
  * Run:
  *   node desktop/scripts/climatiq-to-presets.mjs --dry-run
- *   OPENAI_API_KEY=sk-... node desktop/scripts/climatiq-to-presets.mjs --limit 250
+ *   DEEPSEEK_API_KEY=sk-... node desktop/scripts/climatiq-to-presets.mjs --limit 300
  */
 
 import { mkdir, readFile, writeFile, stat, rename } from 'node:fs/promises';
@@ -61,7 +63,7 @@ const CACHE_ONLY = flag('--cache-only');
 const REFRESH = flag('--refresh');
 
 const CLIMATIQ_API_TOKEN = process.env.CLIMATIQ_API_TOKEN || 'DZBYBS4XXH4C9TM6T5H9DGYMR8WD';
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
 
 const BASE_URL = 'https://api.climatiq.io/data/v1';
 const RESULTS_PER_PAGE = 500;
@@ -86,62 +88,104 @@ const MIN_YEAR = 2022;
 const CATEGORY_TO_SCOPE = {
   // ── Scope 1 — direct emissions (combustion / fugitives / process)
   Fuel: 1,
+  'Stationary Combustion': 1,
+  'Mobile Combustion': 1,
   'Refrigerants and Fugitive Gases': 1,
+  'Refrigerants and Fugitives': 1,
+  Refrigerants: 1,
+  'Process Emissions': 1,
+  'Industrial Processes': 1,
+  Agriculture: 1, // livestock + soil emissions (direct)
+  Livestock: 1,
+  'Land Use': 1,
+  'Land Use Change': 1,
+
   // ── Scope 2 — purchased energy
   Electricity: 2,
   'Heat and Steam': 2,
   Cooling: 2,
+  'Energy / Electricity Mix': 2,
+  'District Heating': 2,
+  'Compressed Air': 2,
+
   // ── Scope 3 — purchased goods / services / travel / freight / waste
-  // Travel + freight (3.6 / 3.4 / 3.9 in the GHG protocol)
+
+  // Travel + commuting (3.6 / 3.7)
   'Air Travel': 3,
+  'Ground Travel': 3,
   'Road Travel': 3,
   'Rail Travel': 3,
   'Sea Travel': 3,
-  'Air Freight': 3,
-  'Road Freight': 3,
-  'Rail Freight': 3,
-  'Sea Freight': 3,
-  'Transport Services and Warehousing': 3,
-  Storage: 3,
+  'Business Travel': 3,
+  Accommodation: 3,
+  'Hotel Stay': 3,
+  'Employee Commuting': 3,
   Vehicles: 3,
   'Vehicle Parts': 3,
   'Vehicle Maintenance and Services': 3,
+
+  // Freight (3.4 / 3.9)
+  'Air Freight': 3,
+  'Sea Freight': 3,
+  'Road Freight': 3,
+  'Rail Freight': 3,
+  Freight: 3,
+  'Transport Services and Warehousing': 3,
+  Storage: 3,
+
   // Purchased goods + materials (3.1)
+  'Office Equipment': 3,
+  'IT Hardware': 3,
+  'IT Services': 3,
+  Materials: 3,
+  'Raw Materials': 3,
+  'Construction Materials': 3,
+  Construction: 3,
+  Manufacturing: 3,
+  Chemicals: 3,
+  'Chemical Products': 3,
   Metals: 3,
+  'Fabricated Metal Products': 3,
   'Mined Materials': 3,
   Mining: 3,
   'Building Materials': 3,
-  Construction: 3,
   Infrastructure: 3,
   'Pavement and Surfacing': 3,
   'Timber and Forestry Products': 3,
+  Paper: 3,
   'Paper and Cardboard': 3,
   'Paper Products': 3,
+  Plastics: 3,
   'Plastics and Rubber Products': 3,
-  'Chemical Products': 3,
-  'Glass and Glass Products': 3,
-  'Ceramic Goods': 3,
-  'Fabricated Metal Products': 3,
-  'Other Materials': 3,
-  Machinery: 3,
-  'Electrical Equipment': 3,
-  Electronics: 3,
-  'Office Equipment': 3,
-  'DIY and Gardening Equipment': 3,
   Textiles: 3,
   'Clothing and Footwear': 3,
-  'Personal Care and Accessories': 3,
+  Food: 3,
+  Beverages: 3,
+  'Food and Beverage Services': 3,
+  'Food/Beverages/Tobacco': 3,
+  'Organic Products': 3,
+  Glass: 3,
+  'Glass and Glass Products': 3,
+  'Ceramic Goods': 3,
+  Cement: 3,
+  Equipment: 3,
+  'Electrical Equipment': 3,
+  Electronics: 3,
+  'DIY and Gardening Equipment': 3,
+  Furniture: 3,
   'Furnishings and Household': 3,
-  Manufacturing: 3,
-  // Food + agriculture
+  'Personal Care and Accessories': 3,
+  Machinery: 3,
+  'Other Materials': 3,
+
+  // Food + agriculture (purchased)
   'Arable Farming': 3,
   'Livestock Farming': 3,
   'Fishing/Aquaculture/Hunting': 3,
   'Agriculture/Hunting/Forestry/Fishing': 3,
-  'Food and Beverage Services': 3,
-  'Food/Beverages/Tobacco': 3,
-  'Organic Products': 3,
-  // Waste (3.5)
+
+  // Waste + EOL (3.5)
+  Waste: 3,
   'Waste Management': 3,
   'Waste Product': 3,
   'General Waste': 3,
@@ -152,13 +196,16 @@ const CATEGORY_TO_SCOPE = {
   'Glass Waste': 3,
   'Construction Waste': 3,
   'Food and Organic Waste': 3,
-  // Water + land
+  Recycling: 3,
+
+  // Water + sewage
+  Water: 3,
   'Water Supply': 3,
   'Water Treatment': 3,
-  'Land Use Change': 3,
-  'Land Use': 3,
+  Wastewater: 3,
+  Sewage: 3,
+
   // Services (3.1 / 3.6 / 3.7)
-  Accommodation: 3,
   'Professional Services': 3,
   'Financial Services': 3,
   'Insurance Services': 3,
@@ -184,25 +231,107 @@ const CATEGORY_TO_SCOPE = {
   Homeworking: 3,
 };
 
-// Whitelist of Scope 3 categories we want to keep when slicing to `--limit`.
-// These are the ones most useful for company inventory (business travel,
-// commuting proxies, freight, electricity-adjacent). Scope 1 + 2 are
-// always preferred ahead of any Scope 3 entry.
-const FAVORED_S3 = new Set([
-  // Business travel + commuting proxies
+// Per-category entry cap (applied during slicing).
+// Without this, one mega-category (e.g. BEIS Fuel — 200+ variants) eats the
+// entire --limit budget and crowds out everything else.
+const MAX_PER_CATEGORY = 12;
+
+// ── Selection priority tiers (descending) ───────────────────────────────────
+// Used during `curatedSlice` to fill the catalog in the right order.
+//   tier 1: Scope 2 (every company needs purchased energy)
+//   tier 2: Scope 1 — stationary combustion + refrigerants/fugitives
+//   tier 3: Scope 3 — business travel + commuting + freight (most common S3)
+//   tier 4: Scope 3 — purchased materials + IT + office + construction
+//   tier 5: Scope 1 — all other Fuel/combustion variants
+//   tier 6: Scope 3 — waste + water + EOL
+//   tier 7: Scope 3 — everything else (services, retail, etc.)
+// In Climatiq's actual taxonomy, plain "Fuel" + "Mobile Combustion" ARE the
+// stationary/mobile combustion entries — the spec lists them in tier 5 only
+// because it assumed Climatiq exposed a separate "Stationary Combustion"
+// category (which it does not). With the per-category cap of 12, including
+// them in tier 2 ensures the catalog has 12 Fuel entries (the canonical
+// Scope 1 inventory items) before Scope 3 tiers consume the budget.
+const S1_STATIONARY_OR_FUGITIVE = new Set([
+  'Fuel',
+  'Stationary Combustion',
+  'Mobile Combustion',
+  'Refrigerants and Fugitive Gases',
+  'Refrigerants and Fugitives',
+  'Refrigerants',
+  'Process Emissions',
+  'Industrial Processes',
+]);
+
+const S3_TRAVEL_FREIGHT = new Set([
   'Air Travel',
+  'Ground Travel',
   'Road Travel',
   'Rail Travel',
   'Sea Travel',
+  'Business Travel',
   'Accommodation',
+  'Hotel Stay',
+  'Employee Commuting',
   'Vehicles',
-  // Freight (upstream + downstream)
+  'Vehicle Maintenance and Services',
+  'Vehicle Parts',
   'Air Freight',
+  'Sea Freight',
   'Road Freight',
   'Rail Freight',
-  'Sea Freight',
+  'Freight',
   'Transport Services and Warehousing',
-  // Waste (3.5)
+  'Storage',
+]);
+
+const S3_GOODS = new Set([
+  'Office Equipment',
+  'IT Hardware',
+  'IT Services',
+  'Electronics',
+  'Electrical Equipment',
+  'Machinery',
+  'Equipment',
+  'Furniture',
+  'Furnishings and Household',
+  'Materials',
+  'Raw Materials',
+  'Construction Materials',
+  'Construction',
+  'Manufacturing',
+  'Building Materials',
+  'Infrastructure',
+  'Pavement and Surfacing',
+  'Metals',
+  'Fabricated Metal Products',
+  'Mined Materials',
+  'Mining',
+  'Chemicals',
+  'Chemical Products',
+  'Paper',
+  'Paper and Cardboard',
+  'Paper Products',
+  'Timber and Forestry Products',
+  'Plastics',
+  'Plastics and Rubber Products',
+  'Textiles',
+  'Clothing and Footwear',
+  'Glass',
+  'Glass and Glass Products',
+  'Ceramic Goods',
+  'Cement',
+  'Food',
+  'Beverages',
+  'Food and Beverage Services',
+  'Food/Beverages/Tobacco',
+  'Organic Products',
+  'Personal Care and Accessories',
+  'DIY and Gardening Equipment',
+  'Other Materials',
+]);
+
+const S3_WASTE_WATER = new Set([
+  'Waste',
   'Waste Management',
   'Waste Product',
   'General Waste',
@@ -213,13 +342,12 @@ const FAVORED_S3 = new Set([
   'Glass Waste',
   'Construction Waste',
   'Food and Organic Waste',
-  // Office consumables
-  'Paper and Cardboard',
-  'Office Equipment',
-  'Electronics',
-  // Water
+  'Recycling',
+  'Water',
   'Water Supply',
   'Water Treatment',
+  'Wastewater',
+  'Sewage',
 ]);
 
 const FAVORED_SOURCES = new Set(['BEIS', 'EPA', 'IPCC', 'GHG Protocol']);
@@ -386,19 +514,28 @@ function preferA(a, b) {
   return sa > sb;
 }
 
-/** Slice down to `limit`, preferring scope1+2, then favored scope3. */
+/**
+ * Slice down to `limit`, walking priority tiers and capping each category
+ * at MAX_PER_CATEGORY. Intent: spread the catalog across categories so no
+ * single mega-category (e.g. BEIS Fuel with 200+ variants) dominates.
+ */
 function curatedSlice(factors, limit) {
-  const scope12 = [];
-  const scope3Favored = [];
-  const scope3Other = [];
-  for (const f of factors) {
-    if (f._scope === 1 || f._scope === 2) scope12.push(f);
-    else if (FAVORED_S3.has(f.category)) scope3Favored.push(f);
-    else scope3Other.push(f);
-  }
+  /** @returns {1|2|3|4|5|6|7} */
+  const tierOf = (f) => {
+    if (f._scope === 2) return 1;
+    if (f._scope === 1 && S1_STATIONARY_OR_FUGITIVE.has(f.category)) return 2;
+    if (f._scope === 3 && S3_TRAVEL_FREIGHT.has(f.category)) return 3;
+    if (f._scope === 3 && S3_GOODS.has(f.category)) return 4;
+    if (f._scope === 1) return 5; // remaining Scope 1 (Fuel variants, etc.)
+    if (f._scope === 3 && S3_WASTE_WATER.has(f.category)) return 6;
+    return 7; // Scope 3 other (services, retail, …)
+  };
 
-  // Sort each bucket by region priority, then year DESC, then favored source
+  // Sort: tier ASC, then region priority, then year DESC, then favored source.
   const cmp = (a, b) => {
+    const ta = tierOf(a);
+    const tb = tierOf(b);
+    if (ta !== tb) return ta - tb;
     const ra = REGION_PRIORITY.indexOf(a.region);
     const rb = REGION_PRIORITY.indexOf(b.region);
     if (ra !== rb) return ra - rb;
@@ -407,23 +544,28 @@ function curatedSlice(factors, limit) {
     const sb = FAVORED_SOURCES.has(b.source) ? 1 : 0;
     return sb - sa;
   };
-  scope12.sort(cmp);
-  scope3Favored.sort(cmp);
-  scope3Other.sort(cmp);
 
+  const sorted = [...factors].sort(cmp);
+
+  /** @type {Record<string, number>} */
+  const counts = {};
   const out = [];
-  for (const arr of [scope12, scope3Favored, scope3Other]) {
-    for (const f of arr) {
-      if (out.length >= limit) break;
-      out.push(f);
-    }
+  for (const f of sorted) {
     if (out.length >= limit) break;
+    const n = counts[f.category] || 0;
+    if (n >= MAX_PER_CATEGORY) continue;
+    counts[f.category] = n + 1;
+    out.push(f);
   }
   return out;
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// Translation (Vercel AI SDK, gpt-4o-mini)
+// Translation (Vercel AI SDK, deepseek-chat)
+//   - deepseek-chat is DeepSeek's production endpoint; auto-routes to the
+//     latest model (currently V3, will pick up V4 without code change).
+//   - Cache file is keyed by activity_id only and stores plain Chinese
+//     strings, so any prior OpenAI translations remain valid.
 // ────────────────────────────────────────────────────────────────────────────
 
 async function loadTranslationCache() {
@@ -445,7 +587,7 @@ async function translateBatch(items, cache) {
   // Caller already filtered uncached ones.
   if (items.length === 0) return {};
 
-  const { openai } = await import('@ai-sdk/openai');
+  const { deepseek } = await import('@ai-sdk/deepseek');
   const { generateObject } = await import('ai');
   const { z } = await import('zod');
 
@@ -473,7 +615,7 @@ async function translateBatch(items, cache) {
   ].join('\n');
 
   const result = await generateObject({
-    model: openai('gpt-4o-mini'),
+    model: deepseek('deepseek-chat'),
     schema,
     prompt,
   });
@@ -491,13 +633,13 @@ async function translateBatch(items, cache) {
 }
 
 async function translateAll(entries, cache) {
-  if (NO_TRANSLATE || !OPENAI_API_KEY) {
+  if (NO_TRANSLATE || !DEEPSEEK_API_KEY) {
     return entries.map((e) => ({ ...e, name_zh: e.name }));
   }
 
   const uncached = entries.filter((e) => !cache[e.activity_id]);
   console.log(
-    `Translation: ${entries.length - uncached.length} cached, ${uncached.length} to translate via gpt-4o-mini`,
+    `Translation: ${entries.length - uncached.length} cached, ${uncached.length} to translate via deepseek-chat`,
   );
 
   const BATCH = 40;
@@ -531,7 +673,7 @@ async function main() {
   console.log(`Sources:  ${SOURCES.join(', ')}`);
   console.log(`Limit:    ${LIMIT}`);
   console.log(`Dry-run:  ${DRY_RUN}`);
-  console.log(`Translate: ${!NO_TRANSLATE && !!OPENAI_API_KEY}`);
+  console.log(`Translate: ${!NO_TRANSLATE && !!DEEPSEEK_API_KEY}`);
   console.log('');
 
   await mkdir(CACHE_DIR, { recursive: true });
@@ -634,8 +776,8 @@ async function main() {
   console.log(`Translated: ${translated.length - untranslated} / ${translated.length}`);
   if (NO_TRANSLATE) {
     console.warn('  (translation skipped via --no-translate)');
-  } else if (!OPENAI_API_KEY) {
-    console.warn('  (translation skipped: OPENAI_API_KEY not set)');
+  } else if (!DEEPSEEK_API_KEY) {
+    console.warn('  (translation skipped: DEEPSEEK_API_KEY not set)');
   } else if (untranslated > 0) {
     console.warn(`  ⚠️  ${untranslated} entries fell back to English name`);
   }
