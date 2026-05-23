@@ -14,7 +14,7 @@
   },
   "packageManager": "pnpm@10.0.0",
   "scripts": {
-    "predev": "electron-rebuild -f -w better-sqlite3",
+    "predev": "electron-rebuild -f -w better-sqlite3 && pnpm run build:mcp",
     "dev": "electron-vite dev",
     "prebuild": "electron-rebuild -f -w better-sqlite3",
     "build": "electron-vite build && pnpm run build:mcp",

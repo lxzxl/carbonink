@@ -221,7 +221,7 @@
   "questionnaires_detail_unit": "单位",
   "questionnaires_empty": "还没有问卷",
   "questionnaires_finalize_button": "确认全部答案",
-  "questionnaires_new_button": "+ 新建问卷",
+  "questionnaires_new_button": "新建问卷",
   "questionnaires_status_answering": "答题中",
   "questionnaires_status_exported": "已导出",
   "questionnaires_status_mapping": "映射中",

@@ -33,7 +33,11 @@ import * as React from 'react';
 //   `outline-none` kills the browser's default 2px blue outline; the
 //   above rules replace it.
 const buttonVariants = cva(
-  'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors outline-none focus-visible:border-ring active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50',
+  // `whitespace-nowrap` is critical for CJK locales — Chinese labels
+  // like "保存" (2 chars) will wrap one character per line when the
+  // flex parent compresses widths. Without nowrap, "保存" renders as
+  // a vertical "保 / 存" stack inside the button.
+  'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors outline-none focus-visible:border-ring active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50',
   {
     variants: {
       variant: {
