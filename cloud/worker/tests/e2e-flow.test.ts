@@ -14,7 +14,7 @@ async function call(
   body: unknown,
   headers: Record<string, string> = {},
 ): Promise<Response> {
-  const req = new Request(`https://api.carbonbook.app${path}`, {
+  const req = new Request(`https://carbonbook.app/api${path}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

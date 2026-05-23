@@ -1,6 +1,13 @@
 name = "carbonbook-cloud-api"
 main = "src/index.ts"
 compatibility_date = "2025-05-01"
+
+# Single-domain routing: this worker handles every `/api/*` path under
+# carbonbook.app. The entrypoint strips the `/api` prefix so existing
+# handlers (matching `/v1/*`) keep working.
+routes = [
+  { pattern = "carbonbook.app/api/*", zone_name = "carbonbook.app" },
+]
 # No nodejs_compat needed: we use @noble/curves (pure-JS WebCrypto-based)
 # for Ed25519 and raw fetch() calls (no stripe SDK) for Stripe + Resend.
 # If a future contributor adds the `stripe` npm package, they MUST also

@@ -67,8 +67,23 @@ function addCors(res: Response, request: Request): Response {
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const url = new URL(request.url);
-    const path = url.pathname;
+    // Cloudflare Workers Routes dispatches `carbonbook.app/api/*` here.
+    // Strip the `/api` prefix so existing handlers continue to match
+    // `/v1/*`. We rebuild the Request URL so downstream handlers that
+    // re-parse `request.url` (e.g. updates.ts, devices.ts) see the same
+    // path the entrypoint dispatched on.
+    const originalUrl = new URL(request.url);
+    let path = originalUrl.pathname;
+    if (path.startsWith('/api/')) {
+      path = path.slice(4); // '/api/v1/activate' → '/v1/activate'
+    } else if (path === '/api') {
+      path = '/';
+    }
+    if (path !== originalUrl.pathname) {
+      const rewritten = new URL(request.url);
+      rewritten.pathname = path;
+      request = new Request(rewritten, request);
+    }
 
     if (request.method === 'OPTIONS') {
       return new Response(null, { headers: corsHeaders(request) });

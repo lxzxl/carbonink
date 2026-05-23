@@ -11,7 +11,7 @@ releaseDate: '2026-06-01T00:00:00Z'
 `;
 
 async function get(path: string): Promise<Response> {
-  const req = new Request(`https://api.carbonbook.app${path}`);
+  const req = new Request(`https://carbonbook.app/api${path}`);
   const ctx = createExecutionContext();
   const res = await worker.fetch(req, env, ctx);
   await waitOnExecutionContext(ctx);

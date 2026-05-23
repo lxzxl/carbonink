@@ -29,7 +29,7 @@ async function postEvent(eventObj: unknown): Promise<Response> {
   const payload = JSON.stringify(eventObj);
   const ts = Math.floor(Date.now() / 1000);
   const sig = await sign(payload, ts);
-  const req = new Request('https://api.carbonbook.app/v1/stripe-webhook', {
+  const req = new Request('https://carbonbook.app/api/v1/stripe-webhook', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'stripe-signature': sig },
     body: payload,
@@ -51,7 +51,7 @@ async function postEvent(eventObj: unknown): Promise<Response> {
 
 describe('POST /v1/stripe-webhook signature verification', () => {
   it('rejects requests without a signature with 400', async () => {
-    const req = new Request('https://api.carbonbook.app/v1/stripe-webhook', {
+    const req = new Request('https://carbonbook.app/api/v1/stripe-webhook', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{}',

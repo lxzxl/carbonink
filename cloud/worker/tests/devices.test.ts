@@ -17,7 +17,7 @@ async function authedPost(path: string, userId: string): Promise<Response> {
     },
     SESSION_KEY,
   );
-  const req = new Request(`https://api.carbonbook.app${path}`, {
+  const req = new Request(`https://carbonbook.app/api${path}`, {
     method: 'POST',
     headers: { Cookie: `session=${jwt}` },
   });
@@ -87,7 +87,7 @@ describe('POST /v1/devices/:id/deactivate', () => {
   });
 
   it('returns 401 without a session cookie', async () => {
-    const req = new Request('https://api.carbonbook.app/v1/devices/anything/deactivate', {
+    const req = new Request('https://carbonbook.app/api/v1/devices/anything/deactivate', {
       method: 'POST',
     });
     const ctx = createExecutionContext();

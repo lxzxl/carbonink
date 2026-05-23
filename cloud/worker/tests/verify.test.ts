@@ -4,7 +4,7 @@ import worker from '../src/index.js';
 import { seedLicense, TEST_PRIVATE_KEY_HEX } from './_fixtures.js';
 
 function makeReq(body: unknown): Request {
-  return new Request('https://api.carbonbook.app/v1/verify', {
+  return new Request('https://carbonbook.app/api/v1/verify', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),

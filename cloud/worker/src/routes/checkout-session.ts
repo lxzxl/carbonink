@@ -27,7 +27,7 @@ export async function handleCheckoutSession(request: Request, env: Env): Promise
     priceId,
     plan: parsed.data.plan,
     tier: 'base',
-    successUrl: 'https://activate.carbonbook.app?session_id={CHECKOUT_SESSION_ID}',
+    successUrl: 'https://carbonbook.app/activate?session_id={CHECKOUT_SESSION_ID}',
     cancelUrl: 'https://carbonbook.app/pricing?cancelled=1',
     customerEmail: parsed.data.email,
   });

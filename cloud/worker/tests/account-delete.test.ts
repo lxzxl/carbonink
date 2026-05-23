@@ -22,7 +22,7 @@ async function authedDelete(body: unknown, userId: string): Promise<Response> {
     },
     SESSION_KEY,
   );
-  const req = new Request('https://api.carbonbook.app/v1/account', {
+  const req = new Request('https://carbonbook.app/api/v1/account', {
     method: 'DELETE',
     headers: { Cookie: `session=${jwt}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -120,7 +120,7 @@ describe('DELETE /v1/account', () => {
   });
 
   it('returns 401 without a session cookie', async () => {
-    const req = new Request('https://api.carbonbook.app/v1/account', {
+    const req = new Request('https://carbonbook.app/api/v1/account', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ confirm: 'DELETE' }),

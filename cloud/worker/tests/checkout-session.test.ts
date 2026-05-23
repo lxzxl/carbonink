@@ -8,7 +8,7 @@ beforeAll(() => {
 });
 
 async function call(body: unknown): Promise<Response> {
-  const req = new Request('https://api.carbonbook.app/v1/checkout-session', {
+  const req = new Request('https://carbonbook.app/api/v1/checkout-session', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),

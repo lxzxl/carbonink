@@ -22,7 +22,7 @@ async function authedGet(path: string, userId: string): Promise<Response> {
     },
     SESSION_KEY,
   );
-  const req = new Request(`https://api.carbonbook.app${path}`, {
+  const req = new Request(`https://carbonbook.app/api${path}`, {
     headers: { Cookie: `session=${jwt}` },
   });
   const ctx = createExecutionContext();
@@ -65,7 +65,7 @@ describe('GET /v1/account/devices', () => {
   });
 
   it('returns 401 without a session cookie', async () => {
-    const req = new Request('https://api.carbonbook.app/v1/account/devices');
+    const req = new Request('https://carbonbook.app/api/v1/account/devices');
     const ctx = createExecutionContext();
     // biome-ignore lint/suspicious/noExplicitAny: test override of env secret
     (env as any).SESSION_PRIVATE_KEY_HEX = SESSION_KEY;
