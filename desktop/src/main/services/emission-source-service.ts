@@ -2,6 +2,7 @@ import type {
   EmissionSource,
   EmissionSourceCreateInput,
   EmissionSourceUpdateInput,
+  EmissionSourceWithStats,
 } from '@shared/types.js';
 import { emissionSourceCreateInput, emissionSourceUpdateInput } from '@shared/types.js';
 import { newId } from '@shared/ulid.js';
@@ -133,6 +134,57 @@ export class EmissionSourceService {
       )
       .all(orgId) as EmissionSourceRow[];
     return rows.map((r) => mapRow(r) as EmissionSource);
+  }
+
+  /**
+   * Same as `listByOrganization` but with usage stats joined in from
+   * `activity_data`. Powers the `/sources` route's enriched card layout —
+   * users want to see which sources have actually been used, when, and
+   * how much CO₂e they account for.
+   *
+   * Aggregation is across ALL reporting periods (not just the current
+   * one). Zero-activity sources still appear with `activity_count = 0`,
+   * `total_co2e_kg = 0`, and `last_activity_at = null`. We use a subquery
+   * (rather than `LEFT JOIN activity_data ... GROUP BY`) because the JOIN
+   * approach multiplies rows when there are multiple activities per
+   * source and forces a per-column aggregator on the emission_source
+   * columns, which is wasteful.
+   */
+  listByOrganizationWithStats(orgId: string): EmissionSourceWithStats[] {
+    const cols = ES_COLUMNS.map((c) => `es.${c}`).join(', ');
+    const rows = this.ctx.db
+      .prepare(
+        `SELECT ${cols},
+                COALESCE(stats.cnt, 0) AS activity_count,
+                COALESCE(stats.total_co2e, 0) AS total_co2e_kg,
+                stats.last_at AS last_activity_at
+           FROM emission_source es
+           JOIN site s ON es.site_id = s.id
+           LEFT JOIN (
+             SELECT emission_source_id,
+                    COUNT(*) AS cnt,
+                    SUM(computed_co2e_kg) AS total_co2e,
+                    MAX(occurred_at_end) AS last_at
+               FROM activity_data
+              GROUP BY emission_source_id
+           ) stats ON stats.emission_source_id = es.id
+          WHERE s.organization_id = ?
+          ORDER BY es.scope ASC, es.name ASC, es.id ASC`,
+      )
+      .all(orgId) as (EmissionSourceRow & {
+      activity_count: number;
+      total_co2e_kg: number;
+      last_activity_at: string | null;
+    })[];
+    return rows.map((r) => {
+      const base = mapRow(r) as EmissionSource;
+      return {
+        ...base,
+        activity_count: r.activity_count,
+        total_co2e_kg: r.total_co2e_kg,
+        last_activity_at: r.last_activity_at,
+      };
+    });
   }
 
   /**

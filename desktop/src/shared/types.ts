@@ -241,6 +241,23 @@ export type EmissionSourceUpdateInput = z.infer<typeof emissionSourceUpdateInput
 export type ActivityDataCreateInput = z.infer<typeof activityDataCreateInput>;
 
 /**
+ * EmissionSource row augmented with usage stats computed via a LEFT JOIN
+ * against `activity_data`. Surfaced on the `/sources` list cards so users
+ * can see at a glance which sources are actually in use and which are
+ * dead weight.
+ *
+ * Zero-activity sources get `activity_count = 0`, `total_co2e_kg = 0`,
+ * and `last_activity_at = null`. The aggregation is across ALL reporting
+ * periods (not the current one) — `/sources` is a global org view.
+ */
+export type EmissionSourceWithStats = EmissionSource & {
+  activity_count: number;
+  total_co2e_kg: number;
+  /** ISO timestamp of the most recent activity_data.occurred_at_end. */
+  last_activity_at: string | null;
+};
+
+/**
  * One entry in the built-in preset emission-source catalog.
  *
  * Ships as a static JSON seed at `src/main/data/preset-sources.json`,

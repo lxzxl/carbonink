@@ -15,6 +15,14 @@ export const sourceApi = {
   getById: (input: { id: string }) => invoke('source:get-by-id', input),
   listBySite: (input: { site_id: string }) => invoke('source:list-by-site', input),
   listByOrg: (input: { organization_id: string }) => invoke('source:list-by-org', input),
+  /**
+   * Same shape as `listByOrg` plus per-source usage stats (activity_count,
+   * total_co2e_kg, last_activity_at). Used by /sources for the enriched
+   * card view; do NOT call this from other surfaces — they pay extra
+   * aggregation cost for stats they don't display.
+   */
+  listByOrgWithStats: (input: { organization_id: string }) =>
+    invoke('source:list-by-org-with-stats', input),
   update: (input: Parameters<typeof invoke<'source:update'>>[1]) => invoke('source:update', input),
   delete: (input: { id: string }) => invoke('source:delete', input),
   // Preset catalog — built-in seed of typical sources (browse + 1-click add).

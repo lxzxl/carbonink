@@ -13,6 +13,7 @@ import type {
   EmissionSource,
   EmissionSourceCreateInput,
   EmissionSourceUpdateInput,
+  EmissionSourceWithStats,
   Extraction,
   ExtractionStatus,
   MatcherResult,
@@ -74,6 +75,16 @@ export type IpcTypeMap = {
   'source:get-by-id': (input: { id: string }) => EmissionSource | null;
   'source:list-by-site': (input: { site_id: string }) => EmissionSource[];
   'source:list-by-org': (input: { organization_id: string }) => EmissionSource[];
+  /**
+   * Same as `list-by-org` but joins in per-source usage stats (count of
+   * activity_data rows, total CO₂e, most recent activity timestamp).
+   * Used by /sources for its enriched cards; older callers (extraction
+   * review, dashboard, activities dropdown) keep using the leaner
+   * `list-by-org` so they don't pay for the aggregation they don't need.
+   */
+  'source:list-by-org-with-stats': (input: {
+    organization_id: string;
+  }) => EmissionSourceWithStats[];
   'source:update': (input: EmissionSourceUpdateInput) => EmissionSource;
   'source:delete': (input: { id: string }) => void;
   // Built-in catalog of typical sources (read-only seed shipped with the app;

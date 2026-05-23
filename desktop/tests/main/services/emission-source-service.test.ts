@@ -173,6 +173,143 @@ describe('EmissionSourceService.delete', () => {
   });
 });
 
+describe('EmissionSourceService.listByOrganizationWithStats', () => {
+  // Helper — insert a minimal reporting_period + activity_data row tying
+  // an emission_source to a CO2e amount on a given date. We bypass the
+  // ActivityDataService (no EF resolution needed) and write directly.
+  function seedActivity(opts: {
+    db: Database.Database;
+    id: string;
+    site_id: string;
+    emission_source_id: string;
+    reporting_period_id: string;
+    co2e_kg: number;
+    end_date: string;
+  }): void {
+    opts.db
+      .prepare(
+        `INSERT INTO activity_data (id, site_id, emission_source_id, reporting_period_id,
+            occurred_at_start, occurred_at_end, amount, unit,
+            ef_factor_code, ef_year, ef_source, ef_geography, ef_dataset_version,
+            computed_co2e_kg, computed_at, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, 1, 'kWh',
+                 'grid_kwh', 2025, 'MEE', 'CN', '2025.1',
+                 ?, ?, ?, ?)`,
+      )
+      .run(
+        opts.id,
+        opts.site_id,
+        opts.emission_source_id,
+        opts.reporting_period_id,
+        opts.end_date,
+        opts.end_date,
+        opts.co2e_kg,
+        opts.end_date,
+        opts.end_date,
+        opts.end_date,
+      );
+  }
+
+  function seedReportingPeriod(opts: { db: Database.Database; id: string; org_id: string }): void {
+    opts.db
+      .prepare(
+        `INSERT INTO reporting_period
+           (id, organization_id, year, granularity, starts_at, ends_at, is_active, created_at)
+         VALUES (?, ?, 2025, 'annual', '2025-01-01', '2025-12-31', 1, '2025-01-01')`,
+      )
+      .run(opts.id, opts.org_id);
+  }
+
+  /**
+   * activity_data has a composite FK to pinned_emission_factor — seed the
+   * single row that all activities in this test share so the inserts pass
+   * FK validation. We're not asserting anything about the EF; it just has
+   * to exist for the composite key to resolve.
+   */
+  function seedPinnedEf(db: Database.Database): void {
+    db.prepare(
+      `INSERT INTO pinned_emission_factor
+         (factor_code, year, source, geography, dataset_version,
+          scope, category, ghg_protocol_path, input_unit,
+          co2e_kg_per_unit, gwp_basis, pinned_at, pinned_from)
+       VALUES ('grid_kwh', 2025, 'MEE', 'CN', '2025.1',
+               2, 'electricity', 'scope2', 'kWh',
+               0.5703, 'AR5', '2025-01-01', 'test')`,
+    ).run();
+  }
+
+  it('aggregates count + sum + max(occurred_at_end) per source via LEFT JOIN', () => {
+    // src1: 3 activities (50, 100, 25 kg), most recent 2025-09-30
+    // src2: 1 activity (200 kg), 2025-03-15
+    // src3: 0 activities
+    const src1 = svc.create({ site_id: site1.id, name: 'Source A', scope: 1 });
+    const src2 = svc.create({ site_id: site1.id, name: 'Source B', scope: 2 });
+    const src3 = svc.create({ site_id: site1.id, name: 'Source C', scope: 3 });
+    seedReportingPeriod({ db, id: 'rp-2025', org_id: org.id });
+    seedPinnedEf(db);
+    seedActivity({
+      db,
+      id: 'a-1',
+      site_id: site1.id,
+      emission_source_id: src1.id,
+      reporting_period_id: 'rp-2025',
+      co2e_kg: 50,
+      end_date: '2025-01-15',
+    });
+    seedActivity({
+      db,
+      id: 'a-2',
+      site_id: site1.id,
+      emission_source_id: src1.id,
+      reporting_period_id: 'rp-2025',
+      co2e_kg: 100,
+      end_date: '2025-09-30',
+    });
+    seedActivity({
+      db,
+      id: 'a-3',
+      site_id: site1.id,
+      emission_source_id: src1.id,
+      reporting_period_id: 'rp-2025',
+      co2e_kg: 25,
+      end_date: '2025-06-01',
+    });
+    seedActivity({
+      db,
+      id: 'a-4',
+      site_id: site1.id,
+      emission_source_id: src2.id,
+      reporting_period_id: 'rp-2025',
+      co2e_kg: 200,
+      end_date: '2025-03-15',
+    });
+
+    const rows = svc.listByOrganizationWithStats(org.id);
+    expect(rows).toHaveLength(3);
+    const byId = new Map(rows.map((r) => [r.id, r]));
+
+    const r1 = byId.get(src1.id);
+    expect(r1?.activity_count).toBe(3);
+    expect(r1?.total_co2e_kg).toBe(175);
+    expect(r1?.last_activity_at).toBe('2025-09-30');
+
+    const r2 = byId.get(src2.id);
+    expect(r2?.activity_count).toBe(1);
+    expect(r2?.total_co2e_kg).toBe(200);
+    expect(r2?.last_activity_at).toBe('2025-03-15');
+
+    // Zero-activity source returns 0 counts + null timestamp.
+    const r3 = byId.get(src3.id);
+    expect(r3?.activity_count).toBe(0);
+    expect(r3?.total_co2e_kg).toBe(0);
+    expect(r3?.last_activity_at).toBeNull();
+  });
+
+  it('returns empty array for an org with no sources', () => {
+    expect(svc.listByOrganizationWithStats(org.id)).toEqual([]);
+  });
+});
+
 describe('EmissionSourceService.createBatch', () => {
   it('inserts all rows in one transaction and returns them in input order', () => {
     const inputs = [

@@ -45,6 +45,8 @@ export function emissionSourceHandlers(ctx: IpcContext): {
     'source:list-by-site': (input) => svc.listBySite(siteScopedInput.parse(input).site_id),
     'source:list-by-org': (input) =>
       svc.listByOrganization(orgScopedInput.parse(input).organization_id),
+    'source:list-by-org-with-stats': (input) =>
+      svc.listByOrganizationWithStats(orgScopedInput.parse(input).organization_id),
     'source:update': (input) => svc.update(emissionSourceUpdateInput.parse(input)),
     'source:delete': (input) => {
       svc.delete(idInput.parse(input).id);

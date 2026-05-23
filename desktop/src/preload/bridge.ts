@@ -23,6 +23,7 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   'source:get-by-id',
   'source:list-by-site',
   'source:list-by-org',
+  'source:list-by-org-with-stats',
   'source:update',
   'source:delete',
   'source:list-presets',

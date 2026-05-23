@@ -6,13 +6,14 @@ import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
 import { sourceApi } from '@renderer/lib/api/emission-source';
 import { orgApi } from '@renderer/lib/api/organization';
+import { formatCo2e, formatInteger } from '@renderer/lib/format';
 import { cn } from '@renderer/lib/utils';
 import * as m from '@renderer/paraglide/messages';
-import type { EmissionSource } from '@shared/types';
+import type { EmissionSourceWithStats, PresetSource } from '@shared/types';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Navigate } from '@tanstack/react-router';
 import { Library } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 /**
  * /sources — list + create form for EmissionSource rows.
@@ -41,15 +42,60 @@ function SourcesRoute() {
   return <SourcesList organizationId={orgQuery.data.id} />;
 }
 
+/**
+ * Format a kg-CO₂e total for display on the source row. Cards are dense,
+ * so we shed precision instead of digits: 1234 kg → "1.2 tCO₂e", 42 kg →
+ * "42 kg CO₂e". Zero is handled by the caller (shows "尚未使用" instead).
+ */
+function formatCo2eWithUnit(kg: number): string {
+  if (kg >= 1000) {
+    return `${formatCo2e(kg / 1000)} t`;
+  }
+  return `${formatCo2e(kg)} kg`;
+}
+
+/** YYYY-MM-DD prefix of an ISO date or date-time. Safe for null/empty. */
+function shortDate(iso: string | null | undefined): string {
+  if (!iso) return '';
+  return iso.slice(0, 10);
+}
+
+function scopeShortLabel(scope: 1 | 2 | 3): string {
+  if (scope === 1) return m.sources_catalog_scope1_short();
+  if (scope === 2) return m.sources_catalog_scope2_short();
+  return m.sources_catalog_scope3_short();
+}
+
 function SourcesList({ organizationId }: { organizationId: string }) {
   const [formOpen, setFormOpen] = useState(false);
-  const [editingSource, setEditingSource] = useState<EmissionSource | null>(null);
+  const [editingSource, setEditingSource] = useState<EmissionSourceWithStats | null>(null);
   const [catalogOpen, setCatalogOpen] = useState(false);
 
-  const sourcesQuery = useQuery<EmissionSource[]>({
-    queryKey: ['source:list-by-org', organizationId],
-    queryFn: () => sourceApi.listByOrg({ organization_id: organizationId }),
+  // Enriched per-source rows with stats (count / total CO₂e / last activity).
+  // Older surfaces still call `source:list-by-org` (no stats); this route
+  // pays for the LEFT JOIN aggregation because cards display the stats.
+  const sourcesQuery = useQuery<EmissionSourceWithStats[]>({
+    queryKey: ['source:list-by-org-with-stats', organizationId],
+    queryFn: () => sourceApi.listByOrgWithStats({ organization_id: organizationId }),
   });
+
+  // Preset catalog fetch — used to look up template_origin → provenance
+  // (BEIS · GB · 2025). Cached forever (catalog ships in the binary; no
+  // staleness possible without an app update). Same cache key the
+  // catalog drawer uses, so opening the drawer is also free after this.
+  const presetsQuery = useQuery<PresetSource[]>({
+    queryKey: ['source:list-presets'],
+    queryFn: () => sourceApi.listPresets(),
+    staleTime: Number.POSITIVE_INFINITY,
+  });
+
+  const presetsById = useMemo(() => {
+    const map = new Map<string, PresetSource>();
+    for (const p of presetsQuery.data ?? []) {
+      map.set(p.id, p);
+    }
+    return map;
+  }, [presetsQuery.data]);
 
   // Surface load errors via toast (per UI baseline pattern — no inline error
   // box). Effect depends ONLY on the boolean `isError` so React Query's
@@ -97,48 +143,106 @@ function SourcesList({ organizationId }: { organizationId: string }) {
         <p className="shrink-0 text-sm text-muted-foreground">{m.sources_empty()}</p>
       ) : (
         // List container claims the remaining height and owns the scroll.
-        // Layout per row: name (title) on row 1; scope chip + category meta
-        // on row 2; active-state dot pinned right.
+        // Card content (top → bottom):
+        //   row 1: name + "已停用" chip (only when is_active=false)
+        //   row 2: scope pill · category · ghg_protocol_path (if set)
+        //   row 3: stats line — count + last + total, OR "尚未使用" if 0
+        //   row 4: provenance — "来自 BEIS · GB · 2025" (only when from catalog)
+        // We removed the bare "是 / 否" indicator — it confused users
+        // (it just meant is_active, but read as "is what?"). Default state
+        // (active) gets no chip; inactive gets a clear "已停用" badge.
         <ul className="flex-1 min-h-0 divide-y divide-border overflow-auto rounded-md border border-border bg-card">
-          {sources.map((src) => (
-            <li key={src.id}>
-              <button
-                type="button"
-                onClick={() => setEditingSource(src)}
-                className="flex w-full cursor-pointer items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/30 focus-visible:bg-muted/30 focus-visible:outline-none"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="truncate font-medium text-foreground" title={src.name}>
-                    {src.name}
-                  </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                    <span className="rounded-md bg-secondary px-1.5 py-0.5 font-medium uppercase tracking-wide text-foreground/80">
-                      {src.scope}
-                    </span>
-                    <span>·</span>
-                    <span>{src.category ?? '—'}</span>
-                  </div>
-                </div>
-                <span
-                  role="status"
-                  aria-label={src.is_active ? m.sources_active_yes() : m.sources_active_no()}
+          {sources.map((src) => {
+            const provenance = src.template_origin ? presetsById.get(src.template_origin) : null;
+            const provenanceParts = provenance
+              ? [provenance.source, provenance.region, provenance.year]
+                  .filter((v) => v !== undefined && v !== null && v !== '')
+                  .join(' · ')
+              : null;
+            return (
+              <li key={src.id}>
+                <button
+                  type="button"
+                  onClick={() => setEditingSource(src)}
                   className={cn(
-                    'flex shrink-0 items-center gap-1.5 text-xs',
-                    src.is_active ? 'text-foreground' : 'text-muted-foreground',
+                    'flex w-full cursor-pointer items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/30 focus-visible:bg-muted/30 focus-visible:outline-none',
+                    !src.is_active && 'opacity-60',
                   )}
                 >
-                  <span
-                    aria-hidden="true"
-                    className={cn(
-                      'h-2 w-2 rounded-full',
-                      src.is_active ? 'bg-emerald-500' : 'bg-muted-foreground/40',
+                  <div className="min-w-0 flex-1 space-y-1">
+                    {/* Row 1 — primary identifier + status chip */}
+                    <div className="flex items-center gap-2">
+                      <div className="truncate font-medium text-foreground" title={src.name}>
+                        {src.name}
+                      </div>
+                      {!src.is_active && (
+                        <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                          {m.sources_inactive_chip()}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Row 2 — scope · category · ghg_protocol_path */}
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                      <span className="rounded-md bg-secondary px-1.5 py-0.5 font-medium text-foreground/80">
+                        {scopeShortLabel(src.scope)}
+                      </span>
+                      {src.category && (
+                        <>
+                          <span>·</span>
+                          <span>{src.category}</span>
+                        </>
+                      )}
+                      {src.ghg_protocol_path && (
+                        <>
+                          <span>·</span>
+                          <span className="font-mono text-[11px]">{src.ghg_protocol_path}</span>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Row 3 — usage stats. "尚未使用" replaces the trio of
+                        zeros for un-touched sources — quieter and more
+                        honest. */}
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground tabular-nums">
+                      {src.activity_count === 0 ? (
+                        <span className="italic">{m.sources_stats_unused()}</span>
+                      ) : (
+                        <>
+                          <span>
+                            {m.sources_stats_activity_count({
+                              count: formatInteger(src.activity_count),
+                            })}
+                          </span>
+                          <span>·</span>
+                          <span title={`${src.total_co2e_kg} kg`}>
+                            {m.sources_stats_total({
+                              value: formatCo2eWithUnit(src.total_co2e_kg),
+                            })}
+                          </span>
+                          {src.last_activity_at && (
+                            <>
+                              <span>·</span>
+                              <span>
+                                {m.sources_stats_last({ date: shortDate(src.last_activity_at) })}
+                              </span>
+                            </>
+                          )}
+                        </>
+                      )}
+                    </div>
+
+                    {/* Row 4 — preset provenance (only when applicable) */}
+                    {provenanceParts && (
+                      <div className="truncate text-[11px] text-muted-foreground/80">
+                        {m.sources_from_catalog({ origin: provenanceParts })}
+                      </div>
                     )}
-                  />
-                  {src.is_active ? m.sources_active_yes() : m.sources_active_no()}
-                </span>
-              </button>
-            </li>
-          ))}
+                  </div>
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
 
