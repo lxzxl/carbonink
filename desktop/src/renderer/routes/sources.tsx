@@ -2,6 +2,11 @@ import { Main } from '@renderer/components/layout/main';
 import { SourceCatalogDrawer } from '@renderer/components/SourceCatalogDrawer';
 import { SourceEditDrawer } from '@renderer/components/SourceEditDrawer';
 import { SourceForm } from '@renderer/components/SourceForm';
+import {
+  type SourceFilterExtractors,
+  SourceFilterHeader,
+  useSourceFilters,
+} from '@renderer/components/source-filters';
 import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
 import { sourceApi } from '@renderer/lib/api/emission-source';
@@ -66,6 +71,18 @@ function scopeShortLabel(scope: 1 | 2 | 3): string {
   return m.sources_catalog_scope3_short();
 }
 
+// Static — referencing the module-scope object lets the filter hook's
+// memos see a stable reference across re-renders.
+const SOURCE_EXTRACTORS: SourceFilterExtractors<EmissionSourceWithStats> = {
+  getName: (s) => s.name,
+  getScope: (s) => s.scope,
+  getCategory: (s) => s.category ?? '',
+  // Power users can paste a ghg_protocol_path or the preset id stamped
+  // into template_origin and find their source — both useful when
+  // diagnosing where a row came from.
+  getSearchExtras: (s) => `${s.ghg_protocol_path ?? ''} ${s.template_origin ?? ''}`,
+};
+
 function SourcesList({ organizationId }: { organizationId: string }) {
   const [formOpen, setFormOpen] = useState(false);
   const [editingSource, setEditingSource] = useState<EmissionSourceWithStats | null>(null);
@@ -110,6 +127,8 @@ function SourcesList({ organizationId }: { organizationId: string }) {
   }, [sourcesQuery.isError]);
 
   const sources = sourcesQuery.data ?? [];
+  const filters = useSourceFilters(sources, SOURCE_EXTRACTORS);
+  const visible = filters.visible;
 
   return (
     // Sticky top + scrolling list (see CLAUDE.md → Scroll containment).
@@ -137,10 +156,42 @@ function SourcesList({ organizationId }: { organizationId: string }) {
             onSuccess={() => setFormOpen(false)}
           />
         )}
+
+        {/* Search · scope tabs · category chips. Hidden when the org has
+            no sources at all — there's nothing to filter on a clean
+            slate, and the empty-state CTA below is the only thing the
+            user needs to see. */}
+        {sources.length > 0 && (
+          <SourceFilterHeader
+            search={filters.search}
+            onSearchChange={filters.setSearch}
+            scopeFilter={filters.scopeFilter}
+            onScopeChange={filters.setScopeFilter}
+            scopeCounts={filters.scopeCounts}
+            categoryFilter={filters.categoryFilter}
+            onCategoryChange={filters.setCategoryFilter}
+            categories={filters.categories}
+            scopeFilteredCount={filters.scopeFilteredCount}
+            searchPlaceholder={m.sources_search_placeholder()}
+          />
+        )}
       </div>
 
       {sources.length === 0 ? (
         <p className="shrink-0 text-sm text-muted-foreground">{m.sources_empty()}</p>
+      ) : visible.length === 0 ? (
+        // The org has sources but the filter pipeline trimmed everything
+        // out — show a quieter empty state with a "clear filters" hint.
+        <div className="flex-1 flex min-h-0 flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border bg-card/40 p-8 text-sm text-muted-foreground">
+          <p>{m.sources_filter_empty()}</p>
+          <button
+            type="button"
+            onClick={filters.reset}
+            className="rounded px-2 py-1 text-xs font-medium text-foreground/70 hover:bg-foreground/5"
+          >
+            {m.sources_filter_clear()}
+          </button>
+        </div>
       ) : (
         // List container claims the remaining height and owns the scroll.
         // Card content (top → bottom):
@@ -152,7 +203,7 @@ function SourcesList({ organizationId }: { organizationId: string }) {
         // (it just meant is_active, but read as "is what?"). Default state
         // (active) gets no chip; inactive gets a clear "已停用" badge.
         <ul className="flex-1 min-h-0 divide-y divide-border overflow-auto rounded-md border border-border bg-card">
-          {sources.map((src) => {
+          {visible.map((src) => {
             const provenance = src.template_origin ? presetsById.get(src.template_origin) : null;
             const provenanceParts = provenance
               ? [provenance.source, provenance.region, provenance.year]
