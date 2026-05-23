@@ -351,13 +351,18 @@ export function ActivityForm({
                 form.setFieldValue('ef_dataset_version', '');
                 form.setFieldValue('unit', '');
               }}
-              className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2"
+              className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:border-ring"
             >
               <option value="">{m.activities_form_source_placeholder()}</option>
               {sources.map((s) => (
+                // Show just the name. The "— Scope N · category" suffix
+                // we used to append always truncated inside the narrow
+                // form column (which sits next to the PDF preview) and
+                // ended up looking like "... — Scope 1 · fuel.stat" —
+                // worse than no suffix at all. Scope + category are
+                // already visible on the /sources cards.
                 <option key={s.id} value={s.id}>
-                  {s.name} — Scope {s.scope}
-                  {s.category ? ` · ${s.category}` : ''}
+                  {s.name}
                 </option>
               ))}
             </select>
@@ -380,7 +385,7 @@ export function ActivityForm({
               id="activity-period"
               value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
-              className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2"
+              className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:border-ring"
             >
               <option value="">{m.activities_form_period_placeholder()}</option>
               {periods.map((p) => (
@@ -556,7 +561,7 @@ export function ActivityForm({
               id="activity-fuel"
               value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
-              className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2"
+              className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:border-ring"
             >
               <option value="">{m.activities_form_fuel_none()}</option>
               {FUEL_CODES.map((f) => (
@@ -580,7 +585,7 @@ export function ActivityForm({
               value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
               rows={2}
-              className="flex w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2"
+              className="flex w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:border-ring"
             />
           </div>
         )}

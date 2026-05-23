@@ -252,7 +252,7 @@ export function AIProviderSection() {
               id="settings-provider"
               value={field.state.value}
               onChange={(e) => handleProviderChange(e.target.value as ProviderKind)}
-              className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2"
+              className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:border-ring"
             >
               {PROVIDER_OPTIONS.map((p) => (
                 <option key={p} value={p}>

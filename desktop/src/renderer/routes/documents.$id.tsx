@@ -2,6 +2,11 @@ import { ExtractionReview } from '@renderer/components/ExtractionReview';
 import { ManualStagePicker } from '@renderer/components/ManualStagePicker';
 import { PdfPreview } from '@renderer/components/PdfPreview';
 import { toast } from '@renderer/components/toast';
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from '@renderer/components/ui/resizable';
 import { documentApi } from '@renderer/lib/api/document';
 import { extractionApi } from '@renderer/lib/api/extraction';
 import * as m from '@renderer/paraglide/messages';
@@ -107,33 +112,45 @@ function DocumentReview({ document }: { document: Document }) {
         </p>
       </header>
 
-      {/* Round 4 #10: shifted PDF/extraction split from 55/45 to 65/35.
-       * The detail panel didn't need ~45% of an already-narrow column —
-       * the PDF benefited more from extra room (especially for documents
-       * with dense Chinese text). */}
-      <div className="grid flex-1 min-h-0 grid-cols-1 gap-4 lg:grid-cols-[65fr_35fr]">
-        <PdfPreview documentId={document.id} />
-        <div className="overflow-y-auto">
-          {extractionsQuery.isLoading ? (
-            <p className="text-sm text-muted-foreground">{m.loading()}</p>
-          ) : classifyMutation.isPending ? (
-            <div className="rounded-md border bg-muted/30 p-4">
-              <p className="text-sm">{m.documents_review_classifying()}</p>
-            </div>
-          ) : (classifyMutation.data as Awaited<typeof classifyMutation.data>)?.status ===
-            'classify_failed' ? (
-            <ManualStagePicker documentId={document.id} />
-          ) : !activeExtraction && hasDiscarded ? (
-            <ManualStagePicker
-              documentId={document.id}
-              defaultStageId={extractions[0]?.prompt_version}
-              discardExtractionId={extractions[0]?.id}
-            />
-          ) : activeExtraction ? (
-            <ExtractionReview extraction={activeExtraction} document={document} />
-          ) : null}
-        </div>
-      </div>
+      {/* Resizable PDF | ExtractionReview split. Previously a fixed
+       * `lg:grid-cols-[65fr_35fr]` — at typical desktop widths that left
+       * the review panel ~235px wide, narrow enough that select inputs
+       * truncated their saved value and focus rings got clipped by the
+       * overflow boundary. ResizablePanelGroup lets the user pull the
+       * divider; default 55/45 gives the form a usable starting width
+       * and the PDF still reads fine.
+       *
+       * NOTE: v4 of react-resizable-panels needs sizes as "%" strings —
+       * bare numbers are treated as px. Same gotcha documented in
+       * documents.tsx for the parent splitter. */}
+      <ResizablePanelGroup orientation="horizontal" className="flex-1 min-h-0">
+        <ResizablePanel defaultSize="55%" minSize="35%">
+          <PdfPreview documentId={document.id} />
+        </ResizablePanel>
+        <ResizableHandle />
+        <ResizablePanel defaultSize="45%" minSize="30%">
+          <div className="h-full overflow-y-auto pl-4">
+            {extractionsQuery.isLoading ? (
+              <p className="text-sm text-muted-foreground">{m.loading()}</p>
+            ) : classifyMutation.isPending ? (
+              <div className="rounded-md border bg-muted/30 p-4">
+                <p className="text-sm">{m.documents_review_classifying()}</p>
+              </div>
+            ) : (classifyMutation.data as Awaited<typeof classifyMutation.data>)?.status ===
+              'classify_failed' ? (
+              <ManualStagePicker documentId={document.id} />
+            ) : !activeExtraction && hasDiscarded ? (
+              <ManualStagePicker
+                documentId={document.id}
+                defaultStageId={extractions[0]?.prompt_version}
+                discardExtractionId={extractions[0]?.id}
+              />
+            ) : activeExtraction ? (
+              <ExtractionReview extraction={activeExtraction} document={document} />
+            ) : null}
+          </div>
+        </ResizablePanel>
+      </ResizablePanelGroup>
     </div>
   );
 }

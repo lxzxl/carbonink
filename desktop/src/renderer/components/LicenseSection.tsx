@@ -83,7 +83,7 @@ export function LicenseSection() {
               onChange={(e) => setJwtInput(e.target.value)}
               placeholder={m.license_activation_input_placeholder()}
               rows={3}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-xs focus-visible:outline-none focus-visible:ring-2"
+              className="w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-xs outline-none focus-visible:border-ring"
             />
           </div>
           <Button

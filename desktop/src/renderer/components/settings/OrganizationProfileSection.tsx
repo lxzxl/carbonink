@@ -74,7 +74,7 @@ export function OrganizationProfileSection() {
           id="settings-boundary"
           value={boundary}
           onChange={(e) => setBoundary(e.target.value as BoundaryKind)}
-          className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2"
+          className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:border-ring"
         >
           <option value="equity_share">{m.settings_boundary_equity_share()}</option>
           <option value="financial_control">{m.settings_boundary_financial_control()}</option>
@@ -106,7 +106,7 @@ export function OrganizationProfileSection() {
           id="settings-base-year"
           value={baseYearId ?? ''}
           onChange={(e) => setBaseYearId(e.target.value === '' ? null : e.target.value)}
-          className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2"
+          className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:border-ring"
         >
           <option value="">{m.settings_base_year_none()}</option>
           {periodsQuery.data?.map((period) => (
