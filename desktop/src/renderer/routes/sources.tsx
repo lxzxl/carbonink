@@ -1,4 +1,5 @@
 import { Main } from '@renderer/components/layout/main';
+import { SourceEditDrawer } from '@renderer/components/SourceEditDrawer';
 import { SourceForm } from '@renderer/components/SourceForm';
 import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
@@ -40,6 +41,7 @@ function SourcesRoute() {
 
 function SourcesList({ organizationId }: { organizationId: string }) {
   const [formOpen, setFormOpen] = useState(false);
+  const [editingSource, setEditingSource] = useState<EmissionSource | null>(null);
 
   const sourcesQuery = useQuery<EmissionSource[]>({
     queryKey: ['source:list-by-org', organizationId],
@@ -90,43 +92,52 @@ function SourcesList({ organizationId }: { organizationId: string }) {
         // on row 2; active-state dot pinned right.
         <ul className="flex-1 min-h-0 divide-y divide-border overflow-auto rounded-md border border-border bg-card">
           {sources.map((src) => (
-            <li
-              key={src.id}
-              className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-muted/30"
-            >
-              <div className="min-w-0 flex-1">
-                <div className="truncate font-medium text-foreground" title={src.name}>
-                  {src.name}
-                </div>
-                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                  <span className="rounded-md bg-secondary px-1.5 py-0.5 font-medium uppercase tracking-wide text-foreground/80">
-                    {src.scope}
-                  </span>
-                  <span>·</span>
-                  <span>{src.category ?? '—'}</span>
-                </div>
-              </div>
-              <span
-                role="status"
-                aria-label={src.is_active ? m.sources_active_yes() : m.sources_active_no()}
-                className={cn(
-                  'flex shrink-0 items-center gap-1.5 text-xs',
-                  src.is_active ? 'text-foreground' : 'text-muted-foreground',
-                )}
+            <li key={src.id}>
+              <button
+                type="button"
+                onClick={() => setEditingSource(src)}
+                className="flex w-full cursor-pointer items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/30 focus-visible:bg-muted/30 focus-visible:outline-none"
               >
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-medium text-foreground" title={src.name}>
+                    {src.name}
+                  </div>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                    <span className="rounded-md bg-secondary px-1.5 py-0.5 font-medium uppercase tracking-wide text-foreground/80">
+                      {src.scope}
+                    </span>
+                    <span>·</span>
+                    <span>{src.category ?? '—'}</span>
+                  </div>
+                </div>
                 <span
-                  aria-hidden="true"
+                  role="status"
+                  aria-label={src.is_active ? m.sources_active_yes() : m.sources_active_no()}
                   className={cn(
-                    'h-2 w-2 rounded-full',
-                    src.is_active ? 'bg-emerald-500' : 'bg-muted-foreground/40',
+                    'flex shrink-0 items-center gap-1.5 text-xs',
+                    src.is_active ? 'text-foreground' : 'text-muted-foreground',
                   )}
-                />
-                {src.is_active ? m.sources_active_yes() : m.sources_active_no()}
-              </span>
+                >
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      'h-2 w-2 rounded-full',
+                      src.is_active ? 'bg-emerald-500' : 'bg-muted-foreground/40',
+                    )}
+                  />
+                  {src.is_active ? m.sources_active_yes() : m.sources_active_no()}
+                </span>
+              </button>
             </li>
           ))}
         </ul>
       )}
+
+      <SourceEditDrawer
+        source={editingSource}
+        open={editingSource != null}
+        onClose={() => setEditingSource(null)}
+      />
     </Main>
   );
 }
