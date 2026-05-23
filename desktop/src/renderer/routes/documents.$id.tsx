@@ -1,5 +1,6 @@
 import { ExtractionReview } from '@renderer/components/ExtractionReview';
 import { ManualStagePicker } from '@renderer/components/ManualStagePicker';
+import { PdfPreview } from '@renderer/components/PdfPreview';
 import { toast } from '@renderer/components/toast';
 import { documentApi } from '@renderer/lib/api/document';
 import { extractionApi } from '@renderer/lib/api/extraction';
@@ -7,7 +8,7 @@ import * as m from '@renderer/paraglide/messages';
 import type { Document, Extraction } from '@shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, useParams } from '@tanstack/react-router';
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 
 /**
  * /documents/$id — document review detail (Phase C nested route).
@@ -137,46 +138,7 @@ function DocumentReview({ document }: { document: Document }) {
   );
 }
 
-function PdfPreview({ documentId }: { documentId: string }) {
-  const bytesQuery = useQuery({
-    queryKey: ['document:read-bytes', documentId],
-    queryFn: () => documentApi.readBytes({ id: documentId }),
-    staleTime: Infinity,
-  });
-
-  const pdfUrl = useMemo(() => {
-    if (!bytesQuery.data) return null;
-    const copy = new Uint8Array(bytesQuery.data);
-    return URL.createObjectURL(new Blob([copy.buffer], { type: 'application/pdf' }));
-  }, [bytesQuery.data]);
-
-  useEffect(() => {
-    if (!pdfUrl) return;
-    return () => {
-      URL.revokeObjectURL(pdfUrl);
-    };
-  }, [pdfUrl]);
-
-  if (bytesQuery.isLoading) {
-    return (
-      <div className="flex h-full items-center justify-center rounded-md border border-border bg-muted/30 text-sm text-muted-foreground">
-        {m.documents_review_pdf_loading()}
-      </div>
-    );
-  }
-  if (bytesQuery.isError || !pdfUrl) {
-    return (
-      <div className="flex h-full items-center justify-center rounded-md border border-border bg-muted/30 text-sm text-destructive">
-        {m.documents_review_pdf_unavailable()}
-      </div>
-    );
-  }
-  // #toolbar=0 hides Chromium's PDF chrome — see Round 2 polish.
-  return (
-    <iframe
-      title={`PDF preview ${documentId}`}
-      src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0`}
-      className="h-full w-full rounded-md border border-border/60 bg-card/30"
-    />
-  );
-}
+// PdfPreview now lives in @renderer/components/PdfPreview — shared with
+// DocumentPreviewDrawer so the same lifecycle (fetch bytes once, mint a
+// blob URL, revoke on unmount) backs both the route detail view and the
+// /activities row peek.

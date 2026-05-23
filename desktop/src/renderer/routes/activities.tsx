@@ -1,4 +1,5 @@
 import { ActivityAddDrawer } from '@renderer/components/ActivityAddDrawer';
+import { DocumentPreviewDrawer } from '@renderer/components/DocumentPreviewDrawer';
 import { Main } from '@renderer/components/layout/main';
 import { RebindEfDrawer } from '@renderer/components/RebindEfDrawer';
 import { SortMenu, type SortMenuOption } from '@renderer/components/sort-menu';
@@ -12,7 +13,7 @@ import { cn } from '@renderer/lib/utils';
 import * as m from '@renderer/paraglide/messages';
 import type { ActivityDataWithDocument, EmissionSource, ReportingPeriod } from '@shared/types';
 import { useQuery } from '@tanstack/react-query';
-import { createFileRoute, Link, Navigate } from '@tanstack/react-router';
+import { createFileRoute, Navigate } from '@tanstack/react-router';
 import { FileText, Search } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -73,6 +74,10 @@ type ActivityScopeFilter = 'all' | 1 | 2 | 3;
 function ActivitiesList({ organizationId }: { organizationId: string }) {
   const [formOpen, setFormOpen] = useState(false);
   const [rebindActivityId, setRebindActivityId] = useState<string | null>(null);
+  // Source-document preview drawer state. `previewDoc` carries enough to
+  // render the title before the doc list query (re-)resolves; we also
+  // keep the doc id for the actual <PdfPreview> fetch.
+  const [previewDoc, setPreviewDoc] = useState<{ id: string; filename: string } | null>(null);
 
   // Filter + sort UI state. Persists for the life of the page (no URL
   // sync — these filters are exploratory, not bookmarkable).
@@ -354,20 +359,30 @@ function ActivitiesList({ organizationId }: { organizationId: string }) {
                     </span>
                   </div>
                   {/* Source-document link. Only present when the activity
-                   * was confirmed from a /documents/$id review. Clicking
-                   * navigates to the doc detail; the doc's own already-
-                   * confirmed panel links back to this row. */}
+                   * was confirmed from a /documents/$id review. Click
+                   * opens DocumentPreviewDrawer (right slide-in with
+                   * inline PDF) — users can verify the source scan
+                   * without leaving /activities. The drawer's footer
+                   * has an "open detail" escape hatch for users who
+                   * need the full editing surface. */}
                   {a.source_document_id && a.source_document_filename && (
                     <div className="text-xs text-muted-foreground">
-                      <Link
-                        to="/documents/$id"
-                        params={{ id: a.source_document_id }}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPreviewDoc({
+                            // biome-ignore lint/style/noNonNullAssertion: guarded by the outer if
+                            id: a.source_document_id!,
+                            // biome-ignore lint/style/noNonNullAssertion: same
+                            filename: a.source_document_filename!,
+                          })
+                        }
                         className="inline-flex items-center gap-1 text-primary hover:underline"
                         title={a.source_document_filename}
                       >
                         <FileText className="h-3 w-3" aria-hidden="true" />
                         {m.activities_from_document({ filename: a.source_document_filename })}
-                      </Link>
+                      </button>
                     </div>
                   )}
                 </div>
@@ -391,6 +406,12 @@ function ActivitiesList({ organizationId }: { organizationId: string }) {
         sources={sources}
         open={formOpen}
         onClose={() => setFormOpen(false)}
+      />
+
+      <DocumentPreviewDrawer
+        documentId={previewDoc?.id ?? null}
+        fallbackFilename={previewDoc?.filename ?? null}
+        onClose={() => setPreviewDoc(null)}
       />
 
       {rebindActivityId && (

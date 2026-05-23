@@ -18,9 +18,10 @@ import { activityApi } from '@renderer/lib/api/activity-data';
 import { sourceApi } from '@renderer/lib/api/emission-source';
 import { extractionApi } from '@renderer/lib/api/extraction';
 import { orgApi } from '@renderer/lib/api/organization';
+import { formatCo2e } from '@renderer/lib/format';
 import { stageLabel } from '@renderer/lib/stage-labels';
 import * as m from '@renderer/paraglide/messages';
-import type { Document, EmissionSource, Extraction } from '@shared/types';
+import type { ActivityData, Document, EmissionSource, Extraction } from '@shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
@@ -229,21 +230,24 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
             {m.documents_review_already_confirmed_body()}
           </p>
           {linkedActivityQuery.data ? (
-            // Deep link with `?highlight=<activity_id>` — /activities will
-            // scroll the matching row into view + draw an amber ring so
-            // the user sees exactly which entry came from this doc.
-            <Link
-              to="/activities"
-              search={{ highlight: linkedActivityQuery.data.id }}
-              className="mt-3 inline-block text-sm text-[color:var(--color-primary)] hover:underline"
-            >
-              {m.documents_review_view_activity_link()}
-            </Link>
+            // Inline preview of the linked activity — show the user
+            // what they actually created without making them navigate.
+            // Highlight-deep-link kept as a secondary affordance for
+            // users who want the row in context (e.g. to delete it or
+            // edit metadata).
+            <LinkedActivityCard
+              activity={linkedActivityQuery.data}
+              sourceName={
+                sourcesQuery.data?.find(
+                  (s) => s.id === linkedActivityQuery.data?.emission_source_id,
+                )?.name ?? null
+              }
+            />
           ) : (
-            // Fallback: extraction is parsed but for some reason we can't
-            // find the matching activity (e.g. the user manually deleted
-            // it, or a legacy extraction confirmed before extraction_id
-            // was wired up). Fall back to the flat list.
+            // Fallback: extraction is parsed but findByExtraction missed
+            // (legacy extraction confirmed before extraction_id was
+            // wired up, or activity manually deleted). Plain list link
+            // — no highlight target to aim at.
             <Link
               to="/activities"
               className="mt-3 inline-block text-sm text-[color:var(--color-primary)] hover:underline"
@@ -307,6 +311,55 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
           }
         />
       )}
+    </div>
+  );
+}
+
+/**
+ * Inline card showing the activity row created from this extraction.
+ * Renders the same key fields a user would see on /activities (source
+ * name + amount/unit + computed CO₂e + occurred date), so the
+ * "already confirmed" panel becomes useful at-a-glance rather than
+ * "trust me, an activity exists somewhere".
+ *
+ * The secondary deep-link button (with ?highlight) is for users who
+ * want to see the row in its list context (e.g. to delete or rebind
+ * the EF). The card itself doesn't navigate — the user reads, then
+ * decides if they need to jump.
+ */
+function LinkedActivityCard({
+  activity,
+  sourceName,
+}: {
+  activity: ActivityData;
+  sourceName: string | null;
+}) {
+  return (
+    <div className="mt-3 rounded-md border border-border bg-card p-3 text-sm">
+      <div className="flex flex-wrap items-baseline gap-x-2">
+        <span className="font-medium text-foreground">
+          {sourceName ?? activity.emission_source_id}
+        </span>
+        <span className="text-xs text-muted-foreground tabular-nums">
+          {activity.occurred_at_start.slice(0, 10)}
+        </span>
+      </div>
+      <div className="mt-1 text-foreground">
+        <span className="tabular-nums">
+          {activity.amount} {activity.unit}
+        </span>
+        <span className="mx-1.5 text-muted-foreground">→</span>
+        <span className="font-medium tabular-nums">
+          {formatCo2e(activity.computed_co2e_kg)} kg CO₂e
+        </span>
+      </div>
+      <Link
+        to="/activities"
+        search={{ highlight: activity.id }}
+        className="mt-2 inline-block text-xs text-[color:var(--color-primary)] hover:underline"
+      >
+        {m.documents_review_view_activity_link()}
+      </Link>
     </div>
   );
 }
