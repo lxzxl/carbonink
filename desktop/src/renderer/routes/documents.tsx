@@ -47,12 +47,32 @@ export const Route = createFileRoute('/documents')({
 });
 
 function DocumentsLayout() {
+  // Detect detail mode (we're on /documents/$id). When a document is
+  // selected, the docs list panel gives way entirely — PDF + extraction
+  // form fill the canvas. The detail view provides a "← back" link
+  // plus prev/next arrows so users don't need the list visible to walk
+  // through their review queue. strict:false because this layout
+  // matches both `/documents` (no params) and `/documents/$id`.
+  const params = useParams({ strict: false }) as { id?: string };
+  const onDetailView = !!params.id;
+
   // Provider gate hoisted to layout so the upload zone (rendered inside
   // DocumentsListColumn below) can branch on it without re-fetching.
   const providerQuery = useQuery({
     queryKey: ['settings:get-provider'],
     queryFn: settingsApi.getProvider,
   });
+
+  if (onDetailView) {
+    // Full-width detail: PDF + form get the entire pane. No docs list,
+    // no resizable split at this level — the detail component owns its
+    // own PDF | form ResizablePanelGroup (see documents.$id.tsx).
+    return (
+      <div className="h-full overflow-hidden">
+        <Outlet />
+      </div>
+    );
+  }
 
   return (
     <ResizablePanelGroup orientation="horizontal" className="h-full">

@@ -9,11 +9,13 @@ import {
 } from '@renderer/components/ui/resizable';
 import { documentApi } from '@renderer/lib/api/document';
 import { extractionApi } from '@renderer/lib/api/extraction';
+import { cn } from '@renderer/lib/utils';
 import * as m from '@renderer/paraglide/messages';
 import type { Document, Extraction } from '@shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { createFileRoute, useParams } from '@tanstack/react-router';
-import { useEffect } from 'react';
+import { createFileRoute, Link, useNavigate, useParams } from '@tanstack/react-router';
+import { ChevronLeft, ChevronRight, List } from 'lucide-react';
+import { useEffect, useMemo } from 'react';
 
 /**
  * /documents/$id — document review detail (Phase C nested route).
@@ -63,11 +65,43 @@ function DocumentReviewRoute() {
 
 function DocumentReview({ document }: { document: Document }) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const extractionsQuery = useQuery<Extraction[]>({
     queryKey: ['extraction:list-by-document', document.id],
     queryFn: () => extractionApi.listByDocument({ document_id: document.id }),
   });
+
+  // Fetch the docs list so prev/next arrows can walk the queue without
+  // the user having to back out to the list view. Same query key the
+  // /documents (index) list uses — cached, so this is free if the user
+  // came from the list, and a single round-trip if they deep-linked.
+  const docsListQuery = useQuery<Document[]>({
+    queryKey: ['document:list'],
+    queryFn: () => documentApi.list(),
+  });
+
+  // Index of the current doc in the list, plus its neighbors. Memoized
+  // so prev/next don't recompute on every extraction-query tick.
+  const { prevDocId, nextDocId, position } = useMemo(() => {
+    const list = docsListQuery.data ?? [];
+    const idx = list.findIndex((d) => d.id === document.id);
+    if (idx < 0) {
+      return { prevDocId: null, nextDocId: null, position: null };
+    }
+    return {
+      prevDocId: idx > 0 ? (list[idx - 1]?.id ?? null) : null,
+      nextDocId: idx < list.length - 1 ? (list[idx + 1]?.id ?? null) : null,
+      position: { current: idx + 1, total: list.length },
+    } as const;
+  }, [docsListQuery.data, document.id]);
+
+  const goPrev = () => {
+    if (prevDocId) navigate({ to: '/documents/$id', params: { id: prevDocId } });
+  };
+  const goNext = () => {
+    if (nextDocId) navigate({ to: '/documents/$id', params: { id: nextDocId } });
+  };
 
   const extractions = extractionsQuery.data ?? [];
   const activeExtraction = extractions.find((e) => e.status !== 'rejected');
@@ -103,6 +137,60 @@ function DocumentReview({ document }: { document: Document }) {
     // 35%. Header (filename + upload date) stays pinned at the top so
     // long extraction reviews don't push it offscreen.
     <div className="flex h-full flex-col gap-4 p-6">
+      {/* Navigation header — replaces the always-visible docs list in
+       * the parent layout (hidden when this route is active). Gives
+       * users (a) a back link to the list, (b) prev/next arrows to
+       * walk the review queue without round-tripping, (c) position
+       * indicator (current / total) so they know how much is left.
+       *
+       * Filename + meta sit below as before. */}
+      <div className="shrink-0 flex items-center gap-1 text-xs text-muted-foreground">
+        <Link
+          to="/documents"
+          className="inline-flex items-center gap-1 rounded px-2 py-1 hover:bg-foreground/5 hover:text-foreground"
+        >
+          <List className="h-3.5 w-3.5" aria-hidden="true" />
+          {m.documents_back_to_list()}
+        </Link>
+        <div className="ml-auto flex items-center gap-1">
+          <button
+            type="button"
+            onClick={goPrev}
+            disabled={!prevDocId}
+            className={cn(
+              'inline-flex items-center gap-1 rounded px-2 py-1 transition-colors',
+              prevDocId
+                ? 'hover:bg-foreground/5 hover:text-foreground'
+                : 'opacity-40 cursor-not-allowed',
+            )}
+            aria-label={m.documents_prev()}
+          >
+            <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
+            <span className="hidden sm:inline">{m.documents_prev()}</span>
+          </button>
+          {position && (
+            <span className="px-2 tabular-nums">
+              {position.current} / {position.total}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={goNext}
+            disabled={!nextDocId}
+            className={cn(
+              'inline-flex items-center gap-1 rounded px-2 py-1 transition-colors',
+              nextDocId
+                ? 'hover:bg-foreground/5 hover:text-foreground'
+                : 'opacity-40 cursor-not-allowed',
+            )}
+            aria-label={m.documents_next()}
+          >
+            <span className="hidden sm:inline">{m.documents_next()}</span>
+            <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+
       <header className="shrink-0 space-y-1">
         <h1 className="text-xl font-semibold">{document.filename}</h1>
         <p className="text-xs text-muted-foreground">
