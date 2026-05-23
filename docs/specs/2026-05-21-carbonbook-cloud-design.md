@@ -328,7 +328,7 @@ This separation makes leaked logs safer (a `license_id` in a server log
 doesn't on its own activate anything — you'd need the humanized key) and
 keeps the paste-target short enough to type if needed.
 
-## Account portal (`account.carbonbook.app`)
+## Account portal (`carbonbook.app/account`)
 
 - **Pages**: Login (magic-link email), My Plan, Devices, Billing (Stripe Customer Portal redirect), Invoices, Cancel.
 - **Auth**: short-lived session cookie issued on magic-link click; backed
@@ -340,8 +340,10 @@ keeps the paste-target short enough to type if needed.
   - Renew via Stripe Customer Portal
   - Switch to annual billing
 
-The portal IS a Cloudflare Pages app with a small edge-function tier for
-the auth endpoints. Re-uses the Worker for license/device queries.
+The portal is a Cloudflare Worker (SSR Astro via `@astrojs/cloudflare`),
+mounted at `carbonbook.app/account` via Workers Routes. It re-uses the
+API worker (mounted at `/api/*` on the same domain) for license/device
+queries — same-origin, so the session cookie flows automatically.
 
 ## Operational concerns
 

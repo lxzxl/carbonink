@@ -86,6 +86,44 @@ v13 resolves `main` at vite-config time, before astro emits the
 build output → ENOENT. The adapter sets `main` itself in
 `dist/server/wrangler.json`.
 
+### Single-domain routing
+
+Everything serves under `carbonbook.app`. Each Worker declares its
+prefix in `wrangler.toml`:
+
+| Worker | Path prefix | Notes |
+|--------|------------|-------|
+| API (`cloud/worker`) | `/api/*` | Entry strips `/api` so handlers match `/v1/*` |
+| activate (`cloud/sites/activate`) | `/activate`, `/activate/*` | Astro `base: '/activate'` |
+| account (`cloud/sites/account`) | `/account`, `/account/*` | Astro `base: '/account'` |
+| marketing (`cloud/sites/marketing`) | `/*` (catch-all) | Least-specific; everything else lands here |
+
+Cloudflare's edge dispatches by longest-prefix match, so the
+catch-all only sees paths the other three didn't claim.
+
+Same-origin benefits this buys:
+
+- **Cookie**: `session` has no `Domain` attribute (same-origin
+  auto-sent). Set in `auth.ts`, cleared in `account-delete.ts`.
+- **CORS**: not needed for web. API uses permissive
+  `Access-Control-Allow-Origin: *` with no `Allow-Credentials`. Web
+  clients are same-origin (CORS doesn't fire); the desktop Electron
+  client uses the license JWT in the body (no cookies).
+- **Client fetch**: relative URLs (`/api/v1/...`) from `<script>` in
+  Astro pages. Astro SSR fetches build an absolute URL via
+  `new URL('/api/v1/...', new URL(Astro.request.url).origin)` because
+  Worker `fetch()` needs an absolute URL even for same-origin calls.
+
+Previously each site had its own subdomain (`api.`, `activate.`,
+`account.`); that's retired — added DNS + CORS + cookie `Domain=`
+complexity for no real benefit since they're all parts of one
+product. Don't reintroduce subdomains without a strong reason.
+
+**Astro `base` gotcha**: with `base: '/account'`, internal `<Link>`
+components get rewritten, but raw `<a href="/login">` does NOT. Audit
+any hardcoded `href`/`action` paths in SSR sites and prefix them
+manually (e.g. `/account/login`).
+
 ## Scroll containment
 
 **Default**: page chrome stays put; only the content the user is reading scrolls.
