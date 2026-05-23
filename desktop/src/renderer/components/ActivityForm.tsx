@@ -300,7 +300,7 @@ export function ActivityForm({
   // Only render the prerequisite-missing message + a back button.
   if (noSources || noPeriods) {
     return (
-      <div className="space-y-4 max-w-2xl mt-4 rounded-md border border-border bg-muted/30 p-4">
+      <div className="space-y-4">
         {noSources && <p className="text-sm text-destructive">{m.activities_form_no_sources()}</p>}
         {noPeriods && <p className="text-sm text-destructive">{m.activities_form_no_periods()}</p>}
         <Button type="button" variant="outline" onClick={onCancel}>
@@ -316,11 +316,10 @@ export function ActivityForm({
         e.preventDefault();
         form.handleSubmit();
       }}
-      // max-w-3xl keeps fields readable while letting the form breathe
-      // now that it owns the content area (the parent route hides the
-      // list while the form is open, so we no longer have to fight a
-      // sibling list for vertical space).
-      className="space-y-5 max-w-3xl rounded-lg border border-border bg-card p-6 shadow-sm"
+      // Chrome-less: lives inside ActivityAddDrawer, which provides the
+      // surface (title + bordered overlay + scroll container). The form
+      // itself just contributes fields + its own action bar.
+      className="space-y-5"
     >
       <form.Field
         name="emission_source_id"

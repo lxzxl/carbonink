@@ -105,7 +105,10 @@ export function SourceForm({ organizationId, onCancel, onSuccess }: SourceFormPr
         e.preventDefault();
         form.handleSubmit();
       }}
-      className="space-y-4 max-w-md mt-4 rounded-md border border-border bg-muted/30 p-4"
+      // Chrome-less: the parent (currently SourceAddDrawer) provides the
+      // surface — title bar, border, scroll container. The form just
+      // contributes fields + its own action bar at the bottom.
+      className="space-y-4"
     >
       <form.Field
         name="name"

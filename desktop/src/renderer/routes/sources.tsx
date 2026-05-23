@@ -1,7 +1,7 @@
 import { Main } from '@renderer/components/layout/main';
+import { SourceAddDrawer } from '@renderer/components/SourceAddDrawer';
 import { SourceCatalogDrawer } from '@renderer/components/SourceCatalogDrawer';
 import { SourceEditDrawer } from '@renderer/components/SourceEditDrawer';
-import { SourceForm } from '@renderer/components/SourceForm';
 import {
   type SourceFilterExtractors,
   SourceFilterHeader,
@@ -146,36 +146,24 @@ function SourcesList({ organizationId }: { organizationId: string }) {
       <div className="shrink-0 space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold">{m.nav_sources()}</h1>
-          {/* Top-right CTAs hidden during create — the form owns the
-           * page in that mode and has its own Cancel/Save at the bottom.
-           * Two "取消" buttons (top-right green + bottom outline) was
-           * the original bug; one of them was filled-primary which also
-           * violated the "filled primary = single most important action"
-           * rule. */}
-          {!formOpen && (
-            <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => setCatalogOpen(true)}>
-                <Library className="mr-1 h-4 w-4" aria-hidden="true" />
-                {m.sources_catalog_button()}
-              </Button>
-              <Button onClick={() => setFormOpen(true)}>{m.sources_add_button()}</Button>
-            </div>
-          )}
+          {/* Create now opens a right-side drawer (SourceAddDrawer) so
+           * the list stays visible behind the overlay — users can scan
+           * existing names for duplicates while filling out a new
+           * source. Same vaul shell as SourceEditDrawer for symmetry
+           * (add and edit feel like one family). */}
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setCatalogOpen(true)}>
+              <Library className="mr-1 h-4 w-4" aria-hidden="true" />
+              {m.sources_catalog_button()}
+            </Button>
+            <Button onClick={() => setFormOpen(true)}>{m.sources_add_button()}</Button>
+          </div>
         </div>
 
-        {formOpen && (
-          <SourceForm
-            organizationId={organizationId}
-            onCancel={() => setFormOpen(false)}
-            onSuccess={() => setFormOpen(false)}
-          />
-        )}
-
-        {/* Search · scope tabs · category chips. Hidden when the org has
-            no sources at all OR when the create form is open — the user
-            is in a different mode and the filters have nothing to
-            control. */}
-        {!formOpen && sources.length > 0 && (
+        {/* Search · scope tabs · category chips. Hidden only when the
+            org has no sources at all — the drawer doesn't replace the
+            list so filters remain useful while create is in flight. */}
+        {sources.length > 0 && (
           <SourceFilterHeader
             search={filters.search}
             onSearchChange={filters.setSearch}
@@ -191,9 +179,7 @@ function SourcesList({ organizationId }: { organizationId: string }) {
         )}
       </div>
 
-      {/* List region disappears while the user is creating a source —
-       * the form already owns the content area. */}
-      {formOpen ? null : sources.length === 0 ? (
+      {sources.length === 0 ? (
         <p className="shrink-0 text-sm text-muted-foreground">{m.sources_empty()}</p>
       ) : visible.length === 0 ? (
         // The org has sources but the filter pipeline trimmed everything
@@ -316,6 +302,11 @@ function SourcesList({ organizationId }: { organizationId: string }) {
         </ul>
       )}
 
+      <SourceAddDrawer
+        organizationId={organizationId}
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
+      />
       <SourceEditDrawer
         source={editingSource}
         open={editingSource != null}

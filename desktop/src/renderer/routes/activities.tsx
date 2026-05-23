@@ -1,4 +1,4 @@
-import { ActivityForm } from '@renderer/components/ActivityForm';
+import { ActivityAddDrawer } from '@renderer/components/ActivityAddDrawer';
 import { Main } from '@renderer/components/layout/main';
 import { RebindEfDrawer } from '@renderer/components/RebindEfDrawer';
 import { SortMenu, type SortMenuOption } from '@renderer/components/sort-menu';
@@ -227,30 +227,16 @@ function ActivitiesList({ organizationId }: { organizationId: string }) {
       <div className="shrink-0 space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold">{m.nav_activities()}</h1>
-          {/* Top-right CTA only shows in browse mode. While the form is
-           * open the page is in create-mode and the form has its own
-           * Cancel/Submit pair at the bottom — a second "取消" up here
-           * (previously rendered in filled-primary green) duplicated the
-           * action and broke the rule that filled primary is reserved
-           * for the ONE most important action on the page. */}
-          {!formOpen && (
-            <Button onClick={() => setFormOpen(true)}>{m.activities_add_button()}</Button>
-          )}
+          {/* Create opens ActivityAddDrawer (right slide-in). The list
+           * stays visible behind the overlay so the user can scan
+           * existing rows for the date range / source they're about to
+           * duplicate. */}
+          <Button onClick={() => setFormOpen(true)}>{m.activities_add_button()}</Button>
         </div>
 
-        {formOpen && (
-          <ActivityForm
-            organizationId={organizationId}
-            sources={sources}
-            onCancel={() => setFormOpen(false)}
-            onSuccess={() => setFormOpen(false)}
-          />
-        )}
-
-        {/* Filter + sort. Hidden when the org has no activities yet OR
-         * when the create form is open — the user is in a different
-         * mode and search/scope/sort have nothing to control. */}
-        {!formOpen && activities.length > 0 && (
+        {/* Filter + sort: visible whenever there are activities. The
+         * drawer is an overlay, so we no longer need to hide the list. */}
+        {activities.length > 0 && (
           <div className="space-y-3">
             <div className="relative">
               <Search
@@ -303,10 +289,7 @@ function ActivitiesList({ organizationId }: { organizationId: string }) {
         )}
       </div>
 
-      {/* The list region disappears entirely while the user is creating
-       * an activity — the form already fills the content area and a
-       * second scrolling list below would compete for attention. */}
-      {formOpen ? null : activities.length === 0 ? (
+      {activities.length === 0 ? (
         <p className="shrink-0 text-sm text-muted-foreground">{m.activities_empty()}</p>
       ) : visible.length === 0 ? (
         <div className="flex-1 flex min-h-0 flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border bg-card/40 p-8 text-sm text-muted-foreground">
@@ -385,6 +368,13 @@ function ActivitiesList({ organizationId }: { organizationId: string }) {
           })}
         </ul>
       )}
+
+      <ActivityAddDrawer
+        organizationId={organizationId}
+        sources={sources}
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
+      />
 
       {rebindActivityId && (
         <RebindEfDrawer
