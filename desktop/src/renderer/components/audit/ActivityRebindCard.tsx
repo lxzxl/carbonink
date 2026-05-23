@@ -48,12 +48,14 @@ export function ActivityRebindCard({ event }: { event: AuditEvent }) {
   return (
     <div className="audit-rebind-card space-y-2">
       <div className="text-sm">
-        {/* Activity id is now a link to the activities page (no /$id route
-         * yet — drops user near the row, they'll find it by the short id
-         * still rendered as text). */}
+        {/* Link drops the user on /activities with `?highlight=<id>`,
+         * which the route uses to scroll the matching row into view +
+         * draw a ring on it. Without the query param the user used to
+         * land on a flat list and have to scan ULIDs themselves. */}
         <span>{m.audit_rebind_activity_label()}: </span>
         <Link
           to="/activities"
+          search={{ highlight: payload.activity_id }}
           className="font-mono text-primary hover:underline"
           title={payload.activity_id}
         >

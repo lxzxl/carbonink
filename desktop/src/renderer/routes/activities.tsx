@@ -6,11 +6,12 @@ import { Button } from '@renderer/components/ui/button';
 import { activityApi } from '@renderer/lib/api/activity-data';
 import { sourceApi } from '@renderer/lib/api/emission-source';
 import { orgApi } from '@renderer/lib/api/organization';
+import { cn } from '@renderer/lib/utils';
 import * as m from '@renderer/paraglide/messages';
 import type { ActivityData, EmissionSource, ReportingPeriod } from '@shared/types';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Navigate } from '@tanstack/react-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 /**
  * /activities — list + create form for ActivityData rows.
@@ -25,8 +26,27 @@ import { useEffect, useMemo, useState } from 'react';
  * onboarding wizard creates exactly one. Phase 1b adds a period switcher
  * UI; the data shape (one query per period_id) already supports it.
  */
+/**
+ * `?highlight=<activity_id>` lets other surfaces deep-link into the
+ * activities list and surface a specific row. Used by the audit page's
+ * ActivityRebindCard so clicking "#01HXX9YY" actually shows the user
+ * which row that ULID belongs to, rather than dropping them on a flat
+ * list of identical-looking entries.
+ */
+type ActivitiesSearch = { highlight?: string };
+
 export const Route = createFileRoute('/activities')({
   component: ActivitiesRoute,
+  // tsconfig has `exactOptionalPropertyTypes`, so we can't assign
+  // `undefined` to an optional `highlight?: string` field — build the
+  // object conditionally.
+  validateSearch: (search: Record<string, unknown>): ActivitiesSearch => {
+    const out: ActivitiesSearch = {};
+    if (typeof search.highlight === 'string' && search.highlight.length > 0) {
+      out.highlight = search.highlight;
+    }
+    return out;
+  },
 });
 
 function ActivitiesRoute() {
@@ -47,6 +67,13 @@ function ActivitiesRoute() {
 function ActivitiesList({ organizationId }: { organizationId: string }) {
   const [formOpen, setFormOpen] = useState(false);
   const [rebindActivityId, setRebindActivityId] = useState<string | null>(null);
+
+  // Deep-link target from `?highlight=<activity_id>`. When set, we scroll
+  // the matching row into view + draw a ring around it. The audit
+  // page's ActivityRebindCard uses this to drop users on the exact
+  // activity whose EF they just rebound.
+  const { highlight } = Route.useSearch();
+  const highlightRowRef = useRef<HTMLLIElement | null>(null);
 
   // Sources are loaded once at the page level and threaded into the form.
   // Doing the lookup here also gives us a `sourceById` map for joining the
@@ -92,6 +119,18 @@ function ActivitiesList({ organizationId }: { organizationId: string }) {
     return map;
   }, [sources]);
 
+  // Scroll the deep-link target into view once the list has actually
+  // landed. `activities.length` in the deps gates the effect on the
+  // first non-empty render — before that the ref is null. We don't
+  // depend on the ref itself; refs aren't reactive.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ref reads are intentionally NOT reactive — we want this effect to fire when the highlight target or the underlying list changes, not when the ref object identity does.
+  useEffect(() => {
+    if (!highlight) return;
+    const el = highlightRowRef.current;
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [highlight, activities.length]);
+
   return (
     // Sticky top + scrolling list (see CLAUDE.md → Scroll containment).
     // Heading + Add button + open form stay pinned; only the activity rows
@@ -127,10 +166,19 @@ function ActivitiesList({ organizationId }: { organizationId: string }) {
         <ul className="flex-1 min-h-0 divide-y divide-border overflow-auto rounded-md border border-border bg-card">
           {activities.map((a) => {
             const src = sourceById.get(a.emission_source_id);
+            const isHighlighted = a.id === highlight;
             return (
               <li
                 key={a.id}
-                className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-muted/30"
+                ref={isHighlighted ? highlightRowRef : null}
+                className={cn(
+                  'flex items-start gap-3 px-4 py-3 transition-colors hover:bg-muted/30',
+                  // Highlighted from `?highlight=<id>` (audit deep link).
+                  // Subtle yellow tint + ring; persistent until the user
+                  // navigates away. Not a pulse — pulsing rows are
+                  // hard to read.
+                  isHighlighted && 'bg-amber-500/10 ring-2 ring-amber-500/40 ring-inset',
+                )}
               >
                 <div className="min-w-0 flex-1 space-y-1">
                   <div className="flex flex-wrap items-baseline gap-x-2">
