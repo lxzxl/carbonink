@@ -10,10 +10,10 @@ import { sourceApi } from '@renderer/lib/api/emission-source';
 import { orgApi } from '@renderer/lib/api/organization';
 import { cn } from '@renderer/lib/utils';
 import * as m from '@renderer/paraglide/messages';
-import type { ActivityData, EmissionSource, ReportingPeriod } from '@shared/types';
+import type { ActivityDataWithDocument, EmissionSource, ReportingPeriod } from '@shared/types';
 import { useQuery } from '@tanstack/react-query';
-import { createFileRoute, Navigate } from '@tanstack/react-router';
-import { Search } from 'lucide-react';
+import { createFileRoute, Link, Navigate } from '@tanstack/react-router';
+import { FileText, Search } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 /**
@@ -103,7 +103,7 @@ function ActivitiesList({ organizationId }: { organizationId: string }) {
 
   const currentPeriodId = periodsQuery.data?.[0]?.id;
 
-  const activitiesQuery = useQuery<ActivityData[]>({
+  const activitiesQuery = useQuery<ActivityDataWithDocument[]>({
     queryKey: ['activity:list-by-period', currentPeriodId],
     queryFn: () => activityApi.listByPeriod({ reporting_period_id: currentPeriodId! }),
     enabled: !!currentPeriodId,
@@ -353,6 +353,23 @@ function ActivitiesList({ organizationId }: { organizationId: string }) {
                       ({a.ef_source} · {a.ef_year} · {a.ef_geography})
                     </span>
                   </div>
+                  {/* Source-document link. Only present when the activity
+                   * was confirmed from a /documents/$id review. Clicking
+                   * navigates to the doc detail; the doc's own already-
+                   * confirmed panel links back to this row. */}
+                  {a.source_document_id && a.source_document_filename && (
+                    <div className="text-xs text-muted-foreground">
+                      <Link
+                        to="/documents/$id"
+                        params={{ id: a.source_document_id }}
+                        className="inline-flex items-center gap-1 text-primary hover:underline"
+                        title={a.source_document_filename}
+                      >
+                        <FileText className="h-3 w-3" aria-hidden="true" />
+                        {m.activities_from_document({ filename: a.source_document_filename })}
+                      </Link>
+                    </div>
+                  )}
                 </div>
                 <Button
                   type="button"

@@ -20,6 +20,13 @@ export const activityApi = {
   totalsByPeriod: (input: { reporting_period_id: string }) =>
     invoke('activity:totals-by-period', input),
   getById: (input: { id: string }) => invoke('activity:get-by-id', input),
+  /**
+   * Reverse lookup from an extraction to the activity confirmed from
+   * it. Returns null when nothing matches. Used by the document
+   * extraction-review panel to deep-link to the resulting activity.
+   */
+  findByExtraction: (input: { extraction_id: string }) =>
+    invoke('activity:find-by-extraction', input),
   rebindEf: (input: {
     activity_id: string;
     new_ef_pk: {

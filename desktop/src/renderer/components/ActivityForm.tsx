@@ -222,6 +222,13 @@ export function ActivityForm({
         ef_dataset_version: value.ef_dataset_version,
         fuel_code: value.fuel_code || undefined,
         notes: value.notes || undefined,
+        // Wire the activity row back to the extraction it was confirmed
+        // from. The same hint already feeds the EF picker's
+        // recommendations; reusing it for extraction_id keeps the form
+        // stateless about the source-doc relationship. Hand-typed
+        // entries on /activities have no matcherHint → undefined →
+        // service writes NULL.
+        extraction_id: initialValues?.matcherHint?.extraction_id,
       });
     },
   });

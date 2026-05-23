@@ -1,6 +1,7 @@
 import type {
   ActivityData,
   ActivityDataCreateInput,
+  ActivityDataWithDocument,
   ActivityDataWithEf,
   EfCompositePk,
   PinnedEmissionFactor,
@@ -170,7 +171,10 @@ export class ActivityDataService {
           parsed.ef_dataset_version,
           computed.co2e_kg,
           ts,
-          null, // extraction_id: NULL for manual entries (Phase 1a path)
+          // extraction_id wires the activity row back to the extraction
+          // it was confirmed from (set by ExtractionReview via the
+          // ActivityForm's matcherHint). NULL for hand-typed entries.
+          parsed.extraction_id ?? null,
           parsed.notes ?? null,
           ts,
           ts,
@@ -189,14 +193,47 @@ export class ActivityDataService {
   }
 
   /**
-   * All activity_data for a reporting period, oldest occurrence first. Order
-   * is by `occurred_at_start` (matches dashboard / table reading order); `id`
-   * is the tiebreaker so the sort is stable.
+   * All activity_data for a reporting period, oldest occurrence first.
+   * Order is by `occurred_at_start` (matches dashboard / table reading
+   * order); `id` is the tiebreaker so the sort is stable.
+   *
+   * Returns rows enriched with their source document (when present) via
+   * LEFT JOINs through `extraction.document_id` → `document.filename`.
+   * Both joined fields are NULL for hand-typed activities that have no
+   * `extraction_id`. Done as one query (not N+1) because the /activities
+   * card uses these fields to render "来自文档 X" links.
    */
-  listByPeriod(periodId: string): ActivityData[] {
+  listByPeriod(periodId: string): ActivityDataWithDocument[] {
+    const cols = AD_COLUMNS.map((c) => `ad.${c}`).join(', ');
     return this.db
-      .prepare(`${AD_SELECT} WHERE reporting_period_id = ? ORDER BY occurred_at_start ASC, id ASC`)
-      .all(periodId) as ActivityData[];
+      .prepare(
+        `SELECT ${cols},
+                e.document_id AS source_document_id,
+                d.filename    AS source_document_filename
+           FROM activity_data ad
+           LEFT JOIN extraction e ON e.id = ad.extraction_id
+           LEFT JOIN document   d ON d.id = e.document_id
+          WHERE ad.reporting_period_id = ?
+          ORDER BY ad.occurred_at_start ASC, ad.id ASC`,
+      )
+      .all(periodId) as ActivityDataWithDocument[];
+  }
+
+  /**
+   * Reverse lookup: given an extraction id, return the activity row
+   * that was confirmed from it (or null). Used by ExtractionReview's
+   * "already confirmed" panel to deep-link to the activity instead of
+   * dropping the user on a flat list.
+   *
+   * Returns at most one row: a single extraction can only be confirmed
+   * once (UI prevents the second pass; even if it slipped through,
+   * we'd want the most recent so `ORDER BY created_at DESC LIMIT 1`).
+   */
+  findByExtractionId(extractionId: string): ActivityData | null {
+    const row = this.db
+      .prepare(`${AD_SELECT} WHERE extraction_id = ? ORDER BY created_at DESC LIMIT 1`)
+      .get(extractionId) as ActivityData | undefined;
+    return row ?? null;
   }
 
   /** All activity_data for an emission source, same ordering as `listByPeriod`. */

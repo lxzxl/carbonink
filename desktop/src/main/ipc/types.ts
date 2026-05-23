@@ -1,6 +1,7 @@
 import type {
   ActivityData,
   ActivityDataCreateInput,
+  ActivityDataWithDocument,
   ActivityDataWithEf,
   Answer,
   ClassifyAndRunResult,
@@ -112,7 +113,14 @@ export type IpcTypeMap = {
 
   // activity-data domain (pinned EF + computed CO2e per amount entry)
   'activity:create': (input: ActivityDataCreateInput) => ActivityData;
-  'activity:list-by-period': (input: { reporting_period_id: string }) => ActivityData[];
+  'activity:list-by-period': (input: { reporting_period_id: string }) => ActivityDataWithDocument[];
+  /**
+   * Reverse lookup from a confirmed extraction to its activity row.
+   * Returns null when nothing matches (extraction not yet confirmed,
+   * or activity was deleted). Used by ExtractionReview's
+   * already-confirmed panel to deep-link the user to the row.
+   */
+  'activity:find-by-extraction': (input: { extraction_id: string }) => ActivityData | null;
   'activity:totals-by-period': (input: { reporting_period_id: string }) => {
     total_co2e_kg: number;
     scope1_kg: number;

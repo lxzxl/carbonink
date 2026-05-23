@@ -184,6 +184,36 @@ describe('ActivityDataService.create — happy path', () => {
     const activities = svc.listByPeriod(period.id);
     expect(activities).toHaveLength(2);
   });
+
+  it('persists extraction_id when supplied so the row links back to its source doc', () => {
+    // Seed a document + extraction so the FK from activity_data.extraction_id
+    // → extraction.id is satisfied. The extraction's status must be
+    // 'parsed' (and raw_response/parsed_json non-null) to pass the
+    // CHECK constraint from migration 003.
+    db.prepare(
+      `INSERT INTO document (id, sha256, filename, mime_type, size_bytes, storage_path, uploaded_at)
+       VALUES ('doc-1', 'sha-1', 'bill.pdf', 'application/pdf', 1, '/tmp/bill.pdf', ?)`,
+    ).run(FIXED_NOW);
+    db.prepare(
+      `INSERT INTO extraction (id, document_id, llm_provider, llm_model, prompt_version,
+                               raw_response, parsed_json, status, created_at)
+       VALUES ('ext-1', 'doc-1', 'openai', 'gpt-4o-mini', 'china_utility.v1',
+               '{"raw":"..."}', '{"confidence":"high"}', 'parsed', ?)`,
+    ).run(FIXED_NOW);
+
+    const row = svc.create({
+      emission_source_id: scope2Source.id,
+      reporting_period_id: period.id,
+      occurred_at_start: '2024-01-01',
+      occurred_at_end: '2024-01-31',
+      amount: 100,
+      unit: 'kWh',
+      ...CN_NATIONAL,
+      extraction_id: 'ext-1',
+    });
+
+    expect(row.extraction_id).toBe('ext-1');
+  });
 });
 
 describe('ActivityDataService.create — error paths + transaction rollback', () => {
@@ -362,6 +392,82 @@ describe('ActivityDataService.listByPeriod', () => {
 
   it('returns empty array for a period with no activities', () => {
     expect(svc.listByPeriod(period.id)).toEqual([]);
+  });
+
+  it('joins source document fields when extraction_id is set; null for hand-typed rows', () => {
+    // Hand-typed activity — no extraction_id.
+    svc.create({
+      emission_source_id: scope2Source.id,
+      reporting_period_id: period.id,
+      occurred_at_start: '2024-04-01',
+      occurred_at_end: '2024-04-30',
+      amount: 400,
+      unit: 'kWh',
+      ...CN_NATIONAL,
+    });
+
+    // Extraction-confirmed activity — seed doc + extraction first.
+    db.prepare(
+      `INSERT INTO document (id, sha256, filename, mime_type, size_bytes, storage_path, uploaded_at)
+       VALUES ('doc-2', 'sha-2', 'electricity-bill-april.pdf', 'application/pdf', 1, '/tmp/x.pdf', ?)`,
+    ).run(FIXED_NOW);
+    db.prepare(
+      `INSERT INTO extraction (id, document_id, llm_provider, llm_model, prompt_version,
+                               raw_response, parsed_json, status, created_at)
+       VALUES ('ext-2', 'doc-2', 'openai', 'gpt-4o-mini', 'china_utility.v1',
+               '{"raw":"..."}', '{"confidence":"high"}', 'parsed', ?)`,
+    ).run(FIXED_NOW);
+    svc.create({
+      emission_source_id: scope2Source.id,
+      reporting_period_id: period.id,
+      occurred_at_start: '2024-05-01',
+      occurred_at_end: '2024-05-31',
+      amount: 500,
+      unit: 'kWh',
+      ...CN_NATIONAL,
+      extraction_id: 'ext-2',
+    });
+
+    const rows = svc.listByPeriod(period.id);
+    expect(rows).toHaveLength(2);
+
+    const handTyped = rows.find((r) => r.occurred_at_start === '2024-04-01');
+    expect(handTyped?.source_document_id).toBeNull();
+    expect(handTyped?.source_document_filename).toBeNull();
+
+    const fromDoc = rows.find((r) => r.occurred_at_start === '2024-05-01');
+    expect(fromDoc?.source_document_id).toBe('doc-2');
+    expect(fromDoc?.source_document_filename).toBe('electricity-bill-april.pdf');
+  });
+});
+
+describe('ActivityDataService.findByExtractionId', () => {
+  it('returns the activity row whose extraction_id matches; null when not found', () => {
+    db.prepare(
+      `INSERT INTO document (id, sha256, filename, mime_type, size_bytes, storage_path, uploaded_at)
+       VALUES ('doc-3', 'sha-3', 'bill.pdf', 'application/pdf', 1, '/tmp/x.pdf', ?)`,
+    ).run(FIXED_NOW);
+    db.prepare(
+      `INSERT INTO extraction (id, document_id, llm_provider, llm_model, prompt_version,
+                               raw_response, parsed_json, status, created_at)
+       VALUES ('ext-3', 'doc-3', 'openai', 'gpt-4o-mini', 'china_utility.v1',
+               '{"raw":"..."}', '{"confidence":"high"}', 'parsed', ?)`,
+    ).run(FIXED_NOW);
+    const created = svc.create({
+      emission_source_id: scope2Source.id,
+      reporting_period_id: period.id,
+      occurred_at_start: '2024-06-01',
+      occurred_at_end: '2024-06-30',
+      amount: 600,
+      unit: 'kWh',
+      ...CN_NATIONAL,
+      extraction_id: 'ext-3',
+    });
+
+    const found = svc.findByExtractionId('ext-3');
+    expect(found?.id).toBe(created.id);
+
+    expect(svc.findByExtractionId('ext-does-not-exist')).toBeNull();
   });
 });
 

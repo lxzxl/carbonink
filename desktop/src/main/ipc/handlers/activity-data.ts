@@ -5,6 +5,7 @@ import type { IpcTypeMap } from '../types.js';
 
 const periodScopedInput = z.object({ reporting_period_id: z.string().min(1) });
 const idInput = z.object({ id: z.string().min(1) });
+const extractionScopedInput = z.object({ extraction_id: z.string().min(1) });
 const rebindInput = z.object({
   activity_id: z.string().min(1),
   new_ef_pk: z.object({
@@ -40,6 +41,8 @@ export function activityDataHandlers(ctx: IpcContext): {
     'activity:totals-by-period': (input) =>
       svc.totalsByPeriod(periodScopedInput.parse(input).reporting_period_id),
     'activity:get-by-id': (input) => svc.getByIdWithEf(idInput.parse(input).id),
+    'activity:find-by-extraction': (input) =>
+      svc.findByExtractionId(extractionScopedInput.parse(input).extraction_id),
     'activity:rebind-ef': (input) => {
       // exactOptionalPropertyTypes is strict: zod's output type allows
       // `override_amount: undefined`, but the service signature uses the

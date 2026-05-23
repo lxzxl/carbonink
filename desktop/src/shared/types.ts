@@ -193,6 +193,12 @@ export const activityDataCreateInput = z.object({
   // belong to different families. See spec §3 / migration 007.
   fuel_code: optionalString({ max: 100 }),
   notes: optionalString({ max: 2000 }),
+  // Soft FK to `extraction.id` — set when the activity row was confirmed
+  // from a document extraction (the /documents review flow). NULL for
+  // hand-typed entries on /activities. Lets /activities surface
+  // "来自文档 X" + lets /documents/$id deep-link to the confirmed
+  // activity once a row exists.
+  extraction_id: optionalString({ max: 100 }),
 });
 
 /** Row shape mirroring the `emission_source` table. See migration 004. */
@@ -234,6 +240,20 @@ export type ActivityData = {
 /** ActivityData row joined with the currently pinned emission factor. */
 export type ActivityDataWithEf = ActivityData & {
   pinned_ef: PinnedEmissionFactor;
+};
+
+/**
+ * ActivityData row enriched with its source document (when present).
+ * Both fields are non-null only when the activity was confirmed from
+ * a `/documents/$id` review flow — hand-typed activities on /activities
+ * have a NULL `extraction_id` and both joins resolve to null.
+ *
+ * Used by `activity:list-by-period` so the /activities list can render
+ * "来自文档 X" without firing an N+1 of per-row extraction lookups.
+ */
+export type ActivityDataWithDocument = ActivityData & {
+  source_document_id: string | null;
+  source_document_filename: string | null;
 };
 
 export type EmissionSourceCreateInput = z.infer<typeof emissionSourceCreateInput>;

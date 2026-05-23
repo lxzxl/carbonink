@@ -14,6 +14,7 @@ import { parseExtraction } from '@renderer/components/extractions/types';
 import { ManualStagePicker } from '@renderer/components/ManualStagePicker';
 import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
+import { activityApi } from '@renderer/lib/api/activity-data';
 import { sourceApi } from '@renderer/lib/api/emission-source';
 import { extractionApi } from '@renderer/lib/api/extraction';
 import { orgApi } from '@renderer/lib/api/organization';
@@ -91,6 +92,17 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
     queryKey: ['source:list-by-org', orgId],
     queryFn: () => sourceApi.listByOrg({ organization_id: orgId ?? '' }),
     enabled: !!orgId,
+  });
+
+  // Reverse lookup: when this extraction has already been confirmed,
+  // find the activity row that was created from it so we can deep-link
+  // to the user's actual entry (with row highlight) instead of dropping
+  // them on the flat /activities list. Only runs when status is 'parsed'
+  // — the only state in which a linked activity could exist.
+  const linkedActivityQuery = useQuery({
+    queryKey: ['activity:find-by-extraction', extraction.id],
+    queryFn: () => activityApi.findByExtraction({ extraction_id: extraction.id }),
+    enabled: extraction.status === 'parsed',
   });
 
   const discardMutation = useMutation({
@@ -216,12 +228,29 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
           <p className="mt-1 text-muted-foreground">
             {m.documents_review_already_confirmed_body()}
           </p>
-          <Link
-            to="/activities"
-            className="mt-3 inline-block text-sm text-[color:var(--color-primary)] hover:underline"
-          >
-            {m.documents_review_view_activities_link()}
-          </Link>
+          {linkedActivityQuery.data ? (
+            // Deep link with `?highlight=<activity_id>` — /activities will
+            // scroll the matching row into view + draw an amber ring so
+            // the user sees exactly which entry came from this doc.
+            <Link
+              to="/activities"
+              search={{ highlight: linkedActivityQuery.data.id }}
+              className="mt-3 inline-block text-sm text-[color:var(--color-primary)] hover:underline"
+            >
+              {m.documents_review_view_activity_link()}
+            </Link>
+          ) : (
+            // Fallback: extraction is parsed but for some reason we can't
+            // find the matching activity (e.g. the user manually deleted
+            // it, or a legacy extraction confirmed before extraction_id
+            // was wired up). Fall back to the flat list.
+            <Link
+              to="/activities"
+              className="mt-3 inline-block text-sm text-[color:var(--color-primary)] hover:underline"
+            >
+              {m.documents_review_view_activities_link()}
+            </Link>
+          )}
         </div>
       ) : !showForm && !showStagePicker ? (
         <div className="flex flex-wrap items-center gap-2">

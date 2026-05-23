@@ -34,6 +34,7 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   'activity:list-by-period',
   'activity:totals-by-period',
   'activity:get-by-id',
+  'activity:find-by-extraction',
   'activity:rebind-ef',
   // settings domain (Phase 1b — LLM provider config)
   'settings:available',
