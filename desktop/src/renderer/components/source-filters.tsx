@@ -1,3 +1,4 @@
+import { categoryLabel } from '@renderer/lib/category-labels';
 import { cn } from '@renderer/lib/utils';
 import * as m from '@renderer/paraglide/messages';
 import { Search } from 'lucide-react';
@@ -245,6 +246,7 @@ export function SourceFilterHeader({
                 key={cat}
                 type="button"
                 onClick={() => onCategoryChange(active ? null : cat)}
+                title={cat}
                 className={cn(
                   'shrink-0 rounded-full border px-2.5 py-0.5 text-xs transition-colors',
                   active
@@ -252,7 +254,7 @@ export function SourceFilterHeader({
                     : 'border-border bg-transparent text-muted-foreground hover:bg-foreground/5',
                 )}
               >
-                {cat} <span className="tabular-nums opacity-60">{count}</span>
+                {categoryLabel(cat)} <span className="tabular-nums opacity-60">{count}</span>
               </button>
             );
           })}

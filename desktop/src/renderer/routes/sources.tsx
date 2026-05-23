@@ -11,6 +11,7 @@ import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
 import { sourceApi } from '@renderer/lib/api/emission-source';
 import { orgApi } from '@renderer/lib/api/organization';
+import { categoryLabel } from '@renderer/lib/category-labels';
 import { formatCo2e, formatInteger } from '@renderer/lib/format';
 import { cn } from '@renderer/lib/utils';
 import * as m from '@renderer/paraglide/messages';
@@ -78,9 +79,12 @@ const SOURCE_EXTRACTORS: SourceFilterExtractors<EmissionSourceWithStats> = {
   getScope: (s) => s.scope,
   getCategory: (s) => s.category ?? '',
   // Power users can paste a ghg_protocol_path or the preset id stamped
-  // into template_origin and find their source — both useful when
-  // diagnosing where a row came from.
-  getSearchExtras: (s) => `${s.ghg_protocol_path ?? ''} ${s.template_origin ?? ''}`,
+  // into template_origin and find their source. We also fold in the
+  // localized category label so Chinese searches like "燃料" / "差旅"
+  // hit Climatiq-tagged rows whose stored category is the English
+  // original.
+  getSearchExtras: (s) =>
+    `${s.ghg_protocol_path ?? ''} ${s.template_origin ?? ''} ${categoryLabel(s.category)}`,
 };
 
 function SourcesList({ organizationId }: { organizationId: string }) {
@@ -241,7 +245,7 @@ function SourcesList({ organizationId }: { organizationId: string }) {
                       {src.category && (
                         <>
                           <span>·</span>
-                          <span>{src.category}</span>
+                          <span title={src.category}>{categoryLabel(src.category)}</span>
                         </>
                       )}
                       {src.ghg_protocol_path && (

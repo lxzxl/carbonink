@@ -1,4 +1,5 @@
 import { sourceApi } from '@renderer/lib/api/emission-source';
+import { categoryLabel } from '@renderer/lib/category-labels';
 import { currentLocale } from '@renderer/lib/i18n';
 import { cn } from '@renderer/lib/utils';
 import * as m from '@renderer/paraglide/messages';
@@ -44,7 +45,10 @@ const PRESET_EXTRACTORS: SourceFilterExtractors<PresetSource> = {
   getName: (p) => `${p.name_zh} ${p.name_en}`,
   getScope: (p) => p.scope,
   getCategory: (p) => p.category,
-  getSearchExtras: (p) => p.source ?? '',
+  // Include the Chinese label in the search corpus so a user typing
+  // "燃料" / "电力" / "差旅" finds Climatiq rows whose stored category
+  // is "Fuel" / "Electricity" / "Air Travel".
+  getSearchExtras: (p) => `${p.source ?? ''} ${categoryLabel(p.category)}`,
 };
 
 export function SourceCatalogDrawer({ organizationId, open, onClose }: SourceCatalogDrawerProps) {
@@ -268,8 +272,11 @@ export function SourceCatalogDrawer({ organizationId, open, onClose }: SourceCat
                               {secondaryName}
                             </span>
                             <span>·</span>
-                            <span className="rounded-md bg-secondary px-1.5 py-0.5 font-medium text-foreground/80">
-                              {preset.category}
+                            <span
+                              className="rounded-md bg-secondary px-1.5 py-0.5 font-medium text-foreground/80"
+                              title={preset.category}
+                            >
+                              {categoryLabel(preset.category)}
                             </span>
                             <span>·</span>
                             <span>{preset.hint_unit}</span>
