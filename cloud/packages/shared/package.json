@@ -1,5 +1,5 @@
 {
-  "name": "@carbonbook-cloud/shared",
+  "name": "@carbonink-cloud/shared",
   "private": true,
   "type": "module",
   "main": "src/index.ts",

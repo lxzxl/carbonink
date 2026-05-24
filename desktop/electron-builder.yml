@@ -1,8 +1,8 @@
 # electron-builder configuration
 # Docs: https://www.electron.build/configuration
 
-appId: app.carbonbook.desktop
-productName: carbonbook
+appId: app.carbonink.desktop
+productName: carbonink
 copyright: Copyright © 2026 Seneca ESG Limited
 
 directories:
@@ -77,7 +77,7 @@ nsis:
 # binaries stay versioned + platform-segregated.
 publish:
   provider: generic
-  url: https://r2.carbonbook.app/releases
+  url: https://r2.carbonink.xyz/releases
   channel: stable
 
 # --- electron-builder will look for these build resources ---

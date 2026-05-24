@@ -1,5 +1,5 @@
 {
-  "name": "@carbonbook-cloud/worker",
+  "name": "@carbonink-cloud/worker",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,7 +9,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@carbonbook-cloud/shared": "workspace:*",
+    "@carbonink-cloud/shared": "workspace:*",
     "@noble/curves": "^1.8.0",
     "zod": "^3.24.0"
   },

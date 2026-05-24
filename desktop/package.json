@@ -1,11 +1,11 @@
 {
-  "name": "carbonbook",
+  "name": "carbonink",
   "version": "1.0.0",
-  "productName": "carbonbook",
-  "appId": "app.carbonbook.desktop",
+  "productName": "carbonink",
+  "appId": "app.carbonink.desktop",
   "author": {
     "name": "Seneca ESG Limited",
-    "email": "support@carbonbook.app"
+    "email": "support@carbonink.xyz"
   },
   "private": true,
   "main": "out/main/index.cjs",
