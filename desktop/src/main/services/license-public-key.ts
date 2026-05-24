@@ -16,7 +16,7 @@ import { publicKeyFromRawBytes } from './license-service.js';
  * so a release accidentally shipped with the placeholder is loud-failing
  * on first launch rather than silently accepting any forged JWT.
  */
-const PUBLIC_KEY_HEX = '45137100977d34b17e6ae61ded3db7810215559157de81a0cdf4b6bcb49fb745';
+const PUBLIC_KEY_HEX = '6010f20fb43baf153bbcfd0ea6793193e72c2306c87706780e33463c2684a9eb';
 
 export function loadLicensePublicKey() {
   if (/^0+$/.test(PUBLIC_KEY_HEX)) {
