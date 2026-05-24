@@ -49,7 +49,11 @@ test('onboarding: 5-step wizard with chrome-strip', async () => {
     for (const step of [1, 2, 3, 4, 5] as const) {
       await navigateTo(window, `/onboarding/${step}`);
       await waitForRouteSettled(window);
-      await snap(window, `onboarding-step-${step}`, { fullPage: true });
+      // `fullPage: false` to capture the viewport only — the wizard is
+      // centered within it via `__root.tsx`'s absolute-positioned flex
+      // wrapper, and we want the screenshot to reflect what the user
+      // actually sees in their 1400x900 window.
+      await snap(window, `onboarding-step-${step}`, { fullPage: false });
     }
   } finally {
     await teardown(setup);

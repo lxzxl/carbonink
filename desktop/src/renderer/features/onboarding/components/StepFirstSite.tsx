@@ -4,6 +4,7 @@ import { Label } from '@renderer/components/ui/label';
 import * as m from '@renderer/paraglide/messages';
 import { useForm } from '@tanstack/react-form';
 import { useNavigate } from '@tanstack/react-router';
+import { WizardShell } from './WizardShell';
 import { loadDraft, saveDraft } from './wizardState';
 
 export function StepFirstSite() {
@@ -22,83 +23,106 @@ export function StepFirstSite() {
     },
   });
 
+  const formId = 'onboarding-site-form';
+
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        form.handleSubmit();
-      }}
-      className="space-y-4 max-w-md"
+    <WizardShell
+      step={4}
+      title={m.onboarding_step_site_title()}
+      subtitle={m.onboarding_step_site_subtitle()}
+      footer={
+        <div className="flex justify-between">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate({ to: '/onboarding/$step', params: { step: '3' } })}
+          >
+            {m.onboarding_back()}
+          </Button>
+          <Button type="submit" form={formId}>
+            {m.onboarding_next()}
+          </Button>
+        </div>
+      }
     >
-      <h2 className="text-xl font-semibold">{m.onboarding_step_site_title()}</h2>
-      <p className="text-sm text-muted-foreground">{m.onboarding_step_site_body()}</p>
-
-      <form.Field
-        name="name_zh"
-        children={(f) => (
-          <div>
+      <form
+        id={formId}
+        onSubmit={(e) => {
+          e.preventDefault();
+          form.handleSubmit();
+        }}
+        className="space-y-5"
+      >
+        {/* Name pair (zh + en) — same paired pattern as the company step
+         * for visual consistency across the wizard. */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
             <Label htmlFor="site_name_zh">{m.onboarding_step_site_name_zh()}</Label>
-            <Input
-              id="site_name_zh"
-              value={f.state.value}
-              onChange={(e) => f.handleChange(e.target.value)}
+            <form.Field
+              name="name_zh"
+              children={(f) => (
+                <Input
+                  id="site_name_zh"
+                  value={f.state.value}
+                  onChange={(e) => f.handleChange(e.target.value)}
+                  placeholder="北京总部"
+                />
+              )}
             />
           </div>
-        )}
-      />
-
-      <form.Field
-        name="name_en"
-        children={(f) => (
-          <div>
+          <div className="space-y-1.5">
             <Label htmlFor="site_name_en">{m.onboarding_step_site_name_en()}</Label>
-            <Input
-              id="site_name_en"
-              value={f.state.value}
-              onChange={(e) => f.handleChange(e.target.value)}
+            <form.Field
+              name="name_en"
+              children={(f) => (
+                <Input
+                  id="site_name_en"
+                  value={f.state.value}
+                  onChange={(e) => f.handleChange(e.target.value)}
+                  placeholder="Beijing HQ"
+                />
+              )}
             />
           </div>
-        )}
-      />
+        </div>
 
-      <form.Field
-        name="address"
-        children={(f) => (
-          <div>
-            <Label htmlFor="site_address">{m.onboarding_step_site_address()}</Label>
-            <Input
-              id="site_address"
-              value={f.state.value}
-              onChange={(e) => f.handleChange(e.target.value)}
-            />
-          </div>
-        )}
-      />
+        {/* Address: full width — typically a long string, deserves its
+         * own row. */}
+        <div className="space-y-1.5">
+          <Label htmlFor="site_address">{m.onboarding_step_site_address()}</Label>
+          <form.Field
+            name="address"
+            children={(f) => (
+              <Input
+                id="site_address"
+                value={f.state.value}
+                onChange={(e) => f.handleChange(e.target.value)}
+                placeholder="北京市朝阳区某某路 1 号"
+              />
+            )}
+          />
+        </div>
 
-      <form.Field
-        name="country_code"
-        children={(f) => (
-          <div>
+        {/* Country: narrow, half-width — mirrors how the company step
+         * lays country alongside industry rather than full-row. */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
             <Label htmlFor="site_country">{m.onboarding_step_site_country()}</Label>
-            <Input
-              id="site_country"
-              value={f.state.value}
-              onChange={(e) => f.handleChange(e.target.value.toUpperCase())}
-              maxLength={3}
+            <form.Field
+              name="country_code"
+              children={(f) => (
+                <Input
+                  id="site_country"
+                  value={f.state.value}
+                  onChange={(e) => f.handleChange(e.target.value.toUpperCase())}
+                  maxLength={3}
+                  className="max-w-[140px]"
+                />
+              )}
             />
           </div>
-        )}
-      />
-
-      <div className="flex justify-between pt-2">
-        <Button
-          variant="outline"
-          onClick={() => navigate({ to: '/onboarding/$step', params: { step: '3' } })}
-        >
-          {m.onboarding_back()}
-        </Button>
-        <Button type="submit">{m.onboarding_next()}</Button>
-      </div>
-    </form>
+        </div>
+      </form>
+    </WizardShell>
   );
 }

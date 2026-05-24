@@ -68,12 +68,23 @@ function RootComponent() {
   // returns automatically.
   if (pathname.startsWith('/onboarding')) {
     return (
-      <div className="flex h-svh flex-col bg-background">
-        {/* macOS hidden-titlebar window drag region. h-10 leaves enough
-         * room for the traffic-light cluster without giving the bar
-         * visual weight — it's invisible chrome, not content chrome. */}
-        <div className="titlebar-region h-10 shrink-0" aria-hidden />
-        <div className="flex-1 overflow-auto">
+      <div className="relative h-svh w-full bg-background overflow-hidden">
+        {/* macOS hidden-titlebar window drag region. Overlaid at the
+         * top via absolute positioning so it doesn't take a flex slot
+         * and break the centering of the wizard below. `h-10` matches
+         * traffic-light cluster height; `z-10` keeps it above the
+         * centering layer for drag-on-empty-area to still work. */}
+        <div className="titlebar-region absolute inset-x-0 top-0 h-10 z-10" aria-hidden />
+        {/* Wizard centered in the full viewport. `h-svh` on the outer
+         * wrapper gives this absolutely-positioned child a definite
+         * height to center against. `grid place-items-center` was
+         * unreliable in earlier attempts (the implicit grid track
+         * sizes to content), so we use flex with `items-center
+         * justify-center` — the parent is explicitly sized, so the
+         * flex centering has a known target. `overflow-auto` on this
+         * layer (not the parent, which clips) lets a tall step scroll
+         * gracefully. */}
+        <div className="absolute inset-0 flex items-center justify-center overflow-auto px-6 py-8">
           <Outlet />
         </div>
       </div>

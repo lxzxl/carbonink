@@ -5,6 +5,7 @@ import * as m from '@renderer/paraglide/messages';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
+import { WizardShell } from './WizardShell';
 import { clearDraft, loadDraft } from './wizardState';
 
 export function StepAIProvider() {
@@ -58,35 +59,46 @@ export function StepAIProvider() {
   };
 
   return (
-    <div className="space-y-4 max-w-xl">
-      <h2 className="text-xl font-semibold">{m.onboarding_step_ai_title()}</h2>
-      <p className="text-sm text-muted-foreground">{m.onboarding_step_ai_body()}</p>
-
-      <div className="space-y-2">
-        <Button className="w-full" disabled={submitting} onClick={() => finish('byot')}>
-          {m.onboarding_step_ai_byot()}
+    <WizardShell
+      step={5}
+      title={m.onboarding_step_ai_title()}
+      subtitle={m.onboarding_step_ai_subtitle()}
+      footer={
+        <div className="flex justify-between items-center">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={submitting}
+            onClick={() => navigate({ to: '/onboarding/$step', params: { step: '4' } })}
+          >
+            {m.onboarding_back()}
+          </Button>
+          {submitting && <p className="text-sm text-muted-foreground">{m.onboarding_creating()}</p>}
+        </div>
+      }
+    >
+      {/* Two stacked CTAs — the "primary" one (BYO key) is filled, the
+       * "skip" is outline. Wide buttons for the last-mile call to action
+       * since this step ends the wizard. */}
+      <div className="space-y-3">
+        <Button
+          type="button"
+          className="w-full justify-start h-auto py-3 px-4"
+          disabled={submitting}
+          onClick={() => finish('byot')}
+        >
+          <span className="text-left">{m.onboarding_step_ai_byot()}</span>
         </Button>
         <Button
-          className="w-full"
+          type="button"
+          className="w-full justify-start h-auto py-3 px-4"
           variant="outline"
           disabled={submitting}
           onClick={() => finish('skip')}
         >
-          {m.onboarding_step_ai_skip()}
+          <span className="text-left">{m.onboarding_step_ai_skip()}</span>
         </Button>
       </div>
-
-      {submitting && <p className="text-sm text-muted-foreground">{m.onboarding_creating()}</p>}
-
-      <div className="flex justify-start pt-2">
-        <Button
-          variant="outline"
-          disabled={submitting}
-          onClick={() => navigate({ to: '/onboarding/$step', params: { step: '4' } })}
-        >
-          {m.onboarding_back()}
-        </Button>
-      </div>
-    </div>
+    </WizardShell>
   );
 }
