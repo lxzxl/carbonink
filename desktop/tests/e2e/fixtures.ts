@@ -467,5 +467,16 @@ export function baselineIpcMocks(): Record<string, unknown> {
       { id: 'purchase.v1', label_zh: '采购发票', label_en: 'Purchase invoice' },
       { id: 'travel.v1', label_zh: '差旅票据', label_en: 'Travel ticket' },
     ],
+    'app:get-info': {
+      version: '1.0.0',
+      name: 'CarbonInk',
+      electron_version: '41.5.1',
+      node_version: '20.18.0',
+      chrome_version: '130.0.6723.69',
+      platform: 'darwin',
+      arch: 'arm64',
+      user_data_dir: '/Users/demo/Library/Application Support/CarbonInk',
+      started_at: '2026-05-24T12:00:00.000Z',
+    },
   };
 }

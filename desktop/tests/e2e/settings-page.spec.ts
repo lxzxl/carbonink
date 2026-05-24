@@ -168,6 +168,34 @@ test('settings page renders + screenshots each tab', async () => {
       path: join(SCREENSHOT_DIR, 'settings.png'),
       fullPage: true,
     });
+
+    // -----------------------------------------------------------------------
+    // Capture: General section (Phase 5.1 — language switcher)
+    // -----------------------------------------------------------------------
+    const generalBtn = railButtons.filter({ hasText: /general|通用/i }).first();
+    await generalBtn.click();
+    await window
+      .getByText(/display language|界面语言/i)
+      .first()
+      .waitFor({ state: 'visible', timeout: 5_000 });
+    await window.screenshot({
+      path: join(SCREENSHOT_DIR, 'settings-general.png'),
+      fullPage: false,
+    });
+
+    // -----------------------------------------------------------------------
+    // Capture: About section (Phase 5.1 — version + data folder)
+    // -----------------------------------------------------------------------
+    const aboutBtn = railButtons.filter({ hasText: /about|关于/i }).first();
+    await aboutBtn.click();
+    await window
+      .getByText(/electron|chromium/i)
+      .first()
+      .waitFor({ state: 'visible', timeout: 5_000 });
+    await window.screenshot({
+      path: join(SCREENSHOT_DIR, 'settings-about.png'),
+      fullPage: false,
+    });
   } finally {
     await teardown(setup);
   }

@@ -1,6 +1,8 @@
 import { LicenseSection } from '@renderer/components/LicenseSection';
+import { AboutSection } from '@renderer/components/settings/AboutSection';
 import { AIProviderSection } from '@renderer/components/settings/AIProviderSection';
 import { AmapKeySection } from '@renderer/components/settings/AmapKeySection';
+import { GeneralSection } from '@renderer/components/settings/GeneralSection';
 import { McpSection } from '@renderer/components/settings/McpSection';
 import { OrganizationProfileSection } from '@renderer/components/settings/OrganizationProfileSection';
 import { UpdateSection } from '@renderer/components/UpdateSection';
@@ -9,9 +11,11 @@ import * as m from '@renderer/paraglide/messages';
 import {
   Building2,
   Cable,
+  Info,
   type LucideIcon,
   MapPin,
   RefreshCw,
+  Settings as SettingsIcon,
   ShieldCheck,
   Sparkles,
 } from 'lucide-react';
@@ -45,7 +49,15 @@ import { useState } from 'react';
  * navigated-to deliberately, not deep-linked.
  */
 
-type SectionKey = 'ai' | 'amap' | 'mcp' | 'org' | 'license' | 'updates';
+type SectionKey =
+  | 'general'
+  | 'ai'
+  | 'amap'
+  | 'mcp'
+  | 'org'
+  | 'license'
+  | 'updates'
+  | 'about';
 
 interface SectionDef {
   key: SectionKey;
@@ -56,6 +68,13 @@ interface SectionDef {
 }
 
 const SECTIONS: SectionDef[] = [
+  {
+    key: 'general',
+    icon: SettingsIcon,
+    label: () => m.settings_section_general(),
+    description: () => m.settings_section_general_description(),
+    render: () => <GeneralSection />,
+  },
   {
     key: 'ai',
     icon: Sparkles,
@@ -97,6 +116,13 @@ const SECTIONS: SectionDef[] = [
     label: () => m.settings_section_updates(),
     description: () => m.settings_section_updates_description(),
     render: () => <UpdateSection />,
+  },
+  {
+    key: 'about',
+    icon: Info,
+    label: () => m.settings_section_about(),
+    description: () => m.settings_section_about_description(),
+    render: () => <AboutSection />,
   },
 ];
 

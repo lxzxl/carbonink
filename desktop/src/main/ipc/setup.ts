@@ -5,6 +5,7 @@ import { getMainWindow } from '@main/window.js';
 import { createIpcContext, type IpcContext } from './context.js';
 import { activityDataHandlers } from './handlers/activity-data.js';
 import { answerHandlers } from './handlers/answer.js';
+import { appHandlers } from './handlers/app.js';
 import { auditHandlers } from './handlers/audit.js';
 import { documentHandlers } from './handlers/document.js';
 import { efLibraryHandlers } from './handlers/ef-library.js';
@@ -46,6 +47,7 @@ const HANDLER_FACTORIES: ReadonlyArray<HandlerFactory> = [
   auditHandlers,
   licenseHandlers,
   updaterHandlers,
+  appHandlers,
 ];
 
 export function setupIpc(): void {

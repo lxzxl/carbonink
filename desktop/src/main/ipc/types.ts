@@ -366,6 +366,30 @@ export type IpcTypeMap = {
   'updater:get-status': () => import('@main/updater/auto-updater.js').UpdateStatus;
   'updater:check': () => void;
   'updater:install': () => void;
+
+  // app domain (Phase 5.1 — settings about + data-management helpers)
+  //
+  // `app:get-info` returns the running binary's version + runtime
+  // versions (Electron / Node / Chromium) + user data dir + a session
+  // start timestamp. Used by the About section and surfaces in support
+  // diagnostics.
+  //
+  // `app:open-data-dir` opens the app's userData directory in the OS
+  // file manager. Discriminated result so the renderer can toast a
+  // user-friendly message when the path doesn't exist or the OS
+  // refuses access (rare but possible on locked-down systems).
+  'app:get-info': () => {
+    version: string;
+    name: string;
+    electron_version: string;
+    node_version: string;
+    chrome_version: string;
+    platform: NodeJS.Platform;
+    arch: string;
+    user_data_dir: string;
+    started_at: string;
+  };
+  'app:open-data-dir': () => Promise<{ ok: true } | { ok: false; error: string }>;
 };
 
 /**

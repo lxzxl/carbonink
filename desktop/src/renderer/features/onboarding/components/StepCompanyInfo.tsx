@@ -74,7 +74,7 @@ export function StepCompanyInfo() {
          * they're alternates, not independent inputs. */}
         <div className="space-y-3">
           <FieldRow>
-            <Field label={m.onboarding_step_company_name_zh()}>
+            <Field htmlFor="name_zh" label={m.onboarding_step_company_name_zh()}>
               <form.Field
                 name="name_zh"
                 children={(field) => (
@@ -87,7 +87,7 @@ export function StepCompanyInfo() {
                 )}
               />
             </Field>
-            <Field label={m.onboarding_step_company_name_en()}>
+            <Field htmlFor="name_en" label={m.onboarding_step_company_name_en()}>
               <form.Field
                 name="name_en"
                 children={(field) => (
@@ -107,7 +107,7 @@ export function StepCompanyInfo() {
         {/* Group 2: industry + country side-by-side. Industry is freeform
          * (no enum in v1); country is a select with common codes. */}
         <FieldRow>
-          <Field label={m.onboarding_step_company_industry()}>
+          <Field htmlFor="industry" label={m.onboarding_step_company_industry()}>
             <form.Field
               name="industry"
               children={(field) => (
@@ -120,7 +120,7 @@ export function StepCompanyInfo() {
               )}
             />
           </Field>
-          <Field label={m.onboarding_step_company_country()}>
+          <Field htmlFor="country_code" label={m.onboarding_step_company_country()}>
             <form.Field
               name="country_code"
               validators={{
@@ -153,14 +153,23 @@ export function StepCompanyInfo() {
  * label and input rendered as siblings without an enforced gap, so the
  * label visually fused with the input above it. Naming this primitive
  * makes the spacing intentional and discoverable.
+ *
+ * `htmlFor` is required so `<label>` associates with the input by id —
+ * Testing Library's `getByLabelText` relies on this association, and
+ * native form behavior (click-label-focuses-input) does too.
  */
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  // The label's `htmlFor` connection is handled by the caller (matching
-  // `Input.id`). Keeping that flexible because some `Field` consumers
-  // wrap a `<select>` or a checkbox group.
+function Field({
+  htmlFor,
+  label,
+  children,
+}: {
+  htmlFor: string;
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-1.5 flex-1">
-      <Label>{label}</Label>
+      <Label htmlFor={htmlFor}>{label}</Label>
       {children}
     </div>
   );

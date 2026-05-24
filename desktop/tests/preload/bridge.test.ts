@@ -125,6 +125,9 @@ describe('preload bridge', () => {
       'updater:get-status',
       'updater:check',
       'updater:install',
+      // app domain (Phase 5.1 — about info + open data directory)
+      'app:get-info',
+      'app:open-data-dir',
     ]);
   });
 });
