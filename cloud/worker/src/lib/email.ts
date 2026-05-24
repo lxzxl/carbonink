@@ -32,6 +32,7 @@ async function safeSend(email: SendEmail, msg: EmailMessage): Promise<void> {
 interface EmailMessage {
   to: string;
   from: { email: string; name?: string };
+  replyTo?: { email: string; name?: string };
   subject: string;
   html: string;
   text: string;
@@ -44,6 +45,7 @@ interface SendEmail {
 }
 
 const FROM = { email: 'noreply@carbonink.xyz', name: 'CarbonInk' };
+const REPLY_TO = { email: 'support@carbonink.xyz', name: 'CarbonInk Support' };
 
 export function sendActivationEmail(opts: {
   email: SendEmail;
@@ -65,7 +67,7 @@ export function sendActivationEmail(opts: {
     lang === 'zh-CN'
       ? `你的 碳墨 激活密钥：${licenseKey}\n\n打开桌面应用 → 设置 → 激活 → 粘贴此密钥。`
       : `Your CarbonInk activation key: ${licenseKey}\n\nOpen the desktop app → Settings → Activate → Paste the key.`;
-  return safeSend(opts.email, { to: opts.to, from: FROM, subject, html, text });
+  return safeSend(opts.email, { to: opts.to, from: FROM, replyTo: REPLY_TO, subject, html, text });
 }
 
 export function sendMagicLinkEmail(opts: {
@@ -83,5 +85,5 @@ export function sendMagicLinkEmail(opts: {
     opts.lang === 'zh-CN'
       ? `点击链接登录 碳墨 账户：${opts.url}\n\n链接 15 分钟内有效。`
       : `Click the link to sign in to your CarbonInk account: ${opts.url}\n\nThis link expires in 15 minutes.`;
-  return safeSend(opts.email, { to: opts.to, from: FROM, subject, html, text });
+  return safeSend(opts.email, { to: opts.to, from: FROM, replyTo: REPLY_TO, subject, html, text });
 }
