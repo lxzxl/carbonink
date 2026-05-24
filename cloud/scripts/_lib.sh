@@ -9,12 +9,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLOUD_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_ROOT="$(cd "$CLOUD_ROOT/.." && pwd)"
 
-# Load .env.local if present. We expect CLOUDFLARE_API_TOKEN in there at
-# minimum; secret scripts also expect the worker secrets.
-if [[ -f "$CLOUD_ROOT/.env.local" ]]; then
-  # shellcheck disable=SC1091
-  set -a; source "$CLOUD_ROOT/.env.local"; set +a
-fi
+# Load .env then .env.local (latter wins) — both are gitignored at repo
+# root. We expect CLOUDFLARE_API_TOKEN at minimum; secret scripts also
+# expect the worker secrets.
+for env_file in "$CLOUD_ROOT/.env" "$CLOUD_ROOT/.env.local"; do
+  if [[ -f "$env_file" ]]; then
+    # shellcheck disable=SC1091,SC1090
+    set -a; source "$env_file"; set +a
+  fi
+done
 
 require_env() {
   local var="$1"
