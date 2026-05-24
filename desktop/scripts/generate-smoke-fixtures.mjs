@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
  *   identifying account numbers / company names / amounts.
  *
  * Why synthetic works:
- *   carbonbook's per-stage schema is permissive — the LLM only needs the
+ *   carbonink's per-stage schema is permissive — the LLM only needs the
  *   document to LOOK like the target invoice type (right header, right
  *   field labels, plausible values). The fake company names + invoice
  *   numbers + amounts below satisfy every required field on each stage

@@ -19,11 +19,11 @@
  *
  * Instead, every spec body starts with a stable-element wait:
  *
- *   await window.getByRole('heading', { name: /carbonbook/i }).waitFor();
+ *   await window.getByRole('heading', { name: /carbonink/i }).waitFor();
  *
  * Or the most-stable thing of all — the page title:
  *
- *   await expect(setup.window).toHaveTitle(/carbonbook/i);
+ *   await expect(setup.window).toHaveTitle(/carbonink/i);
  *
  * Playwright's auto-wait absorbs hydration timing. If specs become flaky
  * despite this, the renderer fix is adding a `useHydrated()` hook to root
@@ -100,18 +100,18 @@ export type LaunchOpts = {
 const MAIN_ENTRY = join(__dirname, '../../out/main/index.cjs');
 
 export async function launchApp(opts: LaunchOpts): Promise<StageE2ESetup> {
-  const tempUserDataDir = mkdtempSync(join(tmpdir(), 'carbonbook-e2e-'));
+  const tempUserDataDir = mkdtempSync(join(tmpdir(), 'carbonink-e2e-'));
 
   const app = await _electron.launch({
     args: [MAIN_ENTRY],
     env: {
       ...process.env,
-      CARBONBOOK_TEST_USER_DATA_DIR: tempUserDataDir,
-      CARBONBOOK_E2E: '1',
+      CARBONINK_TEST_USER_DATA_DIR: tempUserDataDir,
+      CARBONINK_E2E: '1',
       // Defer window creation until after we've installed IPC mocks. Without
       // this, the renderer's `org:has-any` etc. queries can race the mock
       // install. See src/main/index.ts for the corresponding handler.
-      CARBONBOOK_E2E_DEFER_WINDOW: '1',
+      CARBONINK_E2E_DEFER_WINDOW: '1',
     },
   });
 
@@ -260,7 +260,7 @@ export async function launchApp(opts: LaunchOpts): Promise<StageE2ESetup> {
 
   // All mocks installed — now open the window. The main process captured
   // `createMainWindow` on `globalThis.__e2eOpenWindow` when
-  // `CARBONBOOK_E2E_DEFER_WINDOW=1`.
+  // `CARBONINK_E2E_DEFER_WINDOW=1`.
   await app.evaluate(() => {
     const g = globalThis as unknown as { __e2eOpenWindow?: () => void };
     g.__e2eOpenWindow?.();

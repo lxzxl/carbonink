@@ -4,7 +4,7 @@ import worker from '../src/index.js';
 import { TEST_PRIVATE_KEY_HEX } from './_fixtures.js';
 
 function makeReq(body: unknown, ip = '203.0.113.1'): Request {
-  return new Request('https://carbonbook.app/api/v1/trial-signup', {
+  return new Request('https://carbonink.xyz/api/v1/trial-signup', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

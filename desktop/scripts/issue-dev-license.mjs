@@ -62,7 +62,7 @@ const args = parseArgs(process.argv.slice(2));
 
 const now = Math.floor(Date.now() / 1000);
 const claims = {
-  iss: 'carbonbook.app',
+  iss: 'carbonink.xyz',
   license_id: args.licenseId,
   user_id: args.userId,
   plan: `${args.plan}@dev`,

@@ -36,7 +36,7 @@ let tmpUserData: string;
 
 beforeEach(() => {
   fakeBlobs.clear();
-  tmpUserData = mkdtempSync(join(tmpdir(), 'carbonbook-safestorage-'));
+  tmpUserData = mkdtempSync(join(tmpdir(), 'carbonink-safestorage-'));
   vi.mocked(app.getPath).mockReturnValue(tmpUserData);
   vi.mocked(safeStorage.isEncryptionAvailable).mockReturnValue(true);
   resetCredentialStoreForTest();

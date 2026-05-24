@@ -9,7 +9,7 @@ describe('schema integrity (FK enforcement smoke)', () => {
   let dbPath: string;
 
   beforeEach(() => {
-    dbPath = join(tmpdir(), `carbonbook-schema-${Date.now()}-${Math.random()}.sqlite`);
+    dbPath = join(tmpdir(), `carbonink-schema-${Date.now()}-${Math.random()}.sqlite`);
   });
 
   afterEach(() => {

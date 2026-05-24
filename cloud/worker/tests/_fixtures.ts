@@ -1,5 +1,5 @@
 import { env } from 'cloudflare:test';
-import type { LicenseActiveRecord } from '@carbonbook-cloud/shared';
+import type { LicenseActiveRecord } from '@carbonink-cloud/shared';
 
 export const TEST_PRIVATE_KEY_HEX =
   '4af3e2f9c1b0a988776655443322110011223344556677889900aabbccddeeff';

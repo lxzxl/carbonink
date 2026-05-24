@@ -54,7 +54,7 @@ describe('<LicenseSection>', () => {
     vi.mocked(licenseApi.getState).mockResolvedValue({
       state: 'active',
       claims: {
-        iss: 'carbonbook.app',
+        iss: 'carbonink.xyz',
         license_id: 'lic_01',
         user_id: 'usr_demo',
         plan: 'base@2026-q2',

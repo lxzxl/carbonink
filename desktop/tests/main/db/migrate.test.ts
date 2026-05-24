@@ -9,7 +9,7 @@ describe('runMigrations', () => {
   let dbPath: string;
 
   beforeEach(() => {
-    dbPath = join(tmpdir(), `carbonbook-mig-${Date.now()}-${Math.random()}.sqlite`);
+    dbPath = join(tmpdir(), `carbonink-mig-${Date.now()}-${Math.random()}.sqlite`);
   });
 
   afterEach(() => {

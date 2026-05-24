@@ -5,7 +5,7 @@ import { closeAppDb, openAppDb } from '@main/db/connection';
 import { afterEach, describe, expect, it } from 'vitest';
 
 describe('openAppDb', () => {
-  const dbPath = join(tmpdir(), `carbonbook-test-${Date.now()}.sqlite`);
+  const dbPath = join(tmpdir(), `carbonink-test-${Date.now()}.sqlite`);
   afterEach(() => {
     closeAppDb();
     try {

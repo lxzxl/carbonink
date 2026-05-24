@@ -17,7 +17,7 @@
  *   node scripts/seed-test-data.mjs
  *   node scripts/seed-test-data.mjs --db /custom/path/to/app.sqlite
  *
- * Default db path: ~/Library/Application Support/carbonbook/app.sqlite
+ * Default db path: ~/Library/Application Support/carbonink/app.sqlite
  *   (override with --db for Linux/Windows)
  *
  * Pre-flight: the app must have been launched at least once so the
@@ -37,11 +37,11 @@ const { values } = parseArgs({
 });
 
 const DB_PATH =
-  values.db ?? join(homedir(), 'Library', 'Application Support', 'carbonbook', 'app.sqlite');
+  values.db ?? join(homedir(), 'Library', 'Application Support', 'carbonink', 'app.sqlite');
 
 if (!existsSync(DB_PATH)) {
   console.error(`✗ DB not found: ${DB_PATH}`);
-  console.error('  Launch the carbonbook app once (pnpm dev) so onboarding creates it.');
+  console.error('  Launch the carbonink app once (pnpm dev) so onboarding creates it.');
   process.exit(1);
 }
 

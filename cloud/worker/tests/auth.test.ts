@@ -5,7 +5,7 @@ import worker from '../src/index.js';
 const SESSION_KEY = '7f12345678901234567890123456789012345678901234567890123456789012';
 
 async function call(path: string, body: unknown): Promise<Response> {
-  const req = new Request(`https://carbonbook.app/api${path}`, {
+  const req = new Request(`https://carbonink.xyz/api${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),

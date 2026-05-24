@@ -92,7 +92,7 @@ describe('<LicenseBanner>', () => {
     vi.mocked(licenseApi.getState).mockResolvedValue({
       state: 'grace',
       claims: {
-        iss: 'carbonbook.app',
+        iss: 'carbonink.xyz',
         license_id: 'lic_01',
         user_id: 'usr_01',
         plan: 'base@2026-q2',

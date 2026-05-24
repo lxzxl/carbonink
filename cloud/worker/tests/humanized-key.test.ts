@@ -1,4 +1,4 @@
-import { generateHumanizedKey, normalizeHumanizedKey } from '@carbonbook-cloud/shared';
+import { generateHumanizedKey, normalizeHumanizedKey } from '@carbonink-cloud/shared';
 import { describe, expect, it } from 'vitest';
 
 describe('generateHumanizedKey', () => {

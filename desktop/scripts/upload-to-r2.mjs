@@ -65,7 +65,7 @@ for (const file of files) {
   const localPath = join(releaseDir, file);
   // Flat manifest layout: latest-mac.yml / latest.yml live at the bucket
   // root of releases/ (no platform subdir), matching the electron-builder
-  // `publish.url` of https://r2.carbonbook.app/releases. electron-updater
+  // `publish.url` of https://r2.carbonink.xyz/releases. electron-updater
   // fetches `<publishUrl>/latest-mac.yml` or `<publishUrl>/latest.yml`
   // so the manifests MUST sit at this path. Binary artifacts are
   // versioned + platform-segregated and referenced by absolute URL

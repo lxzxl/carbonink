@@ -4,7 +4,7 @@ import worker from '../src/index.js';
 
 describe('health endpoint', () => {
   it('GET /health returns 200 with status ok', async () => {
-    const req = new Request('https://carbonbook.app/api/health');
+    const req = new Request('https://carbonink.xyz/api/health');
     const ctx = createExecutionContext();
     const res = await worker.fetch(req, env, ctx);
     await waitOnExecutionContext(ctx);
@@ -14,7 +14,7 @@ describe('health endpoint', () => {
   });
 
   it('unknown route returns 404', async () => {
-    const req = new Request('https://carbonbook.app/api/nope');
+    const req = new Request('https://carbonink.xyz/api/nope');
     const ctx = createExecutionContext();
     const res = await worker.fetch(req, env, ctx);
     await waitOnExecutionContext(ctx);

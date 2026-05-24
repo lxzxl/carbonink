@@ -1,4 +1,4 @@
-import { REVOCATION_CHECK_INTERVAL_S } from '@carbonbook-cloud/shared';
+import { REVOCATION_CHECK_INTERVAL_S } from '@carbonink-cloud/shared';
 import { ed25519 } from '@noble/curves/ed25519';
 import { describe, expect, it } from 'vitest';
 import { buildClaims, signLicenseJwt } from '../src/lib/jwt.js';
@@ -61,7 +61,7 @@ describe('signLicenseJwt', () => {
     const jwt = await signLicenseJwt(claims, seedHex);
     const [, b] = splitJwt(jwt);
     const body = JSON.parse(new TextDecoder().decode(b64urlDecode(b)));
-    expect(body.iss).toBe('carbonbook.app');
+    expect(body.iss).toBe('carbonink.xyz');
     expect(body.license_id).toBe('lic_test');
     expect(body.plan).toBe('base@2026-q2');
     expect(body.features).toEqual(['inventory', 'questionnaire', 'iso14064']);

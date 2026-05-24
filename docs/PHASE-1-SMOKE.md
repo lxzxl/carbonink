@@ -78,7 +78,7 @@ The automated layer cannot exercise:
 To complete `phase-1d`:
 
 ```bash
-cd /Users/lxz/ws/personal/carbonbook
+cd /Users/lxz/ws/personal/carbonink
 pnpm dev
 ```
 

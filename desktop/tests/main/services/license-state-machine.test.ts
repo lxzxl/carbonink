@@ -12,7 +12,7 @@ const NOW = Math.floor(Date.parse('2026-06-01T00:00:00Z') / 1000);
 
 function makeClaims(overrides: Partial<LicenseJwtClaims> = {}): LicenseJwtClaims {
   return {
-    iss: 'carbonbook.app',
+    iss: 'carbonink.xyz',
     license_id: 'lic_test',
     user_id: 'usr_test',
     plan: 'base@2026-q2',

@@ -64,7 +64,7 @@ function signJwt(privateKey: KeyObject, claims: object): string {
 
 function makeClaims(now: number, overrides: Record<string, unknown> = {}) {
   return {
-    iss: 'carbonbook.app',
+    iss: 'carbonink.xyz',
     license_id: 'lic_01',
     user_id: 'usr_01',
     plan: 'base@2026-q2',
@@ -148,7 +148,7 @@ describe('LicenseService', () => {
 
   it('setJwt rejects a JWT whose claims fail schema validation', () => {
     // Missing required fields.
-    const jwt = signJwt(privateKey, { iss: 'carbonbook.app', license_id: 'lic_03' });
+    const jwt = signJwt(privateKey, { iss: 'carbonink.xyz', license_id: 'lic_03' });
     expect(() => svc.setJwt(jwt)).toThrow();
     expect(svc.getState().state).toBe('unverified');
     expect(blobs.size()).toBe(0);

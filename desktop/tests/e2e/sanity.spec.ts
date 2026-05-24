@@ -15,7 +15,7 @@ test('app launches and home renders', async () => {
     cannedRecommendations: {},
   });
   try {
-    await expect(setup.window).toHaveTitle(/carbonbook/i);
+    await expect(setup.window).toHaveTitle(/carbonink/i);
   } finally {
     await teardown(setup);
   }

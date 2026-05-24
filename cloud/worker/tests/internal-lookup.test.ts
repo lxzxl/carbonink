@@ -7,7 +7,7 @@ async function lookup(email: string, withHeader = true): Promise<Response> {
   const headers: Record<string, string> = {};
   if (withHeader) headers['X-Activate-Page'] = '1';
   const req = new Request(
-    `https://carbonbook.app/api/v1/internal/license-by-email?email=${encodeURIComponent(email)}`,
+    `https://carbonink.xyz/api/v1/internal/license-by-email?email=${encodeURIComponent(email)}`,
     { headers },
   );
   const ctx = createExecutionContext();

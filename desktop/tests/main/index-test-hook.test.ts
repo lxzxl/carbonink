@@ -2,10 +2,10 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-describe('main entry — CARBONBOOK_TEST_USER_DATA_DIR hook', () => {
+describe('main entry — CARBONINK_TEST_USER_DATA_DIR hook', () => {
   it('src/main/index.ts honors the test env var before reading userData', () => {
     const src = readFileSync(join(__dirname, '../../src/main/index.ts'), 'utf-8');
-    const hookIdx = src.indexOf('CARBONBOOK_TEST_USER_DATA_DIR');
+    const hookIdx = src.indexOf('CARBONINK_TEST_USER_DATA_DIR');
     // Look for the actual usage in the dbPath line, not the comment
     const dbPathIdx = src.indexOf("const dbPath = join(app.getPath('userData')");
     expect(hookIdx, 'hook not found').toBeGreaterThan(-1);

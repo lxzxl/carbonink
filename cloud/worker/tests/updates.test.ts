@@ -4,14 +4,14 @@ import worker from '../src/index.js';
 
 const STABLE_MAC_YML = `version: 0.5.0
 files:
-  - url: https://releases.carbonbook.app/darwin-arm64/0.5.0/carbonbook-0.5.0-arm64.dmg
+  - url: https://releases.carbonink.xyz/darwin-arm64/0.5.0/carbonink-0.5.0-arm64.dmg
     sha512: deadbeef
     size: 84629184
 releaseDate: '2026-06-01T00:00:00Z'
 `;
 
 async function get(path: string): Promise<Response> {
-  const req = new Request(`https://carbonbook.app/api${path}`);
+  const req = new Request(`https://carbonink.xyz/api${path}`);
   const ctx = createExecutionContext();
   const res = await worker.fetch(req, env, ctx);
   await waitOnExecutionContext(ctx);
