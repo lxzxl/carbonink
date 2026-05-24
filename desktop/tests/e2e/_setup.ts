@@ -95,6 +95,18 @@ export type LaunchOpts = {
    * page shows the "Provider Not Configured" banner instead of the upload UI.
    */
   cannedProvider?: ProviderConfig & { apiKeyMasked: string | null };
+  /**
+   * Free-form channel → static-response map. The harness installs each
+   * entry as a fixed-value `ipcMain.handle(channel, () => value)` after
+   * the typed mocks above. Use for screenshot-tour specs where many
+   * channels need stub responses and adding each as a typed option to
+   * `LaunchOpts` would balloon this type.
+   *
+   * The value must be JSON-serializable (it crosses the
+   * playwright→Electron-main structured-clone boundary). Functions and
+   * Promises are NOT supported — return the resolved value directly.
+   */
+  cannedIpc?: Record<string, unknown>;
 };
 
 const MAIN_ENTRY = join(__dirname, '../../out/main/index.cjs');
@@ -244,6 +256,29 @@ export async function launchApp(opts: LaunchOpts): Promise<StageE2ESetup> {
       ipcMain.removeHandler('settings:get-provider');
       ipcMain.handle('settings:get-provider', () => p);
     }, provider);
+  }
+
+  // -------------------------------------------------------------------------
+  // Generic static-IPC mock map (channel → fixed return value)
+  //
+  // Installed last so it overrides any typed handler above with the same key.
+  // The values are serialized to JSON to cross the playwright→Electron-main
+  // boundary; complex objects are rebuilt on the main side via `JSON.parse`
+  // (functions / class instances are not preserved).
+  // -------------------------------------------------------------------------
+  if (opts.cannedIpc) {
+    const serialized = JSON.stringify(opts.cannedIpc);
+    await app.evaluate(({ ipcMain }: typeof import('electron'), payload: string) => {
+      const map = JSON.parse(payload) as Record<string, unknown>;
+      for (const [channel, value] of Object.entries(map)) {
+        try {
+          ipcMain.removeHandler(channel);
+        } catch {
+          // No existing handler — that's fine.
+        }
+        ipcMain.handle(channel, () => value);
+      }
+    }, serialized);
   }
 
   // -------------------------------------------------------------------------
