@@ -45,7 +45,7 @@ export function StepAIProvider() {
           granularity: 'annual',
         },
       });
-      localStorage.setItem('carbonbook.onboarding.ai_provider_kind', kind);
+      localStorage.setItem('carbonink.onboarding.ai_provider_kind', kind);
       clearDraft();
       await queryClient.invalidateQueries({ queryKey: ['org:has-any'] });
       await navigate({ to: '/' });

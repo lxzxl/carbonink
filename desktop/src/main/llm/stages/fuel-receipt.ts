@@ -3,7 +3,7 @@ import type { Stage, VisionMessages } from './types.js';
 
 /**
  * Coarse fuel-category bucket driving downstream emission-factor lookup.
- * The 8 buckets cover every fuel type carbonbook needs to account for at
+ * The 8 buckets cover every fuel type carbonink needs to account for at
  * Phase 1 scope; "other" is the explicit fallback when the model can't
  * confidently classify (rare blends, non-fuel documents uploaded by
  * mistake). The review UI surfaces `fuel_category === 'other'` as a

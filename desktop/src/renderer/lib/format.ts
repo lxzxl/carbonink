@@ -1,7 +1,7 @@
 /**
  * Shared number formatting (Round 4 redesign #12).
  *
- * Carbonbook's data is mostly CO2e measurements with mixed precision.
+ * Carbonink's data is mostly CO2e measurements with mixed precision.
  * Before this helper, every site rolled its own NumberFormat — leading
  * to:
  *   - dashboard: "122,675" (no decimals)

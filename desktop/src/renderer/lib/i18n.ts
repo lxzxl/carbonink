@@ -2,7 +2,7 @@ import * as runtime from '@renderer/paraglide/runtime';
 
 export type Locale = 'en' | 'zh-CN';
 
-const STORAGE_KEY = 'carbonbook.locale';
+const STORAGE_KEY = 'carbonink.locale';
 
 export function initLocale(): Locale {
   const stored = localStorage.getItem(STORAGE_KEY);

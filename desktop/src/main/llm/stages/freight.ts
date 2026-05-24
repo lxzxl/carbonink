@@ -3,7 +3,7 @@ import type { Stage, VisionMessages } from './types.js';
 
 /**
  * Transport mode discriminator. The 4 buckets cover everything
- * carbonbook accounts for in Phase 1 freight scope. Multi-modal
+ * carbonink accounts for in Phase 1 freight scope. Multi-modal
  * shipments (海铁联运) pick the dominant mode and lower their
  * confidence — full multi-mode handling is deferred until real-user
  * usage demands it.

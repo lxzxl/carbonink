@@ -10,7 +10,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
  *
  * Status query polls every 10 s so the UI reflects an external
  * `pnpm build` without the user having to manually refresh. The
- * "write Claude config" action drops carbonbook into the user's
+ * "write Claude config" action drops carbonink into the user's
  * Claude Desktop `mcp_servers` config.
  */
 export function McpSection() {
@@ -71,7 +71,7 @@ export function McpSection() {
               {JSON.stringify(
                 {
                   mcpServers: {
-                    carbonbook: { command: 'node', args: [mcpStatus.binary_path] },
+                    carbonink: { command: 'node', args: [mcpStatus.binary_path] },
                   },
                 },
                 null,

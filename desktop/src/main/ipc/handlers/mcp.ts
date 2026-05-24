@@ -55,7 +55,7 @@ export function mcpHandlers(_ctx: IpcContext): {
       const binaryBuilt = existsSync(binaryPath);
       const claudeConfigPath = resolveClaudeConfigPath();
       const config = readClaudeConfig(claudeConfigPath) as ClaudeConfig | null;
-      const ourServer = config?.mcpServers?.carbonbook;
+      const ourServer = config?.mcpServers?.carbonink;
       const referencesUs = !!ourServer && ourServer.args?.includes(binaryPath);
       return {
         binary_path: binaryBuilt ? binaryPath : null,
@@ -82,7 +82,7 @@ export function mcpHandlers(_ctx: IpcContext): {
           ...existing,
           mcpServers: {
             ...(existing.mcpServers ?? {}),
-            carbonbook: { command: 'node', args: [binaryPath] },
+            carbonink: { command: 'node', args: [binaryPath] },
           },
         };
         writeFileSync(claudeConfigPath, `${JSON.stringify(updated, null, 2)}\n`, 'utf-8');

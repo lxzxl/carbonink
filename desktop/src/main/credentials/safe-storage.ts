@@ -24,7 +24,7 @@ export class CredentialStore {
   constructor(private readonly opts: CredentialStoreOptions) {
     if (opts.platform === 'linux') {
       throw new Error(
-        'Linux is not supported in carbonbook v1 (per spec §1, §2). Use macOS or Windows.',
+        'Linux is not supported in carbonink v1 (per spec §1, §2). Use macOS or Windows.',
       );
     }
   }

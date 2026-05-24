@@ -19,7 +19,7 @@ export function openAppDb(path: string): DbInstance {
     db.close();
     throw new Error(
       'SQLite foreign_keys could not be enabled — refusing to start. ' +
-        'carbonbook requires FK enforcement for data integrity (spec §3).',
+        'carbonink requires FK enforcement for data integrity (spec §3).',
     );
   }
   instance = db;

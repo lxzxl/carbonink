@@ -9,12 +9,12 @@ import { Link } from '@tanstack/react-router';
 import { Leaf } from 'lucide-react';
 
 /**
- * AppTitle — sidebar header for carbonbook.
+ * AppTitle — sidebar header for carbonink.
  *
  * Expanded layout (sidebar wide):
  *
  *   ┌──┐
- *   │🍃│ carbonbook         ← font-semibold, tracking-tight
+ *   │🍃│ carbonink         ← font-semibold, tracking-tight
  *   └──┘ 本地碳核算          ← subtitle, muted-foreground
  *
  * Collapsed layout (icon-only sidebar):
@@ -47,7 +47,7 @@ import { Leaf } from 'lucide-react';
  *   `<span>` (now hidden, but width-0 either way); the new version is
  *   equivalent — but documents the constraint inline.
  *
- * No embedded sidebar-toggle: carbonbook's toggle lives in the Header
+ * No embedded sidebar-toggle: carbonink's toggle lives in the Header
  * chrome row, not inside the sidebar header (would sit behind the
  * macOS traffic-light cluster when collapsed).
  */

@@ -11,7 +11,7 @@ import {
 import type { NavGroup } from './types';
 
 /**
- * Sidebar navigation data — carbonbook IA.
+ * Sidebar navigation data — carbonink IA.
  *
  * Three top-level sections (matching the shadcn-admin pattern):
  *

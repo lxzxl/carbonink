@@ -8,7 +8,7 @@ import LoadingBar, { type LoadingBarRef } from 'react-top-loading-bar';
  * pairs TanStack Router's `useRouterState().status` with the
  * `react-top-loading-bar` package.
  *
- * Why we need this: most carbonbook detail routes do per-route loaders
+ * Why we need this: most carbonink detail routes do per-route loaders
  * (better-sqlite3 reads + IPC round-trip). On a fast Mac they're <50ms and
  * imperceptible, but on the first cold-cache load — or in dev when HMR is
  * thrashing — the user clicks a sidebar item and the previous route is still

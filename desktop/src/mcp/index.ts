@@ -11,7 +11,7 @@ import { openAppDb } from './db.js';
 import * as q from './queries.js';
 
 const server = new Server(
-  { name: 'carbonbook', version: '0.1.0' },
+  { name: 'carbonink', version: '0.1.0' },
   { capabilities: { tools: {}, resources: {} } },
 );
 

@@ -183,7 +183,7 @@ dd a[href],
   --color-popover: oklch(1 0 0);
   --color-popover-foreground: oklch(0.18 0.012 95);
 
-  /* Brand: carbonbook green. OKLch L=0.55 C=0.16 H=160 is a balanced
+  /* Brand: carbonink green. OKLch L=0.55 C=0.16 H=160 is a balanced
    * forest green — readable on light bg, still vibrant on dark bg. */
   --color-primary: oklch(0.55 0.16 160);
   --color-primary-foreground: oklch(0.99 0.005 95);
@@ -212,7 +212,7 @@ dd a[href],
    * neutral (chroma 0). Matches shadcn-admin's `--border: oklch(0.929
    * 0.013 255.508)` density while dropping the cool blue tint they use
    * (we keep neutral so the divider doesn't fight the slight warmth in
-   * the rest of carbonbook's palette).
+   * the rest of carbonink's palette).
    *
    * Header bottom (`border-b border-border/40`), Header vertical
    * Separator (`h-5 bg-border`), and the sidebar `::after` rule all

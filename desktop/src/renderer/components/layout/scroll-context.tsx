@@ -7,7 +7,7 @@ import { createContext, useContext } from 'react';
  *
  * Upstream shadcn-admin's Header listens directly to
  * `document.body.scrollTop` because their entire app uses native
- * window scroll. carbonbook's scroll container is the
+ * window scroll. carbonink's scroll container is the
  * `<div overflow-auto>` inside SidebarInset, not the window — so
  * `document.body.scrollTop` is always 0 and the upstream listener
  * would never fire.

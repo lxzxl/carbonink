@@ -2,10 +2,10 @@ import type { LinkProps } from '@tanstack/react-router';
 
 /**
  * Navigation data types — adapted from shadcn-admin
- * (https://shadcn-admin.netlify.app/) to carbonbook's needs.
+ * (https://shadcn-admin.netlify.app/) to carbonink's needs.
  *
  * Differences from the upstream template:
- *   - No `User` / `Team` types — carbonbook is a single-user, single-org
+ *   - No `User` / `Team` types — carbonink is a single-user, single-org
  *     desktop app; sign-in / team-switcher concepts don't apply.
  *   - The `url` field is typed as `Exclude<LinkProps['to'], undefined> | (string & {})`
  *     which preserves TanStack Router's autocomplete on known routes

@@ -6,7 +6,7 @@
 -- At that point this migration becomes seed-only; DDL relocates.
 
 -- ── reference tables (Phase 1a lives in app.sqlite; Phase 1c+ moves to ef_library.sqlite RO) ──
--- Schema mirrors §3 of docs/specs/2026-05-08-carbonbook-design.md.
+-- Schema mirrors §3 of docs/specs/2026-05-08-carbonink-design.md.
 CREATE TABLE IF NOT EXISTS unit_definition (
   unit              TEXT PRIMARY KEY,
   family            TEXT NOT NULL,

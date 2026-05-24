@@ -212,7 +212,7 @@ export function createActivity(
     throw new Error(
       `EF not pinned: ${input.ef_factor_code} @ ${input.ef_year} ` +
         `(${input.ef_source}/${input.ef_geography}/${input.ef_dataset_version}). ` +
-        `Use it once in carbonbook GUI to auto-pin.`,
+        `Use it once in carbonink GUI to auto-pin.`,
     );
   }
 

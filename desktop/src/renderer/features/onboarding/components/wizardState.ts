@@ -23,7 +23,7 @@ export const wizardDraft = z.object({
 });
 export type WizardDraft = z.infer<typeof wizardDraft>;
 
-const STORAGE_KEY = 'carbonbook.onboarding.draft';
+const STORAGE_KEY = 'carbonink.onboarding.draft';
 
 export function loadDraft(): WizardDraft {
   const raw = localStorage.getItem(STORAGE_KEY);

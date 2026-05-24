@@ -5,7 +5,7 @@ import { invoke } from '../ipc.js';
  *
  * Phase 2 Block 4 — MCP Server status and Claude Desktop config integration.
  * `getStatus` reports whether the MCP binary is built and whether Claude
- * Desktop is already configured to connect to carbonbook.
+ * Desktop is already configured to connect to carbonink.
  * `writeClaudeConfig` performs a merge-write into
  * ~/Library/Application Support/Claude/claude_desktop_config.json.
  */

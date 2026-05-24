@@ -32,7 +32,7 @@ export function Main({ fixed, className, fluid, ...props }: MainProps) {
     <main
       data-layout={fixed ? 'fixed' : 'auto'}
       className={cn(
-        // px-6 (24px) rather than upstream's px-4 — matches carbonbook's
+        // px-6 (24px) rather than upstream's px-4 — matches carbonink's
         // established 24px content-edge convention (Header uses px-6
         // too, so content and chrome stay flush vertically).
         'px-6 py-6',

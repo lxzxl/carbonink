@@ -21,7 +21,7 @@ import { Settings as SettingsIcon } from 'lucide-react';
  * AppSidebar — adopted from the shadcn-admin layout pattern.
  *
  *   <Sidebar collapsible="icon">
- *     <SidebarHeader>     — Leaf + "carbonbook" wordmark (AppTitle)
+ *     <SidebarHeader>     — Leaf + "carbonink" wordmark (AppTitle)
  *     <SidebarContent>    — N x NavGroup, driven by sidebar-data.ts
  *     <SidebarFooter>     — Settings link with inline MCP status dot
  *   </Sidebar>
