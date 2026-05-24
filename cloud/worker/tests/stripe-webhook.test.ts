@@ -102,7 +102,7 @@ describe('POST /v1/stripe-webhook event handlers', () => {
       .run();
     await env.DB.prepare(
       `INSERT INTO license (license_id, user_id, humanized_key, plan, features, devices_max, issued_at, expires_at, grace_until, stripe_subscription_id, revoked)
-       VALUES ('lic_renew', 'usr_renew', 'cbk-renew1-renew2-renew3-renew4', 'base@2026-q2', '["inventory"]', 1, 1700000000, 1731536000, 1734128000, 'sub_renew', 0)`,
+       VALUES ('lic_renew', 'usr_renew', 'cik-renew1-renew2-renew3-renew4', 'base@2026-q2', '["inventory"]', 1, 1700000000, 1731536000, 1734128000, 'sub_renew', 0)`,
     ).run();
     await env.LICENSE_ACTIVE.put(
       'la:lic_renew',
@@ -142,7 +142,7 @@ describe('POST /v1/stripe-webhook event handlers', () => {
       .run();
     await env.DB.prepare(
       `INSERT INTO license (license_id, user_id, humanized_key, plan, features, devices_max, issued_at, expires_at, grace_until, stripe_subscription_id, revoked)
-       VALUES ('lic_cancel', 'usr_cancel', 'cbk-canc1-canc2-canc3-canc4', 'base@2026-q2', '["inventory"]', 1, 1700000000, 1731536000, 1734128000, 'sub_cancel', 0)`,
+       VALUES ('lic_cancel', 'usr_cancel', 'cik-canc1-canc2-canc3-canc4', 'base@2026-q2', '["inventory"]', 1, 1700000000, 1731536000, 1734128000, 'sub_cancel', 0)`,
     ).run();
     await env.LICENSE_ACTIVE.put(
       'la:lic_cancel',
@@ -192,7 +192,7 @@ describe('POST /v1/stripe-webhook event handlers', () => {
       .run();
     await env.DB.prepare(
       `INSERT INTO license (license_id, user_id, humanized_key, plan, features, devices_max, issued_at, expires_at, grace_until, stripe_subscription_id, revoked)
-       VALUES ('lic_ref', 'usr_ref', 'cbk-ref1a-ref2b-ref3c-ref4d', 'base@2026-q2', '["inventory"]', 1, 1700000000, 1731536000, 1734128000, 'sub_ref', 0)`,
+       VALUES ('lic_ref', 'usr_ref', 'cik-ref1a-ref2b-ref3c-ref4d', 'base@2026-q2', '["inventory"]', 1, 1700000000, 1731536000, 1734128000, 'sub_ref', 0)`,
     ).run();
     const eventTime = 1_731_100_000;
     const res = await postEvent({

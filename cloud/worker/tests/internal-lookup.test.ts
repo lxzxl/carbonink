@@ -26,13 +26,13 @@ describe('GET /v1/internal/license-by-email', () => {
     await seedLicense({
       userId: 'usr_byemail',
       licenseId: 'lic_byemail',
-      humanizedKey: 'cbk-2345b-2345b-2345b-2345b',
+      humanizedKey: 'cik-2345b-2345b-2345b-2345b',
     });
     // The seeded customer email is `usr_byemail@example.com` per _fixtures.ts default.
     const res = await lookup('usr_byemail@example.com');
     expect(res.status).toBe(200);
     const body = await res.json<{ license_key: string }>();
-    expect(body.license_key).toBe('cbk-2345b-2345b-2345b-2345b');
+    expect(body.license_key).toBe('cik-2345b-2345b-2345b-2345b');
   });
 
   it('returns 404 for an unknown email', async () => {

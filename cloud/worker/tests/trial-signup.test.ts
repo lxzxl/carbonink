@@ -41,7 +41,7 @@ describe('POST /v1/trial-signup', () => {
     expect(res.status).toBe(200);
     const body = await res.json<{ license_key: string; jwt: string }>();
     expect(body.license_key).toMatch(
-      /^cbk-[0-9a-hjkmnp-tv-z]{5}-[0-9a-hjkmnp-tv-z]{5}-[0-9a-hjkmnp-tv-z]{5}-[0-9a-hjkmnp-tv-z]{5}$/,
+      /^cik-[0-9a-hjkmnp-tv-z]{5}-[0-9a-hjkmnp-tv-z]{5}-[0-9a-hjkmnp-tv-z]{5}-[0-9a-hjkmnp-tv-z]{5}$/,
     );
     expect(body.jwt.split('.').length).toBe(3);
 
@@ -165,7 +165,7 @@ describe('POST /v1/trial-signup', () => {
       .bind(
         'lic_paid',
         'usr_paid',
-        'cbk-paidx-aaaaa-bbbbb-ccccc',
+        'cik-paidx-aaaaa-bbbbb-ccccc',
         now,
         now + 365 * DAY_S,
         now + 395 * DAY_S,

@@ -1,5 +1,5 @@
 /**
- * Humanized license key: `cbk-XXXXX-XXXXX-XXXXX-XXXXX`
+ * Humanized license key: `cik-XXXXX-XXXXX-XXXXX-XXXXX`
  * 20 Crockford Base32 chars = 100 bits of entropy.
  * Alphabet excludes I, L, O, U.
  */
@@ -18,12 +18,12 @@ export function generateHumanizedKey(): string {
     const val = ((hi << 8) | lo) >> (16 - bitShift - 5);
     chars += CROCKFORD[val & 0x1f] ?? '0';
   }
-  return `cbk-${chars.slice(0, 5)}-${chars.slice(5, 10)}-${chars.slice(10, 15)}-${chars.slice(15, 20)}`;
+  return `cik-${chars.slice(0, 5)}-${chars.slice(5, 10)}-${chars.slice(10, 15)}-${chars.slice(15, 20)}`;
 }
 
 export function normalizeHumanizedKey(input: string): string | null {
   const cleaned = input.trim().toUpperCase().replace(/\s+/g, '');
   const noDash = cleaned.replace(/-/g, '');
-  if (!/^CBK[0-9A-HJKMNP-TV-Z]{20}$/.test(noDash)) return null;
-  return `cbk-${noDash.slice(3, 8)}-${noDash.slice(8, 13)}-${noDash.slice(13, 18)}-${noDash.slice(18, 23)}`.toLowerCase();
+  if (!/^CIK[0-9A-HJKMNP-TV-Z]{20}$/.test(noDash)) return null;
+  return `cik-${noDash.slice(3, 8)}-${noDash.slice(8, 13)}-${noDash.slice(13, 18)}-${noDash.slice(18, 23)}`.toLowerCase();
 }

@@ -5,7 +5,7 @@ export const activateRequestSchema = z.object({
   license_key: z
     .string()
     .regex(
-      /^cbk-[0-9A-HJKMNP-TV-Z]{5}-[0-9A-HJKMNP-TV-Z]{5}-[0-9A-HJKMNP-TV-Z]{5}-[0-9A-HJKMNP-TV-Z]{5}$/i,
+      /^cik-[0-9A-HJKMNP-TV-Z]{5}-[0-9A-HJKMNP-TV-Z]{5}-[0-9A-HJKMNP-TV-Z]{5}-[0-9A-HJKMNP-TV-Z]{5}$/i,
     ),
   device_id: z.string().min(1),
   app_version: z.string().min(1),

@@ -2,10 +2,10 @@ import { generateHumanizedKey, normalizeHumanizedKey } from '@carbonink-cloud/sh
 import { describe, expect, it } from 'vitest';
 
 describe('generateHumanizedKey', () => {
-  it('produces cbk-XXXXX-XXXXX-XXXXX-XXXXX format', () => {
+  it('produces cik-XXXXX-XXXXX-XXXXX-XXXXX format', () => {
     const key = generateHumanizedKey();
     expect(key).toMatch(
-      /^cbk-[0-9a-hjkmnp-tv-z]{5}-[0-9a-hjkmnp-tv-z]{5}-[0-9a-hjkmnp-tv-z]{5}-[0-9a-hjkmnp-tv-z]{5}$/i,
+      /^cik-[0-9a-hjkmnp-tv-z]{5}-[0-9a-hjkmnp-tv-z]{5}-[0-9a-hjkmnp-tv-z]{5}-[0-9a-hjkmnp-tv-z]{5}$/i,
     );
   });
 
@@ -17,20 +17,20 @@ describe('generateHumanizedKey', () => {
 
 describe('normalizeHumanizedKey', () => {
   it('normalizes uppercase with dashes', () => {
-    expect(normalizeHumanizedKey('CBK-ABCDE-12345-FGHJK-MNPQR')).toBe(
-      'cbk-abcde-12345-fghjk-mnpqr',
+    expect(normalizeHumanizedKey('CIK-ABCDE-12345-FGHJK-MNPQR')).toBe(
+      'cik-abcde-12345-fghjk-mnpqr',
     );
   });
 
   it('normalizes input without dashes', () => {
-    expect(normalizeHumanizedKey('cbkABCDE12345FGHJKMNPQR')).toBe('cbk-abcde-12345-fghjk-mnpqr');
+    expect(normalizeHumanizedKey('cikABCDE12345FGHJKMNPQR')).toBe('cik-abcde-12345-fghjk-mnpqr');
   });
 
   it('rejects invalid characters (I, L, O, U)', () => {
-    expect(normalizeHumanizedKey('CBK-ILOUD-12345-FGHJK-MNPQR')).toBeNull();
+    expect(normalizeHumanizedKey('CIK-ILOUD-12345-FGHJK-MNPQR')).toBeNull();
   });
 
   it('rejects wrong length', () => {
-    expect(normalizeHumanizedKey('cbk-ABC-DEF')).toBeNull();
+    expect(normalizeHumanizedKey('cik-ABC-DEF')).toBeNull();
   });
 });

@@ -9,7 +9,7 @@ describe('runRevocationSweep', () => {
       .run();
     await env.DB.prepare(
       `INSERT INTO license (license_id, user_id, humanized_key, plan, features, devices_max, issued_at, expires_at, grace_until, revoked, revoked_at, revoked_reason)
-       VALUES ('lic_due', 'usr_due', 'cbk-due11-due22-due33-due44', 'base@2026-q2', '[]', 1, 1, 2, 3, 0, 1000, 'subscription_cancelled')`,
+       VALUES ('lic_due', 'usr_due', 'cik-due11-due22-due33-due44', 'base@2026-q2', '[]', 1, 1, 2, 3, 0, 1000, 'subscription_cancelled')`,
     ).run();
     await env.LICENSE_ACTIVE.put(
       'la:lic_due',
@@ -53,7 +53,7 @@ describe('runRevocationSweep', () => {
       .run();
     await env.DB.prepare(
       `INSERT INTO license (license_id, user_id, humanized_key, plan, features, devices_max, issued_at, expires_at, grace_until, revoked, revoked_at, revoked_reason)
-       VALUES ('lic_future', 'usr_future', 'cbk-fut11-fut22-fut33-fut44', 'base@2026-q2', '[]', 1, 1, 2, 3, 0, 9999999999, 'subscription_cancelled')`,
+       VALUES ('lic_future', 'usr_future', 'cik-fut11-fut22-fut33-fut44', 'base@2026-q2', '[]', 1, 1, 2, 3, 0, 9999999999, 'subscription_cancelled')`,
     ).run();
     const result = await runRevocationSweep(env as never, 2000);
     expect(result.flipped).not.toContain('lic_future');

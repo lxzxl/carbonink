@@ -25,11 +25,11 @@ describe('POST /v1/activate', () => {
     await seedLicense({
       licenseId: 'lic_happy',
       userId: 'usr_happy',
-      humanizedKey: 'cbk-happy-aaaaa-bbbbb-ccccc',
+      humanizedKey: 'cik-happy-aaaaa-bbbbb-ccccc',
     });
 
     const res = await callActivate({
-      license_key: 'cbk-happy-aaaaa-bbbbb-ccccc',
+      license_key: 'cik-happy-aaaaa-bbbbb-ccccc',
       device_id: 'dev_happy_1',
       app_version: '1.0.0',
       os: 'darwin',
@@ -48,7 +48,7 @@ describe('POST /v1/activate', () => {
 
   it('unknown license key returns 404 UnknownKey', async () => {
     const res = await callActivate({
-      license_key: 'cbk-zzzzz-zzzzz-zzzzz-zzzzz',
+      license_key: 'cik-zzzzz-zzzzz-zzzzz-zzzzz',
       device_id: 'dev_unknown',
       app_version: '1.0.0',
       os: 'darwin',
@@ -62,13 +62,13 @@ describe('POST /v1/activate', () => {
     await seedLicense({
       licenseId: 'lic_revoked',
       userId: 'usr_revoked',
-      humanizedKey: 'cbk-rvkkk-aaaaa-bbbbb-ccccc',
+      humanizedKey: 'cik-rvkkk-aaaaa-bbbbb-ccccc',
       revoked: true,
       revokedReason: 'refund_issued',
     });
 
     const res = await callActivate({
-      license_key: 'cbk-rvkkk-aaaaa-bbbbb-ccccc',
+      license_key: 'cik-rvkkk-aaaaa-bbbbb-ccccc',
       device_id: 'dev_revoked_1',
       app_version: '1.0.0',
       os: 'darwin',
@@ -84,13 +84,13 @@ describe('POST /v1/activate', () => {
     await seedLicense({
       licenseId: 'lic_cap',
       userId: 'usr_cap',
-      humanizedKey: 'cbk-capxx-aaaaa-bbbbb-ccccc',
+      humanizedKey: 'cik-capxx-aaaaa-bbbbb-ccccc',
       devicesMax: 1,
       devices: ['dev_existing'],
     });
 
     const res = await callActivate({
-      license_key: 'cbk-capxx-aaaaa-bbbbb-ccccc',
+      license_key: 'cik-capxx-aaaaa-bbbbb-ccccc',
       device_id: 'dev_new',
       app_version: '1.0.0',
       os: 'darwin',
@@ -105,13 +105,13 @@ describe('POST /v1/activate', () => {
     await seedLicense({
       licenseId: 'lic_idem',
       userId: 'usr_idem',
-      humanizedKey: 'cbk-demmm-aaaaa-bbbbb-ccccc',
+      humanizedKey: 'cik-demmm-aaaaa-bbbbb-ccccc',
       devicesMax: 1,
       devices: ['dev_idem'],
     });
 
     const res = await callActivate({
-      license_key: 'cbk-demmm-aaaaa-bbbbb-ccccc',
+      license_key: 'cik-demmm-aaaaa-bbbbb-ccccc',
       device_id: 'dev_idem',
       app_version: '1.0.1',
       os: 'darwin',
@@ -128,13 +128,13 @@ describe('POST /v1/activate', () => {
     await seedLicense({
       licenseId: 'lic_rl',
       userId: 'usr_rl',
-      humanizedKey: 'cbk-rrrrr-aaaaa-bbbbb-ccccc',
+      humanizedKey: 'cik-rrrrr-aaaaa-bbbbb-ccccc',
       devicesMax: 99,
     });
 
     for (let i = 0; i < 10; i++) {
       const r = await callActivate({
-        license_key: 'cbk-rrrrr-aaaaa-bbbbb-ccccc',
+        license_key: 'cik-rrrrr-aaaaa-bbbbb-ccccc',
         device_id: `dev_rl_${i}`,
         app_version: '1.0.0',
         os: 'darwin',
@@ -143,7 +143,7 @@ describe('POST /v1/activate', () => {
     }
 
     const blocked = await callActivate({
-      license_key: 'cbk-rrrrr-aaaaa-bbbbb-ccccc',
+      license_key: 'cik-rrrrr-aaaaa-bbbbb-ccccc',
       device_id: 'dev_rl_11',
       app_version: '1.0.0',
       os: 'darwin',

@@ -12,7 +12,7 @@ CREATE TABLE customer (
 CREATE TABLE license (
   license_id              TEXT PRIMARY KEY,       -- 'lic_01H...' (ULID)
   user_id                 TEXT NOT NULL REFERENCES customer(user_id),
-  humanized_key           TEXT NOT NULL UNIQUE,   -- 'cbk-XXXXX-XXXXX-XXXXX-XXXXX'
+  humanized_key           TEXT NOT NULL UNIQUE,   -- 'cik-XXXXX-XXXXX-XXXXX-XXXXX'
   plan                    TEXT NOT NULL,
   features                TEXT NOT NULL,           -- JSON array
   devices_max             INTEGER NOT NULL,

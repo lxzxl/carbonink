@@ -44,7 +44,7 @@ describe('GET /v1/account/devices', () => {
       `INSERT INTO license (license_id, user_id, humanized_key, plan, features, devices_max, issued_at, expires_at, grace_until)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-      .bind('lic_acct', 'usr_acct', 'cbk-aaaaa-bbbbb-acct1-ddddd', 'base@2026-q2', '[]', 2, 1, 2, 3)
+      .bind('lic_acct', 'usr_acct', 'cik-aaaaa-bbbbb-acct1-ddddd', 'base@2026-q2', '[]', 2, 1, 2, 3)
       .run();
     await env.DB.prepare(
       `INSERT INTO device (device_id, license_id, first_seen_at, last_ping_at, app_version, os)

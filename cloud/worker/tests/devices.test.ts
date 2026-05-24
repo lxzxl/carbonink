@@ -38,7 +38,7 @@ describe('POST /v1/devices/:id/deactivate', () => {
       `INSERT INTO license (license_id, user_id, humanized_key, plan, features, devices_max, issued_at, expires_at, grace_until)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-      .bind('lic_dev', 'usr_dev', 'cbk-aaaaa-bbbbb-dev01-eeeee', 'base@2026-q2', '[]', 2, 1, 2, 3)
+      .bind('lic_dev', 'usr_dev', 'cik-aaaaa-bbbbb-dev01-eeeee', 'base@2026-q2', '[]', 2, 1, 2, 3)
       .run();
     await env.DB.prepare(
       'INSERT INTO device (device_id, license_id, first_seen_at, last_ping_at) VALUES (?, ?, ?, ?)',

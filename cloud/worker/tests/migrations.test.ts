@@ -18,7 +18,7 @@ describe('D1 migrations', () => {
       `INSERT INTO customer (user_id, email, created_at) VALUES ('usr_fk', 'fk@example.com', 1700000000)`,
     );
     await env.DB.exec(
-      `INSERT INTO license (license_id, user_id, humanized_key, plan, features, devices_max, issued_at, expires_at, grace_until) VALUES ('lic_test', 'usr_fk', 'cbk-aaaaa-bbbbb-ccccc-ddddd', 'base@2026-q2', '["inventory"]', 1, 1700000000, 1710000000, 1720000000)`,
+      `INSERT INTO license (license_id, user_id, humanized_key, plan, features, devices_max, issued_at, expires_at, grace_until) VALUES ('lic_test', 'usr_fk', 'cik-aaaaa-bbbbb-ccccc-ddddd', 'base@2026-q2', '["inventory"]', 1, 1700000000, 1710000000, 1720000000)`,
     );
     const row = await env.DB.prepare('SELECT * FROM license WHERE license_id = ?')
       .bind('lic_test')
@@ -32,7 +32,7 @@ describe('D1 migrations', () => {
       `INSERT INTO customer (user_id, email, created_at) VALUES ('usr_dev', 'dev@example.com', 1700000000)`,
     );
     await env.DB.exec(
-      `INSERT INTO license (license_id, user_id, humanized_key, plan, features, devices_max, issued_at, expires_at, grace_until) VALUES ('lic_dev', 'usr_dev', 'cbk-ddddd-eeeee-fffff-ggggg', 'base@2026-q2', '[]', 1, 1700000000, 1710000000, 1720000000)`,
+      `INSERT INTO license (license_id, user_id, humanized_key, plan, features, devices_max, issued_at, expires_at, grace_until) VALUES ('lic_dev', 'usr_dev', 'cik-ddddd-eeeee-fffff-ggggg', 'base@2026-q2', '[]', 1, 1700000000, 1710000000, 1720000000)`,
     );
     await env.DB.exec(
       `INSERT INTO device (device_id, license_id, first_seen_at, last_ping_at) VALUES ('dev_abc', 'lic_dev', 1700000000, 1700000000)`,

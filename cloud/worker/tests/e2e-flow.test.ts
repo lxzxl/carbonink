@@ -39,7 +39,7 @@ describe('e2e: trial → activate → verify', () => {
     });
     expect(trialRes.status).toBe(200);
     const trial = await trialRes.json<{ license_key: string; jwt: string }>();
-    expect(trial.license_key).toMatch(/^cbk-/);
+    expect(trial.license_key).toMatch(/^cik-/);
 
     // 2. Activate with the key
     const activateRes = await call('/v1/activate', {

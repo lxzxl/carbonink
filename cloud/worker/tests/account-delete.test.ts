@@ -51,7 +51,7 @@ describe('DELETE /v1/account', () => {
       `INSERT INTO license (license_id, user_id, humanized_key, plan, features, devices_max, issued_at, expires_at, grace_until)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-      .bind('lic_del2', 'usr_del2', 'cbk-del11-del22-del33-del44', 'base@2026-q2', '[]', 1, 1, 2, 3)
+      .bind('lic_del2', 'usr_del2', 'cik-del11-del22-del33-del44', 'base@2026-q2', '[]', 1, 1, 2, 3)
       .run();
     await env.DB.prepare(
       'INSERT INTO device (device_id, license_id, first_seen_at, last_ping_at) VALUES (?, ?, ?, ?)',
@@ -59,7 +59,7 @@ describe('DELETE /v1/account', () => {
       .bind('dev_del2_a', 'lic_del2', 1, 1)
       .run();
     await env.LICENSE_ACTIVE.put('la:lic_del2', '{"license_id":"lic_del2"}');
-    await env.HUMANIZED_KEYS.put('hk:cbk-del11-del22-del33-del44', 'lic_del2');
+    await env.HUMANIZED_KEYS.put('hk:cik-del11-del22-del33-del44', 'lic_del2');
 
     const res = await authedDelete({ confirm: 'DELETE' }, 'usr_del2');
     expect(res.status).toBe(200);
@@ -78,7 +78,7 @@ describe('DELETE /v1/account', () => {
       .first();
     expect(device).toBeNull();
     expect(await env.LICENSE_ACTIVE.get('la:lic_del2')).toBeNull();
-    expect(await env.HUMANIZED_KEYS.get('hk:cbk-del11-del22-del33-del44')).toBeNull();
+    expect(await env.HUMANIZED_KEYS.get('hk:cik-del11-del22-del33-del44')).toBeNull();
   });
 
   it('cancels live Stripe subscriptions best-effort, succeeds even if Stripe fails', async () => {
@@ -92,7 +92,7 @@ describe('DELETE /v1/account', () => {
       .bind(
         'lic_del_sub',
         'usr_del_sub',
-        'cbk-subs1-subs2-subs3-subs4',
+        'cik-subs1-subs2-subs3-subs4',
         'base@2026-q2',
         '[]',
         1,

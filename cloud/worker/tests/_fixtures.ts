@@ -35,7 +35,7 @@ export async function seedLicense(
     revoked_reason: opts.revokedReason ?? null,
     stripe_subscription_id: null,
   };
-  const humanized = opts.humanizedKey ?? 'cbk-aaaaa-bbbbb-ccccc-ddddd';
+  const humanized = opts.humanizedKey ?? 'cik-aaaaa-bbbbb-ccccc-ddddd';
 
   await env.DB.prepare(
     'INSERT OR REPLACE INTO customer (user_id, email, created_at) VALUES (?, ?, ?)',

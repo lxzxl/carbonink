@@ -25,7 +25,7 @@ describe('POST /v1/verify', () => {
     await seedLicense({
       licenseId: 'lic_vhappy',
       userId: 'usr_vhappy',
-      humanizedKey: 'cbk-vhppy-aaaaa-bbbbb-ccccc',
+      humanizedKey: 'cik-vhppy-aaaaa-bbbbb-ccccc',
       devices: ['dev_vhappy'],
     });
     // Pre-seed the device row (verify only UPDATEs).
@@ -60,7 +60,7 @@ describe('POST /v1/verify', () => {
     await seedLicense({
       licenseId: 'lic_vrev',
       userId: 'usr_vrev',
-      humanizedKey: 'cbk-vrevv-aaaaa-bbbbb-ccccc',
+      humanizedKey: 'cik-vrevv-aaaaa-bbbbb-ccccc',
       devices: ['dev_vrev'],
       revoked: true,
       revokedReason: 'chargeback',
@@ -96,7 +96,7 @@ describe('POST /v1/verify', () => {
     await seedLicense({
       licenseId: 'lic_vrl',
       userId: 'usr_vrl',
-      humanizedKey: 'cbk-vrlll-aaaaa-bbbbb-ccccc',
+      humanizedKey: 'cik-vrlll-aaaaa-bbbbb-ccccc',
       devices: ['dev_vrl'],
     });
     await env.DB.prepare(
