@@ -2,6 +2,7 @@ import { LicenseSection } from '@renderer/components/LicenseSection';
 import { AboutSection } from '@renderer/components/settings/AboutSection';
 import { AIProviderSection } from '@renderer/components/settings/AIProviderSection';
 import { AmapKeySection } from '@renderer/components/settings/AmapKeySection';
+import { DataSection } from '@renderer/components/settings/DataSection';
 import { GeneralSection } from '@renderer/components/settings/GeneralSection';
 import { McpSection } from '@renderer/components/settings/McpSection';
 import { OrganizationProfileSection } from '@renderer/components/settings/OrganizationProfileSection';
@@ -11,6 +12,7 @@ import * as m from '@renderer/paraglide/messages';
 import {
   Building2,
   Cable,
+  Database,
   Info,
   type LucideIcon,
   MapPin,
@@ -56,6 +58,7 @@ type SectionKey =
   | 'mcp'
   | 'org'
   | 'license'
+  | 'data'
   | 'updates'
   | 'about';
 
@@ -109,6 +112,13 @@ const SECTIONS: SectionDef[] = [
     label: () => m.settings_section_license(),
     description: () => m.settings_section_license_description(),
     render: () => <LicenseSection />,
+  },
+  {
+    key: 'data',
+    icon: Database,
+    label: () => m.settings_section_data(),
+    description: () => m.settings_section_data_description(),
+    render: () => <DataSection />,
   },
   {
     key: 'updates',

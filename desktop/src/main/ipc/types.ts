@@ -390,6 +390,37 @@ export type IpcTypeMap = {
     started_at: string;
   };
   'app:open-data-dir': () => Promise<{ ok: true } | { ok: false; error: string }>;
+
+  // data domain (Phase 5.2 — backup / restore / reset / cache cleanup)
+  //
+  // Export + Import open native dialogs in the main process — paths
+  // aren't passed from the renderer to preserve the security boundary
+  // (renderer can't trick the main process into copying arbitrary
+  // files). Result is a 3-arm discriminated union: { canceled } when
+  // the user dismissed the dialog, { ok:true, path, bytes_written }
+  // on success, { ok:false, error } on validation/IO failure.
+  //
+  // `data:reset` synchronously closes the db + deletes the file +
+  // schedules an app.relaunch. Returns immediately; the renderer
+  // should show a "restarting..." state and let the relaunch happen.
+  //
+  // `cache:*` channels are size-aware: `get-stats` is cheap; the
+  // clear operations run VACUUM and may take a moment on large dbs.
+  'data:export-backup': () => Promise<
+    | { canceled: true }
+    | { ok: true; path: string; bytes_written: number }
+    | { ok: false; error: string }
+  >;
+  'data:import-backup': () => Promise<
+    { canceled: true } | { ok: true } | { ok: false; error: string }
+  >;
+  'data:reset': () => { ok: true };
+  'cache:get-stats': () => {
+    extraction_raw_bytes: number;
+    extraction_raw_count: number;
+    db_file_bytes: number;
+  };
+  'cache:clear-extraction-raw': () => { rows_cleared: number; bytes_freed: number };
 };
 
 /**

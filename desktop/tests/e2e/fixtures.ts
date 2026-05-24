@@ -478,5 +478,10 @@ export function baselineIpcMocks(): Record<string, unknown> {
       user_data_dir: '/Users/demo/Library/Application Support/CarbonInk',
       started_at: '2026-05-24T12:00:00.000Z',
     },
+    'cache:get-stats': {
+      extraction_raw_bytes: 184_320,
+      extraction_raw_count: 12,
+      db_file_bytes: 524_288,
+    },
   };
 }

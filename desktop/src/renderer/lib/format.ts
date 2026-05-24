@@ -37,6 +37,26 @@ export function formatInteger(n: number | null | undefined): string {
 }
 
 /**
+ * Format a byte count for human display: `1024` → `"1.0 KB"`, `1.5e6` →
+ * `"1.4 MB"`. Used by the Settings → Data section for backup sizes,
+ * database size, and cache size readouts.
+ *
+ * Decimal (1024-based) prefixes match what most desktop OS file managers
+ * show — Finder labels 1024 bytes as "1 KB" too, so consistency with the
+ * user's mental model wins over strict SI (which would say "1 KiB").
+ */
+export function formatBytes(n: number | null | undefined): string {
+  const bytes = n ?? 0;
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1);
+  const value = bytes / k ** i;
+  const decimals = i === 0 ? 0 : 1;
+  return `${value.toFixed(decimals)} ${sizes[i]}`;
+}
+
+/**
  * Signed percentage with one decimal. `+5.2` / `-117.7`. Sign included
  * (Intl's `signDisplay: 'exceptZero'` isn't widely cross-locale yet, so
  * we do it manually).

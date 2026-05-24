@@ -7,6 +7,7 @@ import { activityDataHandlers } from './handlers/activity-data.js';
 import { answerHandlers } from './handlers/answer.js';
 import { appHandlers } from './handlers/app.js';
 import { auditHandlers } from './handlers/audit.js';
+import { dataHandlers } from './handlers/data.js';
 import { documentHandlers } from './handlers/document.js';
 import { efLibraryHandlers } from './handlers/ef-library.js';
 import { efMatcherHandlers } from './handlers/ef-matcher.js';
@@ -48,6 +49,7 @@ const HANDLER_FACTORIES: ReadonlyArray<HandlerFactory> = [
   licenseHandlers,
   updaterHandlers,
   appHandlers,
+  dataHandlers,
 ];
 
 export function setupIpc(): void {
