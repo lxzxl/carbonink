@@ -40,7 +40,7 @@ async function postEvent(eventObj: unknown): Promise<Response> {
     {
       ...env,
       STRIPE_WEBHOOK_SECRET: SECRET,
-      RESEND_API_KEY: 'test',
+      EMAIL: { send: async () => undefined },
       LICENSE_PRIVATE_KEY_HEX: TEST_PRIVATE_KEY_HEX,
     },
     ctx,

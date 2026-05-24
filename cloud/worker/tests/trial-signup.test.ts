@@ -18,7 +18,7 @@ async function callTrialSignup(body: unknown, ip?: string) {
   // biome-ignore lint/suspicious/noExplicitAny: test override of env secret
   (env as any).LICENSE_PRIVATE_KEY_HEX = TEST_PRIVATE_KEY_HEX;
   // biome-ignore lint/suspicious/noExplicitAny: test override of env secret
-  (env as any).RESEND_API_KEY = 'test_re_key';
+  (env as any).EMAIL = { send: async () => undefined };
   const ctx = createExecutionContext();
   const res = await worker.fetch(makeReq(body, ip), env, ctx);
   await waitOnExecutionContext(ctx);

@@ -14,7 +14,7 @@ async function call(path: string, body: unknown): Promise<Response> {
   // biome-ignore lint/suspicious/noExplicitAny: test override of env secrets
   (env as any).SESSION_PRIVATE_KEY_HEX = SESSION_KEY;
   // biome-ignore lint/suspicious/noExplicitAny: test override of env secrets
-  (env as any).RESEND_API_KEY = 'test_re_key';
+  (env as any).EMAIL = { send: async () => undefined };
   const res = await worker.fetch(req, env, ctx);
   await waitOnExecutionContext(ctx);
   return res;

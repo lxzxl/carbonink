@@ -21,6 +21,7 @@ Use the **Custom Token** template with these scopes:
 | Account | Account Settings: **Read** | Resolve account ID |
 | Zone | Workers Routes: **Edit** | Attach the 4 route patterns to `carbonink.xyz` |
 | Zone | Zone: **Read** | Look up the zone |
+| Zone | Email: **Edit** | Enable Email Sending on `carbonink.xyz` |
 
 **Account Resources** — Include — *your account*.
 **Zone Resources** — Include — *carbonink.xyz*.
@@ -37,9 +38,14 @@ cp cloud/.env.example cloud/.env.local
 $EDITOR cloud/.env.local
 ```
 
-Required: `CLOUDFLARE_API_TOKEN` plus the 5 worker secrets
+Required: `CLOUDFLARE_API_TOKEN` plus the 4 worker secrets
 (`LICENSE_PRIVATE_KEY_HEX`, `SESSION_PRIVATE_KEY_HEX`, `STRIPE_SECRET_KEY`,
-`STRIPE_WEBHOOK_SECRET`, `RESEND_API_KEY`).
+`STRIPE_WEBHOOK_SECRET`).
+
+Email delivery (activation + magic-link) uses Cloudflare's native
+Email Sending binding — no third-party API key. Enable it once via
+`pnpm exec wrangler email sending enable carbonink.xyz` (token needs
+the "Email" zone permission).
 
 The file is gitignored.
 

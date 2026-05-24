@@ -6,7 +6,7 @@ import { TEST_PRIVATE_KEY_HEX } from './_fixtures.js';
 const TEST_ENV = {
   LICENSE_PRIVATE_KEY_HEX: TEST_PRIVATE_KEY_HEX,
   SESSION_PRIVATE_KEY_HEX: TEST_PRIVATE_KEY_HEX,
-  RESEND_API_KEY: 'test_re_key',
+  EMAIL: { send: async () => undefined },
 };
 
 async function call(

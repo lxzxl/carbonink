@@ -31,7 +31,6 @@ const KEYS = [
   'SESSION_PRIVATE_KEY_HEX',
   'STRIPE_SECRET_KEY',
   'STRIPE_WEBHOOK_SECRET',
-  'RESEND_API_KEY',
 ];
 const out = {};
 const skipped = [];

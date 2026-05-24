@@ -140,7 +140,7 @@ export async function handleTrialSignup(
 
   ctx.waitUntil(
     sendActivationEmail({
-      apiKey: env.RESEND_API_KEY,
+      email: env.EMAIL,
       to: parsed.data.email,
       licenseKey: humanized,
       lang: pickLang(request),

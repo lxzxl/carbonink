@@ -24,7 +24,7 @@ export interface Env {
   STRIPE_SECRET_KEY: string;
   STRIPE_WEBHOOK_SECRET: string;
   STRIPE_PRICE_BASE_2026Q2: string;
-  RESEND_API_KEY: string;
+  EMAIL: SendEmail;
   STRIPE_PUBLISHABLE_KEY: string;
   ENVIRONMENT: string;
 }

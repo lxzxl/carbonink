@@ -35,7 +35,7 @@ export async function handleMagicLink(
 
   const url = `https://carbonink.xyz/account/login/callback?t=${token}`;
   ctx.waitUntil(
-    sendMagicLinkEmail({ apiKey: env.RESEND_API_KEY, to: parsed.data.email, url, lang: 'en' }),
+    sendMagicLinkEmail({ email: env.EMAIL, to: parsed.data.email, url, lang: 'en' }),
   );
   return json({ sent: true });
 }

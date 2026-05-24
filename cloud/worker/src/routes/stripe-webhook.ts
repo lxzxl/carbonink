@@ -114,7 +114,7 @@ export async function handleStripeWebhook(
 
       ctx.waitUntil(
         sendActivationEmail({
-          apiKey: env.RESEND_API_KEY,
+          email: env.EMAIL,
           to: email,
           licenseKey: humanized,
           lang: 'en',

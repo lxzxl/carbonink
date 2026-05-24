@@ -43,12 +43,17 @@ id = "0ad669c5d04549cc90ab98eeb6329b84"
 binding = "RELEASES"
 bucket_name = "carbonink-releases"
 
+# ---------- Email Sending (Cloudflare native — no API key) ----------
+# Requires the zone to be onboarded first:
+#   pnpm exec wrangler email sending enable carbonink.xyz
+[[send_email]]
+name = "EMAIL"
+
 # ---------- Secrets (never in this file — set via wrangler secret put) ----------
 # LICENSE_PRIVATE_KEY_HEX   — Ed25519 64-byte hex (seed+pubkey) for @noble/ed25519
 # SESSION_PRIVATE_KEY_HEX   — Separate Ed25519 key for account portal session JWTs
 # STRIPE_SECRET_KEY          — Stripe secret key
 # STRIPE_WEBHOOK_SECRET      — Stripe webhook signing secret
-# RESEND_API_KEY             — Resend API key
 
 [vars]
 ENVIRONMENT = "development"
