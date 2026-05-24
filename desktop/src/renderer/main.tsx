@@ -24,6 +24,16 @@ const queryClient = new QueryClient({
 const root = document.getElementById('root');
 if (!root) throw new Error('#root not found');
 
+// Expose the router on `window` so E2E specs can drive in-app navigation
+// without depending on the sidebar (which has icon-mode/collapsed-mode
+// variants we don't want to thread through tests). Also useful for ad-hoc
+// debugging from the Electron devtools console.
+//
+// No security concern: contextIsolation + preload-bridge model already
+// gates *real* privileged APIs; this is a renderer-only object that the
+// renderer already has full access to.
+(window as unknown as { __router: typeof router }).__router = router;
+
 // Provider order: QueryClient → Router.
 //
 // CommandPalette MUST live inside RouterProvider — it calls useNavigate()
