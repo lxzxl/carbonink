@@ -23,4 +23,3 @@ routes = [
 
 [assets]
 directory = "./dist"
-binding = "ASSETS"
