@@ -7,17 +7,26 @@ import { navigateTo, snap, waitForReactMount, waitForRouteSettled } from './help
  * Onboarding wizard snapshot.
  *
  * The dashboard root (/) redirects to /onboarding/$step when `org:has-any`
- * returns false. Captures each of the wizard's pages so future redesigns
+ * returns false. Captures each of the wizard's 5 pages so future redesigns
  * can compare against a baseline.
  *
- * No org is provided (cannedOrg omitted) — that forces hasAny to return
- * the default (false from the empty SQLite), which triggers the
- * `<Navigate to="/onboarding/$step">` in `index.tsx`.
+ * Also exercises the chrome-strip in `__root.tsx` — during onboarding the
+ * sidebar nav, header back/forward, and license chip are intentionally
+ * suppressed (the user shouldn't be navigating elsewhere mid-wizard). The
+ * snapshots verify visually that no chrome appears.
  *
- * Step labels match `src/renderer/routes/onboarding.$step.tsx`'s steps
- * — 1 (organization), 2 (site), 3 (reporting period).
+ * No org is provided — that forces hasAny to return the default (false
+ * from the empty SQLite), which triggers `<Navigate to="/onboarding/$step">`
+ * in `index.tsx`.
+ *
+ * Steps (matches `src/renderer/routes/onboarding.$step.tsx`):
+ *   1. Company info
+ *   2. Reporting year
+ *   3. Boundary (operational / financial / equity control)
+ *   4. First site
+ *   5. AI provider
  */
-test('onboarding: 3-step wizard', async () => {
+test('onboarding: 5-step wizard with chrome-strip', async () => {
   const setup = await launchApp({
     cannedExtractions: {},
     cannedRecommendations: {},
@@ -37,7 +46,7 @@ test('onboarding: 3-step wizard', async () => {
     const { window } = setup;
     await waitForReactMount(window);
 
-    for (const step of [1, 2, 3] as const) {
+    for (const step of [1, 2, 3, 4, 5] as const) {
       await navigateTo(window, `/onboarding/${step}`);
       await waitForRouteSettled(window);
       await snap(window, `onboarding-step-${step}`, { fullPage: true });

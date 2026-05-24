@@ -538,6 +538,7 @@
   "license_banner_renew_cta": "打开授权设置",
   "license_banner_trial_title": "试用中 — 剩余 {days} 天",
   "license_banner_upgrade_cta": "立即升级",
+  "license_chip_trial_short": "试用 · {days} 天",
   "license_section_upgrade_button": "升级到付费版",
   "license_activation_error_network": "无法连接激活服务器，请检查网络。",
   "license_activation_error_key_not_found": "激活码无效或不存在。",

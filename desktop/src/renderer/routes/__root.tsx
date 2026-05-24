@@ -54,6 +54,32 @@ function RootComponent() {
     return <Outlet />;
   }
 
+  // Onboarding chrome strip: until the user has completed the wizard,
+  // the sidebar nav + header back/forward + license chip are all
+  // distractions. The wizard is linear, modal in spirit. We render
+  // ONLY the page content + a minimal macOS drag region (preserves the
+  // hidden-titlebar window-drag affordance) until they exit
+  // `/onboarding/*`.
+  //
+  // The post-onboarding redirect is already handled — `index.tsx`
+  // returns `<Navigate to="/onboarding/$step">` when `org:has-any` is
+  // false; the wizard's last step writes the org and routes to `/`.
+  // Once `pathname` flips out of `/onboarding`, the full chrome
+  // returns automatically.
+  if (pathname.startsWith('/onboarding')) {
+    return (
+      <div className="flex h-svh flex-col bg-background">
+        {/* macOS hidden-titlebar window drag region. h-10 leaves enough
+         * room for the traffic-light cluster without giving the bar
+         * visual weight — it's invisible chrome, not content chrome. */}
+        <div className="titlebar-region h-10 shrink-0" aria-hidden />
+        <div className="flex-1 overflow-auto">
+          <Outlet />
+        </div>
+      </div>
+    );
+  }
+
   const handleScroll = (event: UIEvent<HTMLDivElement>) => {
     const past = event.currentTarget.scrollTop > SCROLL_SHADOW_THRESHOLD_PX;
     // Only commit a state update when we actually cross the threshold.

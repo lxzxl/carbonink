@@ -538,6 +538,7 @@
   "license_banner_renew_cta": "Open License settings",
   "license_banner_trial_title": "Trial — {days} day(s) remaining",
   "license_banner_upgrade_cta": "Upgrade",
+  "license_chip_trial_short": "Trial · {days}d",
   "license_section_upgrade_button": "Upgrade to a paid plan",
   "license_activation_error_network": "Couldn't reach the activation server.",
   "license_activation_error_key_not_found": "License key not recognized.",

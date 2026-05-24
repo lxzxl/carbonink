@@ -1,3 +1,4 @@
+import { LicenseChip } from '@renderer/components/LicenseChip';
 import { useIsScrolled } from '@renderer/components/layout/scroll-context';
 import { Separator } from '@renderer/components/ui/separator';
 import { SidebarTrigger } from '@renderer/components/ui/sidebar';
@@ -64,6 +65,14 @@ export function Header({ className, children, ...props }: HeaderProps) {
         <SidebarTrigger variant="outline" className="size-7 [&_svg]:size-3.5" />
         <Separator orientation="vertical" className="h-5" />
         {children}
+      </div>
+      {/* Right-aligned slot. Currently only the trial-runway chip
+       * (renders nothing for paid / non-trial / urgent states — the
+       * banner takes over for urgent). `ml-auto` pushes the slot to
+       * the trailing edge regardless of how much children render on
+       * the left. */}
+      <div className="ml-auto flex items-center gap-2 [-webkit-app-region:no-drag]">
+        <LicenseChip />
       </div>
     </header>
   );

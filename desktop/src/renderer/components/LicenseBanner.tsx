@@ -4,27 +4,26 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 
 /**
- * Top-of-app banner. Branches by license state:
+ * Top-of-app banner — URGENT states only. The "comfortable runway" trial
+ * state (days remaining > 3) renders as a compact `<LicenseChip />` in the
+ * Header's right slot instead — see `LicenseChip.tsx` for the rationale.
  *
- *   - active + plan starts with "trial":  muted info chip with countdown
- *                                         + "Upgrade" CTA. Always shown
- *                                         (the user wants the trial
- *                                         remaining-days visible at all
- *                                         times); palette tightens as the
- *                                         deadline approaches (default →
- *                                         amber at ≤7d → destructive at ≤3d).
- *   - grace:                              amber "in grace period" banner
- *   - expired / revoked:                  destructive read-only banner
- *   - active (paid) / unverified:         render nothing
+ * Branches:
+ *
+ *   - active + trial plan + days ≤ 3:     destructive banner with countdown
+ *                                         + "Upgrade" CTA (high-urgency).
+ *   - grace:                              amber "in grace period" banner.
+ *   - expired / revoked:                  destructive read-only banner.
+ *   - everything else (active paid, trial > 3 days, unverified): render
+ *                                         nothing here — chip OR no chrome.
  *
  * "Upgrade" opens the public pricing page in the user's default browser
  * via the main process's setWindowOpenHandler → shell.openExternal route
- * configured in `desktop/src/main/window.ts` (so window.open works as a
- * native escape hatch without a dedicated IPC channel).
+ * (`src/main/window.ts`). No dedicated IPC channel — `window.open` is
+ * intercepted at the BrowserWindow level.
  *
  * Refetch: 60 s. Trial countdown rolls over on the minute, not the second,
- * which is fine for a 14-day trial — the granularity below "days" doesn't
- * help anyone make a buying decision.
+ * which is fine — sub-minute granularity adds no value to a 14-day trial.
  */
 export function LicenseBanner() {
   const stateQuery = useQuery({
@@ -36,9 +35,10 @@ export function LicenseBanner() {
   const view = stateQuery.data;
   if (!view) return null;
 
-  // ---- Trial countdown branch ----
+  // ---- Trial countdown branch — ONLY when ≤ 3 days remaining ----
   // `active` + plan beginning with `trial` (e.g., `trial@14d`).
-  // Computed days = floor((expires_at - now) / 86400), clamped at 0.
+  // > 3 days falls through to the LicenseChip in the Header (see top
+  // comment block). Days = floor((expires_at - now) / 86400), clamped 0.
   const isTrial =
     view.state === 'active' && view.claims != null && view.claims.plan.startsWith('trial');
 
@@ -47,18 +47,11 @@ export function LicenseBanner() {
       0,
       Math.floor((view.claims.expires_at - Math.floor(Date.now() / 1000)) / 86400),
     );
-    const palette =
-      daysRemaining <= 3 ? 'destructive' : daysRemaining <= 7 ? 'amber' : 'muted';
-    const paletteClasses =
-      palette === 'destructive'
-        ? 'border-destructive/50 bg-destructive/15 text-destructive'
-        : palette === 'amber'
-          ? 'border-amber-500/50 bg-amber-500/15 text-amber-900 dark:text-amber-100'
-          : 'border-border bg-muted/40 text-foreground';
+    if (daysRemaining > 3) return null;
     return (
       <div
         role="status"
-        className={`border-b px-4 py-1.5 text-xs ${paletteClasses} flex items-center justify-between gap-3`}
+        className="border-b px-4 py-1.5 text-xs border-destructive/50 bg-destructive/15 text-destructive flex items-center justify-between gap-3"
       >
         <div className="font-medium">
           {m.license_banner_trial_title({ days: String(daysRemaining) })}
