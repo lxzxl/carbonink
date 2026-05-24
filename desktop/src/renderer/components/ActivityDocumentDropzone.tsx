@@ -6,8 +6,8 @@ import { cn } from '@renderer/lib/utils';
 import * as m from '@renderer/paraglide/messages';
 import type { Document, Extraction } from '@shared/types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { FileText, RotateCw, Sparkles, UploadCloud } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { FileText, RotateCw, Sparkles, UploadCloud, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 /**
  * Compact drag-drop affordance embedded inside the "add activity"
@@ -33,11 +33,24 @@ import { useRef, useState } from 'react';
 
 type UploadState =
   | { kind: 'idle' }
-  | { kind: 'uploading'; filename: string }
-  | { kind: 'classifying'; filename: string }
+  | { kind: 'uploading'; filename: string; startedAt: number }
+  | { kind: 'classifying'; filename: string; startedAt: number }
   | { kind: 'done'; filename: string };
 
 const ACCEPT = 'application/pdf';
+
+/**
+ * Hard timeout for the classify+extract pipeline. Two LLM calls run
+ * back-to-back on the backend (classify doc_type → extract fields),
+ * each taking 5–20 s in normal conditions, so a 90-second budget
+ * covers cold-start providers but still catches genuine hangs (e.g.
+ * provider unreachable, rate-limited). When the timeout fires we
+ * reset the dropzone with a clear error — the backend will still
+ * eventually complete the work (no abort signal threading through IPC
+ * today), and the user can refresh /documents to see the extraction
+ * if they want it.
+ */
+const CLASSIFY_TIMEOUT_MS = 90_000;
 
 export interface ActivityDocumentDropzoneProps {
   /**
@@ -55,7 +68,12 @@ export function ActivityDocumentDropzone({ onParsed }: ActivityDocumentDropzoneP
   const queryClient = useQueryClient();
   const [state, setState] = useState<UploadState>({ kind: 'idle' });
   const [isDragging, setIsDragging] = useState(false);
+  const [elapsedSec, setElapsedSec] = useState(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  // Bumped whenever the user clicks Cancel — async handlers compare
+  // against the captured snapshot at start; mismatch = stale request
+  // whose results should be discarded.
+  const runIdRef = useRef(0);
 
   const uploadMutation = useMutation({
     mutationFn: (file: File) =>
@@ -72,31 +90,75 @@ export function ActivityDocumentDropzone({ onParsed }: ActivityDocumentDropzoneP
     mutationFn: (document_id: string) => extractionApi.classifyAndRun({ document_id }),
   });
 
+  // Tick the elapsed counter every 1 s while a request is in flight so
+  // the user sees the wait isn't frozen — LLM round-trips routinely
+  // run 20–40 s and a static label looks indistinguishable from "hung".
+  // biome-ignore lint/correctness/useExhaustiveDependencies: state.kind is the gate; deeper props (filename etc.) shouldn't restart the timer.
+  useEffect(() => {
+    if (state.kind !== 'uploading' && state.kind !== 'classifying') {
+      setElapsedSec(0);
+      return;
+    }
+    const startedAt = state.startedAt;
+    setElapsedSec(Math.max(0, Math.floor((Date.now() - startedAt) / 1000)));
+    const interval = window.setInterval(() => {
+      setElapsedSec(Math.max(0, Math.floor((Date.now() - startedAt) / 1000)));
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, [state.kind]);
+
+  function cancel(): void {
+    runIdRef.current += 1; // any in-flight handler will see a stale runId
+    setState({ kind: 'idle' });
+    toast.info(m.activity_doc_canceled());
+  }
+
   async function handleFile(file: File): Promise<void> {
     if (file.type !== ACCEPT) {
       toast.warning(m.documents_upload_pdf_only());
       return;
     }
 
-    setState({ kind: 'uploading', filename: file.name });
+    const myRunId = ++runIdRef.current;
+    const isStale = () => runIdRef.current !== myRunId;
+
+    setState({ kind: 'uploading', filename: file.name, startedAt: Date.now() });
     let uploadedDoc: Document;
     try {
       uploadedDoc = await uploadMutation.mutateAsync(file);
     } catch (err) {
+      if (isStale()) return;
       const msg = err instanceof Error ? err.message : String(err);
       toast.error(m.documents_upload_failed(), { description: msg });
       setState({ kind: 'idle' });
       return;
     }
+    if (isStale()) return;
 
-    // Tell the rest of the app a new doc landed (the docs list query
-    // caches will refetch on next mount — important so the linked-doc
-    // preview drawer on /activities can resolve the filename).
     await queryClient.invalidateQueries({ queryKey: ['document:list'] });
 
-    setState({ kind: 'classifying', filename: uploadedDoc.filename });
+    setState({ kind: 'classifying', filename: uploadedDoc.filename, startedAt: Date.now() });
+
+    // Promise.race the IPC call against a 90 s timeout so a hung
+    // backend doesn't strand the user on the spinner forever. Note:
+    // the backend has no abort hook today, so the timeout only frees
+    // the UI — the LLM work eventually completes and the extraction
+    // will be visible in /documents/$id.
+    let timeoutId: number | null = null;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = window.setTimeout(() => {
+        reject(new Error('CLASSIFY_TIMEOUT'));
+      }, CLASSIFY_TIMEOUT_MS);
+    });
+
     try {
-      const result = await classifyMutation.mutateAsync(uploadedDoc.id);
+      const result = await Promise.race([
+        classifyMutation.mutateAsync(uploadedDoc.id),
+        timeoutPromise,
+      ]);
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+      if (isStale()) return;
+
       if (result.status === 'classify_failed') {
         toast.error(m.activity_doc_classify_failed_title(), {
           description: m.activity_doc_classify_failed_body(),
@@ -104,14 +166,19 @@ export function ActivityDocumentDropzone({ onParsed }: ActivityDocumentDropzoneP
         setState({ kind: 'idle' });
         return;
       }
-      // status === 'classified' — we have an extraction. Surface it to
-      // the parent, which will rebuild ActivityForm with prefilled
-      // fields + matcherHint.
       setState({ kind: 'done', filename: uploadedDoc.filename });
       onParsed({ extraction: result.extraction, document: uploadedDoc });
     } catch (err) {
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+      if (isStale()) return;
       const msg = err instanceof Error ? err.message : String(err);
-      toast.error(m.activity_doc_classify_failed_title(), { description: msg });
+      if (msg === 'CLASSIFY_TIMEOUT') {
+        toast.error(m.activity_doc_classify_timeout_title(), {
+          description: m.activity_doc_classify_timeout_body(),
+        });
+      } else {
+        toast.error(m.activity_doc_classify_failed_title(), { description: msg });
+      }
       setState({ kind: 'idle' });
     }
   }
@@ -157,19 +224,43 @@ export function ActivityDocumentDropzone({ onParsed }: ActivityDocumentDropzoneP
   }
 
   const isBusy = state.kind === 'uploading' || state.kind === 'classifying';
-  const label =
-    state.kind === 'uploading'
-      ? `${m.activity_doc_uploading()} — ${state.filename}`
-      : state.kind === 'classifying'
-        ? `${m.activity_doc_classifying()} — ${state.filename}`
-        : m.activity_doc_hint();
+
+  // Busy state is a flat row (not a dashed dropzone) — it carries an
+  // explicit Cancel button + elapsed counter so a stuck job has a
+  // clear escape, and an "通常 30-60 秒" hint so users don't read the
+  // wait as a hang.
+  if (isBusy) {
+    const label =
+      state.kind === 'uploading' ? m.activity_doc_uploading() : m.activity_doc_classifying();
+    return (
+      <div className="flex items-center gap-3 rounded-md border border-border bg-muted/30 px-4 py-3 text-sm">
+        <Sparkles className="h-5 w-5 shrink-0 text-primary animate-pulse" aria-hidden="true" />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-baseline gap-x-2">
+            <span className="font-medium text-foreground">{label}</span>
+            <span className="text-xs tabular-nums text-muted-foreground">{elapsedSec}s</span>
+          </div>
+          <div className="truncate text-xs text-muted-foreground" title={state.filename}>
+            {state.filename}
+            <span className="ml-2 text-muted-foreground/80">
+              · {m.activity_doc_classify_hint_duration()}
+            </span>
+          </div>
+        </div>
+        <Button type="button" variant="ghost" size="sm" onClick={cancel} className="shrink-0 gap-1">
+          <X className="h-3.5 w-3.5" aria-hidden="true" />
+          {m.activity_doc_cancel()}
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <label
       htmlFor="activity-doc-upload"
       onDragOver={(e) => {
         e.preventDefault();
-        if (!isBusy) setIsDragging(true);
+        setIsDragging(true);
       }}
       onDragLeave={() => setIsDragging(false)}
       onDrop={onDrop}
@@ -179,17 +270,12 @@ export function ActivityDocumentDropzone({ onParsed }: ActivityDocumentDropzoneP
         'flex cursor-pointer items-center gap-3 rounded-md border border-dashed border-border bg-muted/30 px-4 py-3 text-sm transition-colors',
         'hover:border-primary/60 hover:bg-muted/50',
         'data-[dragging]:border-primary data-[dragging]:bg-primary/5',
-        isBusy && 'pointer-events-none opacity-70',
       )}
     >
-      {isBusy ? (
-        <Sparkles className="h-5 w-5 shrink-0 text-primary animate-pulse" aria-hidden="true" />
-      ) : (
-        <UploadCloud className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-      )}
+      <UploadCloud className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
       <div className="min-w-0 flex-1">
-        <div className="truncate font-medium text-foreground">{label}</div>
-        {!isBusy && <div className="text-xs text-muted-foreground">{m.activity_doc_subhint()}</div>}
+        <div className="truncate font-medium text-foreground">{m.activity_doc_hint()}</div>
+        <div className="text-xs text-muted-foreground">{m.activity_doc_subhint()}</div>
       </div>
       <input
         ref={inputRef}
@@ -197,7 +283,6 @@ export function ActivityDocumentDropzone({ onParsed }: ActivityDocumentDropzoneP
         type="file"
         accept={ACCEPT}
         className="sr-only"
-        disabled={isBusy}
         onChange={onFileChange}
       />
     </label>
