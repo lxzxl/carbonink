@@ -37,18 +37,22 @@ export function LicenseSection() {
         queryClient.invalidateQueries({ queryKey: ['license:get-state'] });
         return;
       }
-      // 7 error tags from `license:activate-with-key`. The 3 that overlap
-      // with the old setJwt flow (BadSignature, Malformed, BadSchema) keep
-      // their existing i18n strings; the cloud-roundtrip-specific tags
-      // (Network, KeyNotFound, RateLimited, DeviceCapReached, Server) get
-      // a generic toast title + the server message as description, so the
-      // operator can fix without us shipping a new translation per tag.
+      // 8 error tags from `license:activate-with-key`. Each gets its own
+      // i18n title so the user sees a meaningful first line (e.g. "device
+      // limit reached" instead of "Malformed JWT"); server-supplied
+      // `message` always lands in the toast description for operator
+      // debugging.
       const tagToTitle: Record<string, string> = {
         BadSignature: m.license_activation_error_bad_signature(),
         Malformed: m.license_activation_error_malformed(),
         BadSchema: m.license_activation_error_bad_schema(),
+        Network: m.license_activation_error_network(),
+        KeyNotFound: m.license_activation_error_key_not_found(),
+        RateLimited: m.license_activation_error_rate_limited(),
+        DeviceCapReached: m.license_activation_error_device_cap(),
+        Server: m.license_activation_error_server(),
       };
-      const title = tagToTitle[result.error._tag] ?? m.license_activation_error_malformed();
+      const title = tagToTitle[result.error._tag] ?? m.license_activation_error_server();
       toast.error(title, { description: result.error.message });
     },
     onError: (e) => {
