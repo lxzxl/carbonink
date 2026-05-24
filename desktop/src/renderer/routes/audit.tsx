@@ -1,6 +1,7 @@
 import { ListItem } from '@renderer/components/app-shell/ListItem';
 import { AuditEventCard } from '@renderer/components/audit/AuditEventCard';
 import { SortMenu, type SortMenuOption } from '@renderer/components/sort-menu';
+import { toast } from '@renderer/components/toast';
 import {
   ResizableHandle,
   ResizablePanel,
@@ -9,9 +10,9 @@ import {
 import { auditApi } from '@renderer/lib/api/audit';
 import * as m from '@renderer/paraglide/messages';
 import type { AuditEvent } from '@shared/types';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { FileSearch } from 'lucide-react';
+import { Download, FileSearch } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 type AuditSort = 'recent' | 'oldest';
@@ -93,6 +94,30 @@ export function AuditPage() {
   const eventsQuery = useQuery({
     queryKey: ['audit:list', queryInput],
     queryFn: () => auditApi.list(queryInput),
+  });
+
+  const exportMutation = useMutation({
+    // Pass the same filter the list query uses so the export matches
+    // what the user sees on screen — no surprise rows from rows they'd
+    // filtered out.
+    mutationFn: () => auditApi.exportCsv(queryInput),
+    onSuccess: (result) => {
+      if ('canceled' in result) return;
+      if (result.ok) {
+        toast.success(
+          m.audit_export_csv_success({
+            rows: String(result.rows_written),
+          }),
+          { description: result.path },
+        );
+      } else {
+        toast.error(m.audit_export_csv_failed(), { description: result.error });
+      }
+    },
+    onError: (err) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(m.audit_export_csv_failed(), { description: msg });
+    },
   });
 
   const rawEvents = useMemo(() => eventsQuery.data ?? [], [eventsQuery.data]);
@@ -206,13 +231,24 @@ export function AuditPage() {
             </div>
             <div className="flex items-center justify-between gap-2">
               <SortMenu value={sort} onChange={setSort} options={sortOptions} />
-              <button
-                type="button"
-                onClick={reset}
-                className="text-muted-foreground hover:text-foreground hover:underline"
-              >
-                {m.audit_filter_reset_button()}
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => exportMutation.mutate()}
+                  disabled={exportMutation.isPending || events.length === 0}
+                  className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground hover:underline disabled:opacity-50 disabled:hover:no-underline"
+                >
+                  <Download className="h-3 w-3" />
+                  {m.audit_export_csv_button()}
+                </button>
+                <button
+                  type="button"
+                  onClick={reset}
+                  className="text-muted-foreground hover:text-foreground hover:underline"
+                >
+                  {m.audit_filter_reset_button()}
+                </button>
+              </div>
             </div>
           </section>
 

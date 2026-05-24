@@ -320,6 +320,21 @@ export type IpcTypeMap = {
     until?: string;
     limit?: number;
   }) => import('@shared/types.js').AuditEvent[];
+  /**
+   * Export the filtered audit events to a CSV. The filter shape mirrors
+   * `audit:list` so the renderer can reuse the same form state. Returns
+   * 3-arm discriminated union — `{ canceled }` when the save dialog is
+   * dismissed, `{ ok, path, rows_written }` on success, `{ ok:false,
+   * error }` on IO failure.
+   */
+  'audit:export-csv': (input: {
+    event_kinds?: string[];
+    since?: string;
+    until?: string;
+    limit?: number;
+  }) => Promise<
+    { canceled: true } | { ok: true; path: string; rows_written: number } | { ok: false; error: string }
+  >;
 
   // license domain (Phase 4 sub-project A — Ed25519 JWT + state machine)
   // `license:get-state` is read-mostly (called on every UI render that

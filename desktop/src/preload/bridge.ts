@@ -85,6 +85,7 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   'report:export-xlsx',
   // audit domain (Phase 3 sub-project 3 — audit_event log viewer)
   'audit:list',
+  'audit:export-csv',
   // license domain (Phase 4 sub-project A — Ed25519 JWT + state machine)
   'license:get-state',
   'license:set-jwt',
