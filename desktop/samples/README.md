@@ -15,7 +15,7 @@
    node scripts/seed-test-data.mjs
    ```
    - 幂等：重跑安全，已存在的行会跳过
-   - 写入 `~/Library/Application Support/carbonbook/app.sqlite`（macOS）
+   - 写入 `~/Library/Application Support/carbonink/app.sqlite`（macOS）
    - 自定义路径用 `--db /path/to/app.sqlite`
    - 写入：1 个 2025 reporting_period · 5 个 emission_source · 8 条 activity_data（约 95k kWh 电、2.4k L 柴油、4.2k m³ 天然气、出差 86k passenger-km）
 
@@ -75,13 +75,13 @@
 
 不想动 SQL 的话，关掉 app 后直接：
 ```bash
-rm ~/Library/Application\ Support/carbonbook/app.sqlite
+rm ~/Library/Application\ Support/carbonink/app.sqlite
 ```
 下次启动重新走 onboarding。
 
 或只清问卷与答案：
 ```bash
-sqlite3 ~/Library/Application\ Support/carbonbook/app.sqlite \
+sqlite3 ~/Library/Application\ Support/carbonink/app.sqlite \
   "DELETE FROM answer; DELETE FROM question; DELETE FROM questionnaire;"
 ```
 
