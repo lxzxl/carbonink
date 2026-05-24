@@ -11,21 +11,21 @@ export function defaultDbPath(): string {
   if (process.env.CARBONINK_MCP_DB) return process.env.CARBONINK_MCP_DB;
   const home = homedir();
   if (process.platform === 'darwin') {
-    return join(home, 'Library', 'Application Support', 'carbonink', 'app.sqlite');
+    return join(home, 'Library', 'Application Support', 'CarbonInk', 'app.sqlite');
   }
   if (process.platform === 'win32') {
     return join(
       process.env.APPDATA ?? join(home, 'AppData', 'Roaming'),
-      'carbonink',
+      'CarbonInk',
       'app.sqlite',
     );
   }
-  return join(home, '.config', 'carbonink', 'app.sqlite');
+  return join(home, '.config', 'CarbonInk', 'app.sqlite');
 }
 
 export function openAppDb(path: string = defaultDbPath()): DatabaseSync {
   if (!existsSync(path)) {
-    throw new Error(`carbonink DB not found at ${path}. Launch the app at least once.`);
+    throw new Error(`CarbonInk DB not found at ${path}. Launch the app at least once.`);
   }
   const db = new DatabaseSync(path);
   db.exec('PRAGMA journal_mode = WAL');

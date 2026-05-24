@@ -1,8 +1,8 @@
 ---
 const { licenseKey, lang } = Astro.props as { licenseKey: string; lang: 'zh-CN' | 'en' };
 const steps = lang === 'zh-CN'
-  ? ['打开 carbonink 桌面应用', '点击右上角头像 → 设置 → 激活', '粘贴下方密钥并点击「激活」']
-  : ['Open the carbonink desktop app', 'Click the avatar (top-right) → Settings → Activate', 'Paste the key below and click "Activate"'];
+  ? ['打开 碳墨 桌面应用', '点击右上角头像 → 设置 → 激活', '粘贴下方密钥并点击「激活」']
+  : ['Open the CarbonInk desktop app', 'Click the avatar (top-right) → Settings → Activate', 'Paste the key below and click "Activate"'];
 const copyLabel = lang === 'zh-CN' ? '复制' : 'Copy';
 ---
 <section class="mx-auto max-w-xl">

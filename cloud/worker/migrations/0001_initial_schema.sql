@@ -1,5 +1,5 @@
 -- 0001_initial_schema.sql
--- Core tables for the carbonink licensing system.
+-- Core tables for the CarbonInk licensing system.
 
 CREATE TABLE customer (
   user_id            TEXT PRIMARY KEY,           -- 'usr_01H...' (ULID)

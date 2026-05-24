@@ -29,7 +29,7 @@ export function createMainWindow(): BrowserWindow {
     minWidth: 960,
     minHeight: 600,
     show: false,
-    title: 'carbonink',
+    title: 'CarbonInk',
     ...(isMac && {
       titleBarStyle: 'hiddenInset' as const,
       trafficLightPosition: { x: 18, y: 16 },

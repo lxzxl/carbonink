@@ -515,7 +515,7 @@ export type ActivityRebindEfPayload = {
 // ---------------------------------------------------------------------------
 
 /**
- * The Ed25519-signed JWT claims carried by every carbonink license.
+ * The Ed25519-signed JWT claims carried by every CarbonInk license.
  * The cloud is the issuer; the client verifies the signature locally and
  * reads `expires_at` / `grace_until` / `revocation_check_after` to drive
  * the state machine. See design spec §10.

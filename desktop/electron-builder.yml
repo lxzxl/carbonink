@@ -2,7 +2,7 @@
 # Docs: https://www.electron.build/configuration
 
 appId: app.carbonink.desktop
-productName: carbonink
+productName: CarbonInk
 copyright: Copyright © 2026 Seneca ESG Limited
 
 directories:

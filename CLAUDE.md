@@ -1,4 +1,4 @@
-# carbonink — Design Preferences
+# CarbonInk — Design Preferences
 
 Local conventions any agent working in this repo should follow. Skills and
 plans build on top of these; when a skill conflicts with this file, this

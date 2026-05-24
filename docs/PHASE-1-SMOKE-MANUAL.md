@@ -30,7 +30,7 @@ Before starting:
 - [ ] `git status` shows clean working tree on `main` at the latest commit.
 - [ ] `pnpm rebuild better-sqlite3` (if the last thing you did was an E2E or production build — flips the binary back to Node ABI so dev mode works).
 - [ ] Confirm an OpenAI API key is reachable. The recommender hits `gpt-4o-mini`; without a key, the recommended panel stays empty (the test then verifies graceful fallback to FTS-sorted list).
-- [ ] Optionally: delete `~/Library/Application Support/carbonink/app.sqlite` if you want a fresh DB. (Or skip this — using your existing org/sources is fine; the test just adds 5 new activity_data rows.)
+- [ ] Optionally: delete `~/Library/Application Support/CarbonInk/app.sqlite` if you want a fresh DB. (Or skip this — using your existing org/sources is fine; the test just adds 5 new activity_data rows.)
 - [ ] Start the app: `pnpm dev`. Wait for the Electron window to appear.
 
 ## Per-stage checklist
@@ -194,7 +194,7 @@ Why synthetic rather than real:
 
 Why this is good enough:
 
-- carbonink's stage schemas are "permissive" (any missing field defaults to null; the renderer surfaces what was actually read).
+- CarbonInk's stage schemas are "permissive" (any missing field defaults to null; the renderer surfaces what was actually read).
 - The point of the smoke is to verify the **pipeline** end-to-end, not to grade extraction accuracy on adversarial real-world inputs.
 - Stage-specific prompt wrappers (`<bill>`, `<receipt>`, `<invoice>`, `<ticket>`) train the LLM to focus on the right invoice shape regardless of synthetic vs. real.
 

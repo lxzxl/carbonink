@@ -33,7 +33,7 @@ if (directKey) {
 
 const emptyMsg = lang === 'zh-CN' ? '请查收邮件中的激活链接。' : 'Check your email for the activation link.';
 ---
-<Base title={lang === 'zh-CN' ? '激活 carbonink' : 'Activate carbonink'} lang={lang}>
+<Base title={lang === 'zh-CN' ? '激活 碳墨' : 'Activate CarbonInk'} lang={lang}>
   {licenseKey && <LicenseKeyCard licenseKey={licenseKey} lang={lang} />}
   {!licenseKey && lookupError && <p class="text-red-600">{lookupError}</p>}
   {!licenseKey && !lookupError && <p class="text-[color:var(--color-ink-500)]">{emptyMsg}</p>}

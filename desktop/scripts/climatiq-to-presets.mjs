@@ -668,7 +668,7 @@ async function translateAll(entries, cache) {
 async function main() {
   const t0 = Date.now();
   console.log('═'.repeat(80));
-  console.log('Climatiq → carbonink preset catalog');
+  console.log('Climatiq → CarbonInk preset catalog');
   console.log('═'.repeat(80));
   console.log(`Sources:  ${SOURCES.join(', ')}`);
   console.log(`Limit:    ${LIMIT}`);

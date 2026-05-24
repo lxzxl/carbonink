@@ -26,7 +26,7 @@ const __dirname = dirname(__filename);
 const OUT_PATH = join(__dirname, '..', 'samples', 'test-questionnaire-2025.xlsx');
 
 const wb = new ExcelJS.Workbook();
-wb.creator = 'carbonink test fixture generator';
+wb.creator = 'CarbonInk test fixture generator';
 wb.created = new Date('2026-01-01');
 
 // ---------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-# carbonink — Roadmap
+# CarbonInk — Roadmap
 
 发布后的中长期功能想法。和 `docs/todo/`（已知问题积压）和 `docs/plans/`（已批准的实施计划）三者分工：
 roadmap 只记"想做"，没排期、没承诺。要做之前必须先走 brainstorm → spec → plan 的常规流程。
@@ -35,7 +35,7 @@ roadmap 只记"想做"，没排期、没承诺。要做之前必须先走 brains
 
 ## 2. App 内 Wizard / 引导提示
 
-**目标**：降低首次用户的教育成本和学习成本。现状是用户上手 carbonink 桌面端要自己摸索"上传文件 → 抽取 → 审核 → 答题 → 导出"这一整套流程，没有任何 in-app 引导。
+**目标**：降低首次用户的教育成本和学习成本。现状是用户上手 碳墨 桌面端要自己摸索"上传文件 → 抽取 → 审核 → 答题 → 导出"这一整套流程，没有任何 in-app 引导。
 
 **已经有的相关代码**：
 - `desktop/src/renderer/routes/onboarding/` 已经有 5 步 wizard（Phase 0 task-22～26），但那是**一次性**的组织/site/AI provider 初始化，做完就不再出现。

@@ -77,7 +77,7 @@ importers:
 
   cloud/worker:
     dependencies:
-      '@carbonbook-cloud/shared':
+      '@carbonink-cloud/shared':
         specifier: workspace:*
         version: link:../packages/shared
       '@noble/curves':
