@@ -1,7 +1,7 @@
 import { defineMiddleware } from 'astro:middleware';
 
 /**
- * Session middleware for the account portal at carbonbook.app/account.
+ * Session middleware for the account portal at carbonink.xyz/account.
  *
  * Anything under /account/login (login + callback) is public. For
  * everything else we require a `session=` cookie and probe the Worker
@@ -12,7 +12,7 @@ import { defineMiddleware } from 'astro:middleware';
  * We deliberately delegate session validation to the Worker rather
  * than shipping the Ed25519 verifier into this site's bundle. It costs
  * one extra fetch per request but keeps SESSION_PRIVATE_KEY_HEX off
- * this site entirely. The probe is same-origin (carbonbook.app), so
+ * this site entirely. The probe is same-origin (carbonink.xyz), so
  * the cookie flows automatically.
  */
 export const onRequest = defineMiddleware(async (context, next) => {

@@ -5,7 +5,7 @@ const links = lang === 'zh-CN'
   : [{ href: '/', label: 'Home' }, { href: '/pricing', label: 'Pricing' }, { href: '/download', label: 'Download' }];
 ---
 <nav class="mx-auto max-w-5xl flex items-center justify-between px-6 py-4">
-  <a href="/" class="font-bold text-lg">carbonbook</a>
+  <a href="/" class="font-bold text-lg">carbonink</a>
   <ul class="flex gap-6 text-sm">
     {links.map((l) => <li><a href={l.href} class="hover:text-[color:var(--color-brand-500)]">{l.label}</a></li>)}
   </ul>

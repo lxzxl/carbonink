@@ -5,7 +5,7 @@ import { defineConfig } from 'astro/config';
 export default defineConfig({
   output: 'server',
   adapter: cloudflare(),
-  // Mounted at carbonbook.app/account via Workers Routes.
+  // Mounted at carbonink.xyz/account via Workers Routes.
   base: '/account',
   vite: { plugins: [tailwindcss()] },
   i18n: {
