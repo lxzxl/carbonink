@@ -119,6 +119,7 @@ describe('preload bridge', () => {
       // license domain (Phase 4 sub-project A — Ed25519 JWT + state machine)
       'license:get-state',
       'license:set-jwt',
+      'license:activate-with-key',
       'license:clear',
       // updater domain (Phase 5 — auto-update via electron-updater)
       'updater:get-status',

@@ -2,6 +2,7 @@ vi.mock('@renderer/lib/api/license', () => ({
   licenseApi: {
     getState: vi.fn(),
     setJwt: vi.fn(),
+    activateWithKey: vi.fn(),
     clear: vi.fn(),
   },
 }));
@@ -25,6 +26,7 @@ function harness(ui: React.ReactElement) {
 describe('<LicenseSection>', () => {
   beforeEach(() => {
     vi.mocked(licenseApi.setJwt).mockReset();
+    vi.mocked(licenseApi.activateWithKey).mockReset();
     vi.mocked(licenseApi.clear).mockReset();
   });
 
@@ -46,7 +48,7 @@ describe('<LicenseSection>', () => {
     render(harness(<LicenseSection />));
 
     expect(await screen.findByText(/No license activated|未激活/)).toBeTruthy();
-    expect(await screen.findByLabelText(/License JWT|授权 JWT/i)).toBeTruthy();
+    expect(await screen.findByLabelText(/License key|激活码/i)).toBeTruthy();
     expect(screen.getByRole('button', { name: /Activate|激活/ })).toBeTruthy();
   });
 
@@ -78,10 +80,10 @@ describe('<LicenseSection>', () => {
     expect(screen.getByText('inventory, questionnaire')).toBeTruthy();
     expect(screen.getByRole('button', { name: /Deactivate|解绑/ })).toBeTruthy();
     // No activation form in this state.
-    expect(screen.queryByLabelText(/License JWT|授权 JWT/i)).toBeNull();
+    expect(screen.queryByLabelText(/License key|激活码/i)).toBeNull();
   });
 
-  it('calls licenseApi.setJwt when the user pastes a JWT and clicks Activate', async () => {
+  it('calls licenseApi.activateWithKey when the user pastes a license key and clicks Activate', async () => {
     vi.mocked(licenseApi.getState).mockResolvedValue({
       state: 'unverified',
       claims: null,
@@ -90,17 +92,19 @@ describe('<LicenseSection>', () => {
       consecutive_offline_days: 0,
       reason: 'No license JWT has been activated on this device.',
     });
-    vi.mocked(licenseApi.setJwt).mockResolvedValue({ ok: true });
+    vi.mocked(licenseApi.activateWithKey).mockResolvedValue({ ok: true });
 
     render(harness(<LicenseSection />));
 
-    const input = (await screen.findByLabelText(/License JWT|授权 JWT/i)) as HTMLTextAreaElement;
-    fireEvent.change(input, { target: { value: 'eyJ.fake.jwt' } });
+    const input = (await screen.findByLabelText(/License key|激活码/i)) as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'cik-aaaaa-bbbbb-ccccc-ddddd' } });
     const submit = screen.getByRole('button', { name: /Activate|激活/ });
     fireEvent.click(submit);
 
     await waitFor(() => {
-      expect(licenseApi.setJwt).toHaveBeenCalledWith({ jwt: 'eyJ.fake.jwt' });
+      expect(licenseApi.activateWithKey).toHaveBeenCalledWith({
+        license_key: 'cik-aaaaa-bbbbb-ccccc-ddddd',
+      });
     });
   });
 
@@ -121,7 +125,7 @@ describe('<LicenseSection>', () => {
     })) as HTMLButtonElement;
     expect(submit.disabled).toBe(true);
 
-    const input = (await screen.findByLabelText(/License JWT|授权 JWT/i)) as HTMLTextAreaElement;
+    const input = (await screen.findByLabelText(/License key|激活码/i)) as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'x.y.z' } });
     await waitFor(() => expect(submit.disabled).toBe(false));
   });

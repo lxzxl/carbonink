@@ -10,5 +10,11 @@ import { invoke } from '../ipc.js';
 export const licenseApi = {
   getState: () => invoke('license:get-state'),
   setJwt: (input: { jwt: string }) => invoke('license:set-jwt', input),
+  // User-facing activation: paste a humanized cik- key from the activation
+  // email; main process trades it for a JWT via /api/v1/activate and stores
+  // the verified JWT in Keychain. setJwt above is now a power-user / dev
+  // backdoor (used by issue-dev-license.mjs).
+  activateWithKey: (input: { license_key: string }) =>
+    invoke('license:activate-with-key', input),
   clear: () => invoke('license:clear'),
 };

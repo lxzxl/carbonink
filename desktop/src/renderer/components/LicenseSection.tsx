@@ -26,23 +26,30 @@ export function LicenseSection() {
     queryFn: licenseApi.getState,
   });
 
-  const [jwtInput, setJwtInput] = useState('');
+  const [keyInput, setKeyInput] = useState('');
 
   const activate = useMutation({
-    mutationFn: () => licenseApi.setJwt({ jwt: jwtInput.trim() }),
+    mutationFn: () => licenseApi.activateWithKey({ license_key: keyInput.trim() }),
     onSuccess: (result) => {
       if (result.ok) {
         toast.success(m.license_activation_success());
-        setJwtInput('');
+        setKeyInput('');
         queryClient.invalidateQueries({ queryKey: ['license:get-state'] });
         return;
       }
-      const messageByTag = {
+      // 7 error tags from `license:activate-with-key`. The 3 that overlap
+      // with the old setJwt flow (BadSignature, Malformed, BadSchema) keep
+      // their existing i18n strings; the cloud-roundtrip-specific tags
+      // (Network, KeyNotFound, RateLimited, DeviceCapReached, Server) get
+      // a generic toast title + the server message as description, so the
+      // operator can fix without us shipping a new translation per tag.
+      const tagToTitle: Record<string, string> = {
         BadSignature: m.license_activation_error_bad_signature(),
         Malformed: m.license_activation_error_malformed(),
         BadSchema: m.license_activation_error_bad_schema(),
-      } as const;
-      toast.error(messageByTag[result.error._tag], { description: result.error.message });
+      };
+      const title = tagToTitle[result.error._tag] ?? m.license_activation_error_malformed();
+      toast.error(title, { description: result.error.message });
     },
     onError: (e) => {
       const msg = e instanceof Error ? e.message : String(e);
@@ -68,32 +75,48 @@ export function LicenseSection() {
       {stateQuery.data && <LicenseStateBlock view={stateQuery.data} />}
 
       {/* Activation form: visible only when no JWT is currently active
-       *  OR the user has explicitly deactivated. Showing it always would
-       *  be a footgun — pasting a JWT here while another is active would
-       *  silently replace it without confirmation. */}
+       *  OR the user has explicitly deactivated. Input takes the
+       *  humanized cik- key from the activation email; main process
+       *  exchanges it for a signed JWT via /api/v1/activate. */}
       {stateQuery.data && stateQuery.data.claims == null && (
         <div className="space-y-2 rounded-md border border-border bg-secondary/30 p-3">
           <h4 className="text-sm font-medium">{m.license_activation_heading()}</h4>
           <p className="text-sm text-muted-foreground">{m.license_activation_body()}</p>
           <div className="space-y-1">
-            <Label htmlFor="license-jwt-input">{m.license_activation_input_label()}</Label>
-            <textarea
-              id="license-jwt-input"
-              value={jwtInput}
-              onChange={(e) => setJwtInput(e.target.value)}
+            <Label htmlFor="license-key-input">{m.license_activation_input_label()}</Label>
+            <input
+              id="license-key-input"
+              type="text"
+              value={keyInput}
+              onChange={(e) => setKeyInput(e.target.value)}
               placeholder={m.license_activation_input_placeholder()}
-              rows={3}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-xs outline-none focus-visible:border-ring"
+              autoComplete="off"
+              spellCheck={false}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-sm tracking-wider outline-none focus-visible:border-ring"
             />
           </div>
           <Button
             type="button"
             onClick={() => activate.mutate()}
-            disabled={!jwtInput.trim() || activate.isPending}
+            disabled={!keyInput.trim() || activate.isPending}
           >
             {m.license_activation_submit()}
           </Button>
         </div>
+      )}
+
+      {/* Upgrade CTA — surfaced inline in the License section whenever the
+       *  current plan is a trial (paid plans don't need it). Same target
+       *  as the topbar banner so users hitting either path land on the
+       *  same pricing page in their default browser. */}
+      {stateQuery.data?.claims?.plan.startsWith('trial') && (
+        <Button
+          type="button"
+          variant="default"
+          onClick={() => window.open('https://carbonink.xyz/pricing', '_blank')}
+        >
+          {m.license_section_upgrade_button()}
+        </Button>
       )}
 
       {/* Deactivate button — only when a JWT is active. Confirmation prompt
