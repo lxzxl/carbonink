@@ -1,3 +1,5 @@
+import { getAutoBackupDir } from '@main/services/auto-backup-service.js';
+import { getLogDirPath } from '@main/services/logger-service.js';
 import { app, shell } from 'electron';
 import type { IpcContext } from '../context.js';
 import type { IpcTypeMap } from '../types.js';
@@ -38,6 +40,14 @@ export function appHandlers(_ctx: IpcContext): HandlerMap {
       // docs; we surface any failure message as a typed result so the
       // renderer can toast it without throwing across IPC.
       const err = await shell.openPath(app.getPath('userData'));
+      return err === '' ? { ok: true } : { ok: false, error: err };
+    },
+    'app:open-log-dir': async () => {
+      const err = await shell.openPath(getLogDirPath());
+      return err === '' ? { ok: true } : { ok: false, error: err };
+    },
+    'app:open-auto-backup-dir': async () => {
+      const err = await shell.openPath(getAutoBackupDir());
       return err === '' ? { ok: true } : { ok: false, error: err };
     },
   };

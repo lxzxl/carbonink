@@ -97,6 +97,9 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   // app domain (Phase 5.1 — about info + open data directory)
   'app:get-info',
   'app:open-data-dir',
+  // Phase 5.3 — log dir + auto-backup dir
+  'app:open-log-dir',
+  'app:open-auto-backup-dir',
   // data domain (Phase 5.2 — backup/restore/reset + cache cleanup)
   'data:export-backup',
   'data:import-backup',

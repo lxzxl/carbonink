@@ -1,5 +1,6 @@
 import { Toaster } from '@renderer/components/toast';
 import { currentLocale, initLocale, subscribeToLocaleChange } from '@renderer/lib/i18n';
+import { initTheme } from '@renderer/lib/theme';
 import { router } from '@renderer/router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from '@tanstack/react-router';
@@ -14,6 +15,7 @@ import './styles/globals.css';
 // temporarily.
 
 initLocale();
+initTheme();
 
 const queryClient = new QueryClient({
   defaultOptions: {

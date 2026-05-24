@@ -390,6 +390,8 @@ export type IpcTypeMap = {
     started_at: string;
   };
   'app:open-data-dir': () => Promise<{ ok: true } | { ok: false; error: string }>;
+  'app:open-log-dir': () => Promise<{ ok: true } | { ok: false; error: string }>;
+  'app:open-auto-backup-dir': () => Promise<{ ok: true } | { ok: false; error: string }>;
 
   // data domain (Phase 5.2 — backup / restore / reset / cache cleanup)
   //

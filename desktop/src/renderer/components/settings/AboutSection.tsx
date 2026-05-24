@@ -3,7 +3,7 @@ import { Button } from '@renderer/components/ui/button';
 import { appApi } from '@renderer/lib/api/app';
 import * as m from '@renderer/paraglide/messages';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { ExternalLink, FolderOpen } from 'lucide-react';
+import { ExternalLink, FileText, FolderOpen } from 'lucide-react';
 
 /**
  * Settings → About. Surfaces version + runtime info for support, plus
@@ -34,6 +34,19 @@ export function AboutSection() {
     onError: (err) => {
       const msg = err instanceof Error ? err.message : String(err);
       toast.error(m.settings_about_open_data_dir_failed(), { description: msg });
+    },
+  });
+
+  const openLogDir = useMutation({
+    mutationFn: appApi.openLogDir,
+    onSuccess: (result) => {
+      if (!result.ok) {
+        toast.error(m.settings_about_open_log_dir_failed(), { description: result.error });
+      }
+    },
+    onError: (err) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(m.settings_about_open_log_dir_failed(), { description: msg });
     },
   });
 
@@ -85,6 +98,20 @@ export function AboutSection() {
             {m.settings_about_open_data_dir()}
           </Button>
           <p className="text-xs text-muted-foreground">{m.settings_about_open_data_dir_hint()}</p>
+        </div>
+
+        <div className="space-y-1.5">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => openLogDir.mutate()}
+            disabled={openLogDir.isPending}
+            className="gap-2"
+          >
+            <FileText className="h-4 w-4" />
+            {m.settings_about_open_log_dir()}
+          </Button>
+          <p className="text-xs text-muted-foreground">{m.settings_about_open_log_dir_hint()}</p>
         </div>
 
         <div className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 text-sm pt-2 border-t border-border">

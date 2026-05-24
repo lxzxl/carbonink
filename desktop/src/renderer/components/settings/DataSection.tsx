@@ -2,11 +2,21 @@ import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
 import { Input } from '@renderer/components/ui/input';
 import { Label } from '@renderer/components/ui/label';
+import { appApi } from '@renderer/lib/api/app';
 import { cacheApi, dataApi } from '@renderer/lib/api/data';
 import { formatBytes } from '@renderer/lib/format';
 import * as m from '@renderer/paraglide/messages';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertTriangle, ArchiveRestore, Database, Download, Trash2, Upload } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArchiveRestore,
+  Calendar,
+  Database,
+  Download,
+  FolderOpen,
+  Trash2,
+  Upload,
+} from 'lucide-react';
 import { useState } from 'react';
 
 /**
@@ -158,7 +168,10 @@ export function DataSection() {
         </div>
       </DataGroup>
 
-      {/* Group 3: Reset — destructive, typed confirmation. */}
+      {/* Group 3: Auto-backup — purely informational + folder shortcut. */}
+      <AutoBackupGroup />
+
+      {/* Group 4: Reset — destructive, typed confirmation. */}
       <ResetGroup />
     </div>
   );
@@ -190,6 +203,46 @@ function DataGroup({
       </div>
       {children}
     </section>
+  );
+}
+
+/**
+ * Auto-backup group. Behavior lives in the main process (runs on app
+ * boot if >23h since the last one); this card just describes the
+ * feature and provides a button to reveal the folder in the OS file
+ * manager so users can confirm backups exist and grab one to copy
+ * off-machine if they want.
+ */
+function AutoBackupGroup() {
+  const openMutation = useMutation({
+    mutationFn: appApi.openAutoBackupDir,
+    onSuccess: (result) => {
+      if (!result.ok) {
+        toast.error(m.settings_data_auto_backup_open_failed(), { description: result.error });
+      }
+    },
+    onError: (err) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(m.settings_data_auto_backup_open_failed(), { description: msg });
+    },
+  });
+  return (
+    <DataGroup
+      heading={m.settings_data_auto_backup_heading()}
+      body={m.settings_data_auto_backup_body()}
+      icon={<Calendar className="h-4 w-4" />}
+    >
+      <Button
+        type="button"
+        variant="outline"
+        onClick={() => openMutation.mutate()}
+        disabled={openMutation.isPending}
+        className="gap-2"
+      >
+        <FolderOpen className="h-4 w-4" />
+        {m.settings_data_auto_backup_open()}
+      </Button>
+    </DataGroup>
   );
 }
 

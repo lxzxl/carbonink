@@ -9,4 +9,6 @@ import { invoke } from '../ipc.js';
 export const appApi = {
   getInfo: () => invoke('app:get-info'),
   openDataDir: () => invoke('app:open-data-dir'),
+  openLogDir: () => invoke('app:open-log-dir'),
+  openAutoBackupDir: () => invoke('app:open-auto-backup-dir'),
 };
