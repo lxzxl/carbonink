@@ -8,7 +8,7 @@
 import { ed25519 } from '@noble/curves/ed25519';
 
 export type SessionClaims = {
-  iss: 'carbonbook.app/account';
+  iss: 'carbonink.xyz/account';
   sub: string; // user_id
   email: string;
   iat: number;

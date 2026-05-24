@@ -1,4 +1,4 @@
-import type { LicenseActiveRecord } from '@carbonbook-cloud/shared';
+import type { LicenseActiveRecord } from '@carbonink-cloud/shared';
 
 export async function getLicenseIdByHumanizedKey(
   kv: KVNamespace,

@@ -1,5 +1,5 @@
-import type { LicenseActiveRecord } from '@carbonbook-cloud/shared';
-import { GRACE_PERIOD_S, generateHumanizedKey } from '@carbonbook-cloud/shared';
+import type { LicenseActiveRecord } from '@carbonink-cloud/shared';
+import { GRACE_PERIOD_S, generateHumanizedKey } from '@carbonink-cloud/shared';
 import type { Env } from '../index.js';
 import { sendActivationEmail } from '../lib/email.js';
 import { newLicenseId, newUserId } from '../lib/id.js';

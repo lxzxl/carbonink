@@ -1,5 +1,5 @@
 export const JWT_HEADER = { alg: 'EdDSA', typ: 'JWT' } as const;
-export const JWT_ISSUER = 'carbonbook.app';
+export const JWT_ISSUER = 'carbonink.xyz';
 export const BASE_FEATURES = ['inventory', 'questionnaire', 'iso14064'] as const;
 export const TRIAL_DURATION_S = 14 * 24 * 60 * 60;
 export const GRACE_PERIOD_S = 30 * 24 * 60 * 60;

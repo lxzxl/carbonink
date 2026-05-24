@@ -33,7 +33,7 @@ export async function handleMagicLink(
     { expirationTtl: MAGIC_LINK_TTL_S },
   );
 
-  const url = `https://carbonbook.app/account/login/callback?t=${token}`;
+  const url = `https://carbonink.xyz/account/login/callback?t=${token}`;
   ctx.waitUntil(
     sendMagicLinkEmail({ apiKey: env.RESEND_API_KEY, to: parsed.data.email, url, lang: 'en' }),
   );
@@ -53,7 +53,7 @@ export async function handleExchange(request: Request, env: Env): Promise<Respon
   const now = Math.floor(Date.now() / 1000);
   const sessionJwt = await signSessionJwt(
     {
-      iss: 'carbonbook.app/account',
+      iss: 'carbonink.xyz/account',
       sub: user_id,
       email,
       iat: now,
@@ -62,7 +62,7 @@ export async function handleExchange(request: Request, env: Env): Promise<Respon
     env.SESSION_PRIVATE_KEY_HEX,
   );
   // Single-origin cookie: no Domain attribute needed — every page that
-  // reads this session (account portal, API) lives under carbonbook.app
+  // reads this session (account portal, API) lives under carbonink.xyz
   // and same-origin requests carry the cookie automatically.
   return new Response(JSON.stringify({ session: sessionJwt }), {
     status: 200,

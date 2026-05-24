@@ -2,7 +2,7 @@ import {
   RATE_LIMIT_VERIFY,
   REVOCATION_CHECK_INTERVAL_S,
   verifyRequestSchema,
-} from '@carbonbook-cloud/shared';
+} from '@carbonink-cloud/shared';
 import type { Env } from '../index.js';
 import { buildClaims, signLicenseJwt } from '../lib/jwt.js';
 import { readActive } from '../lib/license-store.js';

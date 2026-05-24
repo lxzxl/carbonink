@@ -1,4 +1,4 @@
-import type { LicenseActiveRecord } from '@carbonbook-cloud/shared';
+import type { LicenseActiveRecord } from '@carbonink-cloud/shared';
 import {
   GRACE_PERIOD_S,
   generateHumanizedKey,
@@ -6,7 +6,7 @@ import {
   REVOCATION_CHECK_INTERVAL_S,
   TRIAL_DURATION_S,
   trialSignupRequestSchema,
-} from '@carbonbook-cloud/shared';
+} from '@carbonink-cloud/shared';
 import type { Env } from '../index.js';
 import { sendActivationEmail } from '../lib/email.js';
 import { newLicenseId, newUserId } from '../lib/id.js';

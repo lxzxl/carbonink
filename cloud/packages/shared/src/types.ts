@@ -1,4 +1,4 @@
-/** JWT claims shape — MUST match carbonbook/src/shared/types.ts LicenseJwtClaims. */
+/** JWT claims shape — MUST match carbonink/src/shared/types.ts LicenseJwtClaims. */
 export type LicenseJwtClaims = {
   iss: string;
   license_id: string;

@@ -30,7 +30,7 @@ export interface Env {
 }
 
 // Single-domain deployment: web clients (marketing, activate, account
-// portal) all live under carbonbook.app and call /api/* same-origin —
+// portal) all live under carbonink.xyz and call /api/* same-origin —
 // no CORS needed for them. The Electron desktop client talks to the API
 // from a file://-ish origin without browser cookies (auth is the
 // license JWT in the request body). Permissive `*` CORS with no
@@ -58,7 +58,7 @@ function addCors(res: Response, request: Request): Response {
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    // Cloudflare Workers Routes dispatches `carbonbook.app/api/*` here.
+    // Cloudflare Workers Routes dispatches `carbonink.xyz/api/*` here.
     // Strip the `/api` prefix so existing handlers continue to match
     // `/v1/*`. We rebuild the Request URL so downstream handlers that
     // re-parse `request.url` (e.g. updates.ts, devices.ts) see the same

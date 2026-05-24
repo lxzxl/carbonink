@@ -1,4 +1,4 @@
-import type { LicenseActiveRecord } from '@carbonbook-cloud/shared';
+import type { LicenseActiveRecord } from '@carbonink-cloud/shared';
 import type { Env } from '../index.js';
 
 /**

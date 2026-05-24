@@ -3,7 +3,7 @@ import {
   normalizeHumanizedKey,
   RATE_LIMIT_ACTIVATE,
   REVOCATION_CHECK_INTERVAL_S,
-} from '@carbonbook-cloud/shared';
+} from '@carbonink-cloud/shared';
 import type { Env } from '../index.js';
 import { buildClaims, signLicenseJwt } from '../lib/jwt.js';
 import { getLicenseIdByHumanizedKey, readActive, writeActive } from '../lib/license-store.js';

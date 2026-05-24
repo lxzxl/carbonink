@@ -1,5 +1,5 @@
-import type { LicenseJwtClaims } from '@carbonbook-cloud/shared';
-import { JWT_HEADER, JWT_ISSUER } from '@carbonbook-cloud/shared';
+import type { LicenseJwtClaims } from '@carbonink-cloud/shared';
+import { JWT_HEADER, JWT_ISSUER } from '@carbonink-cloud/shared';
 import { ed25519 } from '@noble/curves/ed25519';
 
 /** Base64url encode a Uint8Array or string. */
