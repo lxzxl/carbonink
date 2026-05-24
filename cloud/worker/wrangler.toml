@@ -1,12 +1,12 @@
-name = "carbonbook-cloud-api"
+name = "carbonink-cloud-api"
 main = "src/index.ts"
 compatibility_date = "2025-05-01"
 
 # Single-domain routing: this worker handles every `/api/*` path under
-# carbonbook.app. The entrypoint strips the `/api` prefix so existing
+# carbonink.xyz. The entrypoint strips the `/api` prefix so existing
 # handlers (matching `/v1/*`) keep working.
 routes = [
-  { pattern = "carbonbook.app/api/*", zone_name = "carbonbook.app" },
+  { pattern = "carbonink.xyz/api/*", zone_name = "carbonink.xyz" },
 ]
 # No nodejs_compat needed: we use @noble/curves (pure-JS WebCrypto-based)
 # for Ed25519 and raw fetch() calls (no stripe SDK) for Stripe + Resend.
@@ -17,7 +17,7 @@ routes = [
 # ---------- D1 ----------
 [[d1_databases]]
 binding = "DB"
-database_name = "carbonbook-cloud"
+database_name = "carbonink-cloud"
 database_id = "local"
 migrations_dir = "migrations"
 
@@ -41,7 +41,7 @@ id = "local"
 # ---------- R2 ----------
 [[r2_buckets]]
 binding = "RELEASES"
-bucket_name = "carbonbook-releases"
+bucket_name = "carbonink-releases"
 
 # ---------- Secrets (never in this file — set via wrangler secret put) ----------
 # LICENSE_PRIVATE_KEY_HEX   — Ed25519 64-byte hex (seed+pubkey) for @noble/ed25519

@@ -3,12 +3,12 @@
 # (static assets). Workers Static Assets binding serves anything not
 # matched by `main`'s router; SSR routes go through `main`.
 #
-# Mounted at carbonbook.app/activate (Astro `base: '/activate'`).
+# Mounted at carbonink.xyz/activate (Astro `base: '/activate'`).
 #
 # Secrets set via `wrangler secret put`:
 #   STRIPE_SECRET_KEY   — Stripe API key for session lookup
 
-name = "carbonbook-activate"
+name = "carbonink-activate"
 # `main` is intentionally absent — @astrojs/cloudflare v13 injects it
 # at build time pointing to `dist/_worker.js/index.js`. Putting it
 # here triggers the bundled @cloudflare/vite-plugin to try resolving
@@ -17,8 +17,8 @@ compatibility_date = "2025-05-23"
 compatibility_flags = ["nodejs_compat"]
 
 routes = [
-  { pattern = "carbonbook.app/activate", zone_name = "carbonbook.app" },
-  { pattern = "carbonbook.app/activate/*", zone_name = "carbonbook.app" },
+  { pattern = "carbonink.xyz/activate", zone_name = "carbonink.xyz" },
+  { pattern = "carbonink.xyz/activate/*", zone_name = "carbonink.xyz" },
 ]
 
 [assets]
