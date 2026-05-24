@@ -18,25 +18,25 @@ routes = [
 [[d1_databases]]
 binding = "DB"
 database_name = "carbonink-cloud"
-database_id = "local"
+database_id = "619f574d-66f6-4e80-96db-1a6b4b9f0a85"
 migrations_dir = "migrations"
 
 # ---------- KV ----------
 [[kv_namespaces]]
 binding = "LICENSE_ACTIVE"
-id = "local"
+id = "33e285bd98d9481a9e7348d65a94ac2d"
 
 [[kv_namespaces]]
 binding = "REVOCATION_SET"
-id = "local"
+id = "6abdfab8a2dd486fa98f3d565359d15f"
 
 [[kv_namespaces]]
 binding = "HUMANIZED_KEYS"
-id = "local"
+id = "07b513881b2a4457a91226def7201504"
 
 [[kv_namespaces]]
 binding = "RATE_LIMIT"
-id = "local"
+id = "0ad669c5d04549cc90ab98eeb6329b84"
 
 # ---------- R2 ----------
 [[r2_buckets]]

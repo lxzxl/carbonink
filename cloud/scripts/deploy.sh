@@ -37,17 +37,20 @@ for arg in "$@"; do
   esac
 done
 
-# Map short name → directory
-declare -A DIRS=(
-  [worker]=cloud/worker
-  [marketing]=cloud/sites/marketing
-  [activate]=cloud/sites/activate
-  [account]=cloud/sites/account
-)
+# Map short name → directory (bash 3.2-compatible, no `declare -A`).
+filter_to_dir() {
+  case "$1" in
+    worker)    echo cloud/worker ;;
+    marketing) echo cloud/sites/marketing ;;
+    activate)  echo cloud/sites/activate ;;
+    account)   echo cloud/sites/account ;;
+    *) echo "bug: unknown filter $1" >&2; exit 1 ;;
+  esac
+}
 
 # Decide what to deploy
 if [[ -n "$FILTER" ]]; then
-  TARGETS=("${DIRS[$FILTER]}")
+  TARGETS=("$(filter_to_dir "$FILTER")")
 else
   TARGETS=("${WORKERS[@]}")
 fi
