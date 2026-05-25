@@ -1,4 +1,7 @@
 import {
+  type EmissionSource,
+  type EmissionSourceCreateInput,
+  type EmissionSourceUpdateInput,
   emissionSourceCreateInput,
   emissionSourceUpdateInput,
   type PresetSource,
@@ -7,6 +10,7 @@ import { z } from 'zod';
 import presetCatalog from '../../data/preset-sources.json' with { type: 'json' };
 import type { IpcContext } from '../context.js';
 import type { IpcTypeMap } from '../types.js';
+import { withUndo } from '../undo-wrapper.js';
 
 const idInput = z.object({ id: z.string().min(1) });
 const siteScopedInput = z.object({ site_id: z.string().min(1) });
@@ -40,17 +44,86 @@ export function emissionSourceHandlers(ctx: IpcContext): {
 } {
   const svc = ctx.emissionSourceService;
   return {
-    'source:create': (input) => svc.create(emissionSourceCreateInput.parse(input)),
+    // create / update / delete are wrapped with `withUndo`. Source
+    // delete is soft (`is_active = 0` flip in the service), so the
+    // create inverse is symmetric — it also calls delete(). A true
+    // hard-delete-then-undo would need to re-INSERT, but the service
+    // doesn't expose hard delete; soft is the canonical model.
+    'source:create': withUndo<EmissionSourceCreateInput, EmissionSource, true>(
+      ctx.undoManager,
+      'source:create',
+      'create emission source',
+      () => true,
+      (_captured, result) => ({
+        undo: () => svc.delete(result.id),
+        redo: () => {
+          // Symmetric redo: flip is_active back to 1 (the row still
+          // exists in the table after the soft-delete).
+          ctx.db.prepare('UPDATE emission_source SET is_active = 1 WHERE id = ?').run(result.id);
+        },
+      }),
+      (input) => svc.create(emissionSourceCreateInput.parse(input)),
+    ),
     'source:get-by-id': (input) => svc.getById(idInput.parse(input).id),
     'source:list-by-site': (input) => svc.listBySite(siteScopedInput.parse(input).site_id),
     'source:list-by-org': (input) =>
       svc.listByOrganization(orgScopedInput.parse(input).organization_id),
     'source:list-by-org-with-stats': (input) =>
       svc.listByOrganizationWithStats(orgScopedInput.parse(input).organization_id),
-    'source:update': (input) => svc.update(emissionSourceUpdateInput.parse(input)),
-    'source:delete': (input) => {
-      svc.delete(idInput.parse(input).id);
-    },
+    // For update, capture the full pre-update row so undo can restore
+    // it column-for-column (including `updated_at` — see spec edge
+    // case: "post-undo updated_at reflects state being restored to").
+    'source:update': withUndo<EmissionSourceUpdateInput, EmissionSource, EmissionSource | null>(
+      ctx.undoManager,
+      'source:update',
+      'update emission source',
+      (input) => svc.getById(input.id),
+      (oldRow, newRow) => ({
+        undo: () => {
+          if (!oldRow) return;
+          // The update schema only accepts a subset of mutable fields
+          // (`site_id` is fixed at creation). `category` is optionalString
+          // — null on the DB row, but the zod schema wants string|undefined,
+          // so coerce explicitly here.
+          svc.update({
+            id: oldRow.id,
+            name: oldRow.name,
+            scope: oldRow.scope,
+            category: oldRow.category ?? undefined,
+          });
+        },
+        redo: () => {
+          svc.update({
+            id: newRow.id,
+            name: newRow.name,
+            scope: newRow.scope,
+            category: newRow.category ?? undefined,
+          });
+        },
+      }),
+      (input) => svc.update(emissionSourceUpdateInput.parse(input)),
+    ),
+    'source:delete': withUndo<{ id: string }, void, EmissionSource | null>(
+      ctx.undoManager,
+      'source:delete',
+      'delete emission source',
+      (input) => svc.getById(input.id),
+      (snapshot) => ({
+        undo: () => {
+          // Undo: flip is_active back. Skip if the row went missing
+          // (race with a hard delete from a future migration etc.).
+          if (!snapshot) return;
+          ctx.db.prepare('UPDATE emission_source SET is_active = 1 WHERE id = ?').run(snapshot.id);
+        },
+        redo: () => {
+          if (!snapshot) return;
+          svc.delete(snapshot.id);
+        },
+      }),
+      (input) => {
+        svc.delete(idInput.parse(input).id);
+      },
+    ),
     'source:list-presets': () => PRESETS,
     'source:add-from-preset': (input) => {
       const parsed = addFromPresetInput.parse(input);

@@ -44,6 +44,14 @@ import type { IpcPushTypeMap } from './types.js';
  * context without touching the IpcListener.
  */
 export interface IpcContext {
+  // Raw db + clock from the service context. Most handlers go through
+  // services and don't touch this, but undo-wrappers occasionally need
+  // raw SQL access (the inverse of a service mutation isn't always
+  // expressible as another service call — e.g. re-INSERT with the
+  // original generated id rather than letting the service mint a new
+  // one).
+  db: ServiceContext['db'];
+  now: ServiceContext['now'];
   organizationService: OrganizationService;
   emissionSourceService: EmissionSourceService;
   activityDataService: ActivityDataService;
@@ -224,6 +232,8 @@ export function createIpcContext(
   };
 
   const ctx: IpcContext = {
+    db: svc.db,
+    now: svc.now,
     organizationService: new OrganizationService(svc),
     emissionSourceService,
     activityDataService,
