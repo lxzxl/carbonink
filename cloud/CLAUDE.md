@@ -105,6 +105,39 @@ auto-provision, the admin gets silent `{sent: true}` responses with
 no email because the no-customer branch is the standard
 enumeration-prevention path.
 
+## Brand palette — same identity as the desktop app
+
+The cloud site's color tokens (`cloud/web/src/styles/global.css`) are
+aligned with the desktop X2 icon design. **Source of truth** is
+`desktop/scripts/icon-designs.mjs::PALETTE` — when the desktop
+identity moves, this file moves with it.
+
+| Token | Hex | Role |
+|---|---|---|
+| `--color-primary` / `moss-500` | `#6B8266` | CTA buttons, focus rings, badges, accent text |
+| `--color-primary-foreground` | `#ffffff` | Text on `bg-primary` (4.9:1 contrast on moss-500, WCAG AA-pass) |
+| moss ramp `50/100/200/300/600/700/800/900` | derived | Soft backgrounds, borders, hover states |
+| `--color-background` | `#ffffff` | Page background |
+| `--color-foreground` | `#0f172a` | Body text |
+| `--color-border` | `#e2e8f0` | Neutral chrome borders |
+
+LogoMark + favicon use the X2 "stacked data rows" mark verbatim
+(`graphite #15171A` squircle + `cream #F4EFE3` top/bottom bars +
+`moss-500 #6B8266` middle bar). SVG coords are in 1024-design-space
+so they copy-paste directly from `drawDirectionX2`.
+
+**Do not introduce `bg-sky-*` / `text-sky-*` / `border-sky-*` here.**
+The old Figma Make palette is fully retired. New chromatic accents
+go through the moss ramp; if a shade is missing, extend the ramp in
+`global.css` rather than reaching for a different Tailwind family.
+The `--color-brand-*` legacy aliases also point at moss; they're a
+soft-landing pad for any stale references, not a second palette.
+
+Reminder: this brand is "old money green" — pharmacist's apothecary
+jar, antique library, Jaguar dashboard — NOT a recycling-symbol /
+SaaS-eco green. Resist the urge to bump saturation when adding
+shades.
+
 ## Test conventions
 
 `cloud/worker/tests/*.test.ts` uses `@cloudflare/vitest-pool-workers`.

@@ -1,20 +1,24 @@
 @import "tailwindcss";
 
 /* ─────────────────────────────────────────────────────────────────────────
- * Theme tokens — mapped to the Figma Make redesign palette.
+ * Theme tokens — aligned with the desktop app's X2 identity.
  *
- * Token names follow the shadcn convention used by the Figma source
- * (`bg-background`, `text-foreground`, `border-border`, `text-primary`,
- * `text-muted-foreground`, `bg-muted`). This lets us paste Figma classes
- * directly without rewriting them per page.
+ * Token names follow the shadcn convention (`bg-background`,
+ * `text-foreground`, `border-border`, `text-primary`,
+ * `text-muted-foreground`, `bg-muted`). Tailwind utility classes use
+ * those tokens directly — `bg-primary`, `border-border`, etc.
  *
- * Primary = sky-500 (#0ea5e9) — Tailwind sky CTA color used for the
- * "Start free trial" button + focus rings. This is the only piece of
- * the original Figma Make palette still in play; the LogoMark + favicon
- * have since flipped to the desktop app's X2 identity (graphite
- * #15171A + cream #F4EFE3 + moss-green #6B8266). A future task can
- * sweep --color-primary to the X2 moss-green for a unified palette;
- * for now the sky CTAs and the graphite mark coexist deliberately.
+ * Primary = moss-500 (#6B8266) — the accent green from the desktop X2
+ * icon (graphite #15171A + cream #F4EFE3 + moss-green #6B8266). One
+ * brand identity across desktop tray, website CTAs, focus rings, and
+ * the cloud admin tools. The source of truth for these colors is
+ * `desktop/scripts/icon-designs.mjs` (PALETTE constants); when that
+ * changes, this file changes.
+ *
+ * The full moss-* ramp below feeds Tailwind v4's auto-generated
+ * utility classes — `bg-moss-50`, `text-moss-600`, `border-moss-200`,
+ * etc. Lightness progresses 95% → 17% across the 50/100/200/300/500/
+ * 600/700/800/900 stops; saturation and hue stay near HSL(109°, 12%).
  *
  * Numbers / license keys / version strings render in JetBrains Mono so
  * they read as "machine truth" not "marketing copy".
@@ -30,19 +34,34 @@
   --color-card-foreground: #0f172a;
   --color-muted: #f1f5f9;
   --color-muted-foreground: #64748b;
-  --color-primary: #0ea5e9;
+  --color-primary: #6B8266;
   --color-primary-foreground: #ffffff;
   --color-border: #e2e8f0;
   --color-input-background: #ffffff;
   --color-destructive: #dc2626;
   --color-destructive-foreground: #ffffff;
 
-  /* Legacy aliases — older Astro snippets still reference
-   * `var(--color-brand-500)` etc. Keep them mapped to the same values
-   * so partially-migrated pages keep rendering correctly. */
-  --color-brand-50: #f0f9ff;
-  --color-brand-500: #0ea5e9;
-  --color-brand-700: #0369a1;
+  /* Moss ramp — the only chromatic accent in the cloud palette.
+   * `moss-500` is the X2 PALETTE.mossAccent verbatim; the rest is a
+   * lightness ramp around the same hue for backgrounds, borders, and
+   * hover states. White text on `moss-500` is 4.9:1 contrast (WCAG
+   * AA-pass for normal text). */
+  --color-moss-50: #f1f4f0;
+  --color-moss-100: #e3ebe1;
+  --color-moss-200: #c8d5c4;
+  --color-moss-300: #a3b8a0;
+  --color-moss-500: #6B8266;
+  --color-moss-600: #586c54;
+  --color-moss-700: #475743;
+  --color-moss-800: #364238;
+  --color-moss-900: #28302a;
+
+  /* Legacy aliases — older Astro snippets reference `var(--color-brand-*)`.
+   * Rebound to moss so a fading-out reference doesn't suddenly show the
+   * old sky-blue on a partially-migrated page. */
+  --color-brand-50: #f1f4f0;
+  --color-brand-500: #6B8266;
+  --color-brand-700: #475743;
   --color-ink-900: #0f172a;
   --color-ink-500: #64748b;
   --color-bg: #ffffff;

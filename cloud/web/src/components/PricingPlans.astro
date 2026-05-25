@@ -3,7 +3,7 @@
  * PricingPlans — 3-card grid (Trial / Base / CBAM) lifted from the
  * Figma redesign.
  *
- * Base is the visually-highlighted plan (sky border + ring + "most
+ * Base is the visually-highlighted plan (moss border + ring + "most
  * popular" badge). Trial + CBAM are flat-bordered.
  *
  * Pre-paid early-access mode: we're not running Stripe checkout
@@ -130,7 +130,7 @@ const tx = isZh
     <div
       class:list={[
         'rounded-lg border p-6 flex flex-col gap-5 relative',
-        plan.highlight ? 'border-sky-300 ring-1 ring-sky-200 bg-sky-50' : 'border-border bg-background',
+        plan.highlight ? 'border-moss-300 ring-1 ring-moss-200 bg-moss-50' : 'border-border bg-background',
       ]}
     >
       {plan.badge && (
@@ -160,7 +160,7 @@ const tx = isZh
         <button
           type="button"
           data-request-toggle
-          class="text-center py-2 rounded text-sm font-medium transition-colors bg-primary text-primary-foreground hover:bg-sky-600"
+          class="text-center py-2 rounded text-sm font-medium transition-colors bg-primary text-primary-foreground hover:bg-moss-600"
         >
           {plan.cta}
         </button>
@@ -170,7 +170,7 @@ const tx = isZh
           class:list={[
             'text-center py-2 rounded text-sm font-medium transition-colors',
             plan.highlight
-              ? 'bg-primary text-primary-foreground hover:bg-sky-600'
+              ? 'bg-primary text-primary-foreground hover:bg-moss-600'
               : 'border border-border hover:bg-muted',
           ]}
         >
@@ -196,11 +196,11 @@ const tx = isZh
               name="email"
               required
               placeholder={tx.form.placeholder}
-              class="rounded border border-sky-200 bg-background px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+              class="rounded border border-moss-200 bg-background px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
             />
             <button
               type="submit"
-              class="rounded bg-primary text-primary-foreground px-3 py-1.5 text-sm font-medium hover:bg-sky-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              class="rounded bg-primary text-primary-foreground px-3 py-1.5 text-sm font-medium hover:bg-moss-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
               data-submit-label={tx.form.submit}
               data-submitting-label={tx.form.submitting}
             >
@@ -222,7 +222,7 @@ const tx = isZh
       <ul class="flex flex-col gap-2.5">
         {plan.features.map((f) => (
           <li class="flex items-start gap-2 text-sm text-muted-foreground">
-            <svg class="w-3.5 h-3.5 text-sky-500 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <svg class="w-3.5 h-3.5 text-moss-500 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <polyline points="20 6 9 17 4 12" />
             </svg>
             <span>{f}</span>

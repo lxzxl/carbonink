@@ -56,6 +56,13 @@ warns if it's at a sub-package). Includes `better-sqlite3`, `electron`,
 `esbuild`, `sharp`, `workerd`, `@napi-rs/canvas-*`. New native deps
 must be added here before pnpm will run their postinstall.
 
+**Brand identity is unified** across desktop + cloud — `--color-primary`
+in `cloud/web/src/styles/global.css` is bound to the X2 mark's moss-green
+accent (`#6B8266`), and the LogoMark/favicon are verbatim ports of the
+desktop icon. Source of truth is `desktop/scripts/icon-designs.mjs`.
+Full palette table + "don't reintroduce sky-blue" rule lives in
+`cloud/CLAUDE.md` § "Brand palette".
+
 **Electron pinned at `^41.5.1`** — not the latest. We can't move to v42
 yet because `better-sqlite3` (latest 12.10.0) doesn't compile against
 Electron 42's V8 14.8 API. The upstream fix
