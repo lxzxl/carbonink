@@ -1,0 +1,104 @@
+name: Deploy Cloud
+
+# Auto-deploys the two Cloudflare Workers (cloud/worker + cloud/web)
+# to production. Gated on the CI workflow passing on the same SHA —
+# so a green build is a prerequisite for going live.
+#
+# Triggers:
+#   - workflow_run on CI completion → deploy iff conclusion == success
+#     and the run was on `main`. PR CI runs never reach this.
+#   - workflow_dispatch → manual "Run workflow" button for re-deploys
+#     without a fresh commit (e.g., re-issuing after a Worker secret
+#     rotation). Skips the CI gate; you're choosing to deploy HEAD.
+#
+# What we do NOT auto-do:
+#   - D1 migrations. `wrangler d1 migrations apply` ships schema
+#     changes that go live the instant they land. Until we have a
+#     staging environment, that's a foot-gun — keep migrations
+#     explicit, applied by the developer who wrote them before
+#     merging the migration-bearing PR. (See cloud/DEPLOY.md §
+#     "Applying migrations".)
+#   - Worker secrets. Done out-of-band via cloud/scripts/push-secrets.sh
+#     when the secret values change. Per-deploy push would re-encrypt
+#     identical values for no reason.
+#   - Stripe webhook URL. One-shot dashboard config, not per-deploy.
+#
+# Required GitHub repo secret:
+#   CLOUDFLARE_API_TOKEN — same scopes as cloud/.env.local; see
+#   cloud/DEPLOY.md § "Create a Cloudflare API token".
+
+on:
+  workflow_run:
+    workflows: [CI]
+    branches: [main]
+    types: [completed]
+  workflow_dispatch:
+
+concurrency:
+  # Never cancel a deploy mid-flight — wrangler has its own atomic
+  # publish semantics, but two parallel deploys racing on the same
+  # worker would still create version churn. Queue rather than cancel.
+  group: cloud-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    # Two ways in:
+    #   1. CI completed successfully → deploy
+    #   2. Operator pressed "Run workflow" → deploy
+    # Failing CI runs land here but bail out at the if-gate.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # workflow_run hands us the head SHA of the CI run that
+          # triggered us. By the time we get here, `main` may have
+          # advanced — checking out the exact SHA keeps "deploy
+          # represents what CI validated" honest. For workflow_dispatch,
+          # github.sha is HEAD of the chosen branch (default main).
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build cloud/web (Astro)
+        # cloud/web needs `dist/` populated before wrangler can pick
+        # up the SSR entry + Static Assets binding. cloud/worker has
+        # no build step — wrangler bundles src/ directly via its
+        # internal esbuild.
+        run: pnpm cloud:build:web
+
+      - name: Deploy cloud/worker (carbonink-cloud-api)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        # Worker order matters: the api worker handles /api/*, so we
+        # deploy it BEFORE the catch-all web worker. If both deploys
+        # rolled simultaneously, the web worker could briefly route
+        # /api/* to itself during the api worker's swap window.
+        run: cd cloud/worker && pnpm exec wrangler deploy
+
+      - name: Deploy cloud/web (carbonink-cloud-web)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: cd cloud/web && pnpm exec wrangler deploy
+
+      - name: Summary
+        run: |
+          echo "### Cloud deploy complete" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- worker: \`carbonink-cloud-api\` → \`carbonink.xyz/api/*\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- web:    \`carbonink-cloud-web\` → \`carbonink.xyz/*\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Triggered by: \`${{ github.event_name }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "Deployed SHA: \`${{ github.event.workflow_run.head_sha || github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"

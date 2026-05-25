@@ -161,6 +161,78 @@ API and web workers automatically.
 cd cloud/worker && pnpm exec wrangler tail
 ```
 
+## CI/CD pipeline (GitHub Actions)
+
+Two workflows handle cloud auto-deploy. The `cloud/scripts/deploy.sh`
+local script still works (manual ops, dry runs, single-worker
+re-deploys) — CI is just the "happy path" for landing changes via PR.
+
+### `.github/workflows/ci.yml` — validation gate
+
+Runs on every PR and every push to `main`:
+
+1. `pnpm desktop:typecheck`
+2. `pnpm desktop:test` (vitest, baseline 662)
+3. `pnpm cloud:test` (cloud/worker vitest, baseline 92)
+4. `pnpm cloud:build:web` (Astro build smoke-test)
+
+~3–5 min on a single Ubuntu runner. PR runs auto-cancel if you push
+a new commit to the same branch; main runs never cancel.
+
+### `.github/workflows/cloud-deploy.yml` — auto-deploy
+
+Triggers off a successful `CI` workflow run on `main` (via
+`workflow_run`). Also exposes a manual "Run workflow" button on
+GitHub for re-deploys without a fresh commit.
+
+What it does, in order:
+1. Checks out the exact SHA that CI validated
+2. `pnpm install --frozen-lockfile`
+3. `pnpm cloud:build:web` (Astro)
+4. `wrangler deploy` for `cloud/worker` (api first, then web — keeps
+   the routing edge clean during the swap)
+5. `wrangler deploy` for `cloud/web`
+
+What it does **NOT** do:
+- **No D1 migration apply.** A bad migration would go live the instant
+  it merged. Until we have a staging zone, migrations stay explicit:
+  the developer who wrote the migration runs `wrangler d1 migrations
+  apply DB --remote` BEFORE merging the migration-bearing PR. The
+  deploy then picks up code that assumes the schema already moved.
+- **No secret rotation.** `push-secrets.sh` stays manual — re-encrypting
+  unchanged secret values on every push is wasted work, and the
+  failure mode (a rogue PR with a changed `cloud/.env.local`) would be
+  serious.
+- **No Stripe webhook URL config.** One-shot dashboard click; not
+  per-deploy.
+
+### Required GitHub repo secret
+
+| Secret | Value | Scope |
+|---|---|---|
+| `CLOUDFLARE_API_TOKEN` | Same token you have in `cloud/.env.local` | All Workers/D1/KV/R2/Email scopes from § 1 above |
+
+Add it at: **Repo → Settings → Secrets and variables → Actions → New
+repository secret**. The token can be the same one local dev uses —
+or scoped narrower if you want CI to fail-closed on bootstrap-only
+operations (it only needs Workers Scripts: Edit + Workers Routes:
+Edit for steady-state deploys).
+
+### When CI catches a regression
+
+A red PR can't be merged (configure branch protection on `main` to
+require the CI check to pass). A red push to main blocks the cloud
+auto-deploy via the `workflow_run.conclusion == success` gate. Fix
+forward in a new commit; the next green main SHA deploys
+automatically.
+
+### Bypassing CI
+
+Use the manual `workflow_dispatch` trigger on cloud-deploy.yml when
+CI's broken for environmental reasons (rare — GH Actions outage,
+flaky transient) but the code is fine. Deploys HEAD of the chosen
+branch unconditionally.
+
 ## Stripe webhook URL
 
 After the first deploy, set the webhook endpoint in Stripe dashboard:

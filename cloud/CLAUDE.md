@@ -105,6 +105,32 @@ auto-provision, the admin gets silent `{sent: true}` responses with
 no email because the no-customer branch is the standard
 enumeration-prevention path.
 
+## CI/CD — auto-deploy on push to main
+
+Two workflows in `.github/workflows/`:
+
+- `ci.yml` — PR + push-to-main validation (typecheck + desktop vitest
+  + cloud worker vitest + cloud/web Astro build, ~3–5 min on Linux).
+- `cloud-deploy.yml` — workflow_run-gated on CI success on main. Runs
+  `wrangler deploy` for `cloud/worker` then `cloud/web`. Also exposes a
+  manual `workflow_dispatch` button.
+
+What auto-deploys: code only. What stays explicit:
+
+- **D1 migrations** — apply by hand (`wrangler d1 migrations apply DB
+  --remote`) BEFORE merging the PR. No staging zone yet → auto-apply
+  would put a bad migration live before anyone could catch it.
+- **Worker secrets** — `push-secrets.sh` stays manual; per-deploy
+  re-encryption is waste, and a rogue PR touching `.env.local` would
+  be serious.
+
+Required GitHub repo secret: `CLOUDFLARE_API_TOKEN` (same scopes as
+your local `cloud/.env.local`, see `cloud/DEPLOY.md`).
+
+The local `cloud/scripts/deploy.sh` still works for manual ops
+(`--dry-run`, single-worker re-deploys, debugging) — CI is just the
+default happy path.
+
 ## Brand palette — same identity as the desktop app
 
 The cloud site's color tokens (`cloud/web/src/styles/global.css`) are

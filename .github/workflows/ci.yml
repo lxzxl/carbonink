@@ -1,0 +1,81 @@
+name: CI
+
+# Pre-merge validation gate. Runs on every PR and every push to main.
+#
+# What runs (single Linux runner, sequential, ~3–5 min total):
+#   1. desktop:typecheck   — tsc --noEmit
+#   2. desktop:test        — vitest run (baseline 662)
+#   3. cloud:test          — cloud/worker vitest (baseline 92)
+#   4. cloud:build:web     — Astro build, catches missing imports / SSR
+#                            breakage / lint-time TS errors in the web
+#
+# What is NOT run:
+#   - biome `pnpm lint`. CLAUDE.md documents ~940 pre-existing biome
+#     errors deferred to v1.0.1. Running it here would fail every PR.
+#     New code should lint clean on a scoped `biome check <files>`
+#     manually before merging.
+#   - desktop:test:e2e. Playwright + Electron headless is heavy and not
+#     yet wired for CI; the unit tests cover business logic.
+#   - desktop electron-builder. The release pipeline (release.yml,
+#     tag-triggered) handles signed installer builds; we don't rebuild
+#     Electron on every PR.
+#
+# Ordering: tests BEFORE any `pnpm build` — better-sqlite3's native
+# binding flips between Node and Electron ABI when electron-rebuild
+# runs (CLAUDE.md § "Test discipline"), so test→build is the only
+# safe sequence.
+#
+# cloud-deploy.yml hangs off this workflow via `workflow_run`: a
+# successful main-branch CI run triggers the cloud auto-deploy. PR
+# runs never trigger deploy.
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+concurrency:
+  # PR: cancel the older run when a newer commit lands on the same PR
+  # — no point validating an obsolete commit. Main: never cancel, every
+  # SHA gets its own validation pass (and its own potential cloud
+  # deploy downstream).
+  group: ci-${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        # `--frozen-lockfile` rejects pnpm-lock.yaml drift — keeps CI
+        # honest if someone bumps package.json without regenerating
+        # the lockfile.
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck desktop
+        run: pnpm desktop:typecheck
+
+      - name: Test desktop (vitest)
+        run: pnpm desktop:test
+
+      - name: Test cloud worker (vitest)
+        run: pnpm cloud:test
+
+      - name: Build cloud web (Astro)
+        # Doubles as a smoke test for the SSR Worker entry — Astro
+        # build refuses to emit if any TS/import error blocks
+        # prerender of the marketing pages.
+        run: pnpm cloud:build:web
