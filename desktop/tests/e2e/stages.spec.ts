@@ -1,8 +1,25 @@
+import { join } from 'node:path';
 import { test } from '@playwright/test';
 import { launchApp, teardown } from './_setup.js';
 import { CANNED } from './canned.js';
 import { baselineIpcMocks, FIXTURE_DOCUMENTS } from './fixtures.js';
 import { navigateTo, snap, waitForReactMount, waitForRouteSettled } from './helpers.js';
+
+/**
+ * Maps a doc_id to the absolute path of a real PDF fixture so the
+ * harness can serve actual bytes through `document:read-bytes`. These
+ * are the same sample PDFs `desktop/tests/fixtures/smoke/` ships
+ * (committed since the manual smoke days); reusing them keeps the
+ * binary footprint zero for the e2e suite.
+ */
+const SMOKE_PDF_DIR = join(__dirname, '..', 'fixtures', 'smoke');
+const PDF_FIXTURE_BY_DOC_ID: Record<string, string> = {
+  doc_utility: join(SMOKE_PDF_DIR, '01-utility-sample.pdf'),
+  doc_fuel: join(SMOKE_PDF_DIR, '02-fuel-receipt-sample.pdf'),
+  doc_freight: join(SMOKE_PDF_DIR, '03-freight-sample.pdf'),
+  doc_purchase: join(SMOKE_PDF_DIR, '04-purchase-sample.pdf'),
+  doc_travel: join(SMOKE_PDF_DIR, '05-travel-sample.pdf'),
+};
 
 /**
  * Stage-extraction screenshot specs. Replaces the 5 deferred stage stubs
@@ -67,6 +84,9 @@ for (const scenario of SCENARIOS) {
       created_at: '2026-05-10T12:00:00Z',
     };
 
+    const pdfPath = PDF_FIXTURE_BY_DOC_ID[docId];
+    if (!pdfPath) throw new Error(`No PDF fixture mapped for ${docId}`);
+
     const setup = await launchApp({
       cannedExtractions: { [stageId]: canned.extraction },
       cannedRecommendations: { [stageId]: canned.recommendation },
@@ -89,6 +109,10 @@ for (const scenario of SCENARIOS) {
           doc_type: stageId.replace(/\..+$/, ''),
         },
       },
+      // Serve real PDF bytes so the iframe renders the document instead
+      // of the "PDF unavailable" red fallback. Same fixtures the manual
+      // smoke script used.
+      pdfBytesByDocId: { [docId]: pdfPath },
     });
 
     try {

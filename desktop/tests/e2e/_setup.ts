@@ -31,7 +31,7 @@
  * `[data-hydrated="true"]`. Out of scope for v1.
  */
 
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { _electron, type ElectronApplication, type Page } from '@playwright/test';
@@ -107,6 +107,21 @@ export type LaunchOpts = {
    * Promises are NOT supported — return the resolved value directly.
    */
   cannedIpc?: Record<string, unknown>;
+  /**
+   * Maps `document.id` → absolute path of a real PDF file to serve when
+   * the renderer queries `document:read-bytes`. Needed for stage specs
+   * + the screenshot tour — without it, the document review's
+   * `<PdfPreview>` shows a red "PDF unavailable" fallback because the
+   * fixture documents' `storage_path` is `/dev/null`.
+   *
+   * The harness reads the bytes at launch time (test-side fs) and
+   * passes them as a JSON-serialized `number[]` to the main process,
+   * which reconstructs `Uint8Array` before returning from the handler.
+   * That dance is necessary because `cannedIpc`'s JSON.stringify path
+   * mangles binary data and Uint8Array doesn't survive a JSON round
+   * trip on its own.
+   */
+  pdfBytesByDocId?: Record<string, string>;
 };
 
 const MAIN_ENTRY = join(__dirname, '../../out/main/index.cjs');
@@ -278,6 +293,45 @@ export async function launchApp(opts: LaunchOpts): Promise<StageE2ESetup> {
         }
         ipcMain.handle(channel, () => value);
       }
+    }, serialized);
+  }
+
+  // -------------------------------------------------------------------------
+  // PDF bytes for `document:read-bytes` — install AFTER `cannedIpc` so a
+  // spec that wants to override (rare — e.g. an "error state" snapshot
+  // showing the unavailable fallback) can still set the channel via
+  // `cannedIpc` and we don't clobber it.
+  //
+  // The serialized JSON is a `[docId, number[]][]` array of tuples; the
+  // main side rebuilds a Map<string, Uint8Array> and the handler looks
+  // up bytes by `input.id`. Electron's structured clone preserves
+  // Uint8Array across the IPC reply, so the renderer's `bytesQuery.data`
+  // arrives intact.
+  // -------------------------------------------------------------------------
+  if (opts.pdfBytesByDocId) {
+    const entries: Array<[string, number[]]> = [];
+    for (const [docId, filePath] of Object.entries(opts.pdfBytesByDocId)) {
+      const buffer = readFileSync(filePath);
+      entries.push([docId, Array.from(buffer)]);
+    }
+    const serialized = JSON.stringify(entries);
+    await app.evaluate(({ ipcMain }: typeof import('electron'), payload: string) => {
+      const tuples = JSON.parse(payload) as Array<[string, number[]]>;
+      const bytesMap = new Map<string, Uint8Array>(
+        tuples.map(([id, arr]) => [id, new Uint8Array(arr)]),
+      );
+      try {
+        ipcMain.removeHandler('document:read-bytes');
+      } catch {
+        // No existing handler — that's fine.
+      }
+      ipcMain.handle('document:read-bytes', (_event, input: { id: string }) => {
+        const bytes = bytesMap.get(input.id);
+        if (!bytes) {
+          throw new Error(`[e2e harness] No mocked PDF bytes for document_id "${input.id}"`);
+        }
+        return bytes;
+      });
     }, serialized);
   }
 
