@@ -30,6 +30,7 @@ import { QuestionnaireService } from '@main/services/questionnaire-service.js';
 import { ReportDataService } from '@main/services/report-data-service.js';
 import { buildRoutingLayer, type RoutingR } from '@main/services/routing/tags.js';
 import { SettingsService } from '@main/services/settings-service.js';
+import { UndoManager } from '@main/services/undo-manager.js';
 import { UnitConversionService } from '@main/services/unit-conversion-service.js';
 import type { ProviderConfig } from '@shared/types.js';
 import type { Layer } from 'effect';
@@ -80,6 +81,8 @@ export interface IpcContext {
   questionnairePdfDataService: QuestionnairePdfDataService;
   // Phase 4 sub-project A — license JWT verify + state machine.
   licenseService: LicenseService;
+  // Post-launch (spec 2026-05-25) — session-scoped undo/redo stack.
+  undoManager: UndoManager;
   // URL for the print-render route (used by PDF export for hidden BrowserWindow).
   printRenderUrl: string;
   // Main→renderer push channel emitter, shared across all services.
@@ -387,6 +390,10 @@ export function createIpcContext(
     printRenderUrl:
       overrides.printRenderUrl ??
       `${process.env.ELECTRON_RENDERER_URL || 'about:blank'}/print-render`,
+    // Fresh undo manager per IPC context — session-scoped per design.
+    // Tests get an empty manager too; they can populate it via the
+    // service-exposed `push()` if they need to exercise inverse flow.
+    undoManager: new UndoManager(),
     pushEvent: <C extends keyof IpcPushTypeMap>(channel: C, payload: IpcPushTypeMap[C]) => {
       // Use the progressEmitter if available; tests can inject a vi.fn()
       return;

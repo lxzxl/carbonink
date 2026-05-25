@@ -54,6 +54,9 @@ export const READ_ONLY_BLOCKED_CHANNELS: ReadonlySet<keyof IpcTypeMap> = new Set
   'ef:recommend',
   // MCP write tool wiring
   'mcp:write-claude-config',
+  // Undo/Redo (post-launch) — inverse operations are themselves writes;
+  // expired/revoked licenses block them too per the spec.
+  'undo:do',
 ]);
 
 /**

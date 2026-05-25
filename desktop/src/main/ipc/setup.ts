@@ -20,6 +20,7 @@ import { questionnaireHandlers } from './handlers/questionnaire.js';
 import { reportHandlers } from './handlers/report.js';
 import { routingHandlers } from './handlers/routing.js';
 import { settingsHandlers } from './handlers/settings.js';
+import { undoHandlers } from './handlers/undo.js';
 import { updaterHandlers } from './handlers/updater.js';
 import { licenseGate } from './license-gate.js';
 import { createProgressEmitter } from './progress.js';
@@ -50,6 +51,7 @@ const HANDLER_FACTORIES: ReadonlyArray<HandlerFactory> = [
   updaterHandlers,
   appHandlers,
   dataHandlers,
+  undoHandlers,
 ];
 
 export function setupIpc(): void {

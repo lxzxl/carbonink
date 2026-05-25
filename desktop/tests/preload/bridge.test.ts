@@ -135,6 +135,9 @@ describe('preload bridge', () => {
       'app:open-auto-backup-dir',
       'app:get-auto-backup-enabled',
       'app:set-auto-backup-enabled',
+      // Undo/Redo (post-launch)
+      'undo:peek',
+      'undo:do',
       // data domain (Phase 5.2 — backup/restore/reset + cache cleanup)
       'data:export-backup',
       'data:import-backup',

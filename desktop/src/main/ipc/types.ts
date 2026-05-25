@@ -457,6 +457,16 @@ export type IpcTypeMap = {
     db_file_bytes: number;
   };
   'cache:clear-extraction-raw': () => { rows_cleared: number; bytes_freed: number };
+
+  // Undo/Redo (post-launch — see docs/specs/2026-05-25-undo-redo-design.md)
+  //
+  // peek is a cheap read of the in-memory stack tops; it powers the
+  // menu's enabled/disabled state and the renderer's "can undo / can
+  // redo" tracking. `do` executes the closure on the named side and is
+  // in the license-gate read-only block set — inverse ops are themselves
+  // writes, so an expired license blocks them too.
+  'undo:peek': () => { undo_kind: string | null; redo_kind: string | null };
+  'undo:do': (input: { direction: 'undo' | 'redo' }) => { kind: string };
 };
 
 /**
