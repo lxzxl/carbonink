@@ -65,6 +65,21 @@ jobs:
         # the lockfile.
         run: pnpm install --frozen-lockfile
 
+      - name: Compile paraglide messages (renderer i18n)
+        # `src/renderer/paraglide/*` is gitignored — `@inlang/paraglide-js`
+        # generates it. In local dev the electron-vite plugin
+        # (`paraglide()` in electron.vite.config.ts) emits it on `pnpm
+        # dev` / `pnpm build`. CI does neither — it goes straight to
+        # `tsc --noEmit`, which then fails on 60+ "Cannot find module
+        # '@renderer/paraglide/messages'" errors because the source
+        # tree was never emitted. Compile it explicitly here.
+        #
+        # Output persists for the test step too (same job, same
+        # workspace) — vitest also imports from @renderer/paraglide/*.
+        # Main-process code (`src/main/*`) does NOT import paraglide,
+        # so we only generate the renderer outdir.
+        run: pnpm --filter carbonink exec paraglide-js compile --project ./project.inlang --outdir ./src/renderer/paraglide
+
       - name: Typecheck desktop
         run: pnpm desktop:typecheck
 
