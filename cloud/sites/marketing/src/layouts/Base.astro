@@ -2,7 +2,16 @@
 import Footer from '../components/Footer.astro';
 import Nav from '../components/Nav.astro';
 import '../styles/global.css';
-const { title, lang = 'zh-CN' } = Astro.props as { title: string; lang?: 'zh-CN' | 'en' };
+
+const { title, lang = 'zh-CN', description } = Astro.props as {
+  title: string;
+  lang?: 'zh-CN' | 'en';
+  description?: string;
+};
+
+const defaultDesc = lang === 'zh-CN'
+  ? '碳墨 — 完全离线运行的桌面端碳核算工具。AI 解析单据，一键导出 ISO 14064-1 报告。'
+  : 'CarbonInk — local-first GHG accounting for factories. AI extracts emission data from bills. One-click ISO 14064-1 report.';
 ---
 <!doctype html>
 <html lang={lang}>
@@ -10,10 +19,24 @@ const { title, lang = 'zh-CN' } = Astro.props as { title: string; lang?: 'zh-CN'
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
+    <meta name="description" content={description ?? defaultDesc} />
+
+    {/* Self-host Inter Variable + JetBrains Mono via Google Fonts CDN.
+        `display=swap` lets text render in the fallback while the
+        variable font streams in, avoiding the 1-2s FOIT users see on
+        slow connections. Pinned to weight 400/500/600 (we don't use
+        heavier weights anywhere in the design) to keep the request
+        small. */}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600&display=swap" />
   </head>
-  <body class="bg-[color:var(--color-bg)] text-[color:var(--color-ink-900)] font-[family-name:var(--font-body)]">
+  <body class="bg-background text-foreground font-[family-name:var(--font-body)] min-h-screen flex flex-col">
     <Nav lang={lang} />
-    <main class="mx-auto max-w-5xl px-6 py-12"><slot /></main>
+    {/* pt-14 clears the fixed Nav (h-14). `flex-1` keeps the footer at
+        the bottom of short pages without the awkward "footer floating
+        in the middle" effect on near-empty placeholder pages. */}
+    <main class="flex-1 pt-14"><slot /></main>
     <Footer lang={lang} />
   </body>
 </html>

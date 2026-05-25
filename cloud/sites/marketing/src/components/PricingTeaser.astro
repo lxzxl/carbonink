@@ -1,0 +1,37 @@
+---
+/**
+ * PricingTeaser — sky-50 banded section that bridges the marketing
+ * page to /pricing without dumping the full price grid here. One
+ * sentence of policy ("trial → auto-downgrade") and a "view full
+ * pricing" link.
+ */
+
+const { lang } = Astro.props as { lang: 'zh-CN' | 'en' };
+const isZh = lang === 'zh-CN';
+
+const tx = isZh
+  ? {
+      copy: '年度订阅，按需购买。免费试用 14 天，到期自动降级，不收费。',
+      link: '查看完整定价',
+    }
+  : {
+      copy: 'Annual subscription, pay as you go. 14-day free trial — auto-downgrade at expiry, no charge.',
+      link: 'View full pricing',
+    };
+
+const prefix = isZh ? '' : '/en';
+---
+<section class="py-16 px-5 border-y border-border bg-sky-50">
+  <div class="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <p class="text-[15px] text-foreground max-w-md leading-relaxed">{tx.copy}</p>
+    <a
+      href={`${prefix}/pricing`}
+      class="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-sky-700 transition-colors flex-shrink-0"
+    >
+      {tx.link}
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="9 18 15 12 9 6" />
+      </svg>
+    </a>
+  </div>
+</section>

@@ -1,6 +1,39 @@
 @import "tailwindcss";
 
+/* ─────────────────────────────────────────────────────────────────────────
+ * Theme tokens — mapped to the Figma Make redesign palette.
+ *
+ * Token names follow the shadcn convention used by the Figma source
+ * (`bg-background`, `text-foreground`, `border-border`, `text-primary`,
+ * `text-muted-foreground`, `bg-muted`). This lets us paste Figma classes
+ * directly without rewriting them per page.
+ *
+ * Primary = sky-500 (#0ea5e9) — matches the desktop app accent and the
+ * LogoMark brand color. Numbers / license keys / version strings render
+ * in JetBrains Mono so they read as "machine truth" not "marketing
+ * copy".
+ *
+ * Dark mode is intentionally light-only for v1 — the hero ships a
+ * single light dashboard.png; a dark variant would need a fresh e2e
+ * run. We can add a `prefers-color-scheme: dark` branch later.
+ * ──────────────────────────────────────────────────────────────────── */
 @theme {
+  --color-background: #ffffff;
+  --color-foreground: #0f172a;
+  --color-card: #ffffff;
+  --color-card-foreground: #0f172a;
+  --color-muted: #f1f5f9;
+  --color-muted-foreground: #64748b;
+  --color-primary: #0ea5e9;
+  --color-primary-foreground: #ffffff;
+  --color-border: #e2e8f0;
+  --color-input-background: #ffffff;
+  --color-destructive: #dc2626;
+  --color-destructive-foreground: #ffffff;
+
+  /* Legacy aliases — older Astro snippets still reference
+   * `var(--color-brand-500)` etc. Keep them mapped to the same values
+   * so partially-migrated pages keep rendering correctly. */
   --color-brand-50: #f0f9ff;
   --color-brand-500: #0ea5e9;
   --color-brand-700: #0369a1;
@@ -9,15 +42,27 @@
   --color-bg: #ffffff;
   --color-bg-muted: #f8fafc;
 
-  --font-display: "Inter Variable", "Source Han Sans SC", system-ui, sans-serif;
-  --font-body: "Inter Variable", "Source Han Sans SC", system-ui, sans-serif;
+  --font-body: "Inter Variable", "Noto Sans SC", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Inter Variable", "Noto Sans SC", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg: #0f172a;
-    --color-bg-muted: #1e293b;
-    --color-ink-900: #f8fafc;
-    --color-ink-500: #94a3b8;
-  }
+/* zh-CN line-height bump — Chinese needs more vertical breathing room
+ * than Latin for the same visual density. Applies only when
+ * <html lang="zh-CN">. Equivalent to the inline `lineHeight: "1.8"`
+ * the Figma source threaded through every paragraph. */
+html[lang="zh-CN"] body {
+  line-height: 1.75;
+}
+html[lang="en"] body {
+  line-height: 1.6;
+}
+
+/* Calm focus ring fallback — the Figma design uses
+ * `ring-2 ring-primary/30 + border-primary` per input rather than a
+ * global outline. Keep a fallback so keyboard users still get a cue on
+ * elements without explicit focus styling. */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }

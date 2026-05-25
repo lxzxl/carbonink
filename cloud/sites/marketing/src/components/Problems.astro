@@ -1,0 +1,98 @@
+---
+/**
+ * Problems — three regulatory pressure cards that frame "why this
+ * tool now". CSRD / CBAM / A-share supply-chain surveys are the
+ * three most common funnel entries; each card cites the concrete
+ * customer-side pain it solves.
+ *
+ * Lifted directly from the Figma source. SVG icons inline (no
+ * dependency on lucide CDN) to keep the bundle small and the page
+ * fully renderable without JS.
+ */
+
+const { lang } = Astro.props as { lang: 'zh-CN' | 'en' };
+const isZh = lang === 'zh-CN';
+
+const tx = isZh
+  ? {
+      label: '合规压力',
+      title: '三道坎，一个工具',
+      items: [
+        {
+          icon: 'doc',
+          head: 'CSRD 供应链压力',
+          body: '欧洲客户要求 Scope 3 数据；拿不出来就丢单。',
+        },
+        {
+          icon: 'truck',
+          head: 'CBAM 碳边境税',
+          body: '出口欧盟需要申报每件商品的内嵌排放量。',
+        },
+        {
+          icon: 'globe',
+          head: 'A 股供应商调查',
+          body: '国内上市公司向全供应链收集 GHG 数据。',
+        },
+      ],
+    }
+  : {
+      label: 'Compliance pressure',
+      title: 'Three mandates, one tool',
+      items: [
+        {
+          icon: 'doc',
+          head: 'CSRD supply chain pressure',
+          body: 'European customers require Scope 3 data. No data, no order.',
+        },
+        {
+          icon: 'truck',
+          head: 'CBAM carbon border tax',
+          body: 'EU exports require declared embedded emissions per product.',
+        },
+        {
+          icon: 'globe',
+          head: 'A-share supplier surveys',
+          body: 'Listed Chinese companies collect GHG data from their entire supply chain.',
+        },
+      ],
+    };
+---
+<section class="py-20 px-5 bg-muted/40 border-y border-border">
+  <div class="max-w-6xl mx-auto">
+    <p class="text-xs font-medium text-primary uppercase tracking-widest mb-3">{tx.label}</p>
+    <h2 class="text-2xl md:text-3xl font-semibold tracking-tight mb-10">{tx.title}</h2>
+    <div class="grid md:grid-cols-3 gap-4">
+      {tx.items.map((item) => (
+        <div class="bg-background border border-border rounded-lg p-6 hover:border-sky-200 transition-colors">
+          <div class="w-8 h-8 rounded bg-sky-50 border border-sky-100 flex items-center justify-center mb-4">
+            {item.icon === 'doc' && (
+              <svg class="w-4 h-4 text-sky-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+              </svg>
+            )}
+            {item.icon === 'truck' && (
+              <svg class="w-4 h-4 text-sky-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="1" y="3" width="15" height="13" />
+                <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+                <circle cx="5.5" cy="18.5" r="2.5" />
+                <circle cx="18.5" cy="18.5" r="2.5" />
+              </svg>
+            )}
+            {item.icon === 'globe' && (
+              <svg class="w-4 h-4 text-sky-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="2" y1="12" x2="22" y2="12" />
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+              </svg>
+            )}
+          </div>
+          <h3 class="font-semibold text-[15px] mb-2">{item.head}</h3>
+          <p class="text-sm text-muted-foreground">{item.body}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

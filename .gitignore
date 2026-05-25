@@ -65,7 +65,14 @@ playwright-report/
 
 # Ad-hoc UI screenshots dropped by the user for design review.
 # Not part of the source tree; kept locally for reference.
+#
+# Exception: cloud/sites/marketing/public/screenshots/ ARE production
+# assets — they're embedded in the marketing site hero + gallery and
+# must ship. The `!` re-include below overrides the `screenshots/`
+# rule above for that one path only.
 screenshots/
+!cloud/sites/marketing/public/screenshots/
+!cloud/sites/marketing/public/screenshots/**
 
 # Climatiq API page dumps cached by desktop/scripts/climatiq-to-presets.mjs.
 # Regenerable from the public API; the OUTPUT (preset-sources.json) IS committed.

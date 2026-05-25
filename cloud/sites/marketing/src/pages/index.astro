@@ -1,13 +1,19 @@
 ---
 import Base from '../layouts/Base.astro';
+import Differentiators from '../components/Differentiators.astro';
+import Hero from '../components/Hero.astro';
+import HowItWorks from '../components/HowItWorks.astro';
+import PricingTeaser from '../components/PricingTeaser.astro';
+import PrivacyCallout from '../components/PrivacyCallout.astro';
+import Problems from '../components/Problems.astro';
+import ScreenshotGallery from '../components/ScreenshotGallery.astro';
 ---
-<Base title="碳墨 — 离线碳核算" lang="zh-CN">
-  <section class="py-16">
-    <h1 class="text-5xl font-bold tracking-tight">把碳核算搬到桌面端</h1>
-    <p class="mt-4 max-w-2xl text-lg text-[color:var(--color-ink-500)]">完全离线运行，零云端依赖。一次买断，终身使用。</p>
-    <div class="mt-8 flex gap-3">
-      <a href="/download" class="rounded-md bg-[color:var(--color-brand-500)] px-5 py-2.5 text-white">下载试用</a>
-      <a href="/pricing" class="rounded-md border border-[color:var(--color-ink-500)] px-5 py-2.5">查看定价</a>
-    </div>
-  </section>
+<Base title="碳墨 — 把碳核算搬到桌面端" lang="zh-CN">
+  <Hero lang="zh-CN" />
+  <Problems lang="zh-CN" />
+  <HowItWorks lang="zh-CN" />
+  <Differentiators lang="zh-CN" />
+  <ScreenshotGallery lang="zh-CN" />
+  <PrivacyCallout lang="zh-CN" />
+  <PricingTeaser lang="zh-CN" />
 </Base>

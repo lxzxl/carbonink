@@ -1,5 +1,6 @@
 ---
 import LicenseKeyCard from '../components/LicenseKeyCard.astro';
+import LogoMark from '../components/LogoMark.astro';
 import Base from '../layouts/Base.astro';
 import { lookupLicenseForSession } from '../lib/stripe-lookup.ts';
 
@@ -9,6 +10,7 @@ const directKey = url.searchParams.get('key');
 const accept = Astro.request.headers.get('accept-language') ?? '';
 const lang: 'zh-CN' | 'en' =
   url.searchParams.get('lang') === 'en' || accept.toLowerCase().startsWith('en') ? 'en' : 'zh-CN';
+const isZh = lang === 'zh-CN';
 
 let licenseKey: string | null = null;
 let lookupError: string | null = null;
@@ -25,16 +27,75 @@ if (directKey) {
   });
   if (result) licenseKey = result.licenseKey;
   else
-    lookupError =
-      lang === 'zh-CN'
-        ? '无法找到对应的密钥，请检查邮箱。'
-        : 'We could not locate your key — please check your inbox.';
+    lookupError = isZh
+      ? '无法找到对应的密钥，请检查邮箱中的激活邮件，或联系支持。'
+      : 'We could not locate your key — please check your inbox for the activation email, or contact support.';
 }
 
-const emptyMsg = lang === 'zh-CN' ? '请查收邮件中的激活链接。' : 'Check your email for the activation link.';
+const tx = isZh
+  ? {
+      title: '激活碳墨',
+      brand: '碳墨',
+      emptyTitle: '请查收邮件',
+      emptyBody:
+        '激活链接已发送到你购买时使用的邮箱，请查收。如果 5 分钟后还没收到，看看垃圾邮件文件夹。',
+      errorTitle: '未找到许可证',
+      contactPre: '遇到问题？',
+      contactLink: '联系支持',
+    }
+  : {
+      title: 'Activate CarbonInk',
+      brand: 'CarbonInk',
+      emptyTitle: 'Check your inbox',
+      emptyBody:
+        "An activation link has been sent to the email used at checkout. If it hasn't arrived in 5 minutes, check the spam folder.",
+      errorTitle: 'License not found',
+      contactPre: 'Need help?',
+      contactLink: 'Contact support',
+    };
+
+const supportHref = 'mailto:support@carbonink.xyz';
 ---
-<Base title={lang === 'zh-CN' ? '激活 碳墨' : 'Activate CarbonInk'} lang={lang}>
-  {licenseKey && <LicenseKeyCard licenseKey={licenseKey} lang={lang} />}
-  {!licenseKey && lookupError && <p class="text-red-600">{lookupError}</p>}
-  {!licenseKey && !lookupError && <p class="text-[color:var(--color-ink-500)]">{emptyMsg}</p>}
+<Base title={tx.title} lang={lang}>
+  {licenseKey ? (
+    <LicenseKeyCard licenseKey={licenseKey} lang={lang} />
+  ) : (
+    <div class="min-h-screen flex flex-col items-center justify-center px-5 py-12">
+      <div class="flex items-center gap-2 mb-10">
+        <LogoMark size={24} />
+        <span class="font-semibold text-sm">{tx.brand}</span>
+      </div>
+
+      <div class="max-w-md w-full border border-border rounded-xl bg-background shadow-sm p-8 text-center">
+        {lookupError ? (
+          <>
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-amber-50 border border-amber-200 mb-3">
+              <svg class="w-6 h-6 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                <line x1="12" y1="9" x2="12" y2="13" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+            </div>
+            <h2 class="font-semibold text-lg mb-2">{tx.errorTitle}</h2>
+            <p class="text-sm text-muted-foreground leading-relaxed">{lookupError}</p>
+          </>
+        ) : (
+          <>
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-sky-50 border border-sky-100 mb-3">
+              <svg class="w-6 h-6 text-sky-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                <polyline points="22,6 12,13 2,6" />
+              </svg>
+            </div>
+            <h2 class="font-semibold text-lg mb-2">{tx.emptyTitle}</h2>
+            <p class="text-sm text-muted-foreground leading-relaxed">{tx.emptyBody}</p>
+          </>
+        )}
+      </div>
+
+      <p class="text-xs text-muted-foreground mt-6">
+        {tx.contactPre} <a href={supportHref} class="text-primary hover:underline">{tx.contactLink}</a>
+      </p>
+    </div>
+  )}
 </Base>

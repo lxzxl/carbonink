@@ -1,0 +1,16 @@
+---
+/**
+ * LogoMark — the CarbonInk brand mark, lifted from the Figma Make source.
+ *
+ * Pure inline SVG so it renders at any size with no asset request and
+ * inherits the sky-500 fill from --color-primary. Used in Nav, Footer,
+ * and standalone on the activate / login portal cards.
+ */
+const { size = 26 } = Astro.props as { size?: number };
+---
+<svg width={size} height={size} viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <rect width="28" height="28" rx="5" fill="#0ea5e9" />
+  <path d="M8 20 C8 14, 12 8, 14 7 C16 8, 20 14, 20 20" stroke="white" stroke-width="2" stroke-linecap="round" fill="none" />
+  <path d="M11 17 L17 17" stroke="white" stroke-width="1.5" stroke-linecap="round" />
+  <circle cx="14" cy="7" r="1.5" fill="white" />
+</svg>

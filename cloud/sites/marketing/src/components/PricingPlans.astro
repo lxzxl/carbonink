@@ -1,0 +1,195 @@
+---
+/**
+ * PricingPlans — 3-card grid (Trial / Base / CBAM) lifted from the
+ * Figma redesign.
+ *
+ * Base is the visually-highlighted plan (sky border + ring + "most
+ * popular" badge). Trial + CBAM are flat-bordered. The Stripe
+ * checkout call on the Base plan is preserved from the old
+ * PricingCards.astro (`POST /api/v1/checkout-session`); other CTAs
+ * route to /download or /pricing#contact.
+ *
+ * Pricing copy is intentionally "TBD" with a range — we haven't
+ * locked in the final ¥ until the legal entity is set up. Showing a
+ * range is more honest than "Contact sales".
+ */
+
+const { lang } = Astro.props as { lang: 'zh-CN' | 'en' };
+const isZh = lang === 'zh-CN';
+
+const tx = isZh
+  ? {
+      plans: [
+        {
+          id: 'trial',
+          name: '免费试用',
+          duration: '14 天',
+          price: '免费',
+          priceNote: '无需信用卡',
+          features: ['完整功能，所有模块', 'ISO 14064-1 报告', 'AI 单据解析'],
+          cta: '开始试用',
+          ctaHref: '/download',
+          highlight: false,
+          badge: null,
+        },
+        {
+          id: 'base',
+          name: '基础版',
+          duration: '年度订阅',
+          price: '¥2,000–5,000',
+          priceNote: '/ 年（即将公布）',
+          features: ['GHG 盘查（Scope 1/2/3）', '供应商问卷填报', 'ISO 14064-1 报告（PDF + Excel）', 'EF 库季度更新', '1 台激活设备', '邮件支持'],
+          cta: '立即购买',
+          ctaHref: '#buy-base',
+          highlight: true,
+          badge: '最受欢迎',
+        },
+        {
+          id: 'cbam',
+          name: 'CBAM 附加模块',
+          duration: '即将推出',
+          price: '¥10,000–30,000',
+          priceNote: '/ 年（参考价）',
+          features: ['CBAM 方法学核算', 'XML 报告输出', '欧盟碳边境税申报'],
+          cta: '获取通知',
+          ctaHref: 'mailto:support@carbonink.xyz?subject=CBAM%20notify',
+          highlight: false,
+          badge: '即将推出',
+        },
+      ],
+    }
+  : {
+      plans: [
+        {
+          id: 'trial',
+          name: 'Trial',
+          duration: '14 days',
+          price: 'Free',
+          priceNote: 'No credit card',
+          features: ['Full functionality, all modules', 'ISO 14064-1 reports', 'AI bill parsing'],
+          cta: 'Start trial',
+          ctaHref: '/en/download',
+          highlight: false,
+          badge: null,
+        },
+        {
+          id: 'base',
+          name: 'Base',
+          duration: 'Annual subscription',
+          price: '¥2,000–5,000',
+          priceNote: '/ year (TBD)',
+          features: ['GHG inventory (Scope 1/2/3)', 'Supplier survey fill-in', 'ISO 14064-1 report (PDF + Excel)', 'Quarterly EF library updates', '1 activated device', 'Email support'],
+          cta: 'Buy now',
+          ctaHref: '#buy-base',
+          highlight: true,
+          badge: 'Most popular',
+        },
+        {
+          id: 'cbam',
+          name: 'CBAM Add-on',
+          duration: 'Coming soon',
+          price: '¥10,000–30,000',
+          priceNote: '/ year (indicative)',
+          features: ['CBAM methodology', 'XML report output', 'EU border carbon declaration'],
+          cta: 'Notify me',
+          ctaHref: 'mailto:support@carbonink.xyz?subject=CBAM%20notify',
+          highlight: false,
+          badge: 'Coming soon',
+        },
+      ],
+    };
+---
+<div class="grid md:grid-cols-3 gap-4 mb-20">
+  {tx.plans.map((plan) => (
+    <div
+      class:list={[
+        'rounded-lg border p-6 flex flex-col gap-5 relative',
+        plan.highlight ? 'border-sky-300 ring-1 ring-sky-200 bg-sky-50' : 'border-border bg-background',
+      ]}
+    >
+      {plan.badge && (
+        <span
+          class:list={[
+            'absolute -top-3 left-1/2 -translate-x-1/2 text-[11px] font-medium px-2.5 py-0.5 rounded-full',
+            plan.highlight
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-muted text-muted-foreground border border-border',
+          ]}
+        >
+          {plan.badge}
+        </span>
+      )}
+
+      <div>
+        <p class="font-semibold text-[15px] mb-0.5">{plan.name}</p>
+        <p class="text-xs text-muted-foreground">{plan.duration}</p>
+      </div>
+
+      <div>
+        <p class="text-2xl font-semibold tracking-tight">{plan.price}</p>
+        <p class="text-xs text-muted-foreground mt-0.5" style="font-family: var(--font-mono);">{plan.priceNote}</p>
+      </div>
+
+      {plan.id === 'base' ? (
+        <button
+          type="button"
+          data-buy-plan="base@2026-q2"
+          class="text-center py-2 rounded text-sm font-medium transition-colors bg-primary text-primary-foreground hover:bg-sky-600"
+        >
+          {plan.cta}
+        </button>
+      ) : (
+        <a
+          href={plan.ctaHref}
+          class:list={[
+            'text-center py-2 rounded text-sm font-medium transition-colors',
+            plan.highlight
+              ? 'bg-primary text-primary-foreground hover:bg-sky-600'
+              : 'border border-border hover:bg-muted',
+          ]}
+        >
+          {plan.cta}
+        </a>
+      )}
+
+      <ul class="flex flex-col gap-2.5">
+        {plan.features.map((f) => (
+          <li class="flex items-start gap-2 text-sm text-muted-foreground">
+            <svg class="w-3.5 h-3.5 text-sky-500 mt-0.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            <span>{f}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  ))}
+</div>
+
+<script is:inline>
+  // Base-plan Stripe checkout — preserved from the previous
+  // PricingCards.astro implementation. Posts to the same Worker
+  // route; redirects to Stripe Checkout on success. We don't
+  // pre-load Stripe — the redirect handles everything client-side.
+  document.querySelectorAll('[data-buy-plan]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const plan = btn.getAttribute('data-buy-plan');
+      if (!plan) return;
+      try {
+        const res = await fetch('/api/v1/checkout-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ plan }),
+        });
+        if (!res.ok) {
+          alert('Unable to start checkout. Please try again or contact support.');
+          return;
+        }
+        const { checkout_url } = await res.json();
+        window.location.href = checkout_url;
+      } catch {
+        alert('Network error. Please try again.');
+      }
+    });
+  });
+</script>

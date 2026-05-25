@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+
 const { title, lang = 'zh-CN' } = Astro.props as { title: string; lang?: 'zh-CN' | 'en' };
 ---
 <!doctype html>
@@ -8,8 +9,16 @@ const { title, lang = 'zh-CN' } = Astro.props as { title: string; lang?: 'zh-CN'
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
+    <meta name="robots" content="noindex" />
+
+    {/* The activate portal is a thank-you page after a Stripe purchase
+        — search engines should not index it. `noindex` keeps stale
+        receipts out of organic results. */}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600&display=swap" />
   </head>
-  <body class="bg-[color:var(--color-bg)] text-[color:var(--color-ink-900)] font-[family-name:var(--font-body)]">
-    <main class="mx-auto max-w-3xl px-6 py-12"><slot /></main>
+  <body class="bg-background text-foreground font-[family-name:var(--font-body)] min-h-screen">
+    <slot />
   </body>
 </html>

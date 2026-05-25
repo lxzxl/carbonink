@@ -1,0 +1,67 @@
+---
+/**
+ * Differentiators — three sky-iconned cards covering local-first,
+ * AI-as-data-engineer, and "calc + fill in one ledger". The three
+ * concrete USPs that separate carbonbook from spreadsheet + cloud
+ * SaaS alternatives.
+ */
+
+const { lang } = Astro.props as { lang: 'zh-CN' | 'en' };
+const isZh = lang === 'zh-CN';
+
+const tx = isZh
+  ? {
+      label: '核心优势',
+      title: '为什么选碳墨',
+      items: [
+        { icon: 'monitor', title: '完全离线', body: '数据不上云，不怕泄露。碳核算数据是企业核心资产。' },
+        { icon: 'bot', title: 'AI 做数据工程', body: '扫一下单据，自动出数字。告别手工录入和 Excel 拼凑。' },
+        { icon: 'book', title: '核算 + 填报一体', body: '同一个软件算完直接填问卷，不用在多个系统间来回切换。' },
+      ],
+    }
+  : {
+      label: 'Why CarbonInk',
+      title: 'Built different by design',
+      items: [
+        { icon: 'monitor', title: 'Single-machine', body: 'Your data never leaves your computer. Carbon data is a core enterprise asset.' },
+        { icon: 'bot', title: 'AI as data engineer', body: 'Scan a bill, get emission figures. No manual entry, no spreadsheet patchwork.' },
+        { icon: 'book', title: 'Calc + fill in one ledger', body: 'Calculate then fill supplier surveys in the same tool — no context switching.' },
+      ],
+    };
+---
+<section class="py-20 px-5 bg-muted/40 border-y border-border">
+  <div class="max-w-6xl mx-auto">
+    <p class="text-xs font-medium text-primary uppercase tracking-widest mb-3">{tx.label}</p>
+    <h2 class="text-2xl md:text-3xl font-semibold tracking-tight mb-10">{tx.title}</h2>
+    <div class="grid md:grid-cols-3 gap-6">
+      {tx.items.map((item) => (
+        <div class="bg-background border border-border rounded-lg p-6">
+          {item.icon === 'monitor' && (
+            <svg class="w-5 h-5 text-sky-500 mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+              <line x1="8" y1="21" x2="16" y2="21" />
+              <line x1="12" y1="17" x2="12" y2="21" />
+            </svg>
+          )}
+          {item.icon === 'bot' && (
+            <svg class="w-5 h-5 text-sky-500 mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="11" width="18" height="10" rx="2" />
+              <circle cx="12" cy="5" r="2" />
+              <path d="M12 7v4" />
+              <line x1="8" y1="16" x2="8" y2="16" />
+              <line x1="16" y1="16" x2="16" y2="16" />
+            </svg>
+          )}
+          {item.icon === 'book' && (
+            <svg class="w-5 h-5 text-sky-500 mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+            </svg>
+          )}
+          <h3 class="font-semibold text-[15px] mb-2">{item.title}</h3>
+          <p class="text-sm text-muted-foreground">{item.body}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

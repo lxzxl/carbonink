@@ -1,27 +1,191 @@
 ---
+import LogoMark from './LogoMark.astro';
+
+/**
+ * LicenseKeyCard — the "your license is ready" post-purchase card.
+ *
+ * Layout mirrors the Figma redesign exactly:
+ *
+ *   ┌─────────────────────────────────────────┐
+ *   │           ✅ Your license is ready       │
+ *   │   ┌─────────────────────────────────┐   │
+ *   │   │  LICENSE KEY                    │   │
+ *   │   │  cbk-A7X2K-9FMQR-3WBNP-6LTYS    │   │
+ *   │   └─────────────────────────────────┘   │
+ *   │   [        Copy        ]                │
+ *   │   ─────────────────────────             │
+ *   │   ACTIVATION STEPS                       │
+ *   │   ① Open CarbonInk                       │
+ *   │   ② Settings → Activate                  │
+ *   │   ③ Paste the key                        │
+ *   │   ┌─ Haven't installed yet? ─┐           │
+ *   │   │  macOS · Windows         │           │
+ *   │   └──────────────────────────┘           │
+ *   └─────────────────────────────────────────┘
+ *
+ * Copy button uses `navigator.clipboard.writeText` with a 2-second
+ * "copied" state — the visual swap (sky → green + ✓) is the only
+ * feedback the user needs.
+ */
+
 const { licenseKey, lang } = Astro.props as { licenseKey: string; lang: 'zh-CN' | 'en' };
-const steps = lang === 'zh-CN'
-  ? ['打开 碳墨 桌面应用', '点击右上角头像 → 设置 → 激活', '粘贴下方密钥并点击「激活」']
-  : ['Open the CarbonInk desktop app', 'Click the avatar (top-right) → Settings → Activate', 'Paste the key below and click "Activate"'];
-const copyLabel = lang === 'zh-CN' ? '复制' : 'Copy';
+const isZh = lang === 'zh-CN';
+
+const tx = isZh
+  ? {
+      brand: '碳墨',
+      heading: '你的许可证已就绪',
+      keyLabel: '许可证密钥',
+      copy: '复制',
+      copied: '已复制',
+      stepsHeading: '激活步骤',
+      steps: [
+        '打开电脑上的碳墨',
+        '点击侧栏底部的「设置」',
+        '在「许可证」section 粘贴密钥并点击「激活」',
+      ],
+      noInstallHint: '还没安装？',
+      contactPre: '遇到问题？',
+      contactLink: '联系支持',
+    }
+  : {
+      brand: 'CarbonInk',
+      heading: 'Your license is ready',
+      keyLabel: 'License key',
+      copy: 'Copy',
+      copied: 'Copied',
+      stepsHeading: 'Activation steps',
+      steps: [
+        'Open CarbonInk on your computer',
+        'Click "Settings" at the bottom of the sidebar',
+        'Paste the key into the "License" section and click "Activate"',
+      ],
+      noInstallHint: "Haven't installed yet?",
+      contactPre: 'Need help?',
+      contactLink: 'Contact support',
+    };
+
+// Use the carbonink.xyz marketing site for download links — same
+// origin, no extra DNS resolution. Worker routing handles the
+// /download → marketing/download path.
+const downloadHref = isZh ? 'https://carbonink.xyz/download' : 'https://carbonink.xyz/en/download';
+const supportHref = 'mailto:support@carbonink.xyz';
 ---
-<section class="mx-auto max-w-xl">
-  <div class="rounded-xl border bg-[color:var(--color-bg-muted)] p-6 text-center">
-    <p class="font-mono text-2xl tracking-wider">{licenseKey}</p>
-    <button id="copy-key" data-key={licenseKey} class="mt-4 rounded-md bg-[color:var(--color-brand-500)] px-4 py-2 text-white">
-      {copyLabel}
-    </button>
+<div class="min-h-screen flex flex-col items-center justify-center px-5 py-12">
+  <div class="flex items-center gap-2 mb-10">
+    <LogoMark size={24} />
+    <span class="font-semibold text-sm">{tx.brand}</span>
   </div>
-  <ol class="mt-8 list-decimal space-y-2 pl-6 text-[color:var(--color-ink-500)]">
-    {steps.map((s) => <li>{s}</li>)}
-  </ol>
-</section>
-<script>
-  const btn = document.getElementById('copy-key');
-  btn?.addEventListener('click', async () => {
-    const key = btn.getAttribute('data-key');
-    if (!key) return;
-    await navigator.clipboard.writeText(key);
-    btn.textContent = 'OK';
-  });
+
+  <div class="max-w-md w-full border border-border rounded-xl bg-background shadow-sm p-8">
+    <div class="text-center mb-7">
+      <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-50 border border-green-200 mb-3">
+        <svg class="w-6 h-6 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+      </div>
+      <h1 class="text-xl font-semibold">{tx.heading}</h1>
+    </div>
+
+    <div class="bg-muted border border-border rounded-lg p-4 mb-3">
+      <p class="text-xs text-muted-foreground mb-2 font-medium uppercase tracking-wider">{tx.keyLabel}</p>
+      <p
+        class="text-[13px] tracking-widest text-foreground break-all select-all"
+        style="font-family: var(--font-mono);"
+      >
+        {licenseKey}
+      </p>
+    </div>
+
+    <button
+      id="copy-key"
+      type="button"
+      data-key={licenseKey}
+      data-copy-label={tx.copy}
+      data-copied-label={tx.copied}
+      class="w-full flex items-center justify-center gap-2 py-2.5 rounded text-sm font-medium transition-colors mb-7 bg-primary text-primary-foreground hover:bg-sky-600"
+    >
+      <svg id="copy-icon" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+      </svg>
+      <svg id="copied-icon" class="w-4 h-4 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="20 6 9 17 4 12" />
+      </svg>
+      <span id="copy-label">{tx.copy}</span>
+    </button>
+
+    <div class="border-t border-border pt-6">
+      <p class="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-4">{tx.stepsHeading}</p>
+      <ol class="flex flex-col gap-3">
+        {tx.steps.map((step, i) => (
+          <li class="flex gap-3 text-sm text-muted-foreground">
+            <span
+              class="text-[11px] text-primary bg-sky-50 border border-sky-100 w-5 h-5 rounded flex items-center justify-center flex-shrink-0 mt-0.5"
+              style="font-family: var(--font-mono);"
+            >
+              {i + 1}
+            </span>
+            <span>{step}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
+
+    <div class="mt-6 pt-5 border-t border-border bg-muted/30 rounded-lg p-4 text-center -mx-2">
+      <p class="text-xs text-muted-foreground mb-2">{tx.noInstallHint}</p>
+      <a href={downloadHref} class="text-xs text-primary hover:underline">
+        {isZh ? '前往下载页' : 'Go to download page'}
+      </a>
+    </div>
+  </div>
+
+  <p class="text-xs text-muted-foreground mt-6">
+    {tx.contactPre} <a href={supportHref} class="text-primary hover:underline">{tx.contactLink}</a>
+  </p>
+</div>
+
+<script is:inline>
+  // Clipboard copy + visual confirmation. We swap the icon and label
+  // text on success for 2 seconds, then revert. `navigator.clipboard`
+  // is available everywhere we care about (post-2020 mac/win), but
+  // we wrap it in try/catch in case the user is on an http: origin
+  // where the API is blocked.
+  (function () {
+    const btn = document.getElementById('copy-key');
+    const icon = document.getElementById('copy-icon');
+    const copiedIcon = document.getElementById('copied-icon');
+    const label = document.getElementById('copy-label');
+    if (!btn || !icon || !copiedIcon || !label) return;
+    const key = btn.getAttribute('data-key') || '';
+    const copyLabel = btn.getAttribute('data-copy-label') || 'Copy';
+    const copiedLabel = btn.getAttribute('data-copied-label') || 'Copied';
+    btn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(key);
+        icon.classList.add('hidden');
+        copiedIcon.classList.remove('hidden');
+        label.textContent = copiedLabel;
+        btn.classList.remove('bg-primary', 'text-primary-foreground', 'hover:bg-sky-600');
+        btn.classList.add('bg-green-50', 'text-green-700', 'border', 'border-green-200');
+        setTimeout(() => {
+          icon.classList.remove('hidden');
+          copiedIcon.classList.add('hidden');
+          label.textContent = copyLabel;
+          btn.classList.add('bg-primary', 'text-primary-foreground', 'hover:bg-sky-600');
+          btn.classList.remove('bg-green-50', 'text-green-700', 'border', 'border-green-200');
+        }, 2000);
+      } catch {
+        // Fallback: select the key block so the user can copy manually.
+        const keyBlock = document.querySelector('[data-key]');
+        if (keyBlock && window.getSelection) {
+          const range = document.createRange();
+          range.selectNodeContents(keyBlock);
+          const sel = window.getSelection();
+          sel?.removeAllRanges();
+          sel?.addRange(range);
+        }
+      }
+    });
+  })();
 </script>

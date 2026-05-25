@@ -1,0 +1,48 @@
+---
+/**
+ * HowItWorks — three numbered steps: upload → AI extract → export.
+ * The connector line behind the step circles is a single absolute
+ * `h-px bg-border` strip, hidden on mobile where the steps stack.
+ */
+
+const { lang } = Astro.props as { lang: 'zh-CN' | 'en' };
+const isZh = lang === 'zh-CN';
+
+const tx = isZh
+  ? {
+      label: '工作流程',
+      title: '三步完成碳盘查',
+      steps: [
+        { num: '01', title: '上传单据', body: '上传电费单、燃料发票、运输单据（PDF / Excel / 图片均可）' },
+        { num: '02', title: 'AI 提取 + 匹配排放因子', body: 'AI 自动识别数据，关联 IPCC / ECOINVENT 排放因子' },
+        { num: '03', title: '导出报告', body: '一键生成符合 ISO 14064-1 的盘查报告（PDF + Excel）' },
+      ],
+    }
+  : {
+      label: 'How it works',
+      title: 'Three steps to a full inventory',
+      steps: [
+        { num: '01', title: 'Upload bills', body: 'Upload utility bills, fuel invoices, logistics records — PDF, Excel, or images.' },
+        { num: '02', title: 'AI extracts + matches EFs', body: 'AI reads the data and matches to IPCC / ECOINVENT emission factors automatically.' },
+        { num: '03', title: 'Export report', body: 'One-click ISO 14064-1 inventory report in PDF and Excel.' },
+      ],
+    };
+---
+<section class="py-20 px-5">
+  <div class="max-w-6xl mx-auto">
+    <p class="text-xs font-medium text-primary uppercase tracking-widest mb-3">{tx.label}</p>
+    <h2 class="text-2xl md:text-3xl font-semibold tracking-tight mb-12">{tx.title}</h2>
+    <div class="grid md:grid-cols-3 gap-8 relative">
+      <div class="hidden md:block absolute top-5 left-[16.67%] right-[16.67%] h-px bg-border"></div>
+      {tx.steps.map((step) => (
+        <div class="relative">
+          <div class="w-10 h-10 rounded-full border-2 border-border bg-background flex items-center justify-center mb-5 relative z-10">
+            <span class="text-xs font-medium text-primary" style="font-family: var(--font-mono);">{step.num}</span>
+          </div>
+          <h3 class="font-semibold text-[15px] mb-2">{step.title}</h3>
+          <p class="text-sm text-muted-foreground">{step.body}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

@@ -1,6 +1,33 @@
 ---
 import '../styles/global.css';
-const { title, lang = 'en' } = Astro.props as { title: string; lang?: 'zh-CN' | 'en' };
+import LogoMark from '../components/LogoMark.astro';
+
+/**
+ * Account-site shell — the dashboard pages need a slim top bar
+ * (logo + "我的账户" crumb + lang toggle); the login page renders
+ * full-bleed without any bar.
+ *
+ * `bare` prop opts out of the bar — login / magic-link callback use
+ * it.
+ */
+
+const {
+  title,
+  lang = 'en',
+  bare = false,
+} = Astro.props as { title: string; lang?: 'zh-CN' | 'en'; bare?: boolean };
+
+const isZh = lang === 'zh-CN';
+const path = Astro.url.pathname;
+const swapHref = isZh
+  ? path === '/' ? '/?lang=en' : path.includes('?')
+      ? `${path}&lang=en`
+      : `${path}?lang=en`
+  : path.includes('lang=en') ? path.replace(/[?&]lang=en/, '') || '/' : path;
+
+const tx = isZh
+  ? { brand: '碳墨', heading: '我的账户', langLabel: 'EN' }
+  : { brand: 'CarbonInk', heading: 'My Account', langLabel: '中文' };
 ---
 <!doctype html>
 <html lang={lang}>
@@ -8,8 +35,33 @@ const { title, lang = 'en' } = Astro.props as { title: string; lang?: 'zh-CN' | 
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
+    <meta name="robots" content="noindex" />
+
+    {/* The account dashboard is a logged-in surface — never index it.
+        Login / magic-link callbacks are equally private. */}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600&display=swap" />
   </head>
-  <body class="bg-[color:var(--color-bg)] text-[color:var(--color-ink-900)] font-[family-name:var(--font-body)]">
-    <main class="mx-auto max-w-3xl px-6 py-12"><slot /></main>
+  <body class="bg-background text-foreground font-[family-name:var(--font-body)] min-h-screen">
+    {!bare && (
+      <header class="border-b border-border bg-muted/30">
+        <div class="max-w-2xl mx-auto px-5 py-3 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <LogoMark size={20} />
+            <span class="font-semibold text-sm">{tx.brand}</span>
+            <span class="text-muted-foreground text-sm">·</span>
+            <span class="text-sm text-muted-foreground">{tx.heading}</span>
+          </div>
+          <a
+            href={swapHref}
+            class="text-xs border border-border rounded px-2.5 py-1 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {tx.langLabel}
+          </a>
+        </div>
+      </header>
+    )}
+    <main><slot /></main>
   </body>
 </html>

@@ -1,9 +1,81 @@
 ---
+import LogoMark from './LogoMark.astro';
+
+/**
+ * Site footer — mirrors the Figma redesign.
+ *
+ * Layout:
+ *   [logo + brand + tagline]   [link nav row]    [lang swap + copyright]
+ *
+ * On mobile the three groups stack vertically. Links use the same
+ * /en URL-prefix discipline as Nav so a lang swap from the footer
+ * preserves the user's current page.
+ */
+
 const { lang } = Astro.props as { lang: 'zh-CN' | 'en' };
-const blurb = lang === 'zh-CN'
-  ? '本网站不使用第三方分析。所有数据存储于用户本地设备。'
-  : 'No third-party analytics on this site. All data stays on your device.';
+const isZh = lang === 'zh-CN';
+
+const tx = isZh
+  ? {
+      brand: '碳墨',
+      tagline: '把碳核算搬到桌面端',
+      links: [
+        { label: '定价', href: '/pricing' },
+        { label: '下载', href: '/download' },
+        { label: '文档', href: '#' },
+        { label: '隐私政策', href: '/privacy' },
+        { label: '服务条款', href: '#' },
+        { label: '联系支持', href: 'mailto:support@carbonink.xyz' },
+      ],
+      langLabel: 'EN',
+      copy: '© 2026 CarbonInk',
+    }
+  : {
+      brand: 'CarbonInk',
+      tagline: 'Local GHG accounting for factories',
+      links: [
+        { label: 'Pricing', href: '/en/pricing' },
+        { label: 'Download', href: '/en/download' },
+        { label: 'Docs', href: '#' },
+        { label: 'Privacy', href: '/en/privacy' },
+        { label: 'Terms', href: '#' },
+        { label: 'Contact', href: 'mailto:support@carbonink.xyz' },
+      ],
+      langLabel: '中文',
+      copy: '© 2026 CarbonInk',
+    };
+
+const path = Astro.url.pathname;
+const swapHref = isZh
+  ? path === '/' ? '/en/' : `/en${path}`
+  : path.startsWith('/en/') ? path.slice(3) || '/' : path === '/en' ? '/' : path;
 ---
-<footer class="mx-auto max-w-5xl px-6 py-12 text-sm text-[color:var(--color-ink-500)]">
-  <p>{blurb}</p>
+<footer class="border-t border-border bg-muted/30 px-5 py-10">
+  <div class="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div class="flex items-center gap-2.5">
+      <LogoMark size={22} />
+      <div>
+        <span class="font-semibold text-sm text-foreground">{tx.brand}</span>
+        <p class="text-xs text-muted-foreground mt-0.5">{tx.tagline}</p>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap gap-x-5 gap-y-2">
+      {tx.links.map((l) => (
+        <a href={l.href} class="text-xs text-muted-foreground hover:text-foreground transition-colors">
+          {l.label}
+        </a>
+      ))}
+    </div>
+
+    <div class="flex items-center gap-3">
+      <a
+        href={swapHref}
+        class="text-xs border border-border rounded px-2.5 py-1 text-muted-foreground hover:text-foreground transition-colors"
+      >
+        {tx.langLabel}
+      </a>
+      <span class="text-xs text-muted-foreground">{tx.copy}</span>
+    </div>
+  </div>
 </footer>

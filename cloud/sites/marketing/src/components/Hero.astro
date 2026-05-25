@@ -1,0 +1,105 @@
+---
+/**
+ * Hero — top section of the marketing home.
+ *
+ * Headline + sub + 2 CTAs over a real desktop-app screenshot, framed
+ * in a macOS-style window chrome. Replaces the Figma source's hand-
+ * built mock dashboard (Scope 1/2/3 cards + fake data rows) with the
+ * actual e2e screenshot — the user explicitly asked for real shots,
+ * and the e2e harness produces a Chinese-locale dashboard that's
+ * already pixel-clean.
+ *
+ * Window chrome (red/yellow/green dots + title strip) is preserved
+ * so the screenshot reads as "macOS app", not "random product image".
+ * On Windows the chrome is decorative — viewers recognize the
+ * convention either way.
+ *
+ * Image: 1400 × 900 PNG from the e2e tour. `aspect-[1400/900]`
+ * reserves the slot during load so CLS stays at zero on slow conns.
+ */
+
+const { lang } = Astro.props as { lang: 'zh-CN' | 'en' };
+const isZh = lang === 'zh-CN';
+
+const tx = isZh
+  ? {
+      badge: '本地运行 · 数据不上云',
+      h1: '把碳核算搬到桌面端',
+      sub: '完全离线运行，数据不出内网。AI 帮你做数据工程，一键出 ISO 14064-1 报告。',
+      cta1: '下载免费试用',
+      cta2: '查看定价',
+      windowTitle: '碳墨 — 2025 年度 GHG 盘查',
+      screenshotAlt: '碳墨桌面端：2025 年度 GHG 盘查仪表盘截图',
+    }
+  : {
+      badge: 'Local-first · Your data stays on device',
+      h1: 'Local GHG accounting. No spreadsheets. No cloud.',
+      sub: 'Runs entirely on your machine. AI extracts emission data from your bills. One-click ISO 14064-1 inventory report.',
+      cta1: 'Download free trial',
+      cta2: 'See pricing',
+      windowTitle: 'CarbonInk — 2025 Annual GHG Inventory',
+      screenshotAlt: 'CarbonInk desktop app: 2025 annual GHG inventory dashboard screenshot',
+    };
+
+const prefix = isZh ? '' : '/en';
+---
+<section class="pt-12 pb-20 px-5">
+  <div class="max-w-6xl mx-auto">
+    <div class="max-w-3xl mb-10">
+      <div class="inline-flex items-center gap-2 border border-sky-200 bg-sky-50 text-sky-700 text-xs font-medium px-3 py-1 rounded-full mb-7">
+        <span class="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
+        {tx.badge}
+      </div>
+      <h1 class="text-[2.75rem] md:text-[3.5rem] font-semibold tracking-tight leading-[1.1] text-foreground mb-6">
+        {tx.h1}
+      </h1>
+      <p class="text-lg text-muted-foreground leading-relaxed mb-9 max-w-xl">{tx.sub}</p>
+      <div class="flex flex-wrap gap-3">
+        <a
+          href={`${prefix}/download`}
+          class="inline-flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded font-medium text-sm hover:bg-sky-600 transition-colors"
+        >
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          {tx.cta1}
+        </a>
+        <a
+          href={`${prefix}/pricing`}
+          class="inline-flex items-center gap-2 border border-border text-foreground px-5 py-2.5 rounded font-medium text-sm hover:bg-muted transition-colors"
+        >
+          {tx.cta2}
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </a>
+      </div>
+    </div>
+
+    {/* macOS-window-framed real app screenshot — replaces the Figma
+        source's hand-built mock. Aspect ratio matches the e2e
+        screenshot (1400 × 900) so the layout doesn't shift when the
+        image loads on slow networks. */}
+    <div class="relative rounded-lg border border-border bg-card overflow-hidden shadow-[0_8px_40px_rgba(0,0,0,0.08)]">
+      <div class="flex items-center gap-1.5 px-4 py-3 border-b border-border bg-muted/50">
+        <span class="w-3 h-3 rounded-full bg-red-400"></span>
+        <span class="w-3 h-3 rounded-full bg-yellow-400"></span>
+        <span class="w-3 h-3 rounded-full bg-green-400"></span>
+        <span class="mx-auto text-xs text-muted-foreground" style="font-family: var(--font-mono);">
+          {tx.windowTitle}
+        </span>
+      </div>
+      <img
+        src="/screenshots/dashboard.png"
+        alt={tx.screenshotAlt}
+        width="1400"
+        height="900"
+        loading="eager"
+        decoding="async"
+        class="block w-full h-auto aspect-[1400/900]"
+      />
+    </div>
+  </div>
+</section>

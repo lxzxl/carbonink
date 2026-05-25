@@ -1,0 +1,31 @@
+---
+/**
+ * PrivacyCallout — a quoted blockquote about the privacy
+ * architecture. One short, declarative statement; not a paragraph.
+ * The left border in `border-primary` flags it as opinion / value
+ * proposition rather than feature copy.
+ */
+
+const { lang } = Astro.props as { lang: 'zh-CN' | 'en' };
+const isZh = lang === 'zh-CN';
+
+const tx = isZh
+  ? {
+      label: '数据隐私',
+      quote: '碳墨云端只知道你买了许可证，以及哪台电脑激活了。它不知道你算了什么、填了什么、问了什么。',
+    }
+  : {
+      label: 'Privacy by architecture',
+      quote: "CarbonInk cloud knows you bought a license and which computer activated it. It doesn't know what you calculated, filled, or asked the AI.",
+    };
+---
+<section class="py-20 px-5">
+  <div class="max-w-6xl mx-auto">
+    <div class="max-w-2xl">
+      <p class="text-xs font-medium text-primary uppercase tracking-widest mb-4">{tx.label}</p>
+      <blockquote class="text-xl font-medium leading-relaxed text-foreground border-l-2 border-primary pl-6">
+        {tx.quote}
+      </blockquote>
+    </div>
+  </div>
+</section>

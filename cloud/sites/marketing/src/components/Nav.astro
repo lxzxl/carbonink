@@ -1,12 +1,146 @@
 ---
+import LogoMark from './LogoMark.astro';
+
+/**
+ * Top navigation — fixed-position translucent bar lifted from the
+ * Figma Make redesign.
+ *
+ * Layout:
+ *   [logo + brand]  [pricing | download | docs]      [EN ↔ 中文] [Trial CTA]
+ *
+ * Mobile (< md): the 3 center links + lang + CTA collapse into a
+ * burger drawer. Vanilla JS — no React — to keep the marketing
+ * bundle dependency-free.
+ *
+ * Bilingual: `lang` prop drives copy; the "swap language" button
+ * computes the mirror path (current path with the /en prefix
+ * toggled). Defaulting to "swap to /en" or "swap to /" keeps the
+ * URL canonical even when the user lands deep in the site.
+ */
+
 const { lang } = Astro.props as { lang: 'zh-CN' | 'en' };
-const links = lang === 'zh-CN'
-  ? [{ href: '/', label: '首页' }, { href: '/pricing', label: '定价' }, { href: '/download', label: '下载' }]
-  : [{ href: '/', label: 'Home' }, { href: '/pricing', label: 'Pricing' }, { href: '/download', label: 'Download' }];
+
+const isZh = lang === 'zh-CN';
+const tx = isZh
+  ? {
+      brand: '碳墨',
+      pricing: '定价',
+      download: '下载',
+      docs: '文档',
+      trial: '免费试用',
+      langLabel: 'EN',
+    }
+  : {
+      brand: 'CarbonInk',
+      pricing: 'Pricing',
+      download: 'Download',
+      docs: 'Docs',
+      trial: 'Start free trial',
+      langLabel: '中文',
+    };
+
+// Build the mirror-language URL for the current path. zh-CN is the
+// unprefixed default; en pages live under /en/*. This keeps the lang
+// toggle path-aware (clicking it on /pricing flips you to /en/pricing
+// or back) so deep links survive a language swap.
+const path = Astro.url.pathname;
+const swapHref = isZh
+  ? path === '/' ? '/en/' : `/en${path}`
+  : path.startsWith('/en/') ? path.slice(3) || '/' : path === '/en' ? '/' : path;
+
+// Path prefix for in-site links — '' for zh-CN (the default locale),
+// '/en' for English. The href builder below pre-fixes every link with
+// this so a single template can serve both locales.
+const prefix = isZh ? '' : '/en';
+
+const links = [
+  { href: `${prefix}/pricing`, label: tx.pricing },
+  { href: `${prefix}/download`, label: tx.download },
+  { href: '#', label: tx.docs },
+];
 ---
-<nav class="mx-auto max-w-5xl flex items-center justify-between px-6 py-4">
-  <a href="/" class="font-bold text-lg">CarbonInk</a>
-  <ul class="flex gap-6 text-sm">
-    {links.map((l) => <li><a href={l.href} class="hover:text-[color:var(--color-brand-500)]">{l.label}</a></li>)}
-  </ul>
+<nav class="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
+  <div class="max-w-6xl mx-auto px-5 flex items-center justify-between h-14">
+    <a href={prefix || '/'} class="flex items-center gap-2.5">
+      <LogoMark size={26} />
+      <span class="font-semibold text-[15px] tracking-tight text-foreground">{tx.brand}</span>
+    </a>
+
+    <div class="hidden md:flex items-center gap-7">
+      {links.map((l) => (
+        <a href={l.href} class="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          {l.label}
+        </a>
+      ))}
+    </div>
+
+    <div class="hidden md:flex items-center gap-3">
+      <a
+        href={swapHref}
+        class="text-xs text-muted-foreground hover:text-foreground border border-border rounded px-2.5 py-1 transition-colors"
+      >
+        {tx.langLabel}
+      </a>
+      <a
+        href={`${prefix}/download`}
+        class="text-sm bg-primary text-primary-foreground px-3.5 py-1.5 rounded font-medium hover:bg-sky-600 transition-colors"
+      >
+        {tx.trial}
+      </a>
+    </div>
+
+    <button
+      id="nav-burger"
+      type="button"
+      class="md:hidden text-muted-foreground"
+      aria-label={isZh ? '展开菜单' : 'Toggle menu'}
+    >
+      <svg id="nav-burger-icon-open" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="4" y1="6" x2="20" y2="6" />
+        <line x1="4" y1="12" x2="20" y2="12" />
+        <line x1="4" y1="18" x2="20" y2="18" />
+      </svg>
+      <svg id="nav-burger-icon-close" class="w-5 h-5 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="6" y1="6" x2="18" y2="18" />
+        <line x1="18" y1="6" x2="6" y2="18" />
+      </svg>
+    </button>
+  </div>
+
+  <div id="nav-drawer" class="md:hidden hidden border-t border-border bg-background px-5 py-4 flex-col gap-3">
+    {links.map((l) => (
+      <a href={l.href} class="text-sm text-muted-foreground py-1">{l.label}</a>
+    ))}
+    <div class="flex gap-2 pt-2 border-t border-border">
+      <a href={swapHref} class="text-xs border border-border rounded px-3 py-1.5 text-muted-foreground">
+        {tx.langLabel}
+      </a>
+      <a
+        href={`${prefix}/download`}
+        class="text-sm bg-primary text-primary-foreground px-4 py-1.5 rounded font-medium"
+      >
+        {tx.trial}
+      </a>
+    </div>
+  </div>
 </nav>
+
+<script is:inline>
+  // Mobile burger toggle — vanilla JS so we avoid bundling a JS
+  // framework just for one drawer. Idempotent: re-running on Astro's
+  // view transitions (if added later) won't double-bind.
+  (function () {
+    const btn = document.getElementById('nav-burger');
+    const drawer = document.getElementById('nav-drawer');
+    const open = document.getElementById('nav-burger-icon-open');
+    const close = document.getElementById('nav-burger-icon-close');
+    if (!btn || !drawer || !open || !close) return;
+    btn.addEventListener('click', () => {
+      const isOpen = !drawer.classList.contains('hidden');
+      drawer.classList.toggle('hidden', isOpen);
+      drawer.classList.toggle('flex', !isOpen);
+      open.classList.toggle('hidden', !isOpen);
+      close.classList.toggle('hidden', isOpen);
+    });
+  })();
+</script>
