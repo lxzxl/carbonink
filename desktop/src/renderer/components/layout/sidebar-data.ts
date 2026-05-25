@@ -30,34 +30,42 @@ import type { NavGroup } from './types';
  * a footer MCP-pill that also linked to /settings was the user-
  * reported "menu item 重复" — two icons, same destination.)
  *
- * `m.X` (the paraglide message accessor) is called at render time inside
- * `<NavGroup>`, so language switches re-render the labels without a
- * page reload.
+ * Exposed as a **function** rather than a const because `m.X()` resolves
+ * to a string at the time it's called. If we built the data once at
+ * module init, every label would be frozen to whichever locale was active
+ * when this file first loaded — and main.tsx's `initLocale()` flips the
+ * locale AFTER this module is imported, so the first paint would show
+ * English even when the stored preference is zh-CN. Calling
+ * `getSidebarData()` inside AppSidebar's render keeps the labels in
+ * sync with the live paraglide locale + the locale-change re-render
+ * forced by LocaleProvider's `key={locale}`.
  */
 
-export const sidebarData = {
-  navGroups: [
-    {
-      title: m.nav_section_general(),
-      items: [
-        { title: m.nav_dashboard(), url: '/', icon: LayoutDashboard },
-        { title: m.audit_nav(), url: '/audit', icon: FileSearch },
-      ],
-    },
-    {
-      title: m.nav_section_inventory(),
-      items: [
-        { title: m.nav_sources(), url: '/sources', icon: Sliders },
-        { title: m.nav_activities(), url: '/activities', icon: Flame },
-        { title: m.reports_nav(), url: '/reports', icon: ScrollText },
-      ],
-    },
-    {
-      title: m.nav_section_documents_questionnaires(),
-      items: [
-        { title: m.nav_documents(), url: '/documents', icon: FileText },
-        { title: m.nav_questionnaires(), url: '/questionnaires', icon: ClipboardList },
-      ],
-    },
-  ] satisfies NavGroup[],
-};
+export function getSidebarData(): { navGroups: NavGroup[] } {
+  return {
+    navGroups: [
+      {
+        title: m.nav_section_general(),
+        items: [
+          { title: m.nav_dashboard(), url: '/', icon: LayoutDashboard },
+          { title: m.audit_nav(), url: '/audit', icon: FileSearch },
+        ],
+      },
+      {
+        title: m.nav_section_inventory(),
+        items: [
+          { title: m.nav_sources(), url: '/sources', icon: Sliders },
+          { title: m.nav_activities(), url: '/activities', icon: Flame },
+          { title: m.reports_nav(), url: '/reports', icon: ScrollText },
+        ],
+      },
+      {
+        title: m.nav_section_documents_questionnaires(),
+        items: [
+          { title: m.nav_documents(), url: '/documents', icon: FileText },
+          { title: m.nav_questionnaires(), url: '/questionnaires', icon: ClipboardList },
+        ],
+      },
+    ],
+  };
+}

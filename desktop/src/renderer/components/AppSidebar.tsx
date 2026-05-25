@@ -1,6 +1,6 @@
 import { AppTitle } from '@renderer/components/layout/app-title';
 import { NavGroup } from '@renderer/components/layout/nav-group';
-import { sidebarData } from '@renderer/components/layout/sidebar-data';
+import { getSidebarData } from '@renderer/components/layout/sidebar-data';
 import {
   Sidebar,
   SidebarContent,
@@ -80,7 +80,7 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        {sidebarData.navGroups.map((group) => (
+        {getSidebarData().navGroups.map((group) => (
           <NavGroup key={group.title} {...group} />
         ))}
       </SidebarContent>

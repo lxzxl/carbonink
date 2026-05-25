@@ -145,6 +145,29 @@ export async function launchApp(opts: LaunchOpts): Promise<StageE2ESetup> {
   // Attach renderer log listeners to any window the app creates — must be
   // wired before the window loads so we catch the bundle's first execution.
   app.on('window', (page) => {
+    // Lock the renderer into zh-CN BEFORE main.tsx runs. Without this,
+    // `initLocale()` (src/renderer/lib/i18n.ts) reads `window.navigator.language`
+    // which playwright defaults to `en-US`, so every screenshot renders
+    // half-translated (Chinese content, English sidebar / footer chrome).
+    // `addInitScript` runs after preload but before the renderer bundle's
+    // top-level statements, which is the exact seam initLocale needs.
+    //
+    // Spec-side override path: a future test that wants English screenshots
+    // can call `page.evaluate(() => localStorage.setItem('carbonink.locale', 'en'))`
+    // followed by a reload before its assertions.
+    void page.addInitScript(() => {
+      try {
+        // Bare `localStorage` (not `window.localStorage`) — TypeScript
+        // would otherwise resolve `window` to the outer Playwright Page
+        // variable. The script runs in the browser context where the
+        // global is available unqualified.
+        localStorage.setItem('carbonink.locale', 'zh-CN');
+      } catch {
+        // localStorage can throw in some contexts (sandboxed iframe, file://
+        // with disk-quota issues). Best-effort: fall through, the renderer's
+        // navigator.language path stays as-is.
+      }
+    });
     page.on('console', (m) => console.log(`[renderer.${m.type()}]`, m.text()));
     page.on('pageerror', (e) => console.log('[renderer.pageerror]', e.message));
     page.on('crash', () => console.log('[renderer.crash]'));
@@ -359,6 +382,22 @@ export async function launchApp(opts: LaunchOpts): Promise<StageE2ESetup> {
   // NOTE: no `waitForLoadState` here — the SPA's TanStack Router emits
   // continuous `commit` events during init/redirect and `domcontentloaded`
   // can't resolve cleanly. Specs use `locator.waitFor()` for hydration.
+
+  // Lock locale to zh-CN. The `addInitScript` registration in the
+  // `app.on('window')` handler above can race the first page load —
+  // by the time we register, the bundle has often already evaluated
+  // `initLocale()` against the empty localStorage and committed to
+  // navigator.language ("en-US" in playwright). Write the storage key
+  // directly here, then reload — the second load picks up zh-CN
+  // deterministically.
+  await window.evaluate(() => {
+    try {
+      localStorage.setItem('carbonink.locale', 'zh-CN');
+    } catch {
+      // ignore — best-effort
+    }
+  });
+  await window.reload();
 
   const setup: StageE2ESetup = { app, window, tempUserDataDir };
   if (savedFilePath) setup.savedFilePath = savedFilePath;
