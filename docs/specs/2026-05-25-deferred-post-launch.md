@@ -6,6 +6,10 @@ list are intentionally deferred and need their own design before any code.
 
 ## Deferred 1 — Undo / Redo
 
+**Status (2026-05-25):** Design approved — see
+`docs/specs/2026-05-25-undo-redo-design.md`. The open questions below
+are now answered there; implementation plan is the next step.
+
 **Why deferred:** Native desktop users expect ⌘Z to undo their last
 action. We don't have a primitive for this today, and bolting it onto
 existing services would produce a fragmented, partial undo that's worse
