@@ -97,6 +97,47 @@ Then finish provisioning:
 cd cloud/worker && pnpm exec wrangler d1 migrations apply DB --remote
 ```
 
+## Migrating from the pre-merge 3-site layout
+
+If your Cloudflare account has the older `carbonink-marketing`,
+`carbonink-activate`, and `carbonink-account` workers still
+attached to `carbonink.xyz`, the first deploy will fail with:
+
+```
+✘ Can't deploy routes that are assigned to another worker.
+  "carbonink-marketing" is already assigned to routes:
+    - carbonink.xyz/*
+```
+
+That's expected — Cloudflare's edge routes are one-worker-per-route
+and the new `carbonink-cloud-web` can't claim a pattern someone
+else already owns. Delete the orphans first, then re-deploy:
+
+```bash
+cd cloud/worker
+pnpm exec wrangler delete --name carbonink-marketing
+pnpm exec wrangler delete --name carbonink-activate
+pnpm exec wrangler delete --name carbonink-account
+./cloud/scripts/deploy.sh web   # re-attach /* to the new worker
+```
+
+The web worker upload itself succeeds in the original failing run —
+only the route-binding step errors — so the worker is already in
+the dashboard when you delete the old names. Re-running deploy.sh
+just attaches the route and is idempotent.
+
+You'll also need to re-set `STRIPE_SECRET_KEY` on the new web
+worker (the `/activate` SSR route uses it; previously it lived on
+the deleted `carbonink-activate` worker):
+
+```bash
+cd cloud/web && pnpm exec wrangler secret put STRIPE_SECRET_KEY
+```
+
+Or set `STRIPE_SECRET_KEY` in `cloud/.env.local` and re-run
+`./cloud/scripts/push-secrets.sh` — the script pushes it to both
+API and web workers automatically.
+
 ## Day-to-day
 
 ```bash
