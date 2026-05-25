@@ -56,6 +56,13 @@ warns if it's at a sub-package). Includes `better-sqlite3`, `electron`,
 `esbuild`, `sharp`, `workerd`, `@napi-rs/canvas-*`. New native deps
 must be added here before pnpm will run their postinstall.
 
+**Electron pinned at `^41.5.1`** — not the latest. We can't move to v42
+yet because `better-sqlite3` (latest 12.10.0) doesn't compile against
+Electron 42's V8 14.8 API. The upstream fix
+([better-sqlite3 PR #1475](https://github.com/WiseLibs/better-sqlite3/pull/1475))
+is maintainer-approved but unmerged. Full investigation + re-attempt
+checklist in `docs/research/2026-05-25-electron-42-upgrade-blocker.md`.
+
 ## Cloud deploy primitives — Workers everywhere
 
 Both cloud packages are Cloudflare Workers (API + web). We do NOT
