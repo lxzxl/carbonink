@@ -14,6 +14,7 @@ const { title, lang = 'zh-CN' } = Astro.props as { title: string; lang?: 'zh-CN'
     {/* The activate portal is a thank-you page after a Stripe purchase
         — search engines should not index it. `noindex` keeps stale
         receipts out of organic results. */}
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600&display=swap" />
