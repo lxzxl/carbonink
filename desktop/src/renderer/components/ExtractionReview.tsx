@@ -285,6 +285,7 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
           discardExtractionId={extraction.id}
           defaultStageId={extraction.prompt_version}
           onConfirmed={() => setShowStagePicker(false)}
+          onCancel={() => setShowStagePicker(false)}
         />
       ) : orgQuery.isLoading || sourcesQuery.isLoading ? (
         <p className="text-sm text-muted-foreground">{m.loading()}</p>
