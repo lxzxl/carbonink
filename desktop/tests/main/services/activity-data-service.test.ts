@@ -517,6 +517,50 @@ describe('ActivityDataService.delete', () => {
     svc.delete(created.id);
     expect(svc.getById(created.id)).toBeNull();
   });
+
+  it('throws a friendly error when a questionnaire answer references the activity', () => {
+    // Regression: prior to the defensive check, raw DELETE would surface
+    // as an opaque `SQLITE_CONSTRAINT_FOREIGNKEY` IPC error because the
+    // `answer.source_activity_data_id` FK has no ON DELETE clause. We
+    // pre-empt that with a typed-message throw the renderer can show.
+    const activity = svc.create({
+      emission_source_id: scope2Source.id,
+      reporting_period_id: period.id,
+      occurred_at_start: '2024-01-01',
+      occurred_at_end: '2024-01-31',
+      amount: 1000,
+      unit: 'kWh',
+      ...CN_NATIONAL,
+    });
+
+    // Minimal answer-referencing-activity_data setup. We bypass the
+    // questionnaire/customer services and insert directly because the
+    // failure mode under test is purely DB-level — the goal is to
+    // verify the FK guard, not the full questionnaire flow.
+    db.prepare(`INSERT INTO customer (id, name) VALUES ('cust1', 'Acme')`).run();
+    db.prepare(
+      `INSERT INTO document (id, sha256, filename, mime_type, size_bytes, storage_path, uploaded_at)
+       VALUES ('doc1', 'deadbeef', 'q.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 100, '/tmp/q.xlsx', '2024-01-01T00:00:00.000Z')`,
+    ).run();
+    db.prepare(
+      `INSERT INTO questionnaire (id, customer_id, document_id, reporting_year, status, created_at)
+       VALUES ('q1', 'cust1', 'doc1', 2024, 'mapping', '2024-01-01T00:00:00.000Z')`,
+    ).run();
+    db.prepare(
+      `INSERT INTO question
+         (id, questionnaire_id, question_signature, signature_version, normalized_text, raw_text, question_kind, required)
+       VALUES ('qn1', 'q1', 'sig1', 'v1', 'kwh used?', 'kWh used?', 'numerical', 0)`,
+    ).run();
+    db.prepare(
+      `INSERT INTO answer (id, question_id, value, unit, source_kind, source_activity_data_id, source_summary, finalized_at)
+       VALUES ('a1', 'qn1', '1000', 'kWh', 'mapped_inventory', ?, NULL, NULL)`,
+    ).run(activity.id);
+
+    expect(() => svc.delete(activity.id)).toThrow(/referenced by 1 questionnaire answer/);
+    // Activity row must still exist — the throw is supposed to abort
+    // the delete before the destructive statement runs.
+    expect(svc.getById(activity.id)).not.toBeNull();
+  });
 });
 
 describe('ActivityDataService.totalsByPeriod', () => {

@@ -244,20 +244,37 @@ export class ActivityDataService {
   }
 
   /**
-   * Hard delete. Phase 1a: safe because `answer.source_activity_data_id`
-   * (FK declared in migration 005, no ON DELETE clause) is only populated
-   * in Phase 1b+. Until then, no row references activity_data and the
-   * DELETE always succeeds. `calculation_snapshot_line.original_activity_data_id`
-   * (migration 004) is intentionally not a real FK — snapshots are designed
-   * to outlive deleted activities — so it doesn't constrain this either.
+   * Hard delete with reference check.
    *
-   * Phase 1b TODO: once `answer` rows can reference activities, pick one:
-   *   (a) switch to soft-delete (add is_active column to activity_data), or
-   *   (b) change the FK to `ON DELETE SET NULL` in migration 005, or
-   *   (c) explicitly cascade or block deletes in this service.
-   * Whichever is chosen needs a service-layer test asserting the new semantics.
+   * `answer.source_activity_data_id` (FK in migration 005/014, no ON DELETE
+   * clause → SQLite default NO ACTION) is populated whenever a
+   * questionnaire answer was sourced from `mapped_inventory`. Without this
+   * check, the raw `DELETE` would surface as an opaque
+   * `SQLITE_CONSTRAINT_FOREIGNKEY` IPC error.
+   *
+   * Why not `ON DELETE SET NULL`? The `answer` CHECK constraint requires
+   * `source_kind = 'mapped_inventory'` to have **exactly one** source FK
+   * non-null, so nulling the FK would re-violate the CHECK and the
+   * DELETE would still fail — just with a different opaque error.
+   *
+   * Why not soft-delete (`is_active` column)? Heavier migration than the
+   * problem warrants. Most users don't delete activities; those who do
+   * can detach the questionnaire references first. Revisit if a real
+   * UX appears for "detach + cascade".
+   *
+   * `calculation_snapshot_line.original_activity_data_id` (migration 004)
+   * is intentionally NOT a real FK — snapshots outlive deleted activities
+   * by design — so it doesn't constrain this either.
    */
   delete(id: string): void {
+    const refs = this.db
+      .prepare(`SELECT COUNT(*) AS c FROM answer WHERE source_activity_data_id = ?`)
+      .get(id) as { c: number };
+    if (refs.c > 0) {
+      throw new Error(
+        `activity_data ${id} is referenced by ${refs.c} questionnaire answer(s) — detach the answer's data source before deleting`,
+      );
+    }
     this.db.prepare('DELETE FROM activity_data WHERE id = ?').run(id);
   }
 
