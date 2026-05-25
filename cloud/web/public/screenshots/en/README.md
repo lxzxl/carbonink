@@ -15,8 +15,7 @@ dashboard.png  documents.png  questionnaires.png  reports.png  sources.png
 
 This directory was scaffolded with **copies of the zh screenshots** as
 placeholders, so the EN marketing page never 404s. They look "Chinese"
-because they are — the desktop app's e2e tour ran in zh locale when it
-produced the parent-dir set.
+because they are — initial placeholder content, NOT real English UI.
 
 The wiring is in place. Once real English-UI screenshots replace these
 files, the EN marketing page automatically picks them up — no code
@@ -24,60 +23,58 @@ change needed.
 
 ## How to regenerate as real English UI
 
-The desktop app's startup locale (`desktop/src/renderer/lib/i18n.ts`)
-is decided in this order:
-
-1. `localStorage['carbonink.locale']` — sticky user preference
-2. `window.navigator.language` — Chromium's reported lang
-3. fallback to `'en'`
-
-The e2e `tour.spec.ts` runs Playwright Chromium with the OS's default
-locale. On a zh-locale macOS that means `navigator.language === 'zh-CN'`
-→ app loads zh.
-
-The cleanest way to flip the tour to English: launch Playwright's
-Chromium context with `locale: 'en-US'`. Two options:
-
-### Option A — one-off run, no spec changes
+The desktop app's e2e tour spec honors a `TOUR_LOCALE` env var (added
+to `desktop/tests/e2e/_setup.ts` + `tour.spec.ts`). Run it with `en`
+to capture English screenshots:
 
 ```bash
-# Launch the e2e tour with Chromium forced to en-US.
-# Requires temporarily editing tour.spec.ts to pass `locale: 'en-US'`
-# into the launch options, OR setting the env at the OS level.
-LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 \
-  pnpm --filter carbonink test:e2e tests/e2e/tour.spec.ts
+TOUR_LOCALE=en pnpm --filter carbonink test:e2e tests/e2e/tour.spec.ts
 ```
 
-If the OS-level LANG override doesn't propagate (depends on Playwright
-version), use Option B.
+The harness pins `localStorage['carbonink.locale'] = 'en'` in two
+places (Playwright `addInitScript` BEFORE the renderer bundle runs,
+then a belt-and-braces `evaluate` + reload AFTER the first window
+opens) so the renderer reliably mounts in English regardless of the
+dev machine's OS locale. The `.en` suffix on output filenames keeps
+zh and en runs side-by-side in the same directory.
 
-### Option B — locale-aware tour spec (cleanest, but a small code change)
+Outputs land at `desktop/tests/e2e/screenshots/`:
 
-Edit `desktop/tests/e2e/tour.spec.ts` to honor a `TOUR_LOCALE` env var,
-then plumb it into `_setup.ts → launchApp` so the Electron / Chromium
-context starts with that locale. Run twice:
+| tour output                           | copy to                                                |
+|---------------------------------------|--------------------------------------------------------|
+| `tour-01-dashboard.en.png`            | `cloud/web/public/screenshots/en/dashboard.png`        |
+| `tour-02-sources.en.png`              | `cloud/web/public/screenshots/en/sources.png`          |
+| `tour-04-documents.en.png`            | `cloud/web/public/screenshots/en/documents.png`        |
+| `tour-05-questionnaires.en.png`       | `cloud/web/public/screenshots/en/questionnaires.png`   |
+| `tour-07-reports.en.png`              | `cloud/web/public/screenshots/en/reports.png`          |
+
+(`tour-03-activities.en.png` and `tour-06-audit.en.png` aren't surfaced
+on the marketing page — skip them.)
+
+One-liner copy after the tour run:
 
 ```bash
-TOUR_LOCALE=zh-CN pnpm --filter carbonink test:e2e tests/e2e/tour.spec.ts
-TOUR_LOCALE=en    pnpm --filter carbonink test:e2e tests/e2e/tour.spec.ts
+TOUR_LOCALE=en pnpm --filter carbonink test:e2e tests/e2e/tour.spec.ts && \
+  cp desktop/tests/e2e/screenshots/tour-01-dashboard.en.png      cloud/web/public/screenshots/en/dashboard.png && \
+  cp desktop/tests/e2e/screenshots/tour-02-sources.en.png        cloud/web/public/screenshots/en/sources.png && \
+  cp desktop/tests/e2e/screenshots/tour-04-documents.en.png      cloud/web/public/screenshots/en/documents.png && \
+  cp desktop/tests/e2e/screenshots/tour-05-questionnaires.en.png cloud/web/public/screenshots/en/questionnaires.png && \
+  cp desktop/tests/e2e/screenshots/tour-07-reports.en.png        cloud/web/public/screenshots/en/reports.png
 ```
 
-The tour writes seven screenshots to
-`desktop/tests/e2e/screenshots/tour-*.png`. The five used here:
+Then commit + push; the cloud-deploy lane ships them automatically on
+the next green main SHA.
 
-| tour output                          | copy to                                    |
-|--------------------------------------|--------------------------------------------|
-| `tour-01-dashboard.png`              | `cloud/web/public/screenshots/en/dashboard.png`     |
-| `tour-02-sources.png`                | `cloud/web/public/screenshots/en/sources.png`       |
-| `tour-04-documents.png`              | `cloud/web/public/screenshots/en/documents.png`     |
-| `tour-05-questionnaires.png`         | `cloud/web/public/screenshots/en/questionnaires.png` |
-| `tour-07-reports.png`                | `cloud/web/public/screenshots/en/reports.png`       |
+## Re-running the zh tour (refresh the parent dir)
 
-(`tour-03-activities.png` and `tour-06-audit.png` aren't surfaced on
-the marketing page — skip them.)
+The default tour (no env var) captures zh-CN as before, writing the
+unsuffixed `tour-NN-*.png` filenames. Those feed
+`cloud/web/public/screenshots/*.png` (no `en/`).
 
-Commit the replaced PNGs; the cloud-deploy CI lane ships them
-automatically on push to main.
+```bash
+pnpm --filter carbonink test:e2e tests/e2e/tour.spec.ts
+# then cp tour-NN-*.png → cloud/web/public/screenshots/{name}.png
+```
 
 ## Sanity checks after replacing
 
