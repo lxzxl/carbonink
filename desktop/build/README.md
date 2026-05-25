@@ -15,17 +15,25 @@ producing distributable installers (`.dmg`, `.exe`).
 
 ## Regenerating the icons
 
-All three icon containers are derived from `LogoMark.astro` (the brand
-glyph used on the marketing site). Re-run after any logo design change:
+The icon mark is defined as canvas drawing code in
+`scripts/icon-designs.mjs` — three variants (X1 / X2 / X3) coexist in
+the file, and the generator picks one based on the `ICON_DIRECTION`
+env var or the `ACTIVE_DIRECTION` constant. Currently shipping: **X2**
+(stacked data rows in cream + moss-green on warm-graphite background —
+the "ledger entries" mark).
+
+Re-run after any design change:
 
 ```bash
-node scripts/generate-icons.mjs
+pnpm icons                          # uses the active direction (X2)
+node scripts/generate-icons.mjs --preview   # render all variants side-by-side
+ICON_DIRECTION=X1 pnpm icons        # ship a different variant
 ```
 
 The script:
 
-1. Renders the LogoMark via `@napi-rs/canvas` at every size needed
-   across the three formats (16 / 24 / 32 / 48 / 64 / 128 / 256 / 512 / 1024).
+1. Renders the mark via `@napi-rs/canvas` at every size needed across
+   the three formats (16 / 24 / 32 / 48 / 64 / 128 / 256 / 512 / 1024).
 2. Packs the macOS `.icns` via `iconutil` — requires Xcode Command Line
    Tools (`xcode-select --install`).
 3. Hand-packs the Windows `.ico` as PNG-in-ICO (Vista+ format).
