@@ -33,6 +33,7 @@ vi.mock('electron', () => {
 });
 
 let tmpUserData: string;
+const realPlatform = process.platform;
 
 beforeEach(() => {
   fakeBlobs.clear();
@@ -40,12 +41,20 @@ beforeEach(() => {
   vi.mocked(app.getPath).mockReturnValue(tmpUserData);
   vi.mocked(safeStorage.isEncryptionAvailable).mockReturnValue(true);
   resetCredentialStoreForTest();
+  // The singleton factory reads `process.platform` and throws on linux per
+  // spec §1/§2 (CarbonInk v1 supports macOS + Windows only). Local dev on
+  // macOS never hits that branch, but Linux CI does — so we fake the
+  // platform as darwin here. We're testing the credential store wiring,
+  // not the platform-rejection branch (covered separately in
+  // safe-storage.test.ts via direct CredentialStore construction).
+  Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
 });
 
 afterEach(() => {
   rmSync(tmpUserData, { recursive: true, force: true });
   resetCredentialStoreForTest();
   vi.clearAllMocks();
+  Object.defineProperty(process, 'platform', { value: realPlatform, configurable: true });
 });
 
 describe('safe-storage-backend.getCredentialStore', () => {
