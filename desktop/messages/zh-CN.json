@@ -645,6 +645,7 @@
   "period_granularity_annual": "年度",
   "period_granularity_quarterly": "季度",
   "period_granularity_monthly": "月度",
+  "onboarding_complete_failed": "完成新手引导失败。",
   "undo": "撤销",
   "undo_failed": "撤销失败。",
   "updater_section_heading": "软件更新",

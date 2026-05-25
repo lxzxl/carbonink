@@ -2,6 +2,7 @@ import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
 import { Label } from '@renderer/components/ui/label';
 import { licenseApi } from '@renderer/lib/api/license';
+import { friendlyErrorDescription } from '@renderer/lib/error-message';
 import * as m from '@renderer/paraglide/messages';
 import type { LicenseState, LicenseStateView } from '@shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -56,8 +57,9 @@ export function LicenseSection() {
       toast.error(title, { description: result.error.message });
     },
     onError: (e) => {
-      const msg = e instanceof Error ? e.message : String(e);
-      toast.error(m.license_activation_error_malformed(), { description: msg });
+      toast.error(m.license_activation_error_malformed(), {
+        description: friendlyErrorDescription(e),
+      });
     },
   });
 

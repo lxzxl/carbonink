@@ -1,4 +1,5 @@
 import { sourceApi } from '@renderer/lib/api/emission-source';
+import { friendlyErrorDescription } from '@renderer/lib/error-message';
 import { cn } from '@renderer/lib/utils';
 import * as m from '@renderer/paraglide/messages';
 import type { EmissionSource } from '@shared/types';
@@ -75,8 +76,7 @@ export function SourceEditDrawer({ source, open, onClose }: SourceEditDrawerProp
       onClose();
     },
     onError: (err) => {
-      const msg = err instanceof Error ? err.message : 'Unknown error';
-      toast.error(m.source_edit_failed(), { description: msg });
+      toast.error(m.source_edit_failed(), { description: friendlyErrorDescription(err) });
     },
   });
 

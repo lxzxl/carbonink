@@ -4,6 +4,7 @@ import { Input } from '@renderer/components/ui/input';
 import { Label } from '@renderer/components/ui/label';
 import { sourceApi } from '@renderer/lib/api/emission-source';
 import { orgApi } from '@renderer/lib/api/organization';
+import { friendlyErrorDescription } from '@renderer/lib/error-message';
 import * as m from '@renderer/paraglide/messages';
 import type { Site } from '@shared/types';
 import { useForm, useStore } from '@tanstack/react-form';
@@ -52,8 +53,7 @@ export function SourceForm({ organizationId, onCancel, onSuccess }: SourceFormPr
       onSuccess();
     },
     onError: (err) => {
-      const msg = err instanceof Error ? err.message : 'Unknown error';
-      toast.error(m.sources_create_failed(), { description: msg });
+      toast.error(m.sources_create_failed(), { description: friendlyErrorDescription(err) });
     },
   });
 

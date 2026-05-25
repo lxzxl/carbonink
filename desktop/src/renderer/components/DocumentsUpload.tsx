@@ -72,8 +72,13 @@ export function DocumentsUpload() {
         });
         successes.push(file.name);
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        failures.push({ filename: file.name, message: msg });
+        // Per-file failure: capture the raw message for the batch
+        // summary. The summary toast renders the list internally and
+        // doesn't pipe `message` into a toast description, so keeping
+        // the raw IPC string here is fine (the user only sees a count
+        // + filenames, not the raw error).
+        const failureMsg = err instanceof Error ? err.message : String(err);
+        failures.push({ filename: file.name, message: failureMsg });
       }
     }
 

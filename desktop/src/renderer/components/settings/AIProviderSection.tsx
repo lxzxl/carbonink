@@ -3,6 +3,7 @@ import { Button } from '@renderer/components/ui/button';
 import { Input } from '@renderer/components/ui/input';
 import { Label } from '@renderer/components/ui/label';
 import { settingsApi } from '@renderer/lib/api/settings';
+import { friendlyErrorDescription } from '@renderer/lib/error-message';
 import * as m from '@renderer/paraglide/messages';
 import type { ProviderConfig, ProviderKind } from '@shared/types';
 import { useForm, useStore } from '@tanstack/react-form';
@@ -130,8 +131,7 @@ export function AIProviderSection() {
       toast.success(m.settings_save_success());
     },
     onError: (err) => {
-      const msg = err instanceof Error ? err.message : 'Unknown error';
-      toast.error(m.settings_save_failed(), { description: msg });
+      toast.error(m.settings_save_failed(), { description: friendlyErrorDescription(err) });
     },
   });
 
@@ -184,8 +184,7 @@ export function AIProviderSection() {
       }
     },
     onError: (err) => {
-      const msg = err instanceof Error ? err.message : 'Unknown error';
-      toast.error(m.settings_test_failed(), { description: msg });
+      toast.error(m.settings_test_failed(), { description: friendlyErrorDescription(err) });
     },
   });
 

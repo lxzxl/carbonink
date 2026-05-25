@@ -8,6 +8,7 @@ import { buildTravelInitialValues } from '@renderer/components/extractions/trave
 import { parseExtraction } from '@renderer/components/extractions/types';
 import { toast } from '@renderer/components/toast';
 import { extractionApi } from '@renderer/lib/api/extraction';
+import { friendlyErrorDescription } from '@renderer/lib/error-message';
 import * as m from '@renderer/paraglide/messages';
 import type { ActivityData, Document, EmissionSource, Extraction } from '@shared/types';
 import { useQueryClient } from '@tanstack/react-query';
@@ -127,8 +128,9 @@ export function ActivityAddDrawer({
       // Best-effort — the activity is already created, so we surface
       // this as a non-blocking warning. The user can mark the
       // extraction confirmed manually on /documents/$id.
-      const msgText = err instanceof Error ? err.message : String(err);
-      toast.warning(m.documents_review_confirm_failed(), { description: msgText });
+      toast.warning(m.documents_review_confirm_failed(), {
+        description: friendlyErrorDescription(err),
+      });
     }
   }
 

@@ -4,6 +4,7 @@ import { Input } from '@renderer/components/ui/input';
 import { Label } from '@renderer/components/ui/label';
 import { COMMON_COUNTRIES, INDUSTRIES } from '@renderer/features/onboarding/lookups';
 import { orgApi } from '@renderer/lib/api/organization';
+import { friendlyErrorDescription } from '@renderer/lib/error-message';
 import * as m from '@renderer/paraglide/messages';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
@@ -109,8 +110,7 @@ function BasicInfoGroup({ orgId, initial, onSaved }: BasicInfoProps) {
       onSaved();
     },
     onError: (err) => {
-      const msg = err instanceof Error ? err.message : 'Unknown error';
-      toast.error(m.settings_save_failed(), { description: msg });
+      toast.error(m.settings_save_failed(), { description: friendlyErrorDescription(err) });
     },
   });
 
@@ -240,8 +240,7 @@ function ReportingProfileGroup({ orgId, initial, onSaved }: ReportingProfileProp
       onSaved();
     },
     onError: (err) => {
-      const msg = err instanceof Error ? err.message : 'Unknown error';
-      toast.error(m.settings_save_failed(), { description: msg });
+      toast.error(m.settings_save_failed(), { description: friendlyErrorDescription(err) });
     },
   });
 

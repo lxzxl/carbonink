@@ -2,6 +2,7 @@ import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
 import { documentApi } from '@renderer/lib/api/document';
 import { extractionApi } from '@renderer/lib/api/extraction';
+import { friendlyErrorDescription } from '@renderer/lib/error-message';
 import { cn } from '@renderer/lib/utils';
 import * as m from '@renderer/paraglide/messages';
 import type { Document, Extraction } from '@shared/types';
@@ -128,8 +129,7 @@ export function ActivityDocumentDropzone({ onParsed }: ActivityDocumentDropzoneP
       uploadedDoc = await uploadMutation.mutateAsync(file);
     } catch (err) {
       if (isStale()) return;
-      const msg = err instanceof Error ? err.message : String(err);
-      toast.error(m.documents_upload_failed(), { description: msg });
+      toast.error(m.documents_upload_failed(), { description: friendlyErrorDescription(err) });
       setState({ kind: 'idle' });
       return;
     }
@@ -171,13 +171,19 @@ export function ActivityDocumentDropzone({ onParsed }: ActivityDocumentDropzoneP
     } catch (err) {
       if (timeoutId !== null) window.clearTimeout(timeoutId);
       if (isStale()) return;
-      const msg = err instanceof Error ? err.message : String(err);
-      if (msg === 'CLASSIFY_TIMEOUT') {
+      // CLASSIFY_TIMEOUT is a sentinel string we throw locally (not
+      // an IPC error), so reading the raw `.message` to branch on it
+      // is legitimate. The user-facing toast still hides the raw
+      // text via friendlyErrorDescription.
+      const sentinel = err instanceof Error ? err.message : '';
+      if (sentinel === 'CLASSIFY_TIMEOUT') {
         toast.error(m.activity_doc_classify_timeout_title(), {
           description: m.activity_doc_classify_timeout_body(),
         });
       } else {
-        toast.error(m.activity_doc_classify_failed_title(), { description: msg });
+        toast.error(m.activity_doc_classify_failed_title(), {
+          description: friendlyErrorDescription(err),
+        });
       }
       setState({ kind: 'idle' });
     }

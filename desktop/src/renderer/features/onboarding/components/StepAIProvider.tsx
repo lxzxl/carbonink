@@ -1,6 +1,7 @@
 import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
 import { orgApi } from '@renderer/lib/api/organization';
+import { friendlyErrorDescription } from '@renderer/lib/error-message';
 import * as m from '@renderer/paraglide/messages';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
@@ -74,8 +75,9 @@ export function StepAIProvider() {
       await queryClient.invalidateQueries({ queryKey: ['org:has-any'] });
       await navigate({ to: '/' });
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Unknown error';
-      toast.error('Failed to complete onboarding', { description: msg });
+      toast.error(m.onboarding_complete_failed(), {
+        description: friendlyErrorDescription(e),
+      });
     } finally {
       setSubmitting(false);
     }

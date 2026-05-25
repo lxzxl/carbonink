@@ -19,6 +19,7 @@ import { sourceApi } from '@renderer/lib/api/emission-source';
 import { extractionApi } from '@renderer/lib/api/extraction';
 import { orgApi } from '@renderer/lib/api/organization';
 import { undoApi } from '@renderer/lib/api/undo';
+import { friendlyErrorDescription } from '@renderer/lib/error-message';
 import { formatCo2e } from '@renderer/lib/format';
 import { stageLabel } from '@renderer/lib/stage-labels';
 import * as m from '@renderer/paraglide/messages';
@@ -133,8 +134,7 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
                 navigate({ to: '/documents/$id', params: { id: document.id } });
               },
               (err) => {
-                const msg = err instanceof Error ? err.message : String(err);
-                toast.error(m.undo_failed(), { description: msg });
+                toast.error(m.undo_failed(), { description: friendlyErrorDescription(err) });
               },
             );
           },
@@ -143,8 +143,9 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
       navigate({ to: '/documents' });
     },
     onError: (err) => {
-      const msg = err instanceof Error ? err.message : String(err);
-      toast.error(m.documents_review_discard_failed(), { description: msg });
+      toast.error(m.documents_review_discard_failed(), {
+        description: friendlyErrorDescription(err),
+      });
     },
   });
 
@@ -159,8 +160,9 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
       await extractionApi.confirm({ id: extraction.id });
       toast.success(m.documents_review_confirm_success());
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      toast.error(m.documents_review_confirm_failed(), { description: msg });
+      toast.error(m.documents_review_confirm_failed(), {
+        description: friendlyErrorDescription(err),
+      });
     }
     await queryClient.invalidateQueries({
       queryKey: ['extraction:list-by-document', document.id],

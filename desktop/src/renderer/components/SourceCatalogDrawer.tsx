@@ -1,5 +1,6 @@
 import { sourceApi } from '@renderer/lib/api/emission-source';
 import { categoryLabel } from '@renderer/lib/category-labels';
+import { friendlyErrorDescription } from '@renderer/lib/error-message';
 import { currentLocale } from '@renderer/lib/i18n';
 import { cn } from '@renderer/lib/utils';
 import * as m from '@renderer/paraglide/messages';
@@ -135,8 +136,9 @@ export function SourceCatalogDrawer({ organizationId, open, onClose }: SourceCat
       setSelectedIds(new Set());
     },
     onError: (err) => {
-      const msg = err instanceof Error ? err.message : 'Unknown error';
-      toast.error(m.sources_catalog_batch_add_failed(), { description: msg });
+      toast.error(m.sources_catalog_batch_add_failed(), {
+        description: friendlyErrorDescription(err),
+      });
     },
   });
 

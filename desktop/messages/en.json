@@ -645,6 +645,7 @@
   "period_granularity_annual": "Annual",
   "period_granularity_quarterly": "Quarterly",
   "period_granularity_monthly": "Monthly",
+  "onboarding_complete_failed": "Could not complete onboarding.",
   "undo": "Undo",
   "undo_failed": "Could not undo the last action.",
   "updater_section_heading": "Software Updates",

@@ -4,6 +4,7 @@ import { Input } from '@renderer/components/ui/input';
 import { Label } from '@renderer/components/ui/label';
 import { appApi } from '@renderer/lib/api/app';
 import { cacheApi, dataApi } from '@renderer/lib/api/data';
+import { friendlyErrorDescription } from '@renderer/lib/error-message';
 import { formatBytes } from '@renderer/lib/format';
 import * as m from '@renderer/paraglide/messages';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -58,8 +59,7 @@ export function DataSection() {
       }
     },
     onError: (err) => {
-      const msg = err instanceof Error ? err.message : String(err);
-      toast.error(m.settings_data_export_failed(), { description: msg });
+      toast.error(m.settings_data_export_failed(), { description: friendlyErrorDescription(err) });
     },
   });
 
@@ -74,8 +74,7 @@ export function DataSection() {
       }
     },
     onError: (err) => {
-      const msg = err instanceof Error ? err.message : String(err);
-      toast.error(m.settings_data_import_failed(), { description: msg });
+      toast.error(m.settings_data_import_failed(), { description: friendlyErrorDescription(err) });
     },
   });
 
@@ -239,8 +238,9 @@ function AutoBackupGroup() {
       if (ctx?.prev) {
         queryClient.setQueryData(['app:get-auto-backup-enabled'], ctx.prev);
       }
-      const msg = err instanceof Error ? err.message : String(err);
-      toast.error(m.settings_data_auto_backup_toggle_failed(), { description: msg });
+      toast.error(m.settings_data_auto_backup_toggle_failed(), {
+        description: friendlyErrorDescription(err),
+      });
     },
   });
   const openMutation = useMutation({
@@ -251,8 +251,9 @@ function AutoBackupGroup() {
       }
     },
     onError: (err) => {
-      const msg = err instanceof Error ? err.message : String(err);
-      toast.error(m.settings_data_auto_backup_open_failed(), { description: msg });
+      toast.error(m.settings_data_auto_backup_open_failed(), {
+        description: friendlyErrorDescription(err),
+      });
     },
   });
 

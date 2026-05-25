@@ -2,6 +2,7 @@ import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
 import { Label } from '@renderer/components/ui/label';
 import { mcpApi } from '@renderer/lib/api/mcp';
+import { friendlyErrorDescription } from '@renderer/lib/error-message';
 import * as m from '@renderer/paraglide/messages';
 import { useMutation, useQuery } from '@tanstack/react-query';
 
@@ -31,8 +32,7 @@ export function McpSection() {
       }
     },
     onError: (err) => {
-      const msg = err instanceof Error ? err.message : 'Unknown error';
-      toast.error(m.settings_mcp_write_failed(), { description: msg });
+      toast.error(m.settings_mcp_write_failed(), { description: friendlyErrorDescription(err) });
     },
   });
 

@@ -1,5 +1,6 @@
 import { toast } from '@renderer/components/toast';
 import { undoApi } from '@renderer/lib/api/undo';
+import { friendlyErrorDescription } from '@renderer/lib/error-message';
 import { subscribe } from '@renderer/lib/ipc';
 import * as m from '@renderer/paraglide/messages';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -38,8 +39,7 @@ export function useUndo() {
       void queryClient.invalidateQueries();
     },
     onError: (err) => {
-      const msg = err instanceof Error ? err.message : String(err);
-      toast.error(m.undo_failed(), { description: msg });
+      toast.error(m.undo_failed(), { description: friendlyErrorDescription(err) });
     },
   });
 

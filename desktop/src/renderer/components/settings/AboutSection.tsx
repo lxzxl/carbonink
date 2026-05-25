@@ -1,6 +1,7 @@
 import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
 import { appApi } from '@renderer/lib/api/app';
+import { friendlyErrorDescription } from '@renderer/lib/error-message';
 import * as m from '@renderer/paraglide/messages';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { ExternalLink, FileText, FolderOpen } from 'lucide-react';
@@ -32,8 +33,9 @@ export function AboutSection() {
       }
     },
     onError: (err) => {
-      const msg = err instanceof Error ? err.message : String(err);
-      toast.error(m.settings_about_open_data_dir_failed(), { description: msg });
+      toast.error(m.settings_about_open_data_dir_failed(), {
+        description: friendlyErrorDescription(err),
+      });
     },
   });
 
@@ -45,8 +47,9 @@ export function AboutSection() {
       }
     },
     onError: (err) => {
-      const msg = err instanceof Error ? err.message : String(err);
-      toast.error(m.settings_about_open_log_dir_failed(), { description: msg });
+      toast.error(m.settings_about_open_log_dir_failed(), {
+        description: friendlyErrorDescription(err),
+      });
     },
   });
 

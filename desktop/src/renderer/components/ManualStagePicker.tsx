@@ -2,6 +2,7 @@ import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
 import { Label } from '@renderer/components/ui/label';
 import { extractionApi } from '@renderer/lib/api/extraction';
+import { friendlyErrorDescription } from '@renderer/lib/error-message';
 import * as m from '@renderer/paraglide/messages';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -65,10 +66,12 @@ export function ManualStagePicker({
     // Without this, IPC failures (license-gate block, LLM error, missing
     // document, network) get swallowed and the button looks unresponsive
     // after the spinner resolves — user just sees "确认重抽" again with no
-    // explanation. A toast surfaces the real reason.
+    // explanation. A toast surfaces the real reason via the localized
+    // title; raw IPC error text stays in the log file for support.
     onError: (err) => {
-      const msg = err instanceof Error ? err.message : String(err);
-      toast.error(m.documents_review_reextract_failed(), { description: msg });
+      toast.error(m.documents_review_reextract_failed(), {
+        description: friendlyErrorDescription(err),
+      });
     },
   });
 
