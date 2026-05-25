@@ -240,6 +240,7 @@
   "onboarding_step_boundary_title": "Organizational boundary",
   "onboarding_step_company_country": "Country",
   "onboarding_step_company_industry": "Industry",
+  "onboarding_step_company_industry_placeholder": "Select industry…",
   "onboarding_step_company_name_en": "English name",
   "onboarding_step_company_name_zh": "Chinese name",
   "onboarding_step_company_title": "Company info",

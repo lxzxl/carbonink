@@ -4,26 +4,9 @@ import { Label } from '@renderer/components/ui/label';
 import * as m from '@renderer/paraglide/messages';
 import { useForm } from '@tanstack/react-form';
 import { useNavigate } from '@tanstack/react-router';
+import { COMMON_COUNTRIES, INDUSTRIES } from '../lookups';
 import { WizardShell } from './WizardShell';
 import { loadDraft, saveDraft } from './wizardState';
-
-/**
- * Reasonable Asia/Pacific defaults plus the West-Coast standards a Chinese
- * carbonink user is most likely to encounter (CDP / supply-chain
- * questionnaires from US/EU customers). Kept short — the input below
- * accepts any ISO-3166 code as a fallback.
- */
-const COMMON_COUNTRIES = [
-  { code: 'CN', label_zh: '中国', label_en: 'China' },
-  { code: 'HK', label_zh: '香港 SAR', label_en: 'Hong Kong SAR' },
-  { code: 'TW', label_zh: '台湾', label_en: 'Taiwan' },
-  { code: 'JP', label_zh: '日本', label_en: 'Japan' },
-  { code: 'KR', label_zh: '韩国', label_en: 'South Korea' },
-  { code: 'SG', label_zh: '新加坡', label_en: 'Singapore' },
-  { code: 'US', label_zh: '美国', label_en: 'United States' },
-  { code: 'GB', label_zh: '英国', label_en: 'United Kingdom' },
-  { code: 'DE', label_zh: '德国', label_en: 'Germany' },
-];
 
 export function StepCompanyInfo() {
   const navigate = useNavigate();
@@ -136,12 +119,27 @@ export function StepCompanyInfo() {
             <form.Field
               name="industry"
               children={(field) => (
-                <Input
+                // Native select matches the country selector style for
+                // the row; the placeholder option is non-selectable
+                // (empty value + disabled) so the picker shows "请选择"
+                // until the user makes a choice, but the field is still
+                // optional at submit time. If a user truly doesn't see
+                // a fit, `other` is the bottom entry.
+                <select
                   id="industry"
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
-                  placeholder="科技 / Technology"
-                />
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  <option value="" disabled>
+                    {m.onboarding_step_company_industry_placeholder()}
+                  </option>
+                  {INDUSTRIES.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label_zh} · {opt.label_en}
+                    </option>
+                  ))}
+                </select>
               )}
             />
           </Field>

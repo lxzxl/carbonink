@@ -4,6 +4,7 @@ import { Label } from '@renderer/components/ui/label';
 import * as m from '@renderer/paraglide/messages';
 import { useForm } from '@tanstack/react-form';
 import { useNavigate } from '@tanstack/react-router';
+import { COMMON_COUNTRIES } from '../lookups';
 import { WizardShell } from './WizardShell';
 import { loadDraft, saveDraft } from './wizardState';
 
@@ -130,21 +131,28 @@ export function StepFirstSite() {
           />
         </div>
 
-        {/* Country: narrow, half-width — mirrors how the company step
-         * lays country alongside industry rather than full-row. */}
+        {/* Country: half-width select sharing the same COMMON_COUNTRIES
+         * list as the company step. Previously a 3-char free-text ISO
+         * code input — error-prone and inconsistent with step 1's
+         * dropdown. */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <Label htmlFor="site_country">{m.onboarding_step_site_country()}</Label>
             <form.Field
               name="country_code"
               children={(f) => (
-                <Input
+                <select
                   id="site_country"
                   value={f.state.value}
-                  onChange={(e) => f.handleChange(e.target.value.toUpperCase())}
-                  maxLength={3}
-                  className="max-w-[140px]"
-                />
+                  onChange={(e) => f.handleChange(e.target.value)}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  {COMMON_COUNTRIES.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.label_zh} · {c.label_en}
+                    </option>
+                  ))}
+                </select>
               )}
             />
           </div>
