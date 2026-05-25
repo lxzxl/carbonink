@@ -1,3 +1,4 @@
+import { LocaleToggle } from '@renderer/components/LocaleToggle';
 import { cn } from '@renderer/lib/utils';
 import * as m from '@renderer/paraglide/messages';
 import type { ReactNode } from 'react';
@@ -56,9 +57,16 @@ export function WizardShell({ step, title, subtitle, children, footer }: WizardS
   // sets the wizard's max-width and stacks dots + card.
   return (
     <div className="w-full max-w-xl">
-      {/* Progress dots — sits above the card, not inside, so they read
-       * as wizard chrome rather than card content. */}
-      <ProgressDots current={step} total={TOTAL_STEPS} />
+      {/* Top chrome row: progress dots on the left, language toggle on
+       * the right. Same row keeps the wizard "skin" compact — if the
+       * toggle sat above the dots, every step would gain an extra band
+       * of empty space. The toggle is present on every step so a user
+       * whose `navigator.language` was mis-detected can recover without
+       * waiting until the end of onboarding to find /settings. */}
+      <div className="flex items-center justify-between gap-3">
+        <ProgressDots current={step} total={TOTAL_STEPS} />
+        <LocaleToggle />
+      </div>
 
       <div className="mt-6 rounded-lg border border-border bg-card shadow-sm">
         <header className="px-8 pt-8 pb-6">

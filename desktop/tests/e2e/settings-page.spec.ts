@@ -123,8 +123,23 @@ test('settings page renders + screenshots each tab', async () => {
       .waitFor({ state: 'visible', timeout: 10_000 });
 
     // -----------------------------------------------------------------------
-    // Capture: default landing (AI provider section)
+    // Capture: AI provider section. The default landing is now "General"
+    // (matches macOS / Windows / iOS Settings conventions where the first
+    // section is global prefs — language + theme), so we have to click
+    // the AI rail button explicitly to screenshot it. Use the same nav
+    // role + button filter pattern the License/General/About sections
+    // below already use.
     // -----------------------------------------------------------------------
+    const railButtons = nav.getByRole('button');
+    const count = await railButtons.count();
+    expect(count).toBeGreaterThanOrEqual(6);
+
+    const aiBtnTop = railButtons.filter({ hasText: /ai|llm/i }).first();
+    await aiBtnTop.click();
+    await window
+      .getByText(/openai|api 密钥|api key/i)
+      .first()
+      .waitFor({ state: 'visible', timeout: 5_000 });
     await window.screenshot({
       path: join(SCREENSHOT_DIR, 'settings-ai-provider.png'),
       fullPage: false,
@@ -133,9 +148,6 @@ test('settings page renders + screenshots each tab', async () => {
     // -----------------------------------------------------------------------
     // Capture: License section — most distinctive after Phase-4 work.
     // -----------------------------------------------------------------------
-    const railButtons = nav.getByRole('button');
-    const count = await railButtons.count();
-    expect(count).toBeGreaterThanOrEqual(6);
 
     // Locale-agnostic match: zh-CN "许可" or en "License".
     const licenseBtn = railButtons.filter({ hasText: /license|许可/i }).first();

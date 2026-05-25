@@ -43,8 +43,12 @@ import { useState } from 'react';
  *   └──────────────┴────────────────────────────────────────┘
  *
  * One section visible at a time → users can't conflate adjacent
- * settings. Default landing is "AI" so existing onboarding flow
- * (configure provider before extraction) still works one-click.
+ * settings. Default landing is "General" — matches macOS / Windows /
+ * iOS Settings conventions where the first section is global
+ * preferences (language, theme). Users opening Settings the first
+ * time should see the language switcher immediately; the AI provider
+ * has its own onboarding step, so it doesn't need to be the entry
+ * point here.
  *
  * Active section is local state (no `/settings/$section` route). A
  * routed approach would buy bookmarkability but settings are
@@ -137,7 +141,7 @@ const SECTIONS: SectionDef[] = [
 ];
 
 export function SettingsPage() {
-  const [active, setActive] = useState<SectionKey>('ai');
+  const [active, setActive] = useState<SectionKey>('general');
   const section = SECTIONS.find((s) => s.key === active) ?? SECTIONS[0];
   if (!section) return null;
 

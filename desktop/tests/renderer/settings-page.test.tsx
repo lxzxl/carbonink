@@ -44,6 +44,20 @@ function harness(ui: React.ReactElement) {
   return <QueryClientProvider client={client}>{ui}</QueryClientProvider>;
 }
 
+/**
+ * Click into the "AI" section in the SettingsPage left rail.
+ *
+ * SettingsPage now defaults to the "General" section (language +
+ * theme) — see the rationale in `SettingsPage.tsx`. These tests
+ * exercise the AI provider section specifically, so each one
+ * starts by navigating there. Locale-agnostic regex matches both
+ * zh ("AI 提供方") and en ("AI provider") label variants.
+ */
+function gotoAiSection() {
+  const aiNav = screen.getByRole('button', { name: /ai|llm/i });
+  fireEvent.click(aiNav);
+}
+
 describe('SettingsPage', () => {
   beforeEach(() => {
     vi.mocked(settingsApi.getProvider).mockResolvedValue(null);
@@ -60,6 +74,7 @@ describe('SettingsPage', () => {
 
   it('renders with default values (provider=openai, model=gpt-4o-mini, empty key)', async () => {
     render(harness(<SettingsPage />));
+    gotoAiSection();
 
     // Wait for the getProvider query to settle (it resolves to null so no
     // hydration happens; we still want to be past the initial paint).
@@ -80,6 +95,7 @@ describe('SettingsPage', () => {
 
   it('switching provider to Azure reveals resourceName field; switching back hides it', async () => {
     render(harness(<SettingsPage />));
+    gotoAiSection();
 
     await waitFor(() => expect(settingsApi.getProvider).toHaveBeenCalled());
 
@@ -107,6 +123,7 @@ describe('SettingsPage', () => {
     });
 
     render(harness(<SettingsPage />));
+    gotoAiSection();
 
     // Wait for hydration. The masked widget replaces the password input.
     await waitFor(() => {
@@ -127,6 +144,7 @@ describe('SettingsPage', () => {
     });
 
     render(harness(<SettingsPage />));
+    gotoAiSection();
 
     const replace = await screen.findByRole('button', { name: /Replace/i });
     fireEvent.click(replace);
@@ -141,6 +159,7 @@ describe('SettingsPage', () => {
 
   it('Save submits the expected payload to settingsApi.saveProvider', async () => {
     render(harness(<SettingsPage />));
+    gotoAiSection();
 
     await waitFor(() => expect(settingsApi.getProvider).toHaveBeenCalled());
 
