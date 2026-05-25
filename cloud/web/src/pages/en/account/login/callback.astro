@@ -1,6 +1,7 @@
 ---
 import Base from '../../../../layouts/Base.astro';
 import LogoMark from '../../../../components/LogoMark.astro';
+import { apiFetch, getApiBinding } from '../../../../lib/api-fetch.ts';
 
 /**
  * /account/login/callback?t=<magic-link token>
@@ -43,12 +44,12 @@ let token: string | null = null;
 if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData();
   token = String(form.get('t') ?? '');
-  if (token) {
-    const exchangeUrl = new URL('/api/v1/auth/exchange', reqUrl.origin);
-    const res = await fetch(exchangeUrl.toString(), {
+  const api = getApiBinding();
+  if (token && api) {
+    const res = await apiFetch(api, {
+      path: '/api/v1/auth/exchange',
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token }),
+      body: { token },
     });
     if (res.ok) {
       const setCookie = res.headers.get('Set-Cookie');
@@ -60,7 +61,7 @@ if (Astro.request.method === 'POST') {
       }
     }
   }
-  // Token missing, exchange failed, or no Set-Cookie returned.
+  // Token missing, no API binding, exchange failed, or no Set-Cookie.
   state = 'invalid';
 } else {
   token = reqUrl.searchParams.get('t');

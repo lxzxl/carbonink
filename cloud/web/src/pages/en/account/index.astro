@@ -1,5 +1,6 @@
 ---
 import Base from '../../../layouts/Base.astro';
+import { apiFetch, getApiBinding } from '../../../lib/api-fetch.ts';
 
 /**
  * /account/ — logged-in dashboard, server-rendered.
@@ -33,16 +34,18 @@ type Device = {
   first_seen_at: number;
 };
 
-const devicesUrl = new URL('/api/v1/account/devices', new URL(Astro.request.url).origin);
 let devices: Device[] = [];
-try {
-  const res = await fetch(devicesUrl.toString(), { headers: { Cookie: cookie } });
-  if (res.ok) {
-    const body = (await res.json()) as { devices: Device[] };
-    devices = body.devices;
+const api = getApiBinding();
+if (api) {
+  try {
+    const res = await apiFetch(api, { path: '/api/v1/account/devices', cookie });
+    if (res.ok) {
+      const body = (await res.json()) as { devices: Device[] };
+      devices = body.devices;
+    }
+  } catch {
+    // network or shape error — show empty list rather than failing the page
   }
-} catch {
-  // network or shape error — show empty list rather than failing the page
 }
 
 const SEAT_LIMIT = 1;

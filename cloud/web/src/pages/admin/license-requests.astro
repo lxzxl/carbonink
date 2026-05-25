@@ -1,6 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import LogoMark from '../../components/LogoMark.astro';
+import { apiFetch, getApiBinding } from '../../lib/api-fetch.ts';
 
 /**
  * /admin/license-requests — the admin queue.
@@ -39,19 +40,26 @@ type Row = {
   processed_by: string | null;
 };
 
-const apiUrl = new URL(`/api/v1/admin/license-requests?status=${encodeURIComponent(status)}`, url.origin);
 let requests: Row[] = [];
 let fetchError: string | null = null;
-try {
-  const res = await fetch(apiUrl.toString(), { headers: { Cookie: cookie } });
-  if (res.ok) {
-    const body = (await res.json()) as { requests: Row[] };
-    requests = body.requests;
-  } else {
-    fetchError = `API returned ${res.status}`;
+const api = getApiBinding();
+if (!api) {
+  fetchError = 'API binding unavailable';
+} else {
+  try {
+    const res = await apiFetch(api, {
+      path: `/api/v1/admin/license-requests?status=${encodeURIComponent(status)}`,
+      cookie,
+    });
+    if (res.ok) {
+      const body = (await res.json()) as { requests: Row[] };
+      requests = body.requests;
+    } else {
+      fetchError = `API returned ${res.status}`;
+    }
+  } catch (e) {
+    fetchError = `Network error: ${e instanceof Error ? e.message : String(e)}`;
   }
-} catch (e) {
-  fetchError = `Network error: ${e instanceof Error ? e.message : String(e)}`;
 }
 
 function fmtTime(unixS: number): string {

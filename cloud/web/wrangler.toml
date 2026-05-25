@@ -29,6 +29,21 @@ routes = [
 [assets]
 directory = "./dist"
 
+# Service binding — internal RPC to the API worker. Cloudflare Workers
+# CANNOT efficiently fetch their own zone via public URL: a web-worker
+# `fetch('https://carbonink.xyz/api/...')` either hangs (~20s observed)
+# or loops at the routing layer. The fix is a service binding —
+# zero-latency in-process call, bypasses the public edge entirely.
+#
+# All SSR-side calls in this worker (middleware probe, callback
+# exchange, admin list, stripe-lookup, account dashboard devices fetch)
+# go through `env.API.fetch(...)`. Client-side browser fetches still
+# use the public `/api/*` route — those are real network requests
+# from the user's browser, no self-fetch problem.
+[[services]]
+binding = "API"
+service = "carbonink-cloud-api"
+
 # Secrets needed by SSR routes:
 #   STRIPE_SECRET_KEY   — used by /activate to resolve a Stripe
 #                         checkout session into an email + license key

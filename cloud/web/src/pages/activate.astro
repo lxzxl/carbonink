@@ -22,6 +22,7 @@
 import LicenseKeyCard from '../components/LicenseKeyCard.astro';
 import LogoMark from '../components/LogoMark.astro';
 import Base from '../layouts/Base.astro';
+import { getApiBinding, getEnv } from '../lib/api-fetch.ts';
 import { lookupLicenseForSession } from '../lib/stripe-lookup.ts';
 
 const url = new URL(Astro.request.url);
@@ -35,13 +36,11 @@ let lookupError: string | null = null;
 if (directKey) {
   licenseKey = directKey;
 } else if (sessionId) {
-  const env = Astro.locals.runtime?.env as { STRIPE_SECRET_KEY: string };
+  const { STRIPE_SECRET_KEY } = getEnv<{ STRIPE_SECRET_KEY: string }>();
   const result = await lookupLicenseForSession({
     sessionId,
-    stripeSecretKey: env.STRIPE_SECRET_KEY,
-    // Same-origin call to /api/* — derive the absolute base from
-    // the current request so the Worker fetch has a valid origin.
-    apiBaseUrl: new URL(Astro.request.url).origin,
+    stripeSecretKey: STRIPE_SECRET_KEY,
+    api: getApiBinding(),
   });
   if (result) licenseKey = result.licenseKey;
   else

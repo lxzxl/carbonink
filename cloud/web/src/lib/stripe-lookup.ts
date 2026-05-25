@@ -1,17 +1,34 @@
+import { type ApiBinding, apiFetch } from './api-fetch.ts';
+
 type Session = {
   id: string;
   customer_details?: { email?: string };
   metadata?: { plan?: string };
 };
 
+/**
+ * Resolve a Stripe checkout-session ID into a CarbonInk license key.
+ *
+ * Two hops:
+ *   1. Stripe API (external) → email behind the checkout session
+ *   2. Our internal `/v1/internal/license-by-email` (via service
+ *      binding) → license_key
+ *
+ * Hop #2 was previously a public-edge self-fetch which hangs ~20 s
+ * inside a Cloudflare Worker. The api-binding RPC sidesteps that.
+ *
+ * Caller (activate.astro SSR) must pass the worker's `env.API`
+ * binding. In dev / preview without wrangler it'll be `null`; we
+ * surface that as a `null` result so the page renders the
+ * "license not found" card cleanly.
+ */
 export async function lookupLicenseForSession(opts: {
   sessionId: string;
   stripeSecretKey: string;
-  // Absolute base URL for the API surface — caller builds this from
-  // `Astro.request.url` so server-side fetch has a valid origin
-  // (Worker fetch needs an absolute URL even for same-origin calls).
-  apiBaseUrl: string;
+  api: ApiBinding | null;
 }): Promise<{ licenseKey: string; email: string } | null> {
+  if (!opts.api) return null;
+
   const sessionRes = await fetch(`https://api.stripe.com/v1/checkout/sessions/${opts.sessionId}`, {
     headers: { Authorization: `Bearer ${opts.stripeSecretKey}` },
   });
@@ -19,9 +36,9 @@ export async function lookupLicenseForSession(opts: {
   const session = (await sessionRes.json()) as Session;
   const email = session.customer_details?.email;
   if (!email) return null;
-  const lookupUrl = new URL('/api/v1/internal/license-by-email', opts.apiBaseUrl);
-  lookupUrl.searchParams.set('email', email);
-  const lookup = await fetch(lookupUrl.toString(), {
+
+  const lookup = await apiFetch(opts.api, {
+    path: `/api/v1/internal/license-by-email?email=${encodeURIComponent(email)}`,
     headers: { 'X-Activate-Page': '1' },
   });
   if (!lookup.ok) return null;

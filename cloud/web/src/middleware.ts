@@ -1,4 +1,5 @@
 import { defineMiddleware } from 'astro:middleware';
+import { apiFetch, getApiBinding } from './lib/api-fetch.ts';
 
 /**
  * Session middleware for the account portal AND the admin tools.
@@ -73,10 +74,17 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // gets a clean 403 → redirect to /account/, not "you're logged
   // out". Without this, they'd see a confusing login screen even
   // though their session is fine.
+  //
+  // Goes through the service binding (sub-ms internal RPC) rather
+  // than a public-edge self-fetch (which hangs ~20 s).
+  const api = getApiBinding();
+  if (!api) {
+    // No binding in dev / preview without wrangler — let through so
+    // local Astro dev still works. Production deploy always binds.
+    return next();
+  }
   const probePath = admin ? '/api/v1/admin/license-requests' : '/api/v1/account/devices';
-  const probe = await fetch(new URL(probePath, url.origin).toString(), {
-    headers: { Cookie: sessionCookie },
-  });
+  const probe = await apiFetch(api, { path: probePath, cookie: sessionCookie });
   if (probe.status === 401) return context.redirect(loginRedirectFor(path));
   if (admin && probe.status === 403) return context.redirect('/account/');
   return next();
