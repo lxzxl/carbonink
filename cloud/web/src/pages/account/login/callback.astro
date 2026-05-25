@@ -5,64 +5,96 @@ import LogoMark from '../../../components/LogoMark.astro';
 /**
  * /account/login/callback?t=<magic-link token>
  *
- * Magic-link landing page. The Worker exchanges the token for a
- * session JWT, sets the Set-Cookie header, and we 302 the user
- * back to `/account/`. On failure (token expired or already used)
- * we render an "invalid link" card with a re-request CTA.
+ * Two-step confirmation flow:
  *
- * Lang from URL prefix (zh `/account/login/callback`, en
- * `/en/account/login/callback`). After successful exchange, the
- * redirect target preserves the lang prefix so the user stays in
- * their chosen locale.
+ *   1. **GET** with `?t=...` → render a "Confirm sign-in" button. We
+ *      do NOT consume the token on GET because corporate email
+ *      scanners (Outlook Safe Links, Gmail's link preview, Mimecast,
+ *      Defender ATP) auto-fetch every URL in incoming emails for
+ *      security scanning. A GET-driven exchange would burn the
+ *      single-use token before the human ever clicks the link.
  *
- * This route is intentionally public — magic links are themselves
- * the auth credential.
+ *   2. **POST** with the token in the form body → call
+ *      `/api/v1/auth/exchange` server-side. On success we 302 to
+ *      `/account/` with the session Set-Cookie attached. On failure
+ *      we render the "invalid / expired" card.
+ *
+ *   3. **GET without `?t=`** (someone visits the URL directly) → also
+ *      the invalid card.
+ *
+ * Token consumption is deferred behind a real user click. Scanners
+ * land on the GET, see only HTML + a form, and can't trigger the
+ * POST (it requires a same-origin form submit). Cost to the user:
+ * one extra button press. Standard pattern — Slack / Notion / Vercel
+ * all do this for the same reason.
+ *
+ * Lang is path-derived (`/account/login/callback` = zh-CN,
+ * `/en/account/login/callback` = en).
  */
 const reqUrl = new URL(Astro.request.url);
-const token = reqUrl.searchParams.get('t');
 const lang: 'zh-CN' | 'en' = reqUrl.pathname.startsWith('/en/') ? 'en' : 'zh-CN';
 const isZh = lang === 'zh-CN';
 const redirectTarget = isZh ? '/account/' : '/en/account/';
 
-let ok = false;
-let setCookie: string | null = null;
-if (token) {
-  const exchangeUrl = new URL('/api/v1/auth/exchange', reqUrl.origin);
-  const res = await fetch(exchangeUrl.toString(), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token }),
-  });
-  ok = res.ok;
-  setCookie = res.headers.get('Set-Cookie');
-}
+type State = 'confirm' | 'invalid';
+let state: State;
+let token: string | null = null;
 
-if (ok && setCookie) {
-  return new Response(null, {
-    status: 302,
-    headers: { Location: redirectTarget, 'Set-Cookie': setCookie },
-  });
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  token = String(form.get('t') ?? '');
+  if (token) {
+    const exchangeUrl = new URL('/api/v1/auth/exchange', reqUrl.origin);
+    const res = await fetch(exchangeUrl.toString(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    });
+    if (res.ok) {
+      const setCookie = res.headers.get('Set-Cookie');
+      if (setCookie) {
+        return new Response(null, {
+          status: 302,
+          headers: { Location: redirectTarget, 'Set-Cookie': setCookie },
+        });
+      }
+    }
+  }
+  // Token missing, exchange failed, or no Set-Cookie returned.
+  state = 'invalid';
+} else {
+  token = reqUrl.searchParams.get('t');
+  state = token ? 'confirm' : 'invalid';
 }
 
 const tx = isZh
   ? {
-      title: '登录失败 — 碳墨',
+      titleConfirm: '完成登录 — 碳墨',
+      titleInvalid: '登录失败 — 碳墨',
       brand: '碳墨',
-      heading: '登录链接已失效',
-      body: '该链接已过期或已被使用。请回到登录页重新申请。',
-      cta: '重新申请登录链接',
+      confirmHeading: '点击下方按钮完成登录',
+      confirmBody: '为了安全起见，登录链接需要你亲自点击一次确认。',
+      confirmCta: '完成登录',
+      invalidHeading: '登录链接已失效',
+      invalidBody: '该链接已过期或已被使用。请回到登录页重新申请。',
+      invalidCta: '重新申请登录链接',
       loginHref: '/account/login',
     }
   : {
-      title: 'Sign-in failed — CarbonInk',
+      titleConfirm: 'Confirm sign-in — CarbonInk',
+      titleInvalid: 'Sign-in failed — CarbonInk',
       brand: 'CarbonInk',
-      heading: 'Sign-in link invalid',
-      body: 'The link is expired or has already been used.',
-      cta: 'Request a new link',
+      confirmHeading: 'Click below to complete sign-in',
+      confirmBody: 'For security, sign-in links require a confirmation click.',
+      confirmCta: 'Complete sign-in',
+      invalidHeading: 'Sign-in link invalid',
+      invalidBody: 'The link is expired or has already been used.',
+      invalidCta: 'Request a new link',
       loginHref: '/en/account/login',
     };
+const title = state === 'confirm' ? tx.titleConfirm : tx.titleInvalid;
 ---
-<Base title={tx.title} lang={lang}>
+<Base title={title} lang={lang}>
   <div class="min-h-screen flex items-center justify-center px-5 py-12">
     <div class="max-w-sm w-full">
       <div class="flex items-center gap-2 justify-center mb-8">
@@ -70,23 +102,44 @@ const tx = isZh
         <span class="font-semibold text-[15px]">{tx.brand}</span>
       </div>
 
-      <div class="border border-border rounded-xl bg-background p-8 shadow-sm text-center">
-        <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-amber-50 border border-amber-200 mb-3">
-          <svg class="w-6 h-6 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-            <line x1="12" y1="9" x2="12" y2="13" />
-            <line x1="12" y1="17" x2="12.01" y2="17" />
-          </svg>
+      {state === 'confirm' ? (
+        <div class="border border-border rounded-xl bg-background p-8 shadow-sm text-center">
+          <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-sky-50 border border-sky-100 mb-3">
+            <svg class="w-6 h-6 text-sky-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 0 1 1.946-.806 3.42 3.42 0 0 0 2.434-1.01 3.42 3.42 0 0 1 4.83 0 3.42 3.42 0 0 0 2.434 1.01 3.42 3.42 0 0 1 3.42 3.42 3.42 3.42 0 0 0 1.01 2.434 3.42 3.42 0 0 1 0 4.83 3.42 3.42 0 0 0-1.01 2.434 3.42 3.42 0 0 1-3.42 3.42 3.42 3.42 0 0 0-2.434 1.01 3.42 3.42 0 0 1-4.83 0 3.42 3.42 0 0 0-2.434-1.01 3.42 3.42 0 0 1-3.42-3.42 3.42 3.42 0 0 0-1.01-2.434 3.42 3.42 0 0 1 0-4.83 3.42 3.42 0 0 0 1.01-2.434 3.42 3.42 0 0 1 3.42-3.42z" />
+            </svg>
+          </div>
+          <h2 class="font-semibold text-lg mb-2">{tx.confirmHeading}</h2>
+          <p class="text-sm text-muted-foreground leading-relaxed mb-5">{tx.confirmBody}</p>
+          <form method="POST" action={reqUrl.pathname}>
+            <input type="hidden" name="t" value={token} />
+            <button
+              type="submit"
+              class="inline-flex items-center justify-center text-sm bg-primary text-primary-foreground px-5 py-2 rounded font-medium hover:bg-sky-600 transition-colors"
+            >
+              {tx.confirmCta}
+            </button>
+          </form>
         </div>
-        <h2 class="font-semibold text-lg mb-2">{tx.heading}</h2>
-        <p class="text-sm text-muted-foreground leading-relaxed mb-5">{tx.body}</p>
-        <a
-          href={tx.loginHref}
-          class="inline-block text-sm bg-primary text-primary-foreground px-4 py-2 rounded font-medium hover:bg-sky-600 transition-colors"
-        >
-          {tx.cta}
-        </a>
-      </div>
+      ) : (
+        <div class="border border-border rounded-xl bg-background p-8 shadow-sm text-center">
+          <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-amber-50 border border-amber-200 mb-3">
+            <svg class="w-6 h-6 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+          </div>
+          <h2 class="font-semibold text-lg mb-2">{tx.invalidHeading}</h2>
+          <p class="text-sm text-muted-foreground leading-relaxed mb-5">{tx.invalidBody}</p>
+          <a
+            href={tx.loginHref}
+            class="inline-block text-sm bg-primary text-primary-foreground px-4 py-2 rounded font-medium hover:bg-sky-600 transition-colors"
+          >
+            {tx.invalidCta}
+          </a>
+        </div>
+      )}
     </div>
   </div>
 </Base>
