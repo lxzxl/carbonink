@@ -5,8 +5,9 @@ import { cleanupIpc, setupIpc } from '@main/ipc/setup.js';
 import { runAutoBackupIfDue } from '@main/services/auto-backup-service.js';
 import { installLogger } from '@main/services/logger-service.js';
 import { initAutoUpdater } from '@main/updater/auto-updater.js';
-import { app, BrowserWindow } from 'electron';
-import { createMainWindow } from './window.js';
+import { app, BrowserWindow, Menu } from 'electron';
+import { buildAppMenu } from './menu.js';
+import { createMainWindow, getMainWindow } from './window.js';
 
 // E2E test hook: honor a per-test temp userData dir if the env var is set.
 // MUST run before any service reads `app.getPath('userData')`. Runs at
@@ -30,6 +31,13 @@ app.whenReady().then(() => {
   runMigrations(db);
 
   setupIpc();
+
+  // Post-launch (spec 2026-05-25): install the application menu so
+  // ⌘Z / Ctrl+Z reach the renderer's undo handler. Skipped in E2E so
+  // playwright doesn't have a real menu intercepting test keystrokes.
+  if (process.env.CARBONINK_E2E !== '1') {
+    Menu.setApplicationMenu(buildAppMenu(() => getMainWindow()));
+  }
 
   // Phase 5 — wire electron-updater. No-ops in non-packaged dev runs
   // (gated inside initAutoUpdater) and fires a silent check 10s after

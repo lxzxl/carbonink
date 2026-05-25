@@ -503,4 +503,10 @@ export type IpcPushTypeMap = {
   // Each transition (`checking`, `available`, `downloading`, …) fires one
   // event; the renderer mirrors the payload into its TanStack Query cache.
   'updater:status': import('@main/updater/auto-updater.js').UpdateStatus;
+  // Post-launch (undo/redo) — fired by the Edit-menu accelerators; the
+  // renderer's `useUndo` hook subscribes and calls `undo:do`. Empty
+  // payload because the direction is encoded in the channel name; an
+  // object keeps the IpcPushTypeMap shape consistent with the others.
+  'menu:undo': Record<string, never>;
+  'menu:redo': Record<string, never>;
 };

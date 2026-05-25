@@ -645,6 +645,8 @@
   "period_granularity_annual": "Annual",
   "period_granularity_quarterly": "Quarterly",
   "period_granularity_monthly": "Monthly",
+  "undo": "Undo",
+  "undo_failed": "Could not undo the last action.",
   "updater_section_heading": "Software Updates",
   "updater_section_subheading": "Keep CarbonInk up to date for the latest features and fixes.",
   "updater_status_idle": "No update check performed yet.",

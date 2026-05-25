@@ -124,6 +124,8 @@ export const allowedPushChannels: ReadonlyArray<keyof IpcPushTypeMap> = [
   'extraction:progress',
   'report:progress',
   'updater:status',
+  'menu:undo',
+  'menu:redo',
 ];
 
 export type InvokeFn = (channel: string, ...args: unknown[]) => Promise<unknown>;

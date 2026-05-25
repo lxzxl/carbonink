@@ -645,6 +645,8 @@
   "period_granularity_annual": "年度",
   "period_granularity_quarterly": "季度",
   "period_granularity_monthly": "月度",
+  "undo": "撤销",
+  "undo_failed": "撤销失败。",
   "updater_section_heading": "软件更新",
   "updater_section_subheading": "保持 碳墨 为最新版本，获取最新功能和修复。",
   "updater_status_idle": "尚未检查更新。",

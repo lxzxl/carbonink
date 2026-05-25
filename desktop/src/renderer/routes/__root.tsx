@@ -6,6 +6,7 @@ import { NavArrows } from '@renderer/components/layout/nav-arrows';
 import { NavigationProgress } from '@renderer/components/layout/navigation-progress';
 import { ScrollProvider } from '@renderer/components/layout/scroll-context';
 import { SidebarInset, SidebarProvider } from '@renderer/components/ui/sidebar';
+import { useUndo } from '@renderer/lib/use-undo';
 import { createRootRoute, Outlet, useRouterState } from '@tanstack/react-router';
 import { type UIEvent, useState } from 'react';
 
@@ -49,6 +50,12 @@ const SCROLL_SHADOW_THRESHOLD_PX = 10;
 function RootComponent() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [scrolled, setScrolled] = useState(false);
+
+  // Mount the undo hook once at the root so its menu:undo / menu:redo
+  // subscription is live across every route. The hook returns ref-stable
+  // values; not destructuring them here keeps render-cost zero for the
+  // root component itself.
+  useUndo();
 
   if (pathname === '/print-render') {
     return <Outlet />;

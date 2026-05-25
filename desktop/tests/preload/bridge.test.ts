@@ -154,6 +154,8 @@ describe('push allowlist', () => {
       'extraction:progress',
       'report:progress',
       'updater:status',
+      'menu:undo',
+      'menu:redo',
     ]);
   });
 });
