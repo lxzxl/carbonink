@@ -2,6 +2,11 @@ import { json } from './lib/responses.js';
 import { handleAccountDevices, handleBillingPortal } from './routes/account.js';
 import { handleAccountDelete } from './routes/account-delete.js';
 import { handleActivate } from './routes/activate.js';
+import {
+  handleAdminDismiss,
+  handleAdminIssue,
+  handleAdminListRequests,
+} from './routes/admin.js';
 import { handleExchange, handleMagicLink } from './routes/auth.js';
 import { handleCheckoutSession } from './routes/checkout-session.js';
 import { handleDeactivateDevice } from './routes/devices.js';
@@ -28,6 +33,10 @@ export interface Env {
   EMAIL: SendEmail;
   STRIPE_PUBLISHABLE_KEY: string;
   ENVIRONMENT: string;
+  // The single magic-link email allowed to access /v1/admin/* routes.
+  // Set as a [vars] entry in wrangler.toml (not a secret — just config;
+  // the magic-link session JWT signature is what authenticates).
+  ADMIN_EMAIL: string;
 }
 
 // Single-domain deployment: web clients (marketing, activate, account
@@ -153,6 +162,22 @@ async function route(
 
   if (request.method === 'DELETE' && path === '/v1/account') {
     return handleAccountDelete(request, env);
+  }
+
+  if (request.method === 'GET' && path === '/v1/admin/license-requests') {
+    return handleAdminListRequests(request, env);
+  }
+
+  // /v1/admin/license-requests/:id/issue and /:id/dismiss — extract
+  // the numeric id from the path. Anchored regex so we don't catch
+  // unrelated suffixes.
+  const issueMatch = path.match(/^\/v1\/admin\/license-requests\/(\d+)\/issue$/);
+  if (request.method === 'POST' && issueMatch) {
+    return handleAdminIssue(request, env, ctx, Number(issueMatch[1]));
+  }
+  const dismissMatch = path.match(/^\/v1\/admin\/license-requests\/(\d+)\/dismiss$/);
+  if (request.method === 'POST' && dismissMatch) {
+    return handleAdminDismiss(request, env, Number(dismissMatch[1]));
   }
 
   return json({ error: { _tag: 'NotFound', message: `No route: ${path}` } }, 404);

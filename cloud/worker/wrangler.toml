@@ -59,6 +59,12 @@ name = "EMAIL"
 ENVIRONMENT = "development"
 STRIPE_PUBLISHABLE_KEY = "pk_test_placeholder"
 STRIPE_PRICE_BASE_2026Q2 = "price_placeholder_replace_in_prod"
+# Single magic-link email allowed to access /v1/admin/* routes.
+# Anyone who magic-link-logs-in as this address gets admin role;
+# the value itself isn't a secret (knowing the email doesn't grant
+# access — you also need a valid session JWT signed by
+# SESSION_PRIVATE_KEY_HEX).
+ADMIN_EMAIL = "admin@carbonink.xyz"
 
 # ---------- Cron triggers ----------
 [triggers]

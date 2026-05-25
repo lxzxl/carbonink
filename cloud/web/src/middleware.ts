@@ -1,25 +1,27 @@
 import { defineMiddleware } from 'astro:middleware';
 
 /**
- * Session middleware for the account portal — gates `/account/*` and
- * `/en/account/*` under a valid session cookie.
+ * Session middleware for the account portal AND the admin tools.
+ *
+ * Two gated path families:
+ *
+ *   /account/*  /en/account/*   — any logged-in user (their own dashboard)
+ *   /admin/*                     — logged-in user who matches ADMIN_EMAIL
  *
  * Public exceptions (no auth required):
  *   /account/login              /en/account/login
  *   /account/login/callback     /en/account/login/callback
  *
- * Everything else under `/account/*` (the dashboard) needs a valid
- * session cookie. We delegate validation to the API worker rather
- * than verifying the JWT signature here — that keeps
+ * For both gates we delegate session validation to the API worker
+ * rather than verifying the JWT signature here — that keeps
  * SESSION_PRIVATE_KEY_HEX out of this site's bundle entirely. The
- * probe is same-origin (carbonink.xyz/api/v1/account/devices),
- * costs one extra fetch per request, and the cookie flows
- * automatically.
+ * probe is same-origin (carbonink.xyz/api/v1/...), costs one extra
+ * fetch per request, and the cookie flows automatically.
  *
- * After the 3-site merge this middleware lives in the single web
- * worker. Paths outside `/account` and `/en/account` are completely
- * unaffected — the early-return for non-account paths costs only a
- * `startsWith` check before any I/O.
+ * For admin paths we probe `/api/v1/admin/license-requests` instead
+ * of `/devices` — it's the canonical admin endpoint, so a 200 from
+ * it confirms both auth AND admin-role. 401 sends to login; 403
+ * sends to /account/ (they're logged in but not admin).
  */
 
 function isAccountPath(pathname: string): boolean {
@@ -34,30 +36,48 @@ function isLoginPath(pathname: string): boolean {
   return pathname.startsWith('/account/login') || pathname.startsWith('/en/account/login');
 }
 
+function isAdminPath(pathname: string): boolean {
+  // Single-locale admin surface — no /en/admin mirror. The audience
+  // is one person (the project owner). Internal tools don't need
+  // bilingual chrome.
+  return pathname.startsWith('/admin/') || pathname === '/admin';
+}
+
 function loginRedirectFor(pathname: string): string {
+  if (pathname.startsWith('/admin')) {
+    return '/account/login?next=' + encodeURIComponent(pathname);
+  }
   return pathname.startsWith('/en/') ? '/en/account/login' : '/account/login';
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const url = new URL(context.request.url);
   const path = url.pathname;
+  const admin = isAdminPath(path);
+  const account = isAccountPath(path);
 
-  // Non-account paths skip the middleware entirely — marketing
-  // pages, activate, /api/* (handled by a different Worker
-  // anyway), static assets, etc.
-  if (!isAccountPath(path)) return next();
+  // Paths not under either gate skip the middleware — marketing
+  // pages, activate, static assets, etc. Note `/api/*` is handled
+  // by the separate API worker, never lands here.
+  if (!admin && !account) return next();
 
-  // Login + callback are public.
-  if (isLoginPath(path)) return next();
+  // Login + callback are public (only matters for the account gate;
+  // admin has no public exception).
+  if (account && isLoginPath(path)) return next();
 
   const cookieHeader = context.request.headers.get('Cookie') ?? '';
   const sessionCookie = cookieHeader.split(/;\s*/).find((c) => c.startsWith('session='));
   if (!sessionCookie) return context.redirect(loginRedirectFor(path));
 
-  const probeUrl = new URL('/api/v1/account/devices', url.origin);
-  const probe = await fetch(probeUrl.toString(), {
+  // Probe endpoint differs per gate so a non-admin trying /admin/*
+  // gets a clean 403 → redirect to /account/, not "you're logged
+  // out". Without this, they'd see a confusing login screen even
+  // though their session is fine.
+  const probePath = admin ? '/api/v1/admin/license-requests' : '/api/v1/account/devices';
+  const probe = await fetch(new URL(probePath, url.origin).toString(), {
     headers: { Cookie: sessionCookie },
   });
   if (probe.status === 401) return context.redirect(loginRedirectFor(path));
+  if (admin && probe.status === 403) return context.redirect('/account/');
   return next();
 });

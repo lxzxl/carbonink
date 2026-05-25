@@ -1,0 +1,225 @@
+---
+import Base from '../../layouts/Base.astro';
+import LogoMark from '../../components/LogoMark.astro';
+
+/**
+ * /admin/license-requests — the admin queue.
+ *
+ * SSR'd. Middleware has already gated this path so by the time we
+ * render we're guaranteed an admin session. We re-fetch the
+ * request list here (server-side, cookie-forwarded) — same network
+ * round-trip as a normal /account/ render.
+ *
+ * UI: one table with the most recent N pending requests. Each row
+ * has two buttons (Issue, Dismiss). Inline JS POSTs to the API,
+ * then removes the row on success. We deliberately don't build a
+ * full SPA — admin tool, one user, page reload between batches is
+ * fine.
+ *
+ * Filter switch (pending / issued / dismissed) lives in the URL
+ * query (`?status=`). The default is pending — the only view that
+ * matters most days.
+ */
+
+const url = new URL(Astro.request.url);
+const status = url.searchParams.get('status') ?? 'pending';
+const cookie = Astro.request.headers.get('Cookie') ?? '';
+
+type Row = {
+  id: number;
+  email: string;
+  source: string | null;
+  lang: string | null;
+  user_agent: string | null;
+  ip: string | null;
+  created_at: number;
+  status: string;
+  issued_license_id: string | null;
+  processed_at: number | null;
+  processed_by: string | null;
+};
+
+const apiUrl = new URL(`/api/v1/admin/license-requests?status=${encodeURIComponent(status)}`, url.origin);
+let requests: Row[] = [];
+let fetchError: string | null = null;
+try {
+  const res = await fetch(apiUrl.toString(), { headers: { Cookie: cookie } });
+  if (res.ok) {
+    const body = (await res.json()) as { requests: Row[] };
+    requests = body.requests;
+  } else {
+    fetchError = `API returned ${res.status}`;
+  }
+} catch (e) {
+  fetchError = `Network error: ${e instanceof Error ? e.message : String(e)}`;
+}
+
+function fmtTime(unixS: number): string {
+  return new Date(unixS * 1000).toISOString().replace('T', ' ').replace(/\..+$/, '') + ' UTC';
+}
+
+const statuses = [
+  { value: 'pending', label: 'Pending' },
+  { value: 'issued', label: 'Issued' },
+  { value: 'dismissed', label: 'Dismissed' },
+];
+---
+<Base title="Admin · License Requests — CarbonInk" lang="en" bare>
+  <header class="border-b border-border bg-muted/30">
+    <div class="max-w-5xl mx-auto px-5 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <LogoMark size={20} />
+        <span class="font-semibold text-sm">CarbonInk</span>
+        <span class="text-muted-foreground text-sm">·</span>
+        <span class="text-sm text-muted-foreground">Admin</span>
+      </div>
+      <a href="/account/" class="text-xs border border-border rounded px-2.5 py-1 text-muted-foreground hover:text-foreground transition-colors">
+        Exit admin
+      </a>
+    </div>
+  </header>
+
+  <div class="py-10 px-5">
+    <div class="max-w-5xl mx-auto flex flex-col gap-6">
+
+      <div class="flex items-center justify-between gap-4">
+        <h1 class="text-2xl font-semibold tracking-tight">License requests</h1>
+        <nav class="flex items-center gap-1 text-sm">
+          {statuses.map((s) => (
+            <a
+              href={`/admin/license-requests?status=${s.value}`}
+              class:list={[
+                'px-3 py-1 rounded transition-colors',
+                s.value === status
+                  ? 'bg-foreground/10 text-foreground font-medium'
+                  : 'text-muted-foreground hover:bg-foreground/5 hover:text-foreground',
+              ]}
+            >
+              {s.label}
+            </a>
+          ))}
+        </nav>
+      </div>
+
+      {fetchError ? (
+        <div class="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
+          Could not load requests: <span style="font-family: var(--font-mono);">{fetchError}</span>
+        </div>
+      ) : requests.length === 0 ? (
+        <div class="border border-dashed border-border rounded-lg p-12 text-center text-sm text-muted-foreground">
+          No {status} requests.
+        </div>
+      ) : (
+        <div class="border border-border rounded-lg overflow-hidden bg-card">
+          <table class="w-full text-sm">
+            <thead class="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
+              <tr>
+                <th class="px-4 py-2 text-left font-medium">Email</th>
+                <th class="px-4 py-2 text-left font-medium">Requested</th>
+                <th class="px-4 py-2 text-left font-medium">Source</th>
+                <th class="px-4 py-2 text-left font-medium">Lang</th>
+                <th class="px-4 py-2 text-right font-medium">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-border">
+              {requests.map((r) => (
+                <tr data-row-id={r.id} class="hover:bg-muted/20">
+                  <td class="px-4 py-3 font-medium">{r.email}</td>
+                  <td class="px-4 py-3 text-xs text-muted-foreground" style="font-family: var(--font-mono);">
+                    {fmtTime(r.created_at)}
+                  </td>
+                  <td class="px-4 py-3 text-xs text-muted-foreground">{r.source ?? '—'}</td>
+                  <td class="px-4 py-3 text-xs text-muted-foreground" style="font-family: var(--font-mono);">
+                    {r.lang ?? '—'}
+                  </td>
+                  <td class="px-4 py-3 text-right">
+                    {r.status === 'pending' ? (
+                      <div class="inline-flex gap-2">
+                        <button
+                          type="button"
+                          data-action="issue"
+                          data-id={r.id}
+                          class="text-xs bg-primary text-primary-foreground px-2.5 py-1 rounded font-medium hover:bg-sky-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                          Issue
+                        </button>
+                        <button
+                          type="button"
+                          data-action="dismiss"
+                          data-id={r.id}
+                          class="text-xs border border-border px-2.5 py-1 rounded text-muted-foreground hover:bg-muted transition-colors disabled:opacity-60"
+                        >
+                          Dismiss
+                        </button>
+                      </div>
+                    ) : r.status === 'issued' ? (
+                      <span class="text-xs text-emerald-700" style="font-family: var(--font-mono);">
+                        {r.issued_license_id?.slice(0, 12)}…
+                      </span>
+                    ) : (
+                      <span class="text-xs text-muted-foreground">—</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <p class="text-xs text-muted-foreground">
+        Issuing sends a base@2026-q2 license valid for 90 days. The activation email is dispatched
+        automatically — no manual reply needed.
+      </p>
+    </div>
+  </div>
+
+  <script is:inline>
+    // Click handlers — POST to the action endpoint, on 200 strip the
+    // row from the DOM. No optimistic UI: we wait for the server to
+    // confirm before touching the table. Errors surface as a banner
+    // at the top of the page; the row stays so the admin can retry.
+    function showError(msg) {
+      let banner = document.getElementById('admin-error');
+      if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'admin-error';
+        banner.className = 'bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-800 mb-4';
+        const main = document.querySelector('h1')?.closest('.flex.flex-col');
+        main?.insertBefore(banner, main.firstChild);
+      }
+      banner.textContent = msg;
+    }
+
+    document.querySelectorAll('button[data-action]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const action = btn.getAttribute('data-action');
+        const id = btn.getAttribute('data-id');
+        if (!action || !id) return;
+        // Disable both action buttons in this row so a stray double-click
+        // can't fire issue + dismiss back to back.
+        const row = btn.closest('tr[data-row-id]');
+        row?.querySelectorAll('button').forEach((b) => (b.disabled = true));
+        try {
+          const res = await fetch('/api/v1/admin/license-requests/' + encodeURIComponent(id) + '/' + action, {
+            method: 'POST',
+          });
+          if (res.ok) {
+            row?.remove();
+            return;
+          }
+          let detail = '';
+          try {
+            const body = await res.json();
+            detail = body?.error?.message || '';
+          } catch {}
+          showError('Failed to ' + action + ' #' + id + ': HTTP ' + res.status + (detail ? ' — ' + detail : ''));
+          row?.querySelectorAll('button').forEach((b) => (b.disabled = false));
+        } catch (e) {
+          showError('Network error: ' + (e instanceof Error ? e.message : String(e)));
+          row?.querySelectorAll('button').forEach((b) => (b.disabled = false));
+        }
+      });
+    });
+  </script>
+</Base>
