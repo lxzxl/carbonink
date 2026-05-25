@@ -1,7 +1,11 @@
-<svg width="32" height="32" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Favicon matches the in-page LogoMark exactly so cross-tab + bookmark identity is consistent. -->
-  <rect width="28" height="28" rx="5" fill="#0ea5e9" />
-  <path d="M8 20 C8 14, 12 8, 14 7 C16 8, 20 14, 20 20" stroke="white" stroke-width="2" stroke-linecap="round" fill="none" />
-  <path d="M11 17 L17 17" stroke="white" stroke-width="1.5" stroke-linecap="round" />
-  <circle cx="14" cy="7" r="1.5" fill="white" />
+<svg width="32" height="32" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Favicon matches the in-page LogoMark and the desktop app icon
+       (X2 "stacked data rows" design from
+       desktop/scripts/icon-designs.mjs::drawDirectionX2). Same coords
+       as LogoMark.astro so a single design source of truth governs
+       cross-tab, bookmark, in-page, and desktop identity. -->
+  <rect width="1024" height="1024" rx="225" ry="225" fill="#15171A" />
+  <line x1="240" y1="380" x2="760" y2="380" stroke="#F4EFE3" stroke-width="80" stroke-linecap="round" />
+  <line x1="240" y1="512" x2="620" y2="512" stroke="#6B8266" stroke-width="80" stroke-linecap="round" />
+  <line x1="240" y1="644" x2="700" y2="644" stroke="#F4EFE3" stroke-width="80" stroke-linecap="round" />
 </svg>

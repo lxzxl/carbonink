@@ -8,10 +8,16 @@
  * `text-muted-foreground`, `bg-muted`). This lets us paste Figma classes
  * directly without rewriting them per page.
  *
- * Primary = sky-500 (#0ea5e9) — matches the desktop app accent and the
- * LogoMark brand color. Numbers / license keys / version strings render
- * in JetBrains Mono so they read as "machine truth" not "marketing
- * copy".
+ * Primary = sky-500 (#0ea5e9) — Tailwind sky CTA color used for the
+ * "Start free trial" button + focus rings. This is the only piece of
+ * the original Figma Make palette still in play; the LogoMark + favicon
+ * have since flipped to the desktop app's X2 identity (graphite
+ * #15171A + cream #F4EFE3 + moss-green #6B8266). A future task can
+ * sweep --color-primary to the X2 moss-green for a unified palette;
+ * for now the sky CTAs and the graphite mark coexist deliberately.
+ *
+ * Numbers / license keys / version strings render in JetBrains Mono so
+ * they read as "machine truth" not "marketing copy".
  *
  * Dark mode is intentionally light-only for v1 — the hero ships a
  * single light dashboard.png; a dark variant would need a fresh e2e

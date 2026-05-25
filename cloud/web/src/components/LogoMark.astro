@@ -1,16 +1,33 @@
 ---
 /**
- * LogoMark — the CarbonInk brand mark, lifted from the Figma Make source.
+ * LogoMark — CarbonInk brand mark, aligned with the desktop app icon.
  *
- * Pure inline SVG so it renders at any size with no asset request and
- * inherits the sky-500 fill from --color-primary. Used in Nav, Footer,
- * and standalone on the activate / login portal cards.
+ * Pure inline SVG, no asset request. Identity matches the X2 "stacked
+ * data rows" design that ships as the desktop icon (icon.icns / .ico /
+ * .png produced by `desktop/scripts/generate-icons.mjs` →
+ * `drawDirectionX2`):
+ *
+ *   - graphite #15171A squircle background (22% corner radius)
+ *   - three horizontal bars in the 1024-design-space:
+ *     • top    y=380, x=240→760, cream (#F4EFE3)       — header row
+ *     • middle y=512, x=240→620, moss-green (#6B8266)  — the carbon row
+ *     • bottom y=644, x=240→700, cream (#F4EFE3)       — another entry
+ *   - stroke-width 80, round line caps
+ *
+ * Reads as "rows of data" — the abstraction of a ledger / spreadsheet.
+ * The single moss-green bar is the "carbon entry" — the one that
+ * matters here. Quiet, international-minimal vocabulary (Linear /
+ * Vercel / Cron family), NOT the sky-blue Figma Make placeholder.
+ *
+ * viewBox is 1024×1024 to match the canvas drawing coords verbatim —
+ * any future tweak to the desktop icon ports directly here by copying
+ * the same numbers. Width/height props drive display size.
  */
 const { size = 26 } = Astro.props as { size?: number };
 ---
-<svg width={size} height={size} viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-  <rect width="28" height="28" rx="5" fill="#0ea5e9" />
-  <path d="M8 20 C8 14, 12 8, 14 7 C16 8, 20 14, 20 20" stroke="white" stroke-width="2" stroke-linecap="round" fill="none" />
-  <path d="M11 17 L17 17" stroke="white" stroke-width="1.5" stroke-linecap="round" />
-  <circle cx="14" cy="7" r="1.5" fill="white" />
+<svg width={size} height={size} viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <rect width="1024" height="1024" rx="225" ry="225" fill="#15171A" />
+  <line x1="240" y1="380" x2="760" y2="380" stroke="#F4EFE3" stroke-width="80" stroke-linecap="round" />
+  <line x1="240" y1="512" x2="620" y2="512" stroke="#6B8266" stroke-width="80" stroke-linecap="round" />
+  <line x1="240" y1="644" x2="700" y2="644" stroke="#F4EFE3" stroke-width="80" stroke-linecap="round" />
 </svg>
