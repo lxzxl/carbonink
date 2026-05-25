@@ -457,6 +457,8 @@
   "settings_data_auto_backup_body": "When CarbonInk launches, it makes a daily backup to the app's auto-backup folder. The last 7 are kept.",
   "settings_data_auto_backup_open": "Open auto-backup folder",
   "settings_data_auto_backup_open_failed": "Could not open the auto-backup folder.",
+  "settings_data_auto_backup_toggle_label": "Auto-backup enabled",
+  "settings_data_auto_backup_toggle_failed": "Could not save the auto-backup setting.",
   "settings_test_connection": "Test connection",
   "settings_test_failed": "Connection failed",
   "settings_test_success": "Connection successful",

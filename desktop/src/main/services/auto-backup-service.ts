@@ -20,10 +20,10 @@ import { app } from 'electron';
  * `auto-YYYYMMDD-HHmmss.carbonink-backup` so they sort lexically by
  * timestamp.
  *
- * Toggle: stored in the `setting` table under key `auto_backup_enabled`
- * via the existing SettingsService — TODO once that lands. For now,
- * default to ENABLED so users get backups even before they discover
- * the setting; the cost is small (a ~1MB file per day).
+ * Toggle: `setting` table key `auto_backup.enabled` (read/written by
+ * SettingsService.{get,set}AutoBackupEnabled). Defaults to ENABLED —
+ * the gate is checked in `main/index.ts` before this function is
+ * called, so this module stays pure / doesn't touch the DB.
  *
  * Failure semantics: if the backup throws, log + swallow. Auto-backup
  * is a safety net, not a hard guarantee — it shouldn't break app

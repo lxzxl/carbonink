@@ -8,6 +8,7 @@ import type { ServiceContext } from './base.js';
  */
 const PROVIDER_SETTING_KEY = 'llm.provider';
 const AMAP_KEY_SETTING = 'routing.amap.apikey';
+const AUTO_BACKUP_ENABLED_SETTING = 'auto_backup.enabled';
 
 /**
  * Persistence layer for the user-chosen LLM provider configuration.
@@ -111,6 +112,31 @@ export class SettingsService {
          ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
       )
       .run(AMAP_KEY_SETTING, value.trim(), ts);
+  }
+
+  /**
+   * Whether the daily auto-backup (run opportunistically at boot, see
+   * `auto-backup-service.ts`) should fire. Defaults to **true** — users
+   * are protected by default and only an explicit opt-out turns it off.
+   * Stored as 'true' / 'false' in the `setting` table so a power user
+   * can flip it via sqlite without booting the app.
+   */
+  getAutoBackupEnabled(): boolean {
+    const row = this.ctx.db
+      .prepare('SELECT value FROM setting WHERE key = ?')
+      .get(AUTO_BACKUP_ENABLED_SETTING) as { value: string } | undefined;
+    if (!row) return true;
+    return row.value !== 'false';
+  }
+
+  setAutoBackupEnabled(enabled: boolean): void {
+    const ts = this.ctx.now();
+    this.ctx.db
+      .prepare(
+        `INSERT INTO setting (key, value, updated_at) VALUES (?, ?, ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+      )
+      .run(AUTO_BACKUP_ENABLED_SETTING, enabled ? 'true' : 'false', ts);
   }
 
   clearProviderConfig(): void {

@@ -39,8 +39,20 @@ app.whenReady().then(() => {
   // Phase 5.3: opportunistic auto-backup. Decides for itself whether
   // a backup is due (>23h since last) — safe to call every launch.
   // E2E skipped to avoid writing files into the test temp dir.
+  //
+  // User toggle: `setting` table key `auto_backup.enabled`. Defaults
+  // to ENABLED (a row that doesn't exist or any value !== 'false' counts
+  // as enabled) — most users get the safety net without needing to
+  // discover the toggle. SettingsService.{get,set}AutoBackupEnabled
+  // owns the canonical read/write; we duplicate the trivial lookup here
+  // to avoid pulling SettingsService + CredentialService into the boot
+  // path just to gate one feature flag.
   if (process.env.CARBONINK_E2E !== '1') {
-    runAutoBackupIfDue();
+    const row = db.prepare('SELECT value FROM setting WHERE key = ?').get('auto_backup.enabled') as
+      | { value: string }
+      | undefined;
+    const enabled = row?.value !== 'false';
+    if (enabled) runAutoBackupIfDue();
   }
 
   // E2E test hook: when `CARBONINK_E2E_DEFER_WINDOW=1`, defer opening the

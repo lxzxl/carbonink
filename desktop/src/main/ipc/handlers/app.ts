@@ -1,21 +1,24 @@
 import { getAutoBackupDir } from '@main/services/auto-backup-service.js';
 import { getLogDirPath } from '@main/services/logger-service.js';
 import { app, shell } from 'electron';
+import { z } from 'zod';
 import type { IpcContext } from '../context.js';
 import type { IpcTypeMap } from '../types.js';
 
 type HandlerMap = { [K in keyof IpcTypeMap]?: IpcTypeMap[K] };
+
+const autoBackupEnabledInput = z.object({ enabled: z.boolean() });
 
 /**
  * App-level IPC handlers — version info + filesystem helpers that don't
  * fit a domain (organization, license, etc.) but are still legitimately
  * needed by the Settings page (About section + Data management).
  *
- * The context is accepted-and-ignored to match the
- * `(ctx: IpcContext) => HandlerMap` factory signature; these handlers
- * read from `electron.app` / `electron.shell` directly.
+ * Most handlers read directly from `electron.app` / `electron.shell` and
+ * don't need the context; the auto-backup toggle pair uses
+ * `ctx.settingsService` for the underlying KV store.
  */
-export function appHandlers(_ctx: IpcContext): HandlerMap {
+export function appHandlers(ctx: IpcContext): HandlerMap {
   return {
     'app:get-info': () => ({
       version: app.getVersion(),
@@ -49,6 +52,13 @@ export function appHandlers(_ctx: IpcContext): HandlerMap {
     'app:open-auto-backup-dir': async () => {
       const err = await shell.openPath(getAutoBackupDir());
       return err === '' ? { ok: true } : { ok: false, error: err };
+    },
+    'app:get-auto-backup-enabled': () => ({
+      enabled: ctx.settingsService.getAutoBackupEnabled(),
+    }),
+    'app:set-auto-backup-enabled': (input) => {
+      const parsed = autoBackupEnabledInput.parse(input);
+      ctx.settingsService.setAutoBackupEnabled(parsed.enabled);
     },
   };
 }

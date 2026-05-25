@@ -208,12 +208,41 @@ function DataGroup({
 
 /**
  * Auto-backup group. Behavior lives in the main process (runs on app
- * boot if >23h since the last one); this card just describes the
- * feature and provides a button to reveal the folder in the OS file
- * manager so users can confirm backups exist and grab one to copy
- * off-machine if they want.
+ * boot if >23h since the last one); this card lets the user
+ *   - toggle the feature on/off (the gate is read at boot time in
+ *     main/index.ts before runAutoBackupIfDue fires)
+ *   - reveal the snapshot folder in the OS file manager so they can
+ *     grab one to copy off-machine
+ *
+ * The toggle is optimistic with rollback on failure: flipping the
+ * checkbox immediately reflects the new state in the UI, and only
+ * resets if the IPC throws (e.g., disk full while writing the setting
+ * row). Cheap mutation — DB write only — so the round-trip is fast
+ * enough to skip a loading spinner.
  */
 function AutoBackupGroup() {
+  const queryClient = useQueryClient();
+  const enabledQuery = useQuery({
+    queryKey: ['app:get-auto-backup-enabled'],
+    queryFn: appApi.getAutoBackupEnabled,
+  });
+  const setEnabledMutation = useMutation({
+    mutationFn: appApi.setAutoBackupEnabled,
+    onMutate: async ({ enabled }) => {
+      // Optimistic toggle: snapshot, write, return rollback closure.
+      await queryClient.cancelQueries({ queryKey: ['app:get-auto-backup-enabled'] });
+      const prev = queryClient.getQueryData<{ enabled: boolean }>(['app:get-auto-backup-enabled']);
+      queryClient.setQueryData(['app:get-auto-backup-enabled'], { enabled });
+      return { prev };
+    },
+    onError: (err, _vars, ctx) => {
+      if (ctx?.prev) {
+        queryClient.setQueryData(['app:get-auto-backup-enabled'], ctx.prev);
+      }
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(m.settings_data_auto_backup_toggle_failed(), { description: msg });
+    },
+  });
   const openMutation = useMutation({
     mutationFn: appApi.openAutoBackupDir,
     onSuccess: (result) => {
@@ -226,22 +255,38 @@ function AutoBackupGroup() {
       toast.error(m.settings_data_auto_backup_open_failed(), { description: msg });
     },
   });
+
+  const enabled = enabledQuery.data?.enabled ?? true;
+
   return (
     <DataGroup
       heading={m.settings_data_auto_backup_heading()}
       body={m.settings_data_auto_backup_body()}
       icon={<Calendar className="h-4 w-4" />}
     >
-      <Button
-        type="button"
-        variant="outline"
-        onClick={() => openMutation.mutate()}
-        disabled={openMutation.isPending}
-        className="gap-2"
-      >
-        <FolderOpen className="h-4 w-4" />
-        {m.settings_data_auto_backup_open()}
-      </Button>
+      <div className="flex flex-wrap items-center gap-3">
+        <label htmlFor="auto-backup-toggle" className="flex items-center gap-2 text-sm select-none">
+          <input
+            id="auto-backup-toggle"
+            type="checkbox"
+            checked={enabled}
+            onChange={(e) => setEnabledMutation.mutate({ enabled: e.target.checked })}
+            disabled={enabledQuery.isLoading}
+            className="h-4 w-4 rounded border-input"
+          />
+          {m.settings_data_auto_backup_toggle_label()}
+        </label>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => openMutation.mutate()}
+          disabled={openMutation.isPending}
+          className="gap-2"
+        >
+          <FolderOpen className="h-4 w-4" />
+          {m.settings_data_auto_backup_open()}
+        </Button>
+      </div>
     </DataGroup>
   );
 }

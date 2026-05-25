@@ -345,7 +345,9 @@ export type IpcTypeMap = {
     until?: string;
     limit?: number;
   }) => Promise<
-    { canceled: true } | { ok: true; path: string; rows_written: number } | { ok: false; error: string }
+    | { canceled: true }
+    | { ok: true; path: string; rows_written: number }
+    | { ok: false; error: string }
   >;
 
   // license domain (Phase 4 sub-project A — Ed25519 JWT + state machine)
@@ -419,6 +421,11 @@ export type IpcTypeMap = {
   'app:open-data-dir': () => Promise<{ ok: true } | { ok: false; error: string }>;
   'app:open-log-dir': () => Promise<{ ok: true } | { ok: false; error: string }>;
   'app:open-auto-backup-dir': () => Promise<{ ok: true } | { ok: false; error: string }>;
+  // Auto-backup toggle. The runner itself lives in main and decides
+  // per-launch whether a backup is due; this pair just reads / writes
+  // the `auto_backup.enabled` setting row (defaults to true when absent).
+  'app:get-auto-backup-enabled': () => { enabled: boolean };
+  'app:set-auto-backup-enabled': (input: { enabled: boolean }) => void;
 
   // data domain (Phase 5.2 — backup / restore / reset / cache cleanup)
   //

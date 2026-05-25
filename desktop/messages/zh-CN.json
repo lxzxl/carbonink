@@ -457,6 +457,8 @@
   "settings_data_auto_backup_body": "每次启动 CarbonInk 会写入一份每日备份到自动备份目录，最近 7 份保留。",
   "settings_data_auto_backup_open": "打开自动备份目录",
   "settings_data_auto_backup_open_failed": "无法打开自动备份目录。",
+  "settings_data_auto_backup_toggle_label": "启用自动备份",
+  "settings_data_auto_backup_toggle_failed": "保存自动备份设置失败。",
   "settings_test_connection": "测试连接",
   "settings_test_failed": "连接失败",
   "settings_test_success": "连接成功",

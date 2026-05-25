@@ -133,6 +133,8 @@ describe('preload bridge', () => {
       // Phase 5.3 — log dir + auto-backup dir
       'app:open-log-dir',
       'app:open-auto-backup-dir',
+      'app:get-auto-backup-enabled',
+      'app:set-auto-backup-enabled',
       // data domain (Phase 5.2 — backup/restore/reset + cache cleanup)
       'data:export-backup',
       'data:import-backup',
