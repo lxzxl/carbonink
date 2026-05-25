@@ -17,6 +17,19 @@ export function StepFirstSite() {
       address: draft.first_site?.address ?? '',
       country_code: draft.first_site?.country_code ?? draft.company?.country_code ?? 'CN',
     },
+    // Same validator pattern as StepCompanyInfo — backend schema in
+    // `shared/schemas/site.ts` requires at least one name. Catching it
+    // client-side avoids the misleading "Failed to complete onboarding"
+    // toast that the user would otherwise see at step 5 (where it's
+    // unclear which earlier step left a field empty).
+    validators: {
+      onSubmit: ({ value }) => {
+        if (!value.name_zh.trim() && !value.name_en.trim()) {
+          return m.onboarding_step_company_name_hint();
+        }
+        return undefined;
+      },
+    },
     onSubmit: async ({ value }) => {
       saveDraft({ ...draft, first_site: value });
       await navigate({ to: '/onboarding/$step', params: { step: '5' } });
@@ -55,35 +68,49 @@ export function StepFirstSite() {
       >
         {/* Name pair (zh + en) — same paired pattern as the company step
          * for visual consistency across the wizard. */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="site_name_zh">{m.onboarding_step_site_name_zh()}</Label>
-            <form.Field
-              name="name_zh"
-              children={(f) => (
-                <Input
-                  id="site_name_zh"
-                  value={f.state.value}
-                  onChange={(e) => f.handleChange(e.target.value)}
-                  placeholder="北京总部"
-                />
-              )}
-            />
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="site_name_zh">{m.onboarding_step_site_name_zh()}</Label>
+              <form.Field
+                name="name_zh"
+                children={(f) => (
+                  <Input
+                    id="site_name_zh"
+                    value={f.state.value}
+                    onChange={(e) => f.handleChange(e.target.value)}
+                    placeholder="北京总部"
+                  />
+                )}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="site_name_en">{m.onboarding_step_site_name_en()}</Label>
+              <form.Field
+                name="name_en"
+                children={(f) => (
+                  <Input
+                    id="site_name_en"
+                    value={f.state.value}
+                    onChange={(e) => f.handleChange(e.target.value)}
+                    placeholder="Beijing HQ"
+                  />
+                )}
+              />
+            </div>
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="site_name_en">{m.onboarding_step_site_name_en()}</Label>
-            <form.Field
-              name="name_en"
-              children={(f) => (
-                <Input
-                  id="site_name_en"
-                  value={f.state.value}
-                  onChange={(e) => f.handleChange(e.target.value)}
-                  placeholder="Beijing HQ"
-                />
-              )}
-            />
-          </div>
+          {/* Hint + error indicator — mirrors StepCompanyInfo. The
+           * shared copy ("at least one of zh/en") avoids inventing a
+           * step-specific error message; users read the hint on step 1
+           * and the same wording will feel familiar here. */}
+          <form.Subscribe
+            selector={(state) => state.errorMap.onSubmit}
+            children={(error) => (
+              <p className={error ? 'text-xs text-destructive' : 'text-xs text-muted-foreground'}>
+                {m.onboarding_step_company_name_hint()}
+              </p>
+            )}
+          />
         </div>
 
         {/* Address: full width — typically a long string, deserves its

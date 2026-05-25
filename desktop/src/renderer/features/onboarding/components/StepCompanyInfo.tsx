@@ -38,6 +38,19 @@ export function StepCompanyInfo() {
         | 'equity_share'
         | 'operational_control',
     },
+    // Form-level guard: backend schema in `shared/schemas/organization.ts`
+    // requires at least one of `name_zh`/`name_en`. Catching this client-
+    // side keeps the user from clicking through 4 more steps only to hit
+    // the final `org:complete-onboarding` rejection at step 5. The inline
+    // hint already explains the rule; this validator enforces it.
+    validators: {
+      onSubmit: ({ value }) => {
+        if (!value.name_zh.trim() && !value.name_en.trim()) {
+          return m.onboarding_step_company_name_hint();
+        }
+        return undefined;
+      },
+    },
     onSubmit: async ({ value }) => {
       saveDraft({ ...draft, company: value });
       await navigate({ to: '/onboarding/$step', params: { step: '2' } });
@@ -101,7 +114,19 @@ export function StepCompanyInfo() {
               />
             </Field>
           </FieldRow>
-          <p className="text-xs text-muted-foreground">{m.onboarding_step_company_name_hint()}</p>
+          {/* Hint flips red when the form-level validator has fired
+           * (user clicked Next without filling either name). Same copy
+           * doubles as the inline guidance and the error message —
+           * avoids defining a separate "you need at least one" error
+           * that the user has already read above. */}
+          <form.Subscribe
+            selector={(state) => state.errorMap.onSubmit}
+            children={(error) => (
+              <p className={error ? 'text-xs text-destructive' : 'text-xs text-muted-foreground'}>
+                {m.onboarding_step_company_name_hint()}
+              </p>
+            )}
+          />
         </div>
 
         {/* Group 2: industry + country side-by-side. Industry is freeform

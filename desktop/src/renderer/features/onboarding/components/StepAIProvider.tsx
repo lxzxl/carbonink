@@ -27,6 +27,29 @@ export function StepAIProvider() {
         });
         return;
       }
+      // Defensive: catch the same name-empty case before the IPC hop.
+      // Steps 1 and 4 already validate this, but a backup makes the
+      // failure mode obvious if a user somehow lands here with stale
+      // localStorage (e.g. they opened the wizard in two windows or
+      // ran the app before this validator existed).
+      const companyHasName =
+        (draft.company.name_zh ?? '').trim() || (draft.company.name_en ?? '').trim();
+      const siteHasName =
+        (draft.first_site.name_zh ?? '').trim() || (draft.first_site.name_en ?? '').trim();
+      if (!companyHasName) {
+        toast.error('Company name required', {
+          description: 'Go back to step 1 and enter a Chinese or English company name.',
+        });
+        await navigate({ to: '/onboarding/$step', params: { step: '1' } });
+        return;
+      }
+      if (!siteHasName) {
+        toast.error('Site name required', {
+          description: 'Go back to step 4 and enter a Chinese or English site name.',
+        });
+        await navigate({ to: '/onboarding/$step', params: { step: '4' } });
+        return;
+      }
       await completeOnboarding.mutateAsync({
         organization: {
           name_zh: draft.company.name_zh,
