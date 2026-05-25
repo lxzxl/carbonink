@@ -1,4 +1,24 @@
 ---
+/**
+ * /activate — post-purchase license reveal.
+ *
+ * Server-rendered (no prerender flag → falls through to the
+ * astro.config.mjs default of SSR). The Worker reads
+ * `?session_id=<stripe checkout session>` from the inbound URL,
+ * server-side fetches Stripe to resolve the email, then calls
+ * `/api/v1/internal/license-by-email` to look up the actual license
+ * key. None of this can be prerendered.
+ *
+ * Lang detection — URL-prefix-only. `/activate` = zh-CN (default
+ * locale), `/en/activate` = en. The two paths share this same file
+ * via Astro's route mirroring under `pages/en/`; the lang is
+ * derived from pathname.
+ *
+ * Stripe success_url should continue to point at
+ * `https://carbonink.xyz/activate?session_id={CHECKOUT_SESSION_ID}`
+ * (or `/en/activate` for English checkout). Both work; both land
+ * here.
+ */
 import LicenseKeyCard from '../components/LicenseKeyCard.astro';
 import LogoMark from '../components/LogoMark.astro';
 import Base from '../layouts/Base.astro';
@@ -7,9 +27,7 @@ import { lookupLicenseForSession } from '../lib/stripe-lookup.ts';
 const url = new URL(Astro.request.url);
 const sessionId = url.searchParams.get('session_id');
 const directKey = url.searchParams.get('key');
-const accept = Astro.request.headers.get('accept-language') ?? '';
-const lang: 'zh-CN' | 'en' =
-  url.searchParams.get('lang') === 'en' || accept.toLowerCase().startsWith('en') ? 'en' : 'zh-CN';
+const lang: 'zh-CN' | 'en' = url.pathname.startsWith('/en/') ? 'en' : 'zh-CN';
 const isZh = lang === 'zh-CN';
 
 let licenseKey: string | null = null;
@@ -21,8 +39,8 @@ if (directKey) {
   const result = await lookupLicenseForSession({
     sessionId,
     stripeSecretKey: env.STRIPE_SECRET_KEY,
-    // Same-origin call to /api/* — derive the absolute base from the
-    // current request so the Worker fetch has a valid origin.
+    // Same-origin call to /api/* — derive the absolute base from
+    // the current request so the Worker fetch has a valid origin.
     apiBaseUrl: new URL(Astro.request.url).origin,
   });
   if (result) licenseKey = result.licenseKey;

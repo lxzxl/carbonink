@@ -1,11 +1,22 @@
 ---
-import Base from '../layouts/Base.astro';
-import LogoMark from '../components/LogoMark.astro';
+import Base from '../../layouts/Base.astro';
+import LogoMark from '../../components/LogoMark.astro';
+
+/**
+ * /account/login — magic-link email form. Public (no session
+ * required); the middleware whitelists `/account/login*` paths.
+ *
+ * Renders `bare` (Base.astro doesn't ship Nav/Footer here) since
+ * the login surface should be a focused, modal-feel card. The
+ * middleware does NOT gate this path.
+ *
+ * Lang from URL prefix: `/account/login` = zh, `/en/account/login`
+ * = en. The two routes share the same form copy keyed off
+ * `Astro.url.pathname`.
+ */
 
 const url = new URL(Astro.request.url);
-const accept = Astro.request.headers.get('accept-language') ?? '';
-const lang: 'zh-CN' | 'en' =
-  url.searchParams.get('lang') === 'en' || accept.toLowerCase().startsWith('en') ? 'en' : 'zh-CN';
+const lang: 'zh-CN' | 'en' = url.pathname.startsWith('/en/') ? 'en' : 'zh-CN';
 const isZh = lang === 'zh-CN';
 
 const tx = isZh
@@ -32,7 +43,7 @@ const tx = isZh
       networkTip: 'Network error. Please try again.',
     };
 ---
-<Base title={tx.title} lang={lang} bare>
+<Base title={tx.title} lang={lang}>
   <div class="min-h-screen flex items-center justify-center px-5 py-12">
     <div class="max-w-sm w-full">
       <div class="flex items-center gap-2 justify-center mb-8">
@@ -92,11 +103,6 @@ const tx = isZh
   </div>
 
   <script is:inline>
-    // The submit handler posts to /api/v1/auth/magic-link and on
-    // success swaps the card from the form view to a centered
-    // "link sent" confirmation. We don't redirect — keeping the
-    // email visible in the success message is the only signal the
-    // user gets that the right address received the link.
     document.getElementById('login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const form = e.target;

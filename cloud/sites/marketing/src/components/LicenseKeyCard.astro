@@ -65,10 +65,10 @@ const tx = isZh
       contactLink: 'Contact support',
     };
 
-// Use the carbonink.xyz marketing site for download links — same
-// origin, no extra DNS resolution. Worker routing handles the
-// /download → marketing/download path.
-const downloadHref = isZh ? 'https://carbonink.xyz/download' : 'https://carbonink.xyz/en/download';
+// Download lives on the same Astro site after the 3-site merge, so a
+// relative path is enough — no need to hardcode the canonical
+// origin or pay an extra DNS resolution.
+const downloadHref = isZh ? '/download' : '/en/download';
 const supportHref = 'mailto:support@carbonink.xyz';
 ---
 <div class="min-h-screen flex flex-col items-center justify-center px-5 py-12">

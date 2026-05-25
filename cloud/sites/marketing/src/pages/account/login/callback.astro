@@ -1,17 +1,32 @@
 ---
-import Base from '../../layouts/Base.astro';
-import LogoMark from '../../components/LogoMark.astro';
+import Base from '../../../layouts/Base.astro';
+import LogoMark from '../../../components/LogoMark.astro';
 
+/**
+ * /account/login/callback?t=<magic-link token>
+ *
+ * Magic-link landing page. The Worker exchanges the token for a
+ * session JWT, sets the Set-Cookie header, and we 302 the user
+ * back to `/account/`. On failure (token expired or already used)
+ * we render an "invalid link" card with a re-request CTA.
+ *
+ * Lang from URL prefix (zh `/account/login/callback`, en
+ * `/en/account/login/callback`). After successful exchange, the
+ * redirect target preserves the lang prefix so the user stays in
+ * their chosen locale.
+ *
+ * This route is intentionally public — magic links are themselves
+ * the auth credential.
+ */
 const reqUrl = new URL(Astro.request.url);
 const token = reqUrl.searchParams.get('t');
-const lang: 'zh-CN' | 'en' = reqUrl.searchParams.get('lang') === 'zh' ? 'zh-CN' : 'en';
+const lang: 'zh-CN' | 'en' = reqUrl.pathname.startsWith('/en/') ? 'en' : 'zh-CN';
 const isZh = lang === 'zh-CN';
+const redirectTarget = isZh ? '/account/' : '/en/account/';
 
 let ok = false;
 let setCookie: string | null = null;
 if (token) {
-  // Same-origin call — build an absolute URL from the incoming
-  // request so the Worker fetch has a valid origin.
   const exchangeUrl = new URL('/api/v1/auth/exchange', reqUrl.origin);
   const res = await fetch(exchangeUrl.toString(), {
     method: 'POST',
@@ -23,11 +38,9 @@ if (token) {
 }
 
 if (ok && setCookie) {
-  // Astro Worker mounts the account site at `base: '/account'`, so
-  // the post-login root is `/account/`.
   return new Response(null, {
     status: 302,
-    headers: { Location: '/account/', 'Set-Cookie': setCookie },
+    headers: { Location: redirectTarget, 'Set-Cookie': setCookie },
   });
 }
 
@@ -38,6 +51,7 @@ const tx = isZh
       heading: '登录链接已失效',
       body: '该链接已过期或已被使用。请回到登录页重新申请。',
       cta: '重新申请登录链接',
+      loginHref: '/account/login',
     }
   : {
       title: 'Sign-in failed — CarbonInk',
@@ -45,9 +59,10 @@ const tx = isZh
       heading: 'Sign-in link invalid',
       body: 'The link is expired or has already been used.',
       cta: 'Request a new link',
+      loginHref: '/en/account/login',
     };
 ---
-<Base title={tx.title} lang={lang} bare>
+<Base title={tx.title} lang={lang}>
   <div class="min-h-screen flex items-center justify-center px-5 py-12">
     <div class="max-w-sm w-full">
       <div class="flex items-center gap-2 justify-center mb-8">
@@ -66,7 +81,7 @@ const tx = isZh
         <h2 class="font-semibold text-lg mb-2">{tx.heading}</h2>
         <p class="text-sm text-muted-foreground leading-relaxed mb-5">{tx.body}</p>
         <a
-          href="/account/login"
+          href={tx.loginHref}
           class="inline-block text-sm bg-primary text-primary-foreground px-4 py-2 rounded font-medium hover:bg-sky-600 transition-colors"
         >
           {tx.cta}

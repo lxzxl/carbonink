@@ -1,0 +1,92 @@
+---
+import Base from '../../../../layouts/Base.astro';
+import LogoMark from '../../../../components/LogoMark.astro';
+
+/**
+ * /account/login/callback?t=<magic-link token>
+ *
+ * Magic-link landing page. The Worker exchanges the token for a
+ * session JWT, sets the Set-Cookie header, and we 302 the user
+ * back to `/account/`. On failure (token expired or already used)
+ * we render an "invalid link" card with a re-request CTA.
+ *
+ * Lang from URL prefix (zh `/account/login/callback`, en
+ * `/en/account/login/callback`). After successful exchange, the
+ * redirect target preserves the lang prefix so the user stays in
+ * their chosen locale.
+ *
+ * This route is intentionally public — magic links are themselves
+ * the auth credential.
+ */
+const reqUrl = new URL(Astro.request.url);
+const token = reqUrl.searchParams.get('t');
+const lang: 'zh-CN' | 'en' = reqUrl.pathname.startsWith('/en/') ? 'en' : 'zh-CN';
+const isZh = lang === 'zh-CN';
+const redirectTarget = isZh ? '/account/' : '/en/account/';
+
+let ok = false;
+let setCookie: string | null = null;
+if (token) {
+  const exchangeUrl = new URL('/api/v1/auth/exchange', reqUrl.origin);
+  const res = await fetch(exchangeUrl.toString(), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token }),
+  });
+  ok = res.ok;
+  setCookie = res.headers.get('Set-Cookie');
+}
+
+if (ok && setCookie) {
+  return new Response(null, {
+    status: 302,
+    headers: { Location: redirectTarget, 'Set-Cookie': setCookie },
+  });
+}
+
+const tx = isZh
+  ? {
+      title: '登录失败 — 碳墨',
+      brand: '碳墨',
+      heading: '登录链接已失效',
+      body: '该链接已过期或已被使用。请回到登录页重新申请。',
+      cta: '重新申请登录链接',
+      loginHref: '/account/login',
+    }
+  : {
+      title: 'Sign-in failed — CarbonInk',
+      brand: 'CarbonInk',
+      heading: 'Sign-in link invalid',
+      body: 'The link is expired or has already been used.',
+      cta: 'Request a new link',
+      loginHref: '/en/account/login',
+    };
+---
+<Base title={tx.title} lang={lang}>
+  <div class="min-h-screen flex items-center justify-center px-5 py-12">
+    <div class="max-w-sm w-full">
+      <div class="flex items-center gap-2 justify-center mb-8">
+        <LogoMark size={28} />
+        <span class="font-semibold text-[15px]">{tx.brand}</span>
+      </div>
+
+      <div class="border border-border rounded-xl bg-background p-8 shadow-sm text-center">
+        <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-amber-50 border border-amber-200 mb-3">
+          <svg class="w-6 h-6 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+        </div>
+        <h2 class="font-semibold text-lg mb-2">{tx.heading}</h2>
+        <p class="text-sm text-muted-foreground leading-relaxed mb-5">{tx.body}</p>
+        <a
+          href={tx.loginHref}
+          class="inline-block text-sm bg-primary text-primary-foreground px-4 py-2 rounded font-medium hover:bg-sky-600 transition-colors"
+        >
+          {tx.cta}
+        </a>
+      </div>
+    </div>
+  </div>
+</Base>

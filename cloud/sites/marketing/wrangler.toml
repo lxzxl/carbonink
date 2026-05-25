@@ -1,19 +1,36 @@
-# Marketing site — pure static (no SSR), deployed as Cloudflare Worker
-# with the Static Assets binding (the modern replacement for Cloudflare
-# Pages — see CLAUDE.md → Repo layout). No `main` because there's no
-# runtime code: Astro builds `dist/` and wrangler serves it directly.
+# Single carbonink-cloud web worker — serves everything under
+# carbonink.xyz/* except `/api/*` (that goes to carbonink-cloud-api,
+# a separate worker for the backend).
 #
-# Catch-all at carbonink.xyz: more-specific routes (/api/*, /activate,
-# /account) win via Cloudflare's longest-prefix match, so this only
-# serves what's left over (marketing pages, /pricing, /download, etc.).
+# Before the 3-site merge this was 3 Astro workers (marketing static,
+# activate SSR, account SSR). The merge collapsed them into one
+# hybrid Astro site:
+#
+#   prerendered routes (CDN):  /, /pricing, /download, /privacy + their /en/* mirrors
+#   SSR routes:                /activate, /account/*, /en/activate, /en/account/*
+#
+# Astro 6's @astrojs/cloudflare adapter injects the Worker entry
+# (`main`) at build time pointing to `dist/_worker.js/index.js`, so
+# `main` is intentionally absent here. Putting it in this file
+# triggers the bundled @cloudflare/vite-plugin to resolve the path
+# BEFORE astro produces it, which fails.
 
-name = "carbonink-marketing"
+name = "carbonink-cloud-web"
 compatibility_date = "2025-05-23"
+compatibility_flags = ["nodejs_compat"]
 
+# Catch-all under carbonink.xyz. More-specific routes (just /api/*
+# after the merge) win via longest-prefix matching, so this captures
+# every non-API URL on the zone.
 routes = [
   { pattern = "carbonink.xyz/*", zone_name = "carbonink.xyz" },
 ]
 
 [assets]
 directory = "./dist"
-not_found_handling = "single-page-application"
+
+# Secrets needed by SSR routes:
+#   STRIPE_SECRET_KEY   — used by /activate to resolve a Stripe
+#                         checkout session into an email + license key
+# Set via:
+#   pnpm --filter @carbonink-cloud/marketing exec wrangler secret put STRIPE_SECRET_KEY

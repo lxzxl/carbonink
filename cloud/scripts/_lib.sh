@@ -35,10 +35,14 @@ wr() {
   (cd "$REPO_ROOT/$dir" && pnpm exec wrangler "$@")
 }
 
-# All four wranglers we ship.
+# The two wranglers we ship.
+#
+# After the 3-site merge, only one Astro worker remains. The `web`
+# worker (still housed under cloud/sites/marketing/ for path
+# continuity — the dir name lags the broader role) serves everything
+# under carbonink.xyz except `/api/*`. The `worker` dir is the API
+# worker that handles `/api/*`.
 WORKERS=(
   cloud/worker
   cloud/sites/marketing
-  cloud/sites/activate
-  cloud/sites/account
 )

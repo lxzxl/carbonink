@@ -1,4 +1,10 @@
 ---
+// Static marketing page — pre-render at build time so the response
+// is plain HTML served from Cloudflare's CDN, not a Worker
+// invocation. Activate / account routes are dynamic (SSR) and
+// don't set this flag. See astro.config.mjs for the hybrid setup.
+export const prerender = true;
+
 import Base from '../layouts/Base.astro';
 import Differentiators from '../components/Differentiators.astro';
 import Hero from '../components/Hero.astro';

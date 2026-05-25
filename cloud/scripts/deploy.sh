@@ -1,17 +1,21 @@
 #!/usr/bin/env bash
-# Deploy all 4 carbonink-cloud workers to Cloudflare.
+# Deploy the 2 carbonink-cloud workers to Cloudflare.
 #
 # Auth: reads CLOUDFLARE_API_TOKEN from cloud/.env.local (or shell env).
 # Auto-provisioning: wrangler 4.x auto-creates D1/KV/R2 resources on first
 # deploy when their IDs are placeholders, and writes the real IDs back to
 # wrangler.toml. So a clean first run does: cloud/worker deploy → creates
 # carbonink-cloud D1 + 4 KV namespaces + carbonink-releases R2, then the
-# 3 sites deploy as catch-all routes under carbonink.xyz.
+# merged web worker deploys as catch-all `carbonink.xyz/*`.
+#
+# After the 3-site merge there are only 2 workers:
+#   - cloud/worker            → carbonink-cloud-api (handles /api/*)
+#   - cloud/sites/marketing   → carbonink-cloud-web (handles everything else)
 #
 # Usage:
-#   ./cloud/scripts/deploy.sh              # deploy all 4
+#   ./cloud/scripts/deploy.sh              # deploy both
 #   ./cloud/scripts/deploy.sh worker       # just the API worker
-#   ./cloud/scripts/deploy.sh marketing    # just marketing site
+#   ./cloud/scripts/deploy.sh web          # just the web (merged) site
 #   ./cloud/scripts/deploy.sh --dry-run    # validate without deploying
 #
 # After first deploy:
@@ -29,10 +33,13 @@ FILTER=""
 for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY_RUN="--dry-run" ;;
-    worker|marketing|activate|account) FILTER="$arg" ;;
+    # `web` is the canonical name for the merged web worker.
+    # `marketing` is kept as a synonym for muscle-memory + because
+    # the directory is still cloud/sites/marketing/ post-merge.
+    worker|web|marketing) FILTER="$arg" ;;
     *)
       echo "Unknown arg: $arg" >&2
-      echo "Usage: $0 [worker|marketing|activate|account] [--dry-run]" >&2
+      echo "Usage: $0 [worker|web] [--dry-run]" >&2
       exit 1 ;;
   esac
 done
@@ -40,10 +47,8 @@ done
 # Map short name → directory (bash 3.2-compatible, no `declare -A`).
 filter_to_dir() {
   case "$1" in
-    worker)    echo cloud/worker ;;
-    marketing) echo cloud/sites/marketing ;;
-    activate)  echo cloud/sites/activate ;;
-    account)   echo cloud/sites/account ;;
+    worker)              echo cloud/worker ;;
+    web|marketing)       echo cloud/sites/marketing ;;
     *) echo "bug: unknown filter $1" >&2; exit 1 ;;
   esac
 }

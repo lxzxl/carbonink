@@ -1,0 +1,253 @@
+---
+import Base from '../../../layouts/Base.astro';
+
+/**
+ * /account/ — logged-in dashboard, server-rendered.
+ *
+ * Sections vertically: plan + devices + invoices + account/danger.
+ * Devices fetched server-side using the inbound Cookie so the API
+ * sees the user as logged in. /api/v1/* lives on the same origin
+ * (`carbonink.xyz/api/*`); both this site and the API are reachable
+ * without cross-origin gymnastics.
+ *
+ * Lang from URL prefix — `/account/` = zh-CN (default locale),
+ * `/en/account/` = en. Reading `Astro.url.pathname` rather than
+ * a `?lang=` query is what makes the URL canonical for SEO and lets
+ * the language toggle in Nav/Footer do clean path swaps.
+ *
+ * Auth gate lives in middleware.ts — by the time SSR runs here the
+ * session has already been validated by the API worker.
+ */
+
+const url = new URL(Astro.request.url);
+const lang: 'zh-CN' | 'en' = url.pathname.startsWith('/en/') ? 'en' : 'zh-CN';
+const isZh = lang === 'zh-CN';
+
+const cookie = Astro.request.headers.get('Cookie') ?? '';
+
+type Device = {
+  device_id: string;
+  os: string | null;
+  app_version: string | null;
+  last_ping_at: number;
+  first_seen_at: number;
+};
+
+const devicesUrl = new URL('/api/v1/account/devices', new URL(Astro.request.url).origin);
+let devices: Device[] = [];
+try {
+  const res = await fetch(devicesUrl.toString(), { headers: { Cookie: cookie } });
+  if (res.ok) {
+    const body = (await res.json()) as { devices: Device[] };
+    devices = body.devices;
+  }
+} catch {
+  // network or shape error — show empty list rather than failing the page
+}
+
+const SEAT_LIMIT = 1;
+const exceeded = devices.length > SEAT_LIMIT;
+
+function timeAgo(ms: number, asZh: boolean): string {
+  const sec = Math.max(0, Math.floor((Date.now() - ms) / 1000));
+  const min = Math.floor(sec / 60);
+  const hr = Math.floor(min / 60);
+  const day = Math.floor(hr / 24);
+  const wk = Math.floor(day / 7);
+  if (asZh) {
+    if (sec < 60) return '刚刚';
+    if (min < 60) return `${min} 分钟前`;
+    if (hr < 24) return `${hr} 小时前`;
+    if (day < 7) return `${day} 天前`;
+    return `${wk} 周前`;
+  }
+  if (sec < 60) return 'just now';
+  if (min < 60) return `${min} min ago`;
+  if (hr < 24) return `${hr} hr ago`;
+  if (day < 7) return `${day} day${day === 1 ? '' : 's'} ago`;
+  return `${wk} week${wk === 1 ? '' : 's'} ago`;
+}
+
+const tx = isZh
+  ? {
+      title: '我的账户 — 碳墨',
+      heading: '我的账户',
+      exceededWarn: '⚠️ 已超出 1 台设备限额。请停用一台后才能在新设备激活。',
+      plan: { label: '我的订阅', renew: '续费', billing: '管理账单（Stripe）→', active: '有效', expires: '到期：2027-05-21（剩余 365 天）', portalErr: '未能打开账单门户 — 尚未关联 Stripe 客户。' },
+      devices: { label: '激活设备', seatSuffix: `${devices.length} / ${SEAT_LIMIT} 席位`, none: '无已激活设备。', deactivate: '停用', verPrefix: '版本 ', lastPrefix: '最近活跃：' },
+      invoices: { label: '账单', none: '暂无账单。订阅生效后可在此查看历史发票。' },
+      account: { label: '账户', signout: '退出登录', danger: '危险区域', delete: '注销账户', deleteHint: '永久删除账户、取消活跃订阅、移除全部设备。此操作不可撤销。', deleteConfirm: '这将永久删除你的账户、取消活跃订阅、移除全部设备。继续？' },
+      pricingHref: '/pricing#buy-base',
+      loginHref: '/account/login',
+    }
+  : {
+      title: 'My Account — CarbonInk',
+      heading: 'My Account',
+      exceededWarn: "⚠️ You've exceeded your 1-device limit. Deactivate a device before activating a new one.",
+      plan: { label: 'My Plan', renew: 'Renew', billing: 'Manage billing (Stripe) →', active: 'Active', expires: 'Expires 2027-05-21 (365 days remaining)', portalErr: 'Could not open billing portal — no Stripe customer linked yet.' },
+      devices: { label: 'My Devices', seatSuffix: `${devices.length} / ${SEAT_LIMIT} slot`, none: 'No active devices.', deactivate: 'Deactivate', verPrefix: 'v', lastPrefix: 'Last seen: ' },
+      invoices: { label: 'Invoices', none: 'No invoices yet. Receipts will appear here once your subscription is active.' },
+      account: { label: 'Account', signout: 'Sign out', danger: 'Danger zone', delete: 'Delete account', deleteHint: 'Deletes your account, cancels active subscriptions, and removes all devices. This cannot be undone.', deleteConfirm: 'This permanently deletes your account, cancels active subscriptions, and removes every device. Continue?' },
+      pricingHref: '/en/pricing#buy-base',
+      loginHref: '/en/account/login',
+    };
+---
+<Base title={tx.title} lang={lang}>
+  <div class="py-12 px-5">
+    <div class="max-w-2xl mx-auto flex flex-col gap-6">
+
+      <header class="pb-2">
+        <h1 class="text-2xl font-semibold tracking-tight">{tx.heading}</h1>
+      </header>
+
+      {exceeded && (
+        <div class="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800 leading-relaxed">
+          {tx.exceededWarn}
+        </div>
+      )}
+
+      <section class="border border-border rounded-lg p-6 bg-card">
+        <p class="text-xs text-muted-foreground uppercase tracking-wider font-medium mb-4">{tx.plan.label}</p>
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <p class="font-semibold" style="font-family: var(--font-mono);">base@2026-q2</p>
+            <p class="text-xs text-muted-foreground mt-1" style="font-family: var(--font-mono);">{tx.plan.expires}</p>
+          </div>
+          <span class="text-xs bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full font-medium flex-shrink-0">{tx.plan.active}</span>
+        </div>
+        <div class="flex gap-2 mt-5">
+          <button
+            type="button"
+            id="renew"
+            data-pricing={tx.pricingHref}
+            class="text-xs bg-primary text-primary-foreground px-3 py-1.5 rounded hover:bg-sky-600 transition-colors font-medium"
+          >
+            {tx.plan.renew}
+          </button>
+          <button
+            type="button"
+            id="portal"
+            class="text-xs border border-border px-3 py-1.5 rounded hover:bg-muted transition-colors text-muted-foreground"
+          >
+            {tx.plan.billing}
+          </button>
+        </div>
+        <p id="portal-error" class="hidden mt-3 text-xs text-destructive" data-msg={tx.plan.portalErr}></p>
+      </section>
+
+      <section class="border border-border rounded-lg p-6 bg-card">
+        <div class="flex items-center justify-between mb-4">
+          <p class="text-xs text-muted-foreground uppercase tracking-wider font-medium">{tx.devices.label}</p>
+          <span
+            class:list={[
+              'text-xs px-2 py-0.5 rounded',
+              exceeded ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-muted text-muted-foreground',
+            ]}
+            style="font-family: var(--font-mono);"
+          >
+            {tx.devices.seatSuffix}
+          </span>
+        </div>
+        <div class="flex flex-col gap-2">
+          {devices.length === 0 ? (
+            <p class="text-sm text-muted-foreground py-3">{tx.devices.none}</p>
+          ) : (
+            devices.map((d) => (
+              <div class="device-row flex items-center justify-between border border-border rounded p-3 gap-2">
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium truncate" style="font-family: var(--font-mono);">{d.device_id}</p>
+                  <p class="text-xs text-muted-foreground" style="font-family: var(--font-mono);">
+                    {d.os ?? '—'} · {tx.devices.verPrefix}{d.app_version ?? '—'} · {tx.devices.lastPrefix}{timeAgo(d.last_ping_at, isZh)}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  data-device={d.device_id}
+                  class="deact text-xs border border-border px-2.5 py-1 rounded hover:bg-destructive hover:text-destructive-foreground hover:border-destructive transition-colors flex-shrink-0"
+                >
+                  {tx.devices.deactivate}
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
+
+      <section class="border border-border rounded-lg p-6 bg-card">
+        <p class="text-xs text-muted-foreground uppercase tracking-wider font-medium mb-4">{tx.invoices.label}</p>
+        <p class="text-sm text-muted-foreground leading-relaxed">{tx.invoices.none}</p>
+      </section>
+
+      <section class="border border-border rounded-lg p-6 bg-card">
+        <p class="text-xs text-muted-foreground uppercase tracking-wider font-medium mb-4">{tx.account.label}</p>
+        <a
+          href="/api/v1/auth/sign-out"
+          class="inline-block text-xs border border-border px-3 py-1.5 rounded hover:bg-muted transition-colors text-muted-foreground"
+        >
+          {tx.account.signout}
+        </a>
+
+        <div class="mt-6 pt-5 border-t border-border">
+          <p class="text-xs text-destructive font-medium mb-2 uppercase tracking-wider">{tx.account.danger}</p>
+          <p class="text-xs text-muted-foreground leading-relaxed mb-3">{tx.account.deleteHint}</p>
+          <button
+            type="button"
+            id="delete-account"
+            data-confirm={tx.account.deleteConfirm}
+            data-login={tx.loginHref}
+            class="text-xs border border-destructive/30 text-destructive px-3 py-1.5 rounded hover:bg-destructive/5 transition-colors"
+          >
+            {tx.account.delete}
+          </button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script is:inline>
+    // Same-origin: relative URLs + auto-sent cookies.
+    document.querySelectorAll('.deact').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-device');
+        if (!id) return;
+        const res = await fetch('/api/v1/devices/' + encodeURIComponent(id) + '/deactivate', { method: 'POST' });
+        if (res.ok) {
+          const row = btn.closest('.device-row');
+          if (row) row.remove();
+        }
+      });
+    });
+
+    document.getElementById('portal').addEventListener('click', async () => {
+      const err = document.getElementById('portal-error');
+      err.classList.add('hidden');
+      const ret = encodeURIComponent(location.href);
+      const res = await fetch('/api/v1/account/billing-portal?return_url=' + ret);
+      if (!res.ok) {
+        err.textContent = err.getAttribute('data-msg') || '';
+        err.classList.remove('hidden');
+        return;
+      }
+      const body = await res.json();
+      location.href = body.url;
+    });
+
+    document.getElementById('renew').addEventListener('click', () => {
+      const btn = document.getElementById('renew');
+      location.href = btn.getAttribute('data-pricing') || '/pricing#buy-base';
+    });
+
+    document.getElementById('delete-account').addEventListener('click', async () => {
+      const btn = document.getElementById('delete-account');
+      const confirmMsg = btn.getAttribute('data-confirm') || '';
+      const ok = confirm(confirmMsg);
+      if (!ok) return;
+      const res = await fetch('/api/v1/account', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirm: 'DELETE' }),
+      });
+      if (res.ok) location.href = btn.getAttribute('data-login') || '/account/login';
+    });
+  </script>
+</Base>
