@@ -225,6 +225,43 @@ describe('ExtractionService', () => {
     expect(after?.reviewed_by_user_at).toBe('2026-05-11T00:00:00.000Z');
   });
 
+  it('discard is idempotent on already-rejected rows', async () => {
+    // Regression: the "switch stage and re-extract" UI on a document
+    // whose only extraction was already discarded passed the rejected
+    // row's id back through discard(), which used to throw "not
+    // discardable". The retry surfaced as a confusing toast instead of
+    // re-running the LLM. discard() now treats a second call as a
+    // no-op so the renderer can stay dumb about prior state.
+    const doc = uploadFakePdf(h.documentService);
+    const ext = await h.extractionService.run({
+      document_id: doc.id,
+      stage_id: 'china_utility.v1',
+    });
+    h.extractionService.discard(ext.id);
+    const firstReviewedAt = h.extractionService.getById(ext.id)?.reviewed_by_user_at;
+
+    // Second discard: must not throw, must not change row state (timestamp
+    // is preserved — re-stamping it would falsify the audit trail).
+    expect(() => h.extractionService.discard(ext.id)).not.toThrow();
+    const after = h.extractionService.getById(ext.id);
+    expect(after?.status).toBe('rejected');
+    expect(after?.reviewed_by_user_at).toBe(firstReviewedAt);
+  });
+
+  it('discard throws when the extraction is missing or in parsed status', async () => {
+    expect(() => h.extractionService.discard('does-not-exist')).toThrow(/missing/);
+
+    // Parsed (already promoted to an activity) — silently flipping it
+    // to rejected would orphan the downstream activity_data row.
+    const doc = uploadFakePdf(h.documentService);
+    const ext = await h.extractionService.run({
+      document_id: doc.id,
+      stage_id: 'china_utility.v1',
+    });
+    h.extractionService.confirm(ext.id);
+    expect(() => h.extractionService.discard(ext.id)).toThrow(/status=parsed/);
+  });
+
   it('listPendingReview filters by status and respects limit', async () => {
     const doc = uploadFakePdf(h.documentService);
     const a = await h.extractionService.run({

@@ -320,18 +320,36 @@ export class ExtractionService {
    * schema's CHECK requires `parsed_json` NULL for `rejected` rows (and
    * `raw_response` OR `error_json` non-null), so we clear `parsed_json`
    * while keeping `raw_response` for forensics.
+   *
+   * Idempotent: a row that is already `rejected` is a no-op (no throw, no
+   * state change). The "switch stage and re-extract" flow on a document
+   * whose only extraction is already rejected used to hit this path and
+   * surface a confusing "not discardable" error — see commit message for
+   * the regression that motivated the change.
+   *
+   * Still throws when the row is missing or in `parsed`/`pending` —
+   * discarding a confirmed activity would silently orphan the
+   * downstream activity_data row, and a pending row's CHECK constraint
+   * forbids the rejected target shape (raw_response IS NULL).
    */
   discard(id: string): void {
-    const result = this.ctx.db
+    const existing = this.getById(id);
+    if (!existing) {
+      throw new Error(`extraction not discardable: ${id} (missing)`);
+    }
+    if (existing.status === 'rejected') return; // idempotent no-op
+    if (existing.status !== 'review_needed') {
+      throw new Error(
+        `extraction not discardable: ${id} (status=${existing.status}, expected review_needed)`,
+      );
+    }
+    this.ctx.db
       .prepare(
         `UPDATE extraction
            SET status = 'rejected', parsed_json = NULL, reviewed_by_user_at = ?
-         WHERE id = ? AND status = 'review_needed'`,
+         WHERE id = ?`,
       )
       .run(this.ctx.now(), id);
-    if (result.changes === 0) {
-      throw new Error(`extraction not discardable: ${id} (missing or not in review_needed)`);
-    }
   }
 
   private findCached(

@@ -228,10 +228,17 @@ function DocumentReview({ document }: { document: Document }) {
               'classify_failed' ? (
               <ManualStagePicker documentId={document.id} />
             ) : !activeExtraction && hasDiscarded ? (
+              // The previously-shown extraction was already discarded
+              // (status='rejected'), so we deliberately do NOT pass
+              // `discardExtractionId` here — the row is already in its
+              // terminal state and a second discard would throw. We do
+              // pass `defaultStageId` so the dropdown remembers the
+              // stage the user just tried, letting them either try the
+              // same stage again (run() will clean up the rejected row
+              // on cache-key match) or pick a different one.
               <ManualStagePicker
                 documentId={document.id}
                 defaultStageId={extractions[0]?.prompt_version}
-                discardExtractionId={extractions[0]?.id}
               />
             ) : activeExtraction ? (
               <ExtractionReview extraction={activeExtraction} document={document} />
