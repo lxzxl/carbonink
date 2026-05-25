@@ -370,6 +370,8 @@
   "settings_provider_openai": "OpenAI",
   "settings_provider_openai_compat": "OpenAI-compatible",
   "settings_reporting_profile_save": "Save profile",
+  "settings_org_basic_heading": "Company identity",
+  "settings_org_reporting_heading": "Reporting profile",
   "settings_reporting_profile_saved": "Organization profile updated.",
   "settings_resource_name_label": "Azure resource name",
   "settings_responsible_name_label": "Responsible person — name",

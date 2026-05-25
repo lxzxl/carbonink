@@ -370,6 +370,8 @@
   "settings_provider_openai": "OpenAI",
   "settings_provider_openai_compat": "OpenAI 兼容",
   "settings_reporting_profile_save": "保存档案",
+  "settings_org_basic_heading": "公司身份",
+  "settings_org_reporting_heading": "报告档案",
   "settings_reporting_profile_saved": "组织档案已更新。",
   "settings_resource_name_label": "Azure resource name",
   "settings_responsible_name_label": "责任人 — 姓名",

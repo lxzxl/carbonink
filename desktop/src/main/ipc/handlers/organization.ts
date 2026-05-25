@@ -49,5 +49,24 @@ export function organizationHandlers(ctx: IpcContext): {
         .parse(input);
       svc.updateReportingProfile(parsed);
     },
+    'org:update-basic-info': (input) => {
+      const parsed = z
+        .object({
+          id: z.string(),
+          name_zh: z.string().min(1).max(255).nullable(),
+          name_en: z.string().min(1).max(255).nullable(),
+          industry: z.string().max(100).nullable(),
+          country_code: z.string().min(2).max(3),
+        })
+        // Server-side mirror of the `organizationCreateInput.refine` rule
+        // — at least one name. The service throws on the same condition,
+        // but catching it at the IPC parse layer surfaces a clean
+        // ZodError to the renderer instead of a bare Error string.
+        .refine((v) => v.name_zh || v.name_en, {
+          message: 'At least one of name_zh / name_en is required',
+        })
+        .parse(input);
+      svc.updateBasicInfo(parsed);
+    },
   };
 }

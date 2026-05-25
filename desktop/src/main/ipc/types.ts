@@ -62,6 +62,18 @@ export type IpcTypeMap = {
     responsible_person_role: string | null;
     base_year_period_id: string | null;
   }) => void;
+  /**
+   * Update the basic-identity fields (names, industry, country) the
+   * user set during onboarding step 1. Lets users fix typos or industry
+   * mis-selections without resetting the whole database.
+   */
+  'org:update-basic-info': (input: {
+    id: string;
+    name_zh: string | null;
+    name_en: string | null;
+    industry: string | null;
+    country_code: string;
+  }) => void;
 
   // ef-library domain (read-only catalog: emission factors + unit definitions)
   'ef:list': (input: EfLookupQuery) => EmissionFactor[];

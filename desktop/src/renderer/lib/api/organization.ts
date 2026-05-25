@@ -36,4 +36,11 @@ export const orgApi = {
     responsible_person_role: string | null;
     base_year_period_id: string | null;
   }) => invoke('org:update-reporting-profile', input),
+  updateBasicInfo: (input: {
+    id: string;
+    name_zh: string | null;
+    name_en: string | null;
+    industry: string | null;
+    country_code: string;
+  }) => invoke('org:update-basic-info', input),
 };

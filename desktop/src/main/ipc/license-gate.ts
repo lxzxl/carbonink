@@ -32,6 +32,7 @@ export const READ_ONLY_BLOCKED_CHANNELS: ReadonlySet<keyof IpcTypeMap> = new Set
   'org:create-reporting-period',
   'org:complete-onboarding',
   'org:update-reporting-profile',
+  'org:update-basic-info',
   // document writes (uploading new source files)
   'document:upload',
   // extraction pipeline (all AI-backed)

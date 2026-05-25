@@ -201,4 +201,45 @@ export class OrganizationService {
         input.id,
       );
   }
+
+  /**
+   * Update organization basic-identity fields the user set during
+   * onboarding step 1 — names, industry, country. Separate from
+   * `updateReportingProfile` because these are descriptive (who is
+   * the company?), while reporting profile is methodology (how does
+   * it account for emissions?). Conflating them would force the
+   * reporting profile section to subscribe to fields that have
+   * nothing to do with the ISO 14064-1 narrative.
+   *
+   * Validation re-checks the create-input refine server-side: at
+   * least one name + country with ≥2 chars. A renderer bypass
+   * (dev-console IPC, future MCP write tool) hits a typed failure
+   * rather than corrupting the row with bad data.
+   */
+  updateBasicInfo(input: {
+    id: string;
+    name_zh: string | null;
+    name_en: string | null;
+    industry: string | null;
+    country_code: string;
+  }): void {
+    if (!input.name_zh && !input.name_en) {
+      throw new Error('At least one of name_zh / name_en is required');
+    }
+    if (!input.country_code || input.country_code.length < 2) {
+      throw new Error('country_code must be at least 2 characters');
+    }
+    const now = this.ctx.now();
+    this.ctx.db
+      .prepare(
+        `UPDATE organization
+            SET name_zh = ?,
+                name_en = ?,
+                industry = ?,
+                country_code = ?,
+                updated_at = ?
+          WHERE id = ?`,
+      )
+      .run(input.name_zh, input.name_en, input.industry, input.country_code, now, input.id);
+  }
 }

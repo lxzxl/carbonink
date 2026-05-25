@@ -43,6 +43,7 @@ describe('preload bridge', () => {
       'org:create-reporting-period',
       'org:complete-onboarding',
       'org:update-reporting-profile',
+      'org:update-basic-info',
       // ef-library domain
       'ef:list',
       'ef:get-by-pk',
