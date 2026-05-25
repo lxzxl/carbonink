@@ -17,6 +17,12 @@
 const { lang } = Astro.props as { lang: 'zh-CN' | 'en' };
 const isZh = lang === 'zh-CN';
 
+// Screenshot paths are locale-aware. zh shots live at /screenshots/*;
+// en shots at /screenshots/en/* (mirrored layout). See
+// cloud/web/public/screenshots/en/README.md for how to regenerate EN
+// shots from the desktop app's e2e tour.
+const shotDir = isZh ? '/screenshots' : '/screenshots/en';
+
 const tx = isZh
   ? {
       label: '产品截图',
@@ -24,22 +30,22 @@ const tx = isZh
       sub: '所有截图来自真实的桌面应用，不是渲染图。',
       shots: [
         {
-          src: '/screenshots/documents.png',
+          src: `${shotDir}/documents.png`,
           title: 'AI 识别单据',
           body: '电费单、燃料发票、运输单据上传即解析。AI 抽数据，你只确认。',
         },
         {
-          src: '/screenshots/questionnaires.png',
+          src: `${shotDir}/questionnaires.png`,
           title: '问卷自动填报',
           body: '一份核算数据，自动回填客户的 CDP / TCFD 问卷。',
         },
         {
-          src: '/screenshots/sources.png',
+          src: `${shotDir}/sources.png`,
           title: '排放源 + 排放因子库',
           body: 'IPCC / ECOINVENT 排放因子内置；可自建私有 EF 库。',
         },
         {
-          src: '/screenshots/reports.png',
+          src: `${shotDir}/reports.png`,
           title: 'ISO 14064-1 报告',
           body: '一键导出 PDF + Excel；附完整核算公式、引用与版本号。',
         },
@@ -51,22 +57,22 @@ const tx = isZh
       sub: 'All screenshots are from the real desktop app, not renders.',
       shots: [
         {
-          src: '/screenshots/documents.png',
+          src: `${shotDir}/documents.png`,
           title: 'AI bill extraction',
           body: 'Upload electricity bills, fuel invoices, freight records. AI extracts; you confirm.',
         },
         {
-          src: '/screenshots/questionnaires.png',
+          src: `${shotDir}/questionnaires.png`,
           title: 'Fill supplier surveys',
           body: 'Inventory data auto-populates CDP / TCFD questionnaires for your customers.',
         },
         {
-          src: '/screenshots/sources.png',
+          src: `${shotDir}/sources.png`,
           title: 'Emission sources + EF library',
           body: 'IPCC / ECOINVENT factors built-in; private EF library supported.',
         },
         {
-          src: '/screenshots/reports.png',
+          src: `${shotDir}/reports.png`,
           title: 'ISO 14064-1 reports',
           body: 'One-click PDF + Excel export with full calculations, citations, and version stamp.',
         },

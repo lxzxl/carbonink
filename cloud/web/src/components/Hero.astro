@@ -42,6 +42,13 @@ const tx = isZh
     };
 
 const prefix = isZh ? '' : '/en';
+
+// Screenshot paths are locale-aware. zh shots live at /screenshots/*;
+// en shots at /screenshots/en/* (mirrored layout). When the desktop
+// app's e2e tour runs in zh it writes here; an EN tour run drops into
+// /screenshots/en/. See cloud/web/public/screenshots/en/README.md for
+// how to regenerate EN shots.
+const shotDir = isZh ? '/screenshots' : '/screenshots/en';
 ---
 <section class="pt-12 pb-20 px-5">
   <div class="max-w-6xl mx-auto">
@@ -92,7 +99,7 @@ const prefix = isZh ? '' : '/en';
         </span>
       </div>
       <img
-        src="/screenshots/dashboard.png"
+        src={`${shotDir}/dashboard.png`}
         alt={tx.screenshotAlt}
         width="1400"
         height="900"

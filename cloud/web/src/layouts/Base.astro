@@ -14,12 +14,17 @@ const defaultDesc = lang === 'zh-CN'
   : 'CarbonInk — local-first GHG accounting for factories. AI extracts emission data from bills. One-click ISO 14064-1 report.';
 
 // Canonical URL + OG image URL — we use carbonink.xyz as the
-// public origin. The OG image reuses the same `/screenshots/dashboard.png`
-// we ship for the hero (1400×900 fits the 1.91:1 OG/Twitter card
-// ratio cleanly when displayed in Slack / WeChat / Twitter previews).
-// `noindex` would be wrong here — marketing IS the indexable surface.
+// public origin. The OG image reuses the hero's dashboard screenshot
+// (1400×900 fits the 1.91:1 OG/Twitter card ratio cleanly when
+// displayed in Slack / WeChat / Twitter previews). Locale-aware so
+// sharing an /en/ link previews the English-UI dashboard, not the
+// Chinese one. `noindex` would be wrong here — marketing IS the
+// indexable surface.
 const canonicalUrl = new URL(Astro.url.pathname, 'https://carbonink.xyz').toString();
-const ogImage = 'https://carbonink.xyz/screenshots/dashboard.png';
+const ogImage =
+  lang === 'zh-CN'
+    ? 'https://carbonink.xyz/screenshots/dashboard.png'
+    : 'https://carbonink.xyz/screenshots/en/dashboard.png';
 ---
 <!doctype html>
 <html lang={lang}>
