@@ -6,6 +6,7 @@ import {
   handleAdminDismiss,
   handleAdminIssue,
   handleAdminListRequests,
+  handleAdminResend,
 } from './routes/admin.js';
 import { handleExchange, handleMagicLink } from './routes/auth.js';
 import { handleCheckoutSession } from './routes/checkout-session.js';
@@ -178,6 +179,10 @@ async function route(
   const dismissMatch = path.match(/^\/v1\/admin\/license-requests\/(\d+)\/dismiss$/);
   if (request.method === 'POST' && dismissMatch) {
     return handleAdminDismiss(request, env, Number(dismissMatch[1]));
+  }
+  const resendMatch = path.match(/^\/v1\/admin\/license-requests\/(\d+)\/resend$/);
+  if (request.method === 'POST' && resendMatch) {
+    return handleAdminResend(request, env, ctx, Number(resendMatch[1]));
   }
 
   return json({ error: { _tag: 'NotFound', message: `No route: ${path}` } }, 404);

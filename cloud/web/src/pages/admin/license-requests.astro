@@ -161,9 +161,20 @@ const statuses = [
                         </button>
                       </div>
                     ) : r.status === 'issued' ? (
-                      <span class="text-xs text-emerald-700" style="font-family: var(--font-mono);">
-                        {r.issued_license_id?.slice(0, 12)}…
-                      </span>
+                      <div class="inline-flex items-center gap-3">
+                        <span class="text-xs text-emerald-700" style="font-family: var(--font-mono);" title={r.issued_license_id ?? ''}>
+                          {r.issued_license_id?.slice(0, 12)}…
+                        </span>
+                        <button
+                          type="button"
+                          data-action="resend"
+                          data-id={r.id}
+                          class="text-xs border border-border px-2.5 py-1 rounded text-muted-foreground hover:bg-muted transition-colors disabled:opacity-60"
+                          title="Resend the activation email to this user"
+                        >
+                          Resend
+                        </button>
+                      </div>
                     ) : (
                       <span class="text-xs text-muted-foreground">—</span>
                     )}
@@ -204,8 +215,8 @@ const statuses = [
         const action = btn.getAttribute('data-action');
         const id = btn.getAttribute('data-id');
         if (!action || !id) return;
-        // Disable both action buttons in this row so a stray double-click
-        // can't fire issue + dismiss back to back.
+        // Disable all action buttons in this row so a stray double-click
+        // can't fire issue + dismiss back to back, or hammer Resend.
         const row = btn.closest('tr[data-row-id]');
         row?.querySelectorAll('button').forEach((b) => (b.disabled = true));
         try {
@@ -213,6 +224,24 @@ const statuses = [
             method: 'POST',
           });
           if (res.ok) {
+            // Resend leaves the row in place — the request stays
+            // "issued", we just remailed. Relabel the button itself
+            // (don't swap DOM nodes — that orphans the click listener)
+            // for 3 seconds, then restore.
+            if (action === 'resend') {
+              const originalText = btn.textContent;
+              btn.textContent = 'Resent ✓';
+              btn.classList.remove('text-muted-foreground', 'border-border', 'hover:bg-muted');
+              btn.classList.add('text-emerald-700', 'border-emerald-200', 'bg-emerald-50');
+              setTimeout(() => {
+                btn.textContent = originalText;
+                btn.classList.add('text-muted-foreground', 'border-border', 'hover:bg-muted');
+                btn.classList.remove('text-emerald-700', 'border-emerald-200', 'bg-emerald-50');
+                row?.querySelectorAll('button').forEach((b) => (b.disabled = false));
+              }, 3000);
+              return;
+            }
+            // Issue / dismiss remove the row entirely.
             row?.remove();
             return;
           }

@@ -272,3 +272,56 @@ export async function handleAdminDismiss(
   }
   return json({ ok: true });
 }
+
+/**
+ * POST /v1/admin/license-requests/:id/resend
+ *
+ * Re-sends the activation email for an already-issued license_request.
+ * Use case: an early-access user replies "I didn't get the email" —
+ * admin clicks Resend instead of digging up the license key
+ * manually. Issuance has already happened; this is purely a
+ * mailing operation.
+ *
+ * Only works on `status = 'issued'` rows — for `pending` rows the
+ * admin should click Issue (which sends an email on first issue).
+ *
+ * The license_request row stores `issued_license_id`; we JOIN to
+ * `license` to recover the humanized key + the original lang from
+ * the request, then call the same sendActivationEmail used by
+ * trial-signup and admin-issue. Lang falls back to 'en' when the
+ * original request didn't capture it.
+ */
+export async function handleAdminResend(
+  request: Request,
+  env: Env,
+  ctx: ExecutionContext,
+  requestId: number,
+): Promise<Response> {
+  const admin = await requireAdmin(request, env);
+  if (admin instanceof Response) return admin;
+
+  const row = await env.DB.prepare(
+    `SELECT lr.email AS req_email, lr.lang, lr.status, l.humanized_key
+     FROM license_request lr
+     JOIN license l ON l.license_id = lr.issued_license_id
+     WHERE lr.id = ?`,
+  )
+    .bind(requestId)
+    .first<{ req_email: string; lang: string | null; status: string; humanized_key: string }>();
+
+  if (!row) return err('NotFound', 'license_request or its license not found', 404);
+  if (row.status !== 'issued') {
+    return err('BadRequest', `license_request status is ${row.status}, not issued`, 409);
+  }
+
+  ctx.waitUntil(
+    sendActivationEmail({
+      email: env.EMAIL,
+      to: row.req_email,
+      licenseKey: row.humanized_key,
+      lang: row.lang === 'zh-CN' ? 'zh-CN' : 'en',
+    }),
+  );
+
+  return json({ ok: true });
+}
