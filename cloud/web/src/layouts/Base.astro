@@ -26,6 +26,79 @@ const ogImage = 'https://carbonink.xyz/screenshots/dashboard.png';
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    {/* Locale detection + auto-redirect.
+
+        Runs synchronously (parser-blocking) BEFORE the title/body, so
+        misrouted visitors bounce to the correct mirror page before any
+        wrong-language paint. Two responsibilities:
+
+        1. On marketing-surface paths (`/`, `/pricing`, `/download`,
+           `/privacy` + `/en/*` mirrors), read the `carbonink_locale`
+           cookie. If unset, detect from `navigator.languages` — any
+           `zh*` prefix wins → zh-CN, otherwise default to English. Write
+           the choice to the cookie (1y). Redirect to the mirror URL if
+           the current path doesn't match the preferred locale.
+
+        2. On every page, intercept clicks on any element tagged
+           `data-locale-target=zh-CN|en` (the language-toggle button in
+           Nav.astro) and write the cookie BEFORE the browser navigates.
+           Persists the user's explicit choice across visits and stops
+           the detector from bouncing them back to the auto-detected
+           locale on the next page load.
+
+        Out-of-scope paths: `/activate`, `/account/*`, `/admin/*`. Those
+        have auth-flow URL bindings (login callback, magic-link tokens)
+        that mid-flow locale redirects would break. They still get the
+        manual-toggle wiring below — the language toggle works there,
+        just no auto-redirect on arrival. */}
+    <script is:inline>
+      (function () {
+        var path = location.pathname;
+
+        var isMarketing = /^\/(en\/?)?(pricing|download|privacy)?\/?$/.test(path);
+        if (isMarketing) {
+          var isEn = path === '/en' || path.indexOf('/en/') === 0;
+          var m = document.cookie.match(/(?:^|;\s*)carbonink_locale=(zh-CN|en)/);
+          var preferred = m ? m[1] : null;
+          if (!preferred) {
+            var langs = (navigator.languages && navigator.languages.length)
+              ? navigator.languages
+              : [navigator.language || ''];
+            preferred = 'en';
+            for (var i = 0; i < langs.length; i++) {
+              var l = (langs[i] || '').toLowerCase();
+              if (l.indexOf('zh') === 0) { preferred = 'zh-CN'; break; }
+              if (l.indexOf('en') === 0) { preferred = 'en'; break; }
+            }
+            document.cookie = 'carbonink_locale=' + preferred + '; path=/; max-age=31536000; SameSite=Lax';
+          }
+          if (preferred === 'en' && !isEn) {
+            location.replace('/en' + path + location.search + location.hash);
+            return;
+          }
+          if (preferred === 'zh-CN' && isEn) {
+            var stripped = (path === '/en' || path === '/en/') ? '/' : path.slice(3);
+            location.replace(stripped + location.search + location.hash);
+            return;
+          }
+        }
+
+        document.addEventListener('click', function (ev) {
+          var t = ev.target;
+          while (t && t !== document.body && !(t.getAttribute && t.getAttribute('data-locale-target'))) {
+            t = t.parentNode;
+          }
+          if (t && t !== document.body) {
+            var target = t.getAttribute('data-locale-target');
+            if (target === 'zh-CN' || target === 'en') {
+              document.cookie = 'carbonink_locale=' + target + '; path=/; max-age=31536000; SameSite=Lax';
+            }
+          }
+        });
+      })();
+    </script>
+
     <title>{title}</title>
     <meta name="description" content={description ?? defaultDesc} />
     <link rel="canonical" href={canonicalUrl} />

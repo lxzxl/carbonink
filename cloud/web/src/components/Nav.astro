@@ -48,6 +48,12 @@ const swapHref = isZh
   ? path === '/' ? '/en/' : `/en${path}`
   : path.startsWith('/en/') ? path.slice(3) || '/' : path === '/en' ? '/' : path;
 
+// The language the toggle flips TO. Used by the cookie-writing click
+// handler in Base.astro — clicking sets `carbonink_locale` to this
+// value before navigation, so the user's explicit choice survives
+// future visits and stops the auto-detector from bouncing them back.
+const swapTargetLang = isZh ? 'en' : 'zh-CN';
+
 // Path prefix for in-site links — '' for zh-CN (the default locale),
 // '/en' for English. The href builder below pre-fixes every link with
 // this so a single template can serve both locales.
@@ -77,6 +83,7 @@ const links = [
     <div class="hidden md:flex items-center gap-3">
       <a
         href={swapHref}
+        data-locale-target={swapTargetLang}
         class="text-xs text-muted-foreground hover:text-foreground border border-border rounded px-2.5 py-1 transition-colors"
       >
         {tx.langLabel}
@@ -112,7 +119,7 @@ const links = [
       <a href={l.href} class="text-sm text-muted-foreground py-1">{l.label}</a>
     ))}
     <div class="flex gap-2 pt-2 border-t border-border">
-      <a href={swapHref} class="text-xs border border-border rounded px-3 py-1.5 text-muted-foreground">
+      <a href={swapHref} data-locale-target={swapTargetLang} class="text-xs border border-border rounded px-3 py-1.5 text-muted-foreground">
         {tx.langLabel}
       </a>
       <a
