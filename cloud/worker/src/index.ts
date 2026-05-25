@@ -6,6 +6,7 @@ import { handleExchange, handleMagicLink } from './routes/auth.js';
 import { handleCheckoutSession } from './routes/checkout-session.js';
 import { handleDeactivateDevice } from './routes/devices.js';
 import { handleLicenseByEmail } from './routes/internal-lookup.js';
+import { handleLicenseRequest } from './routes/license-request.js';
 import { handleStripeWebhook } from './routes/stripe-webhook.js';
 import { handleTrialSignup } from './routes/trial-signup.js';
 import { handleUpdates } from './routes/updates.js';
@@ -108,6 +109,10 @@ async function route(
 
   if (request.method === 'POST' && path === '/v1/trial-signup') {
     return handleTrialSignup(request, env, ctx);
+  }
+
+  if (request.method === 'POST' && path === '/v1/license-request') {
+    return handleLicenseRequest(request, env, ctx);
   }
 
   if (request.method === 'POST' && path === '/v1/checkout-session') {

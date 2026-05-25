@@ -44,6 +44,19 @@ export const trialSignupRequestSchema = z.object({
   app_version: z.string().min(1),
 });
 
+// ---- /v1/license-request ----
+// Marketing site CTA: user expresses interest in early access without
+// going through trial-signup (no device yet — they haven't installed).
+// Logged to D1 so we can manually issue license keys + reach out.
+// Lang is captured for follow-up email tone; source for funnel
+// attribution (pricing page vs. account page).
+export const licenseRequestSchema = z.object({
+  email: z.string().email(),
+  source: z.enum(['pricing-page', 'account-page', 'home', 'other']).optional(),
+  lang: z.enum(['zh-CN', 'en']).optional(),
+});
+export type LicenseRequest = z.infer<typeof licenseRequestSchema>;
+
 // ---- Shared JWT claim shape ----
 export const jwtClaimsSchema = z.object({
   iss: z.string().min(1),

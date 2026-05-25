@@ -4,14 +4,20 @@
  * Figma redesign.
  *
  * Base is the visually-highlighted plan (sky border + ring + "most
- * popular" badge). Trial + CBAM are flat-bordered. The Stripe
- * checkout call on the Base plan is preserved from the old
- * PricingCards.astro (`POST /api/v1/checkout-session`); other CTAs
- * route to /download or /pricing#contact.
+ * popular" badge). Trial + CBAM are flat-bordered.
  *
- * Pricing copy is intentionally "TBD" with a range — we haven't
- * locked in the final ¥ until the legal entity is set up. Showing a
- * range is more honest than "Contact sales".
+ * Pre-paid early-access mode: we're not running Stripe checkout
+ * publicly yet (still validating willingness-to-pay + working out
+ * the pricing). The Base plan's CTA captures email → POST to
+ * /api/v1/license-request → human follow-up via support@. The
+ * Stripe webhook + checkout-session routes are still wired in the
+ * worker, just unreachable from the marketing CTA — flipping the
+ * Buy button back is ~5 lines of code when we go live.
+ *
+ * Why kill the ¥ range: showing concrete numbers before charging
+ * sets sticky reference points. Better to defer disclosure until
+ * the actual paywall ships. "邀请制" reads as deliberate scarcity,
+ * not "we have no idea what to charge".
  */
 
 const { lang } = Astro.props as { lang: 'zh-CN' | 'en' };
@@ -36,20 +42,19 @@ const tx = isZh
           id: 'base',
           name: '基础版',
           duration: '年度订阅',
-          price: '¥2,000–5,000',
-          priceNote: '/ 年（即将公布）',
+          price: '邀请制',
+          priceNote: '正式定价将在公测后公布',
           features: ['GHG 盘查（Scope 1/2/3）', '供应商问卷填报', 'ISO 14064-1 报告（PDF + Excel）', 'EF 库季度更新', '1 台激活设备', '邮件支持'],
-          cta: '立即购买',
-          ctaHref: '#buy-base',
+          cta: '申请早期试用',
           highlight: true,
-          badge: '最受欢迎',
+          badge: '早期试用',
         },
         {
           id: 'cbam',
           name: 'CBAM 附加模块',
           duration: '即将推出',
-          price: '¥10,000–30,000',
-          priceNote: '/ 年（参考价）',
+          price: '即将推出',
+          priceNote: '加入候补名单',
           features: ['CBAM 方法学核算', 'XML 报告输出', '欧盟碳边境税申报'],
           cta: '获取通知',
           ctaHref: 'mailto:support@carbonink.xyz?subject=CBAM%20notify',
@@ -57,6 +62,17 @@ const tx = isZh
           badge: '即将推出',
         },
       ],
+      form: {
+        prompt: '留下邮箱，我们会发激活密钥给你。',
+        placeholder: 'your@company.com',
+        submit: '提交申请',
+        submitting: '提交中…',
+        sentTitle: '已收到 ✓',
+        sentBody: '我们会在 1-2 个工作日内发激活密钥到你的邮箱。',
+        error: '提交失败，请重试或邮件联系 support@carbonink.xyz。',
+        rateLimited: '请求过于频繁，请稍后再试。',
+        networkErr: '网络错误，请重试。',
+      },
     }
   : {
       plans: [
@@ -76,20 +92,19 @@ const tx = isZh
           id: 'base',
           name: 'Base',
           duration: 'Annual subscription',
-          price: '¥2,000–5,000',
-          priceNote: '/ year (TBD)',
+          price: 'Invite-only',
+          priceNote: 'Pricing announced after public beta',
           features: ['GHG inventory (Scope 1/2/3)', 'Supplier survey fill-in', 'ISO 14064-1 report (PDF + Excel)', 'Quarterly EF library updates', '1 activated device', 'Email support'],
-          cta: 'Buy now',
-          ctaHref: '#buy-base',
+          cta: 'Request early access',
           highlight: true,
-          badge: 'Most popular',
+          badge: 'Early access',
         },
         {
           id: 'cbam',
           name: 'CBAM Add-on',
           duration: 'Coming soon',
-          price: '¥10,000–30,000',
-          priceNote: '/ year (indicative)',
+          price: 'Coming soon',
+          priceNote: 'Join the waitlist',
           features: ['CBAM methodology', 'XML report output', 'EU border carbon declaration'],
           cta: 'Notify me',
           ctaHref: 'mailto:support@carbonink.xyz?subject=CBAM%20notify',
@@ -97,6 +112,17 @@ const tx = isZh
           badge: 'Coming soon',
         },
       ],
+      form: {
+        prompt: "Leave your email and we'll send an activation key.",
+        placeholder: 'your@company.com',
+        submit: 'Submit request',
+        submitting: 'Submitting…',
+        sentTitle: 'Got it ✓',
+        sentBody: "We'll email an activation key within 1-2 business days.",
+        error: 'Could not submit — please retry or email support@carbonink.xyz.',
+        rateLimited: 'Too many requests. Please try again later.',
+        networkErr: 'Network error. Please try again.',
+      },
     };
 ---
 <div class="grid md:grid-cols-3 gap-4 mb-20">
@@ -133,7 +159,7 @@ const tx = isZh
       {plan.id === 'base' ? (
         <button
           type="button"
-          data-buy-plan="base@2026-q2"
+          data-request-toggle
           class="text-center py-2 rounded text-sm font-medium transition-colors bg-primary text-primary-foreground hover:bg-sky-600"
         >
           {plan.cta}
@@ -152,6 +178,47 @@ const tx = isZh
         </a>
       )}
 
+      {/* Inline email form — collapsed by default; only shown when
+          the Base card is the current plan AND the toggle has been
+          clicked. Inline (not a modal) keeps the page accessible
+          without JS frameworks and means the form is discoverable
+          to crawlers / readers. */}
+      {plan.id === 'base' && (
+        <div data-request-panel class="hidden flex-col gap-2 -mt-3">
+          <p class="text-xs text-muted-foreground leading-relaxed">{tx.form.prompt}</p>
+          <form
+            data-request-form
+            data-lang={lang}
+            class="flex flex-col gap-2"
+          >
+            <input
+              type="email"
+              name="email"
+              required
+              placeholder={tx.form.placeholder}
+              class="rounded border border-sky-200 bg-background px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            />
+            <button
+              type="submit"
+              class="rounded bg-primary text-primary-foreground px-3 py-1.5 text-sm font-medium hover:bg-sky-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              data-submit-label={tx.form.submit}
+              data-submitting-label={tx.form.submitting}
+            >
+              {tx.form.submit}
+            </button>
+            <p
+              data-request-message
+              class="hidden text-xs leading-relaxed"
+              data-success-title={tx.form.sentTitle}
+              data-success-body={tx.form.sentBody}
+              data-error-msg={tx.form.error}
+              data-rate-limited-msg={tx.form.rateLimited}
+              data-network-err-msg={tx.form.networkErr}
+            ></p>
+          </form>
+        </div>
+      )}
+
       <ul class="flex flex-col gap-2.5">
         {plan.features.map((f) => (
           <li class="flex items-start gap-2 text-sm text-muted-foreground">
@@ -167,28 +234,75 @@ const tx = isZh
 </div>
 
 <script is:inline>
-  // Base-plan Stripe checkout — preserved from the previous
-  // PricingCards.astro implementation. Posts to the same Worker
-  // route; redirects to Stripe Checkout on success. We don't
-  // pre-load Stripe — the redirect handles everything client-side.
-  document.querySelectorAll('[data-buy-plan]').forEach((btn) => {
-    btn.addEventListener('click', async () => {
-      const plan = btn.getAttribute('data-buy-plan');
-      if (!plan) return;
+  // Early-access request flow: button reveals an email form, form
+  // POSTs to /api/v1/license-request. The marketing site is on the
+  // same origin as the API worker (carbonink.xyz/api/*) so no CORS
+  // gymnastics + no auth cookie needed.
+  //
+  // On success we replace the form with a confirmation paragraph
+  // (same DOM node, swapped textContent) — no page reload, no
+  // navigation. Users can re-submit a different email if they typo'd.
+  document.querySelectorAll('[data-request-toggle]').forEach((btn) => {
+    const card = btn.closest('div.rounded-lg');
+    const panel = card?.querySelector('[data-request-panel]');
+    if (!panel) return;
+    btn.addEventListener('click', () => {
+      const open = !panel.classList.contains('hidden');
+      panel.classList.toggle('hidden', open);
+      panel.classList.toggle('flex', !open);
+    });
+  });
+
+  document.querySelectorAll('[data-request-form]').forEach((form) => {
+    const lang = form.getAttribute('data-lang') || 'en';
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const msg = form.querySelector('[data-request-message]');
+    const submitLabel = submitBtn?.getAttribute('data-submit-label') || 'Submit';
+    const submittingLabel = submitBtn?.getAttribute('data-submitting-label') || 'Submitting...';
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = new FormData(form);
+      const email = String(data.get('email') ?? '').trim();
+      if (!email) return;
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = submittingLabel;
+      msg.classList.add('hidden');
+
       try {
-        const res = await fetch('/api/v1/checkout-session', {
+        const res = await fetch('/api/v1/license-request', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ plan }),
+          body: JSON.stringify({ email, source: 'pricing-page', lang }),
         });
-        if (!res.ok) {
-          alert('Unable to start checkout. Please try again or contact support.');
+        if (res.ok) {
+          // Swap form → confirmation. Keep the same wrapper so the
+          // card layout doesn't reflow.
+          const successTitle = msg.getAttribute('data-success-title') || '';
+          const successBody = msg.getAttribute('data-success-body') || '';
+          form.innerHTML =
+            '<p class="text-sm font-medium text-emerald-700">' + successTitle + '</p>' +
+            '<p class="text-xs text-muted-foreground leading-relaxed">' + successBody + '</p>';
           return;
         }
-        const { checkout_url } = await res.json();
-        window.location.href = checkout_url;
+        let errMsg;
+        if (res.status === 429) {
+          errMsg = msg.getAttribute('data-rate-limited-msg') || '';
+        } else {
+          errMsg = msg.getAttribute('data-error-msg') || '';
+        }
+        msg.textContent = errMsg;
+        msg.classList.remove('hidden');
+        msg.classList.add('text-destructive');
+        submitBtn.disabled = false;
+        submitBtn.textContent = submitLabel;
       } catch {
-        alert('Network error. Please try again.');
+        msg.textContent = msg.getAttribute('data-network-err-msg') || '';
+        msg.classList.remove('hidden');
+        msg.classList.add('text-destructive');
+        submitBtn.disabled = false;
+        submitBtn.textContent = submitLabel;
       }
     });
   });

@@ -9,14 +9,18 @@
 const { lang } = Astro.props as { lang: 'zh-CN' | 'en' };
 const isZh = lang === 'zh-CN';
 
+// Pre-paid early-access copy: lead with the 14-day trial (still
+// fully working — desktop app calls /v1/trial-signup on install),
+// soft-mention the upcoming Base plan ("邀请制"). Avoid "年度订阅"
+// up-front when no purchase flow exists yet.
 const tx = isZh
   ? {
-      copy: '年度订阅，按需购买。免费试用 14 天，到期自动降级，不收费。',
-      link: '查看完整定价',
+      copy: '14 天免费试用，无需信用卡。基础版当前邀请制，欢迎在定价页申请。',
+      link: '了解早期试用',
     }
   : {
-      copy: 'Annual subscription, pay as you go. 14-day free trial — auto-downgrade at expiry, no charge.',
-      link: 'View full pricing',
+      copy: '14-day free trial, no credit card required. Base plan is currently invite-only — request early access on the pricing page.',
+      link: 'Learn about early access',
     };
 
 const prefix = isZh ? '' : '/en';

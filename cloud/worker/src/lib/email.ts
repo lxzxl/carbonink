@@ -70,6 +70,46 @@ export function sendActivationEmail(opts: {
   return safeSend(opts.email, { to: opts.to, from: FROM, replyTo: REPLY_TO, subject, html, text });
 }
 
+/**
+ * Internal notification — pings support when someone submits the
+ * "申请早期试用 / Request early access" form on the marketing site.
+ *
+ * Goes to `support@carbonink.xyz` so a human can manually issue a
+ * license via `issue-dev-license` and reply. We deliberately do NOT
+ * auto-issue here — early-access is a deliberately rate-limited
+ * funnel: we want to know who's asking before handing out a
+ * 14-day-or-longer key.
+ *
+ * Plain-text body only (subject is the same in both langs; reply-to
+ * is irrelevant — this goes to ops, not the requester).
+ */
+export function sendLicenseRequestNotification(opts: {
+  email: SendEmail;
+  requesterEmail: string;
+  source: string;
+  lang: string;
+}): Promise<void> {
+  const subject = `[CarbonInk] License request from ${opts.requesterEmail}`;
+  const body =
+    `A new early-access license request came in:\n\n` +
+    `  email:  ${opts.requesterEmail}\n` +
+    `  source: ${opts.source}\n` +
+    `  lang:   ${opts.lang}\n` +
+    `  time:   ${new Date().toISOString()}\n\n` +
+    `Issue a license via:\n` +
+    `  pnpm --filter @carbonink-cloud/worker exec node scripts/issue-license.mjs \\\n` +
+    `    --email ${opts.requesterEmail} --plan base@2026-q2 --days 90\n\n` +
+    `Reply directly to the requester with the key.`;
+  return safeSend(opts.email, {
+    to: 'support@carbonink.xyz',
+    from: FROM,
+    replyTo: { email: opts.requesterEmail, name: opts.requesterEmail },
+    subject,
+    html: `<pre style="font-family:monospace;font-size:13px">${body}</pre>`,
+    text: body,
+  });
+}
+
 export function sendMagicLinkEmail(opts: {
   email: SendEmail;
   to: string;
