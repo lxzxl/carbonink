@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { Env } from '../index.js';
 import { sendMagicLinkEmail } from '../lib/email.js';
+import { newUserId } from '../lib/id.js';
 import { err, json } from '../lib/responses.js';
 import { newMagicLinkToken, signSessionJwt } from '../lib/session.js';
 
@@ -19,9 +20,27 @@ export async function handleMagicLink(
   const parsed = magicLinkReq.safeParse(raw);
   if (!parsed.success) return err('BadRequest', parsed.error.message, 400);
 
-  const customer = await env.DB.prepare('SELECT user_id FROM customer WHERE email = ?')
+  let customer = await env.DB.prepare('SELECT user_id FROM customer WHERE email = ?')
     .bind(parsed.data.email)
     .first<{ user_id: string }>();
+
+  // Admin bootstrap — the project owner never goes through
+  // trial-signup or admin-issue, so on first login the customer
+  // row doesn't exist yet. Auto-provision it iff the email matches
+  // env.ADMIN_EMAIL. For any other email we keep the silent
+  // enumeration-resistant path: customers must exist to receive
+  // magic links.
+  if (!customer && env.ADMIN_EMAIL && parsed.data.email === env.ADMIN_EMAIL) {
+    const adminUserId = newUserId();
+    const now = Math.floor(Date.now() / 1000);
+    await env.DB.prepare(
+      'INSERT INTO customer (user_id, email, country, created_at) VALUES (?, ?, ?, ?)',
+    )
+      .bind(adminUserId, parsed.data.email, null, now)
+      .run();
+    customer = { user_id: adminUserId };
+  }
+
   if (!customer) {
     // Avoid email-enumeration: same response shape either way.
     return json({ sent: true });
