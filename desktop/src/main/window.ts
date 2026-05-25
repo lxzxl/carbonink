@@ -1,8 +1,27 @@
 import { join } from 'node:path';
-import { BrowserWindow, shell } from 'electron';
+import { app, BrowserWindow, shell } from 'electron';
 
 const isMac = process.platform === 'darwin';
 const isWin = process.platform === 'win32';
+
+/**
+ * In dev mode the OS has no app bundle to read the icon from, so the
+ * Dock / taskbar shows the default Electron logo. We point Electron at
+ * the same PNG that gets packaged into the .icns / .ico containers so
+ * the dev experience matches production.
+ *
+ * In packaged builds the OS resolves the icon from the .app bundle
+ * (macOS) or the EXE resource directory (Windows) — setting it again
+ * here is harmless but unnecessary, so we skip the lookup.
+ *
+ * Exported because main/index.ts also calls `app.dock.setIcon` with the
+ * same path on macOS — keeping a single resolution point avoids drift.
+ */
+export function devIconPath(): string | null {
+  if (app.isPackaged) return null;
+  // out/main/index.cjs → ../../build/icon.png at the project root.
+  return join(__dirname, '..', '..', 'build', 'icon.png');
+}
 
 /**
  * Module-level slot for the most-recent main window. Other main-process
@@ -23,6 +42,7 @@ export function getMainWindow(): BrowserWindow | null {
 }
 
 export function createMainWindow(): BrowserWindow {
+  const devIcon = devIconPath();
   const win = new BrowserWindow({
     width: 1400,
     height: 900,
@@ -30,6 +50,11 @@ export function createMainWindow(): BrowserWindow {
     minHeight: 600,
     show: false,
     title: 'CarbonInk',
+    // macOS ignores BrowserWindow.icon (it reads from the bundle's
+    // CFBundleIconFile instead) — Linux + Windows use it to render the
+    // window-level icon. The path resolves only in dev; packaged builds
+    // get the icon from the platform installer.
+    ...(devIcon && !isMac && { icon: devIcon }),
     ...(isMac && {
       titleBarStyle: 'hiddenInset' as const,
       trafficLightPosition: { x: 18, y: 16 },

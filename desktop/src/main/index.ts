@@ -5,9 +5,9 @@ import { cleanupIpc, setupIpc } from '@main/ipc/setup.js';
 import { runAutoBackupIfDue } from '@main/services/auto-backup-service.js';
 import { installLogger } from '@main/services/logger-service.js';
 import { initAutoUpdater } from '@main/updater/auto-updater.js';
-import { app, BrowserWindow, Menu } from 'electron';
+import { app, BrowserWindow, Menu, nativeImage } from 'electron';
 import { buildAppMenu } from './menu.js';
-import { createMainWindow, getMainWindow } from './window.js';
+import { createMainWindow, devIconPath, getMainWindow } from './window.js';
 
 // E2E test hook: honor a per-test temp userData dir if the env var is set.
 // MUST run before any service reads `app.getPath('userData')`. Runs at
@@ -24,6 +24,16 @@ app.whenReady().then(() => {
   // also means slightly faster test launches).
   if (process.env.CARBONINK_E2E !== '1') {
     installLogger();
+  }
+
+  // macOS dev-mode Dock icon. In a packaged build the OS reads icon.icns
+  // from the bundle's Contents/Resources — but in dev (no bundle) the
+  // Dock falls back to the default Electron logo unless we override it
+  // explicitly. BrowserWindow.icon is ignored on macOS, hence the
+  // separate `app.dock.setIcon` call here.
+  const devIcon = devIconPath();
+  if (devIcon && process.platform === 'darwin') {
+    app.dock?.setIcon(nativeImage.createFromPath(devIcon));
   }
 
   const dbPath = join(app.getPath('userData'), 'app.sqlite');

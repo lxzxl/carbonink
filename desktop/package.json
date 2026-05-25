@@ -28,6 +28,7 @@
     "lint": "biome check .",
     "format": "biome format --write .",
     "rebuild:native": "electron-rebuild -f -w better-sqlite3",
+    "icons": "node scripts/generate-icons.mjs",
     "rebuild:node": "pnpm rebuild better-sqlite3",
     "predist:mac": "node scripts/guard-prod-key.mjs",
     "predist:win": "node scripts/guard-prod-key.mjs",
