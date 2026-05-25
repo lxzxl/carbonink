@@ -12,9 +12,7 @@
     "desktop:lint": "pnpm --filter carbonink lint",
     "cloud:test": "pnpm --filter @carbonink-cloud/worker test",
     "cloud:lint": "pnpm exec biome check cloud",
-    "cloud:build:marketing": "pnpm --filter @carbonink-cloud/marketing build",
-    "cloud:build:activate": "pnpm --filter @carbonink-cloud/activate build",
-    "cloud:build:account": "pnpm --filter @carbonink-cloud/account build",
+    "cloud:build:web": "pnpm --filter @carbonink-cloud/web build",
     "test": "pnpm -r --workspace-concurrency=1 run test",
     "lint": "pnpm -r run lint",
     "typecheck": "pnpm -r run typecheck"

@@ -66,14 +66,22 @@ playwright-report/
 # Ad-hoc UI screenshots dropped by the user for design review.
 # Not part of the source tree; kept locally for reference.
 #
-# Exception: cloud/sites/marketing/public/screenshots/ ARE production
-# assets — they're embedded in the marketing site hero + gallery and
-# must ship. The `!` re-include below overrides the `screenshots/`
-# rule above for that one path only.
+# Exception: cloud/web/public/screenshots/ ARE production assets —
+# they're embedded in the marketing hero + gallery and must ship.
+# The `!` re-include below overrides the `screenshots/` rule for
+# that one path only.
 screenshots/
-!cloud/sites/marketing/public/screenshots/
-!cloud/sites/marketing/public/screenshots/**
+!cloud/web/public/screenshots/
+!cloud/web/public/screenshots/**
+
+# Figma Make reference bundle — used as a design source while
+# rebuilding cloud/web, never deployed. Keep locally for reference
+# but don't commit.
+Landing Marketing Pages/
 
 # Climatiq API page dumps cached by desktop/scripts/climatiq-to-presets.mjs.
 # Regenerable from the public API; the OUTPUT (preset-sources.json) IS committed.
 desktop/scripts/.climatiq-cache/
+
+# Preview tool dev-server config (per-user, points to absolute paths).
+.claude/launch.json

@@ -33,4 +33,4 @@ directory = "./dist"
 #   STRIPE_SECRET_KEY   — used by /activate to resolve a Stripe
 #                         checkout session into an email + license key
 # Set via:
-#   pnpm --filter @carbonink-cloud/marketing exec wrangler secret put STRIPE_SECRET_KEY
+#   pnpm --filter @carbonink-cloud/web exec wrangler secret put STRIPE_SECRET_KEY

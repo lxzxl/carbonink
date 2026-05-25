@@ -8,9 +8,9 @@
 # carbonink-cloud D1 + 4 KV namespaces + carbonink-releases R2, then the
 # merged web worker deploys as catch-all `carbonink.xyz/*`.
 #
-# After the 3-site merge there are only 2 workers:
-#   - cloud/worker            → carbonink-cloud-api (handles /api/*)
-#   - cloud/sites/marketing   → carbonink-cloud-web (handles everything else)
+# Two workers:
+#   - cloud/worker  → carbonink-cloud-api (handles /api/*)
+#   - cloud/web     → carbonink-cloud-web (handles everything else)
 #
 # Usage:
 #   ./cloud/scripts/deploy.sh              # deploy both
@@ -33,10 +33,7 @@ FILTER=""
 for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY_RUN="--dry-run" ;;
-    # `web` is the canonical name for the merged web worker.
-    # `marketing` is kept as a synonym for muscle-memory + because
-    # the directory is still cloud/sites/marketing/ post-merge.
-    worker|web|marketing) FILTER="$arg" ;;
+    worker|web) FILTER="$arg" ;;
     *)
       echo "Unknown arg: $arg" >&2
       echo "Usage: $0 [worker|web] [--dry-run]" >&2
@@ -47,8 +44,8 @@ done
 # Map short name → directory (bash 3.2-compatible, no `declare -A`).
 filter_to_dir() {
   case "$1" in
-    worker)              echo cloud/worker ;;
-    web|marketing)       echo cloud/sites/marketing ;;
+    worker) echo cloud/worker ;;
+    web)    echo cloud/web ;;
     *) echo "bug: unknown filter $1" >&2; exit 1 ;;
   esac
 }
@@ -64,10 +61,12 @@ echo "==> wrangler version: $(cd "$REPO_ROOT/cloud/worker" && pnpm exec wrangler
 echo "==> account: $(cd "$REPO_ROOT/cloud/worker" && pnpm exec wrangler whoami 2>&1 | grep -E 'email|account' | head -2 | tr '\n' ' ')"
 echo ""
 
-# For Astro sites, we need to build first (so dist/ exists).
+# Astro web worker needs `pnpm build` first so `dist/` exists for
+# wrangler to pick up the SSR entry + static assets. The API worker
+# (cloud/worker) has no build step — wrangler bundles directly.
 build_if_static_site() {
   local dir="$1"
-  if [[ "$dir" == cloud/sites/* ]]; then
+  if [[ "$dir" == cloud/web ]]; then
     echo "==> Building $dir (Astro)..."
     (cd "$REPO_ROOT/$dir" && pnpm run build)
   fi

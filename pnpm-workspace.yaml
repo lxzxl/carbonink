@@ -1,5 +1,5 @@
 packages:
   - desktop
   - cloud/worker
+  - cloud/web
   - cloud/packages/*
-  - cloud/sites/*

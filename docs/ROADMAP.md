@@ -7,7 +7,7 @@ roadmap 只记"想做"，没排期、没承诺。要做之前必须先走 brains
 
 ## 1. 智能客服 + 上线销售页面
 
-**目标**：在 `cloud/sites/marketing/` 上加一个对话式客服，回答潜在用户对产品的问题（适用场景、定价、ISO 14064-1 覆盖度、和竞品的差异等），降低销售漏斗里的"读 FAQ 读不下去"流失。
+**目标**：在 `cloud/web/` 上加一个对话式客服，回答潜在用户对产品的问题（适用场景、定价、ISO 14064-1 覆盖度、和竞品的差异等），降低销售漏斗里的"读 FAQ 读不下去"流失。
 
 **技术取舍 / 当作个人面试项目来打磨**：
 
@@ -23,7 +23,7 @@ roadmap 只记"想做"，没排期、没承诺。要做之前必须先走 brains
   - 需要先花一两天验证 pi.dev 的几个关键点：是否支持 DeepSeek（不是 OpenAI/Anthropic 的话能不能接）、cost / latency、self-host vs hosted、能否部署到 Cloudflare Worker（marketing 站点的同源约束），如果其中任何一项不通，再回退到自研 harness。
 
 **集成点**：
-- 前端：`cloud/sites/marketing/` 是纯静态 Astro，需要新加一个客服 UI 组件 + 一个 SSR/Worker 端点处理对话。可能要把 marketing 从 static-only 升级成 SSR，或者单独再开一个 `cloud/sites/chat/` Worker。
+- 前端：`cloud/web/` 是 hybrid Astro（marketing pages 走 prerender，portal pages 走 SSR via `@astrojs/cloudflare`）。新增客服只需加一个 React/Astro 组件 + 一条 `POST /api/v1/chat` 路由（落到 `cloud/worker/` 的 API），无需新开 worker。
 - 后端：DeepSeek API key 通过 Cloudflare Worker secret 注入；不能暴露在浏览器端。
 - 数据：对话日志要不要落盘？落到哪？（D1？R2？）——和产品数据 SQLite 完全隔离，因为是云端 + 匿名访问。
 

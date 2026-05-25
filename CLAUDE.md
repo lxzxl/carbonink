@@ -42,7 +42,7 @@ pnpm test                 # all packages (workspace-concurrency=1)
 ```bash
 pnpm --filter carbonink dev          # electron-vite dev (desktop)
 pnpm --filter @carbonink-cloud/worker test
-pnpm --filter @carbonink-cloud/marketing build
+pnpm --filter @carbonink-cloud/web build
 ```
 
 **Why monorepo**: desktop's `Env`/`LicenseJwtClaims` types and cloud's
@@ -58,33 +58,28 @@ must be added here before pnpm will run their postinstall.
 
 ## Cloud deploy primitives — Workers everywhere
 
-Every cloud package is a Cloudflare Worker (the API + each of the 3
-sites). We do NOT use Cloudflare Pages — Cloudflare's recommended
-path now is Workers + the Static Assets binding, which subsumes Pages'
-capabilities and gets all the new platform features first.
+Both cloud packages are Cloudflare Workers (API + web). We do NOT
+use Cloudflare Pages — Cloudflare's recommended path now is Workers
++ the Static Assets binding, which subsumes Pages' capabilities and
+gets all the new platform features first.
 
 Per cloud package:
 
 - **`cloud/worker/`** — pure Worker (API endpoints + scheduled cron).
   Deploy: `cd cloud/worker && wrangler deploy`.
-- **`cloud/sites/marketing/`** — static-only Astro site. No SSR
-  adapter. wrangler.toml has just `assets.directory = "./dist"` +
-  `not_found_handling = "single-page-application"`. Deploy:
-  `pnpm --filter @carbonink-cloud/marketing deploy` →
-  `astro build && wrangler deploy`.
-- **`cloud/sites/activate/`** + **`cloud/sites/account/`** — SSR
-  Astro sites via `@astrojs/cloudflare` v13. Build emits
-  `dist/client/` (static) + `dist/server/entry.mjs` (Worker entry) +
-  `dist/server/wrangler.json` (adapter-generated final config). The
-  user-level `wrangler.toml` carries name/compat-flags/[vars]; the
-  adapter augments at build time. Deploy: `astro build && wrangler
-  deploy --config dist/server/wrangler.json`.
+- **`cloud/web/`** — Astro site, hybrid SSG + SSR via
+  `@astrojs/cloudflare` v13. Marketing pages (`/`, `/pricing`,
+  `/download`, `/privacy` + `/en/*` mirrors) `export const prerender
+  = true` so they ship as CDN HTML; `/activate`, `/account/*`,
+  `/login*` and their EN mirrors are SSR. Build emits `dist/client/`
+  (static) + `dist/_worker.js/index.js` (Worker entry). Deploy:
+  `pnpm --filter @carbonink-cloud/web deploy` → `astro build &&
+  wrangler deploy`.
 
-**Gotcha**: don't put `main` in a user-level `wrangler.toml` for SSR
-sites. The `@cloudflare/vite-plugin` bundled into `@astrojs/cloudflare`
-v13 resolves `main` at vite-config time, before astro emits the
-build output → ENOENT. The adapter sets `main` itself in
-`dist/server/wrangler.json`.
+**Gotcha**: don't put `main` in `cloud/web/wrangler.toml`. The
+`@cloudflare/vite-plugin` bundled into `@astrojs/cloudflare` v13
+resolves `main` at vite-config time, before astro emits the build
+output → ENOENT. The adapter injects `main` itself at build time.
 
 ### Single-domain routing
 
@@ -94,12 +89,13 @@ prefix in `wrangler.toml`:
 | Worker | Path prefix | Notes |
 |--------|------------|-------|
 | API (`cloud/worker`) | `/api/*` | Entry strips `/api` so handlers match `/v1/*` |
-| activate (`cloud/sites/activate`) | `/activate`, `/activate/*` | Astro `base: '/activate'` |
-| account (`cloud/sites/account`) | `/account`, `/account/*` | Astro `base: '/account'` |
-| marketing (`cloud/sites/marketing`) | `/*` (catch-all) | Least-specific; everything else lands here |
+| web (`cloud/web`) | `/*` (catch-all) | Catch-all; longest-prefix loses to `/api/*` only |
 
-Cloudflare's edge dispatches by longest-prefix match, so the
-catch-all only sees paths the other three didn't claim.
+Before the 3-site merge there were 3 Astro workers (marketing /
+activate / account) split across `/`, `/activate*`, `/account*`.
+They now all live in `cloud/web/` as one Astro app with
+per-page prerender opt-in; lang switches via URL prefix (zh-CN at
+`/`, en at `/en/*`).
 
 Same-origin benefits this buys:
 

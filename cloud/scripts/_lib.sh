@@ -37,12 +37,11 @@ wr() {
 
 # The two wranglers we ship.
 #
-# After the 3-site merge, only one Astro worker remains. The `web`
-# worker (still housed under cloud/sites/marketing/ for path
-# continuity — the dir name lags the broader role) serves everything
-# under carbonink.xyz except `/api/*`. The `worker` dir is the API
-# worker that handles `/api/*`.
+# After the 3-site merge → 1-site rename, only one Astro worker
+# remains:
+#   - cloud/worker   → carbonink-cloud-api (handles /api/*)
+#   - cloud/web      → carbonink-cloud-web (handles everything else)
 WORKERS=(
   cloud/worker
-  cloud/sites/marketing
+  cloud/web
 )

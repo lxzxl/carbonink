@@ -63,13 +63,13 @@ scopes don't cover what wrangler is trying to do.
 
 ```
 carbonink.xyz/api/*  →  carbonink-cloud-api   (cloud/worker — D1/KV/R2/email backend)
-carbonink.xyz/*      →  carbonink-cloud-web   (cloud/sites/marketing — merged Astro web)
+carbonink.xyz/*      →  carbonink-cloud-web   (cloud/web — Astro hybrid SSR)
 ```
 
-After the 3-site merge there are just two workers. The web worker is
-hybrid: marketing routes (`/`, `/pricing`, `/download`, `/privacy` +
-their `/en/*` mirrors) prerender at build time (CDN-cached HTML);
-`/activate`, `/account/*`, and their EN mirrors are SSR.
+Two workers total. The web worker is hybrid: marketing routes (`/`,
+`/pricing`, `/download`, `/privacy` + their `/en/*` mirrors)
+prerender at build time (CDN-cached HTML); `/activate`,
+`/account/*`, and their EN mirrors are SSR.
 
 ## First deploy
 
@@ -79,7 +79,7 @@ their `/en/*` mirrors) prerender at build time (CDN-cached HTML);
 
 This will:
 
-1. Build the merged Astro site (`cloud/sites/marketing`)
+1. Build the Astro web worker (`cloud/web`)
 2. Deploy `cloud/worker` → `carbonink-cloud-api` worker
    - Wrangler **auto-creates** D1 `carbonink-cloud`, 4 KV namespaces, R2
      `carbonink-releases` because their IDs are placeholders in the
