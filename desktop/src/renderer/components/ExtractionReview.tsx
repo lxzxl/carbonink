@@ -18,6 +18,7 @@ import { activityApi } from '@renderer/lib/api/activity-data';
 import { sourceApi } from '@renderer/lib/api/emission-source';
 import { extractionApi } from '@renderer/lib/api/extraction';
 import { orgApi } from '@renderer/lib/api/organization';
+import { undoApi } from '@renderer/lib/api/undo';
 import { formatCo2e } from '@renderer/lib/format';
 import { stageLabel } from '@renderer/lib/stage-labels';
 import * as m from '@renderer/paraglide/messages';
@@ -114,7 +115,31 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
       });
       await queryClient.invalidateQueries({ queryKey: ['extraction:list-pending'] });
       await queryClient.invalidateQueries({ queryKey: ['extraction:list-statuses'] });
-      toast.success(m.documents_review_discard_success());
+      // Sonner action lets the user roll back the discard without
+      // hunting for the ⌘Z accelerator — particularly useful here
+      // because the success path also navigates away from the doc.
+      // Click handler calls undoApi.do directly; the global useUndo
+      // hook would have invalidated everything itself, but it doesn't
+      // run inside the toast callback so we invalidate explicitly.
+      toast.success(m.documents_review_discard_success(), {
+        action: {
+          label: m.undo(),
+          onClick: () => {
+            void undoApi.do({ direction: 'undo' }).then(
+              () => {
+                void queryClient.invalidateQueries();
+                // Navigate back to the doc detail so the user can see
+                // the restored extraction immediately.
+                navigate({ to: '/documents/$id', params: { id: document.id } });
+              },
+              (err) => {
+                const msg = err instanceof Error ? err.message : String(err);
+                toast.error(m.undo_failed(), { description: msg });
+              },
+            );
+          },
+        },
+      });
       navigate({ to: '/documents' });
     },
     onError: (err) => {
