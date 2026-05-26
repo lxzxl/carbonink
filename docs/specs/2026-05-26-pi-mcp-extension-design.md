@@ -312,6 +312,227 @@ React Testing Library:
 |---|---|---|---|---|---|---|---|---|---|
 | | | | | | | | | | |
 
+---
+
+## v1.1 — Agent Skill Installer
+
+**Date:** 2026-05-26 (same-day increment)
+**Status:** spec
+**Trigger:** v1 smoke surfaced two real problems: (1) Pi via pi-mcporter doesn't auto-call MCP tools because of pi-mcporter's "CLI > MCP" single-bridge design, so the user has to explicitly say "use mcporter to ...", and (2) ESG-consultant users won't run `npx skills add` from a terminal. Solution: ship a portable [Agent Skill](https://agentskills.io/specification) (`SKILL.md`) that teaches any MCP-aware agent when and how to call carbonink, with a **one-click in-app installer** so non-technical users get the same outcome as `npx skills add` users.
+
+### Goal
+
+Lift the Settings → MCP page from "configure the MCP server" to **"integrate with AI agents"**. Step 1 is **install the Skill** (the missing primer that makes agents actually call our MCP tools). Step 2 is **configure the MCP server in each AI agent** (the existing v1 work). The Skill section is the new headline; MCP becomes the technical prerequisite.
+
+Non-developer users (the target audience for CarbonInk) get a single big button that copies the bundled `SKILL.md` into all installed agent skill directories. Developer users can still install via [`npx skills`](https://github.com/vercel-labs/skills) or `git clone` against the same bundled file (mirrored to a public repo).
+
+### Architecture
+
+```
+┌─ desktop/agent-skill/SKILL.md ─────────────┐  ← bundled source of truth
+│ (already exists from v1)                    │
+└─────────────────────────────────────────────┘
+                  │
+                  │ electron-builder extraResources: agent-skill/**
+                  ▼
+┌─ <Resources>/agent-skill/SKILL.md ─────────┐  ← available at runtime
+└─────────────────────────────────────────────┘
+                  │
+                  │ AgentSkillService.install()
+                  ▼
+┌─ ~/.agents/skills/carbonink-mcp/SKILL.md ──┐  ← canonical install location
+└─────────────────────────────────────────────┘
+                  │
+                  │ symlinks per detected host
+                  ▼
+┌─ ~/.claude/skills/carbonink-mcp     ───────┐ (if ~/.claude/skills/ exists)
+│  ~/.pi/agent/skills/carbonink-mcp    ───────┐ (if ~/.pi/agent/skills/ exists)
+│  ~/.codex/skills/carbonink-mcp       ───────┐ (if ~/.codex/skills/ exists)
+└─────────────────────────────────────────────┘
+```
+
+The canonical location is **`~/.agents/skills/`** (the shared cross-host convention; pi and Claude Code both already follow it via symlinks). Per-host dirs get symlinks ONLY if their parent dir already exists — avoids creating phantom config for hosts the user doesn't have installed.
+
+### Components
+
+#### `agent-skill-service.ts` (main process, new)
+
+```ts
+type AgentHost = 'claudeCode' | 'claudeDesktop' | 'cursor' | 'pi' | 'codex' | 'agentsShared';
+
+type HostStatus =
+  | { installed: false }
+  | { installed: true; linkPath: string; isOurSymlink: boolean };
+
+type SkillInstallStatus =
+  | { state: 'not_installed' }
+  | { state: 'installed'; canonicalPath: string; hostsLinked: AgentHost[]; needsUpdate: boolean }
+  | { state: 'modified_by_user'; canonicalPath: string; hostsLinked: AgentHost[] };
+
+interface AgentSkillService {
+  detect(): Promise<SkillInstallStatus & { detectedHosts: AgentHost[] }>;
+  install(): Promise<{ canonicalPath: string; hostsLinked: AgentHost[] }>;
+  update(): Promise<{ canonicalPath: string; hostsLinked: AgentHost[] }>;
+  remove(): Promise<{ removed: string[] }>;
+  getBundledShasum(): Promise<string>;
+}
+```
+
+State derivation:
+- `not_installed` — `~/.agents/skills/carbonink-mcp/SKILL.md` doesn't exist
+- `installed` — exists; sha matches bundled (`needsUpdate: false`) or differs (`needsUpdate: true`)
+- `modified_by_user` — exists; sha differs from bundled BUT the file has user-added marker / differs in non-trivial ways. v1.1 keeps it simple: if sha differs and the install was through us, just call it `needsUpdate: true`. Genuine user-edits are not detected separately; user manually edited files are overwritten on Update (with a backup).
+
+#### `ipc/handlers/agent-skill.ts` (new)
+
+Four channels matching the service API. Reuses `license-gate.ts` for the three mutation channels (install/update/remove).
+
+#### `routes/settings/integrations.tsx` (existing `McpSection.tsx`) — UI restructure
+
+Top of section: new **Step 1 — Install Agent Skill** panel with one big button. Existing v1 four-client table becomes **Step 2 — Configure MCP Clients** below it. Layout:
+
+```
+┌─ 集成 AI Agent ────────────────────────────────────────────┐
+│                                                            │
+│ 步骤 1 · 安装 Agent Skill                                   │
+│ ────────────────────────────                                │
+│ 让 AI agent 知道何时该查询碳墨数据。                          │
+│                                                            │
+│ 状态: 未安装                              [一键安装]         │
+│ — 或 —                                                     │
+│ 状态: 已安装 ✓ — 同步给 X 个 host         [更新] [移除]      │
+│   • Claude Code                                            │
+│   • Pi                                                     │
+│   • Cursor                                                 │
+│                                                            │
+│ [▾ 高级 / 其他工具]                                          │
+│   完整 host → path 表 (printkk-style fallback)             │
+│                                                            │
+│ 步骤 2 · 配置 MCP 客户端                                     │
+│ ────────────────────────────                                │
+│ [现有 v1 四客户端表格不变]                                    │
+└────────────────────────────────────────────────────────────┘
+```
+
+The "高级" disclosure section lists the per-host paths (read-only info) for users who prefer manual install or use a host we don't auto-detect.
+
+### Data flow
+
+#### Detect (page mount + after install/remove)
+
+```
+renderer mount
+  └─ ipc.skill.detect()
+       └─ service.detect()
+            ├─ stat ~/.agents/skills/carbonink-mcp/SKILL.md → installed?
+            ├─ if installed: sha256 → compare to bundled sha → needsUpdate?
+            ├─ scan symlinks in ~/.claude/skills/, ~/.pi/agent/skills/,
+            │    ~/.codex/skills/, ~/.cursor/rules/, etc.
+            │    → which ones point at our canonical?
+            └─ stat each host's parent dir → detectedHosts (where install would land)
+```
+
+Returns `{ state, hostsLinked, detectedHosts, needsUpdate }`.
+
+#### Install
+
+```
+1. mkdir -p ~/.agents/skills/carbonink-mcp/
+2. copy bundled SKILL.md → ~/.agents/skills/carbonink-mcp/SKILL.md
+3. for each detectedHost (parent dir exists):
+     symlink ~/.<host>/skills/carbonink-mcp → relative path to canonical
+4. audit-log 'agent_skill.install' with { hostsLinked }
+5. return { canonicalPath, hostsLinked }
+```
+
+Toast: **"已安装 Skill — 同步给 N 个 host。重启 AI agent 让 skill 生效。"**
+
+#### Update
+
+```
+1. read existingRaw = readFileSync(canonical)
+2. read bundledRaw = readFileSync(bundled)
+3. if existingRaw === bundledRaw: return { noChange: true }
+4. backup: write <canonical>.carbonink-bak-<ts>-<pid>
+5. atomic write: tmp + rename → canonical
+6. (symlinks are unchanged — they already point at canonical)
+7. audit-log 'agent_skill.update'
+```
+
+#### Remove
+
+```
+1. for each ~/.<host>/skills/carbonink-mcp that's a symlink owned by us:
+     unlink
+2. for the canonical dir: backup the SKILL.md, then rm -rf
+3. audit-log 'agent_skill.remove' with { removed: [paths...] }
+```
+
+### Host detection table
+
+| Host | Parent dir checked | Link path on install |
+|---|---|---|
+| `agentsShared` | always (canonical install) | `~/.agents/skills/carbonink-mcp/` (real dir, not symlink) |
+| `claudeCode` | `~/.claude/skills/` | `~/.claude/skills/carbonink-mcp → ../../.agents/skills/carbonink-mcp` |
+| `pi` | `~/.pi/agent/skills/` | `~/.pi/agent/skills/carbonink-mcp → ../../../.agents/skills/carbonink-mcp` |
+| `codex` | `~/.codex/skills/` | `~/.codex/skills/carbonink-mcp → ../../.agents/skills/carbonink-mcp` |
+| `cursor` | `.cursor/rules/` in `cwd` (project-level only — Cursor pattern differs) | skip in v1.1; mention in advanced disclosure |
+| `claudeDesktop` | no skill mechanism (system prompt is per-app) | skip |
+
+v1.1 ships Claude Code + Pi + Codex auto-linking, plus the canonical agentsShared write. Cursor and Claude Desktop are advisory-only (printkk-style table).
+
+### Bundling
+
+Update `electron-builder.yml`:
+
+```yaml
+extraResources:
+  - from: agent-skill
+    to: agent-skill
+```
+
+This copies `desktop/agent-skill/{SKILL.md,README.md}` to `<App>/Contents/Resources/agent-skill/` on macOS, and equivalent on Windows. Service reads from `process.resourcesPath/agent-skill/SKILL.md` in production, `path.join(process.cwd(), 'desktop/agent-skill/SKILL.md')` in dev.
+
+### Out of scope (v1.1)
+
+- ❌ Auto-install on first launch / first-run popup (deferred to v1.2)
+- ❌ `npx skills` integration UI (let advanced users use it from terminal — they already know how)
+- ❌ Cursor + Claude Desktop auto-install (different convention; not symlink-friendly)
+- ❌ Detecting user-edited skill files separately from "needs update" (overwrite + backup is the v1.1 model)
+- ❌ Update notifications outside the Settings page (no toast tray nag)
+- ❌ Per-skill versioning / rollback (skill is monolithic for v1.1)
+
+### Naming reconciliation with v1 spec
+
+The v1 "Out of scope" list said `❌ Skill.md / Pi extension packaging`. That referred specifically to **Pi-specific** Skill packaging (cb-pi pack, Pi-only conventions). The v1.1 skill is **portable / cross-host** and aligns with the agentskills.io standard — different category, doesn't conflict with the "internal architecture learning, not Pi-specific push" principle.
+
+### Testing (v1.1)
+
+Unit tests on `agent-skill-service.ts`:
+- detect: returns `not_installed` when canonical absent
+- detect: returns `installed` + correct `hostsLinked` when symlinks present
+- detect: distinguishes our symlinks from random files at the same path (`isOurSymlink`)
+- detect: sha mismatch → `needsUpdate: true`
+- install: creates canonical + symlinks only for hosts with existing parent dir
+- install: doesn't create phantom dirs for missing hosts
+- install: idempotent (second call no-ops)
+- update: writes backup, atomic rename, audit logged
+- update: noChange branch
+- remove: cleans both symlinks and canonical; backs up canonical SKILL.md
+
+IPC tests follow `tests/main/ipc/mcp-integration-handlers.test.ts` pattern.
+
+Renderer tests — same pattern as McpSection (component-level).
+
+Manual smoke (added to the v1 smoke table):
+1. `pnpm desktop:build && pnpm exec electron-builder --mac --publish never`
+2. Launch packaged app
+3. Settings → Integrations → click 一键安装
+4. Verify `~/.agents/skills/carbonink-mcp/SKILL.md` exists + has bundled content
+5. Verify expected symlinks exist (Claude Code + Pi + Codex if installed)
+6. Restart agent host → ask "list carbonink questionnaires" → agent auto-uses MCP without explicit hint
+7. Click 移除 → verify symlinks gone, canonical backed up
+
 ## References
 
 - [Roadmap Item 5](../ROADMAP.md)
