@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import {
   existsSync,
   mkdirSync,
@@ -197,6 +198,11 @@ export class McpIntegrationService {
       renameSync(tmpPath, configPath);
 
       this.pruneBackups(configPath);
+      this.recordAudit('mcp_integration.configure', {
+        clientId: id,
+        configPath,
+        backupPath,
+      });
       return { configPath, backupPath };
     });
   }
@@ -235,6 +241,11 @@ export class McpIntegrationService {
       renameSync(tmpPath, configPath);
 
       this.pruneBackups(configPath);
+      this.recordAudit('mcp_integration.remove', {
+        clientId: id,
+        configPath,
+        backupPath,
+      });
       return { configPath, backupPath };
     });
   }
@@ -255,6 +266,12 @@ export class McpIntegrationService {
         // best effort
       }
     }
+  }
+
+  private recordAudit(eventKind: string, payload: Record<string, unknown>): void {
+    this.deps.db
+      .prepare(`INSERT INTO audit_event (id, event_kind, payload, occurred_at) VALUES (?, ?, ?, ?)`)
+      .run(randomUUID(), eventKind, JSON.stringify(payload), this.deps.now().toISOString());
   }
 
   private async withPathMutex<T>(path: string, fn: () => Promise<T>): Promise<T> {

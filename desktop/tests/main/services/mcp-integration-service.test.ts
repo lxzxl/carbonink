@@ -304,3 +304,49 @@ describe('backup retention', () => {
     expect(backups.length).toBe(3);
   });
 });
+
+describe('audit logging', () => {
+  it('configureClient writes mcp_integration.configure audit row', async () => {
+    const { svc, db } = makeServiceWithTmpHome();
+    await svc.configureClient('claudeDesktop');
+    const rows = db
+      .prepare(
+        `SELECT event_kind, payload FROM audit_event WHERE event_kind LIKE 'mcp_integration.%'`,
+      )
+      .all() as Array<{ event_kind: string; payload: string }>;
+    expect(rows.length).toBe(1);
+    const row = rows[0];
+    if (!row) throw new Error('expected audit row');
+    expect(row.event_kind).toBe('mcp_integration.configure');
+    const payload = JSON.parse(row.payload);
+    expect(payload.clientId).toBe('claudeDesktop');
+    expect(payload.noChange).toBeFalsy();
+  });
+
+  it('noChange configure does NOT write an audit row', async () => {
+    const { svc, db } = makeServiceWithTmpHome();
+    await svc.configureClient('claudeDesktop');
+    await svc.configureClient('claudeDesktop'); // no-op
+    const rows = db
+      .prepare(
+        `SELECT COUNT(*) AS c FROM audit_event WHERE event_kind = 'mcp_integration.configure'`,
+      )
+      .get() as { c: number };
+    expect(rows.c).toBe(1);
+  });
+
+  it('removeClient writes mcp_integration.remove audit row', async () => {
+    const { svc, db } = makeServiceWithTmpHome();
+    await svc.configureClient('claudeDesktop');
+    await svc.removeClient('claudeDesktop');
+    const rows = db
+      .prepare(
+        `SELECT event_kind FROM audit_event WHERE event_kind LIKE 'mcp_integration.%' ORDER BY occurred_at`,
+      )
+      .all() as Array<{ event_kind: string }>;
+    expect(rows.map((r) => r.event_kind)).toEqual([
+      'mcp_integration.configure',
+      'mcp_integration.remove',
+    ]);
+  });
+});
