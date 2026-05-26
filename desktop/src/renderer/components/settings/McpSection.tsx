@@ -71,8 +71,17 @@ export function McpSection() {
 
   const configureMut = useMutation({
     mutationFn: (id: McpClientId) => mcpApi.configure(id),
-    onSuccess: (_r, id) => {
-      toast.success(m.settings_mcp_configured({ client: clientLabel(id) }));
+    onSuccess: (r, id) => {
+      if (r.ok) {
+        toast.success(m.settings_mcp_configured({ client: clientLabel(id) }));
+      } else if (r.error === 'invalid_json') {
+        toast.error(m.settings_mcp_invalid_json(), { description: r.message });
+      } else if (r.error === 'pi_not_supported') {
+        // Shouldn't happen — Pi has its own button — but be safe.
+        toast.error(m.settings_mcp_configure_failed(), { description: 'pi_not_supported' });
+      } else {
+        toast.error(m.settings_mcp_configure_failed(), { description: r.message });
+      }
       qc.invalidateQueries({ queryKey: ['mcp:detect'] });
     },
     onError: (e) =>
@@ -81,8 +90,14 @@ export function McpSection() {
 
   const removeMut = useMutation({
     mutationFn: (id: McpClientId) => mcpApi.remove(id),
-    onSuccess: (_r, id) => {
-      toast.success(m.settings_mcp_removed({ client: clientLabel(id) }));
+    onSuccess: (r, id) => {
+      if (r.ok) {
+        toast.success(m.settings_mcp_removed({ client: clientLabel(id) }));
+      } else if (r.error === 'invalid_json') {
+        toast.error(m.settings_mcp_invalid_json(), { description: r.message });
+      } else {
+        toast.error(m.settings_mcp_remove_failed(), { description: r.message });
+      }
       qc.invalidateQueries({ queryKey: ['mcp:detect'] });
     },
     onError: (e) =>
