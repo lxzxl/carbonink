@@ -57,3 +57,145 @@ roadmap 只记"想做"，没排期、没承诺。要做之前必须先走 brains
 - 引导过多 = 噪音；只在用户**首次**进入某个屏幕时触发，且要可永久 dismiss。
 - 和 [UI/UX redesign backlog](todo/2026-05-19-ui-ux-redesign.md) 有交集——redesign 重排页面布局后，wizard 的锚点也要跟着重做。**先做 redesign 再做 wizard**，否则白干。
 
+---
+
+## 3. 用 `@earendil-works/pi-ai` 替换内部 LLM 客户端
+
+**目标**：把 `desktop/src/main/llm/llm-client.ts` 换成 pi 生态的统一多供应商 LLM API。pi-ai 已经做好了 OpenAI / Anthropic / Google / OpenRouter 适配、流式、prompt caching 协议、OAuth 这些"我们要么自己写一遍要么半成品"的部分。
+
+**已经有的相关代码**：
+- `desktop/src/main/llm/llm-client.ts`（当前自研客户端）
+- `desktop/src/main/llm/vision-capability.ts`（vision 能力探测）
+- `desktop/src/main/llm/report-narrative.ts`、`stages/`（业务消费方）
+- `desktop/src/main/services/credential-service.ts`（BYOK 凭证管理）
+
+**技术取舍**：
+- 收益：用户 BYOK 任意 OpenAI 兼容 API（含 DeepSeek、Qwen、智谱），不再需要每接一个 provider 改一次代码。
+- 收益：pi-ai 内部已实现 Anthropic / Gemini 的 prompt cache 上报，对今后的成本控制很有用。
+- 参考：[apmantza/pi-free](https://github.com/apmantza/pi-free) 证明 pi-ai 接国产模型可行。
+- 风险：pi-ai 自己的计费 hook 是否能让 license 服务做 token 计量？需要先验。
+- 风险：要保留一层薄 adapter 防止 vendor lock-in，万一 pi-ai 出问题能切回去。
+
+**集成点**：
+- 纯 main process 内部改造，renderer 不动。
+- `llm/stages/` 当前调用 `LLMClient` 的位置都是少数几个入口，可逐步迁。
+- credential-service.ts 的 provider 列表要扩，UI 上"AI provider 设置"页面要同步。
+
+**开放问题**：
+- pi-ai 的 OAuth 流程在 Electron 里跑得通吗（loopback redirect）？
+- license 计量怎么 hook 到 pi-ai 的请求生命周期？
+- 是不是应该把这事和 item 1（marketing 客服）的 pi.dev 验证合并做一次决策？
+
+---
+
+## 4. 用 `@earendil-works/pi-agent-core` 重写 answer-generation 流水线
+
+**目标**：当前 `answer-generation/` 是线性 pipeline（extraction → classification → EF match → answer）。换成 agent runtime 后，agent 可以在循环里看到中间结果、主动调 `lookup_ef("柴油")`、不满意就再 `search_documents(...)`、token budget 内自我纠错。
+
+**已经有的相关代码**：
+- `desktop/src/main/services/answer-generation/`
+- `desktop/src/main/services/extraction-service.ts`
+- `desktop/src/main/services/ef-matcher/`、`ef-matcher-service.ts`
+- `desktop/src/main/services/classification-service.ts`
+- `desktop/src/main/services/calculation-service.ts`（agent 可调工具的天然候选）
+
+**技术取舍**：
+- 收益：自动填问卷准确率从"固定 pipeline + 用户兜底"提升到"agent 自主纠错 + 主动提问"。
+- 收益：pi-agent-core 已处理 tool-call retry、context window 管理、turn loop——省下半年工作。
+- 成本：当前 pipeline 可预测、易调试；agent 化后调试复杂度上升，需要 traces。
+- 强依赖：**必须先完成方向 3（pi-ai）**。
+
+**集成点**：
+- service 接口保持不变，内部替换为 agent loop。
+- AnswerReviewCard 可以新增"agent 思考过程"侧栏，展示工具调用链。
+- 复用现有 `extraction-service` / `ef-matcher-service` 包装为 agent tools。
+
+**开放问题**：
+- 失控兜底：单次 answer 最多多少 turns / tokens？
+- agent 输出怎么映射回现有的 answer schema 和 snapshot 模型？
+- 是否要引入 [traceroot-ai/traceroot](https://github.com/traceroot-ai/traceroot)（YC S25 的 agent 可观测性）？
+- 离线/无 API key 用户走老 pipeline 兜底？
+
+---
+
+## 5. 把 `carbonink` MCP server 包装成 Pi 扩展发布
+
+**目标**：我们 `desktop/src/mcp/` 已经暴露了 list_questionnaires / get_answer / set_answer / list_activities / create_emission_source 等。在 Pi 生态注册成扩展后，咨询师/重度用户可以在终端里说"列出所有 2025 上半年 Scope 1 缺数据的问卷，按客户分组"。
+
+**已经有的相关代码**：
+- `desktop/src/mcp/index.ts`（MCP server，stdio transport）
+- `desktop/src/mcp/queries.ts`、`db.ts`
+- `desktop/vite.mcp.config.ts`（产物落到 `out/mcp/index.js`）
+- `desktop/src/main/ipc/handlers/mcp.ts`、`desktop/src/renderer/lib/api/mcp.ts`
+
+**技术取舍**：
+- 几乎零开发成本：现有 MCP server 已经能跑，主要工作是写扩展 README + 一行注册脚本 + 发布到 npm。
+- 参考：[mavam/pi-mcporter](https://github.com/mavam/pi-mcporter) 是单工具 MCP 桥接的最小范例。
+- 战略价值：以最低成本进入 Pi 用户视野，拿到第一波早期反馈。
+
+**集成点**：
+- 新增 monorepo 子包 `packages/pi-extension/`（或独立仓库 `carbonink-pi`）。
+- 文档站加一篇"在 Pi 中使用 CarbonInk"教程。
+- README 要写清"读 vs 写"权限——`set_answer` 直接改本地 SQLite，得有告警。
+
+**开放问题**：
+- write 接口（create_activity / set_answer）开放给 Pi 用户吗？还是先只读？
+- MCP server 当前直连本地 SQLite——多设备/远程数据怎么办？要不要走 cloud worker？
+- 发布形态：独立 npm 包还是 monorepo 子包？
+
+---
+
+## 6. `cb-pi` 扩展包（仿 [salesforce/sf-pi](https://github.com/salesforce/sf-pi)）
+
+**目标**：给已经习惯用 coding agent 的咨询师/审计员一套**碳核算专用** Pi 扩展，把 Pi 变成他们的领域工作站。sf-pi 给 Salesforce 工程师做了 LSP 诊断 + Agent Script 助手 + 状态栏，同样思路适用于碳核算。
+
+**已经有的相关代码**：
+- 依赖方向 5（MCP 扩展），方向 3（pi-ai）作为模型层基础。
+
+**候选扩展**：
+- `@carbonink/pi-ef-search` — 排放因子库 fuzzy lookup，pi-tui 直接渲染候选
+- `@carbonink/pi-questionnaire-draft` — 在终端拖 PDF 进来出草稿问卷
+- `@carbonink/pi-audit-trail` — 客户活动历史审阅
+- `@carbonink/pi-status-bar` — pi-tui 状态栏显示当前问卷进度
+
+**技术取舍**：
+- 收益：在已有 Pi 用户里建立"碳核算 = CarbonInk"心智，零获客成本。
+- 风险：中国市场里"会用 terminal coding agent 的咨询师"基数可能很小，要先估规模。
+- 维护成本：每个扩展独立项目还是合并发布？sf-pi 的做法是单仓库多扩展。
+
+**集成点**：
+- monorepo 新增 `packages/pi-extensions/`，按扩展分子目录。
+- 复用 cloud worker 的 EF API（不直连本地 SQLite，因为咨询师不一定有本地数据）。
+- 与方向 4 的 agent core 共享 prompt 模板和工具描述。
+
+**开放问题**：
+- 商业模型：免费引流 vs 付费功能？
+- 目标用户体量：先调研 5-10 个 ESG 咨询师是否用过 Cursor/Claude Code/Pi。
+- 是否要先在 Discord/小红书发预告测水温？
+
+---
+
+## 7. `pi-chat` 企业 ChatOps（飞书/钉钉/企微 + 沙箱 VM）
+
+**目标**：客户在 Slack / 钉钉 / 飞书 / 企微 里 @ 碳本机器人，查自己组织的数据、催进度、看 dashboard。每个客户组织一个隔离 VM，数据合规友好。
+
+**已经有的相关代码**：
+- 依赖方向 3（pi-ai）和方向 5（MCP）。
+- 完全云端实现，desktop 不动。
+
+**技术取舍**：
+- 上游 [earendil-works/pi-chat](https://github.com/earendil-works/pi-chat) 已支持 Discord/Telegram + Gondolin micro-VM 隔离。
+- 中国市场必须新写飞书/钉钉/企微连接器（这是真活）。
+- VM 隔离对运维成本冲击较大，需要评估。
+
+**集成点**：
+- 客户绑定一个 organization → 一个 VM → MCP 只连到该客户的数据子集。
+- license 模型可能需要新增"bot seat"维度。
+- 跟 desktop 应用的数据同步：bot 改的东西要回流给桌面端吗？
+
+**开放问题**：
+- 商业模型衔接：bot 算几个 seat？
+- 中国市场连接器谁维护？外包还是自研？
+- VM 沙箱对单客户的运维成本？要不要先用容器替代 VM？
+- 法务/合规：客户数据进 VM 等同于数据出本地，对 PIPL / 信安要重新审。
+
