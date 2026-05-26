@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync as readSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync as readSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { runMigrations } from '@main/db/migrate';
@@ -8,10 +8,19 @@ import {
   PiNotSupportedError,
 } from '@main/services/mcp-integration-service';
 import Database from 'better-sqlite3';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+
+const tmpDirs: string[] = [];
+const dbs: Database.Database[] = [];
+
+afterEach(() => {
+  for (const db of dbs.splice(0)) db.close();
+  for (const d of tmpDirs.splice(0)) rmSync(d, { recursive: true, force: true });
+});
 
 function makeService(overrides: Partial<{ paths: PathResolver; now: () => Date }> = {}) {
   const db = new Database(':memory:');
+  dbs.push(db);
   runMigrations(db);
   const paths: PathResolver = overrides.paths ?? {
     electronBinaryPath: () => '/Applications/CarbonInk.app/Contents/MacOS/CarbonInk',
@@ -24,9 +33,10 @@ function makeService(overrides: Partial<{ paths: PathResolver; now: () => Date }
 }
 
 function makeServiceWithTmpHome() {
-  const home = join(tmpdir(), `mcp-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-  mkdirSync(home, { recursive: true });
+  const home = mkdtempSync(join(tmpdir(), 'mcp-test-'));
+  tmpDirs.push(home);
   const db = new Database(':memory:');
+  dbs.push(db);
   runMigrations(db);
   const paths: PathResolver = {
     electronBinaryPath: () => '/fake/binary',

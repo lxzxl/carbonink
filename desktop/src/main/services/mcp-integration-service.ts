@@ -174,7 +174,7 @@ export class McpIntegrationService {
       let backupPath: string | null = null;
       if (existingRaw !== null) {
         const ts = this.deps.now().toISOString().replace(/[:.]/g, '-');
-        backupPath = `${configPath}.carbonink-bak-${ts}`;
+        backupPath = `${configPath}.carbonink-bak-${ts}-${process.pid}`;
         writeFileSync(backupPath, existingRaw, 'utf-8');
       }
 
