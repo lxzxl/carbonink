@@ -18,6 +18,11 @@ import type {
   Extraction,
   ExtractionStatus,
   MatcherResult,
+  McpClientId,
+  McpConfigureResult,
+  McpDetectResult,
+  McpRemoveResult,
+  McpServerEntry,
   Organization,
   OrganizationCreateInput,
   PresetSource,
@@ -247,20 +252,20 @@ export type IpcTypeMap = {
   }) => Promise<{ canceled: true } | { ok: true; path: string } | { ok: false; error: string }>;
 
   // mcp-integration domain (Settings → Integrations sub-page)
-  'mcp:detect': () => Promise<import('@main/services/mcp-integration-service.js').DetectResult>;
+  'mcp:detect': () => Promise<McpDetectResult>;
   'mcp:configure': (input: {
-    clientId: import('@main/services/mcp-integration-service.js').ClientId;
+    clientId: McpClientId;
   }) => Promise<
-    | { ok: true; result: import('@main/services/mcp-integration-service.js').ConfigureResult }
+    | { ok: true; result: McpConfigureResult }
     | { ok: false; error: 'pi_not_supported' | 'invalid_json' | 'io_error'; message?: string }
   >;
   'mcp:remove': (input: {
-    clientId: import('@main/services/mcp-integration-service.js').ClientId;
+    clientId: McpClientId;
   }) => Promise<
-    | { ok: true; result: import('@main/services/mcp-integration-service.js').RemoveResult }
+    | { ok: true; result: McpRemoveResult }
     | { ok: false; error: 'pi_not_supported' | 'invalid_json' | 'io_error'; message?: string }
   >;
-  'mcp:get-server-entry': () => import('@main/services/mcp-integration-service.js').ServerEntry;
+  'mcp:get-server-entry': () => McpServerEntry;
 
   // routing domain (Routing API — distance lookup via AMap or haversine)
   'routing:lookup': (input: {

@@ -577,3 +577,29 @@ export type LicenseLocalStateRow = {
   created_at: string;
   updated_at: string;
 };
+
+// ---------------------------------------------------------------------------
+// MCP integration types (cross-process — used by main service, IPC layer, renderer)
+// ---------------------------------------------------------------------------
+
+export type McpClientId = 'claudeDesktop' | 'claudeCode' | 'cursor' | 'pi';
+
+export type McpClientStatus =
+  | { installed: false }
+  | { installed: true; configured: false; configPath: string }
+  | { installed: true; configured: true; configPath: string; entryDiffersFromCurrent: boolean }
+  | { installed: true; error: 'invalid_json'; configPath: string };
+
+export type McpDetectResult = Record<McpClientId, McpClientStatus>;
+
+export type McpServerEntry = {
+  command: string;
+  args: string[];
+  env: { ELECTRON_RUN_AS_NODE: '1' };
+};
+
+export type McpConfigureResult =
+  | { configPath: string; backupPath: string | null; noChange?: false }
+  | { configPath: string; backupPath: null; noChange: true };
+
+export type McpRemoveResult = { configPath: string; backupPath: string | null };

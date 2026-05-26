@@ -1,15 +1,18 @@
+import type { McpClientId } from '@shared/types.js';
 import { invoke } from '../ipc.js';
 
 /**
  * Per-domain renderer wrapper for the `mcp:*` IPC channels.
  *
- * Phase 2 Block 4 — MCP Server status and Claude Desktop config integration.
- * `getStatus` reports whether the MCP binary is built and whether Claude
- * Desktop is already configured to connect to carbonink.
- * `writeClaudeConfig` performs a merge-write into
- * ~/Library/Application Support/Claude/claude_desktop_config.json.
+ * Phase 2 redesign — the MCP service now exposes per-client detect /
+ * configure / remove operations plus a `getServerEntry()` query for
+ * the manual-setup fallback (Pi, future clients). The Settings →
+ * Integrations sub-page consumes all four; AppSidebar derives a
+ * single "any configured?" state from `detect()` for its status dot.
  */
 export const mcpApi = {
-  getStatus: () => invoke('mcp:get-status'),
-  writeClaudeConfig: () => invoke('mcp:write-claude-config'),
+  detect: () => invoke('mcp:detect'),
+  configure: (clientId: McpClientId) => invoke('mcp:configure', { clientId }),
+  remove: (clientId: McpClientId) => invoke('mcp:remove', { clientId }),
+  getServerEntry: () => invoke('mcp:get-server-entry'),
 };

@@ -48,27 +48,28 @@ import { Settings as SettingsIcon } from 'lucide-react';
  */
 export function AppSidebar() {
   const pathname = useLocation({ select: (s) => s.pathname });
-  const mcpStatus = useQuery({
-    queryKey: ['mcp:status'],
-    queryFn: mcpApi.getStatus,
+  const mcpDetect = useQuery({
+    queryKey: ['mcp:detect'],
+    queryFn: mcpApi.detect,
     refetchInterval: 10_000,
     refetchOnWindowFocus: true,
   });
 
-  const mcp = mcpStatus.data;
-  const mcpDotClass = mcp
-    ? mcp.claude_config_references_us
-      ? 'bg-green-500'
-      : mcp.binary_built
-        ? 'bg-amber-500'
-        : 'bg-muted-foreground/40'
-    : '';
-  const mcpStatusLabel = mcp
-    ? mcp.claude_config_references_us
+  // Post-redesign the sidebar only reflects a binary "is any client
+  // configured to talk to us?" — the old "not built" state isn't
+  // derivable from the new IPC surface (getServerEntry always returns
+  // a path), so it collapses into "pending" alongside "no client
+  // configured yet". Full per-client status lives on Settings →
+  // Integrations.
+  const detect = mcpDetect.data;
+  const anyConfigured = detect
+    ? Object.values(detect).some((s) => s.installed && 'configured' in s && s.configured)
+    : false;
+  const mcpDotClass = detect ? (anyConfigured ? 'bg-green-500' : 'bg-amber-500') : '';
+  const mcpStatusLabel = detect
+    ? anyConfigured
       ? m.sidebar_mcp_label_available()
-      : mcp.binary_built
-        ? m.sidebar_mcp_label_pending()
-        : m.sidebar_mcp_label_not_built()
+      : m.sidebar_mcp_label_pending()
     : '';
 
   return (
@@ -96,7 +97,7 @@ export function AppSidebar() {
               <Link to="/settings" aria-label={m.nav_settings()}>
                 <SettingsIcon />
                 <span>{m.nav_settings()}</span>
-                {mcp && (
+                {detect && (
                   <span
                     role="status"
                     aria-label={mcpStatusLabel}
