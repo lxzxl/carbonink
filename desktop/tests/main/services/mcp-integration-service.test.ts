@@ -279,6 +279,23 @@ describe('McpIntegrationService.removeClient', () => {
     const result = await svc.removeClient('claudeDesktop');
     expect(result.backupPath).toBeNull();
   });
+
+  it('drops legacy carbonbook key (args[0] match) even without carbonink key', async () => {
+    const { svc, home } = makeServiceWithTmpHome();
+    const cfg = join(home, 'Library/Application Support/Claude/claude_desktop_config.json');
+    mkdirSync(join(home, 'Library/Application Support/Claude'), { recursive: true });
+    // Pre-existing legacy entry pointing at our script, no carbonink key
+    writeFileSync(
+      cfg,
+      JSON.stringify({
+        mcpServers: { carbonbook: { command: 'node', args: ['/fake/out/mcp/index.js'] } },
+      }),
+    );
+    const result = await svc.removeClient('claudeDesktop');
+    expect(result.backupPath).toMatch(/\.carbonink-bak-/);
+    const after = JSON.parse(require('node:fs').readFileSync(cfg, 'utf-8'));
+    expect(after.mcpServers).toBeUndefined(); // single legacy key removed → mcpServers key deleted
+  });
 });
 
 describe('backup retention', () => {

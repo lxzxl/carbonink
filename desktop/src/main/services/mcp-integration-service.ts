@@ -213,10 +213,24 @@ export class McpIntegrationService {
       } catch {
         throw new Error(`Refusing to overwrite invalid JSON at ${configPath}`);
       }
-      const servers = (existing.mcpServers as Record<string, unknown> | undefined) ?? {};
-      if (!servers.carbonink) return { configPath, backupPath: null };
+      const servers =
+        (existing.mcpServers as Record<string, { args?: string[] }> | undefined) ?? {};
+      const ourScript = this.getServerEntry().args[0];
 
-      const { carbonink: _drop, ...remaining } = servers;
+      // Drop any key whose name is 'carbonink' OR whose args[0] matches our script.
+      // Symmetric with configureClient's legacy-key cleanup.
+      const remaining: Record<string, unknown> = {};
+      let droppedAny = false;
+      for (const [key, value] of Object.entries(servers)) {
+        const v = value as { args?: string[] };
+        if (key === 'carbonink' || v?.args?.[0] === ourScript) {
+          droppedAny = true;
+          continue;
+        }
+        remaining[key] = value;
+      }
+      if (!droppedAny) return { configPath, backupPath: null };
+
       const next: Record<string, unknown> = { ...existing };
       if (Object.keys(remaining).length === 0) {
         delete next.mcpServers;
