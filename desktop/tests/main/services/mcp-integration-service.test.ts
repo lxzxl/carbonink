@@ -1,8 +1,12 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync as readSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { runMigrations } from '@main/db/migrate';
-import { McpIntegrationService, type PathResolver } from '@main/services/mcp-integration-service';
+import {
+  McpIntegrationService,
+  type PathResolver,
+  PiNotSupportedError,
+} from '@main/services/mcp-integration-service';
 import Database from 'better-sqlite3';
 import { describe, expect, it } from 'vitest';
 
@@ -131,5 +135,97 @@ describe('McpIntegrationService.detectClients', () => {
     mkdirSync(join(home, '.pi'), { recursive: true });
     const r = await svc.detectClients();
     expect(r.pi).toEqual({ installed: true, configured: false, configPath: join(home, '.pi') });
+  });
+});
+
+describe('McpIntegrationService.configureClient', () => {
+  it('Pi throws PiNotSupportedError', async () => {
+    const { svc } = makeServiceWithTmpHome();
+    await expect(svc.configureClient('pi')).rejects.toBeInstanceOf(PiNotSupportedError);
+  });
+
+  it('first write: creates parent dir, no backup, audit logged', async () => {
+    const { svc } = makeServiceWithTmpHome();
+    const result = await svc.configureClient('claudeDesktop');
+    expect(result.noChange).toBeFalsy();
+    expect(result.backupPath).toBeNull();
+    const cfg = JSON.parse(readSync(result.configPath, 'utf-8'));
+    expect(cfg.mcpServers.carbonink).toEqual({
+      command: '/fake/binary',
+      args: ['/fake/out/mcp/index.js'],
+      env: { ELECTRON_RUN_AS_NODE: '1' },
+    });
+  });
+
+  it('second identical write: noChange:true, no backup, no rewrite', async () => {
+    const { svc } = makeServiceWithTmpHome();
+    const first = await svc.configureClient('claudeDesktop');
+    const beforeMtime = require('node:fs').statSync(first.configPath).mtimeMs;
+    await new Promise((r) => setTimeout(r, 10));
+    const second = await svc.configureClient('claudeDesktop');
+    expect(second).toEqual({
+      configPath: first.configPath,
+      backupPath: null,
+      noChange: true,
+    });
+    expect(require('node:fs').statSync(first.configPath).mtimeMs).toBe(beforeMtime);
+  });
+
+  it('different existing content: writes backup with ISO timestamp', async () => {
+    const { svc, home } = makeServiceWithTmpHome();
+    const cfg = join(home, 'Library/Application Support/Claude/claude_desktop_config.json');
+    mkdirSync(join(home, 'Library/Application Support/Claude'), { recursive: true });
+    writeFileSync(cfg, JSON.stringify({ mcpServers: { other: { command: 'x', args: [] } } }));
+    const result = await svc.configureClient('claudeDesktop');
+    expect(result.backupPath).toMatch(/\.carbonink-bak-\d{4}-\d{2}-\d{2}T/);
+    const merged = JSON.parse(readSync(cfg, 'utf-8'));
+    expect(merged.mcpServers.other).toBeDefined();
+    expect(merged.mcpServers.carbonink).toBeDefined();
+  });
+
+  it('legacy carbonbook key + same script: deletes old key, writes carbonink', async () => {
+    const { svc, home } = makeServiceWithTmpHome();
+    const cfg = join(home, 'Library/Application Support/Claude/claude_desktop_config.json');
+    mkdirSync(join(home, 'Library/Application Support/Claude'), { recursive: true });
+    writeFileSync(
+      cfg,
+      JSON.stringify({
+        mcpServers: { carbonbook: { command: 'node', args: ['/fake/out/mcp/index.js'] } },
+      }),
+    );
+    await svc.configureClient('claudeDesktop');
+    const merged = JSON.parse(readSync(cfg, 'utf-8'));
+    expect(merged.mcpServers.carbonbook).toBeUndefined();
+    expect(merged.mcpServers.carbonink).toBeDefined();
+  });
+
+  it('concurrent configure calls: second resolves as noChange after first writes', async () => {
+    const { svc } = makeServiceWithTmpHome();
+    const [a, b] = await Promise.all([
+      svc.configureClient('claudeDesktop'),
+      svc.configureClient('claudeDesktop'),
+    ]);
+    const wrote = [a, b].filter((r) => !r.noChange);
+    const skipped = [a, b].filter((r) => r.noChange);
+    expect(wrote.length).toBe(1);
+    expect(skipped.length).toBe(1);
+  });
+
+  it('preserves unknown top-level keys in Claude Code huge config', async () => {
+    const { svc, home } = makeServiceWithTmpHome();
+    const cfg = join(home, '.claude.json');
+    writeFileSync(
+      cfg,
+      JSON.stringify({
+        mcpServers: {},
+        hasCompletedOnboarding: true,
+        oauthAccount: { secret: 'preserved' },
+      }),
+    );
+    await svc.configureClient('claudeCode');
+    const merged = JSON.parse(readSync(cfg, 'utf-8'));
+    expect(merged.hasCompletedOnboarding).toBe(true);
+    expect(merged.oauthAccount.secret).toBe('preserved');
+    expect(merged.mcpServers.carbonink).toBeDefined();
   });
 });
