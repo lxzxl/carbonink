@@ -247,7 +247,7 @@ describe('McpIntegrationService.removeClient', () => {
   });
 
   it('removes carbonink key; if mcpServers becomes empty, removes the key too', async () => {
-    const { svc, home } = makeServiceWithTmpHome();
+    const { svc } = makeServiceWithTmpHome();
     await svc.configureClient('claudeDesktop');
     const result = await svc.removeClient('claudeDesktop');
     expect(result.backupPath).toMatch(/\.carbonink-bak-/);

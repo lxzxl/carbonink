@@ -9,7 +9,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { homedir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import type Database from 'better-sqlite3';
 
 export type ClientId = 'claudeDesktop' | 'claudeCode' | 'cursor' | 'pi';
@@ -174,8 +174,11 @@ export class McpIntegrationService {
       const merged = { ...existing, mcpServers: cleaned };
 
       // 3. Idempotency: if existingRaw matches what we'd write, no-op.
+      //    Still prune stale backups so they don't accumulate when the
+      //    user's config is static.
       const nextRaw = `${JSON.stringify(merged, null, 2)}\n`;
       if (existingRaw === nextRaw) {
+        this.pruneBackups(configPath);
         return { configPath, backupPath: null, noChange: true };
       }
 
@@ -240,7 +243,7 @@ export class McpIntegrationService {
   private pruneBackups(configPath: string): void {
     const dir = dirname(configPath);
     if (!existsSync(dir)) return;
-    const base = configPath.split('/').pop() ?? configPath.split('\\').pop() ?? configPath;
+    const base = basename(configPath);
     const backups = readdirSync(dir)
       .filter((f) => f.startsWith(`${base}.carbonink-bak-`))
       .map((f) => ({ f, mtime: statSync(join(dir, f)).mtimeMs }))
