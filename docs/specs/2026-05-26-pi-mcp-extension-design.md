@@ -310,7 +310,29 @@ React Testing Library:
 
 | Date | Builder | Platform | Step 1 (build) | Step 2 (detect) | Step 3 (configure) | Step 4 (Claude lists tools) | Step 5 (data query) | Step 6 (move app → Reconfigure) | Step 7 (remove) |
 |---|---|---|---|---|---|---|---|---|---|
-| | | | | | | | | | |
+| 2026-05-26 | lxz | macOS (darwin arm64, dev mode) | ⚠️ dev only — packaged `electron-builder` blocked by pre-existing schema issues (mac.notarize boolean, win.sign) outside MCP scope; `pnpm dev` + `pnpm build:mcp` succeed | ✅ | ✅ Claude Desktop (then Claude Code to expose carbonink to mcporter) | ✅ | ✅ via Claude Desktop direct + Pi via pi-mcporter + skill | N/A (not exercised — dev paths anyway) | ✅ after legacy-carbonbook symmetry fix (`a003f75`) |
+
+### Bugs surfaced + fixed during smoke
+
+- `a003f75` — `removeClient` only matched key name `carbonink`, missed legacy `carbonbook` entries. Symmetric `args[0]` match now mirrors `configureClient`.
+- `271f72b` — `McpSection` mutations ignored `{ok:false}` returns from IPC handler; success toast fired regardless. Now branches on `r.ok` with discriminated-union handling.
+- `bf4517b` — `ConfigureResult.backupPath: string` (non-nullable) was hidden via `as string` cast; first-write returns `null` legitimately. Type widened, cast removed.
+
+---
+
+### v1.1 Verified smoke run
+
+| Date | Builder | Platform | Step 1 (UI renders both steps) | Step 2 (detect) | Step 3 (install) | Step 4 (symlinks created) | Step 5 (agent auto-calls via skill) | Step 6 (update flow) | Step 7 (remove) |
+|---|---|---|---|---|---|---|---|---|---|
+| 2026-05-26 | lxz | macOS (darwin arm64, dev mode) | ✅ Step 1 Skill panel above Step 2 MCP table | ✅ | ✅ | ✅ canonical at `~/.agents/skills/carbonink-mcp/`, symlinks to `~/.claude/skills/`, `~/.pi/agent/skills/` | ✅ pi + Claude Code answer "how many questionnaires" via MCP without explicit `mcporter` hint | not explicitly re-tested (service has unit coverage) | ✅ |
+
+### Follow-ups surfaced during v1.1 smoke (not blocking)
+
+- Packaged build remains blocked by pre-existing `electron-builder` v26 schema issues in `electron-builder.yml` (mac.notarize must be boolean, win.sign/signingHashAlgorithms unknown). Not MCP-related; separate fix needed before next release.
+- Manual smoke step 6 ("move app → Reconfigure") deferred since dev paths under `node_modules` are inherently unstable; only meaningful after packaged build.
+- `npx skills` (vercel-labs/skills) integration explicitly out of scope per v1.1 brainstorm — ESG-consultant audience won't run terminal commands. In-app installer covers them. Reconsider if developer-user demand grows.
+
+## References
 
 ---
 
