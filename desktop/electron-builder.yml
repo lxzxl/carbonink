@@ -21,6 +21,14 @@ files:
 asarUnpack:
   - out/mcp/**
 
+# Ship the bundled agent-skill (SKILL.md + README.md) flat under
+# <Resources>/agent-skill/. AgentSkillService reads
+# process.resourcesPath/agent-skill/SKILL.md at install time to seed
+# the user's ~/.agents/skills/carbonink-mcp/ canonical copy.
+extraResources:
+  - from: agent-skill
+    to: agent-skill
+
 # --- macOS ---
 mac:
   category: public.app-category.business
