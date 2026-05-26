@@ -70,6 +70,7 @@
     "@ai-sdk/deepseek": "^2.0.34",
     "@ai-sdk/openai": "^3.0.63",
     "@ai-sdk/openai-compatible": "^2.0.47",
+    "@earendil-works/pi-ai": "^0.75.5",
     "@electron-toolkit/typed-ipc": "^1.0.2",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@napi-rs/canvas": "^0.1.74",
