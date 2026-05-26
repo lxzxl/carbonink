@@ -55,6 +55,10 @@ export const READ_ONLY_BLOCKED_CHANNELS: ReadonlySet<keyof IpcTypeMap> = new Set
   // MCP integration writes (file mutations on user's other-app configs)
   'mcp:configure',
   'mcp:remove',
+  // Agent skill installer writes (file mutations under ~/.agents/skills/ and host symlinks)
+  'skill:install',
+  'skill:update',
+  'skill:remove',
   // Undo/Redo (post-launch) — inverse operations are themselves writes;
   // expired/revoked licenses block them too per the spec.
   'undo:do',

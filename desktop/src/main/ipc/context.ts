@@ -9,6 +9,7 @@ import { ExcelParser } from '@main/excel/parser.js';
 import { LLMClient } from '@main/llm/llm-client.js';
 import type { ReportNarrativeProvider } from '@main/llm/report-narrative.js';
 import { ActivityDataService } from '@main/services/activity-data-service.js';
+import { AgentSkillService, type SkillResolver } from '@main/services/agent-skill-service.js';
 import type { AnswerR } from '@main/services/answer-generation/tags.js';
 import { buildAnswerLayer } from '@main/services/answer-generation/tags.js';
 import { AuditEventService } from '@main/services/audit-event-service.js';
@@ -97,6 +98,10 @@ export interface IpcContext {
   // Desktop, Claude Code, Cursor, Pi). Owns the file mutations on the
   // user's other-app configs and the carbonink server-entry shape.
   mcpIntegrationService: McpIntegrationService;
+  // Agent skill installer (v1.1) — manages the bundled SKILL.md under
+  // `~/.agents/skills/carbonink-mcp/` plus per-host symlinks (claude-code,
+  // codex, pi). Pairs with the renderer's Settings → Integrations step 1.
+  agentSkillService: AgentSkillService;
   // Post-launch (spec 2026-05-25) — session-scoped undo/redo stack.
   undoManager: UndoManager;
   // URL for the print-render route (used by PDF export for hidden BrowserWindow).
@@ -263,6 +268,33 @@ export function createIpcContext(
   const mcpIntegrationService = new McpIntegrationService({
     db: svc.db,
     paths,
+    now: () => new Date(),
+  });
+
+  // Agent skill installer — bundled SKILL.md ships under
+  // `process.resourcesPath/agent-skill/SKILL.md` in production. Dev mode
+  // tries a couple of project-relative paths because `pnpm dev` may run
+  // from either `desktop/` or the workspace root depending on the script.
+  const skillResolver: SkillResolver = {
+    bundledSkillPath: () => {
+      if (app.isPackaged) {
+        return join(process.resourcesPath, 'agent-skill', 'SKILL.md');
+      }
+      const candidates = [
+        join(process.cwd(), 'agent-skill', 'SKILL.md'),
+        join(process.cwd(), 'desktop', 'agent-skill', 'SKILL.md'),
+      ];
+      for (const p of candidates) {
+        if (existsSync(p)) return p;
+      }
+      // Fall back to the first candidate; AgentSkillService will surface
+      // a readable ENOENT if neither path resolves at runtime.
+      return candidates[0]!;
+    },
+  };
+  const agentSkillService = new AgentSkillService({
+    db: svc.db,
+    resolver: skillResolver,
     now: () => new Date(),
   });
 
@@ -433,6 +465,7 @@ export function createIpcContext(
       return licenseServiceInstance;
     },
     mcpIntegrationService,
+    agentSkillService,
     printRenderUrl:
       overrides.printRenderUrl ??
       `${process.env.ELECTRON_RENDERER_URL || 'about:blank'}/print-render`,

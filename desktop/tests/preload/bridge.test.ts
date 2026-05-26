@@ -112,6 +112,11 @@ describe('preload bridge', () => {
       'mcp:configure',
       'mcp:remove',
       'mcp:get-server-entry',
+      // Agent skill installer (v1.1 — Settings → Integrations step 1)
+      'skill:detect',
+      'skill:install',
+      'skill:update',
+      'skill:remove',
       // report domain (Phase 3 — ISO 14064-1 inventory report)
       'report:generate',
       'report:cancel',

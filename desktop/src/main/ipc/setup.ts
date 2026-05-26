@@ -4,6 +4,7 @@ import { defaultNow } from '@main/services/base.js';
 import { getMainWindow } from '@main/window.js';
 import { createIpcContext, type IpcContext } from './context.js';
 import { activityDataHandlers } from './handlers/activity-data.js';
+import { agentSkillHandlers } from './handlers/agent-skill.js';
 import { answerHandlers } from './handlers/answer.js';
 import { appHandlers } from './handlers/app.js';
 import { auditHandlers } from './handlers/audit.js';
@@ -45,6 +46,7 @@ const HANDLER_FACTORIES: ReadonlyArray<HandlerFactory> = [
   answerHandlers,
   routingHandlers,
   mcpHandlers,
+  agentSkillHandlers,
   reportHandlers,
   auditHandlers,
   licenseHandlers,

@@ -267,6 +267,21 @@ export type IpcTypeMap = {
   >;
   'mcp:get-server-entry': () => McpServerEntry;
 
+  // Agent skill installer (Step 1 of Settings → Integrations)
+  'skill:detect': () => Promise<import('@shared/types.js').SkillDetectResult>;
+  'skill:install': () => Promise<
+    | { ok: true; result: import('@shared/types.js').SkillInstallResult }
+    | { ok: false; error: 'io_error'; message?: string }
+  >;
+  'skill:update': () => Promise<
+    | { ok: true; result: import('@shared/types.js').SkillInstallResult }
+    | { ok: false; error: 'io_error'; message?: string }
+  >;
+  'skill:remove': () => Promise<
+    | { ok: true; result: import('@shared/types.js').SkillRemoveResult }
+    | { ok: false; error: 'io_error'; message?: string }
+  >;
+
   // routing domain (Routing API — distance lookup via AMap or haversine)
   'routing:lookup': (input: {
     mode: 'driving' | 'transit' | 'air';
