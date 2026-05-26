@@ -25,6 +25,62 @@ const ogImage =
   lang === 'zh-CN'
     ? 'https://carbonink.xyz/screenshots/dashboard.png'
     : 'https://carbonink.xyz/screenshots/en/dashboard.png';
+
+// Compute the mirror-page URL for hreflang. This tells Google that
+// `/pricing` (zh) and `/en/pricing` (en) are translations of the
+// same content, not duplicate pages. Without these tags Google often
+// indexes only one locale, hides the other behind a "we filtered
+// similar results" notice, or picks the wrong canonical entirely.
+//
+// `x-default` points to the English version because the site's
+// auto-detect logic defaults to English for any non-Chinese browser
+// (see the bot-aware redirect script below). Signals to Google
+// Search Console: when in doubt, surface the English page to
+// international searchers.
+const currentPath = Astro.url.pathname;
+const isEnPath = currentPath === '/en' || currentPath.startsWith('/en/');
+const zhPath = isEnPath
+  ? currentPath === '/en' || currentPath === '/en/'
+    ? '/'
+    : currentPath.slice(3)
+  : currentPath;
+const enPath = isEnPath ? currentPath : currentPath === '/' ? '/en/' : `/en${currentPath}`;
+const zhUrl = new URL(zhPath, 'https://carbonink.xyz').toString();
+const enUrl = new URL(enPath, 'https://carbonink.xyz').toString();
+
+// JSON-LD SoftwareApplication schema. Helps Google understand this
+// is a downloadable app (not a SaaS, not a blog), and unlocks rich
+// results in the "Software" knowledge panel. Pricing is intentionally
+// vague (the cloud worker decides via license requests); listing a
+// fake price would mislead Google's pricing-card eligibility check.
+// `applicationCategory` follows schema.org's accepted enum values.
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'CarbonInk',
+  alternateName: '碳墨',
+  description: defaultDesc,
+  url: 'https://carbonink.xyz',
+  image: ogImage,
+  applicationCategory: 'BusinessApplication',
+  applicationSubCategory: 'GHG accounting',
+  operatingSystem: 'macOS, Windows',
+  inLanguage: ['zh-CN', 'en'],
+  offers: {
+    '@type': 'Offer',
+    availability: 'https://schema.org/InStock',
+    priceSpecification: {
+      '@type': 'PriceSpecification',
+      priceCurrency: 'CNY',
+    },
+  },
+  publisher: {
+    '@type': 'Organization',
+    name: 'CarbonInk',
+    url: 'https://carbonink.xyz',
+    logo: 'https://carbonink.xyz/favicon.svg',
+  },
+};
 ---
 <!doctype html>
 <html lang={lang}>
@@ -59,6 +115,23 @@ const ogImage =
         just no auto-redirect on arrival. */}
     <script is:inline>
       (function () {
+        // Skip the auto-redirect entirely for known search/preview
+        // bots. Googlebot DOES execute JavaScript when indexing, so
+        // without this short-circuit it would hit `/`, get bounced
+        // to `/en/` by the navigator.languages='en' heuristic, and
+        // never index the Chinese homepage. The hreflang tags
+        // below tell Google about the mirror relationship; this
+        // ensures it can actually crawl both sides.
+        //
+        // Pattern matches the major search bots + social-preview
+        // crawlers (Slack/Twitter/Facebook/LinkedIn/WeChat etc.) —
+        // anything with "bot", "spider", "crawl" in the UA. Real
+        // users essentially never have those tokens.
+        var ua = navigator.userAgent || '';
+        if (/bot|crawl|spider|slurp|facebookexternalhit|twitterbot|linkedinbot|whatsapp|telegrambot|wechat|baiduspider|yandex|duckduck|mediapartners|adsbot/i.test(ua)) {
+          return;
+        }
+
         var path = location.pathname;
 
         var isMarketing = /^\/(en\/?)?(pricing|download|privacy)?\/?$/.test(path);
@@ -107,6 +180,23 @@ const ogImage =
     <title>{title}</title>
     <meta name="description" content={description ?? defaultDesc} />
     <link rel="canonical" href={canonicalUrl} />
+
+    {/* hreflang alternates — declare the zh-CN ↔ en mirror
+        relationship so Google merges link-equity across both
+        locales instead of treating them as duplicates. `x-default`
+        falls back to English for international searchers (matches
+        the auto-detect default in the script above). Both `href`
+        values are absolute URLs (Google ignores relative ones). */}
+    <link rel="alternate" hreflang="zh-CN" href={zhUrl} />
+    <link rel="alternate" hreflang="en" href={enUrl} />
+    <link rel="alternate" hreflang="x-default" href={enUrl} />
+
+    {/* JSON-LD structured data — SoftwareApplication schema lets
+        Google show the right knowledge-panel chip ("App", not
+        "Article" or "Blog") and unlocks software-specific rich
+        results. Stringified with no inner script delimiters so it
+        never accidentally closes the wrapping <script> tag. */}
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(structuredData)} />
 
     {/* Favicon — inline SVG re-uses the LogoMark vector, so the tab
         icon, bookmark icon, and in-page brand all read as the same

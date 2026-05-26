@@ -131,6 +131,76 @@ The local `cloud/scripts/deploy.sh` still works for manual ops
 (`--dry-run`, single-worker re-deploys, debugging) — CI is just the
 default happy path.
 
+## SEO — making carbonink.xyz findable
+
+The marketing pages need to be indexable; everything else (activate,
+account, admin, login + their `/en/` mirrors) is private and stays
+out of the sitemap.
+
+**Generated artifacts** (live):
+
+- `https://carbonink.xyz/sitemap-index.xml` — Astro sitemap index
+- `https://carbonink.xyz/sitemap-0.xml` — 8 entries (zh + en mirrors
+  of `/`, `/download`, `/pricing`, `/privacy`) each with
+  `<xhtml:link rel="alternate" hreflang="...">` cross-references
+
+Built by `@astrojs/sitemap` from prerendered routes. The integration
+is configured in `cloud/web/astro.config.mjs` with a `filter`
+function that explicitly drops `activate`, `account`, `admin`,
+`login` (and their `/en/` versions). New marketing pages get
+indexed automatically; new auth surfaces need to be added to the
+filter list.
+
+**On every marketing page** (set in `cloud/web/src/layouts/Base.astro`):
+
+- `<link rel="canonical">` — absolute URL of the current page
+- `<link rel="alternate" hreflang="zh-CN|en|x-default">` — three
+  tags pointing at the same page in both locales. `x-default`
+  resolves to the English version (matches the auto-detect
+  fallback).
+- `<script type="application/ld+json">` SoftwareApplication schema
+  (Google rich-result eligibility for the "App" knowledge panel).
+  Lists both locales in `inLanguage`. Pricing currency is `CNY`
+  with no fixed price (cloud worker decides per license request).
+- Full Open Graph + Twitter Card tags with locale-aware OG image
+  (`/screenshots/dashboard.png` for zh, `/screenshots/en/dashboard.png`
+  for en).
+
+**Bot-aware locale redirect**: the inline locale-detect script in
+`Base.astro` short-circuits for any UA matching
+`/bot|crawl|spider|.../i`. Without this, Googlebot would hit `/`,
+get bounced to `/en/` by the navigator-languages heuristic, and
+never independently index the zh-CN homepage. The hreflang tags
+above tell Google about the mirror relationship; the bot-skip
+lets Google actually crawl both sides to use it.
+
+**Manual: Google Search Console submission** (one-time, outside CI).
+Property type "Domain" (`carbonink.xyz`) verifies once and covers
+www + all subdomains. The DNS TXT record sits alongside the
+existing Cloudflare records:
+
+1. https://search.google.com/search-console → Add property → Domain
+   → `carbonink.xyz` → copy the TXT verification record
+2. Cloudflare dashboard → DNS → add TXT record with the value from
+   step 1 → wait ~1 min for propagation → click "Verify" in GSC
+3. GSC sidebar → Sitemaps → submit `https://carbonink.xyz/sitemap-index.xml`
+4. (Optional) URL Inspection → `https://carbonink.xyz/` → "Request
+   indexing" → repeat for `/en/`, `/pricing`, `/en/pricing` to
+   prioritize the first crawl. GSC will reject "Request indexing"
+   if you do too many in a session — that's fine, the sitemap
+   covers the rest.
+
+Bing/IndexNow: optional but cheap. Submit
+`https://www.bing.com/webmasters/` with the same sitemap URL; Bing
+also feeds DuckDuckGo and Ecosia. Yandex / Baidu have their own
+webmaster consoles if/when the China audience grows.
+
+**Effect timeline**: GSC accepts the sitemap in seconds, but actual
+indexing typically takes 1–7 days for a brand-new domain with no
+inbound links. After a domain accrues backlinks (HN / Product Hunt
+/ developer-newsletter mentions / GitHub README) the recrawl
+cadence drops to hours.
+
 ## Brand palette — same identity as the desktop app
 
 The cloud site's color tokens (`cloud/web/src/styles/global.css`) are
