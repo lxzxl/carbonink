@@ -9,24 +9,27 @@ import {
   DialogTrigger,
 } from '@renderer/components/ui/dialog';
 import { Label } from '@renderer/components/ui/label';
-import { mcpApi } from '@renderer/lib/api/mcp';
+import { mcpApi, skillApi } from '@renderer/lib/api/mcp';
 import { friendlyErrorDescription } from '@renderer/lib/error-message';
 import { cn } from '@renderer/lib/utils';
 import * as m from '@renderer/paraglide/messages';
-import type { McpClientId, McpClientStatus } from '@shared/types';
+import type { AgentHost, McpClientId, McpClientStatus } from '@shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
 /**
- * MCP integration Settings sub-page — multi-client edition.
+ * Integrations Settings sub-page — two-step layout (v1.1).
  *
- * Replaces the original single-client (Claude Desktop only) UI with a
- * per-client row layout driven by the `mcp:detect` IPC. Each row shows
- * the client's install/configure state and a contextual action button
- * (Configure / Reconfigure / Remove) that calls into `mcp:configure`
- * or `mcp:remove`.
+ *   Step 1 · Install Agent Skill  (SkillStep, this file)
+ *     Manages the `carbonink` agent skill bundle under
+ *     `~/.agents/skills/carbonink/` and the per-host symlinks for
+ *     Claude Code / Pi / Codex. Driven by the `skill:*` IPC channels.
  *
- * UI quirks worth knowing:
+ *   Step 2 · MCP client config     (Step2McpClients, this file)
+ *     The original v1 multi-client MCP UI — master toggle + per-client
+ *     row with Configure / Reconfigure / Remove. Driven by `mcp:*`.
+ *
+ * Step 2 UI quirks worth knowing:
  *   - There's no shadcn `<Switch>` primitive in this project (see
  *     `SourceEditDrawer` for the same workaround). We roll a small
  *     button-toggle with `role="switch"` + `aria-checked` so the
@@ -38,9 +41,9 @@ import { useState } from 'react';
  *   - Pi gets a setup-guide modal instead of a Configure button — Pi
  *     doesn't ship native `mcpServers` config support yet, so the
  *     workaround is the `pi-mcporter` bridge extension.
- *   - We poll `mcp:detect` every 10s so the user sees changes if they
- *     edit the config file out-of-band (or restart a client that was
- *     previously missing).
+ *   - We poll `mcp:detect` (and `skill:detect`) every 10s so the user
+ *     sees changes if they edit a config file out-of-band, or restart
+ *     a client / re-link a host that was previously missing.
  */
 
 interface ClientDef {
@@ -56,6 +59,178 @@ const CLIENTS: ReadonlyArray<ClientDef> = [
 ];
 
 export function McpSection() {
+  return (
+    <div className="space-y-6">
+      <SkillStep />
+      <div className="space-y-4 border-t pt-6">
+        <div>
+          <h3 className="text-sm font-medium">{m.settings_mcp_step_title()}</h3>
+          <p className="text-xs text-muted-foreground mt-1">{m.settings_mcp_step_help()}</p>
+        </div>
+        <Step2McpClients />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Step 1 · Agent Skill installer.
+ *
+ * Drives the `skill:*` IPC channels. Polls `skill:detect` every 10s
+ * (same cadence as Step 2) so users see out-of-band edits to
+ * `~/.agents/skills/carbonink/` reflected without a manual refresh.
+ *
+ * The three mutations share the same generic shape — success/error
+ * toasts plus a `skill:detect` invalidation — so the helper text in
+ * the empty-state and installed-state branches is the only thing that
+ * actually differs in the UI.
+ */
+function SkillStep() {
+  const qc = useQueryClient();
+  const detectQuery = useQuery({
+    queryKey: ['skill:detect'],
+    queryFn: skillApi.detect,
+    refetchInterval: 10_000,
+  });
+
+  const installMut = useMutation({
+    mutationFn: () => skillApi.install(),
+    onSuccess: (r) => {
+      if (r.ok) {
+        toast.success(m.settings_skill_installed({ count: String(r.result.hostsLinked.length) }));
+      } else {
+        toast.error(m.settings_skill_install_failed(), { description: r.message });
+      }
+      qc.invalidateQueries({ queryKey: ['skill:detect'] });
+    },
+    onError: (e) =>
+      toast.error(m.settings_skill_install_failed(), {
+        description: friendlyErrorDescription(e),
+      }),
+  });
+
+  const updateMut = useMutation({
+    mutationFn: () => skillApi.update(),
+    onSuccess: (r) => {
+      if (r.ok) toast.success(m.settings_skill_updated());
+      else toast.error(m.settings_skill_install_failed(), { description: r.message });
+      qc.invalidateQueries({ queryKey: ['skill:detect'] });
+    },
+    onError: (e) =>
+      toast.error(m.settings_skill_install_failed(), {
+        description: friendlyErrorDescription(e),
+      }),
+  });
+
+  const removeMut = useMutation({
+    mutationFn: () => skillApi.remove(),
+    onSuccess: (r) => {
+      if (r.ok) toast.success(m.settings_skill_removed());
+      else toast.error(m.settings_skill_install_failed(), { description: r.message });
+      qc.invalidateQueries({ queryKey: ['skill:detect'] });
+    },
+    onError: (e) =>
+      toast.error(m.settings_skill_install_failed(), {
+        description: friendlyErrorDescription(e),
+      }),
+  });
+
+  const d = detectQuery.data;
+  const pending = installMut.isPending || updateMut.isPending || removeMut.isPending;
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <h3 className="text-sm font-medium">{m.settings_skill_step_title()}</h3>
+        <p className="text-xs text-muted-foreground mt-1">{m.settings_skill_step_help()}</p>
+      </div>
+
+      {!d ? (
+        <p className="text-xs text-muted-foreground">{m.settings_skill_loading()}</p>
+      ) : d.state === 'not_installed' ? (
+        <div className="flex items-center justify-between rounded-md border border-border bg-card p-3">
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-medium">{m.settings_skill_status_not_installed()}</div>
+            <div className="text-xs text-muted-foreground mt-0.5 truncate">
+              {m.settings_skill_will_install_to({
+                hosts:
+                  hostListLabel(d.detectedHosts.filter((h) => h !== 'agentsShared')) ||
+                  m.settings_skill_no_hosts(),
+              })}
+            </div>
+          </div>
+          <Button onClick={() => installMut.mutate()} disabled={pending}>
+            {m.settings_skill_action_install()}
+          </Button>
+        </div>
+      ) : (
+        <div className="rounded-md border border-border bg-card p-3 space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium">
+                {d.needsUpdate
+                  ? m.settings_skill_status_outdated()
+                  : m.settings_skill_status_installed({ count: String(d.hostsLinked.length) })}
+              </div>
+              <div className="text-xs text-muted-foreground mt-0.5 truncate font-mono">
+                {d.canonicalPath}
+              </div>
+            </div>
+            <div className="flex gap-2 shrink-0">
+              {d.needsUpdate && (
+                <Button size="sm" onClick={() => updateMut.mutate()} disabled={pending}>
+                  {m.settings_skill_action_update()}
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => removeMut.mutate()}
+                disabled={pending}
+              >
+                {m.settings_skill_action_remove()}
+              </Button>
+            </div>
+          </div>
+          {d.hostsLinked.length > 0 && (
+            <ul className="text-xs text-muted-foreground list-disc pl-5">
+              {d.hostsLinked.map((h) => (
+                <li key={h}>{hostLabel(h)}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function hostLabel(h: AgentHost): string {
+  switch (h) {
+    case 'agentsShared':
+      return '~/.agents/skills/';
+    case 'claudeCode':
+      return 'Claude Code (~/.claude/skills/)';
+    case 'pi':
+      return 'Pi (~/.pi/agent/skills/)';
+    case 'codex':
+      return 'Codex (~/.codex/skills/)';
+  }
+}
+
+function hostListLabel(hosts: AgentHost[]): string {
+  return hosts.map(hostLabel).join(', ');
+}
+
+/**
+ * Step 2 · MCP client config (the original v1 UI, body unchanged).
+ *
+ * Exported as a separate component so the outer `McpSection` can lay
+ * out Step 1 + Step 2 with a divider; nothing inside this body has
+ * changed from v1 beyond the unwrap of its own top-level container
+ * div (the parent now owns the outer spacing).
+ */
+function Step2McpClients() {
   const qc = useQueryClient();
   const [enabled, setEnabled] = useState(true);
 
