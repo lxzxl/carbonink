@@ -1,7 +1,10 @@
+import type { StreamOptions } from '@earendil-works/pi-ai';
 import {
   type FauxProviderRegistration,
+  type FauxResponseFactory,
   fauxAssistantMessage,
   fauxText,
+  fauxToolCall,
   registerFauxProvider,
 } from '@earendil-works/pi-ai';
 import { AiClientTag, buildAiClientLayer } from '@main/llm/ai-client';
@@ -9,6 +12,7 @@ import type { CredentialService } from '@main/services/credential-service';
 import type { ProviderConfig } from '@shared/types';
 import { Effect } from 'effect';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -26,6 +30,31 @@ function fakeCredentials(apiKey: string | null = 'sk-fake-test-key'): Credential
     delete: vi.fn(),
     isAvailable: vi.fn().mockReturnValue(true),
   } as unknown as CredentialService;
+}
+
+function fakeConfig(): ProviderConfig {
+  return {
+    provider: 'deepseek',
+    model: 'deepseek-chat',
+    apiKeyKeyref: 'llm.deepseek.apikey',
+  };
+}
+
+/**
+ * Build a faux response factory that simulates a given HTTP status via the
+ * pi-ai `onResponse` hook. The faux provider's default 200 fires first; this
+ * factory re-invokes `onResponse` with the desired status afterwards so our
+ * impl's last-write-wins captures the override. Pair with `stopReason: 'error'`
+ * so the implementation maps via `mapPiToAiErr`.
+ */
+function fauxErrorWithStatus(status: number, errorMessage: string): FauxResponseFactory {
+  return async (_ctx, opts: StreamOptions | undefined, _state, model) => {
+    await opts?.onResponse?.({ status, headers: {} }, model);
+    return fauxAssistantMessage([fauxText('error')], {
+      stopReason: 'error',
+      errorMessage,
+    });
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -53,7 +82,7 @@ afterEach(() => {
 });
 
 // ---------------------------------------------------------------------------
-// Tests
+// AiClient.ping
 // ---------------------------------------------------------------------------
 
 describe('AiClient.ping', () => {
@@ -62,44 +91,27 @@ describe('AiClient.ping', () => {
     faux = registerFauxProvider();
     faux.setResponses([fauxAssistantMessage([fauxText('ok')])]);
 
-    const model = faux.getModel();
-    const config: ProviderConfig = {
-      provider: 'deepseek',
-      model: 'deepseek-chat',
-      apiKeyKeyref: 'llm.deepseek.apikey',
-    };
     const layer = buildAiClientLayer({
-      config,
+      config: fakeConfig(),
       credentials: fakeCredentials(),
-      model, // test-only injection so we don't touch pi-ai's MODELS registry
+      model: faux.getModel(),
     });
 
-    // Act
     const program = Effect.gen(function* () {
       const ai = yield* AiClientTag;
       return yield* ai.ping();
     });
     const r = await Effect.runPromise(program.pipe(Effect.provide(layer)));
 
-    // Assert: ping succeeded, and the faux provider really was hit.
     expect(r).toEqual({ ok: true });
     expect(faux.state.callCount).toBe(1);
   });
 
   it('rejects with AiAuthError when credentials are missing', async () => {
-    // No faux response queued — the implementation must short-circuit on the
-    // missing key *before* touching pi-ai. (If it didn't, we'd see the
-    // "No more faux responses queued" error from pi-ai and the test would
-    // fail with the wrong tag.)
     faux = registerFauxProvider();
 
-    const config: ProviderConfig = {
-      provider: 'deepseek',
-      model: 'deepseek-chat',
-      apiKeyKeyref: 'llm.deepseek.apikey',
-    };
     const layer = buildAiClientLayer({
-      config,
+      config: fakeConfig(),
       credentials: fakeCredentials(null),
       model: faux.getModel(),
     });
@@ -109,8 +121,6 @@ describe('AiClient.ping', () => {
       return yield* ai.ping();
     });
 
-    // catchTag lets us assert the failure shape without throwing — Effect's
-    // typed-error story means the runtime *can't* slip a different tag here.
     const result = await Effect.runPromise(
       program.pipe(
         Effect.provide(layer),
@@ -120,26 +130,16 @@ describe('AiClient.ping', () => {
       ),
     );
     expect(result).toEqual({ caught: true, provider: 'deepseek' });
-
-    // The implementation must never have called pi-ai.
     expect(faux.state.callCount).toBe(0);
   });
 
   it('honours overrideKey (the Settings UI test-connection path)', async () => {
-    // The pre-save "Test connection" button in Settings supplies a key the
-    // user has typed but not yet committed. The credential store should be
-    // bypassed entirely.
     faux = registerFauxProvider();
     faux.setResponses([fauxAssistantMessage([fauxText('ok')])]);
 
-    const credentials = fakeCredentials(null); // store would say "no key"
-    const config: ProviderConfig = {
-      provider: 'deepseek',
-      model: 'deepseek-chat',
-      apiKeyKeyref: 'llm.deepseek.apikey',
-    };
+    const credentials = fakeCredentials(null);
     const layer = buildAiClientLayer({
-      config,
+      config: fakeConfig(),
       credentials,
       overrideKey: 'sk-typed-but-not-saved',
       model: faux.getModel(),
@@ -152,23 +152,15 @@ describe('AiClient.ping', () => {
     const r = await Effect.runPromise(program.pipe(Effect.provide(layer)));
 
     expect(r).toEqual({ ok: true });
-    // Credentials store was never consulted because overrideKey took priority.
     expect(credentials.get).not.toHaveBeenCalled();
   });
 
   it('maps pi-ai errors to AiProviderError', async () => {
-    // No responses queued → faux returns an error message. Ping should
-    // surface that as AiProviderError (not Auth — we have a key).
     faux = registerFauxProvider();
-    // (deliberately not calling setResponses)
+    // No responses queued → faux's default error path fires.
 
-    const config: ProviderConfig = {
-      provider: 'deepseek',
-      model: 'deepseek-chat',
-      apiKeyKeyref: 'llm.deepseek.apikey',
-    };
     const layer = buildAiClientLayer({
-      config,
+      config: fakeConfig(),
       credentials: fakeCredentials(),
       model: faux.getModel(),
     });
@@ -188,51 +180,417 @@ describe('AiClient.ping', () => {
   });
 });
 
-describe('AiClient generateObject / generateText (Task 1 stubs)', () => {
-  // Task 2 wires these up. Task 1 leaves them as Effect.die so a misuse during
-  // intermediate task migrations is loud (not a silent zero-arg call).
-  it('generateObject is intentionally unimplemented (Task 2)', async () => {
+// ---------------------------------------------------------------------------
+// AiClient.generateObject
+// ---------------------------------------------------------------------------
+
+describe('AiClient.generateObject', () => {
+  it('returns the parsed object from a schema-valid tool-call response', async () => {
+    const schema = z.object({
+      scope: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+      category: z.string(),
+    });
+
     faux = registerFauxProvider();
-    const config: ProviderConfig = {
-      provider: 'deepseek',
-      model: 'deepseek-chat',
-      apiKeyKeyref: 'llm.deepseek.apikey',
-    };
+    faux.setResponses([
+      fauxAssistantMessage(
+        [fauxToolCall('submit_response', { scope: 2, category: 'electricity' })],
+        { stopReason: 'toolUse' },
+      ),
+    ]);
+
     const layer = buildAiClientLayer({
-      config,
+      config: fakeConfig(),
       credentials: fakeCredentials(),
       model: faux.getModel(),
     });
+
     const program = Effect.gen(function* () {
       const ai = yield* AiClientTag;
-      // The shape we want — schema, prompt — only matters in Task 2.
-      // Just verify the Effect dies with a recognizable defect.
-      // biome-ignore lint/suspicious/noExplicitAny: schema arg is stubbed
-      return yield* ai.generateObject({ schema: {} as any, prompt: 'x' });
+      return yield* ai.generateObject({ schema, prompt: 'classify this' });
     });
-    await expect(Effect.runPromise(program.pipe(Effect.provide(layer)))).rejects.toThrow(
-      /not yet implemented \(Task 2\)/,
-    );
+    const r = await Effect.runPromise(program.pipe(Effect.provide(layer)));
+
+    expect(r).toEqual({ scope: 2, category: 'electricity' });
+    expect(faux.state.callCount).toBe(1);
   });
 
-  it('generateText is intentionally unimplemented (Task 2)', async () => {
+  it('fails AiSchemaMismatch when the tool input does not satisfy the schema', async () => {
+    const schema = z.object({
+      scope: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+      category: z.string(),
+    });
+
     faux = registerFauxProvider();
-    const config: ProviderConfig = {
-      provider: 'deepseek',
-      model: 'deepseek-chat',
-      apiKeyKeyref: 'llm.deepseek.apikey',
-    };
+    faux.setResponses([
+      // scope=99 is outside the literal union → safeParse should fail.
+      fauxAssistantMessage(
+        [fauxToolCall('submit_response', { scope: 99, category: 'electricity' })],
+        { stopReason: 'toolUse' },
+      ),
+    ]);
+
     const layer = buildAiClientLayer({
-      config,
+      config: fakeConfig(),
       credentials: fakeCredentials(),
       model: faux.getModel(),
     });
+
     const program = Effect.gen(function* () {
       const ai = yield* AiClientTag;
-      return yield* ai.generateText({ prompt: 'x' });
+      return yield* ai.generateObject({ schema, prompt: 'classify this' });
     });
-    await expect(Effect.runPromise(program.pipe(Effect.provide(layer)))).rejects.toThrow(
-      /not yet implemented \(Task 2\)/,
+
+    const result = await Effect.runPromise(
+      program.pipe(
+        Effect.provide(layer),
+        Effect.catchTag('AiSchemaMismatch', (e) =>
+          Effect.succeed({ caught: true, raw: e.raw } as const),
+        ),
+      ),
     );
+    if (!('caught' in result)) throw new Error('expected caught result');
+    expect(result.caught).toBe(true);
+    expect(result.raw).toContain('"scope":99');
+    // Schema mismatch must not retry — exactly one call.
+    expect(faux.state.callCount).toBe(1);
+  });
+
+  it('fails AiNoData when the response has no tool_use block', async () => {
+    const schema = z.object({ scope: z.number() });
+
+    faux = registerFauxProvider();
+    faux.setResponses([
+      // Plain text response, no tool call.
+      fauxAssistantMessage([fauxText('I cannot answer that')]),
+    ]);
+
+    const layer = buildAiClientLayer({
+      config: fakeConfig(),
+      credentials: fakeCredentials(),
+      model: faux.getModel(),
+    });
+
+    const program = Effect.gen(function* () {
+      const ai = yield* AiClientTag;
+      return yield* ai.generateObject({ schema, prompt: 'classify this' });
+    });
+
+    const result = await Effect.runPromise(
+      program.pipe(
+        Effect.provide(layer),
+        Effect.catchTag('AiNoData', () => Effect.succeed({ caught: true })),
+      ),
+    );
+    expect(result).toEqual({ caught: true });
+  });
+
+  it('401 response → AiAuthError, no retry', async () => {
+    const schema = z.object({ scope: z.number() });
+
+    faux = registerFauxProvider();
+    faux.setResponses([fauxErrorWithStatus(401, 'Unauthorized: invalid API key')]);
+
+    const layer = buildAiClientLayer({
+      config: fakeConfig(),
+      credentials: fakeCredentials(),
+      model: faux.getModel(),
+    });
+
+    const program = Effect.gen(function* () {
+      const ai = yield* AiClientTag;
+      return yield* ai.generateObject({ schema, prompt: 'classify this' });
+    });
+
+    const result = await Effect.runPromise(
+      program.pipe(
+        Effect.provide(layer),
+        Effect.catchTag('AiAuthError', (e) =>
+          Effect.succeed({ caught: true, provider: e.provider }),
+        ),
+      ),
+    );
+    expect(result).toEqual({ caught: true, provider: 'deepseek' });
+    expect(faux.state.callCount).toBe(1);
+  });
+
+  it('429 response → AiRateLimited, retries (call count > 1)', async () => {
+    const schema = z.object({ scope: z.number() });
+
+    // Queue 3 rate-limit responses so the retry exhausts (max 2 retries = 3 calls).
+    faux = registerFauxProvider();
+    faux.setResponses([
+      fauxErrorWithStatus(429, 'rate limit exceeded'),
+      fauxErrorWithStatus(429, 'rate limit exceeded'),
+      fauxErrorWithStatus(429, 'rate limit exceeded'),
+    ]);
+
+    const layer = buildAiClientLayer({
+      config: fakeConfig(),
+      credentials: fakeCredentials(),
+      model: faux.getModel(),
+    });
+
+    const program = Effect.gen(function* () {
+      const ai = yield* AiClientTag;
+      return yield* ai.generateObject({ schema, prompt: 'classify' });
+    });
+
+    const result = await Effect.runPromise(
+      program.pipe(
+        Effect.provide(layer),
+        Effect.catchTag('AiRateLimited', () => Effect.succeed({ caught: true })),
+      ),
+    );
+    expect(result).toEqual({ caught: true });
+    expect(faux.state.callCount).toBe(3); // initial + 2 retries
+  });
+
+  it('429 followed by success → returns the late success', async () => {
+    const schema = z.object({ scope: z.number() });
+
+    faux = registerFauxProvider();
+    faux.setResponses([
+      fauxErrorWithStatus(429, 'rate limit'),
+      fauxAssistantMessage([fauxToolCall('submit_response', { scope: 1 })], {
+        stopReason: 'toolUse',
+      }),
+    ]);
+
+    const layer = buildAiClientLayer({
+      config: fakeConfig(),
+      credentials: fakeCredentials(),
+      model: faux.getModel(),
+    });
+
+    const program = Effect.gen(function* () {
+      const ai = yield* AiClientTag;
+      return yield* ai.generateObject({ schema, prompt: 'classify' });
+    });
+    const r = await Effect.runPromise(program.pipe(Effect.provide(layer)));
+
+    expect(r).toEqual({ scope: 1 });
+    expect(faux.state.callCount).toBe(2);
+  });
+
+  it('500 response → AiProviderError, retries', async () => {
+    const schema = z.object({ scope: z.number() });
+
+    faux = registerFauxProvider();
+    faux.setResponses([
+      fauxErrorWithStatus(500, 'server error'),
+      fauxErrorWithStatus(500, 'server error'),
+      fauxErrorWithStatus(500, 'server error'),
+    ]);
+
+    const layer = buildAiClientLayer({
+      config: fakeConfig(),
+      credentials: fakeCredentials(),
+      model: faux.getModel(),
+    });
+
+    const program = Effect.gen(function* () {
+      const ai = yield* AiClientTag;
+      return yield* ai.generateObject({ schema, prompt: 'classify' });
+    });
+
+    const result = await Effect.runPromise(
+      program.pipe(
+        Effect.provide(layer),
+        Effect.catchTag('AiProviderError', (e) =>
+          Effect.succeed({ caught: true, status: e.status } as const),
+        ),
+      ),
+    );
+    expect(result).toEqual({ caught: true, status: 500 });
+    expect(faux.state.callCount).toBe(3);
+  });
+
+  it('timeout exceeded → AiTimeout, no retry', async () => {
+    const schema = z.object({ scope: z.number() });
+
+    faux = registerFauxProvider();
+    // Factory that sleeps longer than the timeoutMs. Respects the AbortSignal
+    // the impl wires in so the test exits promptly when the timeout fires.
+    faux.setResponses([
+      async (_ctx, opts) => {
+        await new Promise<void>((resolve, reject) => {
+          const t = setTimeout(resolve, 5_000);
+          opts?.signal?.addEventListener('abort', () => {
+            clearTimeout(t);
+            reject(new Error('aborted'));
+          });
+        });
+        return fauxAssistantMessage([fauxToolCall('submit_response', { scope: 1 })], {
+          stopReason: 'toolUse',
+        });
+      },
+    ]);
+
+    const layer = buildAiClientLayer({
+      config: fakeConfig(),
+      credentials: fakeCredentials(),
+      model: faux.getModel(),
+    });
+
+    const program = Effect.gen(function* () {
+      const ai = yield* AiClientTag;
+      return yield* ai.generateObject({ schema, prompt: 'classify', timeoutMs: 80 });
+    });
+
+    const start = Date.now();
+    const result = await Effect.runPromise(
+      program.pipe(
+        Effect.provide(layer),
+        Effect.catchTag('AiTimeout', (e) =>
+          Effect.succeed({ caught: true, timeoutMs: e.timeoutMs }),
+        ),
+      ),
+    );
+    const elapsed = Date.now() - start;
+
+    expect(result).toEqual({ caught: true, timeoutMs: 80 });
+    expect(faux.state.callCount).toBe(1);
+    // The 5_000ms factory must not have been awaited to completion.
+    expect(elapsed).toBeLessThan(2000);
+  });
+
+  it('schema mismatch does not retry', async () => {
+    const schema = z.object({ scope: z.literal(1) });
+
+    faux = registerFauxProvider();
+    faux.setResponses([
+      fauxAssistantMessage([fauxToolCall('submit_response', { scope: 99 })], {
+        stopReason: 'toolUse',
+      }),
+      fauxAssistantMessage([fauxToolCall('submit_response', { scope: 99 })], {
+        stopReason: 'toolUse',
+      }),
+    ]);
+
+    const layer = buildAiClientLayer({
+      config: fakeConfig(),
+      credentials: fakeCredentials(),
+      model: faux.getModel(),
+    });
+
+    const program = Effect.gen(function* () {
+      const ai = yield* AiClientTag;
+      return yield* ai.generateObject({ schema, prompt: 'classify' });
+    });
+
+    await Effect.runPromise(
+      program.pipe(
+        Effect.provide(layer),
+        Effect.catchTag('AiSchemaMismatch', () => Effect.succeed(null)),
+      ),
+    );
+    // Exactly one call — no retry on schema mismatch.
+    expect(faux.state.callCount).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// AiClient.generateText
+// ---------------------------------------------------------------------------
+
+describe('AiClient.generateText', () => {
+  it('returns the concatenated text from the response', async () => {
+    faux = registerFauxProvider();
+    faux.setResponses([fauxAssistantMessage([fauxText('hello world')])]);
+
+    const layer = buildAiClientLayer({
+      config: fakeConfig(),
+      credentials: fakeCredentials(),
+      model: faux.getModel(),
+    });
+
+    const program = Effect.gen(function* () {
+      const ai = yield* AiClientTag;
+      return yield* ai.generateText({ prompt: 'say hello' });
+    });
+    const r = await Effect.runPromise(program.pipe(Effect.provide(layer)));
+    expect(r).toBe('hello world');
+  });
+
+  it('401 → AiAuthError', async () => {
+    faux = registerFauxProvider();
+    faux.setResponses([fauxErrorWithStatus(401, 'unauthorized')]);
+
+    const layer = buildAiClientLayer({
+      config: fakeConfig(),
+      credentials: fakeCredentials(),
+      model: faux.getModel(),
+    });
+
+    const program = Effect.gen(function* () {
+      const ai = yield* AiClientTag;
+      return yield* ai.generateText({ prompt: 'hi' });
+    });
+
+    const result = await Effect.runPromise(
+      program.pipe(
+        Effect.provide(layer),
+        Effect.catchTag('AiAuthError', () => Effect.succeed({ caught: true })),
+      ),
+    );
+    expect(result).toEqual({ caught: true });
+    expect(faux.state.callCount).toBe(1);
+  });
+
+  it('500 → AiProviderError (retried)', async () => {
+    faux = registerFauxProvider();
+    faux.setResponses([
+      fauxErrorWithStatus(500, 'internal'),
+      fauxErrorWithStatus(500, 'internal'),
+      fauxErrorWithStatus(500, 'internal'),
+    ]);
+
+    const layer = buildAiClientLayer({
+      config: fakeConfig(),
+      credentials: fakeCredentials(),
+      model: faux.getModel(),
+    });
+
+    const program = Effect.gen(function* () {
+      const ai = yield* AiClientTag;
+      return yield* ai.generateText({ prompt: 'hi' });
+    });
+
+    const result = await Effect.runPromise(
+      program.pipe(
+        Effect.provide(layer),
+        Effect.catchTag('AiProviderError', (e) =>
+          Effect.succeed({ caught: true, status: e.status } as const),
+        ),
+      ),
+    );
+    expect(result).toEqual({ caught: true, status: 500 });
+    expect(faux.state.callCount).toBe(3);
+  });
+
+  it('empty content → AiNoData', async () => {
+    faux = registerFauxProvider();
+    // Empty content array — no text to return.
+    faux.setResponses([fauxAssistantMessage([])]);
+
+    const layer = buildAiClientLayer({
+      config: fakeConfig(),
+      credentials: fakeCredentials(),
+      model: faux.getModel(),
+    });
+
+    const program = Effect.gen(function* () {
+      const ai = yield* AiClientTag;
+      return yield* ai.generateText({ prompt: 'hi' });
+    });
+
+    const result = await Effect.runPromise(
+      program.pipe(
+        Effect.provide(layer),
+        Effect.catchTag('AiNoData', () => Effect.succeed({ caught: true })),
+      ),
+    );
+    expect(result).toEqual({ caught: true });
   });
 });

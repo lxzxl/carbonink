@@ -1,9 +1,24 @@
-import { type Api, complete, getModel, type Model } from '@earendil-works/pi-ai';
+import {
+  type Api,
+  type AssistantMessage,
+  complete,
+  getModel,
+  type Model,
+  type Tool,
+} from '@earendil-works/pi-ai';
 import type { CredentialService } from '@main/services/credential-service.js';
 import type { ProviderConfig } from '@shared/types.js';
-import { Context, Effect, Layer } from 'effect';
-import type { ZodSchema } from 'zod';
-import { AiAuthError, type AiErr, AiProviderError } from './errors.js';
+import { Context, Effect, Layer, Schedule } from 'effect';
+import { type ZodSchema, z } from 'zod';
+import {
+  AiAuthError,
+  type AiErr,
+  AiNoData,
+  AiProviderError,
+  AiRateLimited,
+  AiSchemaMismatch,
+  AiTimeout,
+} from './errors.js';
 
 /**
  * Effect-wrapped wrapper around `@earendil-works/pi-ai`.
@@ -165,26 +180,242 @@ export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClien
         return Effect.succeed({ model: resolvedModel, apiKey });
       };
 
+      /**
+       * Single round-trip to pi-ai with status + timeout capture.
+       *
+       * Uses an `AbortController` + setTimeout pair to enforce `timeoutMs`
+       * client-side (pi-ai's `timeoutMs` option is per-provider-SDK and not
+       * uniformly honored across our 32 providers — we want one canonical
+       * timeout that always works). `onResponse` captures the HTTP status
+       * so `mapPiToAiErr` can discriminate 401 / 429 / 5xx without falling
+       * back to string matching.
+       *
+       * On rejection, distinguishes "we caused the abort" (→ AiTimeout) from
+       * "the provider threw something else" (→ AiAuthError when the message
+       * looks like an auth failure, else AiProviderError).
+       */
+      const callPi = (args: {
+        tools?: Tool[];
+        prompt: string;
+        system?: string;
+        timeoutMs: number;
+      }): Effect.Effect<{ msg: AssistantMessage; httpStatus: number | undefined }, AiErr, never> =>
+        Effect.async<{ msg: AssistantMessage; httpStatus: number | undefined }, AiErr, never>(
+          (resume) => {
+            if (!resolvedModel) {
+              resume(
+                Effect.fail(
+                  new AiProviderError({
+                    cause: `pi-ai has no model registered for provider="${config.provider}" model="${config.model}"`,
+                  }),
+                ),
+              );
+              return;
+            }
+            if (!apiKey) {
+              resume(Effect.fail(new AiAuthError({ provider: config.provider })));
+              return;
+            }
+            const controller = new AbortController();
+            let timedOut = false;
+            let httpStatus: number | undefined;
+            const timer = setTimeout(() => {
+              timedOut = true;
+              controller.abort();
+            }, args.timeoutMs);
+
+            complete(
+              resolvedModel,
+              {
+                ...(args.system ? { systemPrompt: args.system } : {}),
+                messages: [{ role: 'user', content: args.prompt, timestamp: Date.now() }],
+                ...(args.tools ? { tools: args.tools } : {}),
+              },
+              {
+                apiKey,
+                signal: controller.signal,
+                maxRetries: 0, // Effect.retry is the single retry authority
+                onResponse: (r) => {
+                  httpStatus = r.status;
+                },
+              },
+            )
+              .then((msg) => {
+                clearTimeout(timer);
+                // pi-ai catches AbortSignal-driven rejections and returns a
+                // `stopReason: 'aborted'` message rather than throwing. Without
+                // this guard the `.then()` path would route through
+                // `mapPiToAiErr` and surface AiProviderError instead of the
+                // typed AiTimeout the caller asked for.
+                if (timedOut) {
+                  resume(Effect.fail(new AiTimeout({ timeoutMs: args.timeoutMs })));
+                  return;
+                }
+                resume(Effect.succeed({ msg, httpStatus }));
+              })
+              .catch((e: unknown) => {
+                clearTimeout(timer);
+                if (timedOut) {
+                  resume(Effect.fail(new AiTimeout({ timeoutMs: args.timeoutMs })));
+                  return;
+                }
+                const errMsg = e instanceof Error ? e.message : String(e);
+                resume(
+                  Effect.fail(
+                    looksLikeAuthError(errMsg)
+                      ? new AiAuthError({ provider: config.provider })
+                      : new AiProviderError({ cause: e }),
+                  ),
+                );
+              });
+
+            return Effect.sync(() => {
+              clearTimeout(timer);
+              controller.abort();
+            });
+          },
+        );
+
+      /**
+       * Map a pi-ai error path (`stopReason: 'error' | 'aborted'`) onto our
+       * tagged `AiErr` union. Prefers HTTP status (captured via onResponse)
+       * over string heuristics — see `AUTH_ERROR_HINTS`.
+       */
+      const mapPiToAiErr = (msg: AssistantMessage, httpStatus: number | undefined): AiErr => {
+        if (msg.stopReason === 'aborted') {
+          // Aborted but not by our timer (timer path is handled in callPi).
+          // Surface as a provider error so retry policy treats it like a
+          // transient failure.
+          return new AiProviderError({ cause: 'aborted' });
+        }
+        if (httpStatus === 401 || httpStatus === 403) {
+          return new AiAuthError({ provider: config.provider });
+        }
+        if (httpStatus === 429) {
+          return new AiRateLimited({});
+        }
+        if (httpStatus !== undefined && httpStatus >= 500 && httpStatus < 600) {
+          return new AiProviderError({
+            status: httpStatus,
+            ...(msg.errorMessage !== undefined ? { cause: msg.errorMessage } : {}),
+          });
+        }
+        if (looksLikeAuthError(msg.errorMessage)) {
+          return new AiAuthError({ provider: config.provider });
+        }
+        return new AiProviderError({
+          ...(httpStatus !== undefined ? { status: httpStatus } : {}),
+          ...(msg.errorMessage !== undefined ? { cause: msg.errorMessage } : {}),
+        });
+      };
+
+      /**
+       * Retry transient failures (rate limited + 5xx). Auth / schema /
+       * timeout / no-data fail fast — those won't get better with retries
+       * and the user/UI should see them immediately. 200ms exponential
+       * backoff capped at 2 retries (3 attempts total).
+       */
+      const RETRY_SCHEDULE = Schedule.exponential('200 millis').pipe(
+        Schedule.compose(Schedule.recurs(2)),
+      );
+
+      const isRetryable = (e: AiErr): boolean =>
+        e._tag === 'AiRateLimited' || e._tag === 'AiProviderError';
+
       const client: AiClient = {
-        // generateObject + generateText are scaffolded but not implemented in
-        // Task 1. Effect.die is loud at runtime so any consumer that calls
-        // them before Task 2 lands gets an unmissable defect, not a silent
-        // hang or a bogus result.
-        generateObject: <T>(_args: {
+        generateObject: <T>(args: {
           schema: ZodSchema<T>;
           prompt: string;
           system?: string;
           images?: Buffer[];
           timeoutMs?: number;
-        }): Effect.Effect<T, AiErr, never> =>
-          Effect.die(new Error('AiClient.generateObject not yet implemented (Task 2)')),
+        }): Effect.Effect<T, AiErr, never> => {
+          const timeoutMs = args.timeoutMs ?? 60_000;
+          // Force the model to emit its answer through a single tool whose
+          // parameters are the user's Zod schema, rendered as JSON Schema.
+          // pi-ai's `Tool.parameters` is typed `TSchema` (TypeBox); plain
+          // JSON Schema is structurally a `TSchema` and providers we've
+          // verified accept it (spike + faux tests).
+          const jsonSchema = z.toJSONSchema(args.schema) as unknown as Tool['parameters'];
+          const tool: Tool = {
+            name: 'submit_response',
+            description: 'Submit your structured response.',
+            parameters: jsonSchema,
+          };
 
-        generateText: (_args: {
+          const program = callPi({
+            tools: [tool],
+            prompt: args.prompt,
+            ...(args.system !== undefined ? { system: args.system } : {}),
+            timeoutMs,
+          }).pipe(
+            Effect.flatMap(({ msg, httpStatus }) => {
+              if (msg.stopReason === 'error' || msg.stopReason === 'aborted') {
+                return Effect.fail(mapPiToAiErr(msg, httpStatus));
+              }
+              // Look for the structured response in the tool-call output.
+              const toolCall = msg.content.find(
+                (c): c is Extract<AssistantMessage['content'][number], { type: 'toolCall' }> =>
+                  c.type === 'toolCall' && c.name === 'submit_response',
+              );
+              if (!toolCall) {
+                return Effect.fail(new AiNoData({}));
+              }
+              const parsed = args.schema.safeParse(toolCall.arguments);
+              if (!parsed.success) {
+                return Effect.fail(
+                  new AiSchemaMismatch({
+                    raw: JSON.stringify(toolCall.arguments),
+                    cause: parsed.error,
+                  }),
+                );
+              }
+              return Effect.succeed(parsed.data);
+            }),
+            Effect.retry({
+              schedule: RETRY_SCHEDULE,
+              while: isRetryable,
+            }),
+          );
+
+          return program;
+        },
+
+        generateText: (args: {
           prompt: string;
           system?: string;
           timeoutMs?: number;
-        }): Effect.Effect<string, AiErr, never> =>
-          Effect.die(new Error('AiClient.generateText not yet implemented (Task 2)')),
+        }): Effect.Effect<string, AiErr, never> => {
+          const timeoutMs = args.timeoutMs ?? 60_000;
+          const program = callPi({
+            prompt: args.prompt,
+            ...(args.system !== undefined ? { system: args.system } : {}),
+            timeoutMs,
+          }).pipe(
+            Effect.flatMap(({ msg, httpStatus }) => {
+              if (msg.stopReason === 'error' || msg.stopReason === 'aborted') {
+                return Effect.fail(mapPiToAiErr(msg, httpStatus));
+              }
+              // Concatenate every text block — some providers split long
+              // responses across multiple TextContent entries.
+              const text = msg.content
+                .filter(
+                  (c): c is Extract<AssistantMessage['content'][number], { type: 'text' }> =>
+                    c.type === 'text',
+                )
+                .map((c) => c.text)
+                .join('');
+              if (!text) return Effect.fail(new AiNoData({}));
+              return Effect.succeed(text);
+            }),
+            Effect.retry({
+              schedule: RETRY_SCHEDULE,
+              while: isRetryable,
+            }),
+          );
+
+          return program;
+        },
 
         ping: (): Effect.Effect<{ ok: true }, AiAuthError | AiProviderError, never> =>
           Effect.gen(function* () {
