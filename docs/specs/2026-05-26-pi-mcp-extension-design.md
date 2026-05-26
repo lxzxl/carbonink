@@ -306,6 +306,12 @@ React Testing Library:
 - ❌ Migration of user-created entries pointing at third-party MCP servers (only legacy carbonink/carbonbook keys get auto-rewritten)
 - ❌ iCloud-Drive sync of `mcpServers` across multiple Macs (non-issue; configs are local)
 
+### Verified smoke run (record date + result here when first done)
+
+| Date | Builder | Platform | Step 1 (build) | Step 2 (detect) | Step 3 (configure) | Step 4 (Claude lists tools) | Step 5 (data query) | Step 6 (move app → Reconfigure) | Step 7 (remove) |
+|---|---|---|---|---|---|---|---|---|---|
+| | | | | | | | | | |
+
 ## References
 
 - [Roadmap Item 5](../ROADMAP.md)
