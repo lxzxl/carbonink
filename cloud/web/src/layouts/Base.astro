@@ -81,6 +81,51 @@ const structuredData = {
     logo: 'https://carbonink.xyz/favicon.svg',
   },
 };
+
+// Standalone Organization schema — separate from the embedded
+// `publisher` inside SoftwareApplication. Google reads them
+// differently: the embedded one only links the app back to its
+// publisher; this top-level Organization entity is what builds the
+// Knowledge Panel (logo, contact, social links). Empty `sameAs`
+// for now; once social profiles exist (GitHub, X, LinkedIn, 知乎),
+// add them here and Google will start showing them in the panel.
+const organizationData = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'CarbonInk',
+  alternateName: '碳墨',
+  url: 'https://carbonink.xyz',
+  logo: {
+    '@type': 'ImageObject',
+    url: 'https://carbonink.xyz/favicon.svg',
+    width: '1024',
+    height: '1024',
+  },
+  description: defaultDesc,
+};
+
+// WebSite schema — unlocks Google's site-name display ("CarbonInk"
+// rather than "carbonink.xyz" in search results) and is the
+// container Google looks at when deciding whether to show a
+// site-search box under the main listing. `potentialAction` is the
+// hook for that search box; we don't have on-site search yet but
+// declaring the URL pattern primes the slot.
+const websiteData = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'CarbonInk',
+  alternateName: '碳墨',
+  url: 'https://carbonink.xyz',
+  inLanguage: ['zh-CN', 'en'],
+};
+
+// Baidu / Sogou still parse `<meta name="keywords">`; Google ignores
+// it. Cheap to include for the China-side audience. Don't keyword-
+// stuff — these are the *actual* search queries we want to rank for.
+const keywords =
+  lang === 'zh-CN'
+    ? '碳核算软件,碳盘查,ISO 14064-1,温室气体核算,GHG accounting,碳排放管理,产品碳足迹,Scope 1 2 3'
+    : 'GHG accounting software,ISO 14064-1,carbon accounting,emissions tracking,Scope 1 2 3,product carbon footprint,desktop carbon tool';
 ---
 <!doctype html>
 <html lang={lang}>
@@ -191,12 +236,27 @@ const structuredData = {
     <link rel="alternate" hreflang="en" href={enUrl} />
     <link rel="alternate" hreflang="x-default" href={enUrl} />
 
-    {/* JSON-LD structured data — SoftwareApplication schema lets
-        Google show the right knowledge-panel chip ("App", not
-        "Article" or "Blog") and unlocks software-specific rich
-        results. Stringified with no inner script delimiters so it
-        never accidentally closes the wrapping <script> tag. */}
+    {/* Three JSON-LD blocks — schema.org recommends emitting
+        multiple smaller @type entities rather than nesting them in
+        a single @graph. Google parses each independently:
+        - SoftwareApplication: app metadata, OS, pricing slot
+        - Organization: builds the Knowledge Panel (logo, sameAs)
+        - WebSite: site-name display + search-action hook */}
     <script type="application/ld+json" is:inline set:html={JSON.stringify(structuredData)} />
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(organizationData)} />
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(websiteData)} />
+
+    {/* Baidu-targeted keywords meta — Google has ignored this since
+        2009 but Baidu/Sogou still factor it in. Lives outside the
+        SEO main path; safe to drop later if the China audience
+        proves not to matter. */}
+    <meta name="keywords" content={keywords} />
+
+    {/* theme-color drives the browser-chrome color on mobile
+        (Android Chrome address bar; iOS Safari status bar in PWA
+        context). Moss-green matches the LogoMark accent so the
+        chrome reads as part of the same identity. */}
+    <meta name="theme-color" content="#6B8266" />
 
     {/* Favicon — inline SVG re-uses the LogoMark vector, so the tab
         icon, bookmark icon, and in-page brand all read as the same
@@ -218,7 +278,9 @@ const structuredData = {
     <meta property="og:image" content={ogImage} />
     <meta property="og:image:width" content="1400" />
     <meta property="og:image:height" content="900" />
+    <meta property="og:image:alt" content={lang === 'zh-CN' ? '碳墨桌面端 — 仪表盘截图' : 'CarbonInk desktop — dashboard screenshot'} />
     <meta property="og:locale" content={lang === 'zh-CN' ? 'zh_CN' : 'en_US'} />
+    <meta property="og:locale:alternate" content={lang === 'zh-CN' ? 'en_US' : 'zh_CN'} />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description ?? defaultDesc} />

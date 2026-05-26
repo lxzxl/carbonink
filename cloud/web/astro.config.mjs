@@ -62,6 +62,24 @@ export default defineConfig({
           en: 'en',
         },
       },
+      // `lastmod` (= build time) + `changefreq` tells Google how
+      // often we ship updates and when this URL last changed. Both
+      // are scheduling hints — Google ignores them when its own
+      // crawl-history disagrees, but on a fresh domain with no
+      // history they meaningfully nudge the first-pass priority.
+      //
+      // `priority` is per-URL (0.0–1.0); we put `1.0` on the two
+      // home pages and `0.7` on the rest so Google's "first crawl"
+      // budget lands on / + /en/ ahead of /privacy/. Without these
+      // every URL defaults to 0.5 and the crawler treats them
+      // equally.
+      serialize: (item) => {
+        item.lastmod = new Date().toISOString();
+        item.changefreq = 'monthly';
+        const path = new URL(item.url).pathname;
+        item.priority = path === '/' || path === '/en/' ? 1.0 : 0.7;
+        return item;
+      },
     }),
   ],
   vite: { plugins: [tailwindcss()] },
