@@ -239,3 +239,68 @@ describe('McpIntegrationService.configureClient', () => {
     expect(merged.mcpServers.carbonink).toBeDefined();
   });
 });
+
+describe('McpIntegrationService.removeClient', () => {
+  it('Pi throws PiNotSupportedError', async () => {
+    const { svc } = makeServiceWithTmpHome();
+    await expect(svc.removeClient('pi')).rejects.toBeInstanceOf(PiNotSupportedError);
+  });
+
+  it('removes carbonink key; if mcpServers becomes empty, removes the key too', async () => {
+    const { svc, home } = makeServiceWithTmpHome();
+    await svc.configureClient('claudeDesktop');
+    const result = await svc.removeClient('claudeDesktop');
+    expect(result.backupPath).toMatch(/\.carbonink-bak-/);
+    const cfg = JSON.parse(readSync(result.configPath, 'utf-8'));
+    expect(cfg.mcpServers).toBeUndefined();
+  });
+
+  it('preserves sibling mcpServers entries', async () => {
+    const { svc, home } = makeServiceWithTmpHome();
+    const cfg = join(home, 'Library/Application Support/Claude/claude_desktop_config.json');
+    mkdirSync(join(home, 'Library/Application Support/Claude'), { recursive: true });
+    writeFileSync(
+      cfg,
+      JSON.stringify({
+        mcpServers: { other: { command: 'x', args: [] } },
+      }),
+    );
+    await svc.configureClient('claudeDesktop');
+    await svc.removeClient('claudeDesktop');
+    const after = JSON.parse(readSync(cfg, 'utf-8'));
+    expect(after.mcpServers).toEqual({ other: { command: 'x', args: [] } });
+  });
+
+  it('no-op when entry absent', async () => {
+    const { svc, home } = makeServiceWithTmpHome();
+    const cfg = join(home, 'Library/Application Support/Claude/claude_desktop_config.json');
+    mkdirSync(join(home, 'Library/Application Support/Claude'), { recursive: true });
+    writeFileSync(cfg, JSON.stringify({ mcpServers: {} }));
+    const result = await svc.removeClient('claudeDesktop');
+    expect(result.backupPath).toBeNull();
+  });
+});
+
+describe('backup retention', () => {
+  it('keeps only the 3 newest .carbonink-bak-* files per target', async () => {
+    let counter = 0;
+    const base = makeServiceWithTmpHome();
+    // Override `now` to return monotonically increasing timestamps.
+    (base.svc as unknown as { deps: { now: () => Date } }).deps.now = () =>
+      new Date(2026, 4, 26, 12, 0, counter++);
+    const { svc, home } = base;
+    const cfg = join(home, 'Library/Application Support/Claude/claude_desktop_config.json');
+    mkdirSync(join(home, 'Library/Application Support/Claude'), { recursive: true });
+
+    // Write 5 *different* configs so each configure produces a real backup.
+    for (let i = 0; i < 5; i++) {
+      writeFileSync(cfg, JSON.stringify({ mcpServers: {}, marker: i }));
+      await svc.configureClient('claudeDesktop');
+    }
+
+    const { readdirSync } = await import('node:fs');
+    const { dirname } = await import('node:path');
+    const backups = readdirSync(dirname(cfg)).filter((f) => f.includes('.carbonink-bak-'));
+    expect(backups.length).toBe(3);
+  });
+});

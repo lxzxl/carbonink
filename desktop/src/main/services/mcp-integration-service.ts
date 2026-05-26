@@ -1,4 +1,13 @@
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  statSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import type Database from 'better-sqlite3';
@@ -184,8 +193,65 @@ export class McpIntegrationService {
       writeFileSync(tmpPath, nextRaw, 'utf-8');
       renameSync(tmpPath, configPath);
 
+      this.pruneBackups(configPath);
       return { configPath, backupPath };
     });
+  }
+
+  async removeClient(id: ClientId): Promise<RemoveResult> {
+    if (id === 'pi') throw new PiNotSupportedError();
+    const configPath = this.clientConfigPath(id);
+    return this.withPathMutex(configPath, async () => {
+      if (!existsSync(configPath)) return { configPath, backupPath: null };
+      const existingRaw = readFileSync(configPath, 'utf-8');
+      let existing: { mcpServers?: Record<string, unknown> } & Record<string, unknown>;
+      try {
+        existing = JSON.parse(existingRaw);
+      } catch {
+        throw new Error(`Refusing to overwrite invalid JSON at ${configPath}`);
+      }
+      const servers = (existing.mcpServers as Record<string, unknown> | undefined) ?? {};
+      if (!servers.carbonink) return { configPath, backupPath: null };
+
+      const { carbonink: _drop, ...remaining } = servers;
+      const next: Record<string, unknown> = { ...existing };
+      if (Object.keys(remaining).length === 0) {
+        delete next.mcpServers;
+      } else {
+        next.mcpServers = remaining;
+      }
+      const nextRaw = `${JSON.stringify(next, null, 2)}\n`;
+      if (nextRaw === existingRaw) return { configPath, backupPath: null };
+
+      const ts = this.deps.now().toISOString().replace(/[:.]/g, '-');
+      const backupPath = `${configPath}.carbonink-bak-${ts}-${process.pid}`;
+      writeFileSync(backupPath, existingRaw, 'utf-8');
+
+      const tmpPath = `${configPath}.carbonink-tmp-${process.pid}-${Date.now()}`;
+      writeFileSync(tmpPath, nextRaw, 'utf-8');
+      renameSync(tmpPath, configPath);
+
+      this.pruneBackups(configPath);
+      return { configPath, backupPath };
+    });
+  }
+
+  /** Keep only the 3 newest backups matching `<configPath>.carbonink-bak-*`. */
+  private pruneBackups(configPath: string): void {
+    const dir = dirname(configPath);
+    if (!existsSync(dir)) return;
+    const base = configPath.split('/').pop() ?? configPath.split('\\').pop() ?? configPath;
+    const backups = readdirSync(dir)
+      .filter((f) => f.startsWith(`${base}.carbonink-bak-`))
+      .map((f) => ({ f, mtime: statSync(join(dir, f)).mtimeMs }))
+      .sort((a, b) => b.mtime - a.mtime);
+    for (const { f } of backups.slice(3)) {
+      try {
+        unlinkSync(join(dir, f));
+      } catch {
+        // best effort
+      }
+    }
   }
 
   private async withPathMutex<T>(path: string, fn: () => Promise<T>): Promise<T> {
