@@ -15,8 +15,8 @@ importers:
   cloud/packages/shared:
     dependencies:
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
 
   cloud/web:
     dependencies:
@@ -52,8 +52,8 @@ importers:
         specifier: ^1.8.0
         version: 1.9.7
       zod:
-        specifier: ^3.24.0
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@cloudflare/vitest-pool-workers':
         specifier: ^0.8.0
