@@ -15,6 +15,12 @@ files:
   - "!out/preload/**/*.map"
   - "!out/renderer/**/*.map"
 
+# Unpack the MCP server script so external MCP clients can spawn it
+# at <Resources>/app.asar.unpacked/out/mcp/index.js. Files inside
+# app.asar cannot be spawned as Node scripts via ELECTRON_RUN_AS_NODE.
+asarUnpack:
+  - out/mcp/**
+
 # --- macOS ---
 mac:
   category: public.app-category.business
