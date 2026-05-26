@@ -20,7 +20,7 @@ export type ServerEntry = {
 export type DetectResult = Record<ClientId, ClientStatus>;
 
 export type ConfigureResult =
-  | { configPath: string; backupPath: string; noChange?: false }
+  | { configPath: string; backupPath: string | null; noChange?: false }
   | { configPath: string; backupPath: null; noChange: true };
 
 export type RemoveResult = { configPath: string; backupPath: string | null };
@@ -184,7 +184,7 @@ export class McpIntegrationService {
       writeFileSync(tmpPath, nextRaw, 'utf-8');
       renameSync(tmpPath, configPath);
 
-      return { configPath, backupPath: backupPath as string };
+      return { configPath, backupPath };
     });
   }
 
