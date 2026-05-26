@@ -255,9 +255,12 @@ to BOTH files in the same commit.
 - After `pnpm build` (or any script that runs `electron-rebuild`),
   vitest will fail with `NODE_MODULE_VERSION 145 vs 137` because
   better-sqlite3's native binding flipped to Electron ABI. Restore
-  with:
+  via the desktop package script:
   ```bash
-  rm node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/build/Release/better_sqlite3.node
-  pnpm rebuild better-sqlite3
+  pnpm --filter carbonink run rebuild:node
   ```
-  This is environmental, never a regression.
+  That runs `pnpm rebuild better-sqlite3` from the desktop workspace,
+  which finds the actual installed version (currently 12.10.0; the
+  earlier hand-rolled `rm node_modules/.pnpm/better-sqlite3@12.9.0/...`
+  recipe went stale after the dep bump). This is environmental,
+  never a regression.
