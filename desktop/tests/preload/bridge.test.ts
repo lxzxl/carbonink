@@ -107,9 +107,11 @@ describe('preload bridge', () => {
       'answer:generate-all-unanswered',
       // routing domain (Routing API)
       'routing:lookup',
-      // mcp domain (Phase 2 Block 4 — MCP server status / Claude Desktop config)
-      'mcp:get-status',
-      'mcp:write-claude-config',
+      // mcp-integration domain (Settings → Integrations sub-page)
+      'mcp:detect',
+      'mcp:configure',
+      'mcp:remove',
+      'mcp:get-server-entry',
       // report domain (Phase 3 — ISO 14064-1 inventory report)
       'report:generate',
       'report:cancel',

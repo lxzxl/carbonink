@@ -52,8 +52,9 @@ export const READ_ONLY_BLOCKED_CHANNELS: ReadonlySet<keyof IpcTypeMap> = new Set
   'report:generate',
   // EF matcher (AI-backed)
   'ef:recommend',
-  // MCP write tool wiring
-  'mcp:write-claude-config',
+  // MCP integration writes (file mutations on user's other-app configs)
+  'mcp:configure',
+  'mcp:remove',
   // Undo/Redo (post-launch) — inverse operations are themselves writes;
   // expired/revoked licenses block them too per the spec.
   'undo:do',

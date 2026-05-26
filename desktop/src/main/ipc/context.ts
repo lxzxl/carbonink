@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   deleteCredentialBlob,
@@ -24,6 +24,10 @@ import { EmissionSourceService } from '@main/services/emission-source-service.js
 import { ExtractionService } from '@main/services/extraction-service.js';
 import { loadLicensePublicKey } from '@main/services/license-public-key.js';
 import { LicenseService } from '@main/services/license-service.js';
+import {
+  McpIntegrationService,
+  type PathResolver,
+} from '@main/services/mcp-integration-service.js';
 import { OrganizationService } from '@main/services/organization-service.js';
 import { QuestionnairePdfDataService } from '@main/services/questionnaire-pdf-data-service.js';
 import { QuestionnaireService } from '@main/services/questionnaire-service.js';
@@ -89,6 +93,10 @@ export interface IpcContext {
   questionnairePdfDataService: QuestionnairePdfDataService;
   // Phase 4 sub-project A — license JWT verify + state machine.
   licenseService: LicenseService;
+  // MCP integration — detect / configure / remove MCP clients (Claude
+  // Desktop, Claude Code, Cursor, Pi). Owns the file mutations on the
+  // user's other-app configs and the carbonink server-entry shape.
+  mcpIntegrationService: McpIntegrationService;
   // Post-launch (spec 2026-05-25) — session-scoped undo/redo stack.
   undoManager: UndoManager;
   // URL for the print-render route (used by PDF export for hidden BrowserWindow).
@@ -230,6 +238,33 @@ export function createIpcContext(
     }
     return documentServiceInstance;
   };
+
+  // MCP integration service — wired eagerly because the renderer's
+  // Integrations sub-page polls `mcp:detect` on mount. Path resolver
+  // mirrors the old `resolveBinaryPath` in handlers/mcp.ts (now
+  // deleted): in production, the script lives under
+  // `app.asar.unpacked/out/mcp/index.js`; in dev, `process.cwd()/out/...`.
+  const mcpScriptPath = (): string => {
+    if (app.isPackaged) {
+      return join(
+        app.getAppPath().replace('app.asar', 'app.asar.unpacked'),
+        'out',
+        'mcp',
+        'index.js',
+      );
+    }
+    return join(process.cwd(), 'out', 'mcp', 'index.js');
+  };
+  const paths: PathResolver = {
+    electronBinaryPath: () => process.execPath,
+    mcpScriptPath,
+    mcpScriptExists: () => existsSync(mcpScriptPath()),
+  };
+  const mcpIntegrationService = new McpIntegrationService({
+    db: svc.db,
+    paths,
+    now: () => new Date(),
+  });
 
   const ctx: IpcContext = {
     db: svc.db,
@@ -397,6 +432,7 @@ export function createIpcContext(
       }
       return licenseServiceInstance;
     },
+    mcpIntegrationService,
     printRenderUrl:
       overrides.printRenderUrl ??
       `${process.env.ELECTRON_RENDERER_URL || 'about:blank'}/print-render`,

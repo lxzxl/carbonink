@@ -246,15 +246,21 @@ export type IpcTypeMap = {
     language: 'zh-CN' | 'en';
   }) => Promise<{ canceled: true } | { ok: true; path: string } | { ok: false; error: string }>;
 
-  // mcp domain (Phase 2 Block 4 — Model Context Protocol server status / config)
-  'mcp:get-status': () => {
-    binary_path: string | null;
-    binary_built: boolean;
-    claude_config_path: string;
-    claude_config_present: boolean;
-    claude_config_references_us: boolean;
-  };
-  'mcp:write-claude-config': () => { ok: true } | { ok: false; error: string };
+  // mcp-integration domain (Settings → Integrations sub-page)
+  'mcp:detect': () => Promise<import('@main/services/mcp-integration-service.js').DetectResult>;
+  'mcp:configure': (input: {
+    clientId: import('@main/services/mcp-integration-service.js').ClientId;
+  }) => Promise<
+    | { ok: true; result: import('@main/services/mcp-integration-service.js').ConfigureResult }
+    | { ok: false; error: 'pi_not_supported' | 'invalid_json' | 'io_error'; message?: string }
+  >;
+  'mcp:remove': (input: {
+    clientId: import('@main/services/mcp-integration-service.js').ClientId;
+  }) => Promise<
+    | { ok: true; result: import('@main/services/mcp-integration-service.js').RemoveResult }
+    | { ok: false; error: 'pi_not_supported' | 'invalid_json' | 'io_error'; message?: string }
+  >;
+  'mcp:get-server-entry': () => import('@main/services/mcp-integration-service.js').ServerEntry;
 
   // routing domain (Routing API — distance lookup via AMap or haversine)
   'routing:lookup': (input: {
