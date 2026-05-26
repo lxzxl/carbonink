@@ -118,60 +118,33 @@ roadmap 只记"想做"，没排期、没承诺。要做之前必须先走 brains
 
 ---
 
-## 5. 把 `carbonink` MCP server 包装成 Pi 扩展发布
+## 5. ✅ 已完成（v1 + v1.1，2026-05-26）— Settings → MCP integration
 
-**目标**：我们 `desktop/src/mcp/` 已经暴露了 list_questionnaires / get_answer / set_answer / list_activities / create_emission_source 等。在 Pi 生态注册成扩展后，咨询师/重度用户可以在终端里说"列出所有 2025 上半年 Scope 1 缺数据的问卷，按客户分组"。
+实施落地为**通用 MCP 多客户端集成 + 跨 host Agent Skill 安装器**——非 Pi-specific（参见 [Pi integration rationale memory](../../../../../.claude/projects/-Users-lxz-ws-personal/memory/project_pi_integration_rationale.md)）。
 
-**已经有的相关代码**：
-- `desktop/src/mcp/index.ts`（MCP server，stdio transport）
-- `desktop/src/mcp/queries.ts`、`db.ts`
-- `desktop/vite.mcp.config.ts`（产物落到 `out/mcp/index.js`）
-- `desktop/src/main/ipc/handlers/mcp.ts`、`desktop/src/renderer/lib/api/mcp.ts`
+**v1**（[spec](specs/2026-05-26-pi-mcp-extension-design.md), [plan](plans/2026-05-26-pi-mcp-integration-ux.md), commits 7effd31..f8bfe83）
+- McpIntegrationService — detect / configure / remove / 备份 / mutex / 审计
+- IPC 4 channels + license-gate + 跨进程类型
+- Settings UI: 4 客户端表格（Claude Desktop / Code / Cursor + Pi 手动设置 modal）
+- ELECTRON_RUN_AS_NODE 运行时（不依赖用户装 Node）
 
-**技术取舍**：
-- 几乎零开发成本：现有 MCP server 已经能跑，主要工作是写扩展 README + 一行注册脚本 + 发布到 npm。
-- 参考：[mavam/pi-mcporter](https://github.com/mavam/pi-mcporter) 是单工具 MCP 桥接的最小范例。
-- 战略价值：以最低成本进入 Pi 用户视野，拿到第一波早期反馈。
+**v1.1**（[spec § v1.1](specs/2026-05-26-pi-mcp-extension-design.md), [plan](plans/2026-05-26-mcp-skill-installer.md), commits 0ae419e..215b16c）
+- AgentSkillService — 一键安装 portable [Agent Skill](https://agentskills.io) 到 `~/.agents/skills/` + 检测到的 host symlink
+- Settings UI 重排为 Step 1 (Install Skill) → Step 2 (Configure MCP)
+- 跨 host 通用（Claude Code / Pi / Codex），non-developer 一键安装替代 `npx skills`
 
-**集成点**：
-- 新增 monorepo 子包 `packages/pi-extension/`（或独立仓库 `carbonink-pi`）。
-- 文档站加一篇"在 Pi 中使用 CarbonInk"教程。
-- README 要写清"读 vs 写"权限——`set_answer` 直接改本地 SQLite，得有告警。
-
-**开放问题**：
-- write 接口（create_activity / set_answer）开放给 Pi 用户吗？还是先只读？
-- MCP server 当前直连本地 SQLite——多设备/远程数据怎么办？要不要走 cloud worker？
-- 发布形态：独立 npm 包还是 monorepo 子包？
+**留作 follow-up**：
+- 首次启动 popup 引导（Design B）
+- Cursor / Claude Desktop skill 自动安装路径
+- 「打开 agent 会话并预加载 skill」按钮
 
 ---
 
-## 6. `cb-pi` 扩展包（仿 [salesforce/sf-pi](https://github.com/salesforce/sf-pi)）
+## ~~6.~~ `cb-pi` 扩展包（已被 v1.1 跨 host skill 取代，不再独立做）
 
-**目标**：给已经习惯用 coding agent 的咨询师/审计员一套**碳核算专用** Pi 扩展，把 Pi 变成他们的领域工作站。sf-pi 给 Salesforce 工程师做了 LSP 诊断 + Agent Script 助手 + 状态栏，同样思路适用于碳核算。
+v1 brainstorm 时已经申明"引入 Pi 是内部架构学习，对外保持通用 MCP，不绑定 Pi"。v1.1 的 portable Agent Skill 已经覆盖了 cb-pi 设想里的核心价值（terminal-based 咨询师工作流）——以**跨 host 中性**的方式，而非 Pi-only。
 
-**已经有的相关代码**：
-- 依赖方向 5（MCP 扩展），方向 3（pi-ai）作为模型层基础。
-
-**候选扩展**：
-- `@carbonink/pi-ef-search` — 排放因子库 fuzzy lookup，pi-tui 直接渲染候选
-- `@carbonink/pi-questionnaire-draft` — 在终端拖 PDF 进来出草稿问卷
-- `@carbonink/pi-audit-trail` — 客户活动历史审阅
-- `@carbonink/pi-status-bar` — pi-tui 状态栏显示当前问卷进度
-
-**技术取舍**：
-- 收益：在已有 Pi 用户里建立"碳核算 = CarbonInk"心智，零获客成本。
-- 风险：中国市场里"会用 terminal coding agent 的咨询师"基数可能很小，要先估规模。
-- 维护成本：每个扩展独立项目还是合并发布？sf-pi 的做法是单仓库多扩展。
-
-**集成点**：
-- monorepo 新增 `packages/pi-extensions/`，按扩展分子目录。
-- 复用 cloud worker 的 EF API（不直连本地 SQLite，因为咨询师不一定有本地数据）。
-- 与方向 4 的 agent core 共享 prompt 模板和工具描述。
-
-**开放问题**：
-- 商业模型：免费引流 vs 付费功能？
-- 目标用户体量：先调研 5-10 个 ESG 咨询师是否用过 Cursor/Claude Code/Pi。
-- 是否要先在 Discord/小红书发预告测水温？
+如果将来仍想做 Pi-only 增强（pi-tui 渲染、pi-status-bar 等），请新开独立 spec 并解释为何违反"不绑 Pi"原则。
 
 ---
 
