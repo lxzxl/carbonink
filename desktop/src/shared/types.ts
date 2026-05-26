@@ -603,3 +603,27 @@ export type McpConfigureResult =
   | { configPath: string; backupPath: null; noChange: true };
 
 export type McpRemoveResult = { configPath: string; backupPath: string | null };
+
+// Agent skill installer types (v1.1)
+export type AgentHost = 'claudeCode' | 'pi' | 'codex' | 'agentsShared';
+
+export type SkillDetectResult =
+  | { state: 'not_installed'; detectedHosts: AgentHost[] }
+  | {
+      state: 'installed';
+      canonicalPath: string;
+      hostsLinked: AgentHost[];
+      needsUpdate: boolean;
+      detectedHosts: AgentHost[];
+    };
+
+export type SkillInstallResult = {
+  canonicalPath: string;
+  hostsLinked: AgentHost[];
+  backupPath: string | null;
+};
+
+export type SkillRemoveResult = {
+  removed: string[];
+  backupPath: string | null;
+};
