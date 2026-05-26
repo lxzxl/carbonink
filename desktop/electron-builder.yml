@@ -46,8 +46,11 @@ mac:
   gatekeeperAssess: false
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
-  notarize:
-    teamId: ${env.APPLE_TEAM_ID}
+  # electron-builder v26: notarize is a boolean toggle now.
+  # Activation requires APPLE_TEAM_ID + APPLE_ID + APPLE_APP_SPECIFIC_PASSWORD
+  # (or APPLE_API_KEY/ID/ISSUER) in env at build time. Locally these are
+  # absent so notarize step no-ops; CI exports them from secrets.
+  notarize: true
 
 dmg:
   sign: false
@@ -73,9 +76,13 @@ win:
   # Trusted Signing dlib via signtool. The `azure/trusted-signing-action`
   # in the GitHub workflow installs signtool + the dlib and exports the
   # env vars consumed here.
-  sign: ./build/sign-windows.js
-  signingHashAlgorithms:
-    - sha256
+  #
+  # electron-builder v26: sign + signingHashAlgorithms moved under
+  # signtoolOptions (was at win.* root in v25 and earlier).
+  signtoolOptions:
+    sign: ./build/sign-windows.js
+    signingHashAlgorithms:
+      - sha256
 
 nsis:
   oneClick: false
