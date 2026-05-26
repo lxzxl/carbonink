@@ -62,7 +62,11 @@ test(`tour: dashboard + 6 top-level routes [${TOUR_LOCALE}]`, async () => {
   const setup = await launchApp({
     cannedExtractions: {},
     cannedRecommendations: {},
-    cannedIpc: baselineIpcMocks(),
+    // baselineIpcMocks(locale) localizes user-data strings (source
+    // names, activity notes, question text, person/role, address) to
+    // match the renderer locale below. Without this, the EN tour would
+    // render English UI chrome over Chinese demo data.
+    cannedIpc: baselineIpcMocks(TOUR_LOCALE),
     locale: TOUR_LOCALE,
   });
 

@@ -427,31 +427,155 @@ export const FIXTURE_LICENSE_UNVERIFIED = {
 };
 
 // ---------------------------------------------------------------------------
+// Locale-aware projection — FIXTURE_* above are authored in zh (schema-
+// of-record for our existing 694 vitest + the suite of e2e specs).
+//
+// For English-UI screenshot runs (tour.spec.ts with TOUR_LOCALE=en),
+// `baselineIpcMocks('en')` swaps the user-facing strings — source
+// names, activity notes, question text, person/role, address — to
+// natural English equivalents. Internal IDs, units, EF codes, dates,
+// numbers, and JSON shapes are locale-invariant.
+//
+// Why a compose-time projection (vs separate FIXTURE_X_EN constants):
+//
+//   - Existing constants stay as the single source of truth. Specs
+//     that `import { FIXTURE_QUESTIONS }` and use them in their own
+//     IPC setup (e.g. questionnaire-end-to-end.spec.ts) keep working
+//     unchanged — they pin to zh data and assert against zh strings.
+//
+//   - One place to maintain. New zh fixture entry adds one row; its
+//     EN translation lives next to it in the maps below.
+//
+//   - The renderer doesn't see "_zh / _en" pairs on monolingual
+//     fields — production data is single-string (the user types one
+//     value). The harness mimics that: pick one locale's projection
+//     per launch, hand the renderer a flat shape.
+//
+// Fields that are ALREADY bilingual in the production schema
+// (Organization.name_zh/name_en, Site.name_zh/name_en, the stages
+// list's label_zh/label_en) pass through untouched — the renderer
+// picks the right field based on its UI locale.
+// ---------------------------------------------------------------------------
+
+type Locale = 'zh-CN' | 'en';
+
+const SOURCE_NAME_EN: Record<string, string> = {
+  src_electricity: 'HQ Electricity',
+  src_diesel: 'Shuttle Diesel',
+  src_business_travel: 'Employee Business Travel',
+};
+
+const ACTIVITY_NOTES_EN: Record<string, string | null> = {
+  act_001: 'April 2026 utility bill',
+  act_002: null, // already null
+  act_003: 'Beijing → Shanghai, economy',
+};
+
+const QUESTION_LOCALIZED_EN: Record<string, { raw_text: string; parsed_intent: string }> = {
+  q_1: {
+    raw_text: 'Please enter total Scope 2 emissions for the reporting year (kg CO2e).',
+    parsed_intent: 'Scope 2 total (location-based)',
+  },
+  q_2: {
+    raw_text: 'Percentage of electricity from renewable sources.',
+    parsed_intent: 'Renewable electricity share',
+  },
+  q_3: {
+    raw_text: 'Describe your company-wide climate policy.',
+    parsed_intent: 'Climate policy narrative',
+  },
+};
+
+function localizeSources(locale: Locale) {
+  if (locale === 'zh-CN') return FIXTURE_SOURCES;
+  return FIXTURE_SOURCES.map((s) => ({ ...s, name: SOURCE_NAME_EN[s.id] ?? s.name }));
+}
+
+function localizeSourcesWithStats(locale: Locale) {
+  if (locale === 'zh-CN') return FIXTURE_SOURCES_WITH_STATS;
+  return FIXTURE_SOURCES_WITH_STATS.map((s) => ({
+    ...s,
+    name: SOURCE_NAME_EN[s.id] ?? s.name,
+  }));
+}
+
+function localizeActivities(locale: Locale) {
+  if (locale === 'zh-CN') return FIXTURE_ACTIVITIES;
+  return FIXTURE_ACTIVITIES.map((a) => ({
+    ...a,
+    notes: a.id in ACTIVITY_NOTES_EN ? ACTIVITY_NOTES_EN[a.id] : a.notes,
+  }));
+}
+
+function localizeQuestions(locale: Locale) {
+  if (locale === 'zh-CN') return FIXTURE_QUESTIONS;
+  return FIXTURE_QUESTIONS.map((q) => {
+    const en = QUESTION_LOCALIZED_EN[q.id];
+    return en ? { ...q, raw_text: en.raw_text, parsed_intent: en.parsed_intent } : q;
+  });
+}
+
+function localizeAuditEvents(locale: Locale) {
+  if (locale === 'zh-CN') return FIXTURE_AUDIT_EVENTS;
+  // Only one event embeds a zh string in its JSON payload (source_created
+  // for src_business_travel). Rewrite the payload with the en source name
+  // so the audit detail panel shows English. Other events have purely
+  // identifier-shaped payloads (IDs, code paths) and are locale-invariant.
+  return FIXTURE_AUDIT_EVENTS.map((ev) => {
+    if (ev.event_kind !== 'source_created') return ev;
+    const parsed = JSON.parse(ev.payload) as { source_id: string; name: string; scope: number };
+    const enName = SOURCE_NAME_EN[parsed.source_id];
+    if (!enName) return ev;
+    return { ...ev, payload: JSON.stringify({ ...parsed, name: enName }) };
+  });
+}
+
+function localizeOrg(locale: Locale) {
+  if (locale === 'zh-CN') return FIXTURE_ORG;
+  return {
+    ...FIXTURE_ORG,
+    responsible_person_name: 'John Smith',
+    responsible_person_role: 'Sustainability Lead',
+  };
+}
+
+function localizeSite(locale: Locale) {
+  if (locale === 'zh-CN') return FIXTURE_SITE;
+  return { ...FIXTURE_SITE, address: '1 Example Rd, Chaoyang District, Beijing' };
+}
+
+// ---------------------------------------------------------------------------
 // Composer — baseline mock map covering every IPC the renderer hits on
 // the basic routes (/, /sources, /activities, /audit, /documents,
 // /questionnaires, /reports, /settings).
 //
+// `locale` controls the user-data projection (see locality block above).
+// Defaults to 'zh-CN' for back-compat with every existing spec — they
+// call `baselineIpcMocks()` with no args and continue to see zh data.
+// Opt into 'en' from tour.spec.ts when `TOUR_LOCALE=en` is set.
+//
 // Specs override individual entries by spreading their own overrides last.
 // ---------------------------------------------------------------------------
 
-export function baselineIpcMocks(): Record<string, unknown> {
+export function baselineIpcMocks(locale: Locale = 'zh-CN'): Record<string, unknown> {
   return {
     'org:has-any': true,
-    'org:get-current': FIXTURE_ORG,
-    'org:list-sites': [FIXTURE_SITE],
+    'org:get-current': localizeOrg(locale),
+    'org:list-sites': [localizeSite(locale)],
     'org:list-reporting-periods': [FIXTURE_PERIOD],
     'settings:get-provider': FIXTURE_PROVIDER,
     'settings:get-amap-key': { hasKey: true, maskedKey: 'amap...wxyz' },
     'settings:available': ['openai', 'anthropic', 'azure', 'deepseek', 'openai-compat'],
-    'source:list-by-org': FIXTURE_SOURCES,
-    'source:list-by-org-with-stats': FIXTURE_SOURCES_WITH_STATS,
+    'source:list-by-org': localizeSources(locale),
+    'source:list-by-org-with-stats': localizeSourcesWithStats(locale),
     'source:list-presets': [],
-    'activity:list-by-period': FIXTURE_ACTIVITIES,
+    'activity:list-by-period': localizeActivities(locale),
     'activity:totals-by-period': FIXTURE_TOTALS,
     'document:list': FIXTURE_DOCUMENTS,
     'extraction:list-statuses': FIXTURE_EXTRACTION_STATUSES,
     'questionnaire:list': FIXTURE_QUESTIONNAIRE_LIST,
-    'audit:list': FIXTURE_AUDIT_EVENTS,
+    'questionnaire:list-questions': localizeQuestions(locale),
+    'audit:list': localizeAuditEvents(locale),
     'license:get-state': FIXTURE_LICENSE_TRIAL,
     'mcp:get-status': {
       built: true,
