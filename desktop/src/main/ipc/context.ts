@@ -6,6 +6,7 @@ import {
   isSafeStorageAvailable,
 } from '@main/credentials/safe-storage-backend.js';
 import { ExcelParser } from '@main/excel/parser.js';
+import { buildAiClientLayer } from '@main/llm/ai-client.js';
 import { LLMClient } from '@main/llm/llm-client.js';
 import type { ReportNarrativeProvider } from '@main/llm/report-narrative.js';
 import { ActivityDataService } from '@main/services/activity-data-service.js';
@@ -38,7 +39,7 @@ import { SettingsService } from '@main/services/settings-service.js';
 import { UndoManager } from '@main/services/undo-manager.js';
 import { UnitConversionService } from '@main/services/unit-conversion-service.js';
 import type { ProviderConfig } from '@shared/types.js';
-import type { Layer } from 'effect';
+import { Layer } from 'effect';
 import { app } from 'electron';
 import type { ProgressEmitter } from './progress.js';
 import type { IpcPushTypeMap } from './types.js';
@@ -404,9 +405,26 @@ export function createIpcContext(
     },
     get answerLayer() {
       if (!answerLayerInstance) {
+        // Provider config is required to build the AiClient layer (pi-ai's
+        // `getModel(provider, model)` lookup happens at layer construction).
+        // If the user hasn't configured a provider yet, the IPC handler
+        // (`answer:generate`) short-circuits with "AI provider not configured"
+        // before reaching ctx.answerLayer — but the lazy getter still has to
+        // produce *some* layer for the type. We build an empty AiClient layer
+        // in that case; any consumer that yields AiClientTag without a real
+        // provider will fail with the standard Effect "service not found"
+        // error, mirroring the V1 behaviour where `ctx.providerConfig` was
+        // checked first.
+        const providerCfg = getSettings().getProviderConfigWithKey();
+        const aiLayer = providerCfg
+          ? buildAiClientLayer({
+              config: providerCfg.config,
+              credentials: getCredential(),
+            })
+          : (Layer.empty as unknown as Layer.Layer<import('@main/llm/ai-client.js').AiClientTag>);
         answerLayerInstance = buildAnswerLayer({
           db: svc.db,
-          llmClient: getLlm(),
+          aiLayer,
           orgService: ctx.organizationService,
           activityDataService,
         });

@@ -1,9 +1,11 @@
 import { runMigrations } from '@main/db/migrate';
+import type { AiClient } from '@main/llm/ai-client';
+import { AiNoData, AiProviderError, AiSchemaMismatch } from '@main/llm/errors';
 import * as answerSvc from '@main/services/answer-generation';
 import {
   ActivityDataServiceTag,
+  AiClientTag,
   DbTag,
-  LLMClientTag,
   NowTag,
   OrgServiceTag,
 } from '@main/services/answer-generation/tags';
@@ -26,6 +28,40 @@ function failureTag<A>(exit: Exit.Exit<A, unknown>): string | null {
   return err._tag ?? null;
 }
 
+/**
+ * Build an `AiClient` stub for tests. `generateObject` is the only method
+ * answer-generation calls — `generateText` / `ping` are stubbed to fail
+ * loudly if anything touches them. The stub takes a `mock` so individual
+ * tests can wire `.mockResolvedValueOnce(...)` / `.mockRejectedValueOnce(...)`
+ * style sequences.
+ */
+function makeStubAi(opts?: { generateObject?: ReturnType<typeof vi.fn> }): {
+  ai: AiClient;
+  generateObjectMock: ReturnType<typeof vi.fn>;
+} {
+  const generateObjectMock =
+    opts?.generateObject ??
+    vi
+      .fn()
+      .mockReturnValue(
+        Effect.succeed({ value: '14820', unit: 'kWh', source_summary: 'sum of activities' }),
+      );
+  const ai: AiClient = {
+    generateObject: generateObjectMock as unknown as AiClient['generateObject'],
+    generateText: vi
+      .fn()
+      .mockReturnValue(
+        Effect.die(new Error('generateText is not expected to be called by answer-generation')),
+      ) as unknown as AiClient['generateText'],
+    ping: vi
+      .fn()
+      .mockReturnValue(
+        Effect.die(new Error('ping is not expected to be called by answer-generation')),
+      ) as unknown as AiClient['ping'],
+  };
+  return { ai, generateObjectMock };
+}
+
 function setup(opts?: {
   seedQuestionnaire?: { id: string; reporting_year: number; customer_name: string };
   seedQuestion?: { id: string; questionnaire_id: string; raw_text: string };
@@ -33,7 +69,11 @@ function setup(opts?: {
   activitiesForYear?: number;
   totalsForYear?: { total_co2e_kg: number } | null;
   llmAnswer?: { value: string; unit: string | null; source_summary: string };
-  llmThrows?: Error;
+  /**
+   * Configure the AiClient stub's `generateObject` to reject (each call) with
+   * the provided error. Used to exercise error-propagation paths.
+   */
+  generateObject?: ReturnType<typeof vi.fn>;
 }) {
   const db = new Database(':memory:');
   runMigrations(db);
@@ -94,30 +134,34 @@ function setup(opts?: {
     listByPeriod: vi.fn().mockReturnValue(new Array(opts?.activitiesForYear ?? 0).fill({})),
     totalsByPeriod: vi.fn().mockReturnValue(opts?.totalsForYear ?? null),
   };
-  const llmClient = {
-    generateAnswer: opts?.llmThrows
-      ? vi.fn().mockRejectedValue(opts.llmThrows)
-      : vi
-          .fn()
-          .mockResolvedValue(
-            opts?.llmAnswer ?? { value: '14820', unit: 'kWh', source_summary: 'sum of activities' },
-          ),
-  };
+
+  // Honour the caller's pre-wired generateObject mock (for fail/retry tests),
+  // otherwise build a default that returns the canned `llmAnswer` shape.
+  const generateObject =
+    opts?.generateObject ??
+    vi
+      .fn()
+      .mockReturnValue(
+        Effect.succeed(
+          opts?.llmAnswer ?? { value: '14820', unit: 'kWh', source_summary: 'sum of activities' },
+        ),
+      );
+  const { ai, generateObjectMock } = makeStubAi({ generateObject });
 
   const testLayer = Layer.mergeAll(
     Layer.succeed(DbTag, db),
-    Layer.succeed(LLMClientTag, llmClient as never),
+    Layer.succeed(AiClientTag, ai),
     Layer.succeed(OrgServiceTag, orgService as never),
     Layer.succeed(ActivityDataServiceTag, activityDataService as never),
     Layer.succeed(NowTag, () => '2026-05-15T12:00:00Z'),
   );
 
-  return { db, testLayer, llmClient };
+  return { db, testLayer, ai, generateObjectMock };
 }
 
 describe('answer-generation.generate (Effect Step 2)', () => {
   it('happy path: returns answer row + inserts to DB', async () => {
-    const { testLayer, db, llmClient } = setup({
+    const { testLayer, db, generateObjectMock } = setup({
       seedQuestionnaire: { id: 'qn-1', reporting_year: 2026, customer_name: 'Acme' },
       seedQuestion: { id: 'q-1', questionnaire_id: 'qn-1', raw_text: '2026 total kWh?' },
       activitiesForYear: 12,
@@ -129,7 +173,12 @@ describe('answer-generation.generate (Effect Step 2)', () => {
     );
     expect(result.value).toBe('14820');
     expect(result.source_kind).toBe('ai_suggested');
-    expect(llmClient.generateAnswer).toHaveBeenCalledTimes(1);
+    expect(generateObjectMock).toHaveBeenCalledTimes(1);
+    // The service should hand the AiClient a prompt + schema, no system prompt.
+    const args = generateObjectMock.mock.calls[0]?.[0] as { prompt: string; schema: unknown };
+    expect(args.prompt).toContain('2026 total kWh');
+    expect(args.prompt).toContain('inventory');
+    expect(args.schema).toBeTruthy();
     const row = db.prepare(`SELECT * FROM answer WHERE question_id = ?`).get('q-1');
     expect(row).toBeTruthy();
   });
@@ -213,65 +262,61 @@ describe('answer-generation.generate (Effect Step 2)', () => {
     expect(failureTag(exit)).toBe('InventoryEmpty');
   });
 
-  it('LLMCallFailed when LLM rejects', async () => {
+  it('AiProviderError propagates when AiClient fails (post-retry)', async () => {
+    // AiClient's own retry policy is internal — by the time the error bubbles
+    // up to answer-generation, retries are exhausted. The service just
+    // propagates the tag.
+    const generateObject = vi
+      .fn()
+      .mockReturnValue(Effect.fail(new AiProviderError({ cause: 'network down' })));
     const { testLayer } = setup({
       seedQuestionnaire: { id: 'qn-1', reporting_year: 2026, customer_name: 'A' },
       seedQuestion: { id: 'q-1', questionnaire_id: 'qn-1', raw_text: 'Q' },
       activitiesForYear: 1,
-      llmThrows: new Error('network down'),
+      generateObject,
     });
     const exit = await Effect.runPromiseExit(
       answerSvc.generate('q-1', FAKE_CONFIG).pipe(Effect.provide(testLayer)),
     );
-    expect(failureTag(exit)).toBe('LLMCallFailed');
+    expect(failureTag(exit)).toBe('AiProviderError');
+    // Single call: AiClient already handled retry/backoff before failing.
+    expect(generateObject).toHaveBeenCalledTimes(1);
   });
 
-  it('retries LLMCallFailed up to 2 times then succeeds', async () => {
-    const { testLayer, llmClient } = setup({
+  it('AiSchemaMismatch propagates without retry', async () => {
+    const generateObject = vi
+      .fn()
+      .mockReturnValue(
+        Effect.fail(new AiSchemaMismatch({ raw: '{"value":42}', cause: new Error('bad') })),
+      );
+    const { testLayer } = setup({
       seedQuestionnaire: { id: 'qn-1', reporting_year: 2026, customer_name: 'A' },
       seedQuestion: { id: 'q-1', questionnaire_id: 'qn-1', raw_text: 'Q' },
       activitiesForYear: 1,
+      generateObject,
     });
-    vi.mocked(llmClient.generateAnswer)
-      .mockRejectedValueOnce(new Error('transient 1'))
-      .mockRejectedValueOnce(new Error('transient 2'))
-      .mockResolvedValueOnce({ value: '14820', unit: 'kWh', source_summary: 's' });
-    const result = await Effect.runPromise(
-      answerSvc.generate('q-1', FAKE_CONFIG).pipe(Effect.provide(testLayer)),
-    );
-    expect(result.value).toBe('14820');
-    expect(llmClient.generateAnswer).toHaveBeenCalledTimes(3);
-  });
-
-  it('gives up after 2 retries when LLMCallFailed persists', async () => {
-    const { testLayer, llmClient } = setup({
-      seedQuestionnaire: { id: 'qn-1', reporting_year: 2026, customer_name: 'A' },
-      seedQuestion: { id: 'q-1', questionnaire_id: 'qn-1', raw_text: 'Q' },
-      activitiesForYear: 1,
-    });
-    vi.mocked(llmClient.generateAnswer).mockRejectedValue(new Error('persistent'));
     const exit = await Effect.runPromiseExit(
       answerSvc.generate('q-1', FAKE_CONFIG).pipe(Effect.provide(testLayer)),
     );
-    expect(failureTag(exit)).toBe('LLMCallFailed');
-    expect(llmClient.generateAnswer).toHaveBeenCalledTimes(3); // 1 initial + 2 retries
+    expect(failureTag(exit)).toBe('AiSchemaMismatch');
+    expect(generateObject).toHaveBeenCalledTimes(1);
   });
 
-  it('does NOT retry LLMSchemaMismatch', async () => {
-    const { testLayer, llmClient } = setup({
+  it('AiNoData propagates when the AiClient sees no tool-call output', async () => {
+    const generateObject = vi.fn().mockReturnValue(Effect.fail(new AiNoData({})));
+    const { testLayer } = setup({
       seedQuestionnaire: { id: 'qn-1', reporting_year: 2026, customer_name: 'A' },
       seedQuestion: { id: 'q-1', questionnaire_id: 'qn-1', raw_text: 'Q' },
       activitiesForYear: 1,
+      generateObject,
     });
-    const { SchemaMismatchError } = await import('@main/llm/llm-client');
-    vi.mocked(llmClient.generateAnswer).mockRejectedValue(
-      new SchemaMismatchError('test', 'bad json', new Error()),
-    );
     const exit = await Effect.runPromiseExit(
       answerSvc.generate('q-1', FAKE_CONFIG).pipe(Effect.provide(testLayer)),
     );
-    expect(failureTag(exit)).toBe('LLMSchemaMismatch');
-    expect(llmClient.generateAnswer).toHaveBeenCalledTimes(1); // no retry
+    // Note: AiNoData (transport-level no content) is distinct from LLMNoData
+    // (model returned value=""). Both reach the IPC handler; the UI surfaces
+    // them with different copy.
+    expect(failureTag(exit)).toBe('AiNoData');
   });
 });
 
@@ -379,9 +424,17 @@ describe('answer-generation.generateAllUnanswered', () => {
   });
 
   it('isolates per-item failures: returns Left for failing items, Right for others', async () => {
-    const { testLayer, db, llmClient } = setup({
+    // Override the AiClient stub: succeed once (q-2) then fail once (q-3).
+    // Each `generate(...)` invocation pulls a fresh Effect from the mock, so
+    // the order matches the unanswered-questions iteration order.
+    const generateObject = vi
+      .fn()
+      .mockReturnValueOnce(Effect.succeed({ value: 'ok', unit: null, source_summary: 's' }))
+      .mockReturnValueOnce(Effect.fail(new AiProviderError({ cause: 'persistent' })));
+    const { testLayer, db } = setup({
       seedQuestionnaire: { id: 'qn-1', reporting_year: 2026, customer_name: 'A' },
       activitiesForYear: 5,
+      generateObject,
     });
     db.prepare(
       `INSERT INTO question (id, questionnaire_id, question_signature, signature_version, normalized_text, raw_text, parsed_intent, question_kind, expected_unit, position, required) VALUES ('q-1', 'qn-1', 's1', 'v1', 'q1', 'q1', NULL, 'numerical', NULL, 'Sheet1!B2', 0)`,
@@ -389,9 +442,6 @@ describe('answer-generation.generateAllUnanswered', () => {
     db.prepare(
       `INSERT INTO question (id, questionnaire_id, question_signature, signature_version, normalized_text, raw_text, parsed_intent, question_kind, expected_unit, position, required) VALUES ('q-2', 'qn-1', 's2', 'v1', 'q2', 'q2', NULL, 'numerical', NULL, 'Sheet1!B3', 0)`,
     ).run();
-    vi.mocked(llmClient.generateAnswer)
-      .mockResolvedValueOnce({ value: 'ok', unit: null, source_summary: 's' })
-      .mockRejectedValue(new Error('persistent'));
     const results = await Effect.runPromise(
       answerSvc.generateAllUnanswered('qn-1', FAKE_CONFIG).pipe(Effect.provide(testLayer)),
     );
@@ -400,6 +450,6 @@ describe('answer-generation.generateAllUnanswered', () => {
     const fails = results.filter(Either.isLeft);
     expect(oks.length).toBe(1);
     expect(fails.length).toBe(1);
-    expect((fails[0]!.left as { _tag: string })._tag).toBe('LLMCallFailed');
+    expect((fails[0]?.left as { _tag: string })._tag).toBe('AiProviderError');
   });
 });

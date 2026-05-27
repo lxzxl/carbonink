@@ -45,12 +45,22 @@ export function answerHandlers(ctx: IpcContext): {
           throw new Error('该年度暂无活动数据，无法推断答案。请先录入活动数据。');
         case 'QuestionAlreadyAnswered':
           throw new Error('该题已有答案。');
-        case 'LLMSchemaMismatch':
+        // AiClient-shaped errors. The set is fixed by `AiErr` in
+        // @main/llm/errors.ts; if pi-ai grows new failure modes we'd add
+        // cases here. Falling through to the default branch produces a
+        // useless "未知错误" toast, so we surface every tag explicitly.
+        case 'AiSchemaMismatch':
           throw new Error('LLM 返回的内容格式不符合预期，请重试。');
-        case 'LLMCallFailed':
+        case 'AiAuthError':
+          throw new Error('AI provider 鉴权失败，请在设置中检查 API key。');
+        case 'AiRateLimited':
+          throw new Error('AI provider 限流，请稍后重试。');
+        case 'AiTimeout':
+          throw new Error('LLM 调用超时，请重试或检查网络。');
+        case 'AiNoData':
+          throw new Error('LLM 未返回任何可解析内容，请重试。');
+        case 'AiProviderError':
           throw new Error('LLM 调用失败，请检查网络与 API key。');
-        case 'ProviderNotConfigured':
-          throw new Error('AI provider not configured. Open Settings to set up.');
         default:
           throw new Error(`生成答案失败：${err?._tag ?? '未知错误'}`);
       }
