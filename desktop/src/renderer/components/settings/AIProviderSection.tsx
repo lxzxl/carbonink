@@ -63,11 +63,16 @@ import { useEffect, useState } from 'react';
 const PROVIDER_OPTIONS = ['openai', 'anthropic', 'azure', 'deepseek', 'openai-compat'] as const;
 type ProviderOption = (typeof PROVIDER_OPTIONS)[number];
 
+// Model IDs MUST match pi-ai's catalog (run `getModels(provider)` to verify).
+// pi-ai's `deepseek` provider only exposes `deepseek-v4-flash` and
+// `deepseek-v4-pro` — there is no `deepseek-chat` (that name belongs to
+// DeepSeek's own API; pi-ai renames). Same care needed for any provider
+// whose model IDs we hard-code here. See pi-ai's models.generated.d.ts.
 const PROVIDER_DEFAULTS: Record<ProviderOption, { model: string }> = {
   openai: { model: 'gpt-4o-mini' },
   anthropic: { model: 'claude-sonnet-4-5' },
   azure: { model: 'gpt-4o' },
-  deepseek: { model: 'deepseek-chat' },
+  deepseek: { model: 'deepseek-v4-pro' },
   'openai-compat': { model: 'gpt-4o-mini' },
 };
 
