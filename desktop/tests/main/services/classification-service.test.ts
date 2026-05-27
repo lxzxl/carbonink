@@ -1,29 +1,40 @@
 import { runMigrations } from '@main/db/migrate';
+import { type AiClient, AiClientTag } from '@main/llm/ai-client.js';
+import { AiProviderError } from '@main/llm/errors.js';
 import { ClassificationService } from '@main/services/classification-service';
 import type { Extraction } from '@shared/types';
 import Database from 'better-sqlite3';
+import { Effect, Layer } from 'effect';
 import { describe, expect, it, vi } from 'vitest';
-
-const FAKE_CONFIG = {
-  provider: 'openai',
-  model: 'gpt-4o-mini',
-  apiKeyKeyref: 'fake',
-} as never;
 
 type DocRow = { id: string; doc_type: string | null; storage_path: string; mime_type?: string };
 
+function makeAiLayer(opts: {
+  result?: { doc_type: string; confidence: number };
+  throws?: Error;
+}): Layer.Layer<AiClientTag> {
+  const stub: AiClient = {
+    generateObject: vi.fn().mockImplementation(() => {
+      if (opts.throws) {
+        return Effect.fail(new AiProviderError({ cause: opts.throws.message }));
+      }
+      return Effect.succeed(opts.result ?? { doc_type: 'unknown', confidence: 0 });
+    }) as AiClient['generateObject'],
+    generateText: vi.fn() as AiClient['generateText'],
+    ping: vi.fn() as AiClient['ping'],
+  };
+  return Layer.succeed(AiClientTag, stub);
+}
+
 function setup(opts: {
   document: DocRow | null;
-  classifyResult?: { doc_type: string | null; confidence: number };
+  classifyResult?: { doc_type: string; confidence: number };
   classifyThrows?: Error;
   parsePdfThrows?: Error;
   extractionRunResult?: Extraction;
 }) {
   const db = new Database(':memory:');
   runMigrations(db);
-  const classify = opts.classifyThrows
-    ? vi.fn().mockRejectedValue(opts.classifyThrows)
-    : vi.fn().mockResolvedValue(opts.classifyResult ?? { doc_type: null, confidence: 0 });
   const run = vi
     .fn()
     .mockResolvedValue(opts.extractionRunResult ?? ({ id: 'ext-1' } as Extraction));
@@ -32,23 +43,21 @@ function setup(opts: {
     getById: vi.fn().mockReturnValue(opts.document),
     updateDocType,
   };
+  const aiLayer = makeAiLayer({
+    ...(opts.classifyResult ? { result: opts.classifyResult } : {}),
+    ...(opts.classifyThrows ? { throws: opts.classifyThrows } : {}),
+  });
   return {
     svc: new ClassificationService({
       db,
-      llmClient: {
-        classifyDocument: classify,
-        extractWithImages: vi.fn(),
-        extract: vi.fn(),
-      } as never,
+      aiLayer,
       extractionService: { run } as never,
       documentService: docService as never,
-      config: FAKE_CONFIG,
       readFile: () => Buffer.from('fake-pdf'),
       parsePdf: opts.parsePdfThrows
         ? vi.fn().mockRejectedValue(opts.parsePdfThrows)
         : vi.fn().mockResolvedValue({ text: 'sample text' }),
     }),
-    classify,
     run,
     updateDocType,
   };
@@ -56,12 +65,11 @@ function setup(opts: {
 
 describe('ClassificationService.classifyAndRun', () => {
   it('skips classification when document.doc_type is already set', async () => {
-    const { svc, classify, run } = setup({
+    const { svc, run } = setup({
       document: { id: 'd-1', doc_type: 'fuel_receipt.v1', storage_path: '/tmp/a.pdf' },
       extractionRunResult: { id: 'ext-1' } as Extraction,
     });
     const r = await svc.classifyAndRun('d-1');
-    expect(classify).not.toHaveBeenCalled();
     expect(run).toHaveBeenCalledWith({ document_id: 'd-1', stage_id: 'fuel_receipt.v1' });
     expect(r.status).toBe('classified');
     if (r.status === 'classified') expect(r.doc_type).toBe('fuel_receipt.v1');
@@ -90,17 +98,17 @@ describe('ClassificationService.classifyAndRun', () => {
     expect(r.status).toBe('classify_failed');
   });
 
-  it('returns classify_failed when LLM returns doc_type=null', async () => {
+  it('returns classify_failed when LLM returns doc_type="unknown"', async () => {
     const { svc, run } = setup({
       document: { id: 'd-4', doc_type: null, storage_path: '/tmp/d.pdf' },
-      classifyResult: { doc_type: null, confidence: 0.3 },
+      classifyResult: { doc_type: 'unknown', confidence: 0.3 },
     });
     const r = await svc.classifyAndRun('d-4');
     expect(run).not.toHaveBeenCalled();
     expect(r.status).toBe('classify_failed');
   });
 
-  it('returns classify_failed when LLM throws', async () => {
+  it('returns classify_failed when AiClient fails', async () => {
     const { svc, run } = setup({
       document: { id: 'd-5', doc_type: null, storage_path: '/tmp/e.pdf' },
       classifyThrows: new Error('LLM down'),
@@ -118,12 +126,11 @@ describe('ClassificationService.classifyAndRun', () => {
   });
 
   it('returns classify_failed when PDF parsing throws', async () => {
-    const { svc, classify } = setup({
+    const { svc } = setup({
       document: { id: 'd-7', doc_type: null, storage_path: '/tmp/g.pdf' },
       parsePdfThrows: new Error('corrupt PDF'),
     });
     const r = await svc.classifyAndRun('d-7');
-    expect(classify).not.toHaveBeenCalled();
     expect(r.status).toBe('classify_failed');
   });
 });

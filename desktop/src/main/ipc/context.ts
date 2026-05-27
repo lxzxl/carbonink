@@ -355,16 +355,24 @@ export function createIpcContext(
     },
     get classificationService() {
       if (!classificationServiceInstance) {
+        // Provider config is required to build the AiClient layer; without
+        // it pi-ai's `getModel` lookup can't run. The previous version
+        // threw "AI provider not configured" here at first access — we
+        // preserve that contract so the renderer's existing error toast
+        // (raised before the lazy getter is touched) keeps working.
         const providerCfg = getSettings().getProviderConfigWithKey();
         if (!providerCfg) {
           throw new Error('AI provider not configured. Open Settings to set up.');
         }
+        const aiLayer = buildAiClientLayer({
+          config: providerCfg.config,
+          credentials: getCredential(),
+        });
         classificationServiceInstance = new ClassificationService({
           db: svc.db,
-          llmClient: getLlm(),
+          aiLayer,
           extractionService: ctx.extractionService,
           documentService: getDocument(),
-          config: providerCfg.config,
           readFile: (p: string) => readFileSync(p),
           parsePdf: async (buf: Buffer) => {
             const mod = await import('pdf-parse');
