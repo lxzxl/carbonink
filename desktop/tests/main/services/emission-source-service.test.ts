@@ -122,6 +122,24 @@ describe('EmissionSourceService.listByOrganization', () => {
   });
 });
 
+describe('EmissionSourceService.list — agent-loop filtered listing', () => {
+  it('filters by organization_id (multi-tenant gate)', () => {
+    svc.create({ site_id: site1.id, name: 'S1', scope: 1 });
+    svc.create({ site_id: site2.id, name: 'S2', scope: 2 });
+    expect(svc.list({ organization_id: org.id })).toHaveLength(2);
+    expect(svc.list({ organization_id: 'org-distinct' })).toHaveLength(0);
+  });
+
+  it('optional scope filter narrows the result set', () => {
+    svc.create({ site_id: site1.id, name: 'S1-scope1', scope: 1 });
+    svc.create({ site_id: site1.id, name: 'S1-scope2', scope: 2 });
+    svc.create({ site_id: site2.id, name: 'S2-scope2', scope: 2 });
+    const scope2 = svc.list({ organization_id: org.id, scope: 2 });
+    expect(scope2).toHaveLength(2);
+    expect(scope2.every((r) => r.scope === 2)).toBe(true);
+  });
+});
+
 describe('EmissionSourceService.update', () => {
   it('patches only provided fields and leaves the rest alone', () => {
     const created = svc.create({

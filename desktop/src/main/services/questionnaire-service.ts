@@ -318,6 +318,36 @@ export class QuestionnaireService {
       .all(questionnaireId) as Question[];
   }
 
+  /**
+   * Compact summary used by the answer-generation agent's
+   * `read_questionnaire_context` tool. Returns customer name + reporting year +
+   * question count without the full questionnaire/customer/document/questions
+   * payload that {@link getById} would yield — keeps the tool's return shape
+   * tight in the agent's context window.
+   *
+   * Returns `null` when the questionnaire id doesn't exist (the tool surfaces
+   * this as an error result the model can react to).
+   */
+  getContext(questionnaireId: string): {
+    customer_name: string;
+    reporting_year: number;
+    question_count: number;
+  } | null {
+    const row = this.deps.db
+      .prepare(
+        `SELECT c.name AS customer_name,
+                q.reporting_year,
+                (SELECT COUNT(*) FROM question WHERE questionnaire_id = q.id) AS question_count
+           FROM questionnaire q
+           JOIN customer c ON c.id = q.customer_id
+          WHERE q.id = ?`,
+      )
+      .get(questionnaireId) as
+      | { customer_name: string; reporting_year: number; question_count: number }
+      | undefined;
+    return row ?? null;
+  }
+
   getById(id: string): {
     questionnaire: Questionnaire;
     customer: Customer;

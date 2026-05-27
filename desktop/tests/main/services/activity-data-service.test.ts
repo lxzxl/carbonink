@@ -859,3 +859,170 @@ describe('ActivityDataService.getByIdWithEf', () => {
     expect(svc.getByIdWithEf('ghost')).toBeNull();
   });
 });
+
+describe('ActivityDataService.list — agent-loop filtered listing', () => {
+  function seedFour() {
+    // 2 × scope-2 grid activities in 2024 + 1 × scope-1 gasoline in 2024 +
+    // 1 × scope-2 grid in 2023 (different reporting period).
+    svc.create({
+      emission_source_id: scope2Source.id,
+      reporting_period_id: period.id,
+      occurred_at_start: '2024-01-01',
+      occurred_at_end: '2024-01-31',
+      amount: 1000,
+      unit: 'kWh',
+      ...CN_NATIONAL,
+    });
+    svc.create({
+      emission_source_id: scope2Source.id,
+      reporting_period_id: period.id,
+      occurred_at_start: '2024-02-01',
+      occurred_at_end: '2024-02-28',
+      amount: 500,
+      unit: 'kWh',
+      ...CN_NATIONAL,
+    });
+    svc.create({
+      emission_source_id: scope1Source.id,
+      reporting_period_id: period.id,
+      occurred_at_start: '2024-03-01',
+      occurred_at_end: '2024-03-31',
+      amount: 50,
+      unit: 'L',
+      ...GASOLINE,
+    });
+    const period2023 = orgService.createReportingPeriod({
+      organization_id: org.id,
+      year: 2023,
+      granularity: 'annual',
+    });
+    svc.create({
+      emission_source_id: scope2Source.id,
+      reporting_period_id: period2023.id,
+      occurred_at_start: '2023-06-01',
+      occurred_at_end: '2023-06-30',
+      amount: 200,
+      unit: 'kWh',
+      ...CN_NATIONAL,
+    });
+  }
+
+  it('returns rows for the org with the compact tool-friendly shape', () => {
+    seedFour();
+    const rows = svc.list({ organization_id: org.id });
+    expect(rows).toHaveLength(4);
+    expect(rows[0]).toHaveProperty('source_name');
+    expect(rows[0]).toHaveProperty('co2e_kg');
+    // No raw ef_* columns leak through.
+    expect(Object.keys(rows[0] ?? {})).toEqual([
+      'id',
+      'source_name',
+      'scope',
+      'period_id',
+      'occurred_at_start',
+      'occurred_at_end',
+      'amount',
+      'unit',
+      'co2e_kg',
+    ]);
+  });
+
+  it('filters by year (via reporting_period.year join)', () => {
+    seedFour();
+    expect(svc.list({ organization_id: org.id, year: 2024 })).toHaveLength(3);
+    expect(svc.list({ organization_id: org.id, year: 2023 })).toHaveLength(1);
+  });
+
+  it('filters by scope (via emission_source.scope join)', () => {
+    seedFour();
+    const scope2 = svc.list({ organization_id: org.id, scope: 2 });
+    expect(scope2).toHaveLength(3);
+    expect(scope2.every((r) => r.scope === 2)).toBe(true);
+  });
+
+  it('filters by emission_source_id', () => {
+    seedFour();
+    expect(svc.list({ organization_id: org.id, emission_source_id: scope1Source.id })).toHaveLength(
+      1,
+    );
+  });
+
+  it('respects limit', () => {
+    seedFour();
+    expect(svc.list({ organization_id: org.id, limit: 2 })).toHaveLength(2);
+  });
+
+  it('returns empty for an unknown organization_id (multi-tenant gate)', () => {
+    seedFour();
+    expect(svc.list({ organization_id: 'org-distinct' })).toHaveLength(0);
+  });
+});
+
+describe('ActivityDataService.sumCo2e — agent-loop aggregate', () => {
+  it('returns {total_kg: 0, count: 0} on an empty org', () => {
+    expect(svc.sumCo2e({ organization_id: org.id })).toEqual({ total_kg: 0, count: 0 });
+  });
+
+  it('sums across scopes when no scope filter is set', () => {
+    svc.create({
+      emission_source_id: scope2Source.id,
+      reporting_period_id: period.id,
+      occurred_at_start: '2024-01-01',
+      occurred_at_end: '2024-01-31',
+      amount: 1000,
+      unit: 'kWh',
+      ...CN_NATIONAL,
+    });
+    svc.create({
+      emission_source_id: scope1Source.id,
+      reporting_period_id: period.id,
+      occurred_at_start: '2024-01-01',
+      occurred_at_end: '2024-01-31',
+      amount: 100,
+      unit: 'm3',
+      ...NATURAL_GAS,
+    });
+    const all = svc.sumCo2e({ organization_id: org.id });
+    expect(all.count).toBe(2);
+    expect(all.total_kg).toBeCloseTo(570.3 + 187.9, 4);
+  });
+
+  it('scope filter narrows the sum', () => {
+    svc.create({
+      emission_source_id: scope2Source.id,
+      reporting_period_id: period.id,
+      occurred_at_start: '2024-01-01',
+      occurred_at_end: '2024-01-31',
+      amount: 1000,
+      unit: 'kWh',
+      ...CN_NATIONAL,
+    });
+    svc.create({
+      emission_source_id: scope1Source.id,
+      reporting_period_id: period.id,
+      occurred_at_start: '2024-01-01',
+      occurred_at_end: '2024-01-31',
+      amount: 100,
+      unit: 'm3',
+      ...NATURAL_GAS,
+    });
+    expect(svc.sumCo2e({ organization_id: org.id, scope: 1 }).count).toBe(1);
+    expect(svc.sumCo2e({ organization_id: org.id, scope: 2 }).total_kg).toBeCloseTo(570.3, 4);
+  });
+
+  it('returns 0/0 for an unknown organization_id (multi-tenant gate)', () => {
+    svc.create({
+      emission_source_id: scope2Source.id,
+      reporting_period_id: period.id,
+      occurred_at_start: '2024-01-01',
+      occurred_at_end: '2024-01-31',
+      amount: 1000,
+      unit: 'kWh',
+      ...CN_NATIONAL,
+    });
+    expect(svc.sumCo2e({ organization_id: 'org-distinct' })).toEqual({
+      total_kg: 0,
+      count: 0,
+    });
+  });
+});

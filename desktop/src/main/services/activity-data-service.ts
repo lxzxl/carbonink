@@ -244,6 +244,139 @@ export class ActivityDataService {
   }
 
   /**
+   * Flexible filtered listing for the answer-generation agent loop.
+   *
+   * Filters are all optional and AND-ed; `organization_id` is mandatory so the
+   * tool layer can't accidentally leak rows across the (theoretical) tenant
+   * boundary — in Phase 1a there's only ever one org per app instance, but
+   * keeping the filter explicit costs nothing and matches the rest of the
+   * org-scoped service surface.
+   *
+   * Joins:
+   *   - `emission_source es`  — needed for `scope` filter + multi-tenant gate
+   *     via `es.site_id → site.organization_id` (es itself has no org_id).
+   *   - `reporting_period rp` — needed for `year` filter; FK already on
+   *     activity_data so the join is cheap.
+   *   - `site s`              — only joined when `organization_id` filter is
+   *     active (always, in v1).
+   *
+   * Ordering: `occurred_at_start DESC, id DESC` so the most recent activities
+   * come first — matches what a question-answering agent would want to scan.
+   * `limit` defaults to 50 at the tool layer; the service caps at the caller-
+   * supplied value (no implicit cap here so unit tests can read all rows).
+   */
+  list(filters: {
+    organization_id: string;
+    year?: number;
+    scope?: 1 | 2 | 3;
+    emission_source_id?: string;
+    limit?: number;
+  }): Array<{
+    id: string;
+    source_name: string;
+    scope: 1 | 2 | 3;
+    period_id: string;
+    occurred_at_start: string;
+    occurred_at_end: string;
+    amount: number;
+    unit: string;
+    co2e_kg: number;
+  }> {
+    const clauses: string[] = ['s.organization_id = ?'];
+    const params: unknown[] = [filters.organization_id];
+
+    if (filters.year !== undefined) {
+      clauses.push('rp.year = ?');
+      params.push(filters.year);
+    }
+    if (filters.scope !== undefined) {
+      clauses.push('es.scope = ?');
+      params.push(filters.scope);
+    }
+    if (filters.emission_source_id !== undefined) {
+      clauses.push('ad.emission_source_id = ?');
+      params.push(filters.emission_source_id);
+    }
+
+    let sql = `SELECT ad.id              AS id,
+                      es.name            AS source_name,
+                      es.scope           AS scope,
+                      ad.reporting_period_id AS period_id,
+                      ad.occurred_at_start,
+                      ad.occurred_at_end,
+                      ad.amount,
+                      ad.unit,
+                      ad.computed_co2e_kg AS co2e_kg
+                 FROM activity_data ad
+                 JOIN emission_source es ON es.id = ad.emission_source_id
+                 JOIN site s             ON s.id = es.site_id
+                 JOIN reporting_period rp ON rp.id = ad.reporting_period_id
+                WHERE ${clauses.join(' AND ')}
+                ORDER BY ad.occurred_at_start DESC, ad.id DESC`;
+
+    if (filters.limit !== undefined) {
+      sql += ` LIMIT ?`;
+      params.push(filters.limit);
+    }
+
+    return this.db.prepare(sql).all(...params) as Array<{
+      id: string;
+      source_name: string;
+      scope: 1 | 2 | 3;
+      period_id: string;
+      occurred_at_start: string;
+      occurred_at_end: string;
+      amount: number;
+      unit: string;
+      co2e_kg: number;
+    }>;
+  }
+
+  /**
+   * Aggregate `computed_co2e_kg` over the same filter shape as `list`. Used by
+   * the agent's `sum_co2e` tool — the agent can ask "what's the scope-1 total
+   * for 2024?" without scanning every row.
+   *
+   * `COALESCE(SUM(...), 0)` so an empty filter set returns `{total_kg: 0,
+   * count: 0}` rather than `null` — keeps the tool's return contract simple.
+   */
+  sumCo2e(filters: {
+    organization_id: string;
+    year?: number;
+    scope?: 1 | 2 | 3;
+    emission_source_id?: string;
+  }): { total_kg: number; count: number } {
+    const clauses: string[] = ['s.organization_id = ?'];
+    const params: unknown[] = [filters.organization_id];
+
+    if (filters.year !== undefined) {
+      clauses.push('rp.year = ?');
+      params.push(filters.year);
+    }
+    if (filters.scope !== undefined) {
+      clauses.push('es.scope = ?');
+      params.push(filters.scope);
+    }
+    if (filters.emission_source_id !== undefined) {
+      clauses.push('ad.emission_source_id = ?');
+      params.push(filters.emission_source_id);
+    }
+
+    const row = this.db
+      .prepare(
+        `SELECT COALESCE(SUM(ad.computed_co2e_kg), 0) AS total_kg,
+                COUNT(*) AS count
+           FROM activity_data ad
+           JOIN emission_source es ON es.id = ad.emission_source_id
+           JOIN site s             ON s.id = es.site_id
+           JOIN reporting_period rp ON rp.id = ad.reporting_period_id
+          WHERE ${clauses.join(' AND ')}`,
+      )
+      .get(...params) as { total_kg: number; count: number };
+    return row;
+  }
+
+  /**
    * Hard delete with reference check.
    *
    * `answer.source_activity_data_id` (FK in migration 005/014, no ON DELETE

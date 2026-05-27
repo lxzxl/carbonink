@@ -294,6 +294,52 @@ describe('QuestionnaireService.getById', () => {
   });
 });
 
+describe('QuestionnaireService.getContext', () => {
+  it('returns compact summary: customer_name + reporting_year + question_count', async () => {
+    const { svc } = setup({
+      llmQuestions: [
+        {
+          raw_text: 'Q1',
+          normalized_text: 'q1',
+          answer_cell_ref: 'S!B1',
+          expected_unit: null,
+          sheet: 'S',
+          question_row: 1,
+          question_kind: 'categorical',
+        },
+        {
+          raw_text: 'Q2',
+          normalized_text: 'q2',
+          answer_cell_ref: 'S!B2',
+          expected_unit: null,
+          sheet: 'S',
+          question_row: 2,
+          question_kind: 'categorical',
+        },
+      ],
+    });
+    const r = await svc.createFromUpload({
+      customer_name: 'Acme Co',
+      reporting_year: 2026,
+      due_date: null,
+      file_bytes: new Uint8Array([0]),
+      filename: 'q.xlsx',
+    });
+
+    const ctx = svc.getContext(r.questionnaire_id);
+    expect(ctx).toEqual({
+      customer_name: 'Acme Co',
+      reporting_year: 2026,
+      question_count: 2,
+    });
+  });
+
+  it('returns null for unknown id', () => {
+    const { svc } = setup({ llmQuestions: [] });
+    expect(svc.getContext('not-real')).toBeNull();
+  });
+});
+
 describe('QuestionnaireService.createFromUpload — reuse from prior questionnaires', () => {
   // Helper: compute the same SHA-256 signature that the service uses.
   function sig(normalizedText: string): string {

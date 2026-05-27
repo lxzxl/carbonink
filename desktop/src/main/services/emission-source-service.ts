@@ -137,6 +137,35 @@ export class EmissionSourceService {
   }
 
   /**
+   * Filtered list for the answer-generation agent's `list_emission_sources`
+   * tool. `organization_id` is mandatory (multi-tenant gate); `scope` is the
+   * one optional axis the agent needs (e.g. "list my scope-2 sources").
+   *
+   * Same row shape + ordering as {@link listByOrganization}. Kept as a
+   * separate method (rather than overloading `listByOrganization`) so the
+   * existing call sites stay untouched.
+   */
+  list(filters: { organization_id: string; scope?: 1 | 2 | 3 }): EmissionSource[] {
+    const cols = ES_COLUMNS.map((c) => `es.${c}`).join(', ');
+    const clauses: string[] = ['s.organization_id = ?'];
+    const params: unknown[] = [filters.organization_id];
+    if (filters.scope !== undefined) {
+      clauses.push('es.scope = ?');
+      params.push(filters.scope);
+    }
+    const rows = this.ctx.db
+      .prepare(
+        `SELECT ${cols}
+           FROM emission_source es
+           JOIN site s ON es.site_id = s.id
+          WHERE ${clauses.join(' AND ')}
+          ORDER BY es.scope ASC, es.name ASC, es.id ASC`,
+      )
+      .all(...params) as EmissionSourceRow[];
+    return rows.map((r) => mapRow(r) as EmissionSource);
+  }
+
+  /**
    * Same as `listByOrganization` but with usage stats joined in from
    * `activity_data`. Powers the `/sources` route's enriched card layout —
    * users want to see which sources have actually been used, when, and
