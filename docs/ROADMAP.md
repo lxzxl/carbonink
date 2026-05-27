@@ -118,6 +118,33 @@ roadmap 只记"想做"，没排期、没承诺。要做之前必须先走 brains
 
 ---
 
+## 4.5. 🔧 实施中（v2.0，2026-05-27）— Inbound 供应商问卷（Scope 3 Cat 1）
+
+源自 2026-05-27 的产品反思（["问卷不应该是数据来源吗？"](../docs/specs/2026-05-27-inbound-questionnaire-cat1.md#trigger)）。v1 把 questionnaire 设计成 outbound-only（用我方数据填客户问卷）；v2.0 加入对偶的 inbound 流（向供应商发问卷收数据，自动转 activity_data 行）。
+
+**v2.0 范围**（[spec](specs/2026-05-27-inbound-questionnaire-cat1.md), [plan](plans/2026-05-27-inbound-questionnaire-cat1.md), commits e598258..a94c910）
+- 单一内置模板：Cat 1 Supplier Disclosure（7 题：3 元数据 + 1 Tier 1 PCF + 3 Tier 2 分配排放）
+- 交付方式：xlsx 邮件往返（无 cloud surface 扩展、无 supplier auth）
+- 服务层：`InboundQuestionnaireService.createDraft / exportBlankXlsx / importFilledXlsx / getIngestPreview / ingest`
+- xlsx render + parse with hidden sentinel sheet（防止误导外发表 / 错供应商 xlsx）
+- 入库时 Tier 2 走 sentinel pinned EF（直填 kgCO2e），Tier 1 路径在 review 页面 inline 收"采购数量"再乘 PCF
+- 状态机：draft → sent → received → ingested，每步 audit_event
+- UI：list 页 direction filter chips + 行级 IN/OUT badge；detail 页按 direction × status 分支；新增 `/questionnaires/$id/ingest` review-and-confirm 页
+- 数据库迁移 017：questionnaire.direction、customer.role、question.tier、activity_data.{inbound_question_id, inbound_tier}
+
+**目前状态**：12/13 implementer tasks 完成，917/917 测试通过。**T13 手动 smoke 待运行**（fill_in 6-7 步流程验证 end-to-end）。
+
+**留作 v2.1+**：
+- Tier 3（供应商报活动数据，我方换算）
+- Cat 4 上游运输 / Cat 5 废弃物 / Cat 6 商旅外包等多模板
+- 模板编辑器 UI（用户自定义问题）
+- 自动从存量 AD 推断 Tier 1 的采购数量（消除 review 页手填）
+- Cloud-hosted 供应商填表 portal（避开邮件往返摩擦）
+- `customer` → `counterparty` 表重命名 + role 字段重新定义
+- 完整 i18n key 迁移（v2.0 内嵌中文，未走 paraglide）
+
+---
+
 ## 5. ✅ 已完成（v1 + v1.1，2026-05-26）— Settings → MCP integration
 
 实施落地为**通用 MCP 多客户端集成 + 跨 host Agent Skill 安装器**——非 Pi-specific（参见 [Pi integration rationale memory](../../../../../.claude/projects/-Users-lxz-ws-personal/memory/project_pi_integration_rationale.md)）。
