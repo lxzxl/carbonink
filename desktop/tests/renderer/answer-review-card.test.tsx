@@ -24,6 +24,7 @@ const FAKE_QUESTION: Question = {
   expected_unit: 'kWh',
   position: 'B5',
   required: 0,
+  tier: null,
 };
 
 const FAKE_ANSWER: Answer = {

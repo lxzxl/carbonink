@@ -32,6 +32,7 @@ const FAKE_QUESTIONNAIRE = {
   reporting_year: 2025,
   question_count: 42,
   status: 'answering' as const,
+  direction: 'outbound' as const,
   due_date: '2026-06-30',
   created_at: '2026-05-12T10:00:00.000Z',
 };
@@ -45,6 +46,7 @@ const FAKE_QUESTIONNAIRE_2 = {
   reporting_year: 2025,
   question_count: 28,
   status: 'parsing' as const,
+  direction: 'outbound' as const,
   due_date: '2026-07-15',
   created_at: '2026-05-13T11:00:00.000Z',
 };

@@ -7,21 +7,65 @@ export * from './schemas/reporting-period.js';
 export * from './schemas/site.js';
 
 // ---------------------------------------------------------------------------
+// Inbound questionnaire primitives (migration 017 — Cat 1 supplier disclosure)
+// ---------------------------------------------------------------------------
+
+/**
+ * Whether a questionnaire flows from us to a customer ("outbound", v1) or
+ * from us to a supplier and back ("inbound", v2.0 — Scope 3 Cat 1 disclosure).
+ * Mutually exclusive at the IPC/UI level: outbound runs the answer-generation
+ * agent; inbound runs the supplier-disclosure ingest pipeline.
+ */
+export type Direction = 'outbound' | 'inbound';
+
+/**
+ * Inbound disclosure tier:
+ *  - Tier 1 = supplier-specific per-unit product carbon footprint (kgCO2e/kg).
+ *  - Tier 2 = supplier's allocated company-level emissions (kgCO2e attributable
+ *    to our purchase, by mass / economic / physical allocation).
+ * Metadata questions (legal name, period, inventory status) have `tier = null`.
+ */
+export type Tier = 1 | 2;
+
+/** v2.0 ships exactly one template; the type stays a union for future Cat 4/5/etc. */
+export type InboundTemplateKind = 'cat1_supplier_disclosure';
+
+/**
+ * Counterparty role on the shared `customer` table. v2.0 introduces
+ * 'supplier' alongside the original 'customer' so inbound disclosures
+ * can reuse the table without a rename.
+ */
+export type CounterpartyRole = 'customer' | 'supplier';
+
+// ---------------------------------------------------------------------------
 // Customer types
 // ---------------------------------------------------------------------------
 
-/** Row shape mirroring the `customer` table. See migration 005. */
+/** Row shape mirroring the `customer` table. See migration 005 + 017. */
 export type Customer = {
   id: string;
   name: string;
   notes: string | null;
+  role: CounterpartyRole;
+};
+
+/**
+ * A `customer`-table row materialized with role='supplier'. Same physical row
+ * shape as {@link Customer}; nominal type so the supplier endpoints can return
+ * a narrower view that the renderer can statically branch on.
+ */
+export type Supplier = {
+  id: string;
+  name: string;
+  notes: string | null;
+  role: 'supplier';
 };
 
 // ---------------------------------------------------------------------------
 // Question / Questionnaire types (Phase 2.2a — questionnaire extract pipeline)
 // ---------------------------------------------------------------------------
 
-/** Row shape mirroring the `question` table. See migration 005. */
+/** Row shape mirroring the `question` table. See migration 005 + 017. */
 export type Question = {
   id: string;
   questionnaire_id: string;
@@ -34,18 +78,122 @@ export type Question = {
   expected_unit: string | null;
   position: string | null;
   required: number;
+  /**
+   * Non-null only for questions belonging to an inbound disclosure template.
+   * Outbound questions extracted from a customer's xlsx always carry null.
+   */
+  tier: Tier | null;
 };
 
-/** Row shape mirroring the `questionnaire` table. See migration 005. */
+/** Row shape mirroring the `questionnaire` table. See migration 005 + 017. */
 export type Questionnaire = {
   id: string;
   customer_id: string;
-  document_id: string;
+  /** Nullable since migration 017 — inbound drafts have no source document. */
+  document_id: string | null;
   template_kind: string | null;
   reporting_year: number;
-  status: 'parsing' | 'mapping' | 'answering' | 'exported';
+  status:
+    | 'parsing'
+    | 'mapping'
+    | 'answering'
+    | 'exported'
+    | 'draft'
+    | 'sent'
+    | 'received'
+    | 'ingested';
+  direction: Direction;
   due_date: string | null;
   created_at: string;
+};
+
+// ---------------------------------------------------------------------------
+// Inbound questionnaire template + review-pipeline view types
+// ---------------------------------------------------------------------------
+
+/**
+ * A single question inside a built-in inbound template. `position` is a
+ * stable identifier across template versions (e.g. 'tier1.1'); `cell_ref`
+ * is the xlsx address (e.g. 'tier2!B5') where the supplier will type their
+ * answer. The renderer materializes one of these per checked question into
+ * the `question` table when the user creates a draft.
+ */
+export type InboundTemplateQuestion = {
+  position: string;
+  tier: Tier | null;
+  kind: 'numerical' | 'categorical' | 'narrative';
+  raw_zh: string;
+  raw_en: string;
+  expected_unit: string | null;
+  cell_ref: string;
+};
+
+/**
+ * Built-in inbound template. v2.0 ships `'cat1_supplier_disclosure'`; future
+ * Cat 4 / Cat 5 templates plug into the same shape.
+ */
+export type InboundTemplate = {
+  template_kind: InboundTemplateKind;
+  version: string;
+  scope: 1 | 2 | 3;
+  category: string;
+  ghg_protocol_path: string;
+  questions: readonly InboundTemplateQuestion[];
+};
+
+/**
+ * One per-question entry in the review-and-confirm preview after we parse
+ * a supplier-filled xlsx. `parsed_value` is normalized to JS types:
+ *  - numerical: number | null (null when blank or unparseable)
+ *  - categorical / narrative: string | null
+ * `proposed_activity` is non-null only on Tier 1/2 numerical answers that
+ * would land as an `activity_data` row on ingest.
+ */
+export type ImportPreviewAnswer = {
+  question_id: string;
+  position: string;
+  tier: Tier | null;
+  raw_value: string;
+  parsed_value: number | string | null;
+  is_blank: boolean;
+  proposed_activity: {
+    amount: number;
+    unit: string;
+    co2e_kg: number;
+  } | null;
+};
+
+/** Soft validation issue surfaced in the review UI (does not abort import). */
+export type ImportPreviewWarning = {
+  /** null = workbook-level (sentinel sheet mismatches, period mismatch, etc). */
+  question_id: string | null;
+  kind: 'period_mismatch' | 'unit_unrecognized' | 'numerical_unparseable' | 'blank_template';
+  detail: string;
+};
+
+/**
+ * Side-by-side review payload the renderer feeds into the
+ * `/questionnaires/$id/ingest` page. `ingestion_plan` summarizes what the
+ * subsequent `inbound-ingest` IPC will produce when the user clicks confirm.
+ */
+export type ImportPreview = {
+  questionnaire_id: string;
+  supplier_name: string;
+  warnings: ImportPreviewWarning[];
+  answers: ImportPreviewAnswer[];
+  ingestion_plan: {
+    tier_selected: Tier | null;
+    emission_source_name: string;
+    activity_row_count: number;
+    total_co2e_kg: number;
+  };
+};
+
+/** Return shape of `questionnaire:inbound-ingest`. */
+export type IngestResult = {
+  activity_data_ids: string[];
+  emission_source_id: string;
+  ingested_at: string;
 };
 
 /** Assembled questionnaire data for PDF rendering: sheets grouped + questions sorted by cell position. */
@@ -56,7 +204,7 @@ export type QuestionnairePdfData = {
     reporting_year: number;
     due_date: string | null;
     created_at: string;
-    status: 'parsing' | 'mapping' | 'answering' | 'exported';
+    status: Questionnaire['status'];
   };
   document: { filename: string };
   sheets: Array<{
@@ -214,7 +362,7 @@ export type EmissionSource = {
   is_active: boolean;
 };
 
-/** Row shape mirroring the `activity_data` table. See migration 004. */
+/** Row shape mirroring the `activity_data` table. See migration 004 + 017. */
 export type ActivityData = {
   id: string;
   site_id: string;
@@ -235,6 +383,14 @@ export type ActivityData = {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  /**
+   * Set when the activity row was materialized from a supplier-disclosure
+   * answer. References the inbound `question.id`; null for OCR-derived
+   * and hand-typed rows. See migration 017.
+   */
+  inbound_question_id: string | null;
+  /** Which inbound tier supplied the value (1 = PCF, 2 = allocated). */
+  inbound_tier: Tier | null;
 };
 
 /** ActivityData row joined with the currently pinned emission factor. */

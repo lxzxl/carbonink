@@ -38,6 +38,7 @@ const FAKE_CUSTOMER = {
   id: 'cust_01',
   name: 'Acme Corp',
   notes: null,
+  role: 'customer' as const,
 };
 
 const FAKE_DOCUMENT = {
@@ -59,6 +60,7 @@ const FAKE_QUESTIONNAIRE = {
   template_kind: null,
   reporting_year: 2025,
   status: 'answering' as const,
+  direction: 'outbound' as const,
   due_date: '2026-06-30',
   created_at: '2026-05-12T10:00:00.000Z',
 };
@@ -76,6 +78,7 @@ const FAKE_QUESTIONS = [
     expected_unit: 'kWh',
     position: 'B2',
     required: 0,
+    tier: null,
   },
   {
     id: 'q_02',
@@ -89,6 +92,7 @@ const FAKE_QUESTIONS = [
     expected_unit: null,
     position: 'C3',
     required: 0,
+    tier: null,
   },
   {
     id: 'q_03',
@@ -102,6 +106,7 @@ const FAKE_QUESTIONS = [
     expected_unit: 'tons',
     position: null,
     required: 0,
+    tier: null,
   },
 ];
 
