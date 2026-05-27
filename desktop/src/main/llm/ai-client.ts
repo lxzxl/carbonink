@@ -198,6 +198,7 @@ export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClien
         tools?: Tool[];
         prompt: string;
         system?: string;
+        images?: Buffer[];
         timeoutMs: number;
       }): Effect.Effect<{ msg: AssistantMessage; httpStatus: number | undefined }, AiErr, never> =>
         Effect.async<{ msg: AssistantMessage; httpStatus: number | undefined }, AiErr, never>(
@@ -224,11 +225,27 @@ export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClien
               controller.abort();
             }, args.timeoutMs);
 
+            // When images are present, the user message becomes a parts array
+            // (text + image blocks). All our image input is PNG from the
+            // pdf-to-images render path; widen later if other mime types
+            // surface.
+            const userContent: string | Array<{ type: 'text'; text: string } | { type: 'image'; data: string; mimeType: string }> =
+              args.images && args.images.length > 0
+                ? [
+                    { type: 'text', text: args.prompt },
+                    ...args.images.map((buf) => ({
+                      type: 'image' as const,
+                      data: buf.toString('base64'),
+                      mimeType: 'image/png',
+                    })),
+                  ]
+                : args.prompt;
+
             complete(
               resolvedModel,
               {
                 ...(args.system ? { systemPrompt: args.system } : {}),
-                messages: [{ role: 'user', content: args.prompt, timestamp: Date.now() }],
+                messages: [{ role: 'user', content: userContent, timestamp: Date.now() }],
                 ...(args.tools ? { tools: args.tools } : {}),
               },
               {
@@ -347,6 +364,7 @@ export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClien
             tools: [tool],
             prompt: args.prompt,
             ...(args.system !== undefined ? { system: args.system } : {}),
+            ...(args.images !== undefined ? { images: args.images } : {}),
             timeoutMs,
           }).pipe(
             Effect.flatMap(({ msg, httpStatus }) => {
