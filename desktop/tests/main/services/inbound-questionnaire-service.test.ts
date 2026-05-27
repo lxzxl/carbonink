@@ -14,6 +14,7 @@ import {
 import { CAT1_SUPPLIER_DISCLOSURE } from '@main/services/inbound-templates/index.js';
 import type { InboundTemplateKind, Question, Questionnaire, Supplier } from '@shared/types';
 import Database from 'better-sqlite3';
+import ExcelJS from 'exceljs';
 import { describe, expect, it } from 'vitest';
 
 /**
@@ -389,6 +390,287 @@ describe('InboundQuestionnaireService.exportBlankXlsx', () => {
     });
 
     await expect(svc.exportBlankXlsx(questionnaire_id)).rejects.toThrow(InboundOrgMissing);
+  });
+});
+
+/**
+ * Render → simulate supplier fills → return Buffer ready for import.
+ */
+async function fillBlankXlsx(
+  blank: Buffer,
+  fills: Record<string, string | number>,
+): Promise<Buffer> {
+  const wb = new ExcelJS.Workbook();
+  // biome-ignore lint/suspicious/noExplicitAny: Buffer boundary cast.
+  await wb.xlsx.load(blank as any);
+  for (const [cellRef, value] of Object.entries(fills)) {
+    const [sheetName, address] = cellRef.split('!');
+    if (!sheetName || !address) continue;
+    const sheet = wb.getWorksheet(sheetName);
+    if (!sheet) continue;
+    sheet.getCell(address).value = value;
+  }
+  const out = await wb.xlsx.writeBuffer();
+  // biome-ignore lint/suspicious/noExplicitAny: Buffer boundary cast.
+  return out as any as Buffer;
+}
+
+/** Create draft + export blank in one go — common preamble for import tests. */
+async function createDraftAndExport(
+  svc: InboundQuestionnaireService,
+  supplier: Supplier,
+  periodId: string,
+  positions: readonly string[] = CAT1_SUPPLIER_DISCLOSURE.questions.map((q) => q.position),
+): Promise<{ questionnaireId: string; blank: Buffer }> {
+  const { questionnaire_id } = svc.createDraft({
+    supplier_id: supplier.id,
+    reporting_period_id: periodId,
+    template_kind: 'cat1_supplier_disclosure',
+    included_question_positions: positions,
+  });
+  const blank = await svc.exportBlankXlsx(questionnaire_id);
+  return { questionnaireId: questionnaire_id, blank };
+}
+
+describe('InboundQuestionnaireService.importFilledXlsx — happy paths', () => {
+  it('Tier 2 path: all three trio cells filled → tier_selected=2, proposed_activity on tier2.3', async () => {
+    const { svc, supplier, periodId } = setup();
+    const { questionnaireId, blank } = await createDraftAndExport(svc, supplier, periodId);
+    const filled = await fillBlankXlsx(blank, {
+      'metadata!B5': 'Acme Steel Co.',
+      'metadata!B7': '2025 calendar year',
+      'metadata!B9': 'self-reported',
+      'tier2!B5': 850000,
+      'tier2!B7': 'mass-based',
+      'tier2!B9': 12000,
+    });
+    const preview = await svc.importFilledXlsx(questionnaireId, filled);
+
+    expect(preview.questionnaire_id).toBe(questionnaireId);
+    expect(preview.supplier_name).toBe('Acme Steel Co.');
+    expect(preview.ingestion_plan.tier_selected).toBe(2);
+    expect(preview.ingestion_plan.emission_source_name).toBe(
+      'Acme Steel Co. — purchased goods (2025)',
+    );
+    expect(preview.ingestion_plan.activity_row_count).toBe(1);
+    expect(preview.ingestion_plan.total_co2e_kg).toBe(12000);
+
+    // The tier2.3 row carries the proposed activity; others do not.
+    const tier2_3 = preview.answers.find((a) => a.position === 'tier2.3');
+    expect(tier2_3?.proposed_activity).toEqual({
+      amount: 12000,
+      unit: 'kgCO2e',
+      co2e_kg: 12000,
+    });
+    const tier2_1 = preview.answers.find((a) => a.position === 'tier2.1');
+    expect(tier2_1?.proposed_activity).toBeNull();
+  });
+
+  it('Tier 1 path: only PCF filled → tier_selected=1, no proposed_activity yet', async () => {
+    const { svc, supplier, periodId } = setup();
+    const { questionnaireId, blank } = await createDraftAndExport(svc, supplier, periodId);
+    const filled = await fillBlankXlsx(blank, {
+      'metadata!B5': 'Acme Steel Co.',
+      'tier1!B5': 2.5,
+    });
+    const preview = await svc.importFilledXlsx(questionnaireId, filled);
+
+    expect(preview.ingestion_plan.tier_selected).toBe(1);
+    expect(preview.ingestion_plan.activity_row_count).toBe(0);
+    expect(preview.ingestion_plan.total_co2e_kg).toBe(0);
+
+    const tier1_1 = preview.answers.find((a) => a.position === 'tier1.1');
+    expect(tier1_1?.parsed_value).toBe(2.5);
+    expect(tier1_1?.is_blank).toBe(false);
+    // PCF without quantity → no proposed activity until ingest prompts user.
+    expect(tier1_1?.proposed_activity).toBeNull();
+  });
+
+  it('Tier 1 wins when both tiers are filled', async () => {
+    const { svc, supplier, periodId } = setup();
+    const { questionnaireId, blank } = await createDraftAndExport(svc, supplier, periodId);
+    const filled = await fillBlankXlsx(blank, {
+      'tier1!B5': 2.5,
+      'tier2!B5': 850000,
+      'tier2!B7': 'mass-based',
+      'tier2!B9': 12000,
+    });
+    const preview = await svc.importFilledXlsx(questionnaireId, filled);
+    expect(preview.ingestion_plan.tier_selected).toBe(1);
+    expect(preview.ingestion_plan.total_co2e_kg).toBe(0); // tier 1 needs quantity
+  });
+
+  it('blank workbook: no tier numerical filled → tier_selected=null + blank_template warning', async () => {
+    const { svc, supplier, periodId } = setup();
+    const { questionnaireId, blank } = await createDraftAndExport(svc, supplier, periodId);
+    const filled = await fillBlankXlsx(blank, {
+      'metadata!B5': 'Some Supplier',
+    });
+    const preview = await svc.importFilledXlsx(questionnaireId, filled);
+    expect(preview.ingestion_plan.tier_selected).toBeNull();
+    expect(preview.ingestion_plan.activity_row_count).toBe(0);
+    expect(preview.warnings.some((w) => w.kind === 'blank_template')).toBe(true);
+  });
+});
+
+describe('InboundQuestionnaireService.importFilledXlsx — DB side effects', () => {
+  it('writes tentative answer rows (source_kind=manual, finalized_at=NULL)', async () => {
+    const { db, svc, supplier, periodId } = setup();
+    const { questionnaireId, blank } = await createDraftAndExport(svc, supplier, periodId);
+    const filled = await fillBlankXlsx(blank, {
+      'metadata!B5': 'Acme Steel Co.',
+      'tier2!B5': 850000,
+      'tier2!B7': 'mass-based',
+      'tier2!B9': 12000,
+    });
+    await svc.importFilledXlsx(questionnaireId, filled);
+
+    const rows = db
+      .prepare(
+        `SELECT q.position, a.value, a.source_kind, a.finalized_at
+           FROM answer a JOIN question q ON q.id = a.question_id
+          WHERE q.questionnaire_id = ?`,
+      )
+      .all(questionnaireId) as Array<{
+      position: string;
+      value: string;
+      source_kind: string;
+      finalized_at: string | null;
+    }>;
+    // 4 non-blank answers — meta.1 + tier2.1 + tier2.2 + tier2.3
+    expect(rows).toHaveLength(4);
+    for (const r of rows) {
+      expect(r.source_kind).toBe('manual');
+      expect(r.finalized_at).toBeNull();
+    }
+    const meta1 = rows.find((r) => r.position === 'meta.1');
+    expect(meta1?.value).toBe('Acme Steel Co.');
+    const tier2_3 = rows.find((r) => r.position === 'tier2.3');
+    expect(tier2_3?.value).toBe('12000');
+  });
+
+  it('flips status to received and audits the import', async () => {
+    const { db, svc, supplier, periodId } = setup();
+    const { questionnaireId, blank } = await createDraftAndExport(svc, supplier, periodId);
+    const filled = await fillBlankXlsx(blank, { 'metadata!B5': 'X' });
+    await svc.importFilledXlsx(questionnaireId, filled);
+
+    const q = db.prepare('SELECT status FROM questionnaire WHERE id = ?').get(questionnaireId) as {
+      status: string;
+    };
+    expect(q.status).toBe('received');
+
+    const audit = db
+      .prepare(
+        "SELECT payload FROM audit_event WHERE event_kind = 'inbound_questionnaire.imported'",
+      )
+      .all() as Array<{ payload: string }>;
+    expect(audit).toHaveLength(1);
+    const payload = JSON.parse(audit[0]?.payload ?? '{}');
+    expect(payload.questionnaire_id).toBe(questionnaireId);
+    expect(payload.is_first_import).toBe(true);
+  });
+
+  it('re-import wipes prior tentative answers + audits each event', async () => {
+    const { db, svc, supplier, periodId } = setup();
+    const { questionnaireId, blank } = await createDraftAndExport(svc, supplier, periodId);
+    const firstFill = await fillBlankXlsx(blank, {
+      'metadata!B5': 'First Name',
+      'tier2!B5': 500000,
+      'tier2!B7': 'mass-based',
+      'tier2!B9': 8000,
+    });
+    await svc.importFilledXlsx(questionnaireId, firstFill);
+
+    // Supplier sends a corrected file.
+    const secondFill = await fillBlankXlsx(blank, {
+      'metadata!B5': 'Corrected Name',
+      'tier2!B5': 850000,
+      'tier2!B7': 'economic',
+      'tier2!B9': 12000,
+    });
+    await svc.importFilledXlsx(questionnaireId, secondFill);
+
+    const rows = db
+      .prepare(
+        `SELECT q.position, a.value FROM answer a JOIN question q ON q.id = a.question_id
+          WHERE q.questionnaire_id = ?`,
+      )
+      .all(questionnaireId) as Array<{ position: string; value: string }>;
+    expect(rows).toHaveLength(4);
+    const meta1 = rows.find((r) => r.position === 'meta.1');
+    expect(meta1?.value).toBe('Corrected Name');
+    const tier2_3 = rows.find((r) => r.position === 'tier2.3');
+    expect(tier2_3?.value).toBe('12000');
+
+    const audits = db
+      .prepare(
+        "SELECT payload FROM audit_event WHERE event_kind = 'inbound_questionnaire.imported' ORDER BY occurred_at ASC",
+      )
+      .all() as Array<{ payload: string }>;
+    expect(audits).toHaveLength(2);
+    expect(JSON.parse(audits[0]?.payload ?? '{}').is_first_import).toBe(true);
+    expect(JSON.parse(audits[1]?.payload ?? '{}').is_first_import).toBe(false);
+  });
+});
+
+describe('InboundQuestionnaireService.importFilledXlsx — validation', () => {
+  it('throws InboundWrongStatus when status is draft (must export first)', async () => {
+    const { svc, supplier, periodId } = setup();
+    const { questionnaire_id } = svc.createDraft({
+      supplier_id: supplier.id,
+      reporting_period_id: periodId,
+      template_kind: 'cat1_supplier_disclosure',
+      included_question_positions: ['meta.1'],
+    });
+    // Status is still 'draft' — try to import without exporting.
+    const dummy = Buffer.from('not a real xlsx');
+    await expect(svc.importFilledXlsx(questionnaire_id, dummy)).rejects.toThrow(InboundWrongStatus);
+  });
+
+  it('throws InboundQuestionnaireNotFound for an unknown id', async () => {
+    const { svc } = setup();
+    await expect(svc.importFilledXlsx('no-such-id', Buffer.alloc(0))).rejects.toThrow(
+      InboundQuestionnaireNotFound,
+    );
+  });
+});
+
+describe('InboundQuestionnaireService.getIngestPreview', () => {
+  it('idempotently rebuilds the preview from persisted tentative answers', async () => {
+    const { svc, supplier, periodId } = setup();
+    const { questionnaireId, blank } = await createDraftAndExport(svc, supplier, periodId);
+    const filled = await fillBlankXlsx(blank, {
+      'metadata!B5': 'Acme Steel Co.',
+      'tier2!B5': 850000,
+      'tier2!B7': 'mass-based',
+      'tier2!B9': 12000,
+    });
+    const importPreview = await svc.importFilledXlsx(questionnaireId, filled);
+    const reopenPreview = svc.getIngestPreview(questionnaireId);
+
+    // Tier selection + total agree across both paths.
+    expect(reopenPreview.ingestion_plan.tier_selected).toBe(2);
+    expect(reopenPreview.ingestion_plan.total_co2e_kg).toBe(
+      importPreview.ingestion_plan.total_co2e_kg,
+    );
+    expect(reopenPreview.ingestion_plan.activity_row_count).toBe(1);
+
+    // Parsed numerical values survive the DB round-trip.
+    const tier2_3 = reopenPreview.answers.find((a) => a.position === 'tier2.3');
+    expect(tier2_3?.parsed_value).toBe(12000);
+    expect(tier2_3?.proposed_activity?.co2e_kg).toBe(12000);
+
+    // Blank positions remain blank.
+    const tier1 = reopenPreview.answers.find((a) => a.position === 'tier1.1');
+    expect(tier1?.is_blank).toBe(true);
+  });
+
+  it('throws InboundWrongStatus when called on a sent (not yet imported) questionnaire', async () => {
+    const { svc, supplier, periodId } = setup();
+    const { questionnaireId } = await createDraftAndExport(svc, supplier, periodId);
+    // Status is 'sent' — getIngestPreview requires 'received'.
+    expect(() => svc.getIngestPreview(questionnaireId)).toThrow(InboundWrongStatus);
   });
 });
 
