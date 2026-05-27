@@ -2,10 +2,14 @@ import { runMigrations } from '@main/db/migrate';
 import { CustomerService } from '@main/services/customer-service';
 import {
   InboundNoQuestionsIncluded,
+  InboundOrgMissing,
   InboundPeriodNotFound,
+  InboundQuestionnaireNotFound,
   InboundQuestionnaireService,
   InboundSupplierNotFound,
   InboundUnknownTemplate,
+  InboundWrongDirection,
+  InboundWrongStatus,
 } from '@main/services/inbound-questionnaire-service';
 import { CAT1_SUPPLIER_DISCLOSURE } from '@main/services/inbound-templates/index.js';
 import type { InboundTemplateKind, Question, Questionnaire, Supplier } from '@shared/types';
@@ -246,6 +250,145 @@ describe('InboundQuestionnaireService.createDraft — validation errors', () => 
     expect(qCount.n).toBe(0);
     const questionCount = db.prepare('SELECT COUNT(*) AS n FROM question').get() as { n: number };
     expect(questionCount.n).toBe(0);
+  });
+});
+
+describe('InboundQuestionnaireService.exportBlankXlsx', () => {
+  it('returns a Buffer, flips status to sent, and audits the export', async () => {
+    const { db, svc, supplier, periodId } = setup();
+    const { questionnaire_id } = svc.createDraft({
+      supplier_id: supplier.id,
+      reporting_period_id: periodId,
+      template_kind: 'cat1_supplier_disclosure',
+      included_question_positions: CAT1_SUPPLIER_DISCLOSURE.questions.map((q) => q.position),
+    });
+
+    const buf = await svc.exportBlankXlsx(questionnaire_id);
+    // The return type is `Buffer` but at runtime ExcelJS sometimes hands
+    // back a `Buffer<ArrayBufferLike>` whose narrowing isn't useful for
+    // tests — assert the byte-shape property we actually care about.
+    expect(buf.length).toBeGreaterThan(1000);
+
+    const qRow = db
+      .prepare('SELECT status FROM questionnaire WHERE id = ?')
+      .get(questionnaire_id) as { status: string };
+    expect(qRow.status).toBe('sent');
+
+    const audit = db
+      .prepare(
+        "SELECT payload FROM audit_event WHERE event_kind = 'inbound_questionnaire.exported'",
+      )
+      .all() as Array<{ payload: string }>;
+    expect(audit).toHaveLength(1);
+    const payload = JSON.parse(audit[0]?.payload ?? '{}');
+    expect(payload.questionnaire_id).toBe(questionnaire_id);
+    expect(payload.supplier_id).toBe(supplier.id);
+    expect(payload.template_kind).toBe('cat1_supplier_disclosure');
+    expect(payload.question_count).toBe(7);
+    expect(payload.period_year).toBe(2025);
+  });
+
+  it('re-export from status=sent returns a fresh Buffer but does NOT re-audit', async () => {
+    const { db, svc, supplier, periodId } = setup();
+    const { questionnaire_id } = svc.createDraft({
+      supplier_id: supplier.id,
+      reporting_period_id: periodId,
+      template_kind: 'cat1_supplier_disclosure',
+      included_question_positions: ['meta.1', 'tier2.1'],
+    });
+
+    await svc.exportBlankXlsx(questionnaire_id);
+    await svc.exportBlankXlsx(questionnaire_id); // second export
+
+    const audit = db
+      .prepare(
+        "SELECT COUNT(*) AS n FROM audit_event WHERE event_kind = 'inbound_questionnaire.exported'",
+      )
+      .get() as { n: number };
+    expect(audit.n).toBe(1);
+
+    const qRow = db
+      .prepare('SELECT status FROM questionnaire WHERE id = ?')
+      .get(questionnaire_id) as { status: string };
+    expect(qRow.status).toBe('sent');
+  });
+
+  it('honors includedPositions — partial-subset draft yields a workbook without the unselected sheets', async () => {
+    const { svc, supplier, periodId } = setup();
+    const { questionnaire_id } = svc.createDraft({
+      supplier_id: supplier.id,
+      reporting_period_id: periodId,
+      template_kind: 'cat1_supplier_disclosure',
+      included_question_positions: ['meta.1', 'tier1.1'], // no tier2
+    });
+    const buf = await svc.exportBlankXlsx(questionnaire_id);
+    // We don't crack the workbook open here — the renderer's own tests
+    // cover that. Just confirm the buffer materializes without errors.
+    expect(buf.length).toBeGreaterThan(1000);
+  });
+
+  it('throws InboundQuestionnaireNotFound for an unknown id', async () => {
+    const { svc } = setup();
+    await expect(svc.exportBlankXlsx('no-such-questionnaire')).rejects.toThrow(
+      InboundQuestionnaireNotFound,
+    );
+  });
+
+  it('throws InboundWrongDirection when called on an outbound questionnaire', async () => {
+    const { db, svc, customerService } = setup();
+    // Manually create an outbound row.
+    const customer = customerService.createOrGetByName('Outbound Customer');
+    const qid = 'outbound-qn-1';
+    db.prepare(
+      `INSERT INTO questionnaire
+         (id, customer_id, document_id, template_kind, reporting_year, status, direction, due_date, created_at)
+       VALUES (?, ?, NULL, NULL, 2025, 'parsing', 'outbound', NULL, '2026-05-27T00:00:00.000Z')`,
+    ).run(qid, customer.id);
+
+    await expect(svc.exportBlankXlsx(qid)).rejects.toThrow(InboundWrongDirection);
+  });
+
+  it('throws InboundWrongStatus when the questionnaire is already ingested', async () => {
+    const { db, svc, supplier, periodId } = setup();
+    const { questionnaire_id } = svc.createDraft({
+      supplier_id: supplier.id,
+      reporting_period_id: periodId,
+      template_kind: 'cat1_supplier_disclosure',
+      included_question_positions: ['meta.1'],
+    });
+    // Fast-forward past the legal states.
+    db.prepare(`UPDATE questionnaire SET status = 'ingested' WHERE id = ?`).run(questionnaire_id);
+    await expect(svc.exportBlankXlsx(questionnaire_id)).rejects.toThrow(InboundWrongStatus);
+  });
+
+  it('throws InboundOrgMissing when no organization row exists', async () => {
+    // Bespoke setup without the org row — bypass shared setup().
+    const db = new Database(':memory:');
+    runMigrations(db);
+
+    const periodOrgId = 'org-orphan';
+    // Inserting period requires a non-deleted org FK, but we want a state
+    // where the period exists yet org is later deleted. Simulating:
+    // create both, then delete org. Easier: just skip org creation here
+    // and create supplier/period with FK off temporarily.
+    db.pragma('foreign_keys = OFF');
+    db.prepare(
+      `INSERT INTO reporting_period (id, organization_id, year, granularity, starts_at, ends_at, is_active, created_at)
+       VALUES ('orphan-period', ?, 2025, 'annual', '2025-01-01T00:00:00Z', '2025-12-31T23:59:59Z', 1, '2026-01-01T00:00:00Z')`,
+    ).run(periodOrgId);
+    db.pragma('foreign_keys = ON');
+    const customerService = new CustomerService({ db });
+    const supplier = customerService.createSupplier({ name: 'X' });
+
+    const svc = new InboundQuestionnaireService({ db, customerService });
+    const { questionnaire_id } = svc.createDraft({
+      supplier_id: supplier.id,
+      reporting_period_id: 'orphan-period',
+      template_kind: 'cat1_supplier_disclosure',
+      included_question_positions: ['meta.1'],
+    });
+
+    await expect(svc.exportBlankXlsx(questionnaire_id)).rejects.toThrow(InboundOrgMissing);
   });
 });
 

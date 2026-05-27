@@ -1,10 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import type { CustomerService } from '@main/services/customer-service.js';
+import { renderInboundXlsx } from '@main/services/excel-template-renderer.js';
 import {
   CAT1_SUPPLIER_DISCLOSURE,
   getInboundTemplate,
 } from '@main/services/inbound-templates/index.js';
-import type { InboundTemplateKind, Supplier } from '@shared/types';
+import type { InboundTemplateKind, Question, Questionnaire, Supplier } from '@shared/types';
 import type { Database } from 'better-sqlite3';
 
 /**
@@ -149,10 +150,152 @@ export class InboundQuestionnaireService {
     };
   }
 
+  /**
+   * Export the inbound questionnaire as a fillable xlsx Buffer.
+   *
+   * Status machine:
+   *   draft → sent (first export; emits audit row)
+   *   sent  → sent (re-export, e.g. supplier lost the file; no audit)
+   *
+   * Any other status is rejected — exporting a `received` or `ingested`
+   * questionnaire would risk overwriting completed work, and there's no
+   * use case for exporting an outbound questionnaire through this path.
+   *
+   * Idempotent on `status='sent'`: the second export produces a fresh
+   * Buffer (the underlying template + supplier name + period haven't
+   * changed) but does NOT re-audit. The intent is that "I lost the
+   * file, send me another copy" doesn't pollute the audit trail with
+   * spurious supplier-engagement events.
+   */
+  async exportBlankXlsx(questionnaireId: string): Promise<Buffer> {
+    const qn = this.findQuestionnaire(questionnaireId);
+    if (!qn) {
+      throw new InboundQuestionnaireNotFound(questionnaireId);
+    }
+    if (qn.direction !== 'inbound') {
+      throw new InboundWrongDirection({
+        questionnaire_id: questionnaireId,
+        actual: qn.direction,
+      });
+    }
+    if (qn.status !== 'draft' && qn.status !== 'sent') {
+      throw new InboundWrongStatus({
+        questionnaire_id: questionnaireId,
+        actual: qn.status,
+        allowed: ['draft', 'sent'],
+      });
+    }
+
+    // Resolve the side-data: supplier, period, our org, the questions actually
+    // attached to this draft (so we honor whatever subset the wizard picked).
+    const supplier = this.findSupplier(qn.customer_id);
+    if (!supplier) {
+      // Should be impossible if createDraft ran cleanly — supplier was
+      // validated then. Surfaces a typed error rather than a sentinel
+      // string mismatch later.
+      throw new InboundSupplierNotFound(qn.customer_id);
+    }
+
+    const periodYear = qn.reporting_year;
+
+    const org = this.findCurrentOrg();
+    if (!org) {
+      throw new InboundOrgMissing();
+    }
+
+    // Template_kind on the row is the source of truth for which template
+    // to render against — the user might have shipped multiple templates
+    // by v2.x and we mustn't accidentally render the wrong one.
+    const template = getInboundTemplate(qn.template_kind as InboundTemplateKind);
+
+    // Which positions are included? Read straight from `question` rows
+    // since createDraft only inserts the checked subset.
+    const includedPositions = this.findIncludedPositions(questionnaireId);
+
+    const buf = await renderInboundXlsx({
+      template,
+      questionnaireId,
+      supplierName: supplier.name,
+      periodYear,
+      myOrgName: org.name,
+      dueDate: null, // due_date column isn't filled on inbound drafts in v2.0
+      includedPositions,
+    });
+
+    // Status transition + audit only on the FIRST export. Re-exports
+    // from 'sent' just return a fresh buffer without bumping audit.
+    const wasFirstExport = qn.status === 'draft';
+    if (wasFirstExport) {
+      const nowFn = this.deps.now ?? (() => new Date().toISOString());
+      const occurredAt = nowFn();
+      const tx = this.deps.db.transaction(() => {
+        this.deps.db
+          .prepare(`UPDATE questionnaire SET status = 'sent' WHERE id = ?`)
+          .run(questionnaireId);
+        this.deps.db
+          .prepare(
+            `INSERT INTO audit_event (id, event_kind, payload, occurred_at) VALUES (?, ?, ?, ?)`,
+          )
+          .run(
+            randomUUID(),
+            'inbound_questionnaire.exported',
+            JSON.stringify({
+              questionnaire_id: questionnaireId,
+              supplier_id: supplier.id,
+              template_kind: template.template_kind,
+              question_count: includedPositions.length,
+              period_year: periodYear,
+            }),
+            occurredAt,
+          );
+      });
+      tx();
+    }
+
+    return buf;
+  }
+
   // ---------------------------------------------------------------------
   // Internal helpers (intentionally narrow — no exported reach to
   // questionnaire-service or customer-service from here)
   // ---------------------------------------------------------------------
+
+  private findQuestionnaire(id: string): Questionnaire | null {
+    const row = this.deps.db.prepare(`SELECT * FROM questionnaire WHERE id = ?`).get(id) as
+      | Questionnaire
+      | undefined;
+    return row ?? null;
+  }
+
+  private findIncludedPositions(questionnaireId: string): string[] {
+    return (
+      this.deps.db
+        .prepare(
+          `SELECT position FROM question
+             WHERE questionnaire_id = ? AND position IS NOT NULL
+             ORDER BY position`,
+        )
+        .all(questionnaireId) as Pick<Question, 'position'>[]
+    )
+      .map((r) => r.position)
+      .filter((p): p is string => p !== null);
+  }
+
+  private findCurrentOrg(): { id: string; name: string } | null {
+    // Organization is a singleton (CHECK(singleton_key = 1) UNIQUE), so
+    // LIMIT 1 is the canonical "current org" lookup.
+    const row = this.deps.db
+      .prepare(`SELECT id, name_zh, name_en FROM organization LIMIT 1`)
+      .get() as { id: string; name_zh: string | null; name_en: string | null } | undefined;
+    if (!row) return null;
+    // Prefer zh name on the supplier-facing xlsx (suppliers in v2.0 are
+    // assumed Chinese-speaking — Cat 1 disclosure is a domestic supply-
+    // chain use case). Fall through to en name; final fallback is id.
+    return {
+      id: row.id,
+      name: row.name_zh ?? row.name_en ?? row.id,
+    };
+  }
 
   private findSupplier(supplierId: string): Supplier | null {
     // Could call `customerService.listSuppliers()` + .find, but that's
@@ -205,6 +348,47 @@ export class InboundNoQuestionsIncluded extends Error {
   constructor(public readonly template_kind: string) {
     super(
       `No questions selected from template "${template_kind}" — at least one position must be included.`,
+    );
+  }
+}
+
+export class InboundQuestionnaireNotFound extends Error {
+  readonly _tag = 'InboundQuestionnaireNotFound' as const;
+  constructor(public readonly questionnaire_id: string) {
+    super(`Inbound questionnaire not found: ${questionnaire_id}`);
+  }
+}
+
+export class InboundWrongDirection extends Error {
+  readonly _tag = 'InboundWrongDirection' as const;
+  constructor(public readonly details: { questionnaire_id: string; actual: string }) {
+    super(
+      `Operation requires direction='inbound', but questionnaire ${details.questionnaire_id} is direction='${details.actual}'.`,
+    );
+  }
+}
+
+export class InboundWrongStatus extends Error {
+  readonly _tag = 'InboundWrongStatus' as const;
+  constructor(
+    public readonly details: {
+      questionnaire_id: string;
+      actual: string;
+      allowed: readonly string[];
+    },
+  ) {
+    super(
+      `Inbound questionnaire ${details.questionnaire_id} has status='${details.actual}'; ` +
+        `operation requires one of: ${details.allowed.join(', ')}.`,
+    );
+  }
+}
+
+export class InboundOrgMissing extends Error {
+  readonly _tag = 'InboundOrgMissing' as const;
+  constructor() {
+    super(
+      'No organization row found — complete onboarding before creating inbound questionnaires.',
     );
   }
 }
