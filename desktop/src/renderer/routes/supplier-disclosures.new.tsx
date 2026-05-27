@@ -12,7 +12,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 /**
- * `/questionnaires/new/inbound` — Cat 1 supplier disclosure wizard.
+ * `/supplier-disclosures/new` — Cat 1 supplier disclosure wizard.
  *
  * Four steps stacked vertically on one screen (no multi-page flow —
  * the form is short enough to fit). The user picks:
@@ -25,8 +25,8 @@ import { useMemo, useState } from 'react';
  * on the new questionnaire's detail page in status='draft' where the
  * "Export blank xlsx" button is available.
  */
-export const Route = createFileRoute('/questionnaires/new/inbound')({
-  component: NewInboundQuestionnaireRoute,
+export const Route = createFileRoute('/supplier-disclosures/new')({
+  component: NewSupplierDisclosureRoute,
 });
 
 // Cat 1 v1.0 template positions + metadata, hard-coded to avoid a
@@ -42,7 +42,7 @@ const CAT1_QUESTIONS = [
   { position: 'tier2.3', label: '归因于我方采购的排放量 (kgCO2e)', kind: 'tier2' as const },
 ];
 
-function NewInboundQuestionnaireRoute(): JSX.Element {
+function NewSupplierDisclosureRoute(): JSX.Element {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -94,9 +94,9 @@ function NewInboundQuestionnaireRoute(): JSX.Element {
     onSuccess: (r) => {
       void queryClient.invalidateQueries({ queryKey: ['questionnaire:list'] });
       toast.success(
-        `已创建 inbound 草稿（${r.question_count} 题）。点击「导出空白 xlsx」开始流程。`,
+        `已创建供应商披露草稿（${r.question_count} 题）。点击「导出空白 xlsx」开始流程。`,
       );
-      void navigate({ to: '/questionnaires/$id', params: { id: r.questionnaire_id } });
+      void navigate({ to: '/supplier-disclosures/$id', params: { id: r.questionnaire_id } });
     },
     onError: (err) => {
       toast.error('创建失败', {
@@ -119,12 +119,12 @@ function NewInboundQuestionnaireRoute(): JSX.Element {
             type="button"
             variant="ghost"
             size="sm"
-            onClick={() => void navigate({ to: '/questionnaires/new' })}
+            onClick={() => void navigate({ to: '/supplier-disclosures' })}
           >
             <ArrowLeft className="mr-1 h-4 w-4" />
             返回
           </Button>
-          <h1 className="text-2xl font-semibold">新建供应商问卷 / Inbound Cat 1</h1>
+          <h1 className="text-2xl font-semibold">新建供应商披露 / Supplier Disclosure</h1>
         </div>
 
         <p className="text-sm text-muted-foreground">

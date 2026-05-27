@@ -1,4 +1,4 @@
-import { Route as NewQuestionnaireRoute } from '@renderer/routes/questionnaires.new.outbound';
+import { Route as NewQuestionnaireRoute } from '@renderer/routes/questionnaires.new';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   createMemoryHistory,
@@ -36,7 +36,7 @@ function buildHarness() {
   });
   const newRoute = createRoute({
     getParentRoute: () => rootRoute,
-    path: '/questionnaires/new/outbound',
+    path: '/questionnaires/new',
     component: newQuestionnaireComponent,
   });
   // Stub detail route so navigation won't error
@@ -47,7 +47,7 @@ function buildHarness() {
   });
   const router = createRouter({
     routeTree: rootRoute.addChildren([newRoute, detailRoute]),
-    history: createMemoryHistory({ initialEntries: ['/questionnaires/new/outbound'] }),
+    history: createMemoryHistory({ initialEntries: ['/questionnaires/new'] }),
   });
   return (
     <QueryClientProvider client={queryClient}>
@@ -56,7 +56,7 @@ function buildHarness() {
   );
 }
 
-describe('/questionnaires/new/outbound route', () => {
+describe('/questionnaires/new route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });

@@ -1,6 +1,7 @@
 import * as m from '@renderer/paraglide/messages';
 import {
   ClipboardList,
+  Download,
   FileSearch,
   FileText,
   Flame,
@@ -63,7 +64,8 @@ export function getSidebarData(): { navGroups: NavGroup[] } {
         title: m.nav_section_documents_questionnaires(),
         items: [
           { title: m.nav_documents(), url: '/documents', icon: FileText },
-          { title: m.nav_questionnaires(), url: '/questionnaires', icon: ClipboardList },
+          { title: m.nav_disclosure_filings(), url: '/questionnaires', icon: ClipboardList },
+          { title: m.nav_supplier_disclosures(), url: '/supplier-disclosures', icon: Download },
         ],
       },
     ],

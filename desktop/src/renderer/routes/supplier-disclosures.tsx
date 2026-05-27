@@ -9,7 +9,6 @@ import {
 } from '@renderer/components/ui/resizable';
 import { questionnaireApi } from '@renderer/lib/api/questionnaire';
 import { cn } from '@renderer/lib/utils';
-import * as m from '@renderer/paraglide/messages';
 import type { Questionnaire } from '@shared/types';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, Outlet, useParams } from '@tanstack/react-router';
@@ -17,36 +16,33 @@ import { Plus, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 /**
- * /questionnaires — two-pane layout (Phase D of the UI redesign).
- * Mirrors the documents two-pane pattern: list on left, detail in Outlet
- * on right. The previous flat `/questionnaires_/$id` route is now
- * nested under this layout as `/questionnaires/$id`.
+ * `/supplier-disclosures` — inbound (supplier-disclosure) flow.
+ *
+ * Mirror of the questionnaires (outbound) layout, restricted to
+ * direction='inbound' rows. Lives at a distinct top-level URL because
+ * the cognitive intent is completely different from outbound — see the
+ * 2026-05-27 spec for the "inbound is a data source" pivot.
+ *
+ * Backend stays unified: same `questionnaire` table, same IPC, same
+ * service. Direction filtering happens client-side on the list.
  */
-export const Route = createFileRoute('/questionnaires')({
-  component: QuestionnairesLayout,
+export const Route = createFileRoute('/supplier-disclosures')({
+  component: SupplierDisclosuresLayout,
 });
 
-function QuestionnairesLayout() {
+function SupplierDisclosuresLayout(): JSX.Element {
   return (
     <ResizablePanelGroup orientation="horizontal" className="h-full">
-      {/* v4 breaking: sizes are strings with "%" suffix (numbers = px). */}
       <ResizablePanel
         defaultSize="32%"
         minSize="22%"
         maxSize="50%"
         className="border-r border-border/60"
       >
-        <QuestionnairesListColumn />
+        <SupplierDisclosuresListColumn />
       </ResizablePanel>
       <ResizableHandle />
       <ResizablePanel defaultSize="68%">
-        {/* Right pane is overflow-hidden — each Outlet child owns its
-         * own padding + scroll container. This lets the questionnaire
-         * detail use the sticky-top / scroll-middle / sticky-bottom
-         * pattern (h1 + action bar stay pinned; only the answer cards
-         * scroll). Centralizing scroll here would force every detail
-         * page through one rigid wrapper. See CLAUDE.md → Scroll
-         * containment. */}
         <div className="h-full overflow-hidden">
           <Outlet />
         </div>
@@ -57,28 +53,26 @@ function QuestionnairesLayout() {
 
 function statusLabel(status: string): string {
   switch (status) {
-    case 'parsing':
-      return m.questionnaires_status_parsing();
-    case 'mapping':
-      return m.questionnaires_status_mapping();
-    case 'answering':
-      return m.questionnaires_status_answering();
-    case 'exported':
-      return m.questionnaires_status_exported();
+    case 'draft':
+      return '草稿';
+    case 'sent':
+      return '已发送';
+    case 'received':
+      return '已回收';
+    case 'ingested':
+      return '已入库';
     default:
       return status;
   }
 }
 
-// Outbound (customer-fill) statuses only. Inbound (supplier-disclosure)
-// statuses live under their own route at `/supplier-disclosures/*`.
-type QStatus = 'parsing' | 'mapping' | 'answering' | 'exported';
-type QStatusFilter = 'all' | QStatus;
-type QSort = 'recent' | 'oldest' | 'customer' | 'due' | 'questions';
+type IStatus = 'draft' | 'sent' | 'received' | 'ingested';
+type IStatusFilter = 'all' | IStatus;
+type ISort = 'recent' | 'oldest' | 'supplier' | 'due' | 'questions';
 
-const Q_STATUSES: QStatus[] = ['parsing', 'mapping', 'answering', 'exported'];
+const I_STATUSES: IStatus[] = ['draft', 'sent', 'received', 'ingested'];
 
-function QuestionnairesListColumn() {
+function SupplierDisclosuresListColumn(): JSX.Element {
   const params = useParams({ strict: false }) as { id?: string };
   const selectedId = params.id;
   const q = useQuery({
@@ -86,14 +80,17 @@ function QuestionnairesListColumn() {
     queryFn: questionnaireApi.list,
   });
 
-  // Outbound-only list. Inbound rows live at /supplier-disclosures.
+  // Inbound-only view: filter by direction at the renderer layer.
+  // The backend list returns both directions in one shot — splitting
+  // them across two HTTP requests would gain nothing and lose the
+  // shared cache key.
   const list = (
     (q.data ?? []) as Array<Questionnaire & { customer_name: string; question_count: number }>
-  ).filter((r) => r.direction === 'outbound');
+  ).filter((r) => r.direction === 'inbound');
 
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<QStatusFilter>('all');
-  const [sort, setSort] = useState<QSort>('recent');
+  const [statusFilter, setStatusFilter] = useState<IStatusFilter>('all');
+  const [sort, setSort] = useState<ISort>('recent');
 
   const searched = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -102,16 +99,16 @@ function QuestionnairesListColumn() {
   }, [list, search]);
 
   const statusCounts = useMemo(() => {
-    const counts: Record<QStatusFilter, number> = {
+    const counts: Record<IStatusFilter, number> = {
       all: searched.length,
-      parsing: 0,
-      mapping: 0,
-      answering: 0,
-      exported: 0,
+      draft: 0,
+      sent: 0,
+      received: 0,
+      ingested: 0,
     };
     for (const r of searched) {
-      if ((Q_STATUSES as readonly string[]).includes(r.status)) {
-        counts[r.status as QStatus] += 1;
+      if ((I_STATUSES as readonly string[]).includes(r.status)) {
+        counts[r.status as IStatus] += 1;
       }
     }
     return counts;
@@ -131,12 +128,10 @@ function QuestionnairesListColumn() {
       case 'oldest':
         arr.sort((a, b) => a.created_at.localeCompare(b.created_at));
         break;
-      case 'customer':
+      case 'supplier':
         arr.sort((a, b) => a.customer_name.localeCompare(b.customer_name, 'zh-CN'));
         break;
       case 'due':
-        // Soonest due first; nulls sink to the bottom so the user sees
-        // actionable items at the top.
         arr.sort((a, b) => {
           if (!a.due_date && !b.due_date) return 0;
           if (!a.due_date) return 1;
@@ -151,23 +146,23 @@ function QuestionnairesListColumn() {
     return arr;
   }, [statusFiltered, sort]);
 
-  const sortOptions = useMemo<SortMenuOption<QSort>[]>(
+  const sortOptions = useMemo<SortMenuOption<ISort>[]>(
     () => [
-      { value: 'recent', label: m.questionnaires_sort_recent() },
-      { value: 'oldest', label: m.questionnaires_sort_oldest() },
-      { value: 'customer', label: m.questionnaires_sort_customer() },
-      { value: 'due', label: m.questionnaires_sort_due() },
-      { value: 'questions', label: m.questionnaires_sort_questions() },
+      { value: 'recent', label: '最近创建' },
+      { value: 'oldest', label: '最早创建' },
+      { value: 'supplier', label: '按供应商名' },
+      { value: 'due', label: '按截止日期' },
+      { value: 'questions', label: '按题目数' },
     ],
     [],
   );
 
-  const STATUS_FILTERS: { value: QStatusFilter; label: string }[] = [
-    { value: 'all', label: m.questionnaires_filter_status_all() },
-    { value: 'parsing', label: m.questionnaires_status_parsing() },
-    { value: 'mapping', label: m.questionnaires_status_mapping() },
-    { value: 'answering', label: m.questionnaires_status_answering() },
-    { value: 'exported', label: m.questionnaires_status_exported() },
+  const STATUS_FILTERS: { value: IStatusFilter; label: string }[] = [
+    { value: 'all', label: '全部状态' },
+    { value: 'draft', label: '草稿' },
+    { value: 'sent', label: '已发送' },
+    { value: 'received', label: '已回收' },
+    { value: 'ingested', label: '已入库' },
   ];
 
   const filtersActive = search !== '' || statusFilter !== 'all';
@@ -179,25 +174,23 @@ function QuestionnairesListColumn() {
   return (
     <div className="h-full overflow-y-auto">
       <header className="sticky top-0 z-10 flex items-center justify-between gap-2 bg-background/85 backdrop-blur-sm px-4 py-3 border-b border-border/60">
-        <h1 className="text-sm font-semibold">{m.nav_disclosure_filings()}</h1>
-        {/* New-questionnaire CTA promoted to a compact icon-text button in
-         * the list-column header. The previous list-page used a heavier
-         * `bg-primary` filled button at the top — too loud for native chrome. */}
+        <h1 className="text-sm font-semibold">供应商披露</h1>
         <Button asChild variant="outline" size="sm">
-          <Link to="/questionnaires/new" className="gap-1">
+          <Link to="/supplier-disclosures/new" className="gap-1">
             <Plus className="size-3.5" aria-hidden="true" />
-            {m.questionnaires_new_button()}
+            新建披露
           </Link>
         </Button>
       </header>
 
       {q.isLoading ? (
-        <p className="px-4 py-3 text-sm text-muted-foreground">{m.loading()}</p>
+        <p className="px-4 py-3 text-sm text-muted-foreground">加载中…</p>
       ) : list.length === 0 ? (
-        <p className="px-4 py-6 text-sm text-muted-foreground">{m.questionnaires_empty()}</p>
+        <p className="px-4 py-6 text-sm text-muted-foreground">
+          尚无供应商披露。点击右上「+ 新建披露」开始向上游供应商收集 Scope 3 Cat 1 数据。
+        </p>
       ) : (
         <>
-          {/* Filter bar — compact: search + status chips + sort menu. */}
           <div className="space-y-2 px-4 py-3 border-b border-border/40">
             <div className="relative">
               <Search
@@ -208,7 +201,7 @@ function QuestionnairesListColumn() {
                 type="search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder={m.questionnaires_search_placeholder()}
+                placeholder="搜索供应商名称…"
                 className="w-full rounded-md border border-border bg-background py-1 pl-7 pr-2 text-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring"
               />
             </div>
@@ -240,14 +233,14 @@ function QuestionnairesListColumn() {
 
           {visible.length === 0 ? (
             <div className="flex flex-col items-center gap-2 px-4 py-12 text-center text-sm text-muted-foreground">
-              <p>{m.questionnaires_filter_empty()}</p>
+              <p>没有符合筛选条件的披露。</p>
               {filtersActive && (
                 <button
                   type="button"
                   onClick={resetFilters}
                   className="rounded px-2 py-1 text-xs font-medium text-foreground/70 hover:bg-foreground/5"
                 >
-                  {m.questionnaires_filter_clear()}
+                  清除筛选
                 </button>
               )}
             </div>
@@ -256,7 +249,7 @@ function QuestionnairesListColumn() {
               {visible.map((r) => (
                 <ListItem
                   key={r.id}
-                  to="/questionnaires/$id"
+                  to="/supplier-disclosures/$id"
                   params={{ id: r.id }}
                   isSelected={r.id === selectedId}
                   title={r.customer_name}
@@ -267,15 +260,11 @@ function QuestionnairesListColumn() {
                       <span>·</span>
                       <span>{statusLabel(r.status)}</span>
                       <span>·</span>
-                      <span>
-                        {r.question_count} {m.questionnaires_table_questions()}
-                      </span>
+                      <span>{r.question_count} 题</span>
                       {r.due_date && (
                         <>
                           <span>·</span>
-                          <span>
-                            {m.questionnaires_table_due()} {r.due_date}
-                          </span>
+                          <span>截止 {r.due_date}</span>
                         </>
                       )}
                     </>

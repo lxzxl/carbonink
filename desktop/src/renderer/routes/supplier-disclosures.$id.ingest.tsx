@@ -11,7 +11,7 @@ import { AlertCircle, AlertTriangle, ArrowLeft, Check } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 /**
- * `/questionnaires/$id/ingest` — review-and-confirm page for an
+ * `/supplier-disclosures/$id/ingest` — review-and-confirm page for an
  * already-imported inbound questionnaire.
  *
  * Renders three columns per row:
@@ -31,7 +31,7 @@ import { useEffect, useMemo, useState } from 'react';
  * event, then bounce the user back to the detail page (now
  * status='ingested').
  */
-export const Route = createFileRoute('/questionnaires/$id/ingest')({
+export const Route = createFileRoute('/supplier-disclosures/$id/ingest')({
   component: IngestReviewRoute,
 });
 
@@ -59,7 +59,7 @@ function IngestReviewRoute(): JSX.Element {
           type="button"
           variant="ghost"
           size="sm"
-          onClick={() => void navigate({ to: '/questionnaires/$id', params: { id } })}
+          onClick={() => void navigate({ to: '/supplier-disclosures/$id', params: { id } })}
         >
           <ArrowLeft className="mr-1 h-4 w-4" />
           返回详情
@@ -91,7 +91,7 @@ function IngestReviewRoute(): JSX.Element {
         void queryClient.invalidateQueries({ queryKey: ['questionnaire:get-by-id', id] });
         void queryClient.invalidateQueries({ queryKey: ['questionnaire:list'] });
         void queryClient.invalidateQueries({ queryKey: ['activity:list-by-period'] });
-        void navigate({ to: '/questionnaires/$id', params: { id } });
+        void navigate({ to: '/supplier-disclosures/$id', params: { id } });
       }}
     />
   );
@@ -182,7 +182,7 @@ function IngestReviewBody({
             size="sm"
             onClick={() =>
               void navigate({
-                to: '/questionnaires/$id',
+                to: '/supplier-disclosures/$id',
                 params: { id: preview.questionnaire_id },
               })
             }
