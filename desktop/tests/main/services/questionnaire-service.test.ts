@@ -1,15 +1,35 @@
 import { createHash } from 'node:crypto';
 import { runMigrations } from '@main/db/migrate';
+import { runAiObject } from '@main/llm/run-ai';
+import type { CredentialService } from '@main/services/credential-service';
 import { CustomerService } from '@main/services/customer-service';
 import { QuestionnaireService } from '@main/services/questionnaire-service';
 import Database from 'better-sqlite3';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('@main/llm/run-ai', () => ({
+  runAiObject: vi.fn(),
+}));
+
+beforeEach(() => {
+  vi.mocked(runAiObject).mockReset();
+});
 
 const FAKE_CONFIG = {
   provider: 'openai',
   model: 'gpt-4o-mini',
   apiKeyKeyref: 'fake',
 } as never;
+
+function fakeCredentials(): CredentialService {
+  return {
+    get: vi.fn(() => 'sk-fake'),
+    set: vi.fn(),
+    getMasked: vi.fn(),
+    delete: vi.fn(),
+    isAvailable: vi.fn().mockReturnValue(true),
+  } as unknown as CredentialService;
+}
 
 function setup(opts?: {
   llmQuestions?: Array<{
@@ -39,25 +59,25 @@ function setup(opts?: {
       doc_type: null,
     })),
   };
-  const llmClient = {
-    extractQuestions: opts?.extractThrows
-      ? vi.fn().mockRejectedValue(opts.extractThrows)
-      : vi.fn().mockResolvedValue({ questions: opts?.llmQuestions ?? [] }),
-  };
+  if (opts?.extractThrows) {
+    vi.mocked(runAiObject).mockRejectedValue(opts.extractThrows);
+  } else {
+    vi.mocked(runAiObject).mockResolvedValue({ questions: opts?.llmQuestions ?? [] });
+  }
   return {
     db,
     svc: new QuestionnaireService({
       db,
       documentService: documentService as never,
       customerService,
-      llmClient: llmClient as never,
+      credentials: fakeCredentials(),
       config: FAKE_CONFIG,
       excelParse: vi
         .fn()
         .mockResolvedValue([{ sheet: 'S', row: 1, col: 1, value: 'Q', ref: 'S!A1' }]),
       now: () => '2026-05-15T00:00:00Z',
     }),
-    llmClient,
+    runAi: vi.mocked(runAiObject),
     documentService,
   };
 }
@@ -286,7 +306,10 @@ describe('QuestionnaireService.createFromUpload — reuse from prior questionnai
     // ensuring the first questionnaire sorts before the second.
     let nowIndex = 0;
     const timestamps = ['2026-01-01T00:00:00Z', '2026-06-01T00:00:00Z'];
-    const { db, svc } = setup({
+    // svc here would be the harness-built service; the actual service used in
+    // this test is `sequentialSvc` constructed below with a custom `now()`.
+    // We still call setup() to prime the same module-level vi.mock state.
+    const { db } = setup({
       llmQuestions: [
         {
           raw_text: 'Q: Total energy consumption?',
@@ -325,27 +348,25 @@ describe('QuestionnaireService.createFromUpload — reuse from prior questionnai
             };
           }),
       };
-      const llmClient = {
-        extractQuestions: vi.fn().mockResolvedValue({
-          questions: [
-            {
-              raw_text: 'Q: Total energy consumption?',
-              normalized_text: 'total energy consumption',
-              answer_cell_ref: 'S!B1',
-              expected_unit: 'kWh',
-              sheet: 'S',
-              question_row: 1,
-              question_kind: 'numerical' as const,
-            },
-          ],
-        }),
-      };
+      vi.mocked(runAiObject).mockResolvedValue({
+        questions: [
+          {
+            raw_text: 'Q: Total energy consumption?',
+            normalized_text: 'total energy consumption',
+            answer_cell_ref: 'S!B1',
+            expected_unit: 'kWh',
+            sheet: 'S',
+            question_row: 1,
+            question_kind: 'numerical' as const,
+          },
+        ],
+      });
       return {
         svc: new QuestionnaireService({
           db: db2,
           documentService: documentService as never,
           customerService,
-          llmClient: llmClient as never,
+          credentials: fakeCredentials(),
           config: FAKE_CONFIG,
           excelParse: vi
             .fn()
@@ -441,18 +462,16 @@ describe('QuestionnaireService.createFromUpload — reuse from prior questionnai
         }),
     };
     let callCount = 0;
-    const llmClient = {
-      extractQuestions: vi.fn().mockImplementation(async () => {
-        callCount++;
-        return { questions: llmQuestions };
-      }),
-    };
+    vi.mocked(runAiObject).mockImplementation(async () => {
+      callCount++;
+      return { questions: llmQuestions };
+    });
     let nowIdx = 0;
     const svc2 = new QuestionnaireService({
       db: db2,
       documentService: documentService as never,
       customerService,
-      llmClient: llmClient as never,
+      credentials: fakeCredentials(),
       config: FAKE_CONFIG,
       excelParse: vi
         .fn()
@@ -525,27 +544,25 @@ describe('QuestionnaireService.createFromUpload — reuse from prior questionnai
           };
         }),
     };
-    const llmClient = {
-      extractQuestions: vi.fn().mockResolvedValue({
-        questions: [
-          {
-            raw_text: 'Water usage?',
-            normalized_text: normalizedText,
-            answer_cell_ref: 'S!B1',
-            expected_unit: 'm3',
-            sheet: 'S',
-            question_row: 1,
-            question_kind: 'numerical' as const,
-          },
-        ],
-      }),
-    };
+    vi.mocked(runAiObject).mockResolvedValue({
+      questions: [
+        {
+          raw_text: 'Water usage?',
+          normalized_text: normalizedText,
+          answer_cell_ref: 'S!B1',
+          expected_unit: 'm3',
+          sheet: 'S',
+          question_row: 1,
+          question_kind: 'numerical' as const,
+        },
+      ],
+    });
     let nowIdx = 0;
     const svc2 = new QuestionnaireService({
       db: db2,
       documentService: documentService as never,
       customerService,
-      llmClient: llmClient as never,
+      credentials: fakeCredentials(),
       config: FAKE_CONFIG,
       excelParse: vi
         .fn()

@@ -1,13 +1,29 @@
 import { runMigrations } from '@main/db/migrate';
+import { runAiObject } from '@main/llm/run-ai';
+import type { CredentialService } from '@main/services/credential-service';
 import { EfMatcherService } from '@main/services/ef-matcher-service';
 import type { EmissionFactor, Extraction } from '@shared/types';
 import Database from 'better-sqlite3';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('@main/llm/run-ai', () => ({
+  runAiObject: vi.fn(),
+}));
 
 function makeDb() {
   const db = new Database(':memory:');
   runMigrations(db);
   return db;
+}
+
+function fakeCredentials(): CredentialService {
+  return {
+    get: vi.fn(() => 'sk-fake'),
+    set: vi.fn(),
+    getMasked: vi.fn(),
+    delete: vi.fn(),
+    isAvailable: vi.fn().mockReturnValue(true),
+  } as unknown as CredentialService;
 }
 
 const CANDIDATE_DIESEL: EmissionFactor = {
@@ -69,22 +85,31 @@ function makeService(opts: {
   llmResult?: LlmResult;
   llmError?: Error;
 }) {
-  const recommendMock = opts.llmError
-    ? vi.fn().mockRejectedValue(opts.llmError)
-    : vi.fn().mockResolvedValue(opts.llmResult ?? { recommendations: [] });
+  // `runAiObject` is mocked at module level; each `makeService` call resets
+  // the per-test resolution so the same mock module can serve multiple
+  // service instances within a single `it()` block.
+  if (opts.llmError) {
+    vi.mocked(runAiObject).mockRejectedValue(opts.llmError);
+  } else {
+    vi.mocked(runAiObject).mockResolvedValue(opts.llmResult ?? { recommendations: [] });
+  }
 
   const svc = new EfMatcherService({
     db: makeDb(),
     efService: { list: vi.fn().mockReturnValue(opts.candidates) } as never,
     extractionService: { get: vi.fn().mockReturnValue(opts.extraction) } as never,
     emissionSourceService: { get: vi.fn().mockReturnValue(opts.source) } as never,
-    llmClient: { recommendEfs: recommendMock } as never,
+    credentials: fakeCredentials(),
     config: FAKE_CONFIG,
   });
-  return { svc, recommend: recommendMock };
+  return { svc, recommend: vi.mocked(runAiObject) };
 }
 
 describe('EfMatcherService.recommend', () => {
+  beforeEach(() => {
+    vi.mocked(runAiObject).mockReset();
+  });
+
   it('returns empty result when candidate list is empty', async () => {
     const { svc, recommend } = makeService({
       extraction: {

@@ -1,4 +1,4 @@
-import type { LLMClient } from '@main/llm/llm-client.js';
+import { runAiObject } from '@main/llm/run-ai.js';
 import type {
   EmissionFactor,
   MatcherResult,
@@ -6,10 +6,79 @@ import type {
   RecommendQuery,
 } from '@shared/types.js';
 import type { Database } from 'better-sqlite3';
+import { z } from 'zod';
+import type { CredentialService } from './credential-service.js';
 import { extractHint } from './ef-matcher/hint.js';
 import type { EfService } from './ef-service.js';
 
 const CANDIDATE_LIMIT = 20;
+
+/**
+ * Schema + prompt for the LLM emission-factor recommendation step.
+ * Lifted from the old `LLMClient.recommendEfs` wrapper so the AiClient
+ * stays a thin conduit — services own their prompts.
+ *
+ * The recommendations carry the full composite primary key plus a
+ * one-line Chinese reasoning string so the user can audit why each
+ * factor was picked. Hallucinated PKs (i.e. recommendations that
+ * don't match any candidate) are dropped by the caller after the
+ * structured response is parsed.
+ */
+const recommendSchema = z.object({
+  recommendations: z
+    .array(
+      z.object({
+        factor_code: z.string(),
+        year: z.number().int(),
+        source: z.string(),
+        geography: z.string(),
+        dataset_version: z.string(),
+        reasoning_zh: z.string().max(200),
+      }),
+    )
+    .length(3),
+});
+
+type RecommendCandidate = Pick<
+  EmissionFactor,
+  | 'factor_code'
+  | 'year'
+  | 'source'
+  | 'geography'
+  | 'dataset_version'
+  | 'input_unit'
+  | 'name_zh'
+  | 'name_en'
+  | 'description_zh'
+  | 'co2e_kg_per_unit'
+>;
+
+function buildRecommendPrompt(
+  parsedJson: string,
+  candidates: ReadonlyArray<RecommendCandidate>,
+): string {
+  const candidateList = candidates
+    .map((c, i) => {
+      const name = c.name_zh ?? c.name_en ?? c.factor_code;
+      const desc = c.description_zh ?? '';
+      return `${i + 1}. ${c.factor_code} | ${c.year} | ${c.geography} | ${c.input_unit ?? '?'} | ${c.co2e_kg_per_unit ?? '?'} kgCO2e/unit | ${name}${desc ? ` — ${desc}` : ''}`;
+    })
+    .join('\n');
+
+  return `你是一名碳核算助理。下面是一份单据的抽取结果（parsed_json），以及一个候选排放因子清单。
+请从候选清单中选出最贴合该单据的 3 个排放因子，并给出 1-2 句简短的中文理由。
+
+<parsed_json>
+${parsedJson}
+</parsed_json>
+
+<candidates>
+${candidateList}
+</candidates>
+
+返回 JSON：{ recommendations: [3 个对象，每个包含完整复合主键 factor_code/year/source/geography/dataset_version 以及 reasoning_zh] }。
+factor_code 等 5 个键必须从上方候选清单中原样复制；不要凭空构造。`;
+}
 
 /**
  * Minimal interface for extraction lookup. The real ExtractionService exposes
@@ -38,7 +107,13 @@ export class EfMatcherService {
       efService: Pick<EfService, 'list'>;
       extractionService: ExtractionLookup;
       emissionSourceService: EmissionSourceLookup;
-      llmClient: Pick<LLMClient, 'recommendEfs'>;
+      /**
+       * Credential store consulted by the AiClient layer for the
+       * provider API key. Threaded through here (rather than read once
+       * at construction) because `runAiObject` rebuilds the layer per
+       * call — provider config can change mid-session via Settings.
+       */
+      credentials: CredentialService;
       config: ProviderConfig;
     },
   ) {}
@@ -76,11 +151,16 @@ export class EfMatcherService {
 
     let recommended: MatcherResult['recommended'] = [];
     try {
-      const llmResult = await this.deps.llmClient.recommendEfs(
-        this.deps.config,
-        ext.parsed_json ?? '{}',
-        rankedFull,
-      );
+      const prompt = buildRecommendPrompt(ext.parsed_json ?? '{}', rankedFull);
+      // AiClient enforces the 3-recommendations schema + retries
+      // transient failures. Any AiErr (auth, rate-limit, schema
+      // mismatch, timeout, provider error) lands in the catch below;
+      // the matcher gracefully falls back to FTS5-only recommendations
+      // so the user still sees the ranked_full list.
+      const llmResult = await runAiObject(this.deps.config, this.deps.credentials, {
+        schema: recommendSchema,
+        prompt,
+      });
       recommended = llmResult.recommendations
         .map((rec) => {
           const ef = rankedFull.find(

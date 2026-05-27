@@ -1,12 +1,13 @@
 import { readFileSync } from 'node:fs';
 import type { IpcPushTypeMap } from '@main/ipc/types.js';
-import type { LLMClient } from '@main/llm/llm-client.js';
 import { pdfToImages as pdfToImagesDefault } from '@main/llm/pdf-to-images.js';
+import { runAiObject } from '@main/llm/run-ai.js';
 import { getStage } from '@main/llm/stages/registry.js';
 import { assertVisionCapable } from '@main/llm/vision-capability.js';
 import type { Extraction, ExtractionStatus } from '@shared/types.js';
 import { newId } from '@shared/ulid.js';
 import type { ServiceContext } from './base.js';
+import type { CredentialService } from './credential-service.js';
 import type { DocumentService } from './document-service.js';
 import type { SettingsService } from './settings-service.js';
 
@@ -130,7 +131,13 @@ export class ExtractionService {
     private readonly ctx: ServiceContext & {
       documentService: DocumentService;
       settingsService: SettingsService;
-      llmClient: LLMClient;
+      /**
+       * Credential store consulted by the AiClient layer for the
+       * provider API key. Threaded through here (rather than read once
+       * at construction) because `runAiObject` rebuilds the layer per
+       * call — provider config can change mid-session via Settings.
+       */
+      credentials: CredentialService;
       /** DI override for `node:fs.readFileSync`. Defaults to readFileSync. */
       readFile?: (path: string) => Buffer;
       /** DI override for PDF parsing. Defaults to `pdf-parse`. */
@@ -207,11 +214,19 @@ export class ExtractionService {
     // surfaces as actionable toasts:
     //   - VisionUnsupportedError: chosen model can't take images
     //   - StageDoesNotSupportVisionError: stage didn't opt into vision
-    //   - SchemaMismatchError: model output didn't match schema
+    //   - AiSchemaMismatch: model output didn't match schema
+    //
+    // The LLM call goes through `runAiObject` (the AiClient Promise
+    // boundary helper). AiClient builds the same tool-call envelope
+    // and retry policy across both text + vision paths — extraction
+    // doesn't need to know about pi-ai at all.
     let result: unknown;
     if (pdfText.trim().length >= 10) {
       const prompt = stage.buildPrompt(pdfText);
-      result = await this.ctx.llmClient.extract(providerConfig.config, stage.schema, prompt);
+      result = await runAiObject(providerConfig.config, this.ctx.credentials, {
+        schema: stage.schema,
+        prompt,
+      });
     } else {
       // Vision path. Validate prerequisites first so we don't burn
       // 5-10s rendering PDF pages only to find out the model can't
@@ -231,12 +246,12 @@ export class ExtractionService {
 
       const images = await this.pdfToImages(bytes);
       const vision = stage.buildVisionMessages();
-      result = await this.ctx.llmClient.extractWithImages(
-        providerConfig.config,
-        stage.schema,
-        vision,
+      result = await runAiObject(providerConfig.config, this.ctx.credentials, {
+        schema: stage.schema,
+        prompt: vision.userText,
+        ...(vision.system ? { system: vision.system } : {}),
         images,
-      );
+      });
     }
 
     // Migration 003's CHECK constraint requires raw_response + parsed_json

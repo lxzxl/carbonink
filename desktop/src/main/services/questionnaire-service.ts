@@ -1,10 +1,95 @@
 import { createHash, randomUUID } from 'node:crypto';
-import type { LLMClient } from '@main/llm/llm-client';
+import { runAiObject } from '@main/llm/run-ai.js';
 import type { Customer, Document, ProviderConfig, Question, Questionnaire } from '@shared/types';
 import type { Database } from 'better-sqlite3';
+import { z } from 'zod';
+import type { CredentialService } from './credential-service.js';
 import type { CustomerService } from './customer-service';
 
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+type CellInput = ReadonlyArray<{
+  sheet: string;
+  row: number;
+  col: number;
+  value: string | number | null;
+  ref: string;
+}>;
+
+/**
+ * Schema + prompt for the LLM question-extraction step. Lifted from
+ * the old `LLMClient.extractQuestions` wrapper so the AiClient stays
+ * a thin conduit — services own their prompts.
+ *
+ * The model must return question_kind ∈ {numerical, categorical,
+ * narrative} so we can size schema + UI affordances downstream
+ * (numerical questions get a unit field; narrative questions get a
+ * wider input area). Unknown / borderline kinds collapse to
+ * categorical per the prompt's tie-breaker rule.
+ */
+const extractQuestionsSchema = z.object({
+  questions: z
+    .array(
+      z.object({
+        raw_text: z.string(),
+        normalized_text: z.string(),
+        answer_cell_ref: z.string().nullable(),
+        expected_unit: z.string().nullable(),
+        sheet: z.string(),
+        question_row: z.number().int(),
+        question_kind: z.enum(['numerical', 'categorical', 'narrative']),
+      }),
+    )
+    .max(500),
+});
+
+function buildExtractQuestionsPrompt(cells: CellInput): string {
+  // Group cells by (sheet, row) for compact prompt encoding — matches the
+  // shape the model is fastest to parse (one row per logical question).
+  const bySheet = new Map<string, Map<number, CellInput[number][]>>();
+  for (const c of cells) {
+    if (!bySheet.has(c.sheet)) bySheet.set(c.sheet, new Map());
+    const sheetMap = bySheet.get(c.sheet);
+    if (!sheetMap) continue;
+    if (!sheetMap.has(c.row)) sheetMap.set(c.row, []);
+    sheetMap.get(c.row)?.push(c);
+  }
+
+  let cellsText = '';
+  for (const [sheetName, rowsMap] of bySheet) {
+    cellsText += `\n=== Sheet "${sheetName}" ===\n`;
+    const sortedRows = Array.from(rowsMap.keys()).sort((a, b) => a - b);
+    for (const rowNum of sortedRows) {
+      const rowCells = (rowsMap.get(rowNum) ?? []).sort((a, b) => a.col - b.col);
+      const parts = rowCells.map((c) => `${c.ref}=${JSON.stringify(c.value)}`);
+      cellsText += `Row ${rowNum}: ${parts.join(' | ')}\n`;
+    }
+  }
+
+  return `你是一名碳核算助理。下面是一份 CDP 风格的供应商问卷 Excel 表所有非空单元格的清单。请识别出每道**问题**，并指出其**答案应该填入哪个单元格**。
+
+规则：
+- 忽略目录、章节标题、表头说明、纯空白行。
+- 一道问题通常占一行：问题文本在某一列，紧邻的右侧空单元格就是答案位置。
+- 如果一行有"题面 + 单位列 + 答案列"，那答案在最右边的空列。
+- 题面应该是个真正可被回答的问题（含数字、范围、是非等可量化语义），而非说明性文字。
+- 提取问题原文 (raw_text)，并给出规范化版本 (normalized_text，去标点、去前缀编号、单空格)。
+- 如能从题面推断单位（kWh、tCO2e、m³、% 等），写入 expected_unit；否则 null。
+- answer_cell_ref：填入答案的目标单元格 ref（同 sheet，紧挨题面的空单元格）；如果不能确定，置 null。
+- 排除任何已经填了数字/答案的单元格（那是示例值或别人答过的）。
+
+<cells>
+${cellsText}
+</cells>
+
+对每道题判断 question_kind：
+- numerical：要求填数字 + 单位（如"年度用电量(kWh)"、"员工总人数"）
+- categorical：要求短词答案（如"是否签署 SBTi 承诺"、"主要行业分类"、"报告期开始日期 (YYYY-MM-DD)"）
+- narrative：要求 1-3 句叙述（如"请描述贵公司气候转型计划"、"说明可持续发展战略"）
+判断不准则降级为 categorical。
+
+返回 JSON: { questions: [{ raw_text, normalized_text, answer_cell_ref, expected_unit, sheet, question_row, question_kind }] }`;
+}
 
 /**
  * Minimal interface for the document storage dependency. Matches the real
@@ -41,7 +126,13 @@ export class QuestionnaireService {
       db: Database;
       documentService: DocumentUploadService;
       customerService: CustomerService;
-      llmClient: Pick<LLMClient, 'extractQuestions'>;
+      /**
+       * Credential store consulted by the AiClient layer for the
+       * provider API key. Threaded through here (rather than read once
+       * at construction) because `runAiObject` rebuilds the layer per
+       * call — provider config can change mid-session via Settings.
+       */
+      credentials: CredentialService;
       config: ProviderConfig;
       excelParse: (bytes: Buffer) => Promise<
         Array<{
@@ -69,7 +160,15 @@ export class QuestionnaireService {
     // Steps 1-2: Excel parse + LLM extract. Both happen BEFORE any DB
     // write so a failure here is a clean rollback to baseline.
     const cells = await this.deps.excelParse(buf);
-    const llmResult = await this.deps.llmClient.extractQuestions(this.deps.config, cells);
+    // Empty Excel → don't burn a model call; matches the prior
+    // `LLMClient.extractQuestions` short-circuit.
+    const llmResult =
+      cells.length === 0
+        ? { questions: [] }
+        : await runAiObject(this.deps.config, this.deps.credentials, {
+            schema: extractQuestionsSchema,
+            prompt: buildExtractQuestionsPrompt(cells),
+          });
 
     const questionnaireId = randomUUID();
     const createdAt = nowFn();

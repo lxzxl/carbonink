@@ -5,12 +5,27 @@ import { runMigrations } from '@main/db/migrate';
 import { createIpcContext } from '@main/ipc/context';
 import { documentHandlers } from '@main/ipc/handlers/document';
 import { extractionHandlers } from '@main/ipc/handlers/extraction';
-import type { LLMClient } from '@main/llm/llm-client';
+import { runAiObject } from '@main/llm/run-ai';
 import type { ChinaUtilityExtraction } from '@main/llm/stages/china-utility';
+import type { CredentialService } from '@main/services/credential-service';
 import { ExtractionService } from '@main/services/extraction-service';
 import type { ProviderConfig } from '@shared/types';
 import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('@main/llm/run-ai', () => ({
+  runAiObject: vi.fn(),
+}));
+
+function fakeCredentials(): CredentialService {
+  return {
+    get: vi.fn(() => 'sk-fake'),
+    set: vi.fn(),
+    getMasked: vi.fn(),
+    delete: vi.fn(),
+    isAvailable: vi.fn().mockReturnValue(true),
+  } as unknown as CredentialService;
+}
 
 /**
  * IPC glue test for `extraction:*`. We let DocumentService run for real
@@ -39,7 +54,7 @@ const FAKE_PROVIDER_CONFIG: ProviderConfig = {
 describe('extraction IPC handlers', () => {
   let db: Database.Database;
   let uploadsDir: string;
-  let llmExtract: ReturnType<typeof vi.fn>;
+  let runAiMock: ReturnType<typeof vi.mocked<typeof runAiObject>>;
   let docHandlers: ReturnType<typeof documentHandlers>;
   let handlers: ReturnType<typeof extractionHandlers>;
 
@@ -55,9 +70,12 @@ describe('extraction IPC handlers', () => {
     const baseCtx = createIpcContext({ db, now }, { uploadsDir });
 
     // Hand-build ExtractionService with fake collaborators so the test
-    // never touches Electron / safeStorage / pdfjs / OpenAI.
-    llmExtract = vi.fn(async () => FAKE_EXTRACTION);
-    const fakeLlm = { extract: llmExtract } as unknown as LLMClient;
+    // never touches Electron / safeStorage / pdfjs / OpenAI. The LLM
+    // round-trip is mocked at `runAiObject` (the AiClient boundary
+    // helper) so the service constructor only needs `credentials`.
+    vi.mocked(runAiObject).mockReset();
+    vi.mocked(runAiObject).mockResolvedValue(FAKE_EXTRACTION);
+    runAiMock = vi.mocked(runAiObject);
     const fakeSettings = {
       getProviderConfigWithKey: () => ({ config: FAKE_PROVIDER_CONFIG, apiKey: 'sk-fake' }),
     };
@@ -68,7 +86,7 @@ describe('extraction IPC handlers', () => {
       documentService: baseCtx.documentService,
       // biome-ignore lint/suspicious/noExplicitAny: minimal SettingsService stand-in
       settingsService: fakeSettings as any,
-      llmClient: fakeLlm,
+      credentials: fakeCredentials(),
       readFile: () => Buffer.from('FAKE_PDF_BYTES'),
       parsePdf: async () => ({ text: 'FAKE_PDF_TEXT' }),
     });
@@ -107,7 +125,7 @@ describe('extraction IPC handlers', () => {
     expect(ext?.llm_provider).toBe('openai');
     expect(ext?.prompt_version).toBe('china_utility.v1');
     expect(JSON.parse(ext?.parsed_json ?? '')).toEqual(FAKE_EXTRACTION);
-    expect(llmExtract).toHaveBeenCalledTimes(1);
+    expect(runAiMock).toHaveBeenCalledTimes(1);
   });
 
   it('extraction:run hits cache on a second call (no second LLM round-trip)', async () => {
@@ -121,7 +139,7 @@ describe('extraction IPC handlers', () => {
       stage_id: 'china_utility.v1',
     });
     expect(second?.id).toBe(first?.id);
-    expect(llmExtract).toHaveBeenCalledTimes(1);
+    expect(runAiMock).toHaveBeenCalledTimes(1);
   });
 
   it('extraction:list-pending shows newly-run extractions and excludes confirmed/discarded', async () => {

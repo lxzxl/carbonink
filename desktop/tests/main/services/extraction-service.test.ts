@@ -2,11 +2,12 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { runMigrations } from '@main/db/migrate';
-import type { LLMClient } from '@main/llm/llm-client';
+import { runAiObject } from '@main/llm/run-ai';
 import type { ChinaUtilityExtraction } from '@main/llm/stages/china-utility';
 import { registerStage } from '@main/llm/stages/registry';
 import type { Stage } from '@main/llm/stages/types';
 import { VisionUnsupportedError } from '@main/llm/vision-capability';
+import type { CredentialService } from '@main/services/credential-service';
 import { DocumentService } from '@main/services/document-service';
 import {
   ExtractionService,
@@ -18,8 +19,22 @@ import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
+vi.mock('@main/llm/run-ai', () => ({
+  runAiObject: vi.fn(),
+}));
+
+function fakeCredentials(): CredentialService {
+  return {
+    get: vi.fn(() => 'sk-fake'),
+    set: vi.fn(),
+    getMasked: vi.fn(),
+    delete: vi.fn(),
+    isAvailable: vi.fn().mockReturnValue(true),
+  } as unknown as CredentialService;
+}
+
 /**
- * Canonical extraction object the fake LLMClient returns. Matches the
+ * Canonical extraction object the mocked `runAiObject` returns. Matches the
  * `chinaUtilityExtraction` schema so any downstream consumer that re-validates
  * it would also pass.
  */
@@ -41,9 +56,10 @@ const FAKE_PROVIDER_CONFIG: ProviderConfig = {
 };
 
 /**
- * Test harness: real DocumentService + sqlite, fake settings/LLM/PDF parser.
- * The fake LLM client returns FAKE_EXTRACTION unconditionally so any caching
- * regression jumps out as a `toHaveBeenCalledTimes(>1)` failure.
+ * Test harness: real DocumentService + sqlite, fake settings/PDF parser.
+ * `runAiObject` is mocked at module level and pre-resolved to
+ * FAKE_EXTRACTION here so any caching regression jumps out as a
+ * `toHaveBeenCalledTimes(>1)` failure.
  */
 function setupHarness(opts: { providerConfigured?: boolean } = {}) {
   const providerConfigured = opts.providerConfigured ?? true;
@@ -62,9 +78,10 @@ function setupHarness(opts: { providerConfigured?: boolean } = {}) {
     ),
   } as unknown as SettingsService;
 
-  const llmClient = {
-    extract: vi.fn(async () => FAKE_EXTRACTION),
-  } as unknown as LLMClient;
+  // Default resolution: the same FAKE_EXTRACTION whether the call is text
+  // or vision. Tests that need to assert on `args.images` set their own
+  // implementation via `vi.mocked(runAiObject).mockImplementation(...)`.
+  vi.mocked(runAiObject).mockResolvedValue(FAKE_EXTRACTION);
 
   // DI'd I/O: bypass real fs + pdf-parse entirely. The harness only needs
   // a deterministic "this is the PDF text" string to feed buildPrompt with.
@@ -76,7 +93,7 @@ function setupHarness(opts: { providerConfigured?: boolean } = {}) {
     now,
     documentService,
     settingsService,
-    llmClient,
+    credentials: fakeCredentials(),
     readFile,
     parsePdf,
   });
@@ -86,7 +103,7 @@ function setupHarness(opts: { providerConfigured?: boolean } = {}) {
     uploadsDir,
     documentService,
     settingsService,
-    llmClient,
+    runAi: vi.mocked(runAiObject),
     readFile,
     parsePdf,
     extractionService,
@@ -109,6 +126,7 @@ describe('ExtractionService', () => {
   let h: ReturnType<typeof setupHarness>;
 
   beforeEach(() => {
+    vi.mocked(runAiObject).mockReset();
     h = setupHarness();
   });
   afterEach(() => {
@@ -132,9 +150,10 @@ describe('ExtractionService', () => {
     expect(JSON.parse(ext.parsed_json ?? '')).toEqual(FAKE_EXTRACTION);
 
     // Sanity: LLM was actually called and prompt included the PDF text.
-    expect(h.llmClient.extract).toHaveBeenCalledTimes(1);
-    const [, , prompt] = vi.mocked(h.llmClient.extract).mock.calls[0] ?? [];
-    expect(prompt).toContain('FAKE_PDF_TEXT_TOKEN');
+    expect(h.runAi).toHaveBeenCalledTimes(1);
+    // runAiObject(config, credentials, { schema, prompt, ... })
+    const args = h.runAi.mock.calls[0]?.[2];
+    expect(args?.prompt).toContain('FAKE_PDF_TEXT_TOKEN');
   });
 
   it('run is cached by (doc, stage, provider, model) — second call returns the same row and skips the LLM', async () => {
@@ -150,7 +169,7 @@ describe('ExtractionService', () => {
     });
 
     expect(second.id).toBe(first.id);
-    expect(h.llmClient.extract).toHaveBeenCalledTimes(1);
+    expect(h.runAi).toHaveBeenCalledTimes(1);
     expect(h.parsePdf).toHaveBeenCalledTimes(1);
 
     const count = h.db.prepare('SELECT COUNT(*) AS c FROM extraction').get() as { c: number };
@@ -165,7 +184,7 @@ describe('ExtractionService', () => {
     await expect(
       h.extractionService.run({ document_id: doc.id, stage_id: 'china_utility.v1' }),
     ).rejects.toThrow(/AI provider not configured/);
-    expect(h.llmClient.extract).not.toHaveBeenCalled();
+    expect(h.runAi).not.toHaveBeenCalled();
   });
 
   it('run throws when the document is not found', async () => {
@@ -175,7 +194,7 @@ describe('ExtractionService', () => {
         stage_id: 'china_utility.v1',
       }),
     ).rejects.toThrow(/Document not found/);
-    expect(h.llmClient.extract).not.toHaveBeenCalled();
+    expect(h.runAi).not.toHaveBeenCalled();
   });
 
   it('run throws when the stage id is unknown', async () => {
@@ -183,7 +202,7 @@ describe('ExtractionService', () => {
     await expect(
       h.extractionService.run({ document_id: doc.id, stage_id: 'unknown.v1' }),
     ).rejects.toThrow(/Stage not found/);
-    expect(h.llmClient.extract).not.toHaveBeenCalled();
+    expect(h.runAi).not.toHaveBeenCalled();
   });
 
   it('confirm transitions status review_needed → parsed and stamps reviewed_by_user_at', async () => {
@@ -339,7 +358,7 @@ describe('ExtractionService', () => {
     expect(retried.status).toBe('review_needed');
     // LLM hit twice (once for `first`, once for `retried`). PDF parsed
     // twice as well — there's no separate dedupe for PDF text.
-    expect(h.llmClient.extract).toHaveBeenCalledTimes(2);
+    expect(h.runAi).toHaveBeenCalledTimes(2);
     // The rejected row should be gone: re-extract intentionally drops the
     // soft-deleted row to make room past the UNIQUE constraint, and we
     // don't currently keep a longer audit trail (Phase 1c can revisit).
@@ -444,19 +463,20 @@ describe('ExtractionService', () => {
 
     const parsePdfSpy = vi.fn(async () => ({ text: '   ' }));
     const pdfToImagesSpy = vi.fn(async () => [Buffer.from([0x89, 0x50, 0x4e, 0x47])]);
-    const extractWithImagesSpy = vi.fn().mockResolvedValue(FAKE_EXTRACTION);
-    const llmClient = {
-      extract: vi.fn(),
-      extractWithImages: extractWithImagesSpy,
-    } as unknown as LLMClient;
     const emitProgressSpy = vi.fn();
+
+    // Both text + vision branches go through runAiObject; the vision call
+    // is the one that includes `args.images`. The mock returns the same
+    // FAKE_EXTRACTION regardless — assertions below check the route was
+    // taken via the args shape.
+    vi.mocked(runAiObject).mockResolvedValue(FAKE_EXTRACTION);
 
     h.extractionService = new ExtractionService({
       db: h.db,
       now: () => '2026-05-11T00:00:00.000Z',
       documentService: h.documentService,
       settingsService: h.settingsService,
-      llmClient,
+      credentials: fakeCredentials(),
       readFile: () => Buffer.from('pdf-bytes'),
       parsePdf: parsePdfSpy,
       pdfToImages: pdfToImagesSpy,
@@ -473,8 +493,11 @@ describe('ExtractionService', () => {
     expect(ext.status).toBe('review_needed');
     expect(JSON.parse(ext.parsed_json ?? '')).toEqual(FAKE_EXTRACTION);
     expect(pdfToImagesSpy).toHaveBeenCalledTimes(1);
-    expect(extractWithImagesSpy).toHaveBeenCalledTimes(1);
-    expect(llmClient.extract).not.toHaveBeenCalled();
+    // Vision route: runAiObject got called exactly once, with images.
+    expect(h.runAi).toHaveBeenCalledTimes(1);
+    const visionArgs = h.runAi.mock.calls[0]?.[2];
+    expect(visionArgs?.images).toBeDefined();
+    expect(visionArgs?.images?.length).toBe(1);
     expect(emitProgressSpy).toHaveBeenCalledWith('extraction:progress', {
       document_id: doc.id,
       phase: 'vision',
@@ -497,18 +520,13 @@ describe('ExtractionService', () => {
     } as unknown as SettingsService;
 
     const pdfToImagesSpy = vi.fn(async () => [Buffer.from([0x89])]);
-    const extractWithImagesSpy = vi.fn();
-    const llmClient = {
-      extract: vi.fn(),
-      extractWithImages: extractWithImagesSpy,
-    } as unknown as LLMClient;
 
     h.extractionService = new ExtractionService({
       db: h.db,
       now: () => '2026-05-11T00:00:00.000Z',
       documentService: h.documentService,
       settingsService: h.settingsService,
-      llmClient,
+      credentials: fakeCredentials(),
       readFile: () => Buffer.from('pdf-bytes'),
       parsePdf: vi.fn(async () => ({ text: '   ' })),
       pdfToImages: pdfToImagesSpy,
@@ -520,7 +538,8 @@ describe('ExtractionService', () => {
       h.extractionService.run({ document_id: doc.id, stage_id: 'china_utility.v1' }),
     ).rejects.toBeInstanceOf(VisionUnsupportedError);
     expect(pdfToImagesSpy).not.toHaveBeenCalled();
-    expect(extractWithImagesSpy).not.toHaveBeenCalled();
+    // assertVisionCapable throws before runAiObject is reached.
+    expect(h.runAi).not.toHaveBeenCalled();
     const count = h.db.prepare('SELECT COUNT(*) AS c FROM extraction').get() as { c: number };
     expect(count.c).toBe(0);
   });
@@ -545,10 +564,7 @@ describe('ExtractionService', () => {
       now: () => '2026-05-11T00:00:00.000Z',
       documentService: h.documentService,
       settingsService: h.settingsService,
-      llmClient: {
-        extract: vi.fn(),
-        extractWithImages: vi.fn(),
-      } as unknown as LLMClient,
+      credentials: fakeCredentials(),
       readFile: () => Buffer.from('pdf-bytes'),
       parsePdf: vi.fn(async () => ({ text: '   ' })),
       pdfToImages: vi.fn(async () => [Buffer.from([0x89])]),
@@ -576,24 +592,19 @@ describe('ExtractionService', () => {
       confidence: 'high' as const,
     };
 
-    // Override the harness's LLM client to return the fuel-shaped object
-    // when the orchestrator calls extract() with the fuel schema. We
-    // verify the right stage_id was threaded through to the row.
+    // Override the harness's mock to return the fuel-shaped object when
+    // runAiObject is called with the fuel schema. We verify the right
+    // stage_id was threaded through to the row.
     h.cleanup();
     h = setupHarness();
-    h.llmClient = {
-      extract: vi.fn().mockResolvedValue(fuelExtraction),
-      extractWithImages: vi.fn(),
-    } as unknown as LLMClient;
+    vi.mocked(runAiObject).mockResolvedValue(fuelExtraction);
 
-    // Re-build ExtractionService with the new llmClient (the harness's
-    // setupHarness binds it at construction time).
     h.extractionService = new ExtractionService({
       db: h.db,
       now: () => '2026-05-13T00:00:00.000Z',
       documentService: h.documentService,
       settingsService: h.settingsService,
-      llmClient: h.llmClient,
+      credentials: fakeCredentials(),
       readFile: () => Buffer.from('fuel-pdf-bytes'),
       parsePdf: vi.fn(async () => ({ text: 'FAKE_FUEL_TEXT' })),
     });
@@ -608,17 +619,17 @@ describe('ExtractionService', () => {
     expect(ext.status).toBe('review_needed');
     expect(ext.prompt_version).toBe('fuel_receipt.v1');
     expect(JSON.parse(ext.parsed_json ?? '')).toEqual(fuelExtraction);
-    // The LLM client got called with the fuel_receipt schema (we passed
-    // it through; the orchestrator should pick the right stage).
-    expect(h.llmClient.extract).toHaveBeenCalledTimes(1);
-    const [, schema] = vi.mocked(h.llmClient.extract).mock.calls[0] ?? [];
-    expect(schema).toBeDefined();
+    // runAiObject got called with the fuel_receipt schema (the
+    // orchestrator picked the right stage).
+    expect(h.runAi).toHaveBeenCalledTimes(1);
+    const args = h.runAi.mock.calls[0]?.[2];
+    expect(args?.schema).toBeDefined();
     // Schema instance check: importing fuelReceiptExtraction at the test
     // top would create a cyclical require pattern in some setups; we
     // sanity-check by parsing the fuel extraction through the schema
     // captured at the call site.
     expect(() =>
-      (schema as { parse: (x: unknown) => unknown }).parse(fuelExtraction),
+      (args?.schema as { parse: (x: unknown) => unknown }).parse(fuelExtraction),
     ).not.toThrow();
   });
 
@@ -642,17 +653,14 @@ describe('ExtractionService', () => {
 
     h.cleanup();
     h = setupHarness();
-    h.llmClient = {
-      extract: vi.fn().mockResolvedValue(freightOutput),
-      extractWithImages: vi.fn(),
-    } as unknown as LLMClient;
+    vi.mocked(runAiObject).mockResolvedValue(freightOutput);
 
     h.extractionService = new ExtractionService({
       db: h.db,
       now: () => '2026-05-13T00:00:00.000Z',
       documentService: h.documentService,
       settingsService: h.settingsService,
-      llmClient: h.llmClient,
+      credentials: fakeCredentials(),
       readFile: () => Buffer.from('freight-pdf-bytes'),
       parsePdf: vi.fn(async () => ({ text: 'FAKE_FREIGHT_TEXT' })),
     });
@@ -667,13 +675,15 @@ describe('ExtractionService', () => {
     expect(ext.status).toBe('review_needed');
     expect(ext.prompt_version).toBe('freight.v1');
     expect(JSON.parse(ext.parsed_json ?? '')).toEqual(freightOutput);
-    expect(h.llmClient.extract).toHaveBeenCalledTimes(1);
+    expect(h.runAi).toHaveBeenCalledTimes(1);
     // Schema captured at the call site can parse the freight output —
     // proves the orchestrator passed freight.v1's schema, not another
     // stage's. Mirrors the technique used for fuel_receipt smoke.
-    const [, schema] = vi.mocked(h.llmClient.extract).mock.calls[0] ?? [];
-    expect(schema).toBeDefined();
-    expect(() => (schema as { parse: (x: unknown) => unknown }).parse(freightOutput)).not.toThrow();
+    const args = h.runAi.mock.calls[0]?.[2];
+    expect(args?.schema).toBeDefined();
+    expect(() =>
+      (args?.schema as { parse: (x: unknown) => unknown }).parse(freightOutput),
+    ).not.toThrow();
   });
 
   it('run() routes purchase.v1 through the same pipeline (stage lookup + INSERT)', async () => {
@@ -691,17 +701,14 @@ describe('ExtractionService', () => {
 
     h.cleanup();
     h = setupHarness();
-    h.llmClient = {
-      extract: vi.fn().mockResolvedValue(purchaseOutput),
-      extractWithImages: vi.fn(),
-    } as unknown as LLMClient;
+    vi.mocked(runAiObject).mockResolvedValue(purchaseOutput);
 
     h.extractionService = new ExtractionService({
       db: h.db,
       now: () => '2026-05-13T00:00:00.000Z',
       documentService: h.documentService,
       settingsService: h.settingsService,
-      llmClient: h.llmClient,
+      credentials: fakeCredentials(),
       readFile: () => Buffer.from('purchase-pdf-bytes'),
       parsePdf: vi.fn(async () => ({ text: 'FAKE_PURCHASE_TEXT' })),
     });
@@ -716,14 +723,14 @@ describe('ExtractionService', () => {
     expect(ext.status).toBe('review_needed');
     expect(ext.prompt_version).toBe('purchase.v1');
     expect(JSON.parse(ext.parsed_json ?? '')).toEqual(purchaseOutput);
-    expect(h.llmClient.extract).toHaveBeenCalledTimes(1);
+    expect(h.runAi).toHaveBeenCalledTimes(1);
     // Schema captured at the call site can parse the purchase output —
     // proves the orchestrator passed purchase.v1's schema, not another
     // stage's. Mirrors the technique used for fuel_receipt / freight smokes.
-    const [, schema] = vi.mocked(h.llmClient.extract).mock.calls[0] ?? [];
-    expect(schema).toBeDefined();
+    const args = h.runAi.mock.calls[0]?.[2];
+    expect(args?.schema).toBeDefined();
     expect(() =>
-      (schema as { parse: (x: unknown) => unknown }).parse(purchaseOutput),
+      (args?.schema as { parse: (x: unknown) => unknown }).parse(purchaseOutput),
     ).not.toThrow();
   });
 
@@ -748,17 +755,14 @@ describe('ExtractionService', () => {
 
     h.cleanup();
     h = setupHarness();
-    h.llmClient = {
-      extract: vi.fn().mockResolvedValue(travelOutput),
-      extractWithImages: vi.fn(),
-    } as unknown as LLMClient;
+    vi.mocked(runAiObject).mockResolvedValue(travelOutput);
 
     h.extractionService = new ExtractionService({
       db: h.db,
       now: () => '2026-05-13T00:00:00.000Z',
       documentService: h.documentService,
       settingsService: h.settingsService,
-      llmClient: h.llmClient,
+      credentials: fakeCredentials(),
       readFile: () => Buffer.from('travel-pdf-bytes'),
       parsePdf: vi.fn(async () => ({ text: 'FAKE_TRAVEL_TEXT' })),
     });
@@ -773,12 +777,14 @@ describe('ExtractionService', () => {
     expect(ext.status).toBe('review_needed');
     expect(ext.prompt_version).toBe('travel.v1');
     expect(JSON.parse(ext.parsed_json ?? '')).toEqual(travelOutput);
-    expect(h.llmClient.extract).toHaveBeenCalledTimes(1);
+    expect(h.runAi).toHaveBeenCalledTimes(1);
     // Schema captured at the call site can parse the travel output —
     // proves the orchestrator passed travel.v1's schema, not another
     // stage's. Mirrors the technique used for fuel/freight/purchase smokes.
-    const [, schema] = vi.mocked(h.llmClient.extract).mock.calls[0] ?? [];
-    expect(schema).toBeDefined();
-    expect(() => (schema as { parse: (x: unknown) => unknown }).parse(travelOutput)).not.toThrow();
+    const args = h.runAi.mock.calls[0]?.[2];
+    expect(args?.schema).toBeDefined();
+    expect(() =>
+      (args?.schema as { parse: (x: unknown) => unknown }).parse(travelOutput),
+    ).not.toThrow();
   });
 });

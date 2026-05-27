@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { CredentialStore, type SafeStorageLike } from '@main/credentials/safe-storage';
 import { closeAppDb, openAppDb } from '@main/db/connection';
 import { runMigrations } from '@main/db/migrate';
-import type { LLMClient } from '@main/llm/llm-client';
+import { runAiObject } from '@main/llm/run-ai';
 import type { ChinaUtilityExtraction } from '@main/llm/stages/china-utility';
 import { CredentialService } from '@main/services/credential-service';
 import { DocumentService } from '@main/services/document-service';
@@ -12,6 +12,10 @@ import { ExtractionService } from '@main/services/extraction-service';
 import { SettingsService } from '@main/services/settings-service';
 import type { ProviderConfig } from '@shared/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('@main/llm/run-ai', () => ({
+  runAiObject: vi.fn(),
+}));
 
 /**
  * Phase 1b Task 17 — integration smoke for the full main-side extraction pipeline.
@@ -102,14 +106,12 @@ function setupHarness() {
   // backing store that getProviderConfigWithKey() will read from.
   settingsService.saveProviderConfig(PROVIDER_CONFIG, 'sk-test-integration-9999');
 
-  // Mocked LLMClient: returns FAKE_EXTRACTION unconditionally. We duck-type
-  // via `as unknown as LLMClient` because the production class has private
-  // helpers (`getModel`) the pipeline never calls externally.
-  const llmClient = {
-    extract: vi.fn(async () => FAKE_EXTRACTION),
-    ping: vi.fn(async () => ({ ok: true as const })),
-    pingWithKey: vi.fn(async () => ({ ok: true as const })),
-  } as unknown as LLMClient;
+  // The AiClient round-trip is mocked at the runAiObject Promise
+  // boundary helper. ExtractionService gets a real CredentialService
+  // (production-shaped) so we still exercise the keychain round-trip
+  // even though the LLM never executes.
+  vi.mocked(runAiObject).mockReset();
+  vi.mocked(runAiObject).mockResolvedValue(FAKE_EXTRACTION);
 
   // DI'd parsePdf so the pipeline never loads pdf-parse (which eagerly reads
   // bundled fixture PDFs on import). We don't override `readFile` here —
@@ -123,7 +125,7 @@ function setupHarness() {
     now,
     documentService,
     settingsService,
-    llmClient,
+    credentials: credentialService,
     parsePdf,
   });
 
@@ -134,7 +136,7 @@ function setupHarness() {
     credentialService,
     documentService,
     settingsService,
-    llmClient,
+    runAi: vi.mocked(runAiObject),
     parsePdf,
     extractionService,
   };
@@ -186,7 +188,7 @@ describe('extraction pipeline integration', () => {
     expect(first.llm_model).toBe('gpt-4o-mini');
     expect(first.prompt_version).toBe('china_utility.v1');
     expect(JSON.parse(first.parsed_json ?? '')).toEqual(FAKE_EXTRACTION);
-    expect(h.llmClient.extract).toHaveBeenCalledTimes(1);
+    expect(h.runAi).toHaveBeenCalledTimes(1);
     expect(h.parsePdf).toHaveBeenCalledTimes(1);
 
     // 3. Re-run with the same (doc, stage, provider, model) tuple → cache
@@ -197,7 +199,7 @@ describe('extraction pipeline integration', () => {
       stage_id: 'china_utility.v1',
     });
     expect(second.id).toBe(first.id);
-    expect(h.llmClient.extract).toHaveBeenCalledTimes(1);
+    expect(h.runAi).toHaveBeenCalledTimes(1);
     expect(h.parsePdf).toHaveBeenCalledTimes(1);
     const rowCount = h.db.prepare('SELECT COUNT(*) AS c FROM extraction').get() as { c: number };
     expect(rowCount.c).toBe(1);

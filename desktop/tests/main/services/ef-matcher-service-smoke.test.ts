@@ -14,17 +14,33 @@
  * run without launching Electron.
  */
 import { runMigrations } from '@main/db/migrate';
+import { runAiObject } from '@main/llm/run-ai';
+import type { CredentialService } from '@main/services/credential-service';
 import { EfMatcherService } from '@main/services/ef-matcher-service';
 import { EfService } from '@main/services/ef-service';
 import type { EmissionFactor, Extraction } from '@shared/types';
 import Database from 'better-sqlite3';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('@main/llm/run-ai', () => ({
+  runAiObject: vi.fn(),
+}));
 
 const FAKE_CONFIG = {
   provider: 'openai',
   model: 'gpt-4o-mini',
   apiKeyKeyref: 'fake-keyref',
 } as never;
+
+function fakeCredentials(): CredentialService {
+  return {
+    get: vi.fn(() => 'sk-fake'),
+    set: vi.fn(),
+    getMasked: vi.fn(),
+    delete: vi.fn(),
+    isAvailable: vi.fn().mockReturnValue(true),
+  } as unknown as CredentialService;
+}
 
 function setup(opts: {
   extraction: Extraction;
@@ -35,34 +51,50 @@ function setup(opts: {
   const db = new Database(':memory:');
   runMigrations(db);
   const efService = new EfService({ db });
-  const recommendEfs = vi
-    .fn()
-    .mockImplementation((_config, _json, candidates: EmissionFactor[]) => {
-      const picker =
-        opts.llmPicker ??
-        ((cs) => cs.slice(0, 3).map((ef) => ({ ef, reasoning_zh: `pick ${ef.factor_code}` })));
-      const picks = picker(candidates);
-      return Promise.resolve({
-        recommendations: picks.map((p) => ({
-          factor_code: p.ef.factor_code,
-          year: p.ef.year,
-          source: p.ef.source,
-          geography: p.ef.geography,
-          dataset_version: p.ef.dataset_version,
-          reasoning_zh: p.reasoning_zh,
-        })),
-      });
+  // The service builds its own prompt from the candidate list and passes
+  // the rendered prompt to runAiObject. We can't see the candidates
+  // through the args, so we instead capture them via the efService spy:
+  // the matcher invokes `efService.list(filter)` immediately before the
+  // LLM call, so the list returned from that spy = the candidate set
+  // we'd otherwise want to inspect.
+  let lastCandidates: EmissionFactor[] = [];
+  const realList = efService.list.bind(efService);
+  vi.spyOn(efService, 'list').mockImplementation((filter) => {
+    const result = realList(filter);
+    lastCandidates = result;
+    return result;
+  });
+  vi.mocked(runAiObject).mockImplementation(() => {
+    const picker =
+      opts.llmPicker ??
+      ((cs: EmissionFactor[]) =>
+        cs.slice(0, 3).map((ef) => ({ ef, reasoning_zh: `pick ${ef.factor_code}` })));
+    const picks = picker(lastCandidates);
+    return Promise.resolve({
+      recommendations: picks.map((p) => ({
+        factor_code: p.ef.factor_code,
+        year: p.ef.year,
+        source: p.ef.source,
+        geography: p.ef.geography,
+        dataset_version: p.ef.dataset_version,
+        reasoning_zh: p.reasoning_zh,
+      })),
     });
+  });
   const svc = new EfMatcherService({
     db,
     efService,
     extractionService: { get: vi.fn().mockReturnValue(opts.extraction) } as never,
     emissionSourceService: { get: vi.fn().mockReturnValue(opts.source) } as never,
-    llmClient: { recommendEfs } as never,
+    credentials: fakeCredentials(),
     config: FAKE_CONFIG,
   });
-  return { svc, recommendEfs, efService };
+  return { svc, recommendEfs: vi.mocked(runAiObject), efService };
 }
+
+beforeEach(() => {
+  vi.mocked(runAiObject).mockReset();
+});
 
 describe('EfMatcherService — end-to-end smoke against real seeded catalog', () => {
   it('fuel_receipt.v1 with fuel_type=柴油 ranks diesel EFs in the top recommendations', async () => {

@@ -326,7 +326,7 @@ export function createIpcContext(
           ...svc,
           documentService: getDocument(),
           settingsService: getSettings(),
-          llmClient: getLlm(),
+          credentials: getCredential(),
           ...(overrides.progressEmitter && { emitProgress: overrides.progressEmitter }),
         });
       }
@@ -347,7 +347,7 @@ export function createIpcContext(
           emissionSourceService: {
             get: (id: string) => emissionSourceService.getById(id),
           },
-          llmClient: getLlm(),
+          credentials: getCredential(),
           config: providerCfg.config,
         });
       }
@@ -404,7 +404,7 @@ export function createIpcContext(
           db: svc.db,
           documentService: getDocument(),
           customerService: ctx.customerService,
-          llmClient: getLlm(),
+          credentials: getCredential(),
           config: providerCfg.config,
           excelParse: ExcelParser.parse,
         });
