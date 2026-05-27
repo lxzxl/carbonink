@@ -65,16 +65,44 @@ function statusLabel(status: string): string {
       return m.questionnaires_status_answering();
     case 'exported':
       return m.questionnaires_status_exported();
+    // Inbound statuses (T10b — Phase 2.3). Bilingual labels not yet in
+    // paraglide; keeping inline strings until T11 lands the i18n keys.
+    case 'draft':
+      return '草稿';
+    case 'sent':
+      return '已发送';
+    case 'received':
+      return '已回收';
+    case 'ingested':
+      return '已入库';
     default:
       return status;
   }
 }
 
-type QStatus = 'parsing' | 'mapping' | 'answering' | 'exported';
+type QStatus =
+  | 'parsing'
+  | 'mapping'
+  | 'answering'
+  | 'exported'
+  | 'draft'
+  | 'sent'
+  | 'received'
+  | 'ingested';
 type QStatusFilter = 'all' | QStatus;
+type QDirectionFilter = 'all' | 'outbound' | 'inbound';
 type QSort = 'recent' | 'oldest' | 'customer' | 'due' | 'questions';
 
-const Q_STATUSES: QStatus[] = ['parsing', 'mapping', 'answering', 'exported'];
+const Q_STATUSES: QStatus[] = [
+  'parsing',
+  'mapping',
+  'answering',
+  'exported',
+  'draft',
+  'sent',
+  'received',
+  'ingested',
+];
 
 function QuestionnairesListColumn() {
   const params = useParams({ strict: false }) as { id?: string };
@@ -90,6 +118,7 @@ function QuestionnairesListColumn() {
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<QStatusFilter>('all');
+  const [directionFilter, setDirectionFilter] = useState<QDirectionFilter>('all');
   const [sort, setSort] = useState<QSort>('recent');
 
   const searched = useMemo(() => {
@@ -98,26 +127,49 @@ function QuestionnairesListColumn() {
     return list.filter((r) => r.customer_name.toLowerCase().includes(query));
   }, [list, search]);
 
-  const statusCounts = useMemo(() => {
-    const counts: Record<QStatusFilter, number> = {
+  const directionFiltered = useMemo(() => {
+    if (directionFilter === 'all') return searched;
+    return searched.filter((r) => r.direction === directionFilter);
+  }, [searched, directionFilter]);
+
+  const directionCounts = useMemo(() => {
+    const counts: Record<QDirectionFilter, number> = {
       all: searched.length,
-      parsing: 0,
-      mapping: 0,
-      answering: 0,
-      exported: 0,
+      outbound: 0,
+      inbound: 0,
     };
     for (const r of searched) {
-      if ((Q_STATUSES as readonly string[]).includes(r.status)) {
-        counts[r.status as QStatus] += 1;
+      if (r.direction === 'outbound' || r.direction === 'inbound') {
+        counts[r.direction] += 1;
       }
     }
     return counts;
   }, [searched]);
 
+  const statusCounts = useMemo(() => {
+    const counts: Record<QStatusFilter, number> = {
+      all: directionFiltered.length,
+      parsing: 0,
+      mapping: 0,
+      answering: 0,
+      exported: 0,
+      draft: 0,
+      sent: 0,
+      received: 0,
+      ingested: 0,
+    };
+    for (const r of directionFiltered) {
+      if ((Q_STATUSES as readonly string[]).includes(r.status)) {
+        counts[r.status as QStatus] += 1;
+      }
+    }
+    return counts;
+  }, [directionFiltered]);
+
   const statusFiltered = useMemo(() => {
-    if (statusFilter === 'all') return searched;
-    return searched.filter((r) => r.status === statusFilter);
-  }, [searched, statusFilter]);
+    if (statusFilter === 'all') return directionFiltered;
+    return directionFiltered.filter((r) => r.status === statusFilter);
+  }, [directionFiltered, statusFilter]);
 
   const visible = useMemo(() => {
     const arr = [...statusFiltered];
@@ -159,18 +211,41 @@ function QuestionnairesListColumn() {
     [],
   );
 
-  const STATUS_FILTERS: { value: QStatusFilter; label: string }[] = [
-    { value: 'all', label: m.questionnaires_filter_status_all() },
-    { value: 'parsing', label: m.questionnaires_status_parsing() },
-    { value: 'mapping', label: m.questionnaires_status_mapping() },
-    { value: 'answering', label: m.questionnaires_status_answering() },
-    { value: 'exported', label: m.questionnaires_status_exported() },
+  // Direction-aware status filter list: when the user has filtered to
+  // outbound or inbound only, show that direction's statuses (avoids
+  // showing irrelevant inbound 'draft' chips when looking at outbound).
+  const STATUS_FILTERS: { value: QStatusFilter; label: string }[] = (() => {
+    const base: { value: QStatusFilter; label: string }[] = [
+      { value: 'all', label: m.questionnaires_filter_status_all() },
+    ];
+    const outboundStatuses: { value: QStatusFilter; label: string }[] = [
+      { value: 'parsing', label: m.questionnaires_status_parsing() },
+      { value: 'mapping', label: m.questionnaires_status_mapping() },
+      { value: 'answering', label: m.questionnaires_status_answering() },
+      { value: 'exported', label: m.questionnaires_status_exported() },
+    ];
+    const inboundStatuses: { value: QStatusFilter; label: string }[] = [
+      { value: 'draft', label: '草稿' },
+      { value: 'sent', label: '已发送' },
+      { value: 'received', label: '已回收' },
+      { value: 'ingested', label: '已入库' },
+    ];
+    if (directionFilter === 'outbound') return [...base, ...outboundStatuses];
+    if (directionFilter === 'inbound') return [...base, ...inboundStatuses];
+    return [...base, ...outboundStatuses, ...inboundStatuses];
+  })();
+
+  const DIRECTION_FILTERS: { value: QDirectionFilter; label: string }[] = [
+    { value: 'all', label: '全部方向' },
+    { value: 'outbound', label: 'Outbound' },
+    { value: 'inbound', label: 'Inbound' },
   ];
 
-  const filtersActive = search !== '' || statusFilter !== 'all';
+  const filtersActive = search !== '' || statusFilter !== 'all' || directionFilter !== 'all';
   const resetFilters = () => {
     setSearch('');
     setStatusFilter('all');
+    setDirectionFilter('all');
   };
 
   return (
@@ -209,6 +284,35 @@ function QuestionnairesListColumn() {
                 className="w-full rounded-md border border-border bg-background py-1 pl-7 pr-2 text-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring"
               />
             </div>
+            {/* Direction filter (row 1) — primary axis, before status. */}
+            <div className="flex flex-wrap items-center gap-1">
+              {DIRECTION_FILTERS.map(({ value, label }) => {
+                const active = directionFilter === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => {
+                      setDirectionFilter(value);
+                      // Reset status filter when direction changes — the
+                      // status chip list itself is different per direction,
+                      // so the prior selection might be invalid.
+                      setStatusFilter('all');
+                    }}
+                    className={cn(
+                      'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium transition-colors',
+                      active
+                        ? 'bg-foreground/12 text-foreground'
+                        : 'bg-transparent text-muted-foreground hover:bg-foreground/5',
+                    )}
+                  >
+                    <span>{label}</span>
+                    <ChipCountBadge count={directionCounts[value]} active={active} />
+                  </button>
+                );
+              })}
+            </div>
+            {/* Status filter (row 2) — adapts to selected direction. */}
             <div className="flex flex-wrap items-center gap-1">
               {STATUS_FILTERS.map(({ value, label }) => {
                 const active = statusFilter === value;
@@ -260,6 +364,16 @@ function QuestionnairesListColumn() {
                   titleAttr={r.customer_name}
                   meta={
                     <>
+                      <span
+                        className={cn(
+                          'inline-flex items-center rounded border px-1 py-0 text-[10px] font-medium',
+                          r.direction === 'inbound'
+                            ? 'border-sky-500/40 bg-sky-500/10 text-sky-700 dark:text-sky-300'
+                            : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+                        )}
+                      >
+                        {r.direction === 'inbound' ? 'IN' : 'OUT'}
+                      </span>
                       <span>{r.reporting_year}</span>
                       <span>·</span>
                       <span>{statusLabel(r.status)}</span>

@@ -28,6 +28,7 @@ import { Route as OnboardingStepRouteImport } from './routes/onboarding.$step'
 import { Route as DocumentsIdRouteImport } from './routes/documents.$id'
 import { Route as QuestionnairesNewOutboundRouteImport } from './routes/questionnaires.new.outbound'
 import { Route as QuestionnairesNewInboundRouteImport } from './routes/questionnaires.new.inbound'
+import { Route as QuestionnairesIdIngestRouteImport } from './routes/questionnaires.$id.ingest'
 
 const SourcesRoute = SourcesRouteImport.update({
   id: '/sources',
@@ -126,6 +127,11 @@ const QuestionnairesNewInboundRoute =
     path: '/inbound',
     getParentRoute: () => QuestionnairesNewRoute,
   } as any)
+const QuestionnairesIdIngestRoute = QuestionnairesIdIngestRouteImport.update({
+  id: '/ingest',
+  path: '/ingest',
+  getParentRoute: () => QuestionnairesIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -139,12 +145,13 @@ export interface FileRoutesByFullPath {
   '/sources': typeof SourcesRoute
   '/documents/$id': typeof DocumentsIdRoute
   '/onboarding/$step': typeof OnboardingStepRoute
-  '/questionnaires/$id': typeof QuestionnairesIdRoute
+  '/questionnaires/$id': typeof QuestionnairesIdRouteWithChildren
   '/questionnaires/new': typeof QuestionnairesNewRouteWithChildren
   '/reports/$id': typeof ReportsIdRoute
   '/documents/': typeof DocumentsIndexRoute
   '/questionnaires/': typeof QuestionnairesIndexRoute
   '/reports/': typeof ReportsIndexRoute
+  '/questionnaires/$id/ingest': typeof QuestionnairesIdIngestRoute
   '/questionnaires/new/inbound': typeof QuestionnairesNewInboundRoute
   '/questionnaires/new/outbound': typeof QuestionnairesNewOutboundRoute
 }
@@ -157,12 +164,13 @@ export interface FileRoutesByTo {
   '/sources': typeof SourcesRoute
   '/documents/$id': typeof DocumentsIdRoute
   '/onboarding/$step': typeof OnboardingStepRoute
-  '/questionnaires/$id': typeof QuestionnairesIdRoute
+  '/questionnaires/$id': typeof QuestionnairesIdRouteWithChildren
   '/questionnaires/new': typeof QuestionnairesNewRouteWithChildren
   '/reports/$id': typeof ReportsIdRoute
   '/documents': typeof DocumentsIndexRoute
   '/questionnaires': typeof QuestionnairesIndexRoute
   '/reports': typeof ReportsIndexRoute
+  '/questionnaires/$id/ingest': typeof QuestionnairesIdIngestRoute
   '/questionnaires/new/inbound': typeof QuestionnairesNewInboundRoute
   '/questionnaires/new/outbound': typeof QuestionnairesNewOutboundRoute
 }
@@ -179,12 +187,13 @@ export interface FileRoutesById {
   '/sources': typeof SourcesRoute
   '/documents/$id': typeof DocumentsIdRoute
   '/onboarding/$step': typeof OnboardingStepRoute
-  '/questionnaires/$id': typeof QuestionnairesIdRoute
+  '/questionnaires/$id': typeof QuestionnairesIdRouteWithChildren
   '/questionnaires/new': typeof QuestionnairesNewRouteWithChildren
   '/reports/$id': typeof ReportsIdRoute
   '/documents/': typeof DocumentsIndexRoute
   '/questionnaires/': typeof QuestionnairesIndexRoute
   '/reports/': typeof ReportsIndexRoute
+  '/questionnaires/$id/ingest': typeof QuestionnairesIdIngestRoute
   '/questionnaires/new/inbound': typeof QuestionnairesNewInboundRoute
   '/questionnaires/new/outbound': typeof QuestionnairesNewOutboundRoute
 }
@@ -208,6 +217,7 @@ export interface FileRouteTypes {
     | '/documents/'
     | '/questionnaires/'
     | '/reports/'
+    | '/questionnaires/$id/ingest'
     | '/questionnaires/new/inbound'
     | '/questionnaires/new/outbound'
   fileRoutesByTo: FileRoutesByTo
@@ -226,6 +236,7 @@ export interface FileRouteTypes {
     | '/documents'
     | '/questionnaires'
     | '/reports'
+    | '/questionnaires/$id/ingest'
     | '/questionnaires/new/inbound'
     | '/questionnaires/new/outbound'
   id:
@@ -247,6 +258,7 @@ export interface FileRouteTypes {
     | '/documents/'
     | '/questionnaires/'
     | '/reports/'
+    | '/questionnaires/$id/ingest'
     | '/questionnaires/new/inbound'
     | '/questionnaires/new/outbound'
   fileRoutesById: FileRoutesById
@@ -399,6 +411,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof QuestionnairesNewInboundRouteImport
       parentRoute: typeof QuestionnairesNewRoute
     }
+    '/questionnaires/$id/ingest': {
+      id: '/questionnaires/$id/ingest'
+      path: '/ingest'
+      fullPath: '/questionnaires/$id/ingest'
+      preLoaderRoute: typeof QuestionnairesIdIngestRouteImport
+      parentRoute: typeof QuestionnairesIdRoute
+    }
   }
 }
 
@@ -416,6 +435,17 @@ const DocumentsRouteWithChildren = DocumentsRoute._addFileChildren(
   DocumentsRouteChildren,
 )
 
+interface QuestionnairesIdRouteChildren {
+  QuestionnairesIdIngestRoute: typeof QuestionnairesIdIngestRoute
+}
+
+const QuestionnairesIdRouteChildren: QuestionnairesIdRouteChildren = {
+  QuestionnairesIdIngestRoute: QuestionnairesIdIngestRoute,
+}
+
+const QuestionnairesIdRouteWithChildren =
+  QuestionnairesIdRoute._addFileChildren(QuestionnairesIdRouteChildren)
+
 interface QuestionnairesNewRouteChildren {
   QuestionnairesNewInboundRoute: typeof QuestionnairesNewInboundRoute
   QuestionnairesNewOutboundRoute: typeof QuestionnairesNewOutboundRoute
@@ -430,13 +460,13 @@ const QuestionnairesNewRouteWithChildren =
   QuestionnairesNewRoute._addFileChildren(QuestionnairesNewRouteChildren)
 
 interface QuestionnairesRouteChildren {
-  QuestionnairesIdRoute: typeof QuestionnairesIdRoute
+  QuestionnairesIdRoute: typeof QuestionnairesIdRouteWithChildren
   QuestionnairesNewRoute: typeof QuestionnairesNewRouteWithChildren
   QuestionnairesIndexRoute: typeof QuestionnairesIndexRoute
 }
 
 const QuestionnairesRouteChildren: QuestionnairesRouteChildren = {
-  QuestionnairesIdRoute: QuestionnairesIdRoute,
+  QuestionnairesIdRoute: QuestionnairesIdRouteWithChildren,
   QuestionnairesNewRoute: QuestionnairesNewRouteWithChildren,
   QuestionnairesIndexRoute: QuestionnairesIndexRoute,
 }

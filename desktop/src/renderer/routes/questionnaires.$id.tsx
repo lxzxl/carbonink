@@ -1,15 +1,17 @@
 import { AnswerReviewCard } from '@renderer/components/AnswerReviewCard';
+import { InboundQuestionTable } from '@renderer/components/inbound/InboundQuestionTable';
 import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
 import { activityApi } from '@renderer/lib/api/activity-data';
 import { answerApi } from '@renderer/lib/api/answer';
+import { inboundQuestionnaireApi } from '@renderer/lib/api/inbound-questionnaire';
 import { orgApi } from '@renderer/lib/api/organization';
 import { questionnaireApi } from '@renderer/lib/api/questionnaire';
 import * as m from '@renderer/paraglide/messages';
-import type { Answer, Question } from '@shared/types';
+import type { Answer, Question, Questionnaire } from '@shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { createFileRoute, Link } from '@tanstack/react-router';
-import { AlertTriangle } from 'lucide-react';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { AlertTriangle, Download, Upload } from 'lucide-react';
 import { useState } from 'react';
 
 export const Route = createFileRoute('/questionnaires/$id')({
@@ -80,6 +82,20 @@ function QuestionnaireDetailRoute() {
 
   const byQ = new Map<string, Answer>((answersQuery.data ?? []).map((a) => [a.question_id, a]));
 
+  // Direction branch — inbound and outbound diverge on action bar, body
+  // content, and state-machine wiring. Keeping them as two top-level
+  // components is more honest than a giant conditional inside one body.
+  if (questionnaire.direction === 'inbound') {
+    return (
+      <InboundDetailBody
+        id={id}
+        questionnaire={questionnaire}
+        customer={customer}
+        questions={questions}
+      />
+    );
+  }
+
   return (
     <DetailBody
       id={id}
@@ -92,6 +108,165 @@ function QuestionnaireDetailRoute() {
       exportToExcel={exportToExcel}
       finalizeMutation={finalizeMutation}
     />
+  );
+}
+
+/**
+ * Inbound detail page. Status-driven action bar drives the user through
+ * the supplier-disclosure lifecycle: Export blank xlsx (draft) → Import
+ * filled xlsx (sent) → Review & ingest (received) → View activities
+ * (ingested).
+ *
+ * The body shows the question list with tier badges — no
+ * AnswerReviewCard, because inbound answers come from the supplier via
+ * import, not from the user's typing.
+ */
+function InboundDetailBody({
+  id,
+  questionnaire,
+  customer,
+  questions,
+}: {
+  id: string;
+  questionnaire: Questionnaire;
+  customer: { name: string };
+  questions: Question[];
+}): JSX.Element {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const exportMutation = useMutation({
+    mutationFn: () => inboundQuestionnaireApi.exportXlsx({ questionnaire_id: id }),
+    onSuccess: (r) => {
+      if (r.canceled) return;
+      toast.success(`已导出到 ${r.path}（${r.bytes_written} 字节）。将文件邮件发给供应商。`);
+      void queryClient.invalidateQueries({ queryKey: ['questionnaire:get-by-id', id] });
+      void queryClient.invalidateQueries({ queryKey: ['questionnaire:list'] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : String(e)),
+  });
+
+  const importMutation = useMutation({
+    mutationFn: () => inboundQuestionnaireApi.importPreview({ questionnaire_id: id }),
+    onSuccess: (r) => {
+      if (r.canceled) return;
+      if ('error' in r) {
+        toast.error('导入失败', { description: r.error.message });
+        return;
+      }
+      toast.success(
+        `已解析 ${r.preview.answers.filter((a) => !a.is_blank).length} 题答案。进入审核页面。`,
+      );
+      void queryClient.invalidateQueries({ queryKey: ['questionnaire:get-by-id', id] });
+      void queryClient.invalidateQueries({ queryKey: ['questionnaire:list'] });
+      void navigate({ to: '/questionnaires/$id/ingest', params: { id } });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : String(e)),
+  });
+
+  return (
+    <div className="flex h-full flex-col">
+      <div className="shrink-0 space-y-3 px-6 pt-6 pb-3">
+        <div className="flex items-center gap-3">
+          <span className="inline-flex items-center rounded border border-sky-500/40 bg-sky-500/10 px-2 py-0.5 text-xs font-medium text-sky-700 dark:text-sky-300">
+            Inbound · 供应商问卷
+          </span>
+          <h1 className="text-2xl font-semibold">{customer.name}</h1>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          {questionnaire.reporting_year} · {statusLabelZh(questionnaire.status)} · Cat 1 Supplier
+          Disclosure · {questions.length} 题
+        </p>
+      </div>
+
+      <div className="flex-1 min-h-0 overflow-auto px-6 py-3 space-y-4">
+        <InboundQuestionTable questions={questions} />
+        <InboundStatusHint status={questionnaire.status} />
+      </div>
+
+      <div className="shrink-0 flex justify-end gap-2 border-t border-border bg-background/95 backdrop-blur px-6 py-3">
+        {questionnaire.status === 'draft' && (
+          <Button
+            type="button"
+            onClick={() => exportMutation.mutate()}
+            disabled={exportMutation.isPending}
+          >
+            <Download className="mr-1.5 h-4 w-4" />
+            {exportMutation.isPending ? '导出中...' : '导出空白 xlsx'}
+          </Button>
+        )}
+        {questionnaire.status === 'sent' && (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => exportMutation.mutate()}
+              disabled={exportMutation.isPending}
+            >
+              重新导出
+            </Button>
+            <Button
+              type="button"
+              onClick={() => importMutation.mutate()}
+              disabled={importMutation.isPending}
+            >
+              <Upload className="mr-1.5 h-4 w-4" />
+              {importMutation.isPending ? '导入中...' : '导入回填表'}
+            </Button>
+          </>
+        )}
+        {questionnaire.status === 'received' && (
+          <Button
+            type="button"
+            onClick={() => void navigate({ to: '/questionnaires/$id/ingest', params: { id } })}
+          >
+            审核并入库
+          </Button>
+        )}
+        {questionnaire.status === 'ingested' && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => void navigate({ to: '/activities' })}
+          >
+            查看关联活动数据
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function statusLabelZh(status: string): string {
+  switch (status) {
+    case 'draft':
+      return '草稿（待导出）';
+    case 'sent':
+      return '已发送供应商';
+    case 'received':
+      return '已收回（待审核）';
+    case 'ingested':
+      return '已入库';
+    default:
+      return status;
+  }
+}
+
+function InboundStatusHint({ status }: { status: string }): JSX.Element | null {
+  const hints: Record<string, string> = {
+    draft:
+      '下一步：点击右下角「导出空白 xlsx」，将文件邮件发给供应商。供应商填写后邮件回传，再回到本页面导入。',
+    sent: '已发送给供应商。等待回传后，点击右下角「导入回填表」上传供应商邮件附件。',
+    received:
+      '供应商回传已解析，等待人工审核。点击「审核并入库」进入审核页面，确认无误后写入活动数据库。',
+    ingested: '已入库。供应商回传的排放数据已写入 Scope 3 库存，可在「活动数据」页面查看。',
+  };
+  const text = hints[status];
+  if (!text) return null;
+  return (
+    <div className="rounded-md border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+      {text}
+    </div>
   );
 }
 
