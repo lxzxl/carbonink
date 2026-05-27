@@ -15,6 +15,7 @@ import type {
   ImportPreviewWarning,
   InboundTemplate,
   InboundTemplateKind,
+  IngestResult,
   Question,
   Questionnaire,
   Supplier,
@@ -396,6 +397,251 @@ export class InboundQuestionnaireService {
     return this.buildImportPreview(ctx, answers, []);
   }
 
+  /**
+   * Convert accepted tentative answers into `activity_data` rows and mark
+   * the questionnaire `'ingested'`. This is the terminal transition for
+   * the v2.0 inbound flow.
+   *
+   * Status transitions:
+   *   received → ingested (writes activity_data, finalizes answers, audits)
+   *   ingested → ingested (idempotent — returns the already-created rows)
+   *
+   * Tier selection:
+   *   Tier 1 wins when any Tier 1 numerical is in `accepted_question_ids`
+   *   AND the row is non-blank. Requires `tier1_purchased_quantity` —
+   *   without it we can't multiply per-kg PCF into a total. Throws
+   *   InboundQuantityRequired so the UI knows to prompt for it.
+   *
+   *   Tier 2 wins when all of (tier2.1, tier2.2, tier2.3) are accepted
+   *   AND non-blank. amount = tier2.3 value (the attributed kgCO2e).
+   *
+   *   Neither → "soft no-op": returns empty IngestResult, status stays
+   *   `received`. The UI surfaces this as "supplier didn't return
+   *   actionable data"; user can request a corrected file from supplier
+   *   without re-creating the questionnaire.
+   *
+   * Side effects, in transaction order:
+   *   1. Find-or-create emission_source for this supplier × period.
+   *   2. Find-or-create the sentinel pinned_emission_factor row that
+   *      satisfies activity_data.ef_* NOT NULL.
+   *   3. INSERT one activity_data row carrying `inbound_question_id` +
+   *      `inbound_tier` provenance.
+   *   4. UPDATE accepted answers SET finalized_at = now.
+   *   5. UPDATE questionnaire SET status='ingested'.
+   *   6. INSERT one `inbound_questionnaire.ingested` audit_event row.
+   */
+  ingest(input: {
+    questionnaire_id: string;
+    accepted_question_ids: readonly string[];
+    tier1_purchased_quantity?: number;
+  }): IngestResult {
+    const qn = this.findQuestionnaire(input.questionnaire_id);
+    if (!qn) throw new InboundQuestionnaireNotFound(input.questionnaire_id);
+    if (qn.direction !== 'inbound') {
+      throw new InboundWrongDirection({
+        questionnaire_id: input.questionnaire_id,
+        actual: qn.direction,
+      });
+    }
+
+    // --- Idempotency: replay returns the existing rows ------------------
+    if (qn.status === 'ingested') {
+      const existing = this.deps.db
+        .prepare(
+          `SELECT id, emission_source_id, computed_at
+             FROM activity_data
+            WHERE inbound_question_id IN (
+              SELECT id FROM question WHERE questionnaire_id = ?
+            )`,
+        )
+        .all(input.questionnaire_id) as Array<{
+        id: string;
+        emission_source_id: string;
+        computed_at: string;
+      }>;
+      const first = existing[0];
+      return {
+        activity_data_ids: existing.map((r) => r.id),
+        emission_source_id: first?.emission_source_id ?? '',
+        ingested_at: first?.computed_at ?? '',
+      };
+    }
+
+    if (qn.status !== 'received') {
+      throw new InboundWrongStatus({
+        questionnaire_id: input.questionnaire_id,
+        actual: qn.status,
+        allowed: ['received', 'ingested'],
+      });
+    }
+
+    const supplier = this.findSupplier(qn.customer_id);
+    if (!supplier) throw new InboundSupplierNotFound(qn.customer_id);
+
+    const template = getInboundTemplate(qn.template_kind as InboundTemplateKind);
+    const periodId = this.findPeriodIdByYear(qn.reporting_year);
+    if (!periodId) throw new InboundPeriodNotFound(`year=${qn.reporting_year}`);
+
+    const org = this.findCurrentOrg();
+    if (!org) throw new InboundOrgMissing();
+    const siteId = this.findFirstSiteForOrg(org.id);
+    if (!siteId) throw new InboundSiteMissing(org.id);
+
+    // Load accepted tentative answers — pulled into a JS-side map so we
+    // can index by position without an N+1 query per template question.
+    const acceptedSet = new Set(input.accepted_question_ids);
+    const tentative = this.deps.db
+      .prepare(
+        `SELECT q.id as question_id, q.position, q.tier, q.question_kind, a.value
+           FROM answer a JOIN question q ON q.id = a.question_id
+          WHERE q.questionnaire_id = ?
+            AND a.source_kind = 'manual'
+            AND a.finalized_at IS NULL`,
+      )
+      .all(input.questionnaire_id) as Array<{
+      question_id: string;
+      position: string;
+      tier: Tier | null;
+      question_kind: 'numerical' | 'categorical' | 'narrative';
+      value: string;
+    }>;
+    const acceptedRows = tentative.filter((t) => acceptedSet.has(t.question_id));
+    const byPosition = new Map(acceptedRows.map((r) => [r.position, r]));
+
+    const tierSelected = decideTierFromAccepted(template, byPosition);
+
+    // --- Soft no-op: insufficient data --------------------------------
+    if (tierSelected === null) {
+      return {
+        activity_data_ids: [],
+        emission_source_id: '',
+        ingested_at: '',
+      };
+    }
+
+    // --- Compute the activity_data amount + co2e ---------------------
+    let amountCo2eKg: number;
+    let chosenQuestionId: string;
+    if (tierSelected === 1) {
+      if (
+        typeof input.tier1_purchased_quantity !== 'number' ||
+        !Number.isFinite(input.tier1_purchased_quantity)
+      ) {
+        throw new InboundQuantityRequired(input.questionnaire_id);
+      }
+      const tier1Row = byPosition.get('tier1.1');
+      if (!tier1Row) throw new InboundQuantityRequired(input.questionnaire_id);
+      const pcf = Number.parseFloat(tier1Row.value);
+      if (!Number.isFinite(pcf)) throw new InboundQuantityRequired(input.questionnaire_id);
+      amountCo2eKg = pcf * input.tier1_purchased_quantity;
+      chosenQuestionId = tier1Row.question_id;
+    } else {
+      // Tier 2 — read from tier2.3 (attributed kgCO2e)
+      const tier2_3 = byPosition.get('tier2.3');
+      if (!tier2_3) throw new InboundQuantityRequired(input.questionnaire_id);
+      const v = Number.parseFloat(tier2_3.value);
+      if (!Number.isFinite(v)) throw new InboundQuantityRequired(input.questionnaire_id);
+      amountCo2eKg = v;
+      chosenQuestionId = tier2_3.question_id;
+    }
+
+    const nowFn = this.deps.now ?? (() => new Date().toISOString());
+    const occurredAt = nowFn();
+    const emissionSourceName = `${supplier.name} — purchased goods (${qn.reporting_year})`;
+
+    let activityDataId = '';
+    let emissionSourceId = '';
+
+    const tx = this.deps.db.transaction(() => {
+      // 1) Sentinel pinned EF (find-or-create)
+      const ef = this.findOrCreateSentinelPinnedEf({
+        supplierId: supplier.id,
+        year: qn.reporting_year,
+        occurredAt,
+      });
+
+      // 2) Emission source (find-or-create on (site_id, name))
+      emissionSourceId = this.findOrCreateSupplierEmissionSource({
+        siteId,
+        name: emissionSourceName,
+      });
+
+      // 3) activity_data row
+      activityDataId = randomUUID();
+      this.deps.db
+        .prepare(
+          `INSERT INTO activity_data (
+             id, site_id, emission_source_id, reporting_period_id,
+             occurred_at_start, occurred_at_end, amount, unit,
+             ef_factor_code, ef_year, ef_source, ef_geography, ef_dataset_version,
+             computed_co2e_kg, computed_at,
+             extraction_id, notes, created_at, updated_at,
+             inbound_question_id, inbound_tier
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, 'kgCO2e', ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          activityDataId,
+          siteId,
+          emissionSourceId,
+          periodId,
+          `${qn.reporting_year}-01-01T00:00:00Z`,
+          `${qn.reporting_year}-12-31T23:59:59Z`,
+          amountCo2eKg,
+          ef.factor_code,
+          ef.year,
+          ef.source,
+          ef.geography,
+          ef.dataset_version,
+          amountCo2eKg, // direct mode: 1:1 with amount
+          occurredAt,
+          `来自 ${supplier.name} 供应商问卷 (${qn.reporting_year})`,
+          occurredAt,
+          occurredAt,
+          chosenQuestionId,
+          tierSelected,
+        );
+
+      // 4) Finalize accepted answers
+      const finalizeStmt = this.deps.db.prepare(
+        `UPDATE answer SET finalized_at = ? WHERE question_id = ?`,
+      );
+      for (const r of acceptedRows) {
+        finalizeStmt.run(occurredAt, r.question_id);
+      }
+
+      // 5) Bump questionnaire status
+      this.deps.db
+        .prepare(`UPDATE questionnaire SET status = 'ingested' WHERE id = ?`)
+        .run(input.questionnaire_id);
+
+      // 6) Audit
+      this.deps.db
+        .prepare(
+          `INSERT INTO audit_event (id, event_kind, payload, occurred_at) VALUES (?, ?, ?, ?)`,
+        )
+        .run(
+          randomUUID(),
+          'inbound_questionnaire.ingested',
+          JSON.stringify({
+            questionnaire_id: input.questionnaire_id,
+            supplier_id: supplier.id,
+            tier_selected: tierSelected,
+            activity_data_ids: [activityDataId],
+            emission_source_id: emissionSourceId,
+            total_co2e_kg: amountCo2eKg,
+          }),
+          occurredAt,
+        );
+    });
+    tx();
+
+    return {
+      activity_data_ids: [activityDataId],
+      emission_source_id: emissionSourceId,
+      ingested_at: occurredAt,
+    };
+  }
+
   // ---------------------------------------------------------------------
   // Internal helpers (intentionally narrow — no exported reach to
   // questionnaire-service or customer-service from here)
@@ -581,6 +827,98 @@ export class InboundQuestionnaireService {
       .filter((p): p is string => p !== null);
   }
 
+  private findPeriodIdByYear(year: number): string | null {
+    const row = this.deps.db
+      .prepare(`SELECT id FROM reporting_period WHERE year = ? ORDER BY created_at LIMIT 1`)
+      .get(year) as { id: string } | undefined;
+    return row?.id ?? null;
+  }
+
+  private findFirstSiteForOrg(orgId: string): string | null {
+    const row = this.deps.db
+      .prepare(
+        `SELECT id FROM site WHERE organization_id = ? AND is_active = 1 ORDER BY created_at LIMIT 1`,
+      )
+      .get(orgId) as { id: string } | undefined;
+    return row?.id ?? null;
+  }
+
+  /**
+   * Find-or-create the sentinel pinned_emission_factor row that lets
+   * activity_data.ef_* NOT NULL be satisfied for direct-co2e (Tier 2)
+   * and Tier-1-with-quantity ingest. One sentinel row per (supplier × year).
+   */
+  private findOrCreateSentinelPinnedEf(args: {
+    supplierId: string;
+    year: number;
+    occurredAt: string;
+  }): {
+    factor_code: string;
+    year: number;
+    source: string;
+    geography: string;
+    dataset_version: string;
+  } {
+    const ef = {
+      factor_code: `supplier_direct.${args.supplierId}.${args.year}`,
+      year: args.year,
+      source: 'inbound_questionnaire',
+      geography: 'SUPPLIER',
+      dataset_version: '1.0',
+    };
+    const existing = this.deps.db
+      .prepare(
+        `SELECT 1 FROM pinned_emission_factor
+           WHERE factor_code = ? AND year = ? AND source = ?
+             AND geography = ? AND dataset_version = ?`,
+      )
+      .get(ef.factor_code, ef.year, ef.source, ef.geography, ef.dataset_version);
+    if (!existing) {
+      this.deps.db
+        .prepare(
+          `INSERT INTO pinned_emission_factor (
+             factor_code, year, source, geography, dataset_version,
+             scope, category, ghg_protocol_path,
+             input_unit, co2e_kg_per_unit,
+             gwp_basis,
+             name_zh, name_en,
+             description_zh, description_en,
+             pinned_at, pinned_from
+           ) VALUES (?, ?, ?, ?, ?, 3, 'purchased_goods', 'scope3.cat1_purchased_goods',
+                     'kgCO2e', 1.0, 'AR6',
+                     '供应商直报排放', 'Supplier-reported direct emissions',
+                     '供应商问卷直接报送的 kgCO2e；amount 已是 CO2e。',
+                     'Supplier-reported direct emissions in kgCO2e; amount IS the CO2e value (no EF chain).',
+                     ?, 'inbound_questionnaire')`,
+        )
+        .run(ef.factor_code, ef.year, ef.source, ef.geography, ef.dataset_version, args.occurredAt);
+    }
+    return ef;
+  }
+
+  /**
+   * Find-or-create the supplier-specific emission_source. Idempotent on
+   * (site_id, name). Re-ingesting a re-imported file for the same
+   * supplier × period reuses the source instead of duplicating it.
+   */
+  private findOrCreateSupplierEmissionSource(args: { siteId: string; name: string }): string {
+    const existing = this.deps.db
+      .prepare(`SELECT id FROM emission_source WHERE site_id = ? AND name = ?`)
+      .get(args.siteId, args.name) as { id: string } | undefined;
+    if (existing) return existing.id;
+    const id = randomUUID();
+    this.deps.db
+      .prepare(
+        `INSERT INTO emission_source
+           (id, site_id, name, scope, category, ghg_protocol_path,
+            default_ef_query, template_origin, is_active)
+         VALUES (?, ?, ?, 3, 'purchased_goods', 'scope3.cat1_purchased_goods',
+                 NULL, 'inbound_questionnaire', 1)`,
+      )
+      .run(id, args.siteId, args.name);
+    return id;
+  }
+
   private findCurrentOrg(): { id: string; name: string } | null {
     // Organization is a singleton (CHECK(singleton_key = 1) UNIQUE), so
     // LIMIT 1 is the canonical "current org" lookup.
@@ -693,6 +1031,25 @@ export class InboundOrgMissing extends Error {
   }
 }
 
+export class InboundSiteMissing extends Error {
+  readonly _tag = 'InboundSiteMissing' as const;
+  constructor(public readonly organization_id: string) {
+    super(
+      `No active site found for organization ${organization_id} — inbound ingest needs a site to attribute supplier activity to.`,
+    );
+  }
+}
+
+export class InboundQuantityRequired extends Error {
+  readonly _tag = 'InboundQuantityRequired' as const;
+  constructor(public readonly questionnaire_id: string) {
+    super(
+      `Tier 1 ingest for ${questionnaire_id} requires a purchased quantity (kg). ` +
+        'Provide `tier1_purchased_quantity` in the ingest call.',
+    );
+  }
+}
+
 // ---------------------------------------------------------------------
 // Pure helpers
 // ---------------------------------------------------------------------
@@ -775,6 +1132,39 @@ function selectTier(
  * one template. v2.x would generalize by tagging the template question
  * with a `produces_activity: true` flag.
  */
+/**
+ * Tier decision at INGEST time. Differs from `selectTier` (the preview-time
+ * variant) in two ways:
+ *  - input is a Map keyed by position holding `{value: string}` rows (DB
+ *    rows, not ParsedXlsxAnswer)
+ *  - only accepted rows are present (caller pre-filtered)
+ *
+ * Tier 1: any Tier 1 numerical row with a finite-parseable value.
+ * Tier 2: all three of (tier2.1, tier2.2, tier2.3) present and non-empty.
+ * Else: null (soft no-op).
+ */
+function decideTierFromAccepted(
+  template: InboundTemplate,
+  acceptedByPosition: ReadonlyMap<string, { value: string; tier: Tier | null }>,
+): Tier | null {
+  const tier1Filled = template.questions
+    .filter((q) => q.tier === 1 && q.kind === 'numerical')
+    .some((q) => {
+      const row = acceptedByPosition.get(q.position);
+      if (!row) return false;
+      return Number.isFinite(Number.parseFloat(row.value));
+    });
+  if (tier1Filled) return 1;
+
+  const tier2 = template.questions.filter((q) => q.tier === 2);
+  if (tier2.length === 0) return null;
+  const tier2AllFilled = tier2.every((q) => {
+    const row = acceptedByPosition.get(q.position);
+    return row && row.value.trim() !== '';
+  });
+  return tier2AllFilled ? 2 : null;
+}
+
 function computeProposedActivity(
   templateQuestion: InboundTemplate['questions'][number],
   parsedAnswer: ParsedXlsxAnswer,

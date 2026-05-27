@@ -4,6 +4,7 @@ import {
   InboundNoQuestionsIncluded,
   InboundOrgMissing,
   InboundPeriodNotFound,
+  InboundQuantityRequired,
   InboundQuestionnaireNotFound,
   InboundQuestionnaireService,
   InboundSupplierNotFound,
@@ -33,6 +34,13 @@ function setup() {
      VALUES (?, '碳墨测试', 'Carbonink Test', 'CN', 'operational_control', ?, ?)`,
   ).run(orgId, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z');
 
+  const siteId = 'site-test-1';
+  db.prepare(
+    `INSERT INTO site
+       (id, organization_id, name_zh, name_en, country_code, is_active, created_at, updated_at)
+     VALUES (?, ?, '总部', 'HQ', 'CN', 1, ?, ?)`,
+  ).run(siteId, orgId, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z');
+
   const periodId = 'period-2025-1';
   db.prepare(
     `INSERT INTO reporting_period
@@ -49,7 +57,7 @@ function setup() {
     now: () => '2026-05-27T12:00:00.000Z',
   });
 
-  return { db, svc, customerService, supplier, periodId, orgId };
+  return { db, svc, customerService, supplier, periodId, orgId, siteId };
 }
 
 const ALL_POSITIONS = CAT1_SUPPLIER_DISCLOSURE.questions.map((q) => q.position);
@@ -671,6 +679,253 @@ describe('InboundQuestionnaireService.getIngestPreview', () => {
     const { questionnaireId } = await createDraftAndExport(svc, supplier, periodId);
     // Status is 'sent' — getIngestPreview requires 'received'.
     expect(() => svc.getIngestPreview(questionnaireId)).toThrow(InboundWrongStatus);
+  });
+});
+
+/** Reach status='received' with a Tier 2 fill so ingest tests can run from a known state. */
+async function reachReceivedTier2(
+  svc: InboundQuestionnaireService,
+  supplier: Supplier,
+  periodId: string,
+): Promise<{ questionnaireId: string; questionIds: Map<string, string> }> {
+  const { questionnaireId, blank } = await createDraftAndExport(svc, supplier, periodId);
+  const filled = await fillBlankXlsx(blank, {
+    'metadata!B5': 'Acme Steel Co.',
+    'tier2!B5': 850000,
+    'tier2!B7': 'mass-based',
+    'tier2!B9': 12000,
+  });
+  await svc.importFilledXlsx(questionnaireId, filled);
+  const preview = svc.getIngestPreview(questionnaireId);
+  const questionIds = new Map(preview.answers.map((a) => [a.position, a.question_id]));
+  return { questionnaireId, questionIds };
+}
+
+describe('InboundQuestionnaireService.ingest — Tier 2 happy path', () => {
+  it('writes one activity_data row, finalizes accepted answers, audits, and flips status', async () => {
+    const { db, svc, supplier, periodId, siteId } = setup();
+    const { questionnaireId, questionIds } = await reachReceivedTier2(svc, supplier, periodId);
+
+    const result = svc.ingest({
+      questionnaire_id: questionnaireId,
+      accepted_question_ids: [
+        questionIds.get('meta.1') ?? '',
+        questionIds.get('tier2.1') ?? '',
+        questionIds.get('tier2.2') ?? '',
+        questionIds.get('tier2.3') ?? '',
+      ],
+    });
+    expect(result.activity_data_ids).toHaveLength(1);
+    expect(result.emission_source_id).toBeTruthy();
+    expect(result.ingested_at).toBe('2026-05-27T12:00:00.000Z');
+
+    const ad = db
+      .prepare('SELECT * FROM activity_data WHERE id = ?')
+      .get(result.activity_data_ids[0]) as {
+      site_id: string;
+      emission_source_id: string;
+      reporting_period_id: string;
+      amount: number;
+      unit: string;
+      computed_co2e_kg: number;
+      inbound_question_id: string | null;
+      inbound_tier: number | null;
+      ef_factor_code: string;
+      ef_source: string;
+    };
+    expect(ad.site_id).toBe(siteId);
+    expect(ad.amount).toBe(12000);
+    expect(ad.unit).toBe('kgCO2e');
+    expect(ad.computed_co2e_kg).toBe(12000);
+    expect(ad.inbound_tier).toBe(2);
+    expect(ad.inbound_question_id).toBe(questionIds.get('tier2.3'));
+    expect(ad.ef_source).toBe('inbound_questionnaire');
+
+    // Status moved to ingested.
+    const q = db.prepare('SELECT status FROM questionnaire WHERE id = ?').get(questionnaireId) as {
+      status: string;
+    };
+    expect(q.status).toBe('ingested');
+
+    // Audit row present with the right payload shape.
+    const audit = db
+      .prepare(
+        "SELECT payload FROM audit_event WHERE event_kind = 'inbound_questionnaire.ingested'",
+      )
+      .all() as Array<{ payload: string }>;
+    expect(audit).toHaveLength(1);
+    const payload = JSON.parse(audit[0]?.payload ?? '{}');
+    expect(payload.tier_selected).toBe(2);
+    expect(payload.total_co2e_kg).toBe(12000);
+
+    // Accepted answers finalized; non-accepted (none here) would stay tentative.
+    const finalized = db
+      .prepare(
+        `SELECT COUNT(*) AS n FROM answer a JOIN question q ON q.id = a.question_id
+          WHERE q.questionnaire_id = ? AND a.finalized_at IS NOT NULL`,
+      )
+      .get(questionnaireId) as { n: number };
+    expect(finalized.n).toBe(4);
+  });
+
+  it('creates exactly one sentinel pinned EF per (supplier × year) and reuses it', async () => {
+    const { db, svc, supplier, periodId } = setup();
+
+    // First ingest writes the sentinel.
+    const r1 = await reachReceivedTier2(svc, supplier, periodId);
+    svc.ingest({
+      questionnaire_id: r1.questionnaireId,
+      accepted_question_ids: Array.from(r1.questionIds.values()),
+    });
+
+    // Second questionnaire to the same supplier + same year — must reuse.
+    const r2 = await reachReceivedTier2(svc, supplier, periodId);
+    svc.ingest({
+      questionnaire_id: r2.questionnaireId,
+      accepted_question_ids: Array.from(r2.questionIds.values()),
+    });
+
+    const sentinels = db
+      .prepare(
+        `SELECT factor_code FROM pinned_emission_factor WHERE source = 'inbound_questionnaire'`,
+      )
+      .all() as Array<{ factor_code: string }>;
+    expect(sentinels).toHaveLength(1);
+
+    // emission_source also reused on the second ingest (same supplier × year
+    // → same canonical name → find-or-create branch hits).
+    const sources = db
+      .prepare(`SELECT id FROM emission_source WHERE template_origin = 'inbound_questionnaire'`)
+      .all() as Array<{ id: string }>;
+    expect(sources).toHaveLength(1);
+  });
+});
+
+describe('InboundQuestionnaireService.ingest — Tier 1 happy path', () => {
+  it('multiplies PCF by purchased quantity and writes the activity row', async () => {
+    const { db, svc, supplier, periodId } = setup();
+    const { questionnaireId, blank } = await createDraftAndExport(svc, supplier, periodId);
+    await svc.importFilledXlsx(
+      questionnaireId,
+      await fillBlankXlsx(blank, {
+        'metadata!B5': 'Beta Chem',
+        'tier1!B5': 2.5,
+      }),
+    );
+    const preview = svc.getIngestPreview(questionnaireId);
+    const tier1Qid = preview.answers.find((a) => a.position === 'tier1.1')?.question_id ?? '';
+
+    const result = svc.ingest({
+      questionnaire_id: questionnaireId,
+      accepted_question_ids: [tier1Qid],
+      tier1_purchased_quantity: 10000, // 10000 kg
+    });
+    expect(result.activity_data_ids).toHaveLength(1);
+
+    const ad = db
+      .prepare('SELECT amount, computed_co2e_kg, inbound_tier FROM activity_data WHERE id = ?')
+      .get(result.activity_data_ids[0]) as {
+      amount: number;
+      computed_co2e_kg: number;
+      inbound_tier: number;
+    };
+    expect(ad.amount).toBe(25000); // 2.5 kgCO2e/kg × 10000 kg
+    expect(ad.computed_co2e_kg).toBe(25000);
+    expect(ad.inbound_tier).toBe(1);
+  });
+
+  it('throws InboundQuantityRequired when Tier 1 is selected but quantity is missing', async () => {
+    const { svc, supplier, periodId } = setup();
+    const { questionnaireId, blank } = await createDraftAndExport(svc, supplier, periodId);
+    await svc.importFilledXlsx(questionnaireId, await fillBlankXlsx(blank, { 'tier1!B5': 2.5 }));
+    const preview = svc.getIngestPreview(questionnaireId);
+    const tier1Qid = preview.answers.find((a) => a.position === 'tier1.1')?.question_id ?? '';
+
+    expect(() =>
+      svc.ingest({
+        questionnaire_id: questionnaireId,
+        accepted_question_ids: [tier1Qid],
+        // no tier1_purchased_quantity
+      }),
+    ).toThrow(InboundQuantityRequired);
+  });
+});
+
+describe('InboundQuestionnaireService.ingest — idempotency + soft no-op', () => {
+  it('replaying ingest on a status=ingested questionnaire returns the existing rows', async () => {
+    const { db, svc, supplier, periodId } = setup();
+    const { questionnaireId, questionIds } = await reachReceivedTier2(svc, supplier, periodId);
+    const accepted = Array.from(questionIds.values());
+
+    const r1 = svc.ingest({
+      questionnaire_id: questionnaireId,
+      accepted_question_ids: accepted,
+    });
+    const r2 = svc.ingest({
+      questionnaire_id: questionnaireId,
+      accepted_question_ids: accepted,
+    });
+
+    expect(r2.activity_data_ids).toEqual(r1.activity_data_ids);
+    expect(r2.emission_source_id).toBe(r1.emission_source_id);
+
+    // Still exactly one activity_data row for this questionnaire.
+    const adCount = db
+      .prepare(
+        `SELECT COUNT(*) AS n FROM activity_data
+          WHERE inbound_question_id IN (
+            SELECT id FROM question WHERE questionnaire_id = ?
+          )`,
+      )
+      .get(questionnaireId) as { n: number };
+    expect(adCount.n).toBe(1);
+
+    // Audit row count stays at 1 (idempotent replay doesn't re-audit).
+    const auditCount = db
+      .prepare(
+        "SELECT COUNT(*) AS n FROM audit_event WHERE event_kind = 'inbound_questionnaire.ingested'",
+      )
+      .get() as { n: number };
+    expect(auditCount.n).toBe(1);
+  });
+
+  it('soft no-op: accepting only metadata answers → no activity row, no status flip', async () => {
+    const { db, svc, supplier, periodId } = setup();
+    const { questionnaireId, questionIds } = await reachReceivedTier2(svc, supplier, periodId);
+
+    const result = svc.ingest({
+      questionnaire_id: questionnaireId,
+      accepted_question_ids: [questionIds.get('meta.1') ?? ''],
+    });
+    expect(result.activity_data_ids).toHaveLength(0);
+    expect(result.emission_source_id).toBe('');
+
+    const q = db.prepare('SELECT status FROM questionnaire WHERE id = ?').get(questionnaireId) as {
+      status: string;
+    };
+    expect(q.status).toBe('received'); // unchanged
+  });
+});
+
+describe('InboundQuestionnaireService.ingest — validation', () => {
+  it('throws InboundWrongStatus when status is draft', () => {
+    const { svc, supplier, periodId } = setup();
+    const { questionnaire_id } = svc.createDraft({
+      supplier_id: supplier.id,
+      reporting_period_id: periodId,
+      template_kind: 'cat1_supplier_disclosure',
+      included_question_positions: ['meta.1'],
+    });
+    expect(() => svc.ingest({ questionnaire_id, accepted_question_ids: [] })).toThrow(
+      InboundWrongStatus,
+    );
+  });
+
+  it('throws InboundQuestionnaireNotFound for unknown id', () => {
+    const { svc } = setup();
+    expect(() => svc.ingest({ questionnaire_id: 'nope', accepted_question_ids: [] })).toThrow(
+      InboundQuestionnaireNotFound,
+    );
   });
 });
 
