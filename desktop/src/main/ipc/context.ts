@@ -6,11 +6,13 @@ import {
   isSafeStorageAvailable,
 } from '@main/credentials/safe-storage-backend.js';
 import { ExcelParser } from '@main/excel/parser.js';
+import { buildAiAgentLayer } from '@main/llm/ai-agent.js';
 import { buildAiClientLayer } from '@main/llm/ai-client.js';
 import { ActivityDataService } from '@main/services/activity-data-service.js';
 import { AgentSkillService, type SkillResolver } from '@main/services/agent-skill-service.js';
 import type { AnswerR } from '@main/services/answer-generation/tags.js';
-import { buildAnswerLayer } from '@main/services/answer-generation/tags.js';
+import { AnswerToolsTag, buildAnswerLayer } from '@main/services/answer-generation/tags.js';
+import { buildAnswerTools } from '@main/services/answer-generation/tools.js';
 import { AuditEventService } from '@main/services/audit-event-service.js';
 import type { ServiceContext } from '@main/services/base.js';
 import { CalculationService } from '@main/services/calculation-service.js';
@@ -399,16 +401,16 @@ export function createIpcContext(
     },
     get answerLayer() {
       if (!answerLayerInstance) {
-        // Provider config is required to build the AiClient layer (pi-ai's
-        // `getModel(provider, model)` lookup happens at layer construction).
-        // If the user hasn't configured a provider yet, the IPC handler
-        // (`answer:generate`) short-circuits with "AI provider not configured"
-        // before reaching ctx.answerLayer — but the lazy getter still has to
-        // produce *some* layer for the type. We build an empty AiClient layer
-        // in that case; any consumer that yields AiClientTag without a real
-        // provider will fail with the standard Effect "service not found"
-        // error, mirroring the V1 behaviour where `ctx.providerConfig` was
-        // checked first.
+        // Provider config is required to build the AiClient + AiAgent layers
+        // (pi-ai's `getModel(provider, model)` lookup happens at layer
+        // construction). If the user hasn't configured a provider yet, the
+        // IPC handler (`answer:generate`) short-circuits with "AI provider
+        // not configured" before reaching ctx.answerLayer — but the lazy
+        // getter still has to produce *some* layer for the type. We build
+        // empty layers in that case; any consumer that yields the tag
+        // without a real provider will fail with the standard Effect
+        // "service not found" error, mirroring the V1 behaviour where
+        // `ctx.providerConfig` was checked first.
         const providerCfg = getSettings().getProviderConfigWithKey();
         const aiLayer = providerCfg
           ? buildAiClientLayer({
@@ -416,9 +418,33 @@ export function createIpcContext(
               credentials: getCredential(),
             })
           : (Layer.empty as unknown as Layer.Layer<import('@main/llm/ai-client.js').AiClientTag>);
+        const aiAgentLayer = providerCfg
+          ? buildAiAgentLayer({
+              config: providerCfg.config,
+              credentials: getCredential(),
+            })
+          : (Layer.empty as unknown as Layer.Layer<import('@main/llm/ai-agent.js').AiAgentTag>);
+        // Build the read-only inventory toolbox closed over the active
+        // organization id. If no org is set up yet, hand back an empty
+        // toolbox — the agent will then exhaust max-turns and the
+        // single-shot fallback will run instead. Org lookup is deferred
+        // to layer construction (not handler boot) so callers can spin up
+        // an IpcContext before the first organization row exists.
+        const currentOrg = ctx.organizationService.getCurrentOrganization();
+        const tools = currentOrg
+          ? buildAnswerTools({
+              activityDataService,
+              emissionSourceService,
+              questionnaireService: ctx.questionnaireService,
+              organizationId: currentOrg.id,
+            })
+          : [];
+        const toolsLayer = Layer.succeed(AnswerToolsTag, tools);
         answerLayerInstance = buildAnswerLayer({
           db: svc.db,
           aiLayer,
+          aiAgentLayer,
+          toolsLayer,
           orgService: ctx.organizationService,
           activityDataService,
         });

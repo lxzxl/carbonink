@@ -1,9 +1,14 @@
 import { randomUUID } from 'node:crypto';
+import type { AgentTool, AgentTrace, AiAgentTag } from '@main/llm/ai-agent.js';
+import type { AiClientTag } from '@main/llm/ai-client.js';
+import type { AiErr } from '@main/llm/errors.js';
 import type { ActivityDataService } from '@main/services/activity-data-service';
 import type { OrganizationService } from '@main/services/organization-service';
 import type { Answer, ProviderConfigV2, Question, Questionnaire } from '@shared/types';
 import type { Database } from 'better-sqlite3';
 import { Effect, type Either } from 'effect';
+import { runAgent } from './agent-loop.js';
+import { recordAgentAudit } from './audit.js';
 import {
   AnswerNotFound,
   type GenErr,
@@ -16,27 +21,43 @@ import {
   type SaveInput,
 } from './errors';
 import { singleShotFallback } from './fallback';
-import type { InventoryContext } from './prompt';
-import { ActivityDataServiceTag, type AnswerR, DbTag, NowTag, OrgServiceTag } from './tags';
+import type { AnswerOutput, InventoryContext, QuestionContext } from './prompt';
+import {
+  ActivityDataServiceTag,
+  type AnswerR,
+  AnswerToolsTag,
+  DbTag,
+  NowTag,
+  OrgServiceTag,
+} from './tags';
 
 export * from './errors';
 export * from './tags';
 
 export type GenerateResult = Either.Either<Answer, GenErr>;
 
+/**
+ * Prefix attached to `source_summary` when generation went through the
+ * single-shot fallback path. Lets reviewers see at a glance which
+ * generations were "agent-driven" vs "prompt-dump" without having to
+ * cross-reference the audit log.
+ */
+const FALLBACK_PREFIX = '【单 shot fallback】';
+
 export function generate(
   questionId: string,
   // `config` is kept on the signature for API compatibility (callers pass the
   // active ProviderConfigV2 per request) but the LLM is no longer dispatched
-  // from inside this function — the AiClient layer carries the provider
-  // binding. Once the renderer-side cutover (Task 10b) lands, this parameter
-  // can be dropped entirely.
+  // from inside this function — the AiClient + AiAgent layers carry the
+  // provider binding. Once the renderer-side cutover (Task 10b) lands, this
+  // parameter can be dropped entirely.
   _config: ProviderConfigV2,
 ): Effect.Effect<Answer, GenErr, AnswerR> {
   return Effect.gen(function* () {
     const db = yield* DbTag;
     const orgService = yield* OrgServiceTag;
     const activityDataService = yield* ActivityDataServiceTag;
+    const tools = yield* AnswerToolsTag;
     const now = yield* NowTag;
 
     const question = yield* readQuestion(db, questionId);
@@ -53,40 +74,119 @@ export function generate(
       return yield* Effect.fail(new InventoryEmpty({ year: questionnaire.reporting_year }));
     }
 
-    // Single-shot LLM call lives in `./fallback.ts` — Task 7 will wrap
-    // this in a `runAgent(...).catchTags(... → singleShotFallback)` pipe,
-    // but for now the service still calls the single-shot path directly
-    // so this commit is a pure relocation with zero behavior change.
-    const llmResult = yield* singleShotFallback(
-      {
-        raw_text: question.raw_text,
-        expected_unit: question.expected_unit,
-        question_kind: question.question_kind,
-      },
+    const questionCtx: QuestionContext = {
+      raw_text: question.raw_text,
+      expected_unit: question.expected_unit,
+      question_kind: question.question_kind,
+    };
+
+    // Try the agent path; fall back to single-shot only on the three
+    // recoverable "the agent didn't get there" modes. Auth / schema /
+    // provider errors still propagate to the caller — they're user-fixable
+    // and falling back would mask them.
+    const { output, isFallback, trace } = yield* runAgentWithFallback(
+      questionCtx,
       inventory,
+      tools,
     );
+
+    // Audit one row per generate() call, regardless of which path won.
+    yield* recordAgentAudit({ db, questionId, isFallback, trace, now });
 
     // The prompt instructs the LLM to return `value=""` when inventory data
     // doesn't cover the question. Don't persist that — surface it as a
     // distinct typed error so the UI can keep the card in "not generated"
     // state and toast the reason.
-    if (llmResult.value.trim() === '') {
-      return yield* Effect.fail(new LLMNoData({ reason: llmResult.source_summary }));
+    if (output.value.trim() === '') {
+      return yield* Effect.fail(new LLMNoData({ reason: output.source_summary }));
     }
 
-    // Force unit to null for non-numerical questions, regardless of what LLM returned.
-    // Only numerical questions should have a unit persisted.
-    const unit = question.question_kind === 'numerical' ? llmResult.unit : null;
+    // Force unit to null for non-numerical questions, regardless of what LLM
+    // returned. Only numerical questions should have a unit persisted.
+    const unit = question.question_kind === 'numerical' ? output.unit : null;
+
+    const sourceSummary = isFallback
+      ? `${FALLBACK_PREFIX} ${output.source_summary}`
+      : output.source_summary;
 
     return yield* insertAnswer(db, {
       id: randomUUID(),
       question_id: questionId,
-      value: llmResult.value,
+      value: output.value,
       unit,
-      source_summary: llmResult.source_summary,
+      source_summary: sourceSummary,
       created_at: now(),
     });
   });
+}
+
+/**
+ * Drive the agent loop; on `AgentMaxTurns` / `AgentStalled` / `AiTimeout`
+ * swap to `singleShotFallback`. Returns the merged shape `(output,
+ * isFallback, trace)` so the caller can emit one audit row + prefix the
+ * source_summary in one place.
+ *
+ * Other `AiErr` members (AiAuthError, AiProviderError, AiSchemaMismatch,
+ * AiNoData, AiRateLimited) are deliberately NOT caught — those mean the
+ * provider rejected our request shape or the user's credentials. Falling
+ * back to a second identical request would just fail the same way; the
+ * IPC handler is better equipped to translate them into actionable copy.
+ */
+function runAgentWithFallback(
+  question: QuestionContext,
+  inventory: InventoryContext,
+  tools: AgentTool[],
+): Effect.Effect<
+  { output: AnswerOutput; isFallback: boolean; trace: AgentTrace },
+  AiErr,
+  AiAgentTag | AiClientTag
+> {
+  return runAgent(question, inventory, tools).pipe(
+    Effect.map((r) => ({ output: r.answer, isFallback: false, trace: r.trace })),
+    Effect.catchTags({
+      AgentMaxTurns: (e) =>
+        singleShotFallback(question, inventory).pipe(
+          Effect.map((output) => ({
+            output,
+            isFallback: true,
+            trace: makeEmptyTrace('max_turns', e.turnCount),
+          })),
+        ),
+      AgentStalled: (e) =>
+        singleShotFallback(question, inventory).pipe(
+          Effect.map((output) => ({
+            output,
+            isFallback: true,
+            trace: makeEmptyTrace('stalled', e.turnCount),
+          })),
+        ),
+      AiTimeout: () =>
+        singleShotFallback(question, inventory).pipe(
+          Effect.map((output) => ({
+            output,
+            isFallback: true,
+            trace: makeEmptyTrace('aborted', 0),
+          })),
+        ),
+    }),
+  );
+}
+
+/**
+ * Trace placeholder for the fallback path. The single-shot route doesn't
+ * produce its own trace (it's one round-trip, no tool calls), so we emit
+ * a zeroed shape carrying just the stopReason — that's enough for the
+ * audit log to distinguish "agent gave up at max turns" from "agent
+ * stalled" from "agent timed out".
+ */
+function makeEmptyTrace(stopReason: AgentTrace['stopReason'], turnCount: number): AgentTrace {
+  return {
+    turnCount,
+    toolCalls: [],
+    totalTokens: { input: 0, output: 0 },
+    totalDurationMs: 0,
+    stopReason,
+  };
 }
 
 export function generateAllUnanswered(

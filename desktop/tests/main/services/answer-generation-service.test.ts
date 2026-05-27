@@ -1,10 +1,21 @@
 import { runMigrations } from '@main/db/migrate';
+import type { AgentTool, AgentTrace, AiAgent } from '@main/llm/ai-agent';
 import type { AiClient } from '@main/llm/ai-client';
-import { AiNoData, AiProviderError, AiSchemaMismatch } from '@main/llm/errors';
+import {
+  AgentMaxTurns,
+  AgentStalled,
+  AiAuthError,
+  AiNoData,
+  AiProviderError,
+  AiSchemaMismatch,
+  AiTimeout,
+} from '@main/llm/errors';
 import * as answerSvc from '@main/services/answer-generation';
 import {
   ActivityDataServiceTag,
+  AiAgentTag,
   AiClientTag,
+  AnswerToolsTag,
   DbTag,
   NowTag,
   OrgServiceTag,
@@ -28,11 +39,9 @@ function failureTag<A>(exit: Exit.Exit<A, unknown>): string | null {
 }
 
 /**
- * Build an `AiClient` stub for tests. `generateObject` is the only method
- * answer-generation calls — `generateText` / `ping` are stubbed to fail
- * loudly if anything touches them. The stub takes a `mock` so individual
- * tests can wire `.mockResolvedValueOnce(...)` / `.mockRejectedValueOnce(...)`
- * style sequences.
+ * Build an `AiClient` stub for tests. Used by the single-shot fallback
+ * path; `generateObject` is the only method that path calls. The other
+ * two methods fail loudly if anything touches them.
  */
 function makeStubAi(opts?: { generateObject?: ReturnType<typeof vi.fn> }): {
   ai: AiClient;
@@ -61,6 +70,36 @@ function makeStubAi(opts?: { generateObject?: ReturnType<typeof vi.fn> }): {
   return { ai, generateObjectMock };
 }
 
+/**
+ * Default agent stub: returns a successful answer in one turn (= happy
+ * path through the new orchestrator). Tests that want to exercise the
+ * fallback branch override `run` with `Effect.fail(...)`.
+ */
+function makeStubAgent(opts?: { run?: ReturnType<typeof vi.fn> }): {
+  agent: AiAgent;
+  runMock: ReturnType<typeof vi.fn>;
+} {
+  const defaultTrace: AgentTrace = {
+    turnCount: 1,
+    toolCalls: [{ tool: 'list_activities', argsHash: 'h', durationMs: 5 }],
+    totalTokens: { input: 800, output: 120 },
+    totalDurationMs: 250,
+    stopReason: 'completed',
+  };
+  const runMock =
+    opts?.run ??
+    vi.fn().mockReturnValue(
+      Effect.succeed({
+        result: { value: '14820', unit: 'kWh', source_summary: 'agent cited a1, a2' },
+        trace: defaultTrace,
+      }),
+    );
+  const agent: AiAgent = {
+    run: runMock as unknown as AiAgent['run'],
+  };
+  return { agent, runMock };
+}
+
 function setup(opts?: {
   seedQuestionnaire?: { id: string; reporting_year: number; customer_name: string };
   seedQuestion?: { id: string; questionnaire_id: string; raw_text: string };
@@ -69,10 +108,18 @@ function setup(opts?: {
   totalsForYear?: { total_co2e_kg: number } | null;
   llmAnswer?: { value: string; unit: string | null; source_summary: string };
   /**
-   * Configure the AiClient stub's `generateObject` to reject (each call) with
-   * the provided error. Used to exercise error-propagation paths.
+   * Configure the AiClient stub's `generateObject` (single-shot fallback
+   * path) to return a custom Effect. Used to exercise fallback-then-fail
+   * scenarios.
    */
   generateObject?: ReturnType<typeof vi.fn>;
+  /**
+   * Configure the AiAgent stub's `run`. Defaults to a one-turn success
+   * returning the canned (or `llmAnswer`-shaped) answer. Override with
+   * `Effect.fail(new AgentMaxTurns(...))` etc. to drive the fallback path.
+   */
+  agentRun?: ReturnType<typeof vi.fn>;
+  tools?: AgentTool[];
 }) {
   const db = new Database(':memory:');
   runMigrations(db);
@@ -134,8 +181,29 @@ function setup(opts?: {
     totalsByPeriod: vi.fn().mockReturnValue(opts?.totalsForYear ?? null),
   };
 
-  // Honour the caller's pre-wired generateObject mock (for fail/retry tests),
-  // otherwise build a default that returns the canned `llmAnswer` shape.
+  // Default agent: succeed with the canned llmAnswer (or a fixed default).
+  const agentRun =
+    opts?.agentRun ??
+    vi.fn().mockReturnValue(
+      Effect.succeed({
+        result: opts?.llmAnswer ?? {
+          value: '14820',
+          unit: 'kWh',
+          source_summary: 'agent cited a1, a2',
+        },
+        trace: {
+          turnCount: 1,
+          toolCalls: [{ tool: 'list_activities', argsHash: 'h', durationMs: 5 }],
+          totalTokens: { input: 800, output: 120 },
+          totalDurationMs: 250,
+          stopReason: 'completed',
+        } satisfies AgentTrace,
+      }),
+    );
+  const { agent, runMock: agentRunMock } = makeStubAgent({ run: agentRun });
+
+  // Honour the caller's pre-wired generateObject mock (for fallback path
+  // tests), otherwise build a default that returns the canned `llmAnswer`.
   const generateObject =
     opts?.generateObject ??
     vi
@@ -150,36 +218,146 @@ function setup(opts?: {
   const testLayer = Layer.mergeAll(
     Layer.succeed(DbTag, db),
     Layer.succeed(AiClientTag, ai),
+    Layer.succeed(AiAgentTag, agent),
+    Layer.succeed(AnswerToolsTag, opts?.tools ?? []),
     Layer.succeed(OrgServiceTag, orgService as never),
     Layer.succeed(ActivityDataServiceTag, activityDataService as never),
     Layer.succeed(NowTag, () => '2026-05-15T12:00:00Z'),
   );
 
-  return { db, testLayer, ai, generateObjectMock };
+  return { db, testLayer, ai, agent, generateObjectMock, agentRunMock };
 }
 
 describe('answer-generation.generate (Effect Step 2)', () => {
-  it('happy path: returns answer row + inserts to DB', async () => {
-    const { testLayer, db, generateObjectMock } = setup({
+  it('agent path: returns answer row + inserts to DB, no fallback prefix', async () => {
+    const { testLayer, db, generateObjectMock, agentRunMock } = setup({
       seedQuestionnaire: { id: 'qn-1', reporting_year: 2026, customer_name: 'Acme' },
       seedQuestion: { id: 'q-1', questionnaire_id: 'qn-1', raw_text: '2026 total kWh?' },
       activitiesForYear: 12,
       totalsForYear: { total_co2e_kg: 8456.7 },
-      llmAnswer: { value: '14820', unit: 'kWh', source_summary: 'sum of activities' },
+      llmAnswer: { value: '14820', unit: 'kWh', source_summary: 'agent cited a1, a2' },
     });
     const result = await Effect.runPromise(
       answerSvc.generate('q-1', FAKE_CONFIG).pipe(Effect.provide(testLayer)),
     );
     expect(result.value).toBe('14820');
     expect(result.source_kind).toBe('ai_suggested');
-    expect(generateObjectMock).toHaveBeenCalledTimes(1);
-    // The service should hand the AiClient a prompt + schema, no system prompt.
-    const args = generateObjectMock.mock.calls[0]?.[0] as { prompt: string; schema: unknown };
-    expect(args.prompt).toContain('2026 total kWh');
-    expect(args.prompt).toContain('inventory');
-    expect(args.schema).toBeTruthy();
-    const row = db.prepare(`SELECT * FROM answer WHERE question_id = ?`).get('q-1');
+    // Agent was driven exactly once; fallback was NOT touched.
+    expect(agentRunMock).toHaveBeenCalledTimes(1);
+    expect(generateObjectMock).not.toHaveBeenCalled();
+    // source_summary should not carry the fallback prefix on the happy path.
+    const row = db.prepare(`SELECT source_summary FROM answer WHERE question_id = ?`).get('q-1') as
+      | { source_summary: string }
+      | undefined;
     expect(row).toBeTruthy();
+    expect(row?.source_summary).not.toContain('单 shot fallback');
+    // Audit row recorded with isFallback=false + the agent's trace counts.
+    const audit = db
+      .prepare(`SELECT payload FROM audit_event WHERE event_kind = 'agent_answer.generate'`)
+      .get() as { payload: string };
+    const payload = JSON.parse(audit.payload);
+    expect(payload.isFallback).toBe(false);
+    expect(payload.turnCount).toBe(1);
+    expect(payload.toolCallSummary).toEqual(['list_activities']);
+    expect(payload.stopReason).toBe('completed');
+  });
+
+  it('fallback on AgentMaxTurns: single-shot answers + fallback prefix on source_summary', async () => {
+    const agentRun = vi
+      .fn()
+      .mockReturnValue(
+        Effect.fail(new AgentMaxTurns({ turnCount: 6, lastTool: 'list_activities' })),
+      );
+    const { testLayer, db, generateObjectMock, agentRunMock } = setup({
+      seedQuestionnaire: { id: 'qn-1', reporting_year: 2026, customer_name: 'Acme' },
+      seedQuestion: { id: 'q-1', questionnaire_id: 'qn-1', raw_text: 'Q' },
+      activitiesForYear: 5,
+      agentRun,
+      llmAnswer: { value: '999', unit: 'kWh', source_summary: 'fallback sum from inventory' },
+    });
+    const result = await Effect.runPromise(
+      answerSvc.generate('q-1', FAKE_CONFIG).pipe(Effect.provide(testLayer)),
+    );
+    expect(result.value).toBe('999');
+    expect(agentRunMock).toHaveBeenCalledTimes(1);
+    expect(generateObjectMock).toHaveBeenCalledTimes(1);
+    const row = db.prepare(`SELECT source_summary FROM answer WHERE question_id = ?`).get('q-1') as
+      | { source_summary: string }
+      | undefined;
+    // source_summary is JSON-encoded; the inner string carries the prefix.
+    expect(row?.source_summary).toContain('单 shot fallback');
+    expect(row?.source_summary).toContain('fallback sum from inventory');
+    // Audit row marks fallback=true + carries the max_turns stopReason.
+    const audit = db
+      .prepare(`SELECT payload FROM audit_event WHERE event_kind = 'agent_answer.generate'`)
+      .get() as { payload: string };
+    const payload = JSON.parse(audit.payload);
+    expect(payload.isFallback).toBe(true);
+    expect(payload.stopReason).toBe('max_turns');
+    expect(payload.turnCount).toBe(6);
+  });
+
+  it('fallback on AgentStalled: single-shot answers + stalled stopReason on audit', async () => {
+    const agentRun = vi
+      .fn()
+      .mockReturnValue(Effect.fail(new AgentStalled({ tool: 'sum_co2e', turnCount: 3 })));
+    const { testLayer, db, generateObjectMock } = setup({
+      seedQuestionnaire: { id: 'qn-1', reporting_year: 2026, customer_name: 'Acme' },
+      seedQuestion: { id: 'q-1', questionnaire_id: 'qn-1', raw_text: 'Q' },
+      activitiesForYear: 5,
+      agentRun,
+      llmAnswer: { value: '12', unit: 'kWh', source_summary: 's' },
+    });
+    const result = await Effect.runPromise(
+      answerSvc.generate('q-1', FAKE_CONFIG).pipe(Effect.provide(testLayer)),
+    );
+    expect(result.value).toBe('12');
+    expect(generateObjectMock).toHaveBeenCalledTimes(1);
+    const audit = db
+      .prepare(`SELECT payload FROM audit_event WHERE event_kind = 'agent_answer.generate'`)
+      .get() as { payload: string };
+    const payload = JSON.parse(audit.payload);
+    expect(payload.isFallback).toBe(true);
+    expect(payload.stopReason).toBe('stalled');
+  });
+
+  it('fallback on AiTimeout: single-shot answers + aborted stopReason on audit', async () => {
+    const agentRun = vi.fn().mockReturnValue(Effect.fail(new AiTimeout({ timeoutMs: 90_000 })));
+    const { testLayer, db, generateObjectMock } = setup({
+      seedQuestionnaire: { id: 'qn-1', reporting_year: 2026, customer_name: 'Acme' },
+      seedQuestion: { id: 'q-1', questionnaire_id: 'qn-1', raw_text: 'Q' },
+      activitiesForYear: 5,
+      agentRun,
+      llmAnswer: { value: '7', unit: 'kWh', source_summary: 's' },
+    });
+    const result = await Effect.runPromise(
+      answerSvc.generate('q-1', FAKE_CONFIG).pipe(Effect.provide(testLayer)),
+    );
+    expect(result.value).toBe('7');
+    expect(generateObjectMock).toHaveBeenCalledTimes(1);
+    const audit = db
+      .prepare(`SELECT payload FROM audit_event WHERE event_kind = 'agent_answer.generate'`)
+      .get() as { payload: string };
+    const payload = JSON.parse(audit.payload);
+    expect(payload.isFallback).toBe(true);
+    expect(payload.stopReason).toBe('aborted');
+  });
+
+  it('AiAuthError from agent path propagates — does NOT trigger fallback', async () => {
+    const agentRun = vi.fn().mockReturnValue(Effect.fail(new AiAuthError({ provider: 'openai' })));
+    const { testLayer, generateObjectMock } = setup({
+      seedQuestionnaire: { id: 'qn-1', reporting_year: 2026, customer_name: 'Acme' },
+      seedQuestion: { id: 'q-1', questionnaire_id: 'qn-1', raw_text: 'Q' },
+      activitiesForYear: 5,
+      agentRun,
+    });
+    const exit = await Effect.runPromiseExit(
+      answerSvc.generate('q-1', FAKE_CONFIG).pipe(Effect.provide(testLayer)),
+    );
+    expect(failureTag(exit)).toBe('AiAuthError');
+    // Critical: the fallback path must NOT swallow the auth error — the
+    // user needs to fix the key, not silently get a degraded answer.
+    expect(generateObjectMock).not.toHaveBeenCalled();
   });
 
   it('LLMNoData when LLM returns an empty value (no inventory data)', async () => {
@@ -249,8 +427,8 @@ describe('answer-generation.generate (Effect Step 2)', () => {
     expect(failureTag(exit)).toBe('QuestionAlreadyAnswered');
   });
 
-  it('InventoryEmpty when no activities for the year', async () => {
-    const { testLayer } = setup({
+  it('InventoryEmpty when no activities for the year (no agent + no fallback)', async () => {
+    const { testLayer, agentRunMock, generateObjectMock } = setup({
       seedQuestionnaire: { id: 'qn-1', reporting_year: 2026, customer_name: 'A' },
       seedQuestion: { id: 'q-1', questionnaire_id: 'qn-1', raw_text: 'Q' },
       activitiesForYear: 0,
@@ -259,55 +437,56 @@ describe('answer-generation.generate (Effect Step 2)', () => {
       answerSvc.generate('q-1', FAKE_CONFIG).pipe(Effect.provide(testLayer)),
     );
     expect(failureTag(exit)).toBe('InventoryEmpty');
+    // Both paths short-circuited identically — neither LLM service touched.
+    expect(agentRunMock).not.toHaveBeenCalled();
+    expect(generateObjectMock).not.toHaveBeenCalled();
   });
 
-  it('AiProviderError propagates when AiClient fails (post-retry)', async () => {
-    // AiClient's own retry policy is internal — by the time the error bubbles
-    // up to answer-generation, retries are exhausted. The service just
-    // propagates the tag.
-    const generateObject = vi
+  it('AiProviderError from agent propagates (post-retry, not caught by fallback)', async () => {
+    // AiProviderError is NOT in the fallback catchTags list — it bubbles up
+    // unchanged so the IPC handler can show "check network + API key".
+    const agentRun = vi
       .fn()
       .mockReturnValue(Effect.fail(new AiProviderError({ cause: 'network down' })));
-    const { testLayer } = setup({
+    const { testLayer, generateObjectMock } = setup({
       seedQuestionnaire: { id: 'qn-1', reporting_year: 2026, customer_name: 'A' },
       seedQuestion: { id: 'q-1', questionnaire_id: 'qn-1', raw_text: 'Q' },
       activitiesForYear: 1,
-      generateObject,
+      agentRun,
     });
     const exit = await Effect.runPromiseExit(
       answerSvc.generate('q-1', FAKE_CONFIG).pipe(Effect.provide(testLayer)),
     );
     expect(failureTag(exit)).toBe('AiProviderError');
-    // Single call: AiClient already handled retry/backoff before failing.
-    expect(generateObject).toHaveBeenCalledTimes(1);
+    expect(generateObjectMock).not.toHaveBeenCalled();
   });
 
-  it('AiSchemaMismatch propagates without retry', async () => {
-    const generateObject = vi
+  it('AiSchemaMismatch from agent propagates without retry', async () => {
+    const agentRun = vi
       .fn()
       .mockReturnValue(
         Effect.fail(new AiSchemaMismatch({ raw: '{"value":42}', cause: new Error('bad') })),
       );
-    const { testLayer } = setup({
+    const { testLayer, generateObjectMock } = setup({
       seedQuestionnaire: { id: 'qn-1', reporting_year: 2026, customer_name: 'A' },
       seedQuestion: { id: 'q-1', questionnaire_id: 'qn-1', raw_text: 'Q' },
       activitiesForYear: 1,
-      generateObject,
+      agentRun,
     });
     const exit = await Effect.runPromiseExit(
       answerSvc.generate('q-1', FAKE_CONFIG).pipe(Effect.provide(testLayer)),
     );
     expect(failureTag(exit)).toBe('AiSchemaMismatch');
-    expect(generateObject).toHaveBeenCalledTimes(1);
+    expect(generateObjectMock).not.toHaveBeenCalled();
   });
 
-  it('AiNoData propagates when the AiClient sees no tool-call output', async () => {
-    const generateObject = vi.fn().mockReturnValue(Effect.fail(new AiNoData({})));
-    const { testLayer } = setup({
+  it('AiNoData from agent propagates (no fallback)', async () => {
+    const agentRun = vi.fn().mockReturnValue(Effect.fail(new AiNoData({})));
+    const { testLayer, generateObjectMock } = setup({
       seedQuestionnaire: { id: 'qn-1', reporting_year: 2026, customer_name: 'A' },
       seedQuestion: { id: 'q-1', questionnaire_id: 'qn-1', raw_text: 'Q' },
       activitiesForYear: 1,
-      generateObject,
+      agentRun,
     });
     const exit = await Effect.runPromiseExit(
       answerSvc.generate('q-1', FAKE_CONFIG).pipe(Effect.provide(testLayer)),
@@ -316,6 +495,7 @@ describe('answer-generation.generate (Effect Step 2)', () => {
     // (model returned value=""). Both reach the IPC handler; the UI surfaces
     // them with different copy.
     expect(failureTag(exit)).toBe('AiNoData');
+    expect(generateObjectMock).not.toHaveBeenCalled();
   });
 });
 
@@ -423,17 +603,28 @@ describe('answer-generation.generateAllUnanswered', () => {
   });
 
   it('isolates per-item failures: returns Left for failing items, Right for others', async () => {
-    // Override the AiClient stub: succeed once (q-2) then fail once (q-3).
-    // Each `generate(...)` invocation pulls a fresh Effect from the mock, so
-    // the order matches the unanswered-questions iteration order.
-    const generateObject = vi
+    // Drive the agent stub: succeed once (q-2) then fail with a non-fallback
+    // error (q-3). AiProviderError is NOT caught by the fallback shim — it
+    // bubbles up so the IPC layer can surface "check API key".
+    const agentRun = vi
       .fn()
-      .mockReturnValueOnce(Effect.succeed({ value: 'ok', unit: null, source_summary: 's' }))
+      .mockReturnValueOnce(
+        Effect.succeed({
+          result: { value: 'ok', unit: null, source_summary: 's' },
+          trace: {
+            turnCount: 1,
+            toolCalls: [],
+            totalTokens: { input: 0, output: 0 },
+            totalDurationMs: 1,
+            stopReason: 'completed',
+          } satisfies AgentTrace,
+        }),
+      )
       .mockReturnValueOnce(Effect.fail(new AiProviderError({ cause: 'persistent' })));
     const { testLayer, db } = setup({
       seedQuestionnaire: { id: 'qn-1', reporting_year: 2026, customer_name: 'A' },
       activitiesForYear: 5,
-      generateObject,
+      agentRun,
     });
     db.prepare(
       `INSERT INTO question (id, questionnaire_id, question_signature, signature_version, normalized_text, raw_text, parsed_intent, question_kind, expected_unit, position, required) VALUES ('q-1', 'qn-1', 's1', 'v1', 'q1', 'q1', NULL, 'numerical', NULL, 'Sheet1!B2', 0)`,
