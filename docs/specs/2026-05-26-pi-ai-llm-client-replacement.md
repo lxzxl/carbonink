@@ -320,7 +320,20 @@ New migration test `tests/main/services/settings-service-migration.test.ts`:
 
 | Date | Builder | Platform | 1 (onboarding) | 2 (extraction) | 3 (answer-gen) | 4 (OAuth) | 5 (narrative) | 6 (migration) | 7 (bundle size) |
 |---|---|---|---|---|---|---|---|---|---|
-| | | | | | | | | | |
+| 2026-05-27 | lxz | macOS (darwin arm64, dev mode) | ✅ via dynamic catalog | ✅ | ✅ | N/A (OAuth deferred to v1.x) | ✅ | ✅ | ✅ (5 ai-sdk packages + `ai` removed; pi-ai inlined into main bundle) |
+
+### Bugs surfaced + fixed during smoke
+
+- `2e0df31` — `@earendil-works/pi-ai` is ESM-only; the previous `externalizeDepsPlugin()` left it as a runtime `require()` that Electron's CJS loader couldn't resolve (`ERR_PACKAGE_PATH_NOT_EXPORTED` at launch). Fix excludes pi-ai from externalization so Rollup inlines it.
+- `e7bce1d` — hardcoded `PROVIDER_DEFAULTS.deepseek.model = 'deepseek-chat'` didn't match pi-ai's catalog (`deepseek-v4-flash` / `deepseek-v4-pro`). Surfaced via "validate connection" → `pi-ai has no model registered`. Quick fix changed the default model; the root cause (hardcoding) was addressed in `b104193`.
+- `b104193` — full dynamic catalog from pi-ai via new `settings:list-providers` / `settings:list-models` IPC channels. Drops `PROVIDER_OPTIONS`/`DEFAULTS`/`LABELS`. Eliminates the bug class. Also caught an unrelated bug: `CredentialService` allowlist was hardcoded to 5 keychain prefixes; would have rejected `llm.kimi-coding.apikey` etc. Replaced with structural regex.
+
+### Known follow-ups (out of v1)
+
+- Anthropic OAuth login (deferred to v1.x; placeholder copy in UI)
+- Streaming UI (pi-ai supports it; we don't show partial output today)
+- Cost estimation display (pi-ai's per-model cost metadata already piped through the catalog IPC; UI can opt in later)
+- Token usage / license metering hook
 
 ## Definition of Done
 
