@@ -7,6 +7,25 @@ import { z } from 'zod';
 import type { IpcContext } from '../context.js';
 import type { IpcTypeMap } from '../types.js';
 
+/**
+ * Build the human-readable suffix for an `AiProviderError` toast. Returns
+ * an empty string when there's nothing actionable to add (e.g. opaque
+ * non-Error cause) so the caller can fall back to the generic copy.
+ *
+ * Examples:
+ *   - cause = "pi-ai has no model registered for provider=deepseek model=deepseek-chat"
+ *       → "pi-ai has no model registered for provider=deepseek model=deepseek-chat"
+ *   - cause = Error("ECONNREFUSED")  → "ECONNREFUSED"
+ *   - cause = undefined, status = 503 → "HTTP 503"
+ *   - cause = {weird: "object"}      → "" (caller uses fallback copy)
+ */
+function formatProviderErrorDetail(cause: unknown, status?: number): string {
+  if (typeof cause === 'string' && cause.trim() !== '') return cause.trim();
+  if (cause instanceof Error && cause.message.trim() !== '') return cause.message.trim();
+  if (status !== undefined) return `HTTP ${status}`;
+  return '';
+}
+
 const generateInput = z.object({ question_id: z.string().min(1) });
 const saveInput = z.object({
   question_id: z.string().min(1),
@@ -35,7 +54,12 @@ export function answerHandlers(ctx: IpcContext): {
       // Without this, Data.TaggedError instances reach the renderer with no
       // .message — the user gets an empty toast.
       const failure = Cause.failureOption(exit.cause);
-      const err = Option.getOrNull(failure) as { _tag?: string; reason?: string } | null;
+      const err = Option.getOrNull(failure) as {
+        _tag?: string;
+        reason?: string;
+        cause?: unknown;
+        status?: number;
+      } | null;
       switch (err?._tag) {
         case 'LLMNoData':
           throw new Error(
@@ -59,8 +83,17 @@ export function answerHandlers(ctx: IpcContext): {
           throw new Error('LLM 调用超时，请重试或检查网络。');
         case 'AiNoData':
           throw new Error('LLM 未返回任何可解析内容，请重试。');
-        case 'AiProviderError':
-          throw new Error('LLM 调用失败，请检查网络与 API key。');
+        case 'AiProviderError': {
+          // Surface the underlying `cause` whenever it's stringifiable.
+          // The previous flat "check network and API key" copy was actively
+          // misleading for configuration errors (e.g. pi-ai reporting the
+          // selected model isn't in its catalog) — that's neither a network
+          // nor a credential issue and the toast misdirected debugging.
+          const detail = formatProviderErrorDetail(err.cause, err.status);
+          throw new Error(
+            detail ? `LLM 调用失败：${detail}` : 'LLM 调用失败，请检查网络与 API key。',
+          );
+        }
         default:
           throw new Error(`生成答案失败：${err?._tag ?? '未知错误'}`);
       }
