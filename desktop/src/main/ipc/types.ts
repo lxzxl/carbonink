@@ -26,7 +26,6 @@ import type {
   Organization,
   OrganizationCreateInput,
   PresetSource,
-  ProviderConfig,
   ProviderConfigV2,
   Question,
   Questionnaire,
@@ -175,28 +174,25 @@ export type IpcTypeMap = {
 
   // settings domain (Phase 1b — LLM provider config)
   // `settings:available` reports whether the OS-level keychain backend works.
-  // `settings:get-provider` returns the config + masked key for UI display.
+  // `settings:get-provider` returns the V2 config + masked key for UI display.
   // `settings:save-provider` persists config + key (split storage in SettingsService).
   // `settings:clear-provider` removes both halves.
   // `settings:ping-provider` is the "Test connection" path; optional `apiKey`
   // lets the UI verify a key the user has typed but not yet saved.
   //
-  // Item 3 Task 10a: backend storage + AiClient speak V2. The renderer-facing
-  // channels keep the V1 shape during the transition so the UI doesn't have to
-  // change in this PR (T10b switches it to V2). `save-provider` and
-  // `ping-provider` accept either V1 or V2 — the handler normalizes via
-  // `migrateProviderConfig` before persistence. `get-provider` returns V1
-  // reconstructed from V2 storage (defaults on lossy fields, see
-  // `v2ToV1` in settings-service).
+  // Item 3 Task 10b: all three provider channels speak V2 end-to-end. The
+  // renderer emits V2 directly (AIProviderSection composes Azure's
+  // resourceName into baseUrl on submit); the legacy V1 discriminated
+  // union has been removed from the wire. On-disk V1 rows from older
+  // installs are still silently migrated to V2 on read by SettingsService
+  // — that path is internal to the read implementation, not part of the
+  // IPC contract.
   'settings:available': () => boolean;
-  'settings:get-provider': () => (ProviderConfig & { apiKeyMasked: string | null }) | null;
-  'settings:save-provider': (input: {
-    config: ProviderConfig | ProviderConfigV2;
-    apiKey: string;
-  }) => void;
+  'settings:get-provider': () => (ProviderConfigV2 & { apiKeyMasked: string | null }) | null;
+  'settings:save-provider': (input: { config: ProviderConfigV2; apiKey: string }) => void;
   'settings:clear-provider': () => void;
   'settings:ping-provider': (input: {
-    config: ProviderConfig | ProviderConfigV2;
+    config: ProviderConfigV2;
     apiKey?: string;
   }) => Promise<{ ok: true } | { ok: false; error: string }>;
   'settings:get-amap-key': () => string | null;

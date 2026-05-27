@@ -53,7 +53,6 @@ test('settings page renders + screenshots each tab', async () => {
     cannedProvider: {
       provider: 'openai',
       model: 'gpt-4o-mini',
-      apiKeyKeyref: 'llm.openai.apikey',
       apiKeyMasked: 'sk-...abcd',
     },
   });

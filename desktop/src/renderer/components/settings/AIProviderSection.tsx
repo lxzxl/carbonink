@@ -5,7 +5,7 @@ import { Label } from '@renderer/components/ui/label';
 import { settingsApi } from '@renderer/lib/api/settings';
 import { friendlyErrorDescription } from '@renderer/lib/error-message';
 import * as m from '@renderer/paraglide/messages';
-import type { ProviderConfig, ProviderKind } from '@shared/types';
+import type { ProviderConfigV2 } from '@shared/types';
 import { useForm, useStore } from '@tanstack/react-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
@@ -19,6 +19,26 @@ import { useEffect, useState } from 'react';
  *   - Provider config → sqlite `setting` table.
  *   - API key plaintext → OS keychain via CredentialService. Renderer
  *     only ever sees the mask (e.g. `sk-...abcd`).
+ *
+ * Wire shape (Item 3 Task 10b):
+ *   The settings IPC channels now speak `ProviderConfigV2` — a flat
+ *   `{provider, model, baseUrl?}` shape. The previous V1 discriminated
+ *   union (with per-variant `apiKeyKeyref` / `resourceName` / `apiVersion`
+ *   / `name` fields) is gone from the wire. `apiKeyKeyref` is derived
+ *   deterministically on the main side from `provider`.
+ *
+ *   Azure UX choice: the form still asks for `resourceName` (familiar to
+ *   existing Azure users) and composes it into V2's `baseUrl` as
+ *   `https://{resourceName}.openai.azure.com` on submit. On load, an
+ *   existing baseUrl is reverse-parsed back into the `resourceName` input.
+ *   The previous `apiVersion` input is gone — pi-ai picks a default —
+ *   and existing user-set apiVersion values are dropped by the V1→V2
+ *   migration (acceptable: '2024-08-01-preview' was the only sensible
+ *   value and pi-ai's default is current enough).
+ *
+ *   openai-compat's V1 `name` (a display label) is dropped — V2 doesn't
+ *   carry it. The list of providers shown to the user is unchanged; the
+ *   only user-visible effect is that the "Provider name" field is gone.
  *
  * Replace-key flow:
  *   When a saved key exists we show "<mask> · Saved · [Replace]"
@@ -34,7 +54,16 @@ import { useEffect, useState } from 'react';
  *   dropdown changes. <form.Field> only re-renders its owner.
  */
 
-const PROVIDER_DEFAULTS: Record<ProviderKind, { model: string }> = {
+/**
+ * The 5 providers exposed in the UI today. The wire format (V2) is open
+ * to any pi-ai provider id; we keep the picker scoped to these 5 in
+ * v1 so labels + defaults stay stable. v1.x expands to the full pi-ai
+ * provider list (32+).
+ */
+const PROVIDER_OPTIONS = ['openai', 'anthropic', 'azure', 'deepseek', 'openai-compat'] as const;
+type ProviderOption = (typeof PROVIDER_OPTIONS)[number];
+
+const PROVIDER_DEFAULTS: Record<ProviderOption, { model: string }> = {
   openai: { model: 'gpt-4o-mini' },
   anthropic: { model: 'claude-sonnet-4-5' },
   azure: { model: 'gpt-4o' },
@@ -42,7 +71,7 @@ const PROVIDER_DEFAULTS: Record<ProviderKind, { model: string }> = {
   'openai-compat': { model: 'gpt-4o-mini' },
 };
 
-const PROVIDER_LABELS: Record<ProviderKind, () => string> = {
+const PROVIDER_LABELS: Record<ProviderOption, () => string> = {
   openai: m.settings_provider_openai,
   anthropic: m.settings_provider_anthropic,
   azure: m.settings_provider_azure,
@@ -50,22 +79,26 @@ const PROVIDER_LABELS: Record<ProviderKind, () => string> = {
   'openai-compat': m.settings_provider_openai_compat,
 };
 
-const PROVIDER_OPTIONS: ProviderKind[] = [
-  'openai',
-  'anthropic',
-  'azure',
-  'deepseek',
-  'openai-compat',
-];
+/**
+ * Parse a stored Azure baseUrl back into the resourceName the user
+ * originally typed. Mirrors the compose direction below — if either drifts
+ * the migration round-trip breaks. The pattern is what the V1→V2
+ * migration in settings-service produces, so it's safe to anchor on.
+ */
+function extractAzureResourceName(baseUrl: string | undefined): string {
+  if (!baseUrl) return '';
+  const match = baseUrl.match(/^https:\/\/([^.]+)\.openai\.azure\.com/);
+  return match?.[1] ?? '';
+}
 
 type SettingsFormValues = {
-  provider: ProviderKind;
+  provider: ProviderOption;
   model: string;
   apiKey: string;
+  /** Azure-only — composed into baseUrl on submit. */
   resourceName: string;
-  apiVersion: string;
+  /** openai-compat-only — submitted verbatim as baseUrl. */
   baseUrl: string;
-  compatName: string;
 };
 
 const EMPTY_VALUES: SettingsFormValues = {
@@ -73,43 +106,41 @@ const EMPTY_VALUES: SettingsFormValues = {
   model: PROVIDER_DEFAULTS.openai.model,
   apiKey: '',
   resourceName: '',
-  apiVersion: '2024-08-01-preview',
   baseUrl: '',
-  compatName: 'Custom',
 };
 
-function buildProviderConfig(v: SettingsFormValues): ProviderConfig | null {
+/**
+ * Build the V2 wire payload from the form's local fields. Returns `null`
+ * when a required field is missing — caller toasts a validation error
+ * instead of dispatching the IPC. The provider/model trim happens here
+ * so the call sites don't have to repeat it.
+ */
+function buildProviderConfigV2(v: SettingsFormValues): ProviderConfigV2 | null {
   const model = v.model.trim();
   if (!model) return null;
+  const provider = v.provider;
 
-  switch (v.provider) {
+  switch (provider) {
     case 'openai':
-      return { provider: 'openai', model, apiKeyKeyref: 'llm.openai.apikey' };
     case 'anthropic':
-      return { provider: 'anthropic', model, apiKeyKeyref: 'llm.anthropic.apikey' };
+    case 'deepseek':
+      return { provider, model };
     case 'azure': {
       const resourceName = v.resourceName.trim();
       if (!resourceName) return null;
+      // The shape of this URL is load-bearing: the read-back path in
+      // `extractAzureResourceName` regexes for `<name>.openai.azure.com`.
+      // Don't change one without the other.
       return {
-        provider: 'azure',
+        provider,
         model,
-        apiKeyKeyref: 'llm.azure.apikey',
-        resourceName,
-        apiVersion: v.apiVersion.trim() || '2024-08-01-preview',
+        baseUrl: `https://${resourceName}.openai.azure.com`,
       };
     }
-    case 'deepseek':
-      return { provider: 'deepseek', model, apiKeyKeyref: 'llm.deepseek.apikey' };
     case 'openai-compat': {
       const baseUrl = v.baseUrl.trim();
       if (!baseUrl) return null;
-      return {
-        provider: 'openai-compat',
-        model,
-        apiKeyKeyref: 'llm.openai-compat.apikey',
-        baseUrl,
-        name: v.compatName.trim() || 'Custom',
-      };
+      return { provider, model, baseUrl };
     }
   }
 }
@@ -138,7 +169,7 @@ export function AIProviderSection() {
   const form = useForm({
     defaultValues: EMPTY_VALUES,
     onSubmit: async ({ value }) => {
-      const config = buildProviderConfig(value);
+      const config = buildProviderConfigV2(value);
       if (!config) {
         toast.error(m.settings_save_failed(), {
           description: 'Please fill in all required fields for the chosen provider.',
@@ -155,26 +186,35 @@ export function AIProviderSection() {
     },
   });
 
-  // Hydrate from existing saved config when the query resolves.
+  // Hydrate from existing saved config when the query resolves. V2-shaped:
+  // azure stores its resource encoded in `baseUrl`, so we reverse-parse on
+  // load; openai-compat carries `baseUrl` verbatim.
   // biome-ignore lint/correctness/useExhaustiveDependencies: form is stable; including it would refire on every re-render and clobber user edits.
   useEffect(() => {
     const existing = existingQuery.data;
     if (!existing) return;
-    form.setFieldValue('provider', existing.provider);
+    // Defensive: only hydrate `provider` if the saved value is one of the
+    // 5 we render. pi-ai providers outside this set (kimi-coding, qwen,
+    // zhipu, …) can land here once v1.x adds them to the picker; until
+    // then we fall back to 'openai' to keep the form usable.
+    const provider: ProviderOption = (PROVIDER_OPTIONS as readonly string[]).includes(
+      existing.provider,
+    )
+      ? (existing.provider as ProviderOption)
+      : 'openai';
+    form.setFieldValue('provider', provider);
     form.setFieldValue('model', existing.model);
-    if (existing.provider === 'azure') {
-      form.setFieldValue('resourceName', existing.resourceName);
-      form.setFieldValue('apiVersion', existing.apiVersion);
-    } else if (existing.provider === 'openai-compat') {
-      form.setFieldValue('baseUrl', existing.baseUrl);
-      form.setFieldValue('compatName', existing.name);
+    if (provider === 'azure') {
+      form.setFieldValue('resourceName', extractAzureResourceName(existing.baseUrl));
+    } else if (provider === 'openai-compat') {
+      form.setFieldValue('baseUrl', existing.baseUrl ?? '');
     }
     form.setFieldValue('apiKey', '');
     setIsEditingKey(false);
   }, [existingQuery.data]);
 
   const pingMutation = useMutation({
-    mutationFn: async (input: { config: ProviderConfig; apiKey?: string }) =>
+    mutationFn: async (input: { config: ProviderConfigV2; apiKey?: string }) =>
       await settingsApi.pingProvider(input),
     onSuccess: (result) => {
       if (result.ok) {
@@ -197,14 +237,14 @@ export function AIProviderSection() {
   const savedMask = existingQuery.data?.apiKeyMasked ?? null;
   const hasSavedKey = savedMask != null;
 
-  const handleProviderChange = (next: ProviderKind) => {
+  const handleProviderChange = (next: ProviderOption) => {
     form.setFieldValue('provider', next);
     form.setFieldValue('model', PROVIDER_DEFAULTS[next].model);
   };
 
   const handleTest = () => {
     const values = form.state.values;
-    const config = buildProviderConfig(values);
+    const config = buildProviderConfigV2(values);
     if (!config) {
       toast.error(m.settings_test_failed(), {
         description: 'Please fill in all required fields first.',
@@ -250,7 +290,7 @@ export function AIProviderSection() {
             <select
               id="settings-provider"
               value={field.state.value}
-              onChange={(e) => handleProviderChange(e.target.value as ProviderKind)}
+              onChange={(e) => handleProviderChange(e.target.value as ProviderOption)}
               className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:border-ring"
             >
               {PROVIDER_OPTIONS.map((p) => (
@@ -263,79 +303,59 @@ export function AIProviderSection() {
         )}
       />
 
+      {provider === 'anthropic' && (
+        // OAuth flow is a v1.x target — for now we just nudge users
+        // toward the API-key path. Placeholder copy is intentionally
+        // plain (not a localized message key) so we don't ship a string
+        // we'll throw away in v1.x.
+        <p className="text-xs text-muted-foreground">
+          Anthropic OAuth login is coming in a future release. Use an API key for now.
+        </p>
+      )}
+
       {provider === 'azure' && (
-        <>
-          <form.Field
-            name="resourceName"
-            validators={{
-              onChange: ({ value }) => (value.trim().length > 0 ? undefined : m.required_field()),
-            }}
-            children={(field) => (
-              <div className="space-y-1">
-                <Label htmlFor="settings-resource-name">{m.settings_resource_name_label()}</Label>
-                <Input
-                  id="settings-resource-name"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                />
-                {field.state.meta.errors[0] && (
-                  <p className="text-xs text-destructive">{String(field.state.meta.errors[0])}</p>
-                )}
-              </div>
-            )}
-          />
-          <form.Field
-            name="apiVersion"
-            children={(field) => (
-              <div className="space-y-1">
-                <Label htmlFor="settings-api-version">{m.settings_api_version_label()}</Label>
-                <Input
-                  id="settings-api-version"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                />
-              </div>
-            )}
-          />
-        </>
+        <form.Field
+          name="resourceName"
+          validators={{
+            onChange: ({ value }) => (value.trim().length > 0 ? undefined : m.required_field()),
+          }}
+          children={(field) => (
+            <div className="space-y-1">
+              <Label htmlFor="settings-resource-name">{m.settings_resource_name_label()}</Label>
+              <Input
+                id="settings-resource-name"
+                value={field.state.value}
+                onChange={(e) => field.handleChange(e.target.value)}
+              />
+              {field.state.meta.errors[0] && (
+                <p className="text-xs text-destructive">{String(field.state.meta.errors[0])}</p>
+              )}
+            </div>
+          )}
+        />
       )}
 
       {provider === 'openai-compat' && (
-        <>
-          <form.Field
-            name="baseUrl"
-            validators={{
-              onChange: ({ value }) => (value.trim().length > 0 ? undefined : m.required_field()),
-            }}
-            children={(field) => (
-              <div className="space-y-1">
-                <Label htmlFor="settings-base-url">{m.settings_base_url_label()}</Label>
-                <Input
-                  id="settings-base-url"
-                  value={field.state.value}
-                  placeholder="https://api.example.com/v1"
-                  onChange={(e) => field.handleChange(e.target.value)}
-                />
-                {field.state.meta.errors[0] && (
-                  <p className="text-xs text-destructive">{String(field.state.meta.errors[0])}</p>
-                )}
-              </div>
-            )}
-          />
-          <form.Field
-            name="compatName"
-            children={(field) => (
-              <div className="space-y-1">
-                <Label htmlFor="settings-compat-name">{m.settings_compat_name_label()}</Label>
-                <Input
-                  id="settings-compat-name"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                />
-              </div>
-            )}
-          />
-        </>
+        <form.Field
+          name="baseUrl"
+          validators={{
+            onChange: ({ value }) => (value.trim().length > 0 ? undefined : m.required_field()),
+          }}
+          children={(field) => (
+            <div className="space-y-1">
+              <Label htmlFor="settings-base-url">{m.settings_base_url_label()}</Label>
+              <Input
+                id="settings-base-url"
+                value={field.state.value}
+                placeholder="https://api.example.com/v1"
+                onChange={(e) => field.handleChange(e.target.value)}
+              />
+              {field.state.meta.errors[0] && (
+                <p className="text-xs text-destructive">{String(field.state.meta.errors[0])}</p>
+              )}
+            </div>
+          )}
+        />
       )}
 
       <form.Field

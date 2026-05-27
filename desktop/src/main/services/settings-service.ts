@@ -1,10 +1,5 @@
 import type { CredentialService } from '@main/services/credential-service.js';
-import {
-  apiKeyKeyrefForProvider,
-  type ProviderConfig,
-  type ProviderConfigV2,
-  providerConfigV2,
-} from '@shared/types.js';
+import { apiKeyKeyrefForProvider, type ProviderConfigV2, providerConfigV2 } from '@shared/types.js';
 import type { ServiceContext } from './base.js';
 
 /**
@@ -28,17 +23,16 @@ const AUTO_BACKUP_ENABLED_SETTING = 'auto_backup.enabled';
  *   pushes it through Electron `safeStorage` and lands an encrypted blob in
  *   `<userData>/credentials/{keyref}.bin`. The key never touches sqlite.
  *
- * V1/V2 migration (Item 3, Task 10a): legacy V1 records on disk are silently
- * upgraded to V2 on read via {@link migrateProviderConfig}. {@link
- * saveProviderConfig} accepts either shape during the renderer-cutover window
- * (Task 10b flips the renderer to emit V2 directly), then narrows back to V2
- * once Task 11 deletes V1.
+ * V1 migration (Item 3): legacy V1 records on disk are silently upgraded
+ * to V2 on read via {@link migrateProviderConfig} — the renderer and the
+ * IPC wire format are V2-only as of Task 10b. The migration shim stays
+ * on the read path so installs upgraded from pre-Task-10 builds (which
+ * persisted V1) continue to work; Task 11 will delete the V1 zod schema
+ * once we're confident no V1 rows remain in the wild.
  *
  * Read paths:
- * - {@link getProviderConfig} returns a V1-reconstructed config + a *masked*
- *   preview of the key (`sk-...abcd`) for renderer/UI display. The renderer's
- *   AIProviderSection still hydrates from the V1 discriminated-union shape;
- *   Task 10b switches it to V2 and this method can return V2 directly.
+ * - {@link getProviderConfig} returns the V2 config + a *masked* preview
+ *   of the key (`sk-...abcd`) for renderer/UI display.
  * - {@link getProviderConfigWithKey} returns the V2 config + the *plaintext*
  *   key. This is the main-process internal entry point used by
  *   `AiClient` and **must not** be exposed via an IPC handler.
@@ -51,22 +45,17 @@ export class SettingsService {
   ) {}
 
   /**
-   * Persist a provider config (V2 shape) + its API key.
+   * Persist a provider config (V2 shape) + its API key. Invalid input
+   * throws synchronously — the IPC boundary already zod-parsed the
+   * incoming config, so a throw here means a programming error in main.
    *
-   * Accepts arbitrary input and runs it through {@link migrateProviderConfig}
-   * so renderers that still emit the V1 discriminated-union shape continue
-   * to work during the Task 10a/10b transition. Once the renderer is on V2
-   * (Task 10b) the caller can pass V2 directly without going through the
-   * migrator. Invalid input throws synchronously — the IPC boundary catches
-   * and turns it into a Zod-shaped error toast.
+   * `migrateProviderConfig` is still used to validate the shape rather than
+   * `providerConfigV2.parse` directly: this lets internal callers continue
+   * to hand us a V1 record (e.g. a future data-migration script that
+   * re-saves all stored configs) without us having to special-case the
+   * call site. External (IPC) callers always pass V2.
    */
   saveProviderConfig(config: ProviderConfigV2 | unknown, apiKeyPlaintext: string): void {
-    // `migrateProviderConfig` handles both shapes: it detects V1 markers
-    // (`apiKeyKeyref`, azure `resourceName`, openai-compat `name`) and uses
-    // them to derive V2 fields (e.g. azure baseUrl from resourceName) BEFORE
-    // falling through to the V2 fast path. Going through it always — rather
-    // than trying V2's permissive schema first — is what keeps V1 azure's
-    // `resourceName` from being silently dropped during the cutover window.
     const parsed = migrateProviderConfig(config);
     if (parsed === null) {
       throw new Error('Invalid provider config (neither V1 nor V2 shape).');
@@ -91,13 +80,11 @@ export class SettingsService {
       .run(PROVIDER_SETTING_KEY, value, ts);
   }
 
-  getProviderConfig(): (ProviderConfig & { apiKeyMasked: string | null }) | null {
+  getProviderConfig(): (ProviderConfigV2 & { apiKeyMasked: string | null }) | null {
     const config = this.readConfig();
     if (config === null) return null;
     const apiKeyMasked = this.ctx.credentials.getMasked(apiKeyKeyrefForProvider(config.provider));
-    const v1 = v2ToV1(config);
-    if (v1 === null) return null;
-    return { ...v1, apiKeyMasked };
+    return { ...config, apiKeyMasked };
   }
 
   /**
@@ -265,74 +252,4 @@ export function migrateProviderConfig(raw: unknown): ProviderConfigV2 | null {
   const v2Try = providerConfigV2.safeParse(raw);
   if (v2Try.success) return v2Try.data;
   return null;
-}
-
-/**
- * Reconstruct the V1 discriminated-union shape from a V2 record. Used by
- * {@link SettingsService.getProviderConfig} so the renderer's AIProviderSection
- * can keep hydrating from `existing.resourceName` / `existing.baseUrl` /
- * `existing.name` until Task 10b switches it to V2.
- *
- * Returns null for V2 records whose provider isn't one of the 5 V1 variants
- * (e.g. pi-ai's Kimi / Qwen / Zhipu). Those providers don't have a renderer
- * UI today; the renderer treats null as "no provider configured" and shows
- * the empty form — acceptable until T10b lands.
- *
- * Field defaults for azure `apiVersion` and openai-compat `name` match the
- * V1 schema defaults — the user-set values are LOST by the V1→V2 migration
- * (V2 doesn't carry them) so this reconstruction can only restore defaults.
- */
-function v2ToV1(v2: ProviderConfigV2): ProviderConfig | null {
-  switch (v2.provider) {
-    case 'openai':
-      return {
-        provider: 'openai',
-        model: v2.model,
-        apiKeyKeyref: 'llm.openai.apikey',
-      };
-    case 'anthropic':
-      return {
-        provider: 'anthropic',
-        model: v2.model,
-        apiKeyKeyref: 'llm.anthropic.apikey',
-      };
-    case 'deepseek':
-      return {
-        provider: 'deepseek',
-        model: v2.model,
-        apiKeyKeyref: 'llm.deepseek.apikey',
-      };
-    case 'azure': {
-      // Recover `resourceName` from the baseUrl pattern the V1→V2 migration
-      // produced: `https://<resourceName>.openai.azure.com`. If baseUrl is
-      // missing or doesn't match the pattern, we still try a best-effort
-      // reconstruction so the renderer can at least render the form.
-      const baseUrl = v2.baseUrl ?? '';
-      const match = baseUrl.match(/^https:\/\/([^.]+)\.openai\.azure\.com/);
-      const resourceName = match?.[1] ?? '';
-      return {
-        provider: 'azure',
-        model: v2.model,
-        apiKeyKeyref: 'llm.azure.apikey',
-        resourceName,
-        apiVersion: '2024-08-01-preview',
-      };
-    }
-    case 'openai-compat': {
-      const baseUrl = v2.baseUrl ?? '';
-      if (!baseUrl) return null;
-      return {
-        provider: 'openai-compat',
-        model: v2.model,
-        apiKeyKeyref: 'llm.openai-compat.apikey',
-        baseUrl,
-        name: 'Custom',
-      };
-    }
-    default:
-      // pi-ai providers without a V1 counterpart (Kimi, Qwen, Zhipu, etc.).
-      // Renderer treats null as "no provider configured" — T10b adds proper
-      // V2-shape rendering for these.
-      return null;
-  }
 }

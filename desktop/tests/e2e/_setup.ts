@@ -42,7 +42,7 @@ import type {
   ClassifyAndRunResult,
   Extraction,
   MatcherResult,
-  ProviderConfig,
+  ProviderConfigV2,
 } from '../../src/shared/types.js';
 
 export type StageE2ESetup = {
@@ -94,7 +94,7 @@ export type LaunchOpts = {
    * When set, mocks `settings:get-provider`. Without this, the /documents
    * page shows the "Provider Not Configured" banner instead of the upload UI.
    */
-  cannedProvider?: ProviderConfig & { apiKeyMasked: string | null };
+  cannedProvider?: ProviderConfigV2 & { apiKeyMasked: string | null };
   /**
    * Free-form channel → static-response map. The harness installs each
    * entry as a fixed-value `ipcMain.handle(channel, () => value)` after
@@ -178,22 +178,19 @@ export async function launchApp(opts: LaunchOpts): Promise<StageE2ESetup> {
     // — or the opposite when we're trying to capture EN screenshots).
     // `addInitScript` runs after preload but before the renderer bundle's
     // top-level statements, which is the exact seam initLocale needs.
-    void page.addInitScript(
-      (loc) => {
-        try {
-          // Bare `localStorage` (not `window.localStorage`) — TypeScript
-          // would otherwise resolve `window` to the outer Playwright Page
-          // variable. The script runs in the browser context where the
-          // global is available unqualified.
-          localStorage.setItem('carbonink.locale', loc);
-        } catch {
-          // localStorage can throw in some contexts (sandboxed iframe, file://
-          // with disk-quota issues). Best-effort: fall through, the renderer's
-          // navigator.language path stays as-is.
-        }
-      },
-      locale,
-    );
+    void page.addInitScript((loc) => {
+      try {
+        // Bare `localStorage` (not `window.localStorage`) — TypeScript
+        // would otherwise resolve `window` to the outer Playwright Page
+        // variable. The script runs in the browser context where the
+        // global is available unqualified.
+        localStorage.setItem('carbonink.locale', loc);
+      } catch {
+        // localStorage can throw in some contexts (sandboxed iframe, file://
+        // with disk-quota issues). Best-effort: fall through, the renderer's
+        // navigator.language path stays as-is.
+      }
+    }, locale);
     page.on('console', (m) => console.log(`[renderer.${m.type()}]`, m.text()));
     page.on('pageerror', (e) => console.log('[renderer.pageerror]', e.message));
     page.on('crash', () => console.log('[renderer.crash]'));
@@ -416,16 +413,13 @@ export async function launchApp(opts: LaunchOpts): Promise<StageE2ESetup> {
   // navigator.language ("en-US" in playwright). Write the storage key
   // directly here, then reload — the second load picks up `locale`
   // deterministically.
-  await window.evaluate(
-    (loc) => {
-      try {
-        localStorage.setItem('carbonink.locale', loc);
-      } catch {
-        // ignore — best-effort
-      }
-    },
-    locale,
-  );
+  await window.evaluate((loc) => {
+    try {
+      localStorage.setItem('carbonink.locale', loc);
+    } catch {
+      // ignore — best-effort
+    }
+  }, locale);
   await window.reload();
 
   const setup: StageE2ESetup = { app, window, tempUserDataDir };

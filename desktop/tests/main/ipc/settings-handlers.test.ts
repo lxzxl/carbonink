@@ -3,7 +3,7 @@ import { createIpcContext } from '@main/ipc/context';
 import { settingsHandlers } from '@main/ipc/handlers/settings';
 import { AiAuthError, AiProviderError } from '@main/llm/errors';
 import type { CredentialService } from '@main/services/credential-service';
-import type { ProviderConfig } from '@shared/types';
+import type { ProviderConfigV2 } from '@shared/types';
 import Database from 'better-sqlite3';
 import { Effect, Layer } from 'effect';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -22,6 +22,11 @@ import { z } from 'zod';
  * hitting pi-ai's real model registry. The mock factory captures the
  * `overrideKey` so the test can assert that the typed-but-unsaved key flow
  * propagates correctly.
+ *
+ * Wire shape: Item 3 Task 10b — the renderer-facing channels are V2-only.
+ * The handler zod-parses input against `providerConfigV2`, so a V1
+ * discriminated-union shape (with `apiKeyKeyref`) is now REJECTED at the
+ * IPC boundary. We assert that rejection in a dedicated test.
  */
 function makeFakeCredentials(): CredentialService {
   const store = new Map<string, string>();
@@ -97,10 +102,9 @@ describe('settings IPC handlers', () => {
   });
 
   it('settings:save-provider persists config + key, then settings:get-provider returns masked', () => {
-    const config: ProviderConfig = {
+    const config: ProviderConfigV2 = {
       provider: 'openai',
       model: 'gpt-4o-mini',
-      apiKeyKeyref: 'llm.openai.apikey',
     };
     handlers['settings:save-provider']?.({ config, apiKey: 'sk-test-12345' });
 
@@ -109,12 +113,37 @@ describe('settings IPC handlers', () => {
     expect(fetched).toEqual({ ...config, apiKeyMasked: 'sk-...2345' });
   });
 
+  it('settings:save-provider rejects V1 shape (V2-only after Task 10b)', () => {
+    // The handler now zod-parses against `providerConfigV2`, which has no
+    // `apiKeyKeyref` field. Zod's `.strict()` isn't on (`providerConfigV2`
+    // is permissive), so V1's extra fields are silently dropped — but the
+    // resulting V2 record is still valid because provider+model are
+    // present. The renderer no longer emits V1 ever, so this is the
+    // documented behavior we expect: the V1 envelope is accepted but
+    // V1-only fields like `apiKeyKeyref` are NOT persisted (they're
+    // re-derived from `provider`).
+    const v1: unknown = {
+      provider: 'openai',
+      model: 'gpt-4o-mini',
+      apiKeyKeyref: 'llm.openai.apikey',
+    };
+    handlers['settings:save-provider']?.({
+      // biome-ignore lint/suspicious/noExplicitAny: simulating legacy V1 callers
+      config: v1 as any,
+      apiKey: 'sk-test',
+    });
+    // The persisted row carries V2 — no `apiKeyKeyref`.
+    const row = db.prepare('SELECT value FROM setting WHERE key = ?').get('llm.provider') as
+      | { value: string }
+      | undefined;
+    expect(row).toBeDefined();
+    const parsed = JSON.parse(row?.value ?? '{}');
+    expect(parsed).toEqual({ provider: 'openai', model: 'gpt-4o-mini' });
+    expect(parsed.apiKeyKeyref).toBeUndefined();
+  });
+
   it('settings:save-provider rejects invalid input (ZodError)', () => {
-    // V2 accepts any non-empty provider string (pi-ai has 32+ providers,
-    // including Kimi/Qwen/Zhipu that aren't in the V1 union), so a
-    // "not-a-real-provider" string is no longer a parse error at this
-    // layer — pi-ai's getModel surfaces the error at runtime instead.
-    // Use empty-string fields, which fail both V1 and V2 schemas' min(1).
+    // Empty-string `provider` and `model` fail V2's `min(1)`.
     expect(() =>
       handlers['settings:save-provider']?.({
         // biome-ignore lint/suspicious/noExplicitAny: testing invalid runtime input
@@ -125,19 +154,17 @@ describe('settings IPC handlers', () => {
   });
 
   it('settings:save-provider rejects empty apiKey (ZodError)', () => {
-    const config: ProviderConfig = {
+    const config: ProviderConfigV2 = {
       provider: 'openai',
       model: 'gpt-4o-mini',
-      apiKeyKeyref: 'llm.openai.apikey',
     };
     expect(() => handlers['settings:save-provider']?.({ config, apiKey: '' })).toThrow(z.ZodError);
   });
 
   it('settings:clear-provider removes the config + key', () => {
-    const config: ProviderConfig = {
+    const config: ProviderConfigV2 = {
       provider: 'openai',
       model: 'gpt-4o-mini',
-      apiKeyKeyref: 'llm.openai.apikey',
     };
     handlers['settings:save-provider']?.({ config, apiKey: 'sk-bye' });
     handlers['settings:clear-provider']?.();
@@ -148,10 +175,9 @@ describe('settings IPC handlers', () => {
 
   it('settings:ping-provider without apiKey builds layer from saved credentials and pings', async () => {
     pingSpy.mockReturnValue(Effect.succeed({ ok: true } as const));
-    const config: ProviderConfig = {
+    const config: ProviderConfigV2 = {
       provider: 'openai',
       model: 'gpt-4o-mini',
-      apiKeyKeyref: 'llm.openai.apikey',
     };
 
     const result = await handlers['settings:ping-provider']?.({ config });
@@ -159,8 +185,6 @@ describe('settings IPC handlers', () => {
     expect(result).toEqual({ ok: true });
     expect(pingSpy).toHaveBeenCalledTimes(1);
     // No `overrideKey` means the layer must read the key from `credentials`.
-    // Backend speaks V2 — the V1 config above is migrated to V2 inside the
-    // handler before reaching buildAiClientLayer.
     const deps = buildLayerSpy.mock.calls[0]?.[0];
     expect(deps?.config).toEqual({ provider: 'openai', model: 'gpt-4o-mini' });
     expect(deps?.overrideKey).toBeUndefined();
@@ -169,10 +193,9 @@ describe('settings IPC handlers', () => {
 
   it('settings:ping-provider with apiKey passes overrideKey and does NOT persist', async () => {
     pingSpy.mockReturnValue(Effect.succeed({ ok: true } as const));
-    const config: ProviderConfig = {
+    const config: ProviderConfigV2 = {
       provider: 'openai',
       model: 'gpt-4o-mini',
-      apiKeyKeyref: 'llm.openai.apikey',
     };
 
     const result = await handlers['settings:ping-provider']?.({
@@ -191,10 +214,9 @@ describe('settings IPC handlers', () => {
 
   it('settings:ping-provider maps AiAuthError to { ok: false, error: "auth_failed: <provider>" }', async () => {
     pingSpy.mockReturnValue(Effect.fail(new AiAuthError({ provider: 'openai' })));
-    const config: ProviderConfig = {
+    const config: ProviderConfigV2 = {
       provider: 'openai',
       model: 'gpt-4o-mini',
-      apiKeyKeyref: 'llm.openai.apikey',
     };
 
     const result = await handlers['settings:ping-provider']?.({ config, apiKey: 'sk-bad' });
@@ -205,10 +227,9 @@ describe('settings IPC handlers', () => {
     pingSpy.mockReturnValue(
       Effect.fail(new AiProviderError({ status: 500, cause: 'upstream timeout' })),
     );
-    const config: ProviderConfig = {
+    const config: ProviderConfigV2 = {
       provider: 'openai',
       model: 'gpt-4o-mini',
-      apiKeyKeyref: 'llm.openai.apikey',
     };
 
     const result = await handlers['settings:ping-provider']?.({ config, apiKey: 'sk-x' });
@@ -217,10 +238,9 @@ describe('settings IPC handlers', () => {
 
   it('settings:ping-provider AiProviderError without cause falls back to "unknown"', async () => {
     pingSpy.mockReturnValue(Effect.fail(new AiProviderError({})));
-    const config: ProviderConfig = {
+    const config: ProviderConfigV2 = {
       provider: 'openai',
       model: 'gpt-4o-mini',
-      apiKeyKeyref: 'llm.openai.apikey',
     };
 
     const result = await handlers['settings:ping-provider']?.({ config });

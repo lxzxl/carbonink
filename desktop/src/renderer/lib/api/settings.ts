@@ -1,4 +1,4 @@
-import type { ProviderConfig } from '@shared/types.js';
+import type { ProviderConfigV2 } from '@shared/types.js';
 import { invoke } from '../ipc.js';
 
 /**
@@ -10,18 +10,23 @@ import { invoke } from '../ipc.js';
  * sees plaintext keys — `getProvider()` returns `{ ...config, apiKeyMasked }`
  * where `apiKeyMasked` is e.g. `sk-...abcd` or `null` if no key is stored.
  *
+ * Wire shape (Item 3 Task 10b): all three provider channels speak
+ * `ProviderConfigV2` — a flat `{provider, model, baseUrl?}`. The legacy
+ * V1 discriminated union is gone from the wire; the main side derives
+ * `apiKeyKeyref` from `provider` deterministically.
+ *
  * `pingProvider`'s optional `apiKey` lets the Settings drawer's "Test
  * connection" button work against a freshly-typed key that hasn't been
- * saved yet. The handler temporarily seats it before calling `LLMClient.ping`
- * and does not persist (no `save-provider` is called).
+ * saved yet. The handler builds a one-shot AiClient layer with the
+ * overrideKey and does not persist (no `save-provider` is called).
  */
 export const settingsApi = {
   available: () => invoke('settings:available'),
   getProvider: () => invoke('settings:get-provider'),
-  saveProvider: (input: { config: ProviderConfig; apiKey: string }) =>
+  saveProvider: (input: { config: ProviderConfigV2; apiKey: string }) =>
     invoke('settings:save-provider', input),
   clearProvider: () => invoke('settings:clear-provider'),
-  pingProvider: (input: { config: ProviderConfig; apiKey?: string }) =>
+  pingProvider: (input: { config: ProviderConfigV2; apiKey?: string }) =>
     invoke('settings:ping-provider', input),
   getAmapKey: () => invoke('settings:get-amap-key'),
   setAmapKey: (input: { value: string }) => invoke('settings:set-amap-key', input),

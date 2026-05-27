@@ -65,10 +65,12 @@ export const FIXTURE_SITE = {
 // Provider config (used by /settings AIProviderSection, /documents banner)
 // ---------------------------------------------------------------------------
 
+// V2 wire shape (Item 3 Task 10b): no `apiKeyKeyref` — derived on the
+// main side from `provider`. `apiKeyMasked` is the side-channel mask
+// returned by `settings:get-provider`.
 export const FIXTURE_PROVIDER = {
   provider: 'openai',
   model: 'gpt-4o-mini',
-  apiKeyKeyref: 'llm.openai.apikey',
   apiKeyMasked: 'sk-...abcd',
 };
 

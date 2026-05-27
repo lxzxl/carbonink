@@ -1,7 +1,7 @@
 import { runMigrations } from '@main/db/migrate';
 import type { CredentialService } from '@main/services/credential-service';
 import { SettingsService } from '@main/services/settings-service';
-import type { ProviderConfig } from '@shared/types';
+import type { ProviderConfigV2 } from '@shared/types';
 import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -52,18 +52,14 @@ describe('SettingsService', () => {
     db.close();
   });
 
-  it('saveProviderConfig writes config to setting and key to credentials', () => {
-    // V1 input is accepted during the Task 10a transition and migrated to
-    // V2 before persistence. The stored row carries V2 — `apiKeyKeyref` is
-    // derived from `provider` (not stored), and V1-only fields are dropped.
-    const config: ProviderConfig = {
+  it('saveProviderConfig writes V2 config to setting and key to credentials', () => {
+    const config: ProviderConfigV2 = {
       provider: 'openai',
       model: 'gpt-4o-mini',
-      apiKeyKeyref: 'llm.openai.apikey',
     };
     service.saveProviderConfig(config, 'sk-test-12345');
 
-    // Credential set with the keyref derived from config
+    // Credential set with the keyref derived from config.provider
     expect(credentials.set).toHaveBeenCalledWith('llm.openai.apikey', 'sk-test-12345');
 
     // setting row contains the JSON-serialized V2 config (NOT the api key)
@@ -81,10 +77,9 @@ describe('SettingsService', () => {
   });
 
   it('saveProviderConfig upserts on repeat save (idempotent on key)', () => {
-    const config: ProviderConfig = {
+    const config: ProviderConfigV2 = {
       provider: 'openai',
       model: 'gpt-4o-mini',
-      apiKeyKeyref: 'llm.openai.apikey',
     };
     service.saveProviderConfig(config, 'sk-first');
     service.saveProviderConfig({ ...config, model: 'gpt-4o' }, 'sk-second');
@@ -101,11 +96,10 @@ describe('SettingsService', () => {
     expect(service.getProviderConfig()).toBeNull();
   });
 
-  it('getProviderConfig returns config plus masked key when present', () => {
-    const config: ProviderConfig = {
+  it('getProviderConfig returns V2 config plus masked key when present', () => {
+    const config: ProviderConfigV2 = {
       provider: 'openai',
       model: 'gpt-4o-mini',
-      apiKeyKeyref: 'llm.openai.apikey',
     };
     service.saveProviderConfig(config, 'sk-test-prod-987654');
     const result = service.getProviderConfig();
@@ -115,10 +109,9 @@ describe('SettingsService', () => {
   });
 
   it('getProviderConfig returns config with apiKeyMasked=null when the key blob is missing', () => {
-    const config: ProviderConfig = {
+    const config: ProviderConfigV2 = {
       provider: 'openai',
       model: 'gpt-4o-mini',
-      apiKeyKeyref: 'llm.openai.apikey',
     };
     // Insert the config row directly without going through save, simulating
     // a sqlite row that survived a credential-blob deletion (e.g. user wiped
@@ -134,12 +127,9 @@ describe('SettingsService', () => {
   });
 
   it('getProviderConfigWithKey returns config + plaintext key when both exist', () => {
-    // Backend internal method — returns V2. The V1 input is migrated to V2
-    // on save and round-tripped on read.
-    const config: ProviderConfig = {
+    const config: ProviderConfigV2 = {
       provider: 'anthropic',
       model: 'claude-sonnet-4-5',
-      apiKeyKeyref: 'llm.anthropic.apikey',
     };
     service.saveProviderConfig(config, 'sk-ant-secret');
 
@@ -151,10 +141,9 @@ describe('SettingsService', () => {
   });
 
   it('getProviderConfigWithKey returns null when key blob is missing', () => {
-    const config: ProviderConfig = {
+    const config: ProviderConfigV2 = {
       provider: 'openai',
       model: 'gpt-4o-mini',
-      apiKeyKeyref: 'llm.openai.apikey',
     };
     db.prepare(`INSERT INTO setting (key, value, updated_at) VALUES (?, ?, ?)`).run(
       'llm.provider',
@@ -166,10 +155,9 @@ describe('SettingsService', () => {
   });
 
   it('clearProviderConfig removes both the setting row and the credential', () => {
-    const config: ProviderConfig = {
+    const config: ProviderConfigV2 = {
       provider: 'openai',
       model: 'gpt-4o-mini',
-      apiKeyKeyref: 'llm.openai.apikey',
     };
     service.saveProviderConfig(config, 'sk-bye');
     service.clearProviderConfig();
@@ -202,23 +190,32 @@ describe('SettingsService', () => {
     expect(db.prepare('SELECT COUNT(*) as c FROM setting').get()).toMatchObject({ c: 0 });
   });
 
-  it('readConfig migrates azure V1 config to V2 and reconstructs V1 for the UI', () => {
-    // V1 azure carried (resourceName, apiVersion). The V1→V2 migration
-    // encodes the resourceName into baseUrl `https://<name>.openai.azure.com`;
-    // apiVersion is dropped (V2 doesn't carry it). The reverse reconstruction
-    // for the UI (`getProviderConfig`) recovers resourceName from the URL
-    // pattern and defaults apiVersion back to the V1 default.
-    const config: ProviderConfig = {
+  it('readConfig migrates legacy azure V1 records on disk to V2 on read', () => {
+    // Old installs from before Task 10a persisted V1 rows. The on-read
+    // migration in `readConfig` upgrades them transparently; this test
+    // exercises that path by writing a V1 row directly. The reverse —
+    // azure resourceName composed into baseUrl — matches the migration
+    // contract documented in `migrateProviderConfig`.
+    const v1Azure = {
       provider: 'azure',
       model: 'gpt-4o',
       apiKeyKeyref: 'llm.azure.apikey',
       resourceName: 'my-resource',
       apiVersion: '2024-08-01-preview',
     };
-    service.saveProviderConfig(config, 'az-key');
+    // Seed the legacy row + a matching credential so getMasked has
+    // something to return.
+    db.prepare(`INSERT INTO setting (key, value, updated_at) VALUES (?, ?, ?)`).run(
+      'llm.provider',
+      JSON.stringify(v1Azure),
+      '2026-05-11T00:00:00.000Z',
+    );
+    credentials.set('llm.azure.apikey', 'az-key');
 
     expect(service.getProviderConfig()).toEqual({
-      ...config,
+      provider: 'azure',
+      model: 'gpt-4o',
+      baseUrl: 'https://my-resource.openai.azure.com',
       apiKeyMasked: 'sk-...-key',
     });
     expect(service.getProviderConfigWithKey()).toEqual({

@@ -115,10 +115,12 @@ describe('SettingsPage', () => {
   });
 
   it('with a saved key, renders masked key and Replace button (no password input)', async () => {
+    // V2 wire shape: flat { provider, model, baseUrl? } + apiKeyMasked.
+    // No `apiKeyKeyref` — derived deterministically from provider on the
+    // main side.
     vi.mocked(settingsApi.getProvider).mockResolvedValue({
       provider: 'openai',
       model: 'gpt-4o-mini',
-      apiKeyKeyref: 'llm.openai.apikey',
       apiKeyMasked: 'sk-...abcd',
     });
 
@@ -139,7 +141,6 @@ describe('SettingsPage', () => {
     vi.mocked(settingsApi.getProvider).mockResolvedValue({
       provider: 'openai',
       model: 'gpt-4o-mini',
-      apiKeyKeyref: 'llm.openai.apikey',
       apiKeyMasked: 'sk-...abcd',
     });
 
@@ -173,11 +174,11 @@ describe('SettingsPage', () => {
     await waitFor(() => {
       expect(settingsApi.saveProvider).toHaveBeenCalledTimes(1);
     });
+    // V2 wire shape — no apiKeyKeyref on the renderer→main payload.
     expect(vi.mocked(settingsApi.saveProvider).mock.calls[0]?.[0]).toEqual({
       config: {
         provider: 'openai',
         model: 'gpt-4o-mini',
-        apiKeyKeyref: 'llm.openai.apikey',
       },
       apiKey: 'sk-test-key',
     });
