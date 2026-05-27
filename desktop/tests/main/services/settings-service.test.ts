@@ -4,7 +4,6 @@ import { SettingsService } from '@main/services/settings-service';
 import type { ProviderConfig } from '@shared/types';
 import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { z } from 'zod';
 
 /**
  * Fake CredentialService: an in-memory Map standing in for the keychain.
@@ -54,6 +53,9 @@ describe('SettingsService', () => {
   });
 
   it('saveProviderConfig writes config to setting and key to credentials', () => {
+    // V1 input is accepted during the Task 10a transition and migrated to
+    // V2 before persistence. The stored row carries V2 — `apiKeyKeyref` is
+    // derived from `provider` (not stored), and V1-only fields are dropped.
     const config: ProviderConfig = {
       provider: 'openai',
       model: 'gpt-4o-mini',
@@ -64,7 +66,7 @@ describe('SettingsService', () => {
     // Credential set with the keyref derived from config
     expect(credentials.set).toHaveBeenCalledWith('llm.openai.apikey', 'sk-test-12345');
 
-    // setting row contains the JSON-serialized config (NOT the api key)
+    // setting row contains the JSON-serialized V2 config (NOT the api key)
     const row = db.prepare('SELECT key, value, updated_at FROM setting').get() as {
       key: string;
       value: string;
@@ -73,7 +75,7 @@ describe('SettingsService', () => {
     expect(row.key).toBe('llm.provider');
     expect(row.updated_at).toBe('2026-05-11T00:00:00.000Z');
     const parsed = JSON.parse(row.value);
-    expect(parsed).toEqual(config);
+    expect(parsed).toEqual({ provider: 'openai', model: 'gpt-4o-mini' });
     // Defense in depth: the plaintext api key must never appear in sqlite.
     expect(row.value).not.toContain('sk-test-12345');
   });
@@ -132,6 +134,8 @@ describe('SettingsService', () => {
   });
 
   it('getProviderConfigWithKey returns config + plaintext key when both exist', () => {
+    // Backend internal method — returns V2. The V1 input is migrated to V2
+    // on save and round-tripped on read.
     const config: ProviderConfig = {
       provider: 'anthropic',
       model: 'claude-sonnet-4-5',
@@ -140,7 +144,10 @@ describe('SettingsService', () => {
     service.saveProviderConfig(config, 'sk-ant-secret');
 
     const result = service.getProviderConfigWithKey();
-    expect(result).toEqual({ config, apiKey: 'sk-ant-secret' });
+    expect(result).toEqual({
+      config: { provider: 'anthropic', model: 'claude-sonnet-4-5' },
+      apiKey: 'sk-ant-secret',
+    });
   });
 
   it('getProviderConfigWithKey returns null when key blob is missing', () => {
@@ -178,20 +185,29 @@ describe('SettingsService', () => {
     expect(credentials.delete).not.toHaveBeenCalled();
   });
 
-  it('saveProviderConfig rejects an invalid config shape (ZodError)', () => {
+  it('saveProviderConfig rejects an invalid config shape', () => {
+    // V2 accepts any non-empty provider string, so the old V1-only error
+    // ("unknown-provider" not in the discriminated union) no longer
+    // surfaces. Use a structurally broken input (missing required `model`)
+    // that fails both V1 and V2 schemas.
     expect(() =>
       service.saveProviderConfig(
         // biome-ignore lint/suspicious/noExplicitAny: testing invalid runtime input
-        { provider: 'unknown-provider', model: 'x', apiKeyKeyref: 'llm.openai.apikey' } as any,
+        { provider: 'openai' } as any,
         'sk-anything',
       ),
-    ).toThrow(z.ZodError);
+    ).toThrow();
     // Defense: nothing should land in either store.
     expect(credentials.set).not.toHaveBeenCalled();
     expect(db.prepare('SELECT COUNT(*) as c FROM setting').get()).toMatchObject({ c: 0 });
   });
 
-  it('readConfig parses azure config with all required discriminated-union fields', () => {
+  it('readConfig migrates azure V1 config to V2 and reconstructs V1 for the UI', () => {
+    // V1 azure carried (resourceName, apiVersion). The V1→V2 migration
+    // encodes the resourceName into baseUrl `https://<name>.openai.azure.com`;
+    // apiVersion is dropped (V2 doesn't carry it). The reverse reconstruction
+    // for the UI (`getProviderConfig`) recovers resourceName from the URL
+    // pattern and defaults apiVersion back to the V1 default.
     const config: ProviderConfig = {
       provider: 'azure',
       model: 'gpt-4o',
@@ -205,6 +221,13 @@ describe('SettingsService', () => {
       ...config,
       apiKeyMasked: 'sk-...-key',
     });
-    expect(service.getProviderConfigWithKey()).toEqual({ config, apiKey: 'az-key' });
+    expect(service.getProviderConfigWithKey()).toEqual({
+      config: {
+        provider: 'azure',
+        model: 'gpt-4o',
+        baseUrl: 'https://my-resource.openai.azure.com',
+      },
+      apiKey: 'az-key',
+    });
   });
 });

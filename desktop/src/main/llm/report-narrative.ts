@@ -1,7 +1,7 @@
 import { runAiObject } from '@main/llm/run-ai.js';
 import type { CredentialService } from '@main/services/credential-service.js';
 import type { InventoryReportData } from '@main/services/report-data-service';
-import type { ProviderConfig } from '@shared/types.js';
+import type { ProviderConfigV2 } from '@shared/types.js';
 import { z } from 'zod';
 
 export const ReportNarrativeSchema = z.object({
@@ -103,7 +103,7 @@ function buildUserMessage(data: InventoryReportData): string {
  */
 export async function generateReportNarrative(args: {
   data: InventoryReportData;
-  config: ProviderConfig;
+  config: ProviderConfigV2;
   credentials: CredentialService;
   onProgress: (ev: ReportNarrativeProgressEvent) => void;
   abortSignal: AbortSignal;

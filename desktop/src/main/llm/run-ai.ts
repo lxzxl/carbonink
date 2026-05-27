@@ -1,5 +1,5 @@
 import type { CredentialService } from '@main/services/credential-service.js';
-import type { ProviderConfig } from '@shared/types.js';
+import type { ProviderConfigV2 } from '@shared/types.js';
 import { Cause, Effect, Exit, Option } from 'effect';
 import type { ZodSchema } from 'zod';
 import { AiClientTag, buildAiClientLayer } from './ai-client.js';
@@ -26,7 +26,7 @@ import type { AiErr } from './errors.js';
  * matches the contract the previous `LLMClient` methods exposed.
  */
 export async function runAiObject<T>(
-  config: ProviderConfig,
+  config: ProviderConfigV2,
   credentials: CredentialService,
   args: {
     schema: ZodSchema<T>;

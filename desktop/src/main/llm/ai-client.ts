@@ -7,7 +7,7 @@ import {
   type Tool,
 } from '@earendil-works/pi-ai';
 import type { CredentialService } from '@main/services/credential-service.js';
-import type { ProviderConfig } from '@shared/types.js';
+import { apiKeyKeyrefForProvider, type ProviderConfigV2 } from '@shared/types.js';
 import { Context, Effect, Layer, Schedule } from 'effect';
 import { type ZodSchema, z } from 'zod';
 import {
@@ -92,8 +92,12 @@ export interface AiClient {
 export class AiClientTag extends Context.Tag('llm/AiClient')<AiClientTag, AiClient>() {}
 
 export interface BuildAiClientDeps {
-  /** Selected provider + model. `apiKeyKeyref` points at the keychain entry. */
-  config: ProviderConfig;
+  /**
+   * Selected provider + model. V2's flat shape — the keychain keyref is
+   * derived from `provider` via {@link apiKeyKeyrefForProvider} (stable
+   * across providers), rather than carried as a literal field.
+   */
+  config: ProviderConfigV2;
   /** Credential store; consulted for the API key unless `overrideKey` is set. */
   credentials: CredentialService;
   /**
@@ -140,16 +144,15 @@ export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClien
     AiClientTag,
     Effect.sync(() => {
       const { config, credentials, overrideKey } = deps;
-      const apiKey = overrideKey ?? credentials.get(config.apiKeyKeyref);
+      const apiKey = overrideKey ?? credentials.get(apiKeyKeyrefForProvider(config.provider));
 
       // The pi-ai model object: either supplied by tests, or looked up from
       // pi-ai's generated MODELS registry. The cast is unavoidable —
-      // `ProviderConfig.provider` is a free-form string (the legacy shape
-      // narrows it via discriminated union, but pi-ai's `getModel` is keyed
-      // off `KnownProvider`). If the lookup misses, every method fails with
-      // `AiProviderError`; we don't pre-validate at Layer construction so a
-      // build with a stale config still loads and surfaces a recognizable
-      // error at call time.
+      // `ProviderConfigV2.provider` is a free-form string (pi-ai's `getModel`
+      // is keyed off `KnownProvider`). If the lookup misses, every method
+      // fails with `AiProviderError`; we don't pre-validate at Layer
+      // construction so a build with a stale config still loads and surfaces
+      // a recognizable error at call time.
       const resolvedModel: Model<Api> | undefined =
         deps.model ??
         (getModel as unknown as (p: string, m: string) => Model<Api> | undefined)(

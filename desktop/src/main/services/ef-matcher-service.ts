@@ -2,7 +2,7 @@ import { runAiObject } from '@main/llm/run-ai.js';
 import type {
   EmissionFactor,
   MatcherResult,
-  ProviderConfig,
+  ProviderConfigV2,
   RecommendQuery,
 } from '@shared/types.js';
 import type { Database } from 'better-sqlite3';
@@ -114,7 +114,7 @@ export class EfMatcherService {
        * call — provider config can change mid-session via Settings.
        */
       credentials: CredentialService;
-      config: ProviderConfig;
+      config: ProviderConfigV2;
     },
   ) {}
 

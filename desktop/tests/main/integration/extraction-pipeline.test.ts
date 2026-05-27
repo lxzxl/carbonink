@@ -169,9 +169,10 @@ describe('extraction pipeline integration', () => {
 
     // Sanity: settings round-trip — getProviderConfigWithKey resolves the
     // stored config + the plaintext key the test set via saveProviderConfig.
+    // The V1 input is migrated to V2 on save; backend round-trip is V2.
     const resolved = h.settingsService.getProviderConfigWithKey();
     expect(resolved).toEqual({
-      config: PROVIDER_CONFIG,
+      config: { provider: 'openai', model: 'gpt-4o-mini' },
       apiKey: 'sk-test-integration-9999',
     });
 

@@ -1,5 +1,6 @@
 import { AiClientTag, buildAiClientLayer } from '@main/llm/ai-client.js';
-import { providerConfig } from '@shared/types.js';
+import { migrateProviderConfig } from '@main/services/settings-service.js';
+import { type ProviderConfigV2, providerConfig, providerConfigV2 } from '@shared/types.js';
 import { Effect } from 'effect';
 import { z } from 'zod';
 import type { IpcContext } from '../context.js';
@@ -9,20 +10,40 @@ import type { IpcTypeMap } from '../types.js';
  * Input schemas for the write/test channels. We zod-parse at the IPC boundary
  * (defense in depth: even if `IpcTypeMap` is correct, runtime values from the
  * preload could be hostile after a renderer compromise).
+ *
+ * Item 3 Task 10a: accept BOTH V1 (legacy discriminated-union) and V2 (flat)
+ * shapes during the cutover. The renderer still emits V1 today; T10b switches
+ * it to V2 and the V1 branch can be dropped (Task 11). `coerceConfigToV2`
+ * normalizes either shape into V2 so the rest of the handler is monomorphic.
  */
 const saveProviderInput = z.object({
-  config: providerConfig,
+  config: z.union([providerConfig, providerConfigV2]),
   apiKey: z.string().min(1),
 });
 
 const pingProviderInput = z.object({
-  config: providerConfig,
+  config: z.union([providerConfig, providerConfigV2]),
   apiKey: z.string().min(1).optional(),
 });
 
 const setAmapKeyInput = z.object({
   value: z.string(),
 });
+
+/**
+ * Normalize either a V1 (apiKeyKeyref + per-provider fields) or already-V2
+ * config to V2. Routes through `migrateProviderConfig` which detects V1
+ * markers (`apiKeyKeyref`, azure `resourceName`, openai-compat `name`)
+ * before falling through to the V2 fast path — going V2-first would silently
+ * drop V1 azure's `resourceName` because V2's `baseUrl` is optional.
+ */
+function coerceConfigToV2(input: unknown): ProviderConfigV2 {
+  const migrated = migrateProviderConfig(input);
+  if (migrated === null) {
+    throw new Error('Provider config is neither V1 nor V2 shape after parse.');
+  }
+  return migrated;
+}
 
 /**
  * Phase 1b settings handlers — provider config CRUD + the "Test connection"
@@ -46,17 +67,18 @@ export function settingsHandlers(ctx: IpcContext): {
     'settings:get-provider': () => ctx.settingsService.getProviderConfig(),
     'settings:save-provider': (input) => {
       const parsed = saveProviderInput.parse(input);
-      ctx.settingsService.saveProviderConfig(parsed.config, parsed.apiKey);
+      ctx.settingsService.saveProviderConfig(coerceConfigToV2(parsed.config), parsed.apiKey);
     },
     'settings:clear-provider': () => ctx.settingsService.clearProviderConfig(),
     'settings:ping-provider': async (input) => {
       const parsed = pingProviderInput.parse(input);
+      const v2Config = coerceConfigToV2(parsed.config);
       // Build a one-shot AiClient layer for this ping. `overrideKey` is the
       // typed-but-not-saved key flow — the Settings UI passes a fresh key
       // through here without committing it to the credential store. When
       // omitted, the layer falls back to `credentials.get(apiKeyKeyref)`.
       const layer = buildAiClientLayer({
-        config: parsed.config,
+        config: v2Config,
         credentials: ctx.credentialService,
         ...(parsed.apiKey !== undefined ? { overrideKey: parsed.apiKey } : {}),
       });

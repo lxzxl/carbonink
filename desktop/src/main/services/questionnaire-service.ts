@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { runAiObject } from '@main/llm/run-ai.js';
-import type { Customer, Document, ProviderConfig, Question, Questionnaire } from '@shared/types';
+import type { Customer, Document, ProviderConfigV2, Question, Questionnaire } from '@shared/types';
 import type { Database } from 'better-sqlite3';
 import { z } from 'zod';
 import type { CredentialService } from './credential-service.js';
@@ -133,7 +133,7 @@ export class QuestionnaireService {
        * call — provider config can change mid-session via Settings.
        */
       credentials: CredentialService;
-      config: ProviderConfig;
+      config: ProviderConfigV2;
       excelParse: (bytes: Buffer) => Promise<
         Array<{
           sheet: string;

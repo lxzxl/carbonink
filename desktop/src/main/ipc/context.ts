@@ -36,7 +36,7 @@ import { buildRoutingLayer, type RoutingR } from '@main/services/routing/tags.js
 import { SettingsService } from '@main/services/settings-service.js';
 import { UndoManager } from '@main/services/undo-manager.js';
 import { UnitConversionService } from '@main/services/unit-conversion-service.js';
-import type { ProviderConfig } from '@shared/types.js';
+import type { ProviderConfigV2 } from '@shared/types.js';
 import { Layer } from 'effect';
 import { app } from 'electron';
 import type { ProgressEmitter } from './progress.js';
@@ -82,7 +82,7 @@ export interface IpcContext {
   questionnaireService: QuestionnaireService;
   // Phase 2.2b → Step 2 — answer generation via Effect Layer.
   answerLayer: Layer.Layer<AnswerR>;
-  providerConfig: ProviderConfig | null;
+  providerConfig: ProviderConfigV2 | null;
   // Routing API — distance lookup via AMap or haversine.
   routingLayer: Layer.Layer<RoutingR>;
   // Phase 3 — report generation pipeline.

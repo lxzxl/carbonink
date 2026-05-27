@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { ActivityDataService } from '@main/services/activity-data-service';
 import type { OrganizationService } from '@main/services/organization-service';
-import type { Answer, ProviderConfig, Question, Questionnaire } from '@shared/types';
+import type { Answer, ProviderConfigV2, Question, Questionnaire } from '@shared/types';
 import type { Database } from 'better-sqlite3';
 import { Effect, type Either } from 'effect';
 import { z } from 'zod';
@@ -104,11 +104,11 @@ ${inventory.totals ? `总排放：${JSON.stringify(inventory.totals)}` : '无总
 export function generate(
   questionId: string,
   // `config` is kept on the signature for API compatibility (callers pass the
-  // active ProviderConfig per request) but the LLM is no longer dispatched
+  // active ProviderConfigV2 per request) but the LLM is no longer dispatched
   // from inside this function — the AiClient layer carries the provider
-  // binding. Once Task 9 flips IPC to V2 config, this parameter can be
-  // dropped entirely.
-  _config: ProviderConfig,
+  // binding. Once the renderer-side cutover (Task 10b) lands, this parameter
+  // can be dropped entirely.
+  _config: ProviderConfigV2,
 ): Effect.Effect<Answer, GenErr, AnswerR> {
   return Effect.gen(function* () {
     const db = yield* DbTag;
@@ -170,7 +170,7 @@ export function generate(
 
 export function generateAllUnanswered(
   questionnaireId: string,
-  config: ProviderConfig,
+  config: ProviderConfigV2,
 ): Effect.Effect<readonly GenerateResult[], never, AnswerR> {
   return Effect.gen(function* () {
     const db = yield* DbTag;

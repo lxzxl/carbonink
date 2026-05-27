@@ -27,6 +27,7 @@ import type {
   OrganizationCreateInput,
   PresetSource,
   ProviderConfig,
+  ProviderConfigV2,
   Question,
   Questionnaire,
   RecommendQuery,
@@ -179,12 +180,23 @@ export type IpcTypeMap = {
   // `settings:clear-provider` removes both halves.
   // `settings:ping-provider` is the "Test connection" path; optional `apiKey`
   // lets the UI verify a key the user has typed but not yet saved.
+  //
+  // Item 3 Task 10a: backend storage + AiClient speak V2. The renderer-facing
+  // channels keep the V1 shape during the transition so the UI doesn't have to
+  // change in this PR (T10b switches it to V2). `save-provider` and
+  // `ping-provider` accept either V1 or V2 — the handler normalizes via
+  // `migrateProviderConfig` before persistence. `get-provider` returns V1
+  // reconstructed from V2 storage (defaults on lossy fields, see
+  // `v2ToV1` in settings-service).
   'settings:available': () => boolean;
   'settings:get-provider': () => (ProviderConfig & { apiKeyMasked: string | null }) | null;
-  'settings:save-provider': (input: { config: ProviderConfig; apiKey: string }) => void;
+  'settings:save-provider': (input: {
+    config: ProviderConfig | ProviderConfigV2;
+    apiKey: string;
+  }) => void;
   'settings:clear-provider': () => void;
   'settings:ping-provider': (input: {
-    config: ProviderConfig;
+    config: ProviderConfig | ProviderConfigV2;
     apiKey?: string;
   }) => Promise<{ ok: true } | { ok: false; error: string }>;
   'settings:get-amap-key': () => string | null;

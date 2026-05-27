@@ -110,10 +110,15 @@ describe('settings IPC handlers', () => {
   });
 
   it('settings:save-provider rejects invalid input (ZodError)', () => {
+    // V2 accepts any non-empty provider string (pi-ai has 32+ providers,
+    // including Kimi/Qwen/Zhipu that aren't in the V1 union), so a
+    // "not-a-real-provider" string is no longer a parse error at this
+    // layer — pi-ai's getModel surfaces the error at runtime instead.
+    // Use empty-string fields, which fail both V1 and V2 schemas' min(1).
     expect(() =>
       handlers['settings:save-provider']?.({
         // biome-ignore lint/suspicious/noExplicitAny: testing invalid runtime input
-        config: { provider: 'not-a-real-provider', model: 'x' } as any,
+        config: { provider: '', model: '' } as any,
         apiKey: 'sk',
       }),
     ).toThrow(z.ZodError);
@@ -154,8 +159,10 @@ describe('settings IPC handlers', () => {
     expect(result).toEqual({ ok: true });
     expect(pingSpy).toHaveBeenCalledTimes(1);
     // No `overrideKey` means the layer must read the key from `credentials`.
+    // Backend speaks V2 — the V1 config above is migrated to V2 inside the
+    // handler before reaching buildAiClientLayer.
     const deps = buildLayerSpy.mock.calls[0]?.[0];
-    expect(deps?.config).toEqual(config);
+    expect(deps?.config).toEqual({ provider: 'openai', model: 'gpt-4o-mini' });
     expect(deps?.overrideKey).toBeUndefined();
     expect(deps?.credentials).toBe(credentials);
   });
