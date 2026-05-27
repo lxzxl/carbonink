@@ -1,4 +1,4 @@
-import type { InboundTemplate, InboundTemplateQuestion } from '@shared/types';
+import type { ImportPreviewWarning, InboundTemplate, InboundTemplateQuestion } from '@shared/types';
 import ExcelJS from 'exceljs';
 
 /**
@@ -301,5 +301,363 @@ function sheetLabel(sheetName: string): string {
       return 'Tier 2：分配排放 / Allocated Company Emissions';
     default:
       return sheetName;
+  }
+}
+
+// ===========================================================================
+// PARSER (T5)
+// ===========================================================================
+
+/**
+ * Result of parsing a single template question's filled cell. The service
+ * layer (T7) decorates these with `proposed_activity` + `question_id` to
+ * build the full `ImportPreview`; this layer stops at "what does the cell
+ * say + did we manage to coerce it".
+ */
+export interface ParsedXlsxAnswer {
+  /** Template-stable position, e.g. `'tier2.1'`. */
+  position: string;
+  /** Verbatim cell value as a string. Empty string if cell was blank. */
+  raw_value: string;
+  /**
+   * Type-coerced value. `number` for numerical questions whose cell parsed
+   * cleanly; `string` for categorical / narrative; `null` for blank cells
+   * or numerical cells we couldn't coerce (the corresponding warning will
+   * be present in `result.warnings`).
+   */
+  parsed_value: number | string | null;
+  /** True when the cell was empty or contained only whitespace. */
+  is_blank: boolean;
+}
+
+export interface ParseInboundXlsxResult {
+  answers: ParsedXlsxAnswer[];
+  warnings: ImportPreviewWarning[];
+}
+
+export interface ParseInboundXlsxArgs {
+  fileBytes: Buffer | ArrayBuffer;
+  template: InboundTemplate;
+  /**
+   * What questionnaire we expect this file to belong to. The sentinel
+   * sheet's `questionnaire_id` row must match exactly; mismatch throws
+   * {@link InboundQuestionnaireMismatch} so the user can't accidentally
+   * import a different supplier's reply.
+   */
+  expectedQuestionnaireId: string;
+  /**
+   * What reporting period we asked about. Mismatch against the sentinel
+   * (the hidden value we wrote at render time) throws
+   * {@link InboundPeriodMismatch} — the file was tampered or it's from a
+   * different period's questionnaire.
+   */
+  expectedPeriodYear: number;
+}
+
+/**
+ * Parse a supplier-filled xlsx that was previously emitted by
+ * {@link renderInboundXlsx}. Hard failures (template fingerprint mismatch,
+ * missing sentinels, wrong questionnaire id) throw typed errors; soft
+ * issues (unparseable number, unrecognized unit suffix) appear in
+ * `result.warnings` so the review UI can render them next to the
+ * affected row.
+ *
+ * The parser intentionally does NOT touch the DB. It just transforms
+ * bytes → structured answers. T7 wraps it with the answer-row UPSERTs.
+ */
+export async function parseInboundXlsx(
+  args: ParseInboundXlsxArgs,
+): Promise<ParseInboundXlsxResult> {
+  const wb = new ExcelJS.Workbook();
+  // Same boundary cast as the render side — ExcelJS / @types/node Buffer
+  // generic mismatch; runtime accepts both Buffer and ArrayBuffer.
+  // biome-ignore lint/suspicious/noExplicitAny: see render side for rationale.
+  await wb.xlsx.load(args.fileBytes as any);
+
+  // ----- Hard validation: sentinel sheet must be present + correct -----
+  const sentinel = wb.getWorksheet(SENTINEL_SHEET_NAME);
+  if (!sentinel) {
+    throw new InboundTemplateMissingSentinels();
+  }
+
+  const seen = {
+    templateKind: readSentinelValue(sentinel, 1),
+    templateVersion: readSentinelValue(sentinel, 2),
+    questionnaireId: readSentinelValue(sentinel, 3),
+    expectedPeriod: readSentinelValue(sentinel, 4),
+  };
+
+  if (
+    seen.templateKind !== args.template.template_kind ||
+    seen.templateVersion !== args.template.version
+  ) {
+    throw new InboundTemplateMismatch({
+      expectedKind: args.template.template_kind,
+      expectedVersion: args.template.version,
+      seenKind: String(seen.templateKind ?? ''),
+      seenVersion: String(seen.templateVersion ?? ''),
+    });
+  }
+
+  if (seen.questionnaireId !== args.expectedQuestionnaireId) {
+    throw new InboundQuestionnaireMismatch({
+      expected: args.expectedQuestionnaireId,
+      seen: String(seen.questionnaireId ?? ''),
+    });
+  }
+
+  // The sentinel's expectedPeriod is a number we wrote; it must equal what
+  // we're now passing as expected_period. Mismatch = the file was
+  // tampered or the user picked the wrong questionnaire to import against.
+  const seenPeriod = Number(seen.expectedPeriod);
+  if (!Number.isFinite(seenPeriod) || seenPeriod !== args.expectedPeriodYear) {
+    throw new InboundPeriodMismatch({
+      expected: args.expectedPeriodYear,
+      seen: seen.expectedPeriod == null ? null : String(seen.expectedPeriod),
+    });
+  }
+
+  // ----- Soft parse: walk every template question + read its cell --------
+  const answers: ParsedXlsxAnswer[] = [];
+  const warnings: ImportPreviewWarning[] = [];
+
+  for (const q of args.template.questions) {
+    const [sheetName, address] = q.cell_ref.split('!');
+    if (!sheetName || !address) continue;
+    const sheet = wb.getWorksheet(sheetName);
+    if (!sheet) {
+      // The supplier deleted a whole sheet. We track the position as
+      // blank (so the review still shows it) but don't crash.
+      answers.push({
+        position: q.position,
+        raw_value: '',
+        parsed_value: null,
+        is_blank: true,
+      });
+      continue;
+    }
+    const cell = sheet.getCell(address);
+    const { raw, parsed, isBlank, warning } = coerceCellByKind(cell.value, q);
+    answers.push({
+      position: q.position,
+      raw_value: raw,
+      parsed_value: parsed,
+      is_blank: isBlank,
+    });
+    if (warning) {
+      warnings.push(warning);
+    }
+  }
+
+  // Blank-template warning: if no Tier 1 or Tier 2 numerical answer is
+  // filled, the supplier returned a useless workbook. Worth flagging at
+  // the workbook level so the review UI can lead with it.
+  const anyTierNumerical = answers.some((a) => {
+    const tq = args.template.questions.find((q) => q.position === a.position);
+    return tq && tq.tier !== null && tq.kind === 'numerical' && !a.is_blank;
+  });
+  if (!anyTierNumerical) {
+    warnings.push({
+      question_id: null,
+      kind: 'blank_template',
+      detail:
+        'No Tier 1 or Tier 2 numerical answer was filled — supplier returned no actionable data.',
+    });
+  }
+
+  return { answers, warnings };
+}
+
+// ---------------------------------------------------------------------------
+// Parser helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Read column B of a given row from the sentinel sheet. ExcelJS exposes
+ * the cell value as `string | number | Date | …` — we coerce to a JS
+ * primitive (string|number|null) for the comparators.
+ */
+function readSentinelValue(sheet: ExcelJS.Worksheet, row: number): string | number | null {
+  const v = sheet.getCell(`B${row}`).value;
+  if (v == null) return null;
+  if (typeof v === 'string' || typeof v === 'number') return v;
+  // Anything else (Date, formula, rich text) we coerce via String() —
+  // it's enough for an equality test against the values we wrote, which
+  // are always plain strings or numbers.
+  return String(v);
+}
+
+/**
+ * Coerce a raw cell value by the template question's `kind`. Returns the
+ * triple needed by `ParsedXlsxAnswer` plus an optional warning when the
+ * coercion was lossy.
+ *
+ * For numerical:
+ *   - empty / null → blank, parsed_value=null, no warning
+ *   - number cell  → parsed_value=number, no warning
+ *   - string cell  → try to strip trailing unit text (e.g. "0.5 kgCO2e/kg"
+ *                    → 0.5) and parseFloat. Success → number with possible
+ *                    unit_unrecognized warning if the suffix differs from
+ *                    expected_unit. Failure → null + numerical_unparseable
+ *                    warning.
+ *
+ * For categorical / narrative:
+ *   - empty → blank, null
+ *   - otherwise → trimmed string, no warning
+ */
+function coerceCellByKind(
+  rawValue: ExcelJS.CellValue,
+  q: InboundTemplateQuestion,
+): {
+  raw: string;
+  parsed: number | string | null;
+  isBlank: boolean;
+  warning: ImportPreviewWarning | null;
+} {
+  const rawStr = cellToString(rawValue);
+  const trimmed = rawStr.trim();
+  const isBlank = trimmed === '';
+
+  if (q.kind !== 'numerical') {
+    return {
+      raw: rawStr,
+      parsed: isBlank ? null : trimmed,
+      isBlank,
+      warning: null,
+    };
+  }
+
+  // Numerical from here.
+  if (isBlank) {
+    return { raw: rawStr, parsed: null, isBlank: true, warning: null };
+  }
+
+  if (typeof rawValue === 'number' && Number.isFinite(rawValue)) {
+    return { raw: rawStr, parsed: rawValue, isBlank: false, warning: null };
+  }
+
+  // String path: try to extract a leading number, optionally followed by
+  // a unit suffix. We accept `1234`, `1234.56`, `1,234.56`, `1234 kgCO2e`,
+  // `1234kgCO2e/kg`. The leading number is what we keep.
+  const m = trimmed.match(/^[+-]?[\d,]+(?:\.\d+)?/);
+  if (!m) {
+    return {
+      raw: rawStr,
+      parsed: null,
+      isBlank: false,
+      warning: {
+        // question_id is filled in by the service layer once it joins
+        // ParsedXlsxAnswer → question row. The parser doesn't know.
+        question_id: null,
+        kind: 'numerical_unparseable',
+        detail: `Could not parse a numerical value from "${trimmed}" for position ${q.position}.`,
+      },
+    };
+  }
+  const numericStr = m[0].replace(/,/g, '');
+  const numericVal = Number.parseFloat(numericStr);
+  if (!Number.isFinite(numericVal)) {
+    return {
+      raw: rawStr,
+      parsed: null,
+      isBlank: false,
+      warning: {
+        question_id: null,
+        kind: 'numerical_unparseable',
+        detail: `Could not parse "${trimmed}" as a finite number for position ${q.position}.`,
+      },
+    };
+  }
+
+  // Check for an unrecognized unit suffix. If the supplier typed
+  // "0.5 kgCO2/kg" instead of our expected "kgCO2e/kg" we shouldn't
+  // silently accept it as the same thing.
+  const suffix = trimmed.slice(m[0].length).trim();
+  let warning: ImportPreviewWarning | null = null;
+  if (suffix !== '' && q.expected_unit !== null) {
+    const normalized = suffix.toLowerCase().replace(/\s+/g, '');
+    const expectedNorm = q.expected_unit.toLowerCase().replace(/\s+/g, '');
+    if (!normalized.includes(expectedNorm) && !expectedNorm.includes(normalized)) {
+      warning = {
+        question_id: null,
+        kind: 'unit_unrecognized',
+        detail: `Cell unit "${suffix}" does not match expected "${q.expected_unit}" for position ${q.position}.`,
+      };
+    }
+  }
+
+  return { raw: rawStr, parsed: numericVal, isBlank: false, warning };
+}
+
+/**
+ * Lossy-but-good-enough conversion of an ExcelJS cell value to a display
+ * string. Rich-text cells get their plain-text concatenation; formula
+ * cells get their `result`; everything else uses `String()`.
+ */
+function cellToString(v: ExcelJS.CellValue): string {
+  if (v == null) return '';
+  if (typeof v === 'string') return v;
+  if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+  if (v instanceof Date) return v.toISOString();
+  if (typeof v === 'object') {
+    // Rich text: { richText: [{ text }, ...] }
+    const rt = (v as { richText?: Array<{ text: string }> }).richText;
+    if (Array.isArray(rt)) return rt.map((r) => r.text).join('');
+    // Formula: { result }
+    const result = (v as { result?: unknown }).result;
+    if (result != null) return cellToString(result as ExcelJS.CellValue);
+    // Hyperlink: { text, hyperlink }
+    const text = (v as { text?: string }).text;
+    if (typeof text === 'string') return text;
+  }
+  return String(v);
+}
+
+// ---------------------------------------------------------------------------
+// Tagged errors for the parser hard-failure modes. Plain Error subclasses
+// match the inbound-questionnaire-service style — service layer can
+// instanceof-check + map to IPC-friendly messages in T9.
+// ---------------------------------------------------------------------------
+
+export class InboundTemplateMissingSentinels extends Error {
+  readonly _tag = 'InboundTemplateMissingSentinels' as const;
+  constructor() {
+    super('Imported workbook has no __sentinels sheet — not a CarbonInk template.');
+  }
+}
+
+export class InboundTemplateMismatch extends Error {
+  readonly _tag = 'InboundTemplateMismatch' as const;
+  constructor(
+    public readonly details: {
+      expectedKind: string;
+      expectedVersion: string;
+      seenKind: string;
+      seenVersion: string;
+    },
+  ) {
+    super(
+      `Template fingerprint mismatch: expected ${details.expectedKind}@${details.expectedVersion}, ` +
+        `saw ${details.seenKind}@${details.seenVersion}.`,
+    );
+  }
+}
+
+export class InboundQuestionnaireMismatch extends Error {
+  readonly _tag = 'InboundQuestionnaireMismatch' as const;
+  constructor(public readonly details: { expected: string; seen: string }) {
+    super(
+      `Questionnaire ID mismatch: expected ${details.expected}, saw ${details.seen}. ` +
+        'This xlsx belongs to a different questionnaire.',
+    );
+  }
+}
+
+export class InboundPeriodMismatch extends Error {
+  readonly _tag = 'InboundPeriodMismatch' as const;
+  constructor(public readonly details: { expected: number; seen: string | null }) {
+    super(
+      `Reporting period mismatch: expected ${details.expected}, saw ${details.seen ?? '<blank>'}.`,
+    );
   }
 }
