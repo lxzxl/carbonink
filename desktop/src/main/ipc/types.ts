@@ -266,6 +266,35 @@ export type IpcTypeMap = {
     language: 'zh-CN' | 'en';
   }) => Promise<{ canceled: true } | { ok: true; path: string } | { ok: false; error: string }>;
 
+  // Inbound questionnaire (Phase 2.3 — Scope 3 Cat 1 supplier disclosure)
+  'questionnaire:inbound-create-draft': (input: {
+    supplier_id: string;
+    reporting_period_id: string;
+    template_kind: import('@shared/types').InboundTemplateKind;
+    included_question_positions: string[];
+  }) => Promise<{ questionnaire_id: string; question_count: number }>;
+  'questionnaire:inbound-export-xlsx': (input: {
+    questionnaire_id: string;
+  }) => Promise<{ canceled: true } | { canceled: false; path: string; bytes_written: number }>;
+  'questionnaire:inbound-import-preview': (input: {
+    questionnaire_id: string;
+  }) => Promise<
+    | { canceled: true }
+    | { canceled: false; preview: import('@shared/types').ImportPreview }
+    | { canceled: false; error: { _tag: string; message: string } }
+  >;
+  'questionnaire:inbound-ingest': (input: {
+    questionnaire_id: string;
+    accepted_question_ids: string[];
+    tier1_purchased_quantity?: number;
+  }) => Promise<import('@shared/types').IngestResult>;
+  // Supplier-side helpers (counterparty rows with role='supplier')
+  'supplier:list': () => Promise<import('@shared/types').Supplier[]>;
+  'supplier:create': (input: {
+    name: string;
+    notes?: string;
+  }) => Promise<import('@shared/types').Supplier>;
+
   // mcp-integration domain (Settings → Integrations sub-page)
   'mcp:detect': () => Promise<McpDetectResult>;
   'mcp:configure': (input: {

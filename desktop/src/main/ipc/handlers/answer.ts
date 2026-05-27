@@ -41,6 +41,19 @@ export function answerHandlers(ctx: IpcContext): {
   return {
     'answer:generate': async (input) => {
       const parsed = generateInput.parse(input);
+      // Guard against inbound questionnaires — their answers come from
+      // the supplier, not from our LLM-driven agent loop. The wizard +
+      // detail page should never wire this button up for inbound rows,
+      // but defense in depth: refuse at the IPC boundary too.
+      // Defensive optional-chain: existing test fixtures mock
+      // questionnaireService with a narrow shape; production always has
+      // the method (added in T9 of inbound questionnaire plan).
+      const direction = ctx.questionnaireService.getQuestionDirection?.(parsed.question_id);
+      if (direction === 'inbound') {
+        throw new Error(
+          '该题来自 inbound 供应商问卷，无法自动生成答案。请通过"导入回填表"流程获取答案。',
+        );
+      }
       const config = ctx.providerConfig;
       if (!config) {
         throw new Error('AI provider not configured. Open Settings to set up.');

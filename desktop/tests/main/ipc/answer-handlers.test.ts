@@ -50,6 +50,13 @@ function makeCtx() {
   return {
     answerLayer: Layer.empty,
     providerConfig: { provider: 'openai' as const, model: 'gpt-4o', apiKey: 'test-key' },
+    // Minimum stub of questionnaireService — the inbound-guard in
+    // answer:generate calls `getQuestionDirection`. Returning null
+    // (= "not an inbound question") makes the existing outbound tests
+    // pass through unchanged.
+    questionnaireService: {
+      getQuestionDirection: () => null,
+    },
   } as never;
 }
 
@@ -83,7 +90,11 @@ describe('answer:* handlers', () => {
   });
 
   it('answer:generate throws when providerConfig is null', async () => {
-    const ctx = { answerLayer: Layer.empty, providerConfig: null } as never;
+    const ctx = {
+      answerLayer: Layer.empty,
+      providerConfig: null,
+      questionnaireService: { getQuestionDirection: () => null },
+    } as never;
     const handlers = answerHandlers(ctx);
     await expect(handlers['answer:generate']!({ question_id: 'q-1' })).rejects.toThrow(
       'AI provider not configured',

@@ -328,6 +328,24 @@ export class QuestionnaireService {
    * Returns `null` when the questionnaire id doesn't exist (the tool surfaces
    * this as an error result the model can react to).
    */
+  /**
+   * Quick lookup: is the questionnaire owning this question an inbound
+   * (supplier-disclosure) row or outbound (customer-facing) row? Returns
+   * null when the question doesn't exist. Used by the answer:generate
+   * IPC handler to refuse auto-generation on inbound rows — those answers
+   * come from the supplier via the import-filled flow, not from our LLM.
+   */
+  getQuestionDirection(questionId: string): 'inbound' | 'outbound' | null {
+    const row = this.deps.db
+      .prepare(
+        `SELECT q.direction FROM questionnaire q
+           JOIN question qu ON qu.questionnaire_id = q.id
+          WHERE qu.id = ?`,
+      )
+      .get(questionId) as { direction: 'inbound' | 'outbound' } | undefined;
+    return row?.direction ?? null;
+  }
+
   getContext(questionnaireId: string): {
     customer_name: string;
     reporting_year: number;

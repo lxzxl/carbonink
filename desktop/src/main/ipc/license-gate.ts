@@ -43,6 +43,12 @@ export const READ_ONLY_BLOCKED_CHANNELS: ReadonlySet<keyof IpcTypeMap> = new Set
   // questionnaire writes
   'questionnaire:create',
   'questionnaire:finalize',
+  // inbound questionnaire writes (Phase 2.3 — supplier disclosure)
+  'questionnaire:inbound-create-draft',
+  'questionnaire:inbound-export-xlsx',
+  'questionnaire:inbound-import-preview',
+  'questionnaire:inbound-ingest',
+  'supplier:create',
   // answer pipeline (all AI-backed except save, which still mutates)
   'answer:generate',
   'answer:save',

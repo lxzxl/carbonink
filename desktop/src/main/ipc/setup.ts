@@ -14,6 +14,7 @@ import { efLibraryHandlers } from './handlers/ef-library.js';
 import { efMatcherHandlers } from './handlers/ef-matcher.js';
 import { emissionSourceHandlers } from './handlers/emission-source.js';
 import { extractionHandlers } from './handlers/extraction.js';
+import { inboundQuestionnaireHandlers } from './handlers/inbound-questionnaire.js';
 import { licenseHandlers } from './handlers/license.js';
 import { mcpHandlers } from './handlers/mcp.js';
 import { organizationHandlers } from './handlers/organization.js';
@@ -21,6 +22,7 @@ import { questionnaireHandlers } from './handlers/questionnaire.js';
 import { reportHandlers } from './handlers/report.js';
 import { routingHandlers } from './handlers/routing.js';
 import { settingsHandlers } from './handlers/settings.js';
+import { supplierHandlers } from './handlers/supplier.js';
 import { undoHandlers } from './handlers/undo.js';
 import { updaterHandlers } from './handlers/updater.js';
 import { licenseGate } from './license-gate.js';
@@ -43,6 +45,8 @@ const HANDLER_FACTORIES: ReadonlyArray<HandlerFactory> = [
   documentHandlers,
   extractionHandlers,
   questionnaireHandlers,
+  inboundQuestionnaireHandlers,
+  supplierHandlers,
   answerHandlers,
   routingHandlers,
   mcpHandlers,

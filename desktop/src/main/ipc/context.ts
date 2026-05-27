@@ -24,6 +24,7 @@ import { EfMatcherService } from '@main/services/ef-matcher-service.js';
 import { EfService } from '@main/services/ef-service.js';
 import { EmissionSourceService } from '@main/services/emission-source-service.js';
 import { ExtractionService } from '@main/services/extraction-service.js';
+import { InboundQuestionnaireService } from '@main/services/inbound-questionnaire-service.js';
 import { loadLicensePublicKey } from '@main/services/license-public-key.js';
 import { LicenseService } from '@main/services/license-service.js';
 import {
@@ -82,6 +83,8 @@ export interface IpcContext {
   // Phase 2.2a — questionnaire upload + extract pipeline.
   customerService: CustomerService;
   questionnaireService: QuestionnaireService;
+  // Phase 2.3 — inbound supplier-disclosure questionnaire pipeline.
+  inboundQuestionnaireService: InboundQuestionnaireService;
   // Phase 2.2b → Step 2 — answer generation via Effect Layer.
   answerLayer: Layer.Layer<AnswerR>;
   providerConfig: ProviderConfigV2 | null;
@@ -139,6 +142,7 @@ export interface IpcContextOverrides {
   classificationService?: ClassificationService;
   customerService?: CustomerService;
   questionnaireService?: QuestionnaireService;
+  inboundQuestionnaireService?: InboundQuestionnaireService;
   /**
    * Optional main→renderer push channel emitter. Production wires
    * `createProgressEmitter(getMainWindow)`; tests typically supply a
@@ -208,6 +212,8 @@ export function createIpcContext(
   let classificationServiceInstance: ClassificationService | undefined =
     overrides.classificationService;
   let customerServiceInstance: CustomerService | undefined = overrides.customerService;
+  let inboundQuestionnaireServiceInstance: InboundQuestionnaireService | undefined =
+    overrides.inboundQuestionnaireService;
   let questionnaireServiceInstance: QuestionnaireService | undefined =
     overrides.questionnaireService;
   let answerLayerInstance: Layer.Layer<AnswerR> | undefined;
@@ -381,6 +387,16 @@ export function createIpcContext(
         customerServiceInstance = new CustomerService({ db: svc.db });
       }
       return customerServiceInstance;
+    },
+    get inboundQuestionnaireService() {
+      if (!inboundQuestionnaireServiceInstance) {
+        inboundQuestionnaireServiceInstance = new InboundQuestionnaireService({
+          db: svc.db,
+          customerService: ctx.customerService,
+          now: svc.now,
+        });
+      }
+      return inboundQuestionnaireServiceInstance;
     },
     get questionnaireService() {
       if (!questionnaireServiceInstance) {
