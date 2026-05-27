@@ -2,7 +2,7 @@ import { AiClientTag } from '@main/llm/ai-client';
 import { AiAuthError, AiProviderError } from '@main/llm/errors';
 import { runAiObject } from '@main/llm/run-ai';
 import type { CredentialService } from '@main/services/credential-service';
-import type { ProviderConfig } from '@shared/types';
+import type { ProviderConfigV2 } from '@shared/types';
 import { Effect, Layer } from 'effect';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
@@ -36,11 +36,10 @@ function fakeCredentials(): CredentialService {
   } as unknown as CredentialService;
 }
 
-function fakeConfig(): ProviderConfig {
+function fakeConfig(): ProviderConfigV2 {
   return {
     provider: 'deepseek',
     model: 'deepseek-chat',
-    apiKeyKeyref: 'llm.deepseek.apikey',
   };
 }
 

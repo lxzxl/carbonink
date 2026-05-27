@@ -64,7 +64,6 @@ const CANDIDATE_GASOLINE: EmissionFactor = {
 const FAKE_CONFIG = {
   provider: 'openai',
   model: 'gpt-4o-mini',
-  apiKeyKeyref: 'fake-keyref',
 } as never;
 
 type LlmResult = {

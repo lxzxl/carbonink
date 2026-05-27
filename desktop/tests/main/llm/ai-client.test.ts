@@ -9,7 +9,7 @@ import {
 } from '@earendil-works/pi-ai';
 import { AiClientTag, buildAiClientLayer } from '@main/llm/ai-client';
 import type { CredentialService } from '@main/services/credential-service';
-import type { ProviderConfig } from '@shared/types';
+import type { ProviderConfigV2 } from '@shared/types';
 import { Effect } from 'effect';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
@@ -32,11 +32,10 @@ function fakeCredentials(apiKey: string | null = 'sk-fake-test-key'): Credential
   } as unknown as CredentialService;
 }
 
-function fakeConfig(): ProviderConfig {
+function fakeConfig(): ProviderConfigV2 {
   return {
     provider: 'deepseek',
     model: 'deepseek-chat',
-    apiKeyKeyref: 'llm.deepseek.apikey',
   };
 }
 

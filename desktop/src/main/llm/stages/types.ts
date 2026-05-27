@@ -3,14 +3,13 @@ import type { z } from 'zod';
 /**
  * Text + image parts of a single user-turn message handed to a vision
  * LLM. `ExtractionService` appends the actual image content after
- * `userText` when calling `LLMClient.extractWithImages`; the stage
+ * `userText` when calling `runAiObject` with `images:`; the stage
  * supplies the instruction copy (field rules, output format) but
  * doesn't know how many pages the PDF rendered to.
  *
  * `system` is optional — most stages can fold their instructions into
- * the user turn since AI SDK 6 handles either equivalently across the
- * 5 providers we support. Reserved for stages that benefit from a
- * separate "you are an X" framing.
+ * the user turn since pi-ai handles either equivalently across providers.
+ * Reserved for stages that benefit from a separate "you are an X" framing.
  */
 export type VisionMessages = {
   /** Optional system-turn instruction. */
@@ -67,7 +66,7 @@ export type Stage<T = unknown> = {
    *
    * Returns the text portion of the multipart user message; the caller
    * appends one image part per rendered PDF page (in document order)
-   * before handing to `LLMClient.extractWithImages`.
+   * before handing to `runAiObject` with `images:`.
    */
   buildVisionMessages?: () => VisionMessages;
 };

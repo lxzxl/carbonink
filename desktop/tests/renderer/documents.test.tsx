@@ -43,7 +43,6 @@ import { settingsApi } from '@renderer/lib/api/settings';
 const FAKE_PROVIDER_CONFIG = {
   provider: 'deepseek' as const,
   model: 'deepseek-chat',
-  apiKeyKeyref: 'llm.deepseek.apikey' as const,
   apiKeyMasked: 'sk-...test',
 };
 

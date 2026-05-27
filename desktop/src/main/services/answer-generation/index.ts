@@ -74,10 +74,10 @@ function buildAnswerSchema(question_kind: 'numerical' | 'categorical' | 'narrati
 }
 
 /**
- * Render the answer-generation prompt. Used to live inside
- * `LLMClient.generateAnswer`; pulled into the service so the AiClient stays a
- * dumb conduit (matches the broader pi-ai migration pattern — services own
- * their prompts, the client only sends bytes).
+ * Render the answer-generation prompt. Lives in the service (not the
+ * AiClient) so the AiClient stays a dumb conduit — services own their
+ * prompts, the client only sends bytes. Matches the broader pi-ai
+ * migration pattern.
  */
 function buildAnswerPrompt(question: QuestionContext, inventory: InventoryContext): string {
   return `你是一名碳核算助理。下面是一道供应商问卷的题目，以及当前组织 ${inventory.year} 年度的 inventory 数据。请基于 inventory 给出答案。

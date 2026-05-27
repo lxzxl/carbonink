@@ -40,7 +40,6 @@ function makeCtx() {
         config: {
           provider: 'openai' as const,
           model: 'gpt-4o-mini',
-          apiKeyKeyref: 'llm.openai.apikey',
         },
         apiKey: 'sk-fake',
       }),

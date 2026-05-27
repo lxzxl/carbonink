@@ -9,7 +9,7 @@ import { runAiObject } from '@main/llm/run-ai';
 import type { ChinaUtilityExtraction } from '@main/llm/stages/china-utility';
 import type { CredentialService } from '@main/services/credential-service';
 import { ExtractionService } from '@main/services/extraction-service';
-import type { ProviderConfig } from '@shared/types';
+import type { ProviderConfigV2 } from '@shared/types';
 import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -45,10 +45,9 @@ const FAKE_EXTRACTION: ChinaUtilityExtraction = {
   confidence: 'high',
 };
 
-const FAKE_PROVIDER_CONFIG: ProviderConfig = {
+const FAKE_PROVIDER_CONFIG: ProviderConfigV2 = {
   provider: 'openai',
   model: 'gpt-4o-mini',
-  apiKeyKeyref: 'llm.openai.apikey',
 };
 
 describe('extraction IPC handlers', () => {

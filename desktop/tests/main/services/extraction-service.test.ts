@@ -14,7 +14,7 @@ import {
   StageDoesNotSupportVisionError,
 } from '@main/services/extraction-service';
 import type { SettingsService } from '@main/services/settings-service';
-import type { Document, ProviderConfig } from '@shared/types';
+import type { Document, ProviderConfigV2 } from '@shared/types';
 import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
@@ -49,10 +49,9 @@ const FAKE_EXTRACTION: ChinaUtilityExtraction = {
   confidence: 'high',
 };
 
-const FAKE_PROVIDER_CONFIG: ProviderConfig = {
+const FAKE_PROVIDER_CONFIG: ProviderConfigV2 = {
   provider: 'openai',
   model: 'gpt-4o-mini',
-  apiKeyKeyref: 'llm.openai.apikey',
 };
 
 /**
@@ -513,7 +512,6 @@ describe('ExtractionService', () => {
         config: {
           provider: 'deepseek' as const,
           model: 'deepseek-chat',
-          apiKeyKeyref: 'llm.deepseek.apikey' as const,
         },
         apiKey: 'sk-fake',
       })),

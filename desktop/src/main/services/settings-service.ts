@@ -27,8 +27,8 @@ const AUTO_BACKUP_ENABLED_SETTING = 'auto_backup.enabled';
  * to V2 on read via {@link migrateProviderConfig} — the renderer and the
  * IPC wire format are V2-only as of Task 10b. The migration shim stays
  * on the read path so installs upgraded from pre-Task-10 builds (which
- * persisted V1) continue to work; Task 11 will delete the V1 zod schema
- * once we're confident no V1 rows remain in the wild.
+ * persisted V1) continue to work; the V1 zod schema itself was deleted
+ * in Task 11 (the migrator detects V1 by field-name heuristics, not zod).
  *
  * Read paths:
  * - {@link getProviderConfig} returns the V2 config + a *masked* preview
@@ -64,8 +64,8 @@ export class SettingsService {
     // Order matters: write the credential first. If saveProviderConfig is
     // ever interrupted, having the key without the config is harmless (the
     // config row simply doesn't exist yet), but having the config without
-    // the key would surface as a `ProviderNotConfiguredError` when the
-    // user thinks they configured the provider.
+    // the key would surface as an `AiAuthError` when the user thinks they
+    // configured the provider.
     this.ctx.credentials.set(apiKeyKeyrefForProvider(parsed.provider), apiKeyPlaintext);
 
     const value = JSON.stringify(parsed);

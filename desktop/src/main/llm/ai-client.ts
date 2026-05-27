@@ -23,8 +23,7 @@ import {
 /**
  * Effect-wrapped wrapper around `@earendil-works/pi-ai`.
  *
- * `AiClient` replaces the old Promise-shape `LLMClient`. Three method
- * signatures are exposed for downstream consumers:
+ * Three method signatures are exposed for downstream consumers:
  *
  * - `generateObject` — structured extraction with a zod schema (Task 2).
  * - `generateText` — free-text completion, used by report-narrative (Task 2).
@@ -76,9 +75,9 @@ export interface AiClient {
    * - missing/invalid key → {@link AiAuthError}
    * - any other failure (5xx, network, malformed response) → {@link AiProviderError}
    *
-   * Unlike the old `LLMClient.ping`, this does NOT swallow errors — the
-   * caller (IPC handler) maps the typed error onto the UI's
-   * `{ok: false, error}` shape so the error label can be localized.
+   * This does NOT swallow errors — the caller (IPC handler) maps the
+   * typed error onto the UI's `{ok: false, error}` shape so the error
+   * label can be localized.
    */
   ping(): Effect.Effect<{ ok: true }, AiAuthError | AiProviderError, never>;
 }

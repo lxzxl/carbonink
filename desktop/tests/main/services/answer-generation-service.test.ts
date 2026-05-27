@@ -17,7 +17,6 @@ import { describe, expect, it, vi } from 'vitest';
 const FAKE_CONFIG = {
   provider: 'openai',
   model: 'gpt-4o-mini',
-  apiKeyKeyref: 'fake',
 } as never;
 
 function failureTag<A>(exit: Exit.Exit<A, unknown>): string | null {

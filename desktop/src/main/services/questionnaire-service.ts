@@ -17,9 +17,9 @@ type CellInput = ReadonlyArray<{
 }>;
 
 /**
- * Schema + prompt for the LLM question-extraction step. Lifted from
- * the old `LLMClient.extractQuestions` wrapper so the AiClient stays
- * a thin conduit — services own their prompts.
+ * Schema + prompt for the LLM question-extraction step. Lives in the
+ * service so the AiClient stays a thin conduit — services own their
+ * prompts.
  *
  * The model must return question_kind ∈ {numerical, categorical,
  * narrative} so we can size schema + UI affordances downstream
@@ -160,8 +160,7 @@ export class QuestionnaireService {
     // Steps 1-2: Excel parse + LLM extract. Both happen BEFORE any DB
     // write so a failure here is a clean rollback to baseline.
     const cells = await this.deps.excelParse(buf);
-    // Empty Excel → don't burn a model call; matches the prior
-    // `LLMClient.extractQuestions` short-circuit.
+    // Empty Excel → don't burn a model call (no questions to extract).
     const llmResult =
       cells.length === 0
         ? { questions: [] }

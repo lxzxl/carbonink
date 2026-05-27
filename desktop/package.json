@@ -65,11 +65,6 @@
     "vitest": "^4.1.5"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^3.0.76",
-    "@ai-sdk/azure": "^3.0.64",
-    "@ai-sdk/deepseek": "^2.0.34",
-    "@ai-sdk/openai": "^3.0.63",
-    "@ai-sdk/openai-compatible": "^2.0.47",
     "@earendil-works/pi-ai": "^0.75.5",
     "@electron-toolkit/typed-ipc": "^1.0.2",
     "@modelcontextprotocol/sdk": "^1.29.0",
@@ -83,7 +78,6 @@
     "@tanstack/react-form": "^1.31.0",
     "@tanstack/react-query": "^5.100.9",
     "@tanstack/react-router": "^1.169.2",
-    "ai": "^6.0.177",
     "better-sqlite3": "^12.9.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

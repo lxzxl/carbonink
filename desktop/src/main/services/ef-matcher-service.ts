@@ -15,8 +15,8 @@ const CANDIDATE_LIMIT = 20;
 
 /**
  * Schema + prompt for the LLM emission-factor recommendation step.
- * Lifted from the old `LLMClient.recommendEfs` wrapper so the AiClient
- * stays a thin conduit — services own their prompts.
+ * Lives in the service so the AiClient stays a thin conduit — services
+ * own their prompts.
  *
  * The recommendations carry the full composite primary key plus a
  * one-line Chinese reasoning string so the user can audit why each

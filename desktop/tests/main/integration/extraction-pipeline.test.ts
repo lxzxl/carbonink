@@ -10,7 +10,7 @@ import { CredentialService } from '@main/services/credential-service';
 import { DocumentService } from '@main/services/document-service';
 import { ExtractionService } from '@main/services/extraction-service';
 import { SettingsService } from '@main/services/settings-service';
-import type { ProviderConfig } from '@shared/types';
+import type { ProviderConfigV2 } from '@shared/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@main/llm/run-ai', () => ({
@@ -48,10 +48,9 @@ const FAKE_EXTRACTION: ChinaUtilityExtraction = {
   confidence: 'high',
 };
 
-const PROVIDER_CONFIG: ProviderConfig = {
+const PROVIDER_CONFIG: ProviderConfigV2 = {
   provider: 'openai',
   model: 'gpt-4o-mini',
-  apiKeyKeyref: 'llm.openai.apikey',
 };
 
 /**

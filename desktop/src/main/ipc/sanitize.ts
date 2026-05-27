@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import { ProviderNotConfiguredError, SchemaMismatchError } from '@main/llm/llm-client.js';
 import { VisionUnsupportedError } from '@main/llm/vision-capability.js';
 import {
   PdfNotReadableError,
@@ -14,12 +13,16 @@ import { LicenseReadOnlyError } from './license-gate.js';
  *
  * Error class handling, in order:
  * - `ZodError` → reformatted into actionable field-path list.
- * - `ProviderNotConfiguredError` → passthrough (UI surfaces "open Settings").
- * - `SchemaMismatchError` → passthrough (message includes raw-text preview
- *   so the user can see what the model said and decide whether to retry,
- *   switch model, or report a prompt bug).
+ * - Whitelisted user-actionable errors (PdfNotReadable / VisionUnsupported /
+ *   StageDoesNotSupportVision / LicenseReadOnly) → passthrough; their
+ *   messages are already safe for renderer display.
  * - Everything else → fresh correlation id; full error logged server-side
  *   and the renderer sees `IPC handler <channel> failed [<id>]`.
+ *
+ * AiClient tagged errors (`AiAuthError`, `AiSchemaMismatch`, etc.) are NOT
+ * whitelisted here: handlers that surface them (`answer.ts`, `settings.ts`)
+ * map them to plain `Error` instances with localized messages before
+ * throwing — so they never reach this catch.
  *
  * The returned wrapper is intentionally typed as `(...args: unknown[])` rather
  * than mirroring the input handler's signature: callers (the IPC dispatcher
@@ -44,8 +47,6 @@ export function sanitize(
       // Whitelist of user-actionable errors. Their messages are already safe
       // for renderer display (no SQL / FS paths / API keys).
       if (
-        err instanceof ProviderNotConfiguredError ||
-        err instanceof SchemaMismatchError ||
         err instanceof PdfNotReadableError ||
         err instanceof VisionUnsupportedError ||
         err instanceof StageDoesNotSupportVisionError ||

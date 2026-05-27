@@ -17,7 +17,7 @@ export class NowTag extends Context.Tag('answer/Now')<NowTag, () => string>() {}
 
 // Re-export AiClientTag so downstream callers (handlers, tests) can compose
 // the answer-generation environment without reaching into `@main/llm/ai-client`
-// directly. Mirrors the LLMClientTag re-export this file used to provide.
+// directly.
 export { AiClientTag };
 
 export type AnswerR = DbTag | AiClientTag | OrgServiceTag | ActivityDataServiceTag | NowTag;

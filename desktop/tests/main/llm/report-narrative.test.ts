@@ -7,7 +7,7 @@ import {
 import { runAiObject } from '@main/llm/run-ai';
 import type { CredentialService } from '@main/services/credential-service';
 import type { InventoryReportData } from '@main/services/report-data-service';
-import type { ProviderConfig } from '@shared/types';
+import type { ProviderConfigV2 } from '@shared/types';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@main/llm/run-ai', () => ({
@@ -24,11 +24,10 @@ function fakeCredentials(): CredentialService {
   } as unknown as CredentialService;
 }
 
-function fakeConfig(): ProviderConfig {
+function fakeConfig(): ProviderConfigV2 {
   return {
     provider: 'openai',
     model: 'gpt-4o-mini',
-    apiKeyKeyref: 'llm.openai.apikey',
   };
 }
 

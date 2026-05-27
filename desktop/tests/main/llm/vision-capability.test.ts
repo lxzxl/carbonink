@@ -3,49 +3,23 @@ import {
   VISION_CAPABLE_MODELS,
   VisionUnsupportedError,
 } from '@main/llm/vision-capability';
-import type { ProviderConfig } from '@shared/types';
+import type { ProviderConfigV2 } from '@shared/types';
 import { describe, expect, it } from 'vitest';
 
-function cfg(partial: Partial<ProviderConfig> & { provider: ProviderConfig['provider'] }) {
-  // Returns a shape that satisfies `ProviderConfig`'s discriminated union for
-  // each provider variant. We only assert on `.provider` + `.model` so the
-  // other fields are placeholder defaults.
-  switch (partial.provider) {
-    case 'openai':
-      return {
-        provider: 'openai',
-        model: partial.model ?? 'gpt-4o',
-        apiKeyKeyref: 'llm.openai.apikey',
-      } as ProviderConfig;
-    case 'anthropic':
-      return {
-        provider: 'anthropic',
-        model: partial.model ?? 'claude-sonnet-4-5',
-        apiKeyKeyref: 'llm.anthropic.apikey',
-      } as ProviderConfig;
-    case 'azure':
-      return {
-        provider: 'azure',
-        model: partial.model ?? 'gpt-4o',
-        apiKeyKeyref: 'llm.azure.apikey',
-        resourceName: 'r',
-        apiVersion: '2024-08-01-preview',
-      } as ProviderConfig;
-    case 'deepseek':
-      return {
-        provider: 'deepseek',
-        model: partial.model ?? 'deepseek-vl',
-        apiKeyKeyref: 'llm.deepseek.apikey',
-      } as ProviderConfig;
-    case 'openai-compat':
-      return {
-        provider: 'openai-compat',
-        model: partial.model ?? 'anything',
-        apiKeyKeyref: 'llm.openai-compat.apikey',
-        baseUrl: 'https://x.example.com',
-        name: 'X',
-      } as ProviderConfig;
-  }
+function cfg(partial: { provider: string; model?: string }): ProviderConfigV2 {
+  // V2 is a flat shape (provider + model + optional baseUrl). Defaults below
+  // pick a reasonable model per known provider so callers can omit it.
+  const defaults: Record<string, string> = {
+    openai: 'gpt-4o',
+    anthropic: 'claude-sonnet-4-5',
+    azure: 'gpt-4o',
+    deepseek: 'deepseek-vl',
+    'openai-compat': 'anything',
+  };
+  return {
+    provider: partial.provider,
+    model: partial.model ?? defaults[partial.provider] ?? 'unknown',
+  };
 }
 
 describe('VISION_CAPABLE_MODELS map', () => {

@@ -22,8 +22,7 @@ import type { AiErr } from './errors.js';
  * On failure, the underlying `AiErr` is rethrown directly (not wrapped
  * in Effect's `FiberFailure`). Callers do `catch (err)` and `instanceof`
  * one of the `AiErr` subclasses (or use the `_tag` discriminant) to
- * translate the typed error into their own public error shape —
- * matches the contract the previous `LLMClient` methods exposed.
+ * translate the typed error into their own public error shape.
  */
 export async function runAiObject<T>(
   config: ProviderConfigV2,

@@ -325,70 +325,24 @@ export type UnitDefinition = {
 };
 
 // ---------------------------------------------------------------------------
-// AI provider config (Phase 1b)
+// AI provider config — pi-ai-shaped, flat schema (Item 3 Task 11)
 // ---------------------------------------------------------------------------
 //
-// Discriminated union over provider kinds; each shape has its own required
-// fields. `apiKeyKeyref` is a literal pointing to a `CredentialService` key
-// (see `ALLOWED_PREFIXES` in `credential-service.ts`); the plaintext key
-// itself never lives on this config object — it stays in OS keychain.
-
-export const openAiProviderConfig = z.object({
-  provider: z.literal('openai'),
-  model: z.string().default('gpt-4o-mini'),
-  apiKeyKeyref: z.literal('llm.openai.apikey'),
-});
-
-export const anthropicProviderConfig = z.object({
-  provider: z.literal('anthropic'),
-  model: z.string().default('claude-sonnet-4-5'),
-  apiKeyKeyref: z.literal('llm.anthropic.apikey'),
-});
-
-export const azureProviderConfig = z.object({
-  provider: z.literal('azure'),
-  model: z.string(),
-  apiKeyKeyref: z.literal('llm.azure.apikey'),
-  resourceName: z.string().min(1),
-  apiVersion: z.string().default('2024-08-01-preview'),
-});
-
-export const deepseekProviderConfig = z.object({
-  provider: z.literal('deepseek'),
-  model: z.string().default('deepseek-chat'),
-  apiKeyKeyref: z.literal('llm.deepseek.apikey'),
-});
-
-export const openAiCompatProviderConfig = z.object({
-  provider: z.literal('openai-compat'),
-  model: z.string().min(1),
-  apiKeyKeyref: z.literal('llm.openai-compat.apikey'),
-  baseUrl: z.string().url(),
-  name: z.string().default('Custom'),
-});
-
-export const providerConfig = z.discriminatedUnion('provider', [
-  openAiProviderConfig,
-  anthropicProviderConfig,
-  azureProviderConfig,
-  deepseekProviderConfig,
-  openAiCompatProviderConfig,
-]);
-
-export type ProviderConfig = z.infer<typeof providerConfig>;
-export type ProviderKind = ProviderConfig['provider'];
-
-// ---------------------------------------------------------------------------
-// ProviderConfigV2 — pi-ai-shaped provider config (Item 3 Task 3)
-// ---------------------------------------------------------------------------
+// Single flat shape: provider name + model name + optional baseUrl. The
+// keychain key for the API key is derived deterministically from `provider`
+// via {@link apiKeyKeyrefForProvider} rather than carried as a field — pi-ai
+// supports 32+ providers and minting a literal per provider would balloon
+// the type without buying validation strength.
 //
-// The legacy `providerConfig` discriminated union locks us to 5 SDKs; pi-ai
-// supports 32+. v2 is a flat shape: provider name + model name + optional
-// baseUrl. apiKeyKeyref is derived from provider deterministically as
-// `'llm.' + provider + '.apikey'` (settings-service helper).
+// The plaintext API key itself never lives on this config object: it stays
+// in the OS keychain, behind `CredentialService`. SettingsService strips
+// any V1-shape `apiKeyKeyref`/`resourceName`/`apiVersion`/`name` fields a
+// stale renderer might still send (see `migrateProviderConfig` for the
+// on-disk legacy-data path).
 //
-// v2 lives alongside v1 during Item 3 migration. Task 9 flips consumers from
-// v1 → v2; Task 11 deletes v1 and renames v2 → providerConfig (canonical).
+// The `V2` suffix is a transition marker held over from Tasks 3-10b; the
+// rename to canonical `providerConfig`/`ProviderConfig` is deferred (the
+// rename touches >20 files and is cosmetic — see Task 11 plan).
 export const providerConfigV2 = z.object({
   /** pi-ai provider id — free-form string. Common: deepseek / anthropic / openai / kimi-coding / qwen / zhipu / azure / ... */
   provider: z.string().min(1),

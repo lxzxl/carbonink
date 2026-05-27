@@ -18,7 +18,6 @@ beforeEach(() => {
 const FAKE_CONFIG = {
   provider: 'openai',
   model: 'gpt-4o-mini',
-  apiKeyKeyref: 'fake',
 } as never;
 
 function fakeCredentials(): CredentialService {

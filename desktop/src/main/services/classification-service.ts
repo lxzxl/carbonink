@@ -22,10 +22,10 @@ const CONFIDENCE_THRESHOLD = 0.7;
 type PdfToImages = (bytes: Buffer) => Promise<Buffer[]>;
 
 /**
- * Schema + prompt for the doc_type classification step. Lifted from
- * `LLMClient.classifyDocument` so the AiClient stays a thin conduit —
- * services own their prompts. Confidence threshold lives at the
- * orchestration layer (CONFIDENCE_THRESHOLD above).
+ * Schema + prompt for the doc_type classification step. Lives in the
+ * service so the AiClient stays a thin conduit — services own their
+ * prompts. Confidence threshold lives at the orchestration layer
+ * (CONFIDENCE_THRESHOLD above).
  */
 const classifySchema = z.object({
   doc_type: z.enum([

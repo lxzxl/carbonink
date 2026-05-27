@@ -40,7 +40,7 @@ describe('chinaUtilityExtraction schema', () => {
     // Schema relaxed Phase 1b smoke fix: DeepSeek + OpenAI-compat lack
     // native JSON Schema mode and the model needs an escape hatch to
     // honestly report "this period field isn't readable" without forcing
-    // SchemaMismatchError. The ActivityForm Confirm flow validates ISO
+    // an AiSchemaMismatch. The ActivityForm Confirm flow validates ISO
     // format at the point the date becomes activity_data.
     expect(() =>
       chinaUtilityExtraction.parse({ ...GOOD, period_start: '2025/01/01' }),

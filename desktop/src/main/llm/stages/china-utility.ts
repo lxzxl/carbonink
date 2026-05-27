@@ -18,7 +18,7 @@ import type { Stage, VisionMessages } from './types.js';
  * text layer), bills in unfamiliar formats, or non-utility documents the user
  * uploaded by mistake. Earlier strict schema (positive amount_kwh, ISO date
  * regex) forced the model into a corner: it had to either lie (invent
- * plausible numbers) or trigger a `SchemaMismatchError` that gave the user
+ * plausible numbers) or trigger an `AiSchemaMismatch` that gave the user
  * no recoverable signal.
  *
  * Validation contract is now: the SHAPE is strict (every key present, types
