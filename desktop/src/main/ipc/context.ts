@@ -7,7 +7,6 @@ import {
 } from '@main/credentials/safe-storage-backend.js';
 import { ExcelParser } from '@main/excel/parser.js';
 import { buildAiClientLayer } from '@main/llm/ai-client.js';
-import { LLMClient } from '@main/llm/llm-client.js';
 import { ActivityDataService } from '@main/services/activity-data-service.js';
 import { AgentSkillService, type SkillResolver } from '@main/services/agent-skill-service.js';
 import type { AnswerR } from '@main/services/answer-generation/tags.js';
@@ -64,13 +63,14 @@ export interface IpcContext {
   unitConversionService: UnitConversionService;
   calculationService: CalculationService;
   // Phase 1b additions — credentialService is the keychain wrapper,
-  // settingsService is the sqlite-backed provider config store, llmClient
-  // is the AI SDK adapter, documentService owns content-addressed file
-  // storage + `document` rows, and extractionService orchestrates the
-  // PDF → LLM → `extraction` row pipeline.
+  // settingsService is the sqlite-backed provider config store,
+  // documentService owns content-addressed file storage + `document`
+  // rows, and extractionService orchestrates the PDF → LLM →
+  // `extraction` row pipeline. (The old `llmClient` field was retired
+  // when every consumer moved to AiClient — see `@main/llm/ai-client.ts`
+  // for the Effect-shaped service + `buildAiClientLayer` factory.)
   credentialService: CredentialService;
   settingsService: SettingsService;
-  llmClient: LLMClient;
   documentService: DocumentService;
   extractionService: ExtractionService;
   // Phase 1c addition — LLM-assisted emission factor recommendation.
@@ -117,7 +117,6 @@ export interface IpcContext {
  */
 export interface IpcContextOverrides {
   credentialService?: CredentialService;
-  llmClient?: LLMClient;
   /**
    * Test override for the uploads directory used by DocumentService. In
    * production this resolves to `app.getPath('userData') + '/uploads'`; tests
@@ -172,15 +171,15 @@ function defaultCredentialService(): CredentialService {
  * CalculationService; CalculationService composes UnitConversionService — all
  * three share the same `db` handle (no double-open).
  *
- * SettingsService depends on CredentialService; LLMClient also depends on
- * CredentialService — they share one instance so the keychain isn't opened
- * twice. In tests, `overrides` lets callers swap either for a fake.
+ * SettingsService depends on CredentialService — they share one instance so
+ * the keychain isn't opened twice. In tests, `overrides` lets callers swap
+ * either for a fake.
  *
- * `credentialService` / `llmClient` / `settingsService` are exposed via
- * lazy getters: legacy IPC tests that only need DB-backed services don't
- * touch them, so the Electron `safeStorage` lookup never runs in those
- * test paths. Production accesses always go through the getter and pay a
- * one-time construction cost.
+ * `credentialService` / `settingsService` are exposed via lazy getters:
+ * legacy IPC tests that only need DB-backed services don't touch them, so
+ * the Electron `safeStorage` lookup never runs in those test paths.
+ * Production accesses always go through the getter and pay a one-time
+ * construction cost.
  */
 export function createIpcContext(
   svc: ServiceContext,
@@ -200,7 +199,6 @@ export function createIpcContext(
   // Memoized lazy slots so the first getter call triggers construction once
   // and subsequent accesses return the same instance.
   let credentialServiceInstance: CredentialService | undefined = overrides.credentialService;
-  let llmClientInstance: LLMClient | undefined = overrides.llmClient;
   let settingsServiceInstance: SettingsService | undefined;
   let documentServiceInstance: DocumentService | undefined = overrides.documentService;
   let extractionServiceInstance: ExtractionService | undefined = overrides.extractionService;
@@ -224,12 +222,6 @@ export function createIpcContext(
       settingsServiceInstance = new SettingsService({ ...svc, credentials: getCredential() });
     }
     return settingsServiceInstance;
-  };
-  const getLlm = (): LLMClient => {
-    if (!llmClientInstance) {
-      llmClientInstance = new LLMClient({ credentials: getCredential() });
-    }
-    return llmClientInstance;
   };
   const getDocument = (): DocumentService => {
     if (!documentServiceInstance) {
@@ -307,9 +299,6 @@ export function createIpcContext(
     calculationService,
     get credentialService() {
       return getCredential();
-    },
-    get llmClient() {
-      return getLlm();
     },
     get settingsService() {
       return getSettings();

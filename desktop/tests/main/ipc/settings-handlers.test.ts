@@ -1,20 +1,27 @@
 import { runMigrations } from '@main/db/migrate';
 import { createIpcContext } from '@main/ipc/context';
 import { settingsHandlers } from '@main/ipc/handlers/settings';
-import type { LLMClient } from '@main/llm/llm-client';
+import { AiAuthError, AiProviderError } from '@main/llm/errors';
 import type { CredentialService } from '@main/services/credential-service';
 import type { ProviderConfig } from '@shared/types';
 import Database from 'better-sqlite3';
+import { Effect, Layer } from 'effect';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
 /**
  * IPC handler smoke + glue test for the Phase 1b settings channels.
  *
- * We pass fake `credentialService` / `llmClient` through `IpcContextOverrides`
- * so the test doesn't depend on Electron `safeStorage` (the production
- * credential backend) or hit a real LLM provider. SettingsService still
- * exercises the real sqlite path, which keeps the round-trip coverage useful.
+ * We pass a fake `credentialService` through `IpcContextOverrides` so the test
+ * doesn't depend on Electron `safeStorage` (the production credential
+ * backend). SettingsService still exercises the real sqlite path, which keeps
+ * the round-trip coverage useful.
+ *
+ * For `settings:ping-provider` we swap `buildAiClientLayer` via `vi.mock` so
+ * the handler runs against a deterministic in-memory `AiClient` instead of
+ * hitting pi-ai's real model registry. The mock factory captures the
+ * `overrideKey` so the test can assert that the typed-but-unsaved key flow
+ * propagates correctly.
  */
 function makeFakeCredentials(): CredentialService {
   const store = new Map<string, string>();
@@ -35,18 +42,31 @@ function makeFakeCredentials(): CredentialService {
   } as unknown as CredentialService;
 }
 
-function makeFakeLLMClient(): LLMClient {
+// Captures the AiClient.ping result the next handler invocation should see,
+// plus the `buildAiClientLayer` deps so tests can assert on `overrideKey`.
+const pingSpy = vi.fn();
+const buildLayerSpy = vi.fn();
+
+vi.mock('@main/llm/ai-client', async (orig) => {
+  const actual = (await orig()) as typeof import('@main/llm/ai-client');
   return {
-    ping: vi.fn(),
-    pingWithKey: vi.fn(),
-    extract: vi.fn(),
-  } as unknown as LLMClient;
-}
+    ...actual,
+    buildAiClientLayer: (
+      deps: Parameters<typeof import('@main/llm/ai-client').buildAiClientLayer>[0],
+    ) => {
+      buildLayerSpy(deps);
+      return Layer.succeed(actual.AiClientTag, {
+        generateObject: () => Effect.die(new Error('not used by ping handler')),
+        generateText: () => Effect.die(new Error('not used by ping handler')),
+        ping: () => pingSpy(),
+      });
+    },
+  };
+});
 
 describe('settings IPC handlers', () => {
   let db: Database.Database;
   let credentials: CredentialService;
-  let llmClient: LLMClient;
   let handlers: ReturnType<typeof settingsHandlers>;
 
   beforeEach(() => {
@@ -54,15 +74,18 @@ describe('settings IPC handlers', () => {
     db.pragma('foreign_keys = ON');
     runMigrations(db);
     credentials = makeFakeCredentials();
-    llmClient = makeFakeLLMClient();
     const ctx = createIpcContext(
       { db, now: () => '2026-05-11T00:00:00.000Z' },
-      { credentialService: credentials, llmClient },
+      { credentialService: credentials },
     );
     handlers = settingsHandlers(ctx);
   });
 
-  afterEach(() => db.close());
+  afterEach(() => {
+    db.close();
+    pingSpy.mockReset();
+    buildLayerSpy.mockReset();
+  });
 
   it('settings:available delegates to credentialService.isAvailable', () => {
     expect(handlers['settings:available']?.()).toBe(true);
@@ -118,8 +141,8 @@ describe('settings IPC handlers', () => {
     expect(handlers['settings:get-provider']?.()).toBeNull();
   });
 
-  it('settings:ping-provider without apiKey calls llmClient.ping (uses saved key)', async () => {
-    vi.mocked(llmClient.ping).mockResolvedValueOnce({ ok: true });
+  it('settings:ping-provider without apiKey builds layer from saved credentials and pings', async () => {
+    pingSpy.mockReturnValue(Effect.succeed({ ok: true } as const));
     const config: ProviderConfig = {
       provider: 'openai',
       model: 'gpt-4o-mini',
@@ -129,12 +152,16 @@ describe('settings IPC handlers', () => {
     const result = await handlers['settings:ping-provider']?.({ config });
 
     expect(result).toEqual({ ok: true });
-    expect(llmClient.ping).toHaveBeenCalledWith(config);
-    expect(llmClient.pingWithKey).not.toHaveBeenCalled();
+    expect(pingSpy).toHaveBeenCalledTimes(1);
+    // No `overrideKey` means the layer must read the key from `credentials`.
+    const deps = buildLayerSpy.mock.calls[0]?.[0];
+    expect(deps?.config).toEqual(config);
+    expect(deps?.overrideKey).toBeUndefined();
+    expect(deps?.credentials).toBe(credentials);
   });
 
-  it('settings:ping-provider with apiKey calls llmClient.pingWithKey and does NOT persist', async () => {
-    vi.mocked(llmClient.pingWithKey).mockResolvedValueOnce({ ok: true });
+  it('settings:ping-provider with apiKey passes overrideKey and does NOT persist', async () => {
+    pingSpy.mockReturnValue(Effect.succeed({ ok: true } as const));
     const config: ProviderConfig = {
       provider: 'openai',
       model: 'gpt-4o-mini',
@@ -147,15 +174,16 @@ describe('settings IPC handlers', () => {
     });
 
     expect(result).toEqual({ ok: true });
-    expect(llmClient.pingWithKey).toHaveBeenCalledWith(config, 'sk-typed-but-unsaved');
-    expect(llmClient.ping).not.toHaveBeenCalled();
+    expect(pingSpy).toHaveBeenCalledTimes(1);
+    const deps = buildLayerSpy.mock.calls[0]?.[0];
+    expect(deps?.overrideKey).toBe('sk-typed-but-unsaved');
     // Critical: a ping does NOT persist — credentials.set should not have been called.
     expect(credentials.set).not.toHaveBeenCalled();
     expect(handlers['settings:get-provider']?.()).toBeNull();
   });
 
-  it('settings:ping-provider surfaces { ok: false, error } from LLMClient', async () => {
-    vi.mocked(llmClient.pingWithKey).mockResolvedValueOnce({ ok: false, error: 'unauthorized' });
+  it('settings:ping-provider maps AiAuthError to { ok: false, error: "auth_failed: <provider>" }', async () => {
+    pingSpy.mockReturnValue(Effect.fail(new AiAuthError({ provider: 'openai' })));
     const config: ProviderConfig = {
       provider: 'openai',
       model: 'gpt-4o-mini',
@@ -163,6 +191,32 @@ describe('settings IPC handlers', () => {
     };
 
     const result = await handlers['settings:ping-provider']?.({ config, apiKey: 'sk-bad' });
-    expect(result).toEqual({ ok: false, error: 'unauthorized' });
+    expect(result).toEqual({ ok: false, error: 'auth_failed: openai' });
+  });
+
+  it('settings:ping-provider maps AiProviderError to { ok: false, error: "provider_error: <cause>" }', async () => {
+    pingSpy.mockReturnValue(
+      Effect.fail(new AiProviderError({ status: 500, cause: 'upstream timeout' })),
+    );
+    const config: ProviderConfig = {
+      provider: 'openai',
+      model: 'gpt-4o-mini',
+      apiKeyKeyref: 'llm.openai.apikey',
+    };
+
+    const result = await handlers['settings:ping-provider']?.({ config, apiKey: 'sk-x' });
+    expect(result).toEqual({ ok: false, error: 'provider_error: upstream timeout' });
+  });
+
+  it('settings:ping-provider AiProviderError without cause falls back to "unknown"', async () => {
+    pingSpy.mockReturnValue(Effect.fail(new AiProviderError({})));
+    const config: ProviderConfig = {
+      provider: 'openai',
+      model: 'gpt-4o-mini',
+      apiKeyKeyref: 'llm.openai.apikey',
+    };
+
+    const result = await handlers['settings:ping-provider']?.({ config });
+    expect(result).toEqual({ ok: false, error: 'provider_error: unknown' });
   });
 });
