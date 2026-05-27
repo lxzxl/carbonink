@@ -15,15 +15,9 @@ import {
   type SaveErr,
   type SaveInput,
 } from './errors';
-import { buildAnswerPrompt, buildAnswerSchema, type InventoryContext } from './prompt';
-import {
-  ActivityDataServiceTag,
-  AiClientTag,
-  type AnswerR,
-  DbTag,
-  NowTag,
-  OrgServiceTag,
-} from './tags';
+import { singleShotFallback } from './fallback';
+import type { InventoryContext } from './prompt';
+import { ActivityDataServiceTag, type AnswerR, DbTag, NowTag, OrgServiceTag } from './tags';
 
 export * from './errors';
 export * from './tags';
@@ -41,7 +35,6 @@ export function generate(
 ): Effect.Effect<Answer, GenErr, AnswerR> {
   return Effect.gen(function* () {
     const db = yield* DbTag;
-    const ai = yield* AiClientTag;
     const orgService = yield* OrgServiceTag;
     const activityDataService = yield* ActivityDataServiceTag;
     const now = yield* NowTag;
@@ -60,8 +53,11 @@ export function generate(
       return yield* Effect.fail(new InventoryEmpty({ year: questionnaire.reporting_year }));
     }
 
-    const schema = buildAnswerSchema(question.question_kind);
-    const prompt = buildAnswerPrompt(
+    // Single-shot LLM call lives in `./fallback.ts` — Task 7 will wrap
+    // this in a `runAgent(...).catchTags(... → singleShotFallback)` pipe,
+    // but for now the service still calls the single-shot path directly
+    // so this commit is a pure relocation with zero behavior change.
+    const llmResult = yield* singleShotFallback(
       {
         raw_text: question.raw_text,
         expected_unit: question.expected_unit,
@@ -69,10 +65,6 @@ export function generate(
       },
       inventory,
     );
-
-    // AiClient is responsible for retry / timeout / typed-error mapping —
-    // the service just consumes the parsed object or propagates the AiErr.
-    const llmResult = yield* ai.generateObject({ schema, prompt });
 
     // The prompt instructs the LLM to return `value=""` when inventory data
     // doesn't cover the question. Don't persist that — surface it as a
