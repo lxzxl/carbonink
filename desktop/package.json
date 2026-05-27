@@ -65,6 +65,7 @@
     "vitest": "^4.1.5"
   },
   "dependencies": {
+    "@earendil-works/pi-agent-core": "^0.75.5",
     "@earendil-works/pi-ai": "^0.75.5",
     "@electron-toolkit/typed-ipc": "^1.0.2",
     "@modelcontextprotocol/sdk": "^1.29.0",

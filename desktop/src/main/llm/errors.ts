@@ -59,3 +59,36 @@ export type AiErr =
   | AiTimeout
   | AiNoData
   | AiProviderError;
+
+// ---------------------------------------------------------------------------
+// AiAgent tagged errors (Item 4)
+// ---------------------------------------------------------------------------
+//
+// These flow alongside `AiErr` through `AiAgent.run()`'s signature — they are
+// NOT part of the `AiErr` union because they're agent-loop concerns (turn
+// budget, no-progress detection) rather than per-request provider failures.
+// Consumers handle them via
+// `Effect.catchTags({AgentMaxTurns: ..., AgentStalled: ..., AiTimeout: ...})`.
+
+/**
+ * The agent loop reached its `maxTurns` budget without producing a final
+ * answer. `turnCount` is the number of completed assistant turns; `lastTool`
+ * is the name of the most recently invoked tool, useful for surfacing what
+ * the model was attempting when the budget ran out.
+ */
+export class AgentMaxTurns extends Data.TaggedError('AgentMaxTurns')<{
+  turnCount: number;
+  lastTool?: string;
+}> {}
+
+/**
+ * The agent loop detected a no-progress pattern (e.g. the same tool invoked
+ * with structurally identical arguments across consecutive turns) and gave
+ * up rather than burn the rest of its turn budget on a loop. `tool` carries
+ * the offending tool name; `turnCount` is the turn at which the stall was
+ * detected.
+ */
+export class AgentStalled extends Data.TaggedError('AgentStalled')<{
+  tool: string;
+  turnCount: number;
+}> {}

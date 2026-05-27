@@ -6,13 +6,18 @@ import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
 
 export default defineConfig({
   main: {
-    // @earendil-works/pi-ai is ESM-only. Electron's main process loads our
-    // bundle as CJS, so any `require('@earendil-works/pi-ai')` left as an
-    // external resolves to a package whose package.json has no `exports.require`
-    // entry → ERR_PACKAGE_PATH_NOT_EXPORTED at app launch. Excluding it from
-    // externalization causes Rollup to inline the package (and its transitive
-    // ESM-only deps) into out/main/index.cjs.
-    plugins: [externalizeDepsPlugin({ exclude: ['@earendil-works/pi-ai'] })],
+    // @earendil-works/pi-ai and @earendil-works/pi-agent-core are both ESM-only.
+    // Electron's main process loads our bundle as CJS, so any
+    // `require('@earendil-works/pi-ai')` left as an external resolves to a
+    // package whose package.json has no `exports.require` entry →
+    // ERR_PACKAGE_PATH_NOT_EXPORTED at app launch. Excluding them from
+    // externalization causes Rollup to inline the packages (and their
+    // transitive ESM-only deps) into out/main/index.cjs.
+    plugins: [
+      externalizeDepsPlugin({
+        exclude: ['@earendil-works/pi-ai', '@earendil-works/pi-agent-core'],
+      }),
+    ],
     resolve: {
       alias: {
         '@shared': resolve('src/shared'),
@@ -30,7 +35,11 @@ export default defineConfig({
     },
   },
   preload: {
-    plugins: [externalizeDepsPlugin({ exclude: ['@earendil-works/pi-ai'] })],
+    plugins: [
+      externalizeDepsPlugin({
+        exclude: ['@earendil-works/pi-ai', '@earendil-works/pi-agent-core'],
+      }),
+    ],
     build: {
       outDir: 'out/preload',
       rollupOptions: {
