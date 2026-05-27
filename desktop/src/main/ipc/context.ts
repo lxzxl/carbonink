@@ -8,7 +8,6 @@ import {
 import { ExcelParser } from '@main/excel/parser.js';
 import { buildAiClientLayer } from '@main/llm/ai-client.js';
 import { LLMClient } from '@main/llm/llm-client.js';
-import type { ReportNarrativeProvider } from '@main/llm/report-narrative.js';
 import { ActivityDataService } from '@main/services/activity-data-service.js';
 import { AgentSkillService, type SkillResolver } from '@main/services/agent-skill-service.js';
 import type { AnswerR } from '@main/services/answer-generation/tags.js';
@@ -88,7 +87,6 @@ export interface IpcContext {
   routingLayer: Layer.Layer<RoutingR>;
   // Phase 3 — report generation pipeline.
   reportDataService: import('@main/services/report-data-service').ReportDataService;
-  llmNarrativeProvider: import('@main/llm/report-narrative').ReportNarrativeProvider;
   // Phase 3 sub-project 3 — audit event log viewer.
   auditEventService: AuditEventService;
   // Phase 3 sub-project 4 — questionnaire PDF export.
@@ -215,7 +213,6 @@ export function createIpcContext(
   let answerLayerInstance: Layer.Layer<AnswerR> | undefined;
   let routingLayerInstance: Layer.Layer<RoutingR> | undefined;
   let reportDataServiceInstance: ReportDataService | undefined;
-  let llmNarrativeProviderInstance: ReportNarrativeProvider | undefined;
   let licenseServiceInstance: LicenseService | undefined = overrides.licenseService;
 
   const getCredential = (): CredentialService => {
@@ -455,20 +452,6 @@ export function createIpcContext(
         reportDataServiceInstance = new ReportDataService({ db: svc.db });
       }
       return reportDataServiceInstance;
-    },
-    get llmNarrativeProvider() {
-      if (!llmNarrativeProviderInstance) {
-        const llm = getLlm();
-        const providerCfg = getSettings().getProviderConfigWithKey();
-        if (!providerCfg) {
-          throw new Error('AI provider not configured. Open Settings to set up.');
-        }
-        llmNarrativeProviderInstance = {
-          streamObject: ({ schema, system, user, abortSignal }) =>
-            llm.streamObject(providerCfg.config, schema, system, user, abortSignal),
-        };
-      }
-      return llmNarrativeProviderInstance;
     },
     auditEventService: new AuditEventService({ db: svc.db }),
     questionnairePdfDataService: new QuestionnairePdfDataService({ db: svc.db }),

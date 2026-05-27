@@ -1,6 +1,36 @@
-import { generateReportNarrative, ReportNarrativeSchema } from '@main/llm/report-narrative';
+import {
+  generateReportNarrative,
+  LlmNarrativeCanceled,
+  LlmNarrativeRefused,
+  ReportNarrativeSchema,
+} from '@main/llm/report-narrative';
+import { runAiObject } from '@main/llm/run-ai';
+import type { CredentialService } from '@main/services/credential-service';
 import type { InventoryReportData } from '@main/services/report-data-service';
-import { describe, expect, it, vi } from 'vitest';
+import type { ProviderConfig } from '@shared/types';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('@main/llm/run-ai', () => ({
+  runAiObject: vi.fn(),
+}));
+
+function fakeCredentials(): CredentialService {
+  return {
+    get: vi.fn(() => 'sk-fake'),
+    set: vi.fn(),
+    getMasked: vi.fn(),
+    delete: vi.fn(),
+    isAvailable: vi.fn().mockReturnValue(true),
+  } as unknown as CredentialService;
+}
+
+function fakeConfig(): ProviderConfig {
+  return {
+    provider: 'openai',
+    model: 'gpt-4o-mini',
+    apiKeyKeyref: 'llm.openai.apikey',
+  };
+}
 
 function fakeData(): InventoryReportData {
   return {
@@ -54,60 +84,87 @@ const FAKE_NARRATIVE = {
     '电网电力为最大排放源，年度排放量约 34.2 吨 CO2e，占总量 91% 以上。建议优先考虑可再生能源替代以降低范围二排放。',
 };
 
+afterEach(() => {
+  vi.mocked(runAiObject).mockReset();
+});
+
 describe('generateReportNarrative', () => {
   it('validates a well-shaped LLM response against the schema', () => {
     const result = ReportNarrativeSchema.safeParse(FAKE_NARRATIVE);
     expect(result.success).toBe(true);
   });
 
-  it('returns the narrative + emits progress events for each section', async () => {
+  it('returns the narrative + emits at least one progress event', async () => {
+    vi.mocked(runAiObject).mockResolvedValue(FAKE_NARRATIVE);
+
     const progressCalls: Array<{ sub_phase: string | null }> = [];
-    // Stub the streamObject call by intercepting the provider hook.
-    const provider = {
-      streamObjectMock: vi.fn().mockResolvedValue({
-        object: Promise.resolve(FAKE_NARRATIVE),
-        partialObjectStream: (async function* () {
-          yield { boundary_description: '...' };
-          yield { boundary_description: '...full...', reporting_boundary_description: '...' };
-          yield { reporting_boundary_description: '...full...', methodology_description: '...' };
-          yield { methodology_description: '...full...', emissions_summary: '...' };
-          yield { emissions_summary: '...full...', significant_changes: '...' };
-          yield { significant_changes: '...full...', notable_observations: '...' };
-          yield FAKE_NARRATIVE;
-        })(),
-      }),
-    };
     const narrative = await generateReportNarrative({
       data: fakeData(),
-      provider: {
-        kind: 'mock',
-        streamObject: provider.streamObjectMock,
-      } as never,
+      config: fakeConfig(),
+      credentials: fakeCredentials(),
       onProgress: (ev) => progressCalls.push({ sub_phase: ev.sub_phase }),
       abortSignal: new AbortController().signal,
     });
     expect(narrative).toEqual(FAKE_NARRATIVE);
-    // At least 5 sub-phase transitions seen.
-    const phases = progressCalls.map((c) => c.sub_phase);
-    expect(phases).toContain('boundary');
-    expect(phases).toContain('methodology');
-    expect(phases).toContain('emissions');
-    expect(phases).toContain('changes');
+    // We can no longer observe per-section progress (AiClient.generateObject
+    // is a single round-trip), but the helper must still emit at least one
+    // tick so the renderer's subscriber doesn't think the call stalled.
+    expect(progressCalls.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('throws LlmNarrativeCanceled when AbortSignal fires before completion', async () => {
+  it('forwards system + user prompt + schema to runAiObject', async () => {
+    vi.mocked(runAiObject).mockResolvedValue(FAKE_NARRATIVE);
+
+    await generateReportNarrative({
+      data: fakeData(),
+      config: fakeConfig(),
+      credentials: fakeCredentials(),
+      onProgress: () => {},
+      abortSignal: new AbortController().signal,
+    });
+
+    expect(runAiObject).toHaveBeenCalledTimes(1);
+    const call = vi.mocked(runAiObject).mock.calls[0];
+    expect(call?.[0]).toEqual(fakeConfig());
+    const args = call?.[2];
+    expect(args?.schema).toBe(ReportNarrativeSchema);
+    expect(args?.system).toContain('ISO 14064-1');
+    expect(args?.prompt).toContain('<inventory>');
+  });
+
+  it('throws LlmNarrativeCanceled when AbortSignal fires before the call', async () => {
     const controller = new AbortController();
     controller.abort();
-    const provider = {
-      streamObject: vi.fn().mockRejectedValue(new DOMException('aborted', 'AbortError')),
-    };
+    // runAiObject must not be reached — the pre-abort check throws first.
+    vi.mocked(runAiObject).mockRejectedValue(new Error('should not be called'));
+
     await expect(
       generateReportNarrative({
         data: fakeData(),
-        provider: provider as never,
+        config: fakeConfig(),
+        credentials: fakeCredentials(),
         onProgress: () => {},
         abortSignal: controller.signal,
       }),
-    ).rejects.toThrow(/canceled/i);
+    ).rejects.toBeInstanceOf(LlmNarrativeCanceled);
+    expect(runAiObject).not.toHaveBeenCalled();
+  });
+
+  it('translates AiSchemaMismatch into LlmNarrativeRefused', async () => {
+    vi.mocked(runAiObject).mockRejectedValue(
+      Object.assign(new Error('schema invalid: missing field foo'), {
+        _tag: 'AiSchemaMismatch',
+      }),
+    );
+
+    await expect(
+      generateReportNarrative({
+        data: fakeData(),
+        config: fakeConfig(),
+        credentials: fakeCredentials(),
+        onProgress: () => {},
+        abortSignal: new AbortController().signal,
+      }),
+    ).rejects.toBeInstanceOf(LlmNarrativeRefused);
   });
 });

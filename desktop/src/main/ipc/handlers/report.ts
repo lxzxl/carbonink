@@ -53,7 +53,8 @@ export function reportHandlers(ctx: IpcContext): {
         });
         const narrative = await generateReportNarrative({
           data,
-          provider: ctx.llmNarrativeProvider,
+          config: providerCfg.config,
+          credentials: ctx.credentialService,
           onProgress: (ev) => {
             ctx.pushEvent('report:progress', {
               report_id: input.report_id,

@@ -1,4 +1,7 @@
+import { runAiObject } from '@main/llm/run-ai.js';
+import type { CredentialService } from '@main/services/credential-service.js';
 import type { InventoryReportData } from '@main/services/report-data-service';
+import type { ProviderConfig } from '@shared/types.js';
 import { z } from 'zod';
 
 export const ReportNarrativeSchema = z.object({
@@ -24,24 +27,6 @@ export interface ReportNarrativeProgressEvent {
   sub_phase: ReportNarrativeSubPhase | null;
 }
 
-/**
- * The "provider" abstraction is intentionally narrow — it is whatever wraps
- * `streamObject` from AI SDK 6. In production it's bound by
- * `LlmClient.streamObjectFor('report-narrative')`; in tests we hand-roll a
- * shim that yields partial deltas.
- */
-export interface ReportNarrativeProvider {
-  streamObject: (args: {
-    schema: typeof ReportNarrativeSchema;
-    system: string;
-    user: string;
-    abortSignal: AbortSignal;
-  }) => Promise<{
-    object: Promise<ReportNarrative>;
-    partialObjectStream: AsyncIterable<Partial<ReportNarrative>>;
-  }>;
-}
-
 export class LlmNarrativeCanceled extends Error {
   readonly _tag = 'LlmNarrativeCanceled' as const;
   constructor() {
@@ -52,15 +37,6 @@ export class LlmNarrativeCanceled extends Error {
 export class LlmNarrativeRefused extends Error {
   readonly _tag = 'LlmNarrativeRefused' as const;
 }
-
-const FIELD_TO_SUBPHASE: Record<keyof ReportNarrative, ReportNarrativeSubPhase> = {
-  boundary_description: 'boundary',
-  reporting_boundary_description: 'reporting-boundary',
-  methodology_description: 'methodology',
-  emissions_summary: 'emissions',
-  significant_changes: 'changes',
-  notable_observations: 'observations',
-};
 
 function buildSystemPrompt(lang: 'zh-CN' | 'en'): string {
   if (lang === 'zh-CN') {
@@ -87,47 +63,98 @@ function buildUserMessage(data: InventoryReportData): string {
   return `<inventory>\n${JSON.stringify(data, null, 2)}\n</inventory>`;
 }
 
+/**
+ * Generate the 6-section ISO 14064-1 narrative for a report.
+ *
+ * Phase 1 of the pi-ai migration (Task 8): swapped from the old
+ * `streamObject`-based provider shim onto `runAiObject` — the same
+ * Promise-boundary helper used by extraction / ef-matcher /
+ * questionnaire services.
+ *
+ * Trade-offs vs the old streaming path:
+ *
+ * - **No mid-call partial events.** AiClient's `generateObject` is a
+ *   single round-trip — there's no `partialObjectStream` to walk for
+ *   per-section progress. The renderer's progress label stays on
+ *   "assembling" / "narrative" until the full payload returns and
+ *   then jumps to "finalizing". The renderer already tolerates
+ *   `sub_phase: null` (see `reports.$id.tsx` switch fallthrough);
+ *   we still call `onProgress` to honour the public shape but only
+ *   emit a single `{ sub_phase: null }` "we're working" tick.
+ *   Streaming UX is future work — see AiClient JSDoc.
+ *
+ * - **AbortSignal is only honoured pre-call.** `runAiObject` doesn't
+ *   thread an external abort into pi-ai's HTTP layer, so once the
+ *   model round-trip starts, clicking Cancel marks the controller as
+ *   aborted but the in-flight request runs to completion. The handler
+ *   still discards the result via the `controller.signal.aborted`
+ *   check after `generateReportNarrative` returns. We check
+ *   `abortSignal.aborted` at the top so a cancel that lands *before*
+ *   the LLM call still raises `LlmNarrativeCanceled` synchronously
+ *   (the test that pre-aborts the controller depends on this).
+ *
+ * - **Schema validation moves to AiClient.** Old code re-ran
+ *   `ReportNarrativeSchema.safeParse` after the stream completed
+ *   because `streamObject`'s `object` Promise was permissive. The new
+ *   path's `runAiObject({ schema })` enforces the schema via pi-ai's
+ *   tool-call envelope (see `ai-client.ts`); a mismatch surfaces as
+ *   `AiSchemaMismatch`, which we translate to `LlmNarrativeRefused`
+ *   to preserve the handler's existing branching.
+ */
 export async function generateReportNarrative(args: {
   data: InventoryReportData;
-  provider: ReportNarrativeProvider;
+  config: ProviderConfig;
+  credentials: CredentialService;
   onProgress: (ev: ReportNarrativeProgressEvent) => void;
   abortSignal: AbortSignal;
 }): Promise<ReportNarrative> {
-  const { data, provider, onProgress, abortSignal } = args;
+  const { data, config, credentials, onProgress, abortSignal } = args;
+
+  // Pre-call abort short-circuit. Once the LLM round-trip begins,
+  // cancellation no longer interrupts it (see JSDoc); checking here
+  // preserves the "abort before generate" path the existing tests
+  // exercise and matches the old streamObject behaviour for the
+  // already-aborted case.
+  if (abortSignal.aborted) {
+    throw new LlmNarrativeCanceled();
+  }
+
+  // The old streaming path emitted six sub-phase markers as the model
+  // filled each field. Without `partialObjectStream` we can't observe
+  // intermediate state — emit a single null-phase tick so callers that
+  // count progress events still see the "we have started" signal.
+  // The renderer treats null as "keep current label", which is fine
+  // because the handler emits `phase: 'narrative'` immediately before
+  // calling us.
+  onProgress({ sub_phase: null });
+
   try {
-    const { object, partialObjectStream } = await provider.streamObject({
+    const result = await runAiObject(config, credentials, {
       schema: ReportNarrativeSchema,
       system: buildSystemPrompt(data.language),
-      user: buildUserMessage(data),
-      abortSignal,
+      prompt: buildUserMessage(data),
     });
-
-    // Watch which key is currently filling.
-    const seen = new Set<keyof ReportNarrative>();
-    let lastEmitted: ReportNarrativeSubPhase | null = null;
-    for await (const partial of partialObjectStream) {
-      for (const k of Object.keys(partial) as Array<keyof ReportNarrative>) {
-        if (!seen.has(k)) {
-          seen.add(k);
-          const phase = FIELD_TO_SUBPHASE[k];
-          if (phase && phase !== lastEmitted) {
-            lastEmitted = phase;
-            onProgress({ sub_phase: phase });
-          }
-        }
-      }
+    // Post-call abort check. If the user clicked Cancel while the
+    // LLM round-trip was in flight, the abort didn't interrupt the
+    // request (see JSDoc) but we still honour the user's intent by
+    // discarding the result and surfacing the canonical cancel error.
+    if (abortSignal.aborted) {
+      throw new LlmNarrativeCanceled();
     }
-    const final = await object;
-    const parsed = ReportNarrativeSchema.safeParse(final);
-    if (!parsed.success) {
-      throw new LlmNarrativeRefused(
-        `LLM returned schema-invalid narrative: ${parsed.error.message}`,
-      );
-    }
-    return parsed.data;
+    return result;
   } catch (err) {
+    if (err instanceof LlmNarrativeCanceled) throw err;
     if (abortSignal.aborted) throw new LlmNarrativeCanceled();
     if ((err as Error)?.name === 'AbortError') throw new LlmNarrativeCanceled();
+    // pi-ai's tool-call envelope failed schema validation. Re-throw as
+    // `LlmNarrativeRefused` so the IPC handler's existing `_tag` switch
+    // ("Refused" branch) keeps working unchanged.
+    const tag = (err as { _tag?: string })?._tag;
+    if (tag === 'AiSchemaMismatch') {
+      throw new LlmNarrativeRefused(
+        `LLM returned schema-invalid narrative: ${(err as Error).message}`,
+      );
+    }
     throw err;
   }
 }
