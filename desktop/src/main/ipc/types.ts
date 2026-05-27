@@ -26,6 +26,7 @@ import type {
   Organization,
   OrganizationCreateInput,
   PresetSource,
+  ProviderCatalogModel,
   ProviderConfigV2,
   Question,
   Questionnaire,
@@ -197,6 +198,12 @@ export type IpcTypeMap = {
   }) => Promise<{ ok: true } | { ok: false; error: string }>;
   'settings:get-amap-key': () => string | null;
   'settings:set-amap-key': (input: { value: string }) => void;
+  // Item 3 Task 10c — pi-ai catalog read at runtime. `list-providers` is a
+  // zero-arg snapshot of pi-ai's `getProviders()`; `list-models(provider)`
+  // returns `[]` for unknown providers so the renderer can fall back to a
+  // free-form model input rather than getting stuck.
+  'settings:list-providers': () => string[];
+  'settings:list-models': (input: { provider: string }) => ProviderCatalogModel[];
 
   // document domain (Phase 1b — uploaded source files)
   // `document:upload` carries raw bytes as a `Uint8Array` so Electron's

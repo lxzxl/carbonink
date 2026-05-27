@@ -1,24 +1,28 @@
 import type { CredentialStore } from '@main/credentials/safe-storage.js';
 
 /**
- * Allowed key prefixes for `CredentialService.set` / `get` / `delete`.
+ * Allowlist rule for `CredentialService.set` / `get` / `delete`.
  *
- * Phase 1b only manages LLM provider API keys (`llm.{provider}.*`); any other
- * prefix is rejected up front. This is defense-in-depth: even if a future bug
- * lets the renderer feed an arbitrary `key` through IPC, the service refuses
- * anything outside this whitelist, so credentials can't be exfiltrated under
- * fake key names (e.g. `secret.token` masquerading as a setting).
+ * Keys MUST match `llm.{provider}.{slot}` where:
+ *   - `{provider}` is a non-empty slug (lowercase, digits, `-`).
+ *   - `{slot}` is a non-empty slug describing the credential kind
+ *     (e.g. `apikey`).
+ *
+ * This is defense-in-depth: even if a future bug lets the renderer feed an
+ * arbitrary `key` through IPC, the service refuses anything outside this
+ * shape, so credentials can't be exfiltrated under fake key names like
+ * `secret.token`.
+ *
+ * The rule is structural (not a static list of provider ids) because Item
+ * 3 Task 10c took the renderer off a hardcoded provider list and onto
+ * pi-ai's catalog (32+ providers including `azure-openai-responses`,
+ * `kimi-coding`, `moonshotai-cn`, …). Hand-maintaining a parallel
+ * allowlist here would re-introduce the drift bug class we just closed.
  */
-const ALLOWED_PREFIXES = [
-  'llm.openai.',
-  'llm.anthropic.',
-  'llm.azure.',
-  'llm.deepseek.',
-  'llm.openai-compat.',
-] as const;
+const ALLOWED_KEY_RE = /^llm\.[a-z0-9-]+\.[a-z0-9-]+$/;
 
 function assertAllowedKey(key: string): void {
-  if (!ALLOWED_PREFIXES.some((p) => key.startsWith(p))) {
+  if (!ALLOWED_KEY_RE.test(key)) {
     throw new Error('credential key not in allowlist');
   }
 }

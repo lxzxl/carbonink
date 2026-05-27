@@ -5,10 +5,10 @@ import { Label } from '@renderer/components/ui/label';
 import { settingsApi } from '@renderer/lib/api/settings';
 import { friendlyErrorDescription } from '@renderer/lib/error-message';
 import * as m from '@renderer/paraglide/messages';
-import type { ProviderConfigV2 } from '@shared/types';
+import type { ProviderCatalogModel, ProviderConfigV2 } from '@shared/types';
 import { useForm, useStore } from '@tanstack/react-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 /**
  * AI provider configuration section. Extracted from the monolithic
@@ -21,24 +21,28 @@ import { useEffect, useState } from 'react';
  *     only ever sees the mask (e.g. `sk-...abcd`).
  *
  * Wire shape (Item 3 Task 10b):
- *   The settings IPC channels now speak `ProviderConfigV2` — a flat
+ *   The settings IPC channels speak `ProviderConfigV2` — a flat
  *   `{provider, model, baseUrl?}` shape. The previous V1 discriminated
  *   union (with per-variant `apiKeyKeyref` / `resourceName` / `apiVersion`
  *   / `name` fields) is gone from the wire. `apiKeyKeyref` is derived
  *   deterministically on the main side from `provider`.
  *
- *   Azure UX choice: the form still asks for `resourceName` (familiar to
- *   existing Azure users) and composes it into V2's `baseUrl` as
- *   `https://{resourceName}.openai.azure.com` on submit. On load, an
- *   existing baseUrl is reverse-parsed back into the `resourceName` input.
- *   The previous `apiVersion` input is gone — pi-ai picks a default —
- *   and existing user-set apiVersion values are dropped by the V1→V2
- *   migration (acceptable: '2024-08-01-preview' was the only sensible
- *   value and pi-ai's default is current enough).
+ * Catalog source-of-truth (Item 3 Task 10c):
+ *   The provider + model dropdowns are populated from pi-ai's runtime
+ *   catalog via two new IPC channels (`settings:list-providers`,
+ *   `settings:list-models`) rather than hardcoded lists in this file.
+ *   The previous PROVIDER_OPTIONS / PROVIDER_DEFAULTS / PROVIDER_LABELS
+ *   tables drifted from pi-ai's actual catalog (smoke tests caught
+ *   `deepseek-chat` vs pi-ai's `deepseek-v4-pro`, `azure` vs
+ *   `azure-openai-responses`); pulling the lists at runtime closes that
+ *   drift class entirely.
  *
- *   openai-compat's V1 `name` (a display label) is dropped — V2 doesn't
- *   carry it. The list of providers shown to the user is unchanged; the
- *   only user-visible effect is that the "Provider name" field is gone.
+ *   The Azure-specific `resourceName` input + the openai-compat-specific
+ *   `baseUrl` input have collapsed into one universally-visible
+ *   "Override base URL (advanced)" field. Empty by default; users only
+ *   fill it for self-hosted gateways or Azure resource endpoints. pi-ai
+ *   carries the canonical baseUrl per model, so the override stays empty
+ *   for the common case.
  *
  * Replace-key flow:
  *   When a saved key exists we show "<mask> · Saved · [Replace]"
@@ -48,69 +52,60 @@ import { useEffect, useState } from 'react';
  *   user doesn't get "did Save succeed?" ambiguity when the key didn't
  *   change.
  *
+ * Unknown-provider state:
+ *   On load, if the saved provider id isn't in pi-ai's `getProviders()`
+ *   list — e.g. a legacy `'openai-compat'` row that didn't survive the
+ *   migration rename, or a typo from a hand-edited sqlite row — we show
+ *   an inline warning and force the user to pick a fresh provider before
+ *   saving. `migrateProviderConfig` returns null for these cases, but
+ *   defending in the UI keeps us robust to future provider retirements.
+ *
  * Form reactivity:
- *   `provider` is subscribed via useStore so sibling conditional fields
- *   (Azure resourceName, openai-compat baseUrl) re-render when the
- *   dropdown changes. <form.Field> only re-renders its owner.
+ *   `provider` is subscribed via useStore so the Model dropdown re-renders
+ *   when the provider changes. <form.Field> only re-renders its owner.
  */
 
 /**
- * The 5 providers exposed in the UI today. The wire format (V2) is open
- * to any pi-ai provider id; we keep the picker scoped to these 5 in
- * v1 so labels + defaults stay stable. v1.x expands to the full pi-ai
- * provider list (32+).
+ * Providers surfaced at the top of the Provider dropdown. Everything else
+ * sorts alphabetically below. We curate this list (rather than letting
+ * popularity bubble up automatically) so the picker has a predictable
+ * default ordering — newer users without a strong preference get
+ * recommended options first; advanced users still see every pi-ai
+ * provider further down.
  */
-const PROVIDER_OPTIONS = ['openai', 'anthropic', 'azure', 'deepseek', 'openai-compat'] as const;
-type ProviderOption = (typeof PROVIDER_OPTIONS)[number];
+const RECOMMENDED_PROVIDERS: ReadonlySet<string> = new Set([
+  'deepseek',
+  'anthropic',
+  'openai',
+  'kimi-coding',
+  'moonshotai-cn',
+]);
 
-// Model IDs MUST match pi-ai's catalog (run `getModels(provider)` to verify).
-// pi-ai's `deepseek` provider only exposes `deepseek-v4-flash` and
-// `deepseek-v4-pro` — there is no `deepseek-chat` (that name belongs to
-// DeepSeek's own API; pi-ai renames). Same care needed for any provider
-// whose model IDs we hard-code here. See pi-ai's models.generated.d.ts.
-const PROVIDER_DEFAULTS: Record<ProviderOption, { model: string }> = {
-  openai: { model: 'gpt-4o-mini' },
-  anthropic: { model: 'claude-sonnet-4-5' },
-  azure: { model: 'gpt-4o' },
-  deepseek: { model: 'deepseek-v4-pro' },
-  'openai-compat': { model: 'gpt-4o-mini' },
-};
-
-const PROVIDER_LABELS: Record<ProviderOption, () => string> = {
-  openai: m.settings_provider_openai,
-  anthropic: m.settings_provider_anthropic,
-  azure: m.settings_provider_azure,
-  deepseek: m.settings_provider_deepseek,
-  'openai-compat': m.settings_provider_openai_compat,
-};
-
-/**
- * Parse a stored Azure baseUrl back into the resourceName the user
- * originally typed. Mirrors the compose direction below — if either drifts
- * the migration round-trip breaks. The pattern is what the V1→V2
- * migration in settings-service produces, so it's safe to anchor on.
- */
-function extractAzureResourceName(baseUrl: string | undefined): string {
-  if (!baseUrl) return '';
-  const match = baseUrl.match(/^https:\/\/([^.]+)\.openai\.azure\.com/);
-  return match?.[1] ?? '';
+function sortProviders(ids: ReadonlyArray<string>): string[] {
+  // Stable two-bucket sort: recommended (in RECOMMENDED_PROVIDERS-declaration
+  // order — we walk that set instead of relying on insertion order through
+  // sort comparators, which would otherwise scramble the recommended order
+  // alphabetically when more than one recommended id is present).
+  const recommended: string[] = [];
+  for (const id of RECOMMENDED_PROVIDERS) {
+    if (ids.includes(id)) recommended.push(id);
+  }
+  const rest = ids.filter((id) => !RECOMMENDED_PROVIDERS.has(id)).sort();
+  return [...recommended, ...rest];
 }
 
 type SettingsFormValues = {
-  provider: ProviderOption;
+  provider: string;
   model: string;
   apiKey: string;
-  /** Azure-only — composed into baseUrl on submit. */
-  resourceName: string;
-  /** openai-compat-only — submitted verbatim as baseUrl. */
+  /** Optional base-URL override — empty unless user runs a self-hosted gateway or Azure resource. */
   baseUrl: string;
 };
 
 const EMPTY_VALUES: SettingsFormValues = {
-  provider: 'openai',
-  model: PROVIDER_DEFAULTS.openai.model,
+  provider: '',
+  model: '',
   apiKey: '',
-  resourceName: '',
   baseUrl: '',
 };
 
@@ -121,33 +116,29 @@ const EMPTY_VALUES: SettingsFormValues = {
  * so the call sites don't have to repeat it.
  */
 function buildProviderConfigV2(v: SettingsFormValues): ProviderConfigV2 | null {
+  const provider = v.provider.trim();
   const model = v.model.trim();
-  if (!model) return null;
-  const provider = v.provider;
+  if (!provider || !model) return null;
+  const baseUrl = v.baseUrl.trim();
+  return {
+    provider,
+    model,
+    ...(baseUrl ? { baseUrl } : {}),
+  };
+}
 
-  switch (provider) {
-    case 'openai':
-    case 'anthropic':
-    case 'deepseek':
-      return { provider, model };
-    case 'azure': {
-      const resourceName = v.resourceName.trim();
-      if (!resourceName) return null;
-      // The shape of this URL is load-bearing: the read-back path in
-      // `extractAzureResourceName` regexes for `<name>.openai.azure.com`.
-      // Don't change one without the other.
-      return {
-        provider,
-        model,
-        baseUrl: `https://${resourceName}.openai.azure.com`,
-      };
-    }
-    case 'openai-compat': {
-      const baseUrl = v.baseUrl.trim();
-      if (!baseUrl) return null;
-      return { provider, model, baseUrl };
-    }
-  }
+/**
+ * Render a one-line label for a model option: prefers the human `name`
+ * (e.g. "DeepSeek V4 Pro"), falls back to the raw id when the catalog
+ * doesn't carry one. Capability badges (image, reasoning) trail the
+ * label so they're discoverable at a glance without a tooltip.
+ */
+function renderModelLabel(model: ProviderCatalogModel): string {
+  const base = model.name && model.name !== model.id ? `${model.id} · ${model.name}` : model.id;
+  const badges: string[] = [];
+  if (model.input.includes('image')) badges.push('image');
+  if (model.reasoning) badges.push('reasoning');
+  return badges.length > 0 ? `${base} (${badges.join(', ')})` : base;
 }
 
 export function AIProviderSection() {
@@ -156,6 +147,14 @@ export function AIProviderSection() {
   const existingQuery = useQuery({
     queryKey: ['settings:get-provider'],
     queryFn: settingsApi.getProvider,
+  });
+
+  const providersQuery = useQuery({
+    queryKey: ['settings:list-providers'],
+    queryFn: settingsApi.listProviders,
+    // pi-ai's catalog is bundled (not network-fetched); it cannot change
+    // within a session, so we never refetch.
+    staleTime: Number.POSITIVE_INFINITY,
   });
 
   const [isEditingKey, setIsEditingKey] = useState(false);
@@ -177,7 +176,7 @@ export function AIProviderSection() {
       const config = buildProviderConfigV2(value);
       if (!config) {
         toast.error(m.settings_save_failed(), {
-          description: 'Please fill in all required fields for the chosen provider.',
+          description: 'Please pick a provider and a model.',
         });
         return;
       }
@@ -191,29 +190,40 @@ export function AIProviderSection() {
     },
   });
 
+  const provider = useStore(form.store, (s) => s.values.provider);
+  const apiKeyValue = useStore(form.store, (s) => s.values.apiKey);
+  const modelValue = useStore(form.store, (s) => s.values.model);
+
+  const sortedProviders = useMemo(
+    () => (providersQuery.data ? sortProviders(providersQuery.data) : []),
+    [providersQuery.data],
+  );
+
+  const knownProviders = providersQuery.data ?? [];
+  const hasUnknownProvider = provider !== '' && !knownProviders.includes(provider);
+
+  const modelsQuery = useQuery({
+    queryKey: ['settings:list-models', provider],
+    queryFn: () => settingsApi.listModels(provider),
+    // Only ask for models once the provider is known to pi-ai. Asking for an
+    // unknown provider would return [] anyway, but skipping the IPC keeps the
+    // network panel clean and avoids confusing the loading state.
+    enabled: provider !== '' && !hasUnknownProvider,
+    staleTime: Number.POSITIVE_INFINITY,
+  });
+
   // Hydrate from existing saved config when the query resolves. V2-shaped:
-  // azure stores its resource encoded in `baseUrl`, so we reverse-parse on
-  // load; openai-compat carries `baseUrl` verbatim.
+  // any provider id pi-ai accepts is allowed; baseUrl (if non-empty) flows
+  // straight into the optional override field. Legacy ids that no longer
+  // match pi-ai's catalog (rare — `migrateProviderConfig` rescues the
+  // common ones) land in `hasUnknownProvider` and surface a warning.
   // biome-ignore lint/correctness/useExhaustiveDependencies: form is stable; including it would refire on every re-render and clobber user edits.
   useEffect(() => {
     const existing = existingQuery.data;
     if (!existing) return;
-    // Defensive: only hydrate `provider` if the saved value is one of the
-    // 5 we render. pi-ai providers outside this set (kimi-coding, qwen,
-    // zhipu, …) can land here once v1.x adds them to the picker; until
-    // then we fall back to 'openai' to keep the form usable.
-    const provider: ProviderOption = (PROVIDER_OPTIONS as readonly string[]).includes(
-      existing.provider,
-    )
-      ? (existing.provider as ProviderOption)
-      : 'openai';
-    form.setFieldValue('provider', provider);
+    form.setFieldValue('provider', existing.provider);
     form.setFieldValue('model', existing.model);
-    if (provider === 'azure') {
-      form.setFieldValue('resourceName', extractAzureResourceName(existing.baseUrl));
-    } else if (provider === 'openai-compat') {
-      form.setFieldValue('baseUrl', existing.baseUrl ?? '');
-    }
+    form.setFieldValue('baseUrl', existing.baseUrl ?? '');
     form.setFieldValue('apiKey', '');
     setIsEditingKey(false);
   }, [existingQuery.data]);
@@ -233,26 +243,38 @@ export function AIProviderSection() {
     },
   });
 
-  const provider = useStore(form.store, (s) => s.values.provider);
-  const apiKeyValue = useStore(form.store, (s) => s.values.apiKey);
-  const modelValue = useStore(form.store, (s) => s.values.model);
-  const resourceNameValue = useStore(form.store, (s) => s.values.resourceName);
-  const baseUrlValue = useStore(form.store, (s) => s.values.baseUrl);
-
   const savedMask = existingQuery.data?.apiKeyMasked ?? null;
   const hasSavedKey = savedMask != null;
 
-  const handleProviderChange = (next: ProviderOption) => {
+  const handleProviderChange = (next: string) => {
     form.setFieldValue('provider', next);
-    form.setFieldValue('model', PROVIDER_DEFAULTS[next].model);
+    // Reset model + baseUrl when the provider changes — the previous
+    // selections are almost never valid against a different provider's
+    // catalog. The new model defaults are set in the modelsQuery effect
+    // below when its data arrives.
+    form.setFieldValue('model', '');
+    form.setFieldValue('baseUrl', '');
   };
+
+  // When the model catalog for the selected provider arrives, default to
+  // the first model unless the form already has a value (preserves the
+  // user's choice when they switch providers and come back).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: form is stable; we explicitly only run when models data flips.
+  useEffect(() => {
+    const models = modelsQuery.data;
+    if (!models || models.length === 0) return;
+    const current = form.state.values.model;
+    const stillValid = models.some((m) => m.id === current);
+    if (stillValid) return;
+    form.setFieldValue('model', models[0]?.id ?? '');
+  }, [modelsQuery.data]);
 
   const handleTest = () => {
     const values = form.state.values;
     const config = buildProviderConfigV2(values);
     if (!config) {
       toast.error(m.settings_test_failed(), {
-        description: 'Please fill in all required fields first.',
+        description: 'Please pick a provider and a model first.',
       });
       return;
     }
@@ -272,12 +294,18 @@ export function AIProviderSection() {
 
   const canSave = (() => {
     if (saveMutation.isPending) return false;
+    if (!provider.trim()) return false;
     if (!modelValue.trim()) return false;
     if (!apiKeyValue.trim()) return false;
-    if (provider === 'azure' && !resourceNameValue.trim()) return false;
-    if (provider === 'openai-compat' && !baseUrlValue.trim()) return false;
     return true;
   })();
+
+  // The model catalog drives the dropdown vs. text-input choice: pi-ai
+  // returned models → render a <select>; empty → fall back to a free-form
+  // <Input> so the user can type an id we don't yet know about (or escape
+  // a transient catalog read failure).
+  const modelsCatalog = modelsQuery.data ?? [];
+  const useModelDropdown = !hasUnknownProvider && modelsCatalog.length > 0;
 
   return (
     <form
@@ -291,19 +319,41 @@ export function AIProviderSection() {
         name="provider"
         children={(field) => (
           <div className="space-y-1">
-            <Label htmlFor="settings-provider">{m.settings_provider_label()}</Label>
+            <Label htmlFor="settings-provider">{m.settings_provider_picker_label()}</Label>
             <select
               id="settings-provider"
               value={field.state.value}
-              onChange={(e) => handleProviderChange(e.target.value as ProviderOption)}
+              onChange={(e) => handleProviderChange(e.target.value)}
               className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:border-ring"
             >
-              {PROVIDER_OPTIONS.map((p) => (
+              {/* Placeholder option only renders before a provider is chosen,
+                  so the dropdown isn't pre-filled with the alphabetically
+                  first id (which would mislead users into thinking they had
+                  configured something they hadn't). */}
+              {field.state.value === '' && (
+                <option value="" disabled>
+                  {m.settings_provider_picker_placeholder()}
+                </option>
+              )}
+              {sortedProviders.map((p) => (
                 <option key={p} value={p}>
-                  {PROVIDER_LABELS[p]()}
+                  {p}
                 </option>
               ))}
+              {/* If the saved provider id isn't in pi-ai's list, render it
+                  as a visible disabled option so the user sees what's there
+                  and can pick a replacement. */}
+              {hasUnknownProvider && (
+                <option key={provider} value={provider} disabled>
+                  {provider} (unknown)
+                </option>
+              )}
             </select>
+            {hasUnknownProvider && (
+              <p className="text-xs text-destructive">
+                {m.settings_provider_unknown_warning({ provider })}
+              </p>
+            )}
           </div>
         )}
       />
@@ -318,51 +368,6 @@ export function AIProviderSection() {
         </p>
       )}
 
-      {provider === 'azure' && (
-        <form.Field
-          name="resourceName"
-          validators={{
-            onChange: ({ value }) => (value.trim().length > 0 ? undefined : m.required_field()),
-          }}
-          children={(field) => (
-            <div className="space-y-1">
-              <Label htmlFor="settings-resource-name">{m.settings_resource_name_label()}</Label>
-              <Input
-                id="settings-resource-name"
-                value={field.state.value}
-                onChange={(e) => field.handleChange(e.target.value)}
-              />
-              {field.state.meta.errors[0] && (
-                <p className="text-xs text-destructive">{String(field.state.meta.errors[0])}</p>
-              )}
-            </div>
-          )}
-        />
-      )}
-
-      {provider === 'openai-compat' && (
-        <form.Field
-          name="baseUrl"
-          validators={{
-            onChange: ({ value }) => (value.trim().length > 0 ? undefined : m.required_field()),
-          }}
-          children={(field) => (
-            <div className="space-y-1">
-              <Label htmlFor="settings-base-url">{m.settings_base_url_label()}</Label>
-              <Input
-                id="settings-base-url"
-                value={field.state.value}
-                placeholder="https://api.example.com/v1"
-                onChange={(e) => field.handleChange(e.target.value)}
-              />
-              {field.state.meta.errors[0] && (
-                <p className="text-xs text-destructive">{String(field.state.meta.errors[0])}</p>
-              )}
-            </div>
-          )}
-        />
-      )}
-
       <form.Field
         name="model"
         validators={{
@@ -370,15 +375,57 @@ export function AIProviderSection() {
         }}
         children={(field) => (
           <div className="space-y-1">
-            <Label htmlFor="settings-model">{m.settings_model_label()}</Label>
-            <Input
-              id="settings-model"
-              value={field.state.value}
-              onChange={(e) => field.handleChange(e.target.value)}
-            />
+            <Label htmlFor="settings-model">{m.settings_provider_model_label()}</Label>
+            {useModelDropdown ? (
+              <select
+                id="settings-model"
+                value={field.state.value}
+                onChange={(e) => field.handleChange(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:border-ring"
+              >
+                {/* Render a placeholder when the form hasn't picked a model
+                    yet (initial render before the catalog effect runs). */}
+                {field.state.value === '' && (
+                  <option value="" disabled>
+                    {m.settings_provider_picker_placeholder()}
+                  </option>
+                )}
+                {modelsCatalog.map((model) => (
+                  <option key={model.id} value={model.id}>
+                    {renderModelLabel(model)}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <Input
+                id="settings-model"
+                value={field.state.value}
+                onChange={(e) => field.handleChange(e.target.value)}
+                placeholder={
+                  hasUnknownProvider ? 'pick a known provider above first' : 'gpt-4o-mini'
+                }
+              />
+            )}
             {field.state.meta.errors[0] && (
               <p className="text-xs text-destructive">{String(field.state.meta.errors[0])}</p>
             )}
+          </div>
+        )}
+      />
+
+      <form.Field
+        name="baseUrl"
+        children={(field) => (
+          <div className="space-y-1">
+            <Label htmlFor="settings-base-url">
+              {m.settings_provider_base_url_label_advanced()}
+            </Label>
+            <Input
+              id="settings-base-url"
+              value={field.state.value}
+              placeholder="https://api.example.com/v1"
+              onChange={(e) => field.handleChange(e.target.value)}
+            />
           </div>
         )}
       />

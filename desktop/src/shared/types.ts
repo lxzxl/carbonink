@@ -359,6 +359,45 @@ export function apiKeyKeyrefForProvider(provider: string): string {
 }
 
 // ---------------------------------------------------------------------------
+// Provider catalog (Item 3 Task 10c — runtime catalog from pi-ai)
+// ---------------------------------------------------------------------------
+//
+// The renderer no longer hardcodes provider/model lists. The main process
+// reads pi-ai's catalog at runtime via `getProviders()` / `getModels()` and
+// returns a JSON-friendly slice over IPC. Only a subset of pi-ai's `Model`
+// fields are forwarded — `compat`, `headers`, `thinkingLevelMap`, and the
+// `cacheRead`/`cacheWrite` cost fields are diagnostic for the runtime and
+// add no UI value.
+//
+// `api` is forwarded for the renderer's diagnostic surface but is not
+// user-shown. `input` covers the modalities the model accepts ('text',
+// 'image' — pi-ai may add 'audio' later; we keep the type narrow until that
+// happens to surface a TS error when it does).
+
+/**
+ * JSON-serializable slice of pi-ai's `Model<TApi>` shape, ferried over IPC
+ * to drive the renderer's Provider + Model pickers. Costs are USD per 1M
+ * tokens (matching pi-ai's `model.cost.{input,output}` semantics); both
+ * are 0 for free models.
+ */
+export interface ProviderCatalogModel {
+  id: string;
+  name: string;
+  /** pi-ai's API protocol slug — surfaced for power-user diagnostics. */
+  api: string;
+  /** Modalities the model accepts on input. Most are single-element ['text']. */
+  input: ('text' | 'image')[];
+  /** True if the model has a "thinking" / reasoning mode. */
+  reasoning: boolean;
+  /** USD per 1M input tokens. */
+  costInput: number;
+  /** USD per 1M output tokens. */
+  costOutput: number;
+  contextWindow: number;
+  maxTokens: number;
+}
+
+// ---------------------------------------------------------------------------
 // Document + Extraction (Phase 1b — AI extraction pipeline)
 // ---------------------------------------------------------------------------
 //

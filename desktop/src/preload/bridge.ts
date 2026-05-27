@@ -45,6 +45,8 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   'settings:ping-provider',
   'settings:get-amap-key',
   'settings:set-amap-key',
+  'settings:list-providers',
+  'settings:list-models',
   // document domain (Phase 1b — uploaded source files)
   'document:upload',
   'document:list',

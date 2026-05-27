@@ -1,4 +1,5 @@
 import { AiClientTag, buildAiClientLayer } from '@main/llm/ai-client.js';
+import { listModelsForProvider, listProviderIds } from '@main/llm/pi-catalog.js';
 import { providerConfigV2 } from '@shared/types.js';
 import { Effect } from 'effect';
 import { z } from 'zod';
@@ -28,6 +29,10 @@ const pingProviderInput = z.object({
 
 const setAmapKeyInput = z.object({
   value: z.string(),
+});
+
+const listModelsInput = z.object({
+  provider: z.string().min(1),
 });
 
 /**
@@ -98,6 +103,15 @@ export function settingsHandlers(ctx: IpcContext): {
     'settings:set-amap-key': (input) => {
       const parsed = setAmapKeyInput.parse(input);
       ctx.settingsService.setAmapKey(parsed.value);
+    },
+    // Item 3 Task 10c — runtime catalog channels. The renderer's Settings
+    // form populates its Provider + Model dropdowns from pi-ai's `getProviders`
+    // / `getModels` via these channels rather than hardcoded lists, so the
+    // UI never drifts from pi-ai's actual catalog.
+    'settings:list-providers': () => listProviderIds(),
+    'settings:list-models': (input) => {
+      const parsed = listModelsInput.parse(input);
+      return listModelsForProvider(parsed.provider);
     },
   };
 }

@@ -61,23 +61,43 @@ describe('CredentialService.set', () => {
   });
 
   it.each([
+    // The legacy hardcoded set still works…
     'llm.openai.apikey',
     'llm.anthropic.apikey',
     'llm.azure.apikey',
     'llm.deepseek.apikey',
     'llm.openai-compat.apikey',
-  ])('accepts allowlisted prefix %s', (key) => {
+    // …plus every pi-ai provider id we now accept structurally (Task 10c).
+    // The renderer's catalog drives provider ids at runtime, so the
+    // allowlist became a regex over `llm.{slug}.{slug}` instead of a
+    // static list. These are representative; the rule is structural.
+    'llm.azure-openai-responses.apikey',
+    'llm.kimi-coding.apikey',
+    'llm.moonshotai-cn.apikey',
+    'llm.cloudflare-workers-ai.apikey',
+  ])('accepts structurally-valid key %s', (key) => {
     const { service } = makeService();
     expect(() => service.set(key, 'sk-anything')).not.toThrow();
   });
 
   it.each([
+    // Wrong domain prefix.
     'random.token',
-    'llm.unknown.apikey',
     'oauth.google.token',
-    '',
     'sk-openai',
-  ])('rejects non-allowlisted key %s', (key) => {
+    '',
+    // Wrong shape — missing slot.
+    'llm.openai',
+    'llm.openai.',
+    'llm.openai..apikey',
+    // Wrong shape — extra segments.
+    'llm.openai.apikey.extra',
+    // Wrong shape — disallowed characters in the segments (uppercase, dot,
+    // path-traversal). The regex is `[a-z0-9-]+` to lock these out cheaply.
+    'llm.OpenAI.apikey',
+    'llm.foo/bar.apikey',
+    'llm.foo.bar.apikey',
+  ])('rejects structurally-invalid key %s', (key) => {
     const { service } = makeService();
     expect(() => service.set(key, 'sk-anything')).toThrow(/not in allowlist/);
   });

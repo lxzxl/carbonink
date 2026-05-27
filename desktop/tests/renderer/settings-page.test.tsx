@@ -7,6 +7,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // `vi.fn()` instances via the named imports below to set per-test return
 // values. Keeping the mocks at module level (rather than per-test
 // `vi.doMock`) matches the pattern used in `activities.test.tsx`.
+//
+// `listProviders` and `listModels` mirror the Task 10c runtime-catalog
+// channels — the renderer pulls both via TanStack Query on mount, so the
+// dropdown population path needs deterministic data here. We seed a small
+// stand-in catalog covering the providers used in the test scenarios
+// below (openai + anthropic + azure-openai-responses).
 vi.mock('@renderer/lib/api/settings', () => ({
   settingsApi: {
     available: vi.fn(),
@@ -16,6 +22,8 @@ vi.mock('@renderer/lib/api/settings', () => ({
     pingProvider: vi.fn(),
     getAmapKey: vi.fn(),
     setAmapKey: vi.fn(),
+    listProviders: vi.fn(),
+    listModels: vi.fn(),
   },
 }));
 
@@ -58,6 +66,42 @@ function gotoAiSection() {
   fireEvent.click(aiNav);
 }
 
+/**
+ * Stand-in catalog covering the providers we exercise in the tests below.
+ * The real pi-ai catalog is bigger; we keep this minimal so the dropdown
+ * options are predictable and the test focus stays on form behavior
+ * rather than catalog inventory.
+ */
+const TEST_PROVIDERS = ['openai', 'anthropic', 'azure-openai-responses'];
+
+const TEST_MODELS: Record<string, Array<{ id: string; name: string }>> = {
+  openai: [
+    { id: 'gpt-4o-mini', name: 'GPT-4o mini' },
+    { id: 'gpt-4o', name: 'GPT-4o' },
+  ],
+  anthropic: [{ id: 'claude-sonnet-4-5', name: 'Claude Sonnet 4.5' }],
+  'azure-openai-responses': [{ id: 'gpt-4o', name: 'GPT-4o (Azure)' }],
+};
+
+function mockModelCatalog() {
+  vi.mocked(settingsApi.listProviders).mockResolvedValue(TEST_PROVIDERS);
+  vi.mocked(settingsApi.listModels).mockImplementation((provider: string) =>
+    Promise.resolve(
+      (TEST_MODELS[provider] ?? []).map((m) => ({
+        id: m.id,
+        name: m.name,
+        api: 'openai-completions',
+        input: ['text'],
+        reasoning: false,
+        costInput: 0,
+        costOutput: 0,
+        contextWindow: 8192,
+        maxTokens: 4096,
+      })),
+    ),
+  );
+}
+
 describe('SettingsPage', () => {
   beforeEach(() => {
     vi.mocked(settingsApi.getProvider).mockResolvedValue(null);
@@ -65,6 +109,7 @@ describe('SettingsPage', () => {
     vi.mocked(settingsApi.pingProvider).mockResolvedValue({ ok: true });
     vi.mocked(settingsApi.getAmapKey).mockResolvedValue(null);
     vi.mocked(settingsApi.setAmapKey).mockResolvedValue(undefined);
+    mockModelCatalog();
   });
 
   afterEach(() => {
@@ -72,45 +117,53 @@ describe('SettingsPage', () => {
     vi.clearAllMocks();
   });
 
-  it('renders with default values (provider=openai, model=gpt-4o-mini, empty key)', async () => {
+  it('renders empty form when no config is saved; provider picker lists pi-ai providers', async () => {
+    // No saved config + Task 10c removed hardcoded `openai` defaults, so the
+    // form mounts empty and waits for the user to pick a provider. The
+    // picker is populated via the `settings:list-providers` IPC channel.
     render(harness(<SettingsPage />));
     gotoAiSection();
 
-    // Wait for the getProvider query to settle (it resolves to null so no
-    // hydration happens; we still want to be past the initial paint).
+    // Wait for the catalog query to resolve AND the options to appear in
+    // the DOM — `waitFor` re-evaluates the dropdown contents each tick so
+    // we don't race the React reconciler.
     await waitFor(() => {
-      expect(settingsApi.getProvider).toHaveBeenCalled();
+      const providerSelect = screen.getByLabelText(/Provider/i) as HTMLSelectElement;
+      const optionValues = Array.from(providerSelect.options).map((o) => o.value);
+      // The catalog options are rendered as <option> children. We assert
+      // representative providers — sorting is exercised by a dedicated case.
+      expect(optionValues).toContain('openai');
+      expect(optionValues).toContain('anthropic');
+      expect(optionValues).toContain('azure-openai-responses');
     });
 
-    const providerSelect = screen.getByLabelText(/AI provider/i) as HTMLSelectElement;
-    expect(providerSelect.value).toBe('openai');
-
-    const modelInput = screen.getByLabelText(/^Model$/i) as HTMLInputElement;
-    expect(modelInput.value).toBe('gpt-4o-mini');
+    const providerSelect = screen.getByLabelText(/Provider/i) as HTMLSelectElement;
+    expect(providerSelect.value).toBe('');
 
     const apiKey = screen.getByLabelText(/API key/i) as HTMLInputElement;
     expect(apiKey.value).toBe('');
     expect(apiKey.type).toBe('password');
   });
 
-  it('switching provider to Azure reveals resourceName field; switching back hides it', async () => {
+  it('selecting a provider populates the Model dropdown from pi-ai and defaults to the first model', async () => {
     render(harness(<SettingsPage />));
     gotoAiSection();
 
-    await waitFor(() => expect(settingsApi.getProvider).toHaveBeenCalled());
-
-    expect(screen.queryByLabelText(/Azure resource name/i)).toBeNull();
-
-    fireEvent.change(screen.getByLabelText(/AI provider/i), { target: { value: 'azure' } });
-
+    // Wait for the catalog to land in the DOM before driving the change.
     await waitFor(() => {
-      expect(screen.getByLabelText(/Azure resource name/i)).toBeTruthy();
+      const providerSelect = screen.getByLabelText(/Provider/i) as HTMLSelectElement;
+      expect(Array.from(providerSelect.options).map((o) => o.value)).toContain('openai');
     });
 
-    fireEvent.change(screen.getByLabelText(/AI provider/i), { target: { value: 'openai' } });
+    fireEvent.change(screen.getByLabelText(/Provider/i), { target: { value: 'openai' } });
 
+    // The renderer fetches the model list for the selected provider and
+    // defaults to the first id; `gpt-4o-mini` leads our stand-in catalog
+    // for openai so it should land selected.
     await waitFor(() => {
-      expect(screen.queryByLabelText(/Azure resource name/i)).toBeNull();
+      expect(settingsApi.listModels).toHaveBeenCalledWith('openai');
+      const modelSelect = screen.getByLabelText(/^Model$/i) as HTMLSelectElement;
+      expect(modelSelect.value).toBe('gpt-4o-mini');
     });
   });
 
@@ -158,13 +211,29 @@ describe('SettingsPage', () => {
     expect(screen.queryByText('sk-...abcd')).toBeNull();
   });
 
-  it('Save submits the expected payload to settingsApi.saveProvider', async () => {
+  it('Save submits the dynamic provider+model selection to settingsApi.saveProvider', async () => {
     render(harness(<SettingsPage />));
     gotoAiSection();
 
-    await waitFor(() => expect(settingsApi.getProvider).toHaveBeenCalled());
+    // Wait for the provider catalog to populate the dropdown before driving
+    // the change events. Without this, the next fireEvent races the query
+    // resolution and selects on a yet-empty <select>.
+    await waitFor(() => {
+      const providerSelect = screen.getByLabelText(/Provider/i) as HTMLSelectElement;
+      expect(Array.from(providerSelect.options).map((o) => o.value)).toContain('openai');
+    });
 
-    // Type a key — provider defaults to openai, model=gpt-4o-mini.
+    // Drive the dropdowns the way the user would: pick provider, then
+    // confirm the model default lands, then enter an API key. Without
+    // hardcoded defaults, the form requires both selections before Save
+    // is enabled — Task 10c moved provider/model defaults out of this
+    // component and onto pi-ai's runtime catalog.
+    fireEvent.change(screen.getByLabelText(/Provider/i), { target: { value: 'openai' } });
+    await waitFor(() => {
+      const modelSelect = screen.getByLabelText(/^Model$/i) as HTMLSelectElement;
+      expect(modelSelect.value).toBe('gpt-4o-mini');
+    });
+
     fireEvent.change(screen.getByLabelText(/API key/i), {
       target: { value: 'sk-test-key' },
     });
@@ -174,7 +243,6 @@ describe('SettingsPage', () => {
     await waitFor(() => {
       expect(settingsApi.saveProvider).toHaveBeenCalledTimes(1);
     });
-    // V2 wire shape — no apiKeyKeyref on the renderer→main payload.
     expect(vi.mocked(settingsApi.saveProvider).mock.calls[0]?.[0]).toEqual({
       config: {
         provider: 'openai',

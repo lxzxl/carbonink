@@ -246,4 +246,80 @@ describe('settings IPC handlers', () => {
     const result = await handlers['settings:ping-provider']?.({ config });
     expect(result).toEqual({ ok: false, error: 'provider_error: unknown' });
   });
+
+  // Item 3 Task 10c — runtime catalog channels. The handlers delegate to
+  // pi-catalog.ts which wraps pi-ai's `getProviders` / `getModels`. We
+  // exercise the real catalog here (rather than mocking it) because the
+  // pi-ai dependency is bundled at build time — the catalog is a constant
+  // and the test asserts on stable invariants (deepseek + openai are
+  // always present; deepseek has at least one model).
+  it('settings:list-providers returns pi-ai providers including deepseek and openai', () => {
+    const providers = handlers['settings:list-providers']?.() ?? [];
+    expect(Array.isArray(providers)).toBe(true);
+    expect(providers).toContain('deepseek');
+    expect(providers).toContain('openai');
+    expect(providers).toContain('anthropic');
+    // The previous V1 hardcoded id is NOT in pi-ai's catalog — sanity check
+    // that the smoke regression class is closed.
+    expect(providers).not.toContain('openai-compat');
+  });
+
+  it('settings:list-providers includes azure-openai-responses (V1 azure rename target)', () => {
+    const providers = handlers['settings:list-providers']?.() ?? [];
+    expect(providers).toContain('azure-openai-responses');
+    expect(providers).not.toContain('azure');
+  });
+
+  it('settings:list-models returns deepseek-v4-pro for the deepseek provider', () => {
+    const models = handlers['settings:list-models']?.({ provider: 'deepseek' }) ?? [];
+    const ids = models.map((m) => m.id);
+    expect(ids).toContain('deepseek-v4-pro');
+    expect(ids).toContain('deepseek-v4-flash');
+    // The legacy default surfaced by the V1 UI was `deepseek-chat`. pi-ai
+    // does not expose that id; the bug we just fixed depended on this fact.
+    expect(ids).not.toContain('deepseek-chat');
+  });
+
+  it('settings:list-models returns ProviderCatalogModel-shaped rows', () => {
+    const models = handlers['settings:list-models']?.({ provider: 'deepseek' }) ?? [];
+    expect(models.length).toBeGreaterThan(0);
+    const first = models[0];
+    if (!first) return;
+    expect(first).toMatchObject({
+      id: expect.any(String),
+      name: expect.any(String),
+      api: expect.any(String),
+      input: expect.any(Array),
+      reasoning: expect.any(Boolean),
+      costInput: expect.any(Number),
+      costOutput: expect.any(Number),
+      contextWindow: expect.any(Number),
+      maxTokens: expect.any(Number),
+    });
+    // Input modalities are constrained to the union the UI knows how to
+    // render — anything else from a future pi-ai version is filtered out
+    // by `listModelsForProvider`, not blindly forwarded.
+    for (const modality of first.input) {
+      expect(['text', 'image']).toContain(modality);
+    }
+  });
+
+  it('settings:list-models returns [] for an unknown provider rather than throwing', () => {
+    // The renderer surfaces this as an empty-catalog → free-form text input
+    // fallback, so the user can still type a model id even when pi-ai's
+    // `getModels` would have thrown for a stale post-migration string.
+    const models = handlers['settings:list-models']?.({
+      provider: 'totally-not-a-real-provider',
+    });
+    expect(models).toEqual([]);
+  });
+
+  it('settings:list-models rejects empty-string provider input (ZodError)', () => {
+    expect(() =>
+      handlers['settings:list-models']?.({
+        // biome-ignore lint/suspicious/noExplicitAny: testing invalid runtime input
+        provider: '' as any,
+      }),
+    ).toThrow(z.ZodError);
+  });
 });

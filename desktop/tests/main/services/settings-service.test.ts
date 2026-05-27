@@ -190,12 +190,12 @@ describe('SettingsService', () => {
     expect(db.prepare('SELECT COUNT(*) as c FROM setting').get()).toMatchObject({ c: 0 });
   });
 
-  it('readConfig migrates legacy azure V1 records on disk to V2 on read', () => {
-    // Old installs from before Task 10a persisted V1 rows. The on-read
-    // migration in `readConfig` upgrades them transparently; this test
-    // exercises that path by writing a V1 row directly. The reverse —
-    // azure resourceName composed into baseUrl — matches the migration
-    // contract documented in `migrateProviderConfig`.
+  it('readConfig migrates legacy azure V1 records on disk to V2 and renames provider id', () => {
+    // Old installs from before Task 10a persisted V1 rows; Task 10c added a
+    // provider-id rename so `azure` → pi-ai's `azure-openai-responses` on
+    // read. The on-read path also writes the migrated record back to disk
+    // and aliases the credential blob, so the user's saved API key carries
+    // through the rename without forcing them to re-enter it.
     const v1Azure = {
       provider: 'azure',
       model: 'gpt-4o',
@@ -203,8 +203,6 @@ describe('SettingsService', () => {
       resourceName: 'my-resource',
       apiVersion: '2024-08-01-preview',
     };
-    // Seed the legacy row + a matching credential so getMasked has
-    // something to return.
     db.prepare(`INSERT INTO setting (key, value, updated_at) VALUES (?, ?, ?)`).run(
       'llm.provider',
       JSON.stringify(v1Azure),
@@ -213,18 +211,33 @@ describe('SettingsService', () => {
     credentials.set('llm.azure.apikey', 'az-key');
 
     expect(service.getProviderConfig()).toEqual({
-      provider: 'azure',
+      provider: 'azure-openai-responses',
       model: 'gpt-4o',
       baseUrl: 'https://my-resource.openai.azure.com',
       apiKeyMasked: 'sk-...-key',
     });
     expect(service.getProviderConfigWithKey()).toEqual({
       config: {
-        provider: 'azure',
+        provider: 'azure-openai-responses',
         model: 'gpt-4o',
         baseUrl: 'https://my-resource.openai.azure.com',
       },
       apiKey: 'az-key',
     });
+    // The opportunistic write-back persisted the migrated record, so a
+    // fresh read takes the V2 fast path (no further migration triggers).
+    const row = db.prepare('SELECT value FROM setting WHERE key = ?').get('llm.provider') as {
+      value: string;
+    };
+    expect(JSON.parse(row.value)).toEqual({
+      provider: 'azure-openai-responses',
+      model: 'gpt-4o',
+      baseUrl: 'https://my-resource.openai.azure.com',
+    });
+    // Credential alias copies the apiKey to the new keyref but leaves the
+    // old blob in place — losing the credential mid-migration would be
+    // worse than a stale blob.
+    expect(credentials.get('llm.azure-openai-responses.apikey')).toBe('az-key');
+    expect(credentials.get('llm.azure.apikey')).toBe('az-key');
   });
 });
