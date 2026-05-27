@@ -1,5 +1,83 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { allowedChannels, allowedPushChannels, createBridge } from '@preload/bridge';
 import { describe, expect, it, vi } from 'vitest';
+
+/**
+ * Parse channel name literals out of an interface body declared in
+ * `desktop/src/main/ipc/types.ts`. The interface body shape is:
+ *
+ *     export interface IpcTypeMap {
+ *       'org:has-any': () => boolean;
+ *       'org:get-by-id': (input: { id: string }) => Organization | null;
+ *       // ...
+ *     }
+ *
+ * We need a regex that matches the outer interface's `{ ... }` block but
+ * stops at the matching closing brace (string types inside the interface
+ * may contain `{`/`}` — e.g. a return type `=> { ok: true }`). Easiest
+ * reliable approach: walk the file from the interface opener and track
+ * brace depth.
+ */
+function extractInterfaceChannelKeys(src: string, typeName: string): string[] {
+  // Accept either `export interface Name {` or `export type Name = {`.
+  const headerRe = new RegExp(
+    `export\\s+(?:interface\\s+${typeName}|type\\s+${typeName}\\s*=)\\s*\\{`,
+  );
+  const m = headerRe.exec(src);
+  if (!m) {
+    throw new Error(`Could not find 'export interface/type ${typeName} = {' in types.ts`);
+  }
+  const headerIdx = m.index;
+  const bodyStart = src.indexOf('{', headerIdx) + 1;
+  let depth = 1;
+  let i = bodyStart;
+  while (i < src.length && depth > 0) {
+    const ch = src[i];
+    if (ch === '{') depth += 1;
+    else if (ch === '}') depth -= 1;
+    if (depth === 0) break;
+    i += 1;
+  }
+  const body = src.slice(bodyStart, i);
+
+  // Channel property declarations are at the OUTER level of the body —
+  // i.e. depth-1 within `body`. Walk body again, only capturing
+  // `'channel:name':` at depth 0.
+  const keys: string[] = [];
+  let d = 0;
+  let j = 0;
+  const propRe = /'([a-z][a-z0-9_:-]+)'\s*:/y;
+  while (j < body.length) {
+    const ch = body[j];
+    if (ch === '{') {
+      d += 1;
+      j += 1;
+      continue;
+    }
+    if (ch === '}') {
+      d -= 1;
+      j += 1;
+      continue;
+    }
+    if (d === 0) {
+      propRe.lastIndex = j;
+      const m = propRe.exec(body);
+      if (m?.[1]) {
+        keys.push(m[1]);
+        j = propRe.lastIndex;
+        continue;
+      }
+    }
+    j += 1;
+  }
+  return keys;
+}
+
+// vitest's `import.meta.url` isn't a `file:` URL in all loader configs, so
+// we resolve via `process.cwd()` — vitest sets cwd to the package root
+// (`desktop/`) when invoked through `pnpm --filter carbonink test`.
+const TYPES_SRC = readFileSync(resolve(process.cwd(), 'src/main/ipc/types.ts'), 'utf8');
 
 describe('preload bridge', () => {
   it('forwards allowed channels to the underlying invoke', async () => {
@@ -27,145 +105,50 @@ describe('preload bridge', () => {
     expect(invoke).not.toHaveBeenCalled();
   });
 
-  it('allowlist covers exactly the channels registered in the main process', () => {
-    // If a new channel is added to IpcTypeMap, this test reminds the author to
-    // also register it here. We rely on an explicit list rather than codegen so
-    // adding a channel is a deliberate two-place change.
-    expect(allowedChannels).toEqual([
-      // organization domain
-      'org:has-any',
-      'org:get-current',
-      'org:get-by-id',
-      'org:create',
-      'org:list-sites',
-      'org:create-site',
-      'org:list-reporting-periods',
-      'org:create-reporting-period',
-      'org:complete-onboarding',
-      'org:update-reporting-profile',
-      'org:update-basic-info',
-      // ef-library domain
-      'ef:list',
-      'ef:get-by-pk',
-      'units:list',
-      // ef-matcher domain (Phase 1c)
-      'ef:recommend',
-      // emission-source domain
-      'source:create',
-      'source:get-by-id',
-      'source:list-by-site',
-      'source:list-by-org',
-      'source:list-by-org-with-stats',
-      'source:update',
-      'source:delete',
-      'source:list-presets',
-      'source:add-from-preset',
-      'source:add-from-presets',
-      // activity-data domain
-      'activity:create',
-      'activity:list-by-period',
-      'activity:totals-by-period',
-      'activity:get-by-id',
-      'activity:find-by-extraction',
-      'activity:rebind-ef',
-      // settings domain (Phase 1b)
-      'settings:available',
-      'settings:get-provider',
-      'settings:save-provider',
-      'settings:clear-provider',
-      'settings:ping-provider',
-      'settings:get-amap-key',
-      'settings:set-amap-key',
-      'settings:list-providers',
-      'settings:list-models',
-      // document domain (Phase 1b)
-      'document:upload',
-      'document:list',
-      'document:get-by-id',
-      'document:read-bytes',
-      // extraction domain (Phase 1b)
-      'extraction:classify-and-run',
-      'extraction:run',
-      'extraction:list-pending',
-      'extraction:list-by-document',
-      'extraction:list-statuses',
-      'extraction:get-by-id',
-      'extraction:confirm',
-      'extraction:discard',
-      // stages domain (Phase 1b)
-      'stages:list',
-      // questionnaire domain (Phase 2.2a)
-      'questionnaire:create',
-      'questionnaire:list',
-      'questionnaire:get-by-id',
-      'questionnaire:finalize',
-      'questionnaire:export-pdf',
-      // answer domain (Phase 2.2b)
-      'answer:export-to-xlsx',
-      'answer:generate',
-      'answer:save',
-      'answer:unfinalize',
-      'answer:list-by-questionnaire',
-      'answer:generate-all-unanswered',
-      // routing domain (Routing API)
-      'routing:lookup',
-      // mcp-integration domain (Settings → Integrations sub-page)
-      'mcp:detect',
-      'mcp:configure',
-      'mcp:remove',
-      'mcp:get-server-entry',
-      // Agent skill installer (v1.1 — Settings → Integrations step 1)
-      'skill:detect',
-      'skill:install',
-      'skill:update',
-      'skill:remove',
-      // report domain (Phase 3 — ISO 14064-1 inventory report)
-      'report:generate',
-      'report:cancel',
-      'report:export-pdf',
-      'report:export-xlsx',
-      // audit domain (Phase 3 sub-project 3 — audit_event log viewer)
-      'audit:list',
-      'audit:export-csv',
-      // license domain (Phase 4 sub-project A — Ed25519 JWT + state machine)
-      'license:get-state',
-      'license:set-jwt',
-      'license:activate-with-key',
-      'license:clear',
-      // updater domain (Phase 5 — auto-update via electron-updater)
-      'updater:get-status',
-      'updater:check',
-      'updater:install',
-      // app domain (Phase 5.1 — about info + open data directory)
-      'app:get-info',
-      'app:open-data-dir',
-      // Phase 5.3 — log dir + auto-backup dir
-      'app:open-log-dir',
-      'app:open-auto-backup-dir',
-      'app:get-auto-backup-enabled',
-      'app:set-auto-backup-enabled',
-      // Undo/Redo (post-launch)
-      'undo:peek',
-      'undo:do',
-      // data domain (Phase 5.2 — backup/restore/reset + cache cleanup)
-      'data:export-backup',
-      'data:import-backup',
-      'data:reset',
-      'cache:get-stats',
-      'cache:clear-extraction-raw',
-    ]);
+  it('allowlist covers every channel declared in IpcTypeMap', () => {
+    // Hand-duplicated lists rot (this test caught its own rot once — the
+    // v2.0 inbound channels landed in IpcTypeMap and the bridge allowlist
+    // but the test list never got the update, and so a renderer call to
+    // `supplier:create` exploded at runtime).
+    //
+    // Driving the check off types.ts means a single place (the interface)
+    // is the source of truth. Adding a channel to IpcTypeMap forces an
+    // allowlist update; renaming or removing one is caught the same way.
+    const declared = extractInterfaceChannelKeys(TYPES_SRC, 'IpcTypeMap');
+    expect(declared.length).toBeGreaterThan(50); // sanity: parser found things
+    // Treat allowedChannels as a plain string[] for inclusion checks —
+    // its typed `keyof IpcTypeMap` element type is too strict for the
+    // string keys we parsed out of source.
+    const allowedSet = new Set<string>(allowedChannels as readonly string[]);
+    const missing = declared.filter((k) => !allowedSet.has(k));
+    expect(missing).toEqual([]);
+  });
+
+  it('allowlist contains no duplicates', () => {
+    expect(new Set(allowedChannels).size).toBe(allowedChannels.length);
+  });
+
+  it('allowlist contains no stale entries (every channel still declared)', () => {
+    const declared = new Set(extractInterfaceChannelKeys(TYPES_SRC, 'IpcTypeMap'));
+    const stale = allowedChannels.filter((k) => !declared.has(k));
+    expect(stale).toEqual([]);
   });
 });
 
 describe('push allowlist', () => {
-  it('push allowlist covers exactly the registered push channels', () => {
-    expect(allowedPushChannels).toEqual([
-      'extraction:progress',
-      'report:progress',
-      'updater:status',
-      'menu:undo',
-      'menu:redo',
-    ]);
+  it('push allowlist covers every channel declared in IpcPushTypeMap', () => {
+    // Mirror of the IpcTypeMap coverage check, against the push type map.
+    const declared = extractInterfaceChannelKeys(TYPES_SRC, 'IpcPushTypeMap');
+    expect(declared.length).toBeGreaterThan(0);
+    const allowedSet = new Set<string>(allowedPushChannels as readonly string[]);
+    const missing = declared.filter((k) => !allowedSet.has(k));
+    expect(missing).toEqual([]);
+  });
+
+  it('push allowlist contains no stale entries', () => {
+    const declared = new Set(extractInterfaceChannelKeys(TYPES_SRC, 'IpcPushTypeMap'));
+    const stale = allowedPushChannels.filter((k) => !declared.has(k));
+    expect(stale).toEqual([]);
   });
 });
 
