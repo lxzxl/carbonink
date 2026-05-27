@@ -1,5 +1,10 @@
 import type { CredentialService } from '@main/services/credential-service.js';
-import { type ProviderConfig, providerConfig } from '@shared/types.js';
+import {
+  type ProviderConfig,
+  type ProviderConfigV2,
+  providerConfig,
+  providerConfigV2,
+} from '@shared/types.js';
 import type { ServiceContext } from './base.js';
 
 /**
@@ -160,4 +165,67 @@ export class SettingsService {
     // rest of the pipeline with an invalid `provider` discriminator.
     return providerConfig.parse(JSON.parse(row.value));
   }
+}
+
+/**
+ * Migrate a saved provider config from the v1 discriminated-union shape to
+ * the flat v2 shape consumed by pi-ai. Returns `null` when:
+ *   - `raw` is not a recognizable v1 or v2 shape (corrupted user data)
+ *   - any required field is missing
+ *
+ * The caller (settings-service read path) handles `null` by sending the user
+ * back to onboarding to re-pick a provider.
+ *
+ * Already-v2 input passes through unchanged.
+ */
+export function migrateProviderConfig(raw: unknown): ProviderConfigV2 | null {
+  if (raw === null || typeof raw !== 'object') return null;
+
+  const rec = raw as Record<string, unknown>;
+  const provider = typeof rec.provider === 'string' ? rec.provider : null;
+  const model = typeof rec.model === 'string' ? rec.model : null;
+  if (!provider || !model) return null;
+
+  // Detect v1 by the presence of any v1-only field that v2 never carries:
+  //   - `apiKeyKeyref` is on every v1 variant (literal)
+  //   - `resourceName` + `apiVersion` are azure-v1-only
+  //   - `name` is openai-compat-v1-only
+  // Branching on this first prevents v2's permissive schema from
+  // short-circuiting an incomplete v1 azure / openai-compat shape (which
+  // would otherwise look like a valid v2 record missing the baseUrl we
+  // should have derived).
+  const hasV1Marker =
+    typeof rec.apiKeyKeyref === 'string' ||
+    typeof rec.resourceName === 'string' ||
+    typeof rec.apiVersion === 'string' ||
+    (provider === 'openai-compat' && typeof rec.name === 'string');
+  if (hasV1Marker) {
+    switch (provider) {
+      case 'openai':
+      case 'anthropic':
+      case 'deepseek':
+        return { provider, model };
+      case 'azure': {
+        // Old shape: resourceName + apiVersion; pi-ai treats azure as a
+        // regular provider whose baseUrl encodes the resource. Reconstruct.
+        const resourceName = typeof rec.resourceName === 'string' ? rec.resourceName : null;
+        if (!resourceName) return null;
+        const baseUrl = `https://${resourceName}.openai.azure.com`;
+        return { provider: 'azure', model, baseUrl };
+      }
+      case 'openai-compat': {
+        const baseUrl = typeof rec.baseUrl === 'string' ? rec.baseUrl : null;
+        if (!baseUrl) return null;
+        return { provider: 'openai-compat', model, baseUrl };
+      }
+      default:
+        return null;
+    }
+  }
+
+  // Not v1 — try v2. Fast path for re-reads after the first migration write
+  // and for any already-flat input.
+  const v2Try = providerConfigV2.safeParse(raw);
+  if (v2Try.success) return v2Try.data;
+  return null;
 }

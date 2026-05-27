@@ -379,6 +379,32 @@ export type ProviderConfig = z.infer<typeof providerConfig>;
 export type ProviderKind = ProviderConfig['provider'];
 
 // ---------------------------------------------------------------------------
+// ProviderConfigV2 — pi-ai-shaped provider config (Item 3 Task 3)
+// ---------------------------------------------------------------------------
+//
+// The legacy `providerConfig` discriminated union locks us to 5 SDKs; pi-ai
+// supports 32+. v2 is a flat shape: provider name + model name + optional
+// baseUrl. apiKeyKeyref is derived from provider deterministically as
+// `'llm.' + provider + '.apikey'` (settings-service helper).
+//
+// v2 lives alongside v1 during Item 3 migration. Task 9 flips consumers from
+// v1 → v2; Task 11 deletes v1 and renames v2 → providerConfig (canonical).
+export const providerConfigV2 = z.object({
+  /** pi-ai provider id — free-form string. Common: deepseek / anthropic / openai / kimi-coding / qwen / zhipu / azure / ... */
+  provider: z.string().min(1),
+  /** Model id within the provider. */
+  model: z.string().min(1),
+  /** Override base URL — required for openai-compat-style providers + self-hosted. */
+  baseUrl: z.string().url().optional(),
+});
+export type ProviderConfigV2 = z.infer<typeof providerConfigV2>;
+
+/** Derive the keychain key for a provider's API key. Stable across providers. */
+export function apiKeyKeyrefForProvider(provider: string): string {
+  return `llm.${provider}.apikey`;
+}
+
+// ---------------------------------------------------------------------------
 // Document + Extraction (Phase 1b — AI extraction pipeline)
 // ---------------------------------------------------------------------------
 //
