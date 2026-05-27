@@ -94,6 +94,13 @@ export function inboundQuestionnaireHandlers(ctx: IpcContext): {
       }
     },
 
+    'questionnaire:inbound-get-preview': async (input) => {
+      const parsed = importInput.parse(input);
+      // Service method is synchronous (no file I/O), but we await
+      // through the same Promise-shaped IPC surface for uniformity.
+      return ctx.inboundQuestionnaireService.getIngestPreview(parsed.questionnaire_id);
+    },
+
     'questionnaire:inbound-ingest': async (input) => {
       const parsed = ingestInput.parse(input);
       // Service's ingest is synchronous — wrap so the IPC signature is

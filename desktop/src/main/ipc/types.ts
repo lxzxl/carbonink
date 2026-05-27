@@ -283,6 +283,13 @@ export type IpcTypeMap = {
     | { canceled: false; preview: import('@shared/types').ImportPreview }
     | { canceled: false; error: { _tag: string; message: string } }
   >;
+  // Re-read the preview from already-imported tentative answers (no
+  // file dialog). Lets the review page survive refresh / navigation —
+  // the user can leave + come back without re-uploading. Requires
+  // status='received'.
+  'questionnaire:inbound-get-preview': (input: {
+    questionnaire_id: string;
+  }) => Promise<import('@shared/types').ImportPreview>;
   'questionnaire:inbound-ingest': (input: {
     questionnaire_id: string;
     accepted_question_ids: string[];

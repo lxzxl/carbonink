@@ -22,6 +22,10 @@ export const inboundQuestionnaireApi = {
   importPreview: (input: { questionnaire_id: string }) =>
     invoke('questionnaire:inbound-import-preview', input),
 
+  /** Re-read preview from already-imported tentative answers (no file dialog). */
+  getPreview: (input: { questionnaire_id: string }) =>
+    invoke('questionnaire:inbound-get-preview', input),
+
   ingest: (input: {
     questionnaire_id: string;
     accepted_question_ids: string[];
