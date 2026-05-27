@@ -69,6 +69,14 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   'questionnaire:get-by-id',
   'questionnaire:finalize',
   'questionnaire:export-pdf',
+  // inbound questionnaire domain (v2.0 — supplier-disclosure Cat 1 round-trip)
+  'questionnaire:inbound-create-draft',
+  'questionnaire:inbound-export-xlsx',
+  'questionnaire:inbound-import-preview',
+  'questionnaire:inbound-get-preview',
+  'questionnaire:inbound-ingest',
+  'supplier:list',
+  'supplier:create',
   // answer domain (Phase 2.2b — auto-answer pipeline)
   'answer:export-to-xlsx',
   'answer:generate',
