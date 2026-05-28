@@ -156,6 +156,12 @@ export type ImportPreviewAnswer = {
   raw_value: string;
   parsed_value: number | string | null;
   is_blank: boolean;
+  /**
+   * Free-form note the supplier typed in the xlsx "备注 / Notes" column (C)
+   * alongside the answer. Empty string when none. Carried through review +
+   * ingest so caveats like "estimate" / "预估" aren't silently dropped.
+   */
+  note: string;
   proposed_activity: {
     amount: number;
     unit: string;

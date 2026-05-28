@@ -328,6 +328,13 @@ export interface ParsedXlsxAnswer {
   parsed_value: number | string | null;
   /** True when the cell was empty or contained only whitespace. */
   is_blank: boolean;
+  /**
+   * Free-form note from the same row's "备注 / Notes" column (C). Trimmed;
+   * empty string when the supplier left it blank. Independent of
+   * `is_blank` (which only reflects the answer cell B) — a supplier can
+   * leave the answer blank but still add a note, or vice versa.
+   */
+  note: string;
 }
 
 export interface ParseInboundXlsxResult {
@@ -433,16 +440,21 @@ export async function parseInboundXlsx(
         raw_value: '',
         parsed_value: null,
         is_blank: true,
+        note: '',
       });
       continue;
     }
     const cell = sheet.getCell(address);
     const { raw, parsed, isBlank, warning } = coerceCellByKind(cell.value, q);
+    // Notes live in column C of the same row (see render layout). Derive
+    // the address by swapping the answer cell's column for NOTES_COLUMN.
+    const note = readNoteCell(sheet, address);
     answers.push({
       position: q.position,
       raw_value: raw,
       parsed_value: parsed,
       is_blank: isBlank,
+      note,
     });
     if (warning) {
       warnings.push(warning);
@@ -471,6 +483,20 @@ export async function parseInboundXlsx(
 // ---------------------------------------------------------------------------
 // Parser helpers
 // ---------------------------------------------------------------------------
+
+/**
+ * Read the "备注 / Notes" cell (column C) sitting on the same row as a
+ * given answer cell address (e.g. answer at `B5` → note at `C5`). Returns
+ * the trimmed string, or '' when the note cell is blank / the address is
+ * malformed. The answer column is always B in our render layout, so we
+ * just reuse the row number and the NOTES_COLUMN constant.
+ */
+function readNoteCell(sheet: ExcelJS.Worksheet, answerAddress: string): string {
+  const m = answerAddress.match(/\d+$/);
+  if (!m) return '';
+  const noteCell = sheet.getCell(`${NOTES_COLUMN}${m[0]}`);
+  return cellToString(noteCell.value).trim();
+}
 
 /**
  * Read column B of a given row from the sentinel sheet. ExcelJS exposes

@@ -108,9 +108,9 @@ function InboundDetailBody({
     enabled: showAnswers,
   });
   const answersByQuestionId = useMemo(() => {
-    const m = new Map<string, { value: string; unit: string | null }>();
+    const m = new Map<string, { value: string; unit: string | null; note: string }>();
     for (const a of answersQuery.data ?? []) {
-      m.set(a.question_id, { value: a.value, unit: a.unit });
+      m.set(a.question_id, { value: a.value, unit: a.unit, note: parseNote(a.source_summary) });
     }
     return m;
   }, [answersQuery.data]);
@@ -216,6 +216,21 @@ function InboundDetailBody({
       </div>
     </div>
   );
+}
+
+/**
+ * Pull the supplier's note out of an inbound answer's `source_summary`
+ * JSON (`{source, tier, position, note?}`). Returns '' on null / invalid
+ * JSON / absent note — the echo just shows no note in that case.
+ */
+function parseNote(sourceSummary: string | null): string {
+  if (!sourceSummary) return '';
+  try {
+    const parsed = JSON.parse(sourceSummary) as { note?: unknown };
+    return typeof parsed.note === 'string' ? parsed.note : '';
+  } catch {
+    return '';
+  }
 }
 
 function statusLabel(status: string): string {

@@ -330,6 +330,9 @@ function AnswerRow({
           {answer.raw_value !== '' && answer.raw_value !== String(answer.parsed_value) && (
             <p className="text-xs text-muted-foreground">原始: {answer.raw_value}</p>
           )}
+          {answer.note.trim() !== '' && (
+            <p className="text-xs text-muted-foreground">备注: {answer.note}</p>
+          )}
         </div>
         <div className="text-xs text-muted-foreground">
           {answer.proposed_activity ? (

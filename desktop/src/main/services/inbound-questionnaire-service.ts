@@ -350,7 +350,7 @@ export class InboundQuestionnaireService {
     // Reconstruct ParsedXlsxAnswer[] from the tentative rows on disk.
     const tentativeRows = this.deps.db
       .prepare(
-        `SELECT q.position, q.tier, q.question_kind, a.value, a.unit
+        `SELECT q.position, q.tier, q.question_kind, a.value, a.unit, a.source_summary
            FROM answer a
            JOIN question q ON q.id = a.question_id
           WHERE q.questionnaire_id = ?
@@ -363,14 +363,16 @@ export class InboundQuestionnaireService {
       question_kind: 'numerical' | 'categorical' | 'narrative';
       value: string;
       unit: string | null;
+      source_summary: string | null;
     }>;
 
     const byPosition = new Map(tentativeRows.map((r) => [r.position, r]));
 
     const answers: ParsedXlsxAnswer[] = ctx.template.questions.map((q) => {
       const row = byPosition.get(q.position);
+      const note = row ? extractNoteFromSourceSummary(row.source_summary) : '';
       if (!row || row.value === '') {
-        return { position: q.position, raw_value: '', parsed_value: null, is_blank: true };
+        return { position: q.position, raw_value: '', parsed_value: null, is_blank: true, note };
       }
       if (q.kind === 'numerical') {
         const n = Number.parseFloat(row.value);
@@ -379,6 +381,7 @@ export class InboundQuestionnaireService {
           raw_value: row.value,
           parsed_value: Number.isFinite(n) ? n : null,
           is_blank: false,
+          note,
         };
       }
       return {
@@ -386,6 +389,7 @@ export class InboundQuestionnaireService {
         raw_value: row.value,
         parsed_value: row.value,
         is_blank: false,
+        note,
       };
     });
 
@@ -492,7 +496,7 @@ export class InboundQuestionnaireService {
     const acceptedSet = new Set(input.accepted_question_ids);
     const tentative = this.deps.db
       .prepare(
-        `SELECT q.id as question_id, q.position, q.tier, q.question_kind, a.value
+        `SELECT q.id as question_id, q.position, q.tier, q.question_kind, a.value, a.source_summary
            FROM answer a JOIN question q ON q.id = a.question_id
           WHERE q.questionnaire_id = ?
             AND a.source_kind = 'manual'
@@ -504,6 +508,7 @@ export class InboundQuestionnaireService {
       tier: Tier | null;
       question_kind: 'numerical' | 'categorical' | 'narrative';
       value: string;
+      source_summary: string | null;
     }>;
     const acceptedRows = tentative.filter((t) => acceptedSet.has(t.question_id));
     const byPosition = new Map(acceptedRows.map((r) => [r.position, r]));
@@ -522,6 +527,7 @@ export class InboundQuestionnaireService {
     // --- Compute the activity_data amount + co2e ---------------------
     let amountCo2eKg: number;
     let chosenQuestionId: string;
+    let chosenNote = '';
     if (tierSelected === 1) {
       if (
         typeof input.tier1_purchased_quantity !== 'number' ||
@@ -535,6 +541,7 @@ export class InboundQuestionnaireService {
       if (!Number.isFinite(pcf)) throw new InboundQuantityRequired(input.questionnaire_id);
       amountCo2eKg = pcf * input.tier1_purchased_quantity;
       chosenQuestionId = tier1Row.question_id;
+      chosenNote = extractNoteFromSourceSummary(tier1Row.source_summary);
     } else {
       // Tier 2 — read from tier2.3 (attributed kgCO2e)
       const tier2_3 = byPosition.get('tier2.3');
@@ -543,11 +550,17 @@ export class InboundQuestionnaireService {
       if (!Number.isFinite(v)) throw new InboundQuantityRequired(input.questionnaire_id);
       amountCo2eKg = v;
       chosenQuestionId = tier2_3.question_id;
+      chosenNote = extractNoteFromSourceSummary(tier2_3.source_summary);
     }
 
     const nowFn = this.deps.now ?? (() => new Date().toISOString());
     const occurredAt = nowFn();
     const emissionSourceName = `${supplier.name} — purchased goods (${qn.reporting_year})`;
+    // Carry the supplier's note (e.g. "估算" / "third-party verified") into
+    // the activity row's notes so the caveat survives into the inventory
+    // audit trail, not just the questionnaire review.
+    const baseNote = `来自 ${supplier.name} 供应商问卷 (${qn.reporting_year})`;
+    const activityNotes = chosenNote !== '' ? `${baseNote}；供应商备注：${chosenNote}` : baseNote;
 
     let activityDataId = '';
     let emissionSourceId = '';
@@ -594,7 +607,7 @@ export class InboundQuestionnaireService {
           ef.dataset_version,
           amountCo2eKg, // direct mode: 1:1 with amount
           occurredAt,
-          `来自 ${supplier.name} 供应商问卷 (${qn.reporting_year})`,
+          activityNotes,
           occurredAt,
           occurredAt,
           chosenQuestionId,
@@ -710,7 +723,10 @@ export class InboundQuestionnaireService {
        VALUES (?, ?, ?, ?, 'manual', ?, NULL)`,
     );
     for (const ans of parsedAnswers) {
-      if (ans.is_blank) continue;
+      // Persist a row when the supplier filled the answer cell OR left a
+      // note. A note-only row (blank answer, non-empty note) still carries
+      // signal worth surfacing in review.
+      if (ans.is_blank && ans.note === '') continue;
       const q = questionsByPosition.get(ans.position);
       if (!q) continue;
       // `value` is NOT NULL; stringify whatever parsed_value we got.
@@ -725,7 +741,12 @@ export class InboundQuestionnaireService {
         q.id,
         value,
         q.expected_unit,
-        JSON.stringify({ source: 'inbound_questionnaire', tier: q.tier, position: ans.position }),
+        JSON.stringify({
+          source: 'inbound_questionnaire',
+          tier: q.tier,
+          position: ans.position,
+          ...(ans.note !== '' ? { note: ans.note } : {}),
+        }),
       );
     }
   }
@@ -759,6 +780,7 @@ export class InboundQuestionnaireService {
         raw_value: '',
         parsed_value: null as number | string | null,
         is_blank: true,
+        note: '',
       };
       const q = ctx.questionsByPosition.get(tq.position);
       const proposed = computeProposedActivity(tq, ans, tierSelected);
@@ -769,6 +791,7 @@ export class InboundQuestionnaireService {
         raw_value: ans.raw_value,
         parsed_value: ans.parsed_value,
         is_blank: ans.is_blank,
+        note: ans.note,
         proposed_activity: proposed,
       };
     });
@@ -1072,6 +1095,22 @@ function buildSignature(
   position: string,
 ): string {
   return `inbound:${templateKind}:${version}:${position}`;
+}
+
+/**
+ * Pull the supplier's `note` back out of an answer row's `source_summary`
+ * JSON (written by `upsertTentativeAnswers`). Returns '' for null / invalid
+ * JSON / absent note — the read side never throws on a malformed blob, it
+ * just degrades to "no note".
+ */
+function extractNoteFromSourceSummary(sourceSummary: string | null): string {
+  if (!sourceSummary) return '';
+  try {
+    const parsed = JSON.parse(sourceSummary) as { note?: unknown };
+    return typeof parsed.note === 'string' ? parsed.note : '';
+  } catch {
+    return '';
+  }
 }
 
 // Re-export the template constant so wizard / IPC layers can call out

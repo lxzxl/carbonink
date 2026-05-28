@@ -16,8 +16,8 @@ import type { Question } from '@shared/types';
  */
 export interface InboundQuestionTableProps {
   questions: readonly Question[];
-  /** question_id → captured answer (value + optional unit). Optional. */
-  answersByQuestionId?: ReadonlyMap<string, { value: string; unit: string | null }>;
+  /** question_id → captured answer (value + optional unit + supplier note). */
+  answersByQuestionId?: ReadonlyMap<string, { value: string; unit: string | null; note: string }>;
 }
 
 function tierBadge(tier: 1 | 2 | null): { label: string; className: string } {
@@ -86,18 +86,24 @@ export function InboundQuestionTable({
                 (() => {
                   const ans = answersByQuestionId.get(q.id);
                   const hasValue = ans && ans.value.trim() !== '';
+                  const hasNote = ans && ans.note.trim() !== '';
                   return (
-                    <p className="text-sm">
-                      <span className="text-muted-foreground">供应商填写：</span>
-                      {hasValue ? (
-                        <span className="font-medium tabular-nums">
-                          {ans?.value}
-                          {ans?.unit ? ` ${ans.unit}` : ''}
-                        </span>
-                      ) : (
-                        <span className="italic text-muted-foreground">未填写</span>
+                    <>
+                      <p className="text-sm">
+                        <span className="text-muted-foreground">供应商填写：</span>
+                        {hasValue ? (
+                          <span className="font-medium tabular-nums">
+                            {ans?.value}
+                            {ans?.unit ? ` ${ans.unit}` : ''}
+                          </span>
+                        ) : (
+                          <span className="italic text-muted-foreground">未填写</span>
+                        )}
+                      </p>
+                      {hasNote && (
+                        <p className="text-xs text-muted-foreground">备注：{ans?.note}</p>
                       )}
-                    </p>
+                    </>
                   );
                 })()}
             </div>

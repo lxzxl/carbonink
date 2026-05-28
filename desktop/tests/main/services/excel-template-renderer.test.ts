@@ -365,6 +365,34 @@ describe('parseInboundXlsx — happy-path round trips', () => {
     const tier2_1 = result.answers.find((a) => a.position === 'tier2.1');
     expect(tier2_1?.parsed_value).toBe(1234567);
   });
+
+  it('captures the supplier note from column C alongside the answer', async () => {
+    const result = await renderFillAndParse({
+      'tier1!B5': 111,
+      'tier1!C5': '111-estimate', // note column for tier1.1
+      'tier2!B5': 222,
+      'tier2!C5': '预估', // note column for tier2.1
+    });
+    const tier1_1 = result.answers.find((a) => a.position === 'tier1.1');
+    expect(tier1_1?.parsed_value).toBe(111);
+    expect(tier1_1?.note).toBe('111-estimate');
+
+    const tier2_1 = result.answers.find((a) => a.position === 'tier2.1');
+    expect(tier2_1?.note).toBe('预估');
+
+    // A cell with no note comes back as '' (not undefined/null).
+    const tier2_3 = result.answers.find((a) => a.position === 'tier2.3');
+    expect(tier2_3?.note).toBe('');
+  });
+
+  it('captures a note even when the answer cell itself is blank', async () => {
+    const result = await renderFillAndParse({
+      'tier1!C5': '见附件 PCF 报告', // note only, B5 left empty
+    });
+    const tier1_1 = result.answers.find((a) => a.position === 'tier1.1');
+    expect(tier1_1?.is_blank).toBe(true); // answer cell empty
+    expect(tier1_1?.note).toBe('见附件 PCF 报告'); // but note survives
+  });
 });
 
 describe('parseInboundXlsx — soft warnings', () => {
