@@ -370,7 +370,31 @@ Two scenarios:
 
 | Date | Builder | Platform | 1 (agent runs) | 2 (fallback works) | 3 (audit row) | 4 (batch) |
 |---|---|---|---|---|---|---|
-| | | | | | | |
+| 2026-05-28 | lxz | macOS (dev) | ✅ | ⏳ | ✅ | ⏳ |
+
+**Evidence (steps 1 + 3, from the live dev DB):**
+
+- **Provider:** deepseek / `deepseek-v4-flash`. Fixture: `seed-item4-smoke.mjs`
+  (org 碳墨, 2025 period, 9 activities = 108,208.3 kgCO2e, outbound
+  questionnaire "Item4 Smoke 客户", 7 questions).
+- **Step 1 — agent runs (Q1, "2025 范围 2 总量"):** answer = `71230.47
+  kgCO2e` (matches the 4 quarterly electricity activities exactly).
+  `source_summary` cites the specific activity IDs
+  (`e2f77342, f7670dcc, 3e03e290, 90e1f1e5`) — confirming the agent
+  queried via `sum_co2e` + `list_activities` rather than dumping context.
+- **Step 3 — audit row:** one `agent_answer.generate` event:
+  `isFallback=false, turnCount=3, toolCallSummary=["sum_co2e","list_activities"],
+  tokens={input:2192,output:368}, durationMs:6291, stopReason:"completed"`.
+
+**Pending (steps 2 + 4):**
+
+- **Step 2 — fallback:** `ANSWER_AGENT_MAX_TURNS` env override wired in
+  commit `7087f7f` (was a hardcoded const; the plan's instruction was a
+  no-op before). Run `ANSWER_AGENT_MAX_TURNS=1 pnpm --filter carbonink dev`,
+  regenerate a question → `source_summary` prefixed `【单 shot fallback】`,
+  audit `isFallback=true, stopReason="max_turns"`.
+- **Step 4 — batch:** "Generate all unanswered" on the 6 remaining
+  questions → all complete within ~2 min; one audit row each.
 
 ## References
 
