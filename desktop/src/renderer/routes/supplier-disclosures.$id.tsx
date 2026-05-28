@@ -195,14 +195,25 @@ function InboundDetailBody({
           </>
         )}
         {questionnaire.status === 'received' && (
-          <Button
-            type="button"
-            onClick={() =>
-              void navigate({ to: '/supplier-disclosures/$id/ingest', params: { id } })
-            }
-          >
-            审核并入库
-          </Button>
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => importMutation.mutate()}
+              disabled={importMutation.isPending}
+            >
+              <Upload className="mr-1.5 h-4 w-4" />
+              {importMutation.isPending ? '导入中...' : '重新导入回填表'}
+            </Button>
+            <Button
+              type="button"
+              onClick={() =>
+                void navigate({ to: '/supplier-disclosures/$id/ingest', params: { id } })
+              }
+            >
+              审核并入库
+            </Button>
+          </>
         )}
         {questionnaire.status === 'ingested' && (
           <Button
@@ -254,7 +265,7 @@ function StatusHint({ status }: { status: string }): JSX.Element | null {
       '下一步：点击右下角「导出空白 xlsx」，将文件邮件发给供应商。供应商填写后邮件回传，再回到本页面导入。',
     sent: '已发送给供应商。等待回传后，点击右下角「导入回填表」上传供应商邮件附件。',
     received:
-      '供应商回传已解析，等待人工审核。点击「审核并入库」进入审核页面，确认无误后写入活动数据库。',
+      '供应商回传已解析，等待人工审核。点击「审核并入库」进入审核页面，确认无误后写入活动数据库。如供应商发来修正版，可点「重新导入回填表」覆盖上次解析结果。',
     ingested: '已入库。供应商回传的排放数据已写入 Scope 3 库存，可在「活动数据」页面查看。',
   };
   const text = hints[status];
