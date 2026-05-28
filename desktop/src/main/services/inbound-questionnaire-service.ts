@@ -661,6 +661,86 @@ export class InboundQuestionnaireService {
     };
   }
 
+  /**
+   * Delete an inbound questionnaire and everything it owns, in one
+   * transaction:
+   *   - activity_data rows whose `inbound_question_id` points at one of
+   *     this questionnaire's questions (only present once ingested)
+   *   - answer rows for those questions (tentative or finalized)
+   *   - the question rows
+   *   - the questionnaire row
+   *
+   * The supplier-specific sentinel `pinned_emission_factor` + the
+   * `{supplier} — purchased goods` emission_source are deliberately left
+   * behind: they're find-or-created and may be shared with other
+   * disclosures from the same supplier × year, so cascading them could
+   * orphan a sibling's activity row. They're harmless if unreferenced.
+   *
+   * Returns the number of activity_data rows removed so the UI can warn
+   * "this also drops N inventory rows" for an ingested disclosure.
+   *
+   * Only operates on `direction='inbound'` rows — deleting an outbound
+   * questionnaire goes through a different (not-yet-built) path.
+   */
+  delete(questionnaireId: string): { deleted_activity_data: number } {
+    const qn = this.findQuestionnaire(questionnaireId);
+    if (!qn) throw new InboundQuestionnaireNotFound(questionnaireId);
+    if (qn.direction !== 'inbound') {
+      throw new InboundWrongDirection({
+        questionnaire_id: questionnaireId,
+        actual: qn.direction,
+      });
+    }
+
+    const nowFn = this.deps.now ?? (() => new Date().toISOString());
+    const occurredAt = nowFn();
+
+    let deletedActivityData = 0;
+    const tx = this.deps.db.transaction(() => {
+      const questionIds = (
+        this.deps.db
+          .prepare(`SELECT id FROM question WHERE questionnaire_id = ?`)
+          .all(questionnaireId) as Array<{ id: string }>
+      ).map((r) => r.id);
+
+      if (questionIds.length > 0) {
+        const placeholders = questionIds.map(() => '?').join(', ');
+        const adResult = this.deps.db
+          .prepare(`DELETE FROM activity_data WHERE inbound_question_id IN (${placeholders})`)
+          .run(...questionIds);
+        deletedActivityData = adResult.changes;
+
+        this.deps.db
+          .prepare(`DELETE FROM answer WHERE question_id IN (${placeholders})`)
+          .run(...questionIds);
+        this.deps.db
+          .prepare(`DELETE FROM question WHERE id IN (${placeholders})`)
+          .run(...questionIds);
+      }
+
+      this.deps.db.prepare(`DELETE FROM questionnaire WHERE id = ?`).run(questionnaireId);
+
+      this.deps.db
+        .prepare(
+          `INSERT INTO audit_event (id, event_kind, payload, occurred_at) VALUES (?, ?, ?, ?)`,
+        )
+        .run(
+          randomUUID(),
+          'inbound_questionnaire.deleted',
+          JSON.stringify({
+            questionnaire_id: questionnaireId,
+            supplier_id: qn.customer_id,
+            status_at_delete: qn.status,
+            deleted_activity_data: deletedActivityData,
+          }),
+          occurredAt,
+        );
+    });
+    tx();
+
+    return { deleted_activity_data: deletedActivityData };
+  }
+
   // ---------------------------------------------------------------------
   // Internal helpers (intentionally narrow — no exported reach to
   // questionnaire-service or customer-service from here)

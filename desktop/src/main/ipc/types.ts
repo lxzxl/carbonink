@@ -296,6 +296,9 @@ export type IpcTypeMap = {
     tier1_purchased_quantity?: number;
     tier_override?: import('@shared/types').Tier;
   }) => Promise<import('@shared/types').IngestResult>;
+  'questionnaire:inbound-delete': (input: {
+    questionnaire_id: string;
+  }) => Promise<{ deleted_activity_data: number }>;
   // Supplier-side helpers (counterparty rows with role='supplier')
   'supplier:list': () => Promise<import('@shared/types').Supplier[]>;
   'supplier:create': (input: {

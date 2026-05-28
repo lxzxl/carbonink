@@ -115,5 +115,10 @@ export function inboundQuestionnaireHandlers(ctx: IpcContext): {
         ...(parsed.tier_override !== undefined ? { tier_override: parsed.tier_override } : {}),
       });
     },
+
+    'questionnaire:inbound-delete': async (input) => {
+      const parsed = exportInput.parse(input); // same shape: { questionnaire_id }
+      return ctx.inboundQuestionnaireService.delete(parsed.questionnaire_id);
+    },
   };
 }

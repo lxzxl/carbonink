@@ -1,14 +1,22 @@
 import { InboundQuestionTable } from '@renderer/components/inbound/InboundQuestionTable';
 import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@renderer/components/ui/dialog';
 import { answerApi } from '@renderer/lib/api/answer';
 import { inboundQuestionnaireApi } from '@renderer/lib/api/inbound-questionnaire';
 import { questionnaireApi } from '@renderer/lib/api/questionnaire';
 import type { Question, Questionnaire } from '@shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { Download, Upload } from 'lucide-react';
-import { useMemo } from 'react';
+import { Download, Trash2, Upload } from 'lucide-react';
+import { useMemo, useState } from 'react';
 
 /**
  * `/supplier-disclosures/$id` — inbound supplier-disclosure detail.
@@ -145,6 +153,23 @@ function InboundDetailBody({
     onError: (e) => toast.error(e instanceof Error ? e.message : String(e)),
   });
 
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const deleteMutation = useMutation({
+    mutationFn: () => inboundQuestionnaireApi.delete({ questionnaire_id: id }),
+    onSuccess: (r) => {
+      setConfirmDeleteOpen(false);
+      toast.success(
+        r.deleted_activity_data > 0
+          ? `已删除披露，并移除 ${r.deleted_activity_data} 条已入库活动数据。`
+          : '已删除披露。',
+      );
+      void queryClient.invalidateQueries({ queryKey: ['questionnaire:list'] });
+      void queryClient.invalidateQueries({ queryKey: ['activity:list-by-period'] });
+      void navigate({ to: '/supplier-disclosures' });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : String(e)),
+  });
+
   return (
     <div className="flex h-full flex-col">
       <div className="shrink-0 space-y-3 px-6 pt-6 pb-3">
@@ -163,68 +188,115 @@ function InboundDetailBody({
         <StatusHint status={questionnaire.status} />
       </div>
 
-      <div className="shrink-0 flex justify-end gap-2 border-t border-border bg-background/95 backdrop-blur px-6 py-3">
-        {questionnaire.status === 'draft' && (
-          <Button
-            type="button"
-            onClick={() => exportMutation.mutate()}
-            disabled={exportMutation.isPending}
-          >
-            <Download className="mr-1.5 h-4 w-4" />
-            {exportMutation.isPending ? '导出中...' : '导出空白 xlsx'}
-          </Button>
-        )}
-        {questionnaire.status === 'sent' && (
-          <>
+      <div className="shrink-0 flex items-center justify-between gap-2 border-t border-border bg-background/95 backdrop-blur px-6 py-3">
+        {/* Destructive delete sits apart on the left so it's never adjacent
+            to the primary forward action. Available in every status. */}
+        <Button
+          type="button"
+          variant="ghost"
+          className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+          onClick={() => setConfirmDeleteOpen(true)}
+        >
+          <Trash2 className="mr-1.5 h-4 w-4" />
+          删除
+        </Button>
+
+        <div className="flex items-center gap-2">
+          {questionnaire.status === 'draft' && (
             <Button
               type="button"
-              variant="outline"
               onClick={() => exportMutation.mutate()}
               disabled={exportMutation.isPending}
             >
-              重新导出
+              <Download className="mr-1.5 h-4 w-4" />
+              {exportMutation.isPending ? '导出中...' : '导出空白 xlsx'}
             </Button>
-            <Button
-              type="button"
-              onClick={() => importMutation.mutate()}
-              disabled={importMutation.isPending}
-            >
-              <Upload className="mr-1.5 h-4 w-4" />
-              {importMutation.isPending ? '导入中...' : '导入回填表'}
-            </Button>
-          </>
-        )}
-        {questionnaire.status === 'received' && (
-          <>
+          )}
+          {questionnaire.status === 'sent' && (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => exportMutation.mutate()}
+                disabled={exportMutation.isPending}
+              >
+                重新导出
+              </Button>
+              <Button
+                type="button"
+                onClick={() => importMutation.mutate()}
+                disabled={importMutation.isPending}
+              >
+                <Upload className="mr-1.5 h-4 w-4" />
+                {importMutation.isPending ? '导入中...' : '导入回填表'}
+              </Button>
+            </>
+          )}
+          {questionnaire.status === 'received' && (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => importMutation.mutate()}
+                disabled={importMutation.isPending}
+              >
+                <Upload className="mr-1.5 h-4 w-4" />
+                {importMutation.isPending ? '导入中...' : '重新导入回填表'}
+              </Button>
+              <Button
+                type="button"
+                onClick={() =>
+                  void navigate({ to: '/supplier-disclosures/$id/ingest', params: { id } })
+                }
+              >
+                审核并入库
+              </Button>
+            </>
+          )}
+          {questionnaire.status === 'ingested' && (
             <Button
               type="button"
               variant="outline"
-              onClick={() => importMutation.mutate()}
-              disabled={importMutation.isPending}
+              onClick={() => void navigate({ to: '/activities' })}
             >
-              <Upload className="mr-1.5 h-4 w-4" />
-              {importMutation.isPending ? '导入中...' : '重新导入回填表'}
+              查看关联活动数据
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>删除供应商披露？</DialogTitle>
+            <DialogDescription>
+              将删除「{supplier.name}」的这份披露及其全部题目与已收回的答案。
+              {questionnaire.status === 'ingested'
+                ? ' 该披露已入库，其生成的活动数据也会一并从 Scope 3 库存中移除。'
+                : ''}
+              此操作不可撤销。
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setConfirmDeleteOpen(false)}
+              disabled={deleteMutation.isPending}
+            >
+              取消
             </Button>
             <Button
               type="button"
-              onClick={() =>
-                void navigate({ to: '/supplier-disclosures/$id/ingest', params: { id } })
-              }
+              variant="destructive"
+              onClick={() => deleteMutation.mutate()}
+              disabled={deleteMutation.isPending}
             >
-              审核并入库
+              {deleteMutation.isPending ? '删除中...' : '确认删除'}
             </Button>
-          </>
-        )}
-        {questionnaire.status === 'ingested' && (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => void navigate({ to: '/activities' })}
-          >
-            查看关联活动数据
-          </Button>
-        )}
-      </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

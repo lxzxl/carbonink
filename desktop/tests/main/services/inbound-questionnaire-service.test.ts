@@ -1029,3 +1029,75 @@ describe('InboundQuestionnaireService.createDraft — type narrowing', () => {
     expect(suppliers.some((s) => s.id === supplier.id)).toBe(true);
   });
 });
+
+describe('InboundQuestionnaireService.delete', () => {
+  it('removes a draft questionnaire + its questions, no activity rows', () => {
+    const { db, svc, supplier, periodId } = setup();
+    const { questionnaire_id } = svc.createDraft({
+      supplier_id: supplier.id,
+      reporting_period_id: periodId,
+      template_kind: 'cat1_supplier_disclosure',
+      included_question_positions: ALL_POSITIONS,
+    });
+
+    const result = svc.delete(questionnaire_id);
+    expect(result.deleted_activity_data).toBe(0);
+
+    expect(
+      db.prepare('SELECT COUNT(*) AS n FROM questionnaire WHERE id = ?').get(questionnaire_id),
+    ).toEqual({ n: 0 });
+    expect(
+      db
+        .prepare('SELECT COUNT(*) AS n FROM question WHERE questionnaire_id = ?')
+        .get(questionnaire_id),
+    ).toEqual({ n: 0 });
+  });
+
+  it('removes the linked activity_data when an ingested disclosure is deleted', async () => {
+    const { db, svc, supplier, periodId } = setup();
+    const { questionnaireId, questionIds } = await reachReceivedTier2(svc, supplier, periodId);
+    const ingestResult = svc.ingest({
+      questionnaire_id: questionnaireId,
+      accepted_question_ids: Array.from(questionIds.values()),
+    });
+    expect(ingestResult.activity_data_ids).toHaveLength(1);
+
+    const result = svc.delete(questionnaireId);
+    expect(result.deleted_activity_data).toBe(1);
+
+    // The activity row is gone; questionnaire + questions + answers too.
+    expect(
+      db
+        .prepare('SELECT COUNT(*) AS n FROM activity_data WHERE id = ?')
+        .get(ingestResult.activity_data_ids[0]),
+    ).toEqual({ n: 0 });
+    expect(
+      db
+        .prepare('SELECT COUNT(*) AS n FROM question WHERE questionnaire_id = ?')
+        .get(questionnaireId),
+    ).toEqual({ n: 0 });
+  });
+
+  it('writes an inbound_questionnaire.deleted audit row', () => {
+    const { db, svc, supplier, periodId } = setup();
+    const { questionnaire_id } = svc.createDraft({
+      supplier_id: supplier.id,
+      reporting_period_id: periodId,
+      template_kind: 'cat1_supplier_disclosure',
+      included_question_positions: ['meta.1'],
+    });
+    svc.delete(questionnaire_id);
+    const audit = db
+      .prepare("SELECT payload FROM audit_event WHERE event_kind = 'inbound_questionnaire.deleted'")
+      .all() as Array<{ payload: string }>;
+    expect(audit).toHaveLength(1);
+    const payload = JSON.parse(audit[0]?.payload ?? '{}');
+    expect(payload.questionnaire_id).toBe(questionnaire_id);
+    expect(payload.status_at_delete).toBe('draft');
+  });
+
+  it('throws InboundQuestionnaireNotFound for an unknown id', () => {
+    const { svc } = setup();
+    expect(() => svc.delete('does-not-exist')).toThrow(InboundQuestionnaireNotFound);
+  });
+});

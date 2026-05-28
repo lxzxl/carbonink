@@ -75,6 +75,7 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   'questionnaire:inbound-import-preview',
   'questionnaire:inbound-get-preview',
   'questionnaire:inbound-ingest',
+  'questionnaire:inbound-delete',
   'supplier:list',
   'supplier:create',
   // answer domain (Phase 2.2b — auto-answer pipeline)

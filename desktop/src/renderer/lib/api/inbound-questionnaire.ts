@@ -32,4 +32,7 @@ export const inboundQuestionnaireApi = {
     tier1_purchased_quantity?: number;
     tier_override?: import('@shared/types').Tier;
   }) => invoke('questionnaire:inbound-ingest', input),
+
+  /** Delete a disclosure + its questions/answers (+ ingested activity rows). */
+  delete: (input: { questionnaire_id: string }) => invoke('questionnaire:inbound-delete', input),
 };
