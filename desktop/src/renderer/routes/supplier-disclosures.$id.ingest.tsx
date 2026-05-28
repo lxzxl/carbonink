@@ -250,24 +250,37 @@ function IngestReviewBody({
 
         {/* Tier selector — only when the supplier supplied BOTH tiers. */}
         {availableTiers.length > 1 && (
-          <div className="flex items-center gap-2 rounded-md border border-border bg-muted/40 p-2">
-            <span className="text-xs text-muted-foreground">入库口径：</span>
-            <div className="inline-flex overflow-hidden rounded-md border border-border">
-              <TierToggle
-                label="Tier 1 (单位碳足迹)"
+          <div className="space-y-1.5">
+            <p className="text-xs text-muted-foreground">
+              入库口径
+              <span className="ml-1.5">
+                供应商两种口径都填了，默认按 GHG Protocol 优先 Tier 1，可切换。
+              </span>
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <TierCard
+                tierLabel="Tier 1"
+                title="单位产品碳足迹"
+                outcome={
+                  typeof tier1Pcf === 'number'
+                    ? `${tier1Pcf.toLocaleString()} kgCO2e/kg × 采购数量`
+                    : '需供应商 PCF'
+                }
                 active={selectedTier === 1}
                 onClick={() => setSelectedTier(1)}
               />
-              <TierToggle
-                label="Tier 2 (分配排放)"
+              <TierCard
+                tierLabel="Tier 2"
+                title="分配排放"
+                outcome={
+                  typeof tier2Co2e === 'number'
+                    ? `直接采用 ${tier2Co2e.toLocaleString()} kgCO2e`
+                    : '需归因排放量'
+                }
                 active={selectedTier === 2}
                 onClick={() => setSelectedTier(2)}
               />
             </div>
-            <span className="text-xs text-muted-foreground">
-              供应商两种口径都填了，按 GHG Protocol 默认优先 Tier 1；如需直接采用其填报的总量请切到
-              Tier 2。
-            </span>
           </div>
         )}
 
@@ -432,12 +445,16 @@ function WarningBanner({ warnings }: { warnings: ImportPreview['warnings'] }): J
   );
 }
 
-function TierToggle({
-  label,
+function TierCard({
+  tierLabel,
+  title,
+  outcome,
   active,
   onClick,
 }: {
-  label: string;
+  tierLabel: string;
+  title: string;
+  outcome: string;
   active: boolean;
   onClick: () => void;
 }): JSX.Element {
@@ -447,13 +464,26 @@ function TierToggle({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        'px-3 py-1 text-xs font-medium transition-colors',
+        'flex flex-col items-start gap-0.5 rounded-md border p-2.5 text-left transition-colors',
         active
-          ? 'bg-primary text-primary-foreground'
-          : 'bg-transparent text-muted-foreground hover:bg-foreground/5',
+          ? 'border-primary bg-primary/5 ring-1 ring-primary'
+          : 'border-border bg-card hover:bg-muted/40',
       )}
     >
-      {label}
+      <span className="flex items-center gap-1.5">
+        <span
+          className={cn(
+            'inline-flex h-3.5 w-3.5 items-center justify-center rounded-full border',
+            active ? 'border-primary' : 'border-muted-foreground/40',
+          )}
+        >
+          {active && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
+        </span>
+        <span className="text-xs font-medium">
+          {tierLabel} · {title}
+        </span>
+      </span>
+      <span className="pl-5 text-xs text-muted-foreground tabular-nums">{outcome}</span>
     </button>
   );
 }

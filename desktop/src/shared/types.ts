@@ -423,6 +423,10 @@ export type ActivityDataWithEf = ActivityData & {
 export type ActivityDataWithDocument = ActivityData & {
   source_document_id: string | null;
   source_document_filename: string | null;
+  /** When the row was ingested from an inbound supplier disclosure, the
+   * questionnaire id (for deep-linking back) + supplier name. NULL otherwise. */
+  inbound_questionnaire_id: string | null;
+  inbound_supplier_name: string | null;
 };
 
 export type EmissionSourceCreateInput = z.infer<typeof emissionSourceCreateInput>;

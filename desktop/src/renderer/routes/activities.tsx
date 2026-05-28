@@ -13,8 +13,8 @@ import { cn } from '@renderer/lib/utils';
 import * as m from '@renderer/paraglide/messages';
 import type { ActivityDataWithDocument, EmissionSource, ReportingPeriod } from '@shared/types';
 import { useQuery } from '@tanstack/react-query';
-import { createFileRoute, Navigate } from '@tanstack/react-router';
-import { FileText, Search } from 'lucide-react';
+import { createFileRoute, Link, Navigate } from '@tanstack/react-router';
+import { Download, FileText, Search } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 /**
@@ -383,6 +383,24 @@ function ActivitiesList({ organizationId }: { organizationId: string }) {
                         <FileText className="h-3 w-3" aria-hidden="true" />
                         {m.activities_from_document({ filename: a.source_document_filename })}
                       </button>
+                    </div>
+                  )}
+                  {/* Inbound-disclosure provenance. Present when this row was
+                   * ingested from a supplier disclosure — deep-links back to
+                   * that questionnaire so the inventory ↔ disclosure
+                   * connection is navigable in both directions. */}
+                  {a.inbound_questionnaire_id && (
+                    <div className="text-xs text-muted-foreground">
+                      <Link
+                        to="/supplier-disclosures/$id"
+                        params={{ id: a.inbound_questionnaire_id }}
+                        className="inline-flex items-center gap-1 text-primary hover:underline"
+                        title={a.inbound_supplier_name ?? undefined}
+                      >
+                        <Download className="h-3 w-3" aria-hidden="true" />
+                        来自供应商披露
+                        {a.inbound_supplier_name ? ` · ${a.inbound_supplier_name}` : ''}
+                      </Link>
                     </div>
                   )}
                 </div>

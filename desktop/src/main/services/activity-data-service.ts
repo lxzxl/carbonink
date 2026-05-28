@@ -205,14 +205,25 @@ export class ActivityDataService {
    */
   listByPeriod(periodId: string): ActivityDataWithDocument[] {
     const cols = AD_COLUMNS.map((c) => `ad.${c}`).join(', ');
+    // Two provenance chains are surfaced per row:
+    //   - OCR: extraction_id → extraction → document  (source_document_*)
+    //   - Inbound: inbound_question_id → question → questionnaire → customer
+    //     (inbound_questionnaire_id + inbound_supplier_name)
+    // A row carries at most one (they're mutually exclusive in practice),
+    // both LEFT-joined so hand-typed rows stay NULL on both.
     return this.db
       .prepare(
         `SELECT ${cols},
                 e.document_id AS source_document_id,
-                d.filename    AS source_document_filename
+                d.filename    AS source_document_filename,
+                iq.questionnaire_id AS inbound_questionnaire_id,
+                ic.name             AS inbound_supplier_name
            FROM activity_data ad
-           LEFT JOIN extraction e ON e.id = ad.extraction_id
-           LEFT JOIN document   d ON d.id = e.document_id
+           LEFT JOIN extraction e   ON e.id = ad.extraction_id
+           LEFT JOIN document   d   ON d.id = e.document_id
+           LEFT JOIN question   iq  ON iq.id = ad.inbound_question_id
+           LEFT JOIN questionnaire iqn ON iqn.id = iq.questionnaire_id
+           LEFT JOIN customer   ic  ON ic.id = iqn.customer_id
           WHERE ad.reporting_period_id = ?
           ORDER BY ad.occurred_at_start ASC, ad.id ASC`,
       )
