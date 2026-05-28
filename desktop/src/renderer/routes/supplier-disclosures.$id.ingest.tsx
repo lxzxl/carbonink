@@ -165,6 +165,20 @@ function IngestReviewBody({
   const canConfirm =
     accepted.size > 0 && !ingestMutation.isPending && (!needsTier1Qty || tier1QtyValid);
 
+  // Explain WHY the confirm button is disabled — a silently-disabled
+  // button reads as "nothing happens when I click". Tier 1 (the GHG
+  // Protocol-preferred path, which wins whenever the supplier filled a
+  // per-unit PCF) needs a purchased quantity before we can compute a
+  // total, so that's the most common gate.
+  const disabledReason: string =
+    tierSelected === null
+      ? '供应商未提供足够数据（需要 Tier 1 单位碳足迹，或 Tier 2 三项齐全）'
+      : accepted.size === 0
+        ? '请至少勾选一项答案'
+        : needsTier1Qty && !tier1QtyValid
+          ? '请先在上方填写「本期采购数量 (kg)」'
+          : '';
+
   // Group answers for display: by tier (null first, then 1, then 2).
   const grouped = useMemo(() => groupByTier(preview.answers), [preview.answers]);
 
@@ -276,10 +290,15 @@ function IngestReviewBody({
             </>
           )}
         </div>
-        <Button type="button" onClick={() => ingestMutation.mutate()} disabled={!canConfirm}>
-          <Check className="mr-1.5 h-4 w-4" />
-          {ingestMutation.isPending ? '入库中...' : '确认并入库'}
-        </Button>
+        <div className="flex items-center gap-3">
+          {disabledReason !== '' && (
+            <span className="text-xs text-amber-600 dark:text-amber-400">{disabledReason}</span>
+          )}
+          <Button type="button" onClick={() => ingestMutation.mutate()} disabled={!canConfirm}>
+            <Check className="mr-1.5 h-4 w-4" />
+            {ingestMutation.isPending ? '入库中...' : '确认并入库'}
+          </Button>
+        </div>
       </div>
     </div>
   );
