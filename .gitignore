@@ -85,3 +85,8 @@ desktop/scripts/.climatiq-cache/
 
 # Preview tool dev-server config (per-user, points to absolute paths).
 .claude/launch.json
+
+# Inbound supplier-disclosure xlsx exported during manual smoke testing.
+# The app writes `inbound-<uuid>.xlsx` via the export save-dialog; these
+# are throwaway test artifacts, never source.
+desktop/inbound-*.xlsx
