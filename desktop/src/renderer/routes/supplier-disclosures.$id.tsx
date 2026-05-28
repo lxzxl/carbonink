@@ -1,12 +1,14 @@
 import { InboundQuestionTable } from '@renderer/components/inbound/InboundQuestionTable';
 import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
+import { answerApi } from '@renderer/lib/api/answer';
 import { inboundQuestionnaireApi } from '@renderer/lib/api/inbound-questionnaire';
 import { questionnaireApi } from '@renderer/lib/api/questionnaire';
 import type { Question, Questionnaire } from '@shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { Download, Upload } from 'lucide-react';
+import { useMemo } from 'react';
 
 /**
  * `/supplier-disclosures/$id` — inbound supplier-disclosure detail.
@@ -93,6 +95,26 @@ function InboundDetailBody({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
+  // Once the supplier's reply is imported (status='received') or ingested,
+  // surface the captured values inline on this page. Without this, the
+  // detail page shows only the bare question list after a successful
+  // import — which reads as "no answers were recognized" even though the
+  // import worked. The dedicated /ingest page is still where accept/reject
+  // happens; this is just a read-only echo so the import result is visible.
+  const showAnswers = questionnaire.status === 'received' || questionnaire.status === 'ingested';
+  const answersQuery = useQuery({
+    queryKey: ['answer:list-by-questionnaire', id],
+    queryFn: () => answerApi.listByQuestionnaire(id),
+    enabled: showAnswers,
+  });
+  const answersByQuestionId = useMemo(() => {
+    const m = new Map<string, { value: string; unit: string | null }>();
+    for (const a of answersQuery.data ?? []) {
+      m.set(a.question_id, { value: a.value, unit: a.unit });
+    }
+    return m;
+  }, [answersQuery.data]);
+
   const exportMutation = useMutation({
     mutationFn: () => inboundQuestionnaireApi.exportXlsx({ questionnaire_id: id }),
     onSuccess: (r) => {
@@ -117,6 +139,7 @@ function InboundDetailBody({
       );
       void queryClient.invalidateQueries({ queryKey: ['questionnaire:get-by-id', id] });
       void queryClient.invalidateQueries({ queryKey: ['questionnaire:list'] });
+      void queryClient.invalidateQueries({ queryKey: ['answer:list-by-questionnaire', id] });
       void navigate({ to: '/supplier-disclosures/$id/ingest', params: { id } });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : String(e)),
@@ -133,7 +156,10 @@ function InboundDetailBody({
       </div>
 
       <div className="flex-1 min-h-0 overflow-auto px-6 py-3 space-y-4">
-        <InboundQuestionTable questions={questions} />
+        <InboundQuestionTable
+          questions={questions}
+          {...(showAnswers ? { answersByQuestionId } : {})}
+        />
         <StatusHint status={questionnaire.status} />
       </div>
 

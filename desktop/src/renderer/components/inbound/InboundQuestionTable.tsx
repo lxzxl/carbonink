@@ -7,13 +7,17 @@ import type { Question } from '@shared/types';
  * tier badge (Tier 1 / Tier 2 / 元数据) so the user can scan which
  * disclosure pillars the draft covers.
  *
- * This component never shows answer state — inbound answers live on
- * the review-and-confirm page (T10c) and the activity_data table
- * (post-ingest). The detail page's purpose for inbound is to confirm
- * scope + drive the export/import/ingest action bar.
+ * When `answersByQuestionId` is supplied (status='received'/'ingested'),
+ * each row also shows the supplier's filled-in value. Without it (draft /
+ * sent), the table is the bare question list. This is what makes the
+ * detail page reflect "the import worked, here's what the supplier said"
+ * instead of looking empty after a successful import — the actual
+ * accept/reject review still happens on the dedicated ingest page.
  */
 export interface InboundQuestionTableProps {
   questions: readonly Question[];
+  /** question_id → captured answer (value + optional unit). Optional. */
+  answersByQuestionId?: ReadonlyMap<string, { value: string; unit: string | null }>;
 }
 
 function tierBadge(tier: 1 | 2 | null): { label: string; className: string } {
@@ -35,7 +39,10 @@ function tierBadge(tier: 1 | 2 | null): { label: string; className: string } {
   };
 }
 
-export function InboundQuestionTable({ questions }: InboundQuestionTableProps): JSX.Element {
+export function InboundQuestionTable({
+  questions,
+  answersByQuestionId,
+}: InboundQuestionTableProps): JSX.Element {
   if (questions.length === 0) {
     return <p className="text-muted-foreground italic">尚未配置题目。请回到「新建」重选模板。</p>;
   }
@@ -75,6 +82,24 @@ export function InboundQuestionTable({ questions }: InboundQuestionTableProps): 
                 )}
                 {q.required === 1 && <span className="ml-2 text-destructive">*必填</span>}
               </p>
+              {answersByQuestionId &&
+                (() => {
+                  const ans = answersByQuestionId.get(q.id);
+                  const hasValue = ans && ans.value.trim() !== '';
+                  return (
+                    <p className="text-sm">
+                      <span className="text-muted-foreground">供应商填写：</span>
+                      {hasValue ? (
+                        <span className="font-medium tabular-nums">
+                          {ans?.value}
+                          {ans?.unit ? ` ${ans.unit}` : ''}
+                        </span>
+                      ) : (
+                        <span className="italic text-muted-foreground">未填写</span>
+                      )}
+                    </p>
+                  );
+                })()}
             </div>
           </li>
         );
