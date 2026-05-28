@@ -30,5 +30,6 @@ export const inboundQuestionnaireApi = {
     questionnaire_id: string;
     accepted_question_ids: string[];
     tier1_purchased_quantity?: number;
+    tier_override?: import('@shared/types').Tier;
   }) => invoke('questionnaire:inbound-ingest', input),
 };

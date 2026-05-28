@@ -188,7 +188,14 @@ export type ImportPreview = {
   warnings: ImportPreviewWarning[];
   answers: ImportPreviewAnswer[];
   ingestion_plan: {
+    /** Auto-selected tier (GHG Protocol preference: Tier 1 over Tier 2). */
     tier_selected: Tier | null;
+    /**
+     * Tiers the supplier's data actually supports. When this has >1 entry
+     * the review UI lets the user pick which to ingest (overriding the
+     * `tier_selected` default). Order is the preference order (1 before 2).
+     */
+    available_tiers: Tier[];
     emission_source_name: string;
     activity_row_count: number;
     total_co2e_kg: number;

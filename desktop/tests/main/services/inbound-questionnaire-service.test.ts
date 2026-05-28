@@ -506,6 +506,8 @@ describe('InboundQuestionnaireService.importFilledXlsx — happy paths', () => {
     const preview = await svc.importFilledXlsx(questionnaireId, filled);
     expect(preview.ingestion_plan.tier_selected).toBe(1);
     expect(preview.ingestion_plan.total_co2e_kg).toBe(0); // tier 1 needs quantity
+    // Both tiers are available → the review UI will offer a choice.
+    expect(preview.ingestion_plan.available_tiers).toEqual([1, 2]);
   });
 
   it('blank workbook: no tier numerical filled → tier_selected=null + blank_template warning', async () => {
@@ -701,6 +703,26 @@ async function reachReceivedTier2(
   return { questionnaireId, questionIds };
 }
 
+/** Reach 'received' with BOTH tiers filled (Tier 1 PCF + the Tier 2 trio). */
+async function reachReceivedBothTiers(
+  svc: InboundQuestionnaireService,
+  supplier: Supplier,
+  periodId: string,
+): Promise<{ questionnaireId: string; questionIds: Map<string, string> }> {
+  const { questionnaireId, blank } = await createDraftAndExport(svc, supplier, periodId);
+  const filled = await fillBlankXlsx(blank, {
+    'metadata!B5': 'Acme Steel Co.',
+    'tier1!B5': 2.5, // per-unit PCF
+    'tier2!B5': 850000,
+    'tier2!B7': 'mass-based',
+    'tier2!B9': 12000,
+  });
+  await svc.importFilledXlsx(questionnaireId, filled);
+  const preview = svc.getIngestPreview(questionnaireId);
+  const questionIds = new Map(preview.answers.map((a) => [a.position, a.question_id]));
+  return { questionnaireId, questionIds };
+}
+
 describe('InboundQuestionnaireService.ingest — Tier 2 happy path', () => {
   it('writes one activity_data row, finalizes accepted answers, audits, and flips status', async () => {
     const { db, svc, supplier, periodId, siteId } = setup();
@@ -848,6 +870,64 @@ describe('InboundQuestionnaireService.ingest — Tier 1 happy path', () => {
         // no tier1_purchased_quantity
       }),
     ).toThrow(InboundQuantityRequired);
+  });
+});
+
+describe('InboundQuestionnaireService.ingest — tier override (both tiers filled)', () => {
+  it('defaults to Tier 1 when no override is given (needs quantity)', async () => {
+    const { svc, supplier, periodId } = setup();
+    const { questionnaireId, questionIds } = await reachReceivedBothTiers(svc, supplier, periodId);
+    // No override + no quantity → Tier 1 is auto-picked and demands quantity.
+    expect(() =>
+      svc.ingest({
+        questionnaire_id: questionnaireId,
+        accepted_question_ids: Array.from(questionIds.values()),
+      }),
+    ).toThrow(InboundQuantityRequired);
+  });
+
+  it('honors tier_override=2 → ingests the supplier-reported total, no quantity needed', async () => {
+    const { db, svc, supplier, periodId } = setup();
+    const { questionnaireId, questionIds } = await reachReceivedBothTiers(svc, supplier, periodId);
+
+    const result = svc.ingest({
+      questionnaire_id: questionnaireId,
+      accepted_question_ids: Array.from(questionIds.values()),
+      tier_override: 2,
+    });
+    expect(result.activity_data_ids).toHaveLength(1);
+
+    const ad = db
+      .prepare(
+        'SELECT amount, computed_co2e_kg, inbound_tier, inbound_question_id FROM activity_data WHERE id = ?',
+      )
+      .get(result.activity_data_ids[0]) as {
+      amount: number;
+      computed_co2e_kg: number;
+      inbound_tier: number;
+      inbound_question_id: string;
+    };
+    expect(ad.inbound_tier).toBe(2);
+    expect(ad.amount).toBe(12000); // tier2.3 value, NOT 2.5×anything
+    expect(ad.computed_co2e_kg).toBe(12000);
+    expect(ad.inbound_question_id).toBe(questionIds.get('tier2.3'));
+  });
+
+  it('honors tier_override=1 with quantity → PCF × quantity even though Tier 2 was also filled', async () => {
+    const { db, svc, supplier, periodId } = setup();
+    const { questionnaireId, questionIds } = await reachReceivedBothTiers(svc, supplier, periodId);
+
+    const result = svc.ingest({
+      questionnaire_id: questionnaireId,
+      accepted_question_ids: Array.from(questionIds.values()),
+      tier_override: 1,
+      tier1_purchased_quantity: 1000,
+    });
+    const ad = db
+      .prepare('SELECT amount, inbound_tier FROM activity_data WHERE id = ?')
+      .get(result.activity_data_ids[0]) as { amount: number; inbound_tier: number };
+    expect(ad.inbound_tier).toBe(1);
+    expect(ad.amount).toBe(2500); // 2.5 PCF × 1000 kg
   });
 });
 

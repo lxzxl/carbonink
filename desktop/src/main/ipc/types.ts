@@ -294,6 +294,7 @@ export type IpcTypeMap = {
     questionnaire_id: string;
     accepted_question_ids: string[];
     tier1_purchased_quantity?: number;
+    tier_override?: import('@shared/types').Tier;
   }) => Promise<import('@shared/types').IngestResult>;
   // Supplier-side helpers (counterparty rows with role='supplier')
   'supplier:list': () => Promise<import('@shared/types').Supplier[]>;

@@ -17,6 +17,7 @@ const ingestInput = z.object({
   questionnaire_id: z.string().min(1),
   accepted_question_ids: z.array(z.string()),
   tier1_purchased_quantity: z.number().optional(),
+  tier_override: z.union([z.literal(1), z.literal(2)]).optional(),
 });
 
 /**
@@ -111,6 +112,7 @@ export function inboundQuestionnaireHandlers(ctx: IpcContext): {
         ...(parsed.tier1_purchased_quantity !== undefined
           ? { tier1_purchased_quantity: parsed.tier1_purchased_quantity }
           : {}),
+        ...(parsed.tier_override !== undefined ? { tier_override: parsed.tier_override } : {}),
       });
     },
   };

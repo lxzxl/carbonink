@@ -438,6 +438,12 @@ export class InboundQuestionnaireService {
     questionnaire_id: string;
     accepted_question_ids: readonly string[];
     tier1_purchased_quantity?: number;
+    /**
+     * Caller's chosen tier when the supplier supplied both. Honored only
+     * if that tier is satisfiable by the accepted rows; otherwise the
+     * default preference order applies. Undefined = auto (Tier 1 first).
+     */
+    tier_override?: Tier;
   }): IngestResult {
     const qn = this.findQuestionnaire(input.questionnaire_id);
     if (!qn) throw new InboundQuestionnaireNotFound(input.questionnaire_id);
@@ -513,7 +519,7 @@ export class InboundQuestionnaireService {
     const acceptedRows = tentative.filter((t) => acceptedSet.has(t.question_id));
     const byPosition = new Map(acceptedRows.map((r) => [r.position, r]));
 
-    const tierSelected = decideTierFromAccepted(template, byPosition);
+    const tierSelected = decideTierFromAccepted(template, byPosition, input.tier_override);
 
     // --- Soft no-op: insufficient data --------------------------------
     if (tierSelected === null) {
@@ -772,7 +778,8 @@ export class InboundQuestionnaireService {
     parserWarnings: readonly ImportPreviewWarning[],
   ): ImportPreview {
     const byPos = new Map(parsedAnswers.map((a) => [a.position, a]));
-    const tierSelected = selectTier(ctx.template, byPos);
+    const tiersAvailable = availableTiers(ctx.template, byPos);
+    const tierSelected = tiersAvailable[0] ?? null;
 
     const answers: ImportPreviewAnswer[] = ctx.template.questions.map((tq) => {
       const ans = byPos.get(tq.position) ?? {
@@ -822,6 +829,7 @@ export class InboundQuestionnaireService {
       answers,
       ingestion_plan: {
         tier_selected: tierSelected,
+        available_tiers: tiersAvailable,
         emission_source_name: emissionSourceName,
         activity_row_count: activityRowCount,
         total_co2e_kg: totalCo2eKg,
@@ -1135,25 +1143,37 @@ export { CAT1_SUPPLIER_DISCLOSURE };
  * three must be present; missing any drops to null because the audit
  * trail isn't reproducible without the methodology + magnitude pair.
  */
-function selectTier(
+/**
+ * Which tiers the supplier's parsed answers actually support, in
+ * preference order (Tier 1 before Tier 2). When this returns >1 entry the
+ * review UI offers the user a choice; when it returns exactly one there's
+ * no decision to make.
+ *
+ * Tier 1 available: any Tier 1 numerical answer is non-blank + numeric.
+ * Tier 2 available: every Tier 2 question (the trio) is non-blank.
+ */
+function availableTiers(
   template: InboundTemplate,
   answersByPosition: ReadonlyMap<string, ParsedXlsxAnswer>,
-): Tier | null {
+): Tier[] {
+  const out: Tier[] = [];
   const tier1Filled = template.questions
     .filter((q) => q.tier === 1 && q.kind === 'numerical')
     .some((q) => {
       const a = answersByPosition.get(q.position);
       return a && !a.is_blank && typeof a.parsed_value === 'number';
     });
-  if (tier1Filled) return 1;
+  if (tier1Filled) out.push(1);
 
   const tier2 = template.questions.filter((q) => q.tier === 2);
-  if (tier2.length === 0) return null;
-  const tier2AllFilled = tier2.every((q) => {
-    const a = answersByPosition.get(q.position);
-    return a && !a.is_blank;
-  });
-  return tier2AllFilled ? 2 : null;
+  if (tier2.length > 0) {
+    const tier2AllFilled = tier2.every((q) => {
+      const a = answersByPosition.get(q.position);
+      return a && !a.is_blank;
+    });
+    if (tier2AllFilled) out.push(2);
+  }
+  return out;
 }
 
 /**
@@ -1185,23 +1205,31 @@ function selectTier(
 function decideTierFromAccepted(
   template: InboundTemplate,
   acceptedByPosition: ReadonlyMap<string, { value: string; tier: Tier | null }>,
+  preferred?: Tier,
 ): Tier | null {
-  const tier1Filled = template.questions
+  const tier1Ok = template.questions
     .filter((q) => q.tier === 1 && q.kind === 'numerical')
     .some((q) => {
       const row = acceptedByPosition.get(q.position);
       if (!row) return false;
       return Number.isFinite(Number.parseFloat(row.value));
     });
-  if (tier1Filled) return 1;
 
   const tier2 = template.questions.filter((q) => q.tier === 2);
-  if (tier2.length === 0) return null;
-  const tier2AllFilled = tier2.every((q) => {
-    const row = acceptedByPosition.get(q.position);
-    return row && row.value.trim() !== '';
-  });
-  return tier2AllFilled ? 2 : null;
+  const tier2Ok =
+    tier2.length > 0 &&
+    tier2.every((q) => {
+      const row = acceptedByPosition.get(q.position);
+      return row && row.value.trim() !== '';
+    });
+
+  // Preference order (Tier 1 first), then honor a caller override only if
+  // the chosen tier is actually satisfiable by the accepted rows.
+  const order: Tier[] = [];
+  if (tier1Ok) order.push(1);
+  if (tier2Ok) order.push(2);
+  if (preferred !== undefined && order.includes(preferred)) return preferred;
+  return order[0] ?? null;
 }
 
 function computeProposedActivity(

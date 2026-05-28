@@ -105,7 +105,14 @@ function IngestReviewBody({
   onIngested: () => void;
 }): JSX.Element {
   const navigate = useNavigate();
-  const tierSelected = preview.ingestion_plan.tier_selected;
+  const availableTiers = preview.ingestion_plan.available_tiers;
+
+  // Selected tier — defaults to the auto pick (GHG Protocol preference:
+  // Tier 1 over Tier 2). When the supplier supplied BOTH, `availableTiers`
+  // has two entries and the user can switch via the selector below.
+  const [selectedTier, setSelectedTier] = useState<Tier | null>(
+    preview.ingestion_plan.tier_selected,
+  );
 
   // Acceptance state: keyed by question_id. Default all non-blank rows
   // accepted; blank rows can't contribute anything so they start
@@ -122,6 +129,7 @@ function IngestReviewBody({
   // biome-ignore lint/correctness/useExhaustiveDependencies: keyed on questionnaire id intentionally
   useEffect(() => {
     setAccepted(new Set(preview.answers.filter((a) => !a.is_blank).map((a) => a.question_id)));
+    setSelectedTier(preview.ingestion_plan.tier_selected);
   }, [preview.questionnaire_id]);
 
   function toggleAccepted(qid: string): void {
@@ -140,7 +148,12 @@ function IngestReviewBody({
         questionnaire_id: preview.questionnaire_id,
         accepted_question_ids: Array.from(accepted),
       };
-      if (tierSelected === 1 && Number.isFinite(qty) && qty > 0) {
+      // Pass the user's tier pick so the service honors it (instead of
+      // its default Tier-1-first preference).
+      if (selectedTier !== null) {
+        args.tier_override = selectedTier;
+      }
+      if (selectedTier === 1 && Number.isFinite(qty) && qty > 0) {
         args.tier1_purchased_quantity = qty;
       }
       return inboundQuestionnaireApi.ingest(args);
@@ -158,12 +171,28 @@ function IngestReviewBody({
     onError: (e) => toast.error(e instanceof Error ? e.message : String(e)),
   });
 
-  // Confirm-button gating logic.
-  const needsTier1Qty = tierSelected === 1;
+  // Confirm-button gating logic — keyed off the *selected* tier now.
+  const needsTier1Qty = selectedTier === 1;
   const tier1QtyValid =
     Number.isFinite(Number.parseFloat(tier1Qty)) && Number.parseFloat(tier1Qty) > 0;
   const canConfirm =
     accepted.size > 0 && !ingestMutation.isPending && (!needsTier1Qty || tier1QtyValid);
+
+  // Live total preview — recomputed from the *selected* tier (the
+  // server-side ingestion_plan.total_co2e_kg was computed under the auto
+  // tier and goes stale the moment the user switches).
+  const tier1Pcf = preview.answers.find((a) => a.position === 'tier1.1')?.parsed_value;
+  const tier2Co2e = preview.answers.find((a) => a.position === 'tier2.3')?.parsed_value;
+  const liveTotalCo2eKg: number | null =
+    selectedTier === 1
+      ? typeof tier1Pcf === 'number' && tier1QtyValid
+        ? tier1Pcf * Number.parseFloat(tier1Qty)
+        : null
+      : selectedTier === 2
+        ? typeof tier2Co2e === 'number'
+          ? tier2Co2e
+          : null
+        : null;
 
   // Explain WHY the confirm button is disabled — a silently-disabled
   // button reads as "nothing happens when I click". Tier 1 (the GHG
@@ -171,7 +200,7 @@ function IngestReviewBody({
   // per-unit PCF) needs a purchased quantity before we can compute a
   // total, so that's the most common gate.
   const disabledReason: string =
-    tierSelected === null
+    selectedTier === null
       ? '供应商未提供足够数据（需要 Tier 1 单位碳足迹，或 Tier 2 三项齐全）'
       : accepted.size === 0
         ? '请至少勾选一项答案'
@@ -211,13 +240,37 @@ function IngestReviewBody({
           {' · '}
           路径：
           <span className="font-medium text-foreground">
-            {tierSelected === 1
+            {selectedTier === 1
               ? 'Tier 1 (per-unit PCF)'
-              : tierSelected === 2
+              : selectedTier === 2
                 ? 'Tier 2 (allocated emissions)'
                 : '无足够数据'}
           </span>
         </p>
+
+        {/* Tier selector — only when the supplier supplied BOTH tiers. */}
+        {availableTiers.length > 1 && (
+          <div className="flex items-center gap-2 rounded-md border border-border bg-muted/40 p-2">
+            <span className="text-xs text-muted-foreground">入库口径：</span>
+            <div className="inline-flex overflow-hidden rounded-md border border-border">
+              <TierToggle
+                label="Tier 1 (单位碳足迹)"
+                active={selectedTier === 1}
+                onClick={() => setSelectedTier(1)}
+              />
+              <TierToggle
+                label="Tier 2 (分配排放)"
+                active={selectedTier === 2}
+                onClick={() => setSelectedTier(2)}
+              />
+            </div>
+            <span className="text-xs text-muted-foreground">
+              供应商两种口径都填了，按 GHG Protocol 默认优先 Tier 1；如需直接采用其填报的总量请切到
+              Tier 2。
+            </span>
+          </div>
+        )}
+
         {preview.warnings.length > 0 && <WarningBanner warnings={preview.warnings} />}
       </div>
 
@@ -237,7 +290,7 @@ function IngestReviewBody({
               ))}
             </ul>
             {/* Surface the Tier 1 quantity input right next to the tier1 group. */}
-            {tier === 1 && tier1Positions.length > 0 && tierSelected === 1 && (
+            {tier === 1 && tier1Positions.length > 0 && selectedTier === 1 && (
               <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 space-y-2">
                 <Label htmlFor="tier1-qty" className="text-amber-800 dark:text-amber-300">
                   本期采购数量 / Purchased quantity (kg)
@@ -267,25 +320,13 @@ function IngestReviewBody({
         <div className="text-sm text-muted-foreground">
           预计入库：
           <span className="ml-1 font-medium text-foreground">
-            {preview.ingestion_plan.activity_row_count} 条活动
+            {selectedTier === null ? 0 : 1} 条活动
           </span>
-          {tierSelected === 2 && (
+          {liveTotalCo2eKg !== null && (
             <>
               {' · '}
               <span className="font-medium text-foreground">
-                {Math.round(preview.ingestion_plan.total_co2e_kg).toLocaleString()} kgCO2e
-              </span>
-            </>
-          )}
-          {tierSelected === 1 && tier1QtyValid && (
-            <>
-              {' · '}
-              <span className="font-medium text-foreground">
-                {Math.round(
-                  (preview.answers.find((a) => a.position === 'tier1.1')?.parsed_value as number) *
-                    Number.parseFloat(tier1Qty),
-                ).toLocaleString()}{' '}
-                kgCO2e
+                {Math.round(liveTotalCo2eKg).toLocaleString()} kgCO2e
               </span>
             </>
           )}
@@ -388,6 +429,32 @@ function WarningBanner({ warnings }: { warnings: ImportPreview['warnings'] }): J
         </div>
       </div>
     </div>
+  );
+}
+
+function TierToggle({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}): JSX.Element {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        'px-3 py-1 text-xs font-medium transition-colors',
+        active
+          ? 'bg-primary text-primary-foreground'
+          : 'bg-transparent text-muted-foreground hover:bg-foreground/5',
+      )}
+    >
+      {label}
+    </button>
   );
 }
 
