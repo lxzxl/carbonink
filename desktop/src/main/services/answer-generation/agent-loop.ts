@@ -33,8 +33,19 @@ export interface AgentRunResult {
  * never need many turns — read one or two filters, optionally pull an
  * EF, submit. If the model burns 6 turns without finalizing, it's
  * usually thrashing and falling back to single-shot is the right call.
+ *
+ * Overridable via the `ANSWER_AGENT_MAX_TURNS` env var — primarily so
+ * manual smoke can force the fallback path by setting it to `1` (the
+ * agent can't finalize in a single turn since it must call a tool first,
+ * so it always exhausts the budget → AgentMaxTurns → single-shot). An
+ * invalid / non-positive value falls back to the default 6.
  */
-const ANSWER_AGENT_MAX_TURNS = 6;
+const ANSWER_AGENT_MAX_TURNS = (() => {
+  const raw = process.env.ANSWER_AGENT_MAX_TURNS;
+  if (raw === undefined) return 6;
+  const n = Number.parseInt(raw, 10);
+  return Number.isInteger(n) && n > 0 ? n : 6;
+})();
 
 /**
  * Wall-clock budget per question. 90s is generous for the kind of
