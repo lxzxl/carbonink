@@ -30,6 +30,7 @@ import { Route as QuestionnairesNewRouteImport } from './routes/questionnaires.n
 import { Route as QuestionnairesIdRouteImport } from './routes/questionnaires.$id'
 import { Route as OnboardingStepRouteImport } from './routes/onboarding.$step'
 import { Route as DocumentsIdRouteImport } from './routes/documents.$id'
+import { Route as SupplierDisclosuresIdIndexRouteImport } from './routes/supplier-disclosures.$id.index'
 import { Route as SupplierDisclosuresIdIngestRouteImport } from './routes/supplier-disclosures.$id.ingest'
 
 const SupplierDisclosuresRoute = SupplierDisclosuresRouteImport.update({
@@ -138,6 +139,12 @@ const DocumentsIdRoute = DocumentsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => DocumentsRoute,
 } as any)
+const SupplierDisclosuresIdIndexRoute =
+  SupplierDisclosuresIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => SupplierDisclosuresIdRoute,
+  } as any)
 const SupplierDisclosuresIdIngestRoute =
   SupplierDisclosuresIdIngestRouteImport.update({
     id: '/ingest',
@@ -168,6 +175,7 @@ export interface FileRoutesByFullPath {
   '/reports/': typeof ReportsIndexRoute
   '/supplier-disclosures/': typeof SupplierDisclosuresIndexRoute
   '/supplier-disclosures/$id/ingest': typeof SupplierDisclosuresIdIngestRoute
+  '/supplier-disclosures/$id/': typeof SupplierDisclosuresIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -181,13 +189,13 @@ export interface FileRoutesByTo {
   '/questionnaires/$id': typeof QuestionnairesIdRoute
   '/questionnaires/new': typeof QuestionnairesNewRoute
   '/reports/$id': typeof ReportsIdRoute
-  '/supplier-disclosures/$id': typeof SupplierDisclosuresIdRouteWithChildren
   '/supplier-disclosures/new': typeof SupplierDisclosuresNewRoute
   '/documents': typeof DocumentsIndexRoute
   '/questionnaires': typeof QuestionnairesIndexRoute
   '/reports': typeof ReportsIndexRoute
   '/supplier-disclosures': typeof SupplierDisclosuresIndexRoute
   '/supplier-disclosures/$id/ingest': typeof SupplierDisclosuresIdIngestRoute
+  '/supplier-disclosures/$id': typeof SupplierDisclosuresIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -213,6 +221,7 @@ export interface FileRoutesById {
   '/reports/': typeof ReportsIndexRoute
   '/supplier-disclosures/': typeof SupplierDisclosuresIndexRoute
   '/supplier-disclosures/$id/ingest': typeof SupplierDisclosuresIdIngestRoute
+  '/supplier-disclosures/$id/': typeof SupplierDisclosuresIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -239,6 +248,7 @@ export interface FileRouteTypes {
     | '/reports/'
     | '/supplier-disclosures/'
     | '/supplier-disclosures/$id/ingest'
+    | '/supplier-disclosures/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -252,13 +262,13 @@ export interface FileRouteTypes {
     | '/questionnaires/$id'
     | '/questionnaires/new'
     | '/reports/$id'
-    | '/supplier-disclosures/$id'
     | '/supplier-disclosures/new'
     | '/documents'
     | '/questionnaires'
     | '/reports'
     | '/supplier-disclosures'
     | '/supplier-disclosures/$id/ingest'
+    | '/supplier-disclosures/$id'
   id:
     | '__root__'
     | '/'
@@ -283,6 +293,7 @@ export interface FileRouteTypes {
     | '/reports/'
     | '/supplier-disclosures/'
     | '/supplier-disclosures/$id/ingest'
+    | '/supplier-disclosures/$id/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -448,6 +459,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocumentsIdRouteImport
       parentRoute: typeof DocumentsRoute
     }
+    '/supplier-disclosures/$id/': {
+      id: '/supplier-disclosures/$id/'
+      path: '/'
+      fullPath: '/supplier-disclosures/$id/'
+      preLoaderRoute: typeof SupplierDisclosuresIdIndexRouteImport
+      parentRoute: typeof SupplierDisclosuresIdRoute
+    }
     '/supplier-disclosures/$id/ingest': {
       id: '/supplier-disclosures/$id/ingest'
       path: '/ingest'
@@ -503,10 +521,12 @@ const ReportsRouteWithChildren =
 
 interface SupplierDisclosuresIdRouteChildren {
   SupplierDisclosuresIdIngestRoute: typeof SupplierDisclosuresIdIngestRoute
+  SupplierDisclosuresIdIndexRoute: typeof SupplierDisclosuresIdIndexRoute
 }
 
 const SupplierDisclosuresIdRouteChildren: SupplierDisclosuresIdRouteChildren = {
   SupplierDisclosuresIdIngestRoute: SupplierDisclosuresIdIngestRoute,
+  SupplierDisclosuresIdIndexRoute: SupplierDisclosuresIdIndexRoute,
 }
 
 const SupplierDisclosuresIdRouteWithChildren =
