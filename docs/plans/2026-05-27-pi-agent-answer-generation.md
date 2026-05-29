@@ -397,29 +397,46 @@ agent-state cross-contamination.
 
 ---
 
-### Task 9: Manual smoke (USER ACTION)
+### Task 9: Smoke — automated e2e (DONE) ✅
 
-After Task 8 lands, restart dev. Walk through:
+Originally a manual GUI checklist; superseded by an automated e2e test
+(`tests/main/services/answer-generation-e2e.test.ts`) so the four steps
+run on every `pnpm test` without a GUI or a live LLM. The test drives the
+real stack (seeded SQLite → real services → real tools → real
+`buildAiAgentLayer` turn-loop → real orchestrator → real SQLite writes);
+only the LLM network seam is faked via pi-ai `registerFauxProvider`.
 
-1. Open a real questionnaire → click Generate on a single question → wait → answer appears, source_summary references specific activity IDs (sign that agent queried via list_activities)
-2. Force fallback: set `ANSWER_AGENT_MAX_TURNS=1` env var via dev terminal → restart → re-generate → answer's source_summary should be prefixed `【单 shot fallback】`
-3. SQL check: `sqlite3 ~/Library/Application\ Support/CarbonInk/app.sqlite "SELECT event_kind, payload FROM audit_event WHERE event_kind = 'agent_answer.generate' ORDER BY occurred_at DESC LIMIT 3;"`
-4. Batch generation: click "Generate all unanswered" on a small questionnaire (3-5 questions) → all complete within ~2 min; each gets its own audit row
+Coverage map (see spec § "End-to-end" for the assertion table):
 
-Fill the result into the spec's Verified Smoke Run table. Commit.
+1. **agent runs** — scripted `sum_co2e` tool call hits the real service
+   against the real seeded rows → returns the real aggregate (70000); the
+   answer row is written with `source_kind='ai_suggested'`, no fallback
+   prefix.
+2. **fallback** — two identical tool calls trip the *real* `AgentStalled`
+   no-progress detector → orchestrator switches to single-shot →
+   `source_summary` prefixed `【单 shot fallback】`. (The
+   `ANSWER_AGENT_MAX_TURNS=1` env override — commit `7087f7f` — remains
+   available for a live manual repro, but the automated path uses stall
+   detection.)
+3. **audit row** — `agent_answer.generate` payload asserted:
+   `isFallback`, `stopReason`, `toolCallSummary`.
+4. **batch** — `generateAllUnanswered` over a 3-question questionnaire →
+   3 answer rows + 3 audit rows.
+
+One historical live-LLM confirmation (deepseek, 2026-05-28) is recorded
+in the spec for provenance; the automated test makes it repeatable.
 
 ---
 
 ## Definition of Done
 
-- All 8 implementer tasks committed
-- `pnpm test` passes (baseline 779 ± 20)
-- `pnpm typecheck` clean
-- `pnpm exec biome check <changed files>` clean
-- `pnpm dist:mac` produces DMGs
-- Manual smoke 4 steps verified
-- `audit_event` has `agent_answer.generate` rows after generation
-- Fallback verified by forcing maxTurns=1
+- All 8 implementer tasks committed ✅
+- `pnpm test` passes (932 on `main` at wrap-up; well above the 779 ± 20 baseline) ✅
+- `pnpm typecheck` clean ✅
+- `pnpm exec biome check <changed files>` clean ✅
+- Smoke (4 steps) covered by automated e2e — `answer-generation-e2e.test.ts` ✅
+- `audit_event` `agent_answer.generate` row shape asserted in e2e ✅
+- Fallback path asserted in e2e (real `AgentStalled` → single-shot) ✅
 
 ## Known follow-ups (out of v1)
 

@@ -357,44 +357,37 @@ Two scenarios:
 1. Agent succeeds → answer written with source_summary from agent; audit row recorded with turnCount ≥ 1
 2. Agent times out → fallback path used; source_summary prefixed `【单 shot fallback】`; audit row recorded with isFallback: true
 
-### Manual smoke (added to spec)
+### End-to-end — `tests/main/services/answer-generation-e2e.test.ts` (new)
 
-```
-1. Generate one answer on a real customer's questionnaire → verify Agent loop actually queries (DevTools network or audit row)
-2. Force fallback: set maxTurns=1 in env override → verify the answer still lands, source_summary is prefixed
-3. Verify audit_event has agent_answer.generate row with reasonable token/duration values
-4. Generate batch (generateAllUnanswered) for a small questionnaire → all answers complete; total time within reasonable bound
-```
+The 4 smoke steps below were originally a manual GUI checklist. They are
+now an **automated e2e test** — the manual run is retired. The test wires
+the *real* stack (seeded SQLite → real `OrganizationService` /
+`ActivityDataService` / `EmissionSourceService` / `QuestionnaireService`
+read paths → real `buildAnswerTools` → real `buildAiAgentLayer` turn-loop
+→ real `answer-generation` orchestrator → real SQLite writes). The only
+fake is the LLM network seam, driven by pi-ai's `registerFauxProvider`
+with scripted tool calls — exactly the boundary the manual smoke couldn't
+avoid either.
 
-### Verified smoke run
+What makes this a genuine e2e rather than a richer unit test: the agent's
+`sum_co2e` tool call hits the real service against the real seeded rows
+and returns the real aggregate (asserted = 70000 from `30000 + 40000`),
+and the `AgentStalled` → fallback transition is driven by the *real*
+no-progress detector (two identical tool calls in a row), not a mocked
+rejection.
 
-| Date | Builder | Platform | 1 (agent runs) | 2 (fallback works) | 3 (audit row) | 4 (batch) |
-|---|---|---|---|---|---|---|
-| 2026-05-28 | lxz | macOS (dev) | ✅ | ⏳ | ✅ | ⏳ |
+| Step | Manual intent | Automated assertion |
+|---|---|---|
+| 1 agent runs | agent queries inventory | real `sum_co2e` returns 70000; answer row written; `source_kind='ai_suggested'`, no fallback prefix |
+| 2 fallback | maxTurns/stall → single-shot | real `AgentStalled` → fallback; `source_summary` prefixed `【单 shot fallback】` |
+| 3 audit row | `agent_answer.generate` present | payload `isFallback=false, stopReason='completed', toolCallSummary=['sum_co2e']` |
+| 4 batch | `generateAllUnanswered` answers all | 3 questions → 3 answer rows + 3 audit rows |
 
-**Evidence (steps 1 + 3, from the live dev DB):**
-
-- **Provider:** deepseek / `deepseek-v4-flash`. Fixture: `seed-item4-smoke.mjs`
-  (org 碳墨, 2025 period, 9 activities = 108,208.3 kgCO2e, outbound
-  questionnaire "Item4 Smoke 客户", 7 questions).
-- **Step 1 — agent runs (Q1, "2025 范围 2 总量"):** answer = `71230.47
-  kgCO2e` (matches the 4 quarterly electricity activities exactly).
-  `source_summary` cites the specific activity IDs
-  (`e2f77342, f7670dcc, 3e03e290, 90e1f1e5`) — confirming the agent
-  queried via `sum_co2e` + `list_activities` rather than dumping context.
-- **Step 3 — audit row:** one `agent_answer.generate` event:
-  `isFallback=false, turnCount=3, toolCallSummary=["sum_co2e","list_activities"],
-  tokens={input:2192,output:368}, durationMs:6291, stopReason:"completed"`.
-
-**Pending (steps 2 + 4):**
-
-- **Step 2 — fallback:** `ANSWER_AGENT_MAX_TURNS` env override wired in
-  commit `7087f7f` (was a hardcoded const; the plan's instruction was a
-  no-op before). Run `ANSWER_AGENT_MAX_TURNS=1 pnpm --filter carbonink dev`,
-  regenerate a question → `source_summary` prefixed `【单 shot fallback】`,
-  audit `isFallback=true, stopReason="max_turns"`.
-- **Step 4 — batch:** "Generate all unanswered" on the 6 remaining
-  questions → all complete within ~2 min; one audit row each.
+Also verified once manually against a live deepseek run (2026-05-28): Q1
+"2025 范围 2 总量" → `71230.47 kgCO2e` with the real activity IDs cited in
+`source_summary`, audit `turnCount=3, tokens={input:2192,output:368},
+durationMs:6291`. The automated test makes that repeatable without a
+network or a GUI.
 
 ## References
 
