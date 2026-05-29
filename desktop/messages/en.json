@@ -284,6 +284,7 @@
   "questionnaires_sort_recent": "Most recent",
   "questionnaires_status_answering": "Answering",
   "questionnaires_status_exported": "Exported",
+  "questionnaires_status_finalized": "Finalized",
   "questionnaires_status_mapping": "Draft",
   "questionnaires_status_parsing": "Parsing",
   "questionnaires_table_customer": "Customer",

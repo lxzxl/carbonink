@@ -189,11 +189,11 @@ describe('/questionnaires/$id detail route', () => {
 
     // Wait for not-found message to render
     await waitFor(() => {
-      expect(screen.getByText(/Questionnaire not found|问卷不存在/)).toBeTruthy();
+      expect(screen.getByText(/Disclosure filing not found|披露填报不存在/)).toBeTruthy();
     });
 
     // Verify back link is still available
-    expect(screen.getAllByText(/← Questionnaires|← 返回问卷列表/)).toBeTruthy();
+    expect(screen.getAllByText(/← Disclosure filings|← 返回披露填报列表/)).toBeTruthy();
   });
 
   it('renders empty-questions state with pending message', async () => {

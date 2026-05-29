@@ -284,6 +284,7 @@
   "questionnaires_sort_recent": "最近创建",
   "questionnaires_status_answering": "答题中",
   "questionnaires_status_exported": "已导出",
+  "questionnaires_status_finalized": "已定稿",
   "questionnaires_status_mapping": "草稿",
   "questionnaires_status_parsing": "解析中",
   "questionnaires_table_customer": "客户",

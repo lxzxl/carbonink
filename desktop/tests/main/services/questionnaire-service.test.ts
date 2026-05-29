@@ -259,7 +259,7 @@ describe('QuestionnaireService.markExported', () => {
 });
 
 describe('QuestionnaireService.finalizeAnswering', () => {
-  it('stamps finalized_at on every draft answer + advances status to answering', async () => {
+  it('stamps finalized_at on every draft answer + advances status to finalized', async () => {
     const { svc, db } = setup({
       llmQuestions: [
         {
@@ -300,7 +300,7 @@ describe('QuestionnaireService.finalizeAnswering', () => {
       .get(r.questionnaire_id) as {
       status: string;
     };
-    expect(qn.status).toBe('answering');
+    expect(qn.status).toBe('finalized');
   });
 
   it('does not regress an already-exported questionnaire', async () => {

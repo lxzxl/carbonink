@@ -310,7 +310,8 @@ export class QuestionnaireService {
    * the action matches its label. (It previously only flipped the status flag and
    * touched no answers, which made "确认全部答案" a no-op on the answers it named.)
    *
-   * The status advances to 'answering' but never *regresses* an already-`exported`
+   * The status advances to 'finalized' (已定稿) — a real done-state in the
+   * 草稿 → 已定稿 → 已导出 lifecycle — but never *regresses* an already-`exported`
    * questionnaire (the `status != 'exported'` guard). Idempotent: re-running only
    * stamps answers that are still drafts.
    */
@@ -326,7 +327,7 @@ export class QuestionnaireService {
         .run(nowFn(), id);
       this.deps.db
         .prepare(
-          `UPDATE questionnaire SET status = 'answering' WHERE id = ? AND status != 'exported'`,
+          `UPDATE questionnaire SET status = 'finalized' WHERE id = ? AND status != 'exported'`,
         )
         .run(id);
     });

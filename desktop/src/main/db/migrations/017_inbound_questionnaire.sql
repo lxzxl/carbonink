@@ -31,7 +31,7 @@ CREATE TABLE questionnaire_new (
   template_kind TEXT,
   reporting_year INTEGER NOT NULL,
   status        TEXT NOT NULL CHECK(status IN
-                  ('parsing', 'mapping', 'answering', 'exported',
+                  ('parsing', 'mapping', 'answering', 'finalized', 'exported',
                    'draft', 'sent', 'received', 'ingested')),
   direction     TEXT NOT NULL DEFAULT 'outbound'
                   CHECK(direction IN ('outbound', 'inbound')),

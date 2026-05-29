@@ -97,7 +97,7 @@ describe('/questionnaires route', () => {
 
   it('shows the empty state when there are no questionnaires', async () => {
     render(buildHarness());
-    expect(await screen.findByText(/No questionnaires yet|还没有问卷/)).toBeTruthy();
+    expect(await screen.findByText(/No disclosure filings yet|还没有披露填报/)).toBeTruthy();
   });
 
   it('renders rows after questionnaire:list resolves', async () => {

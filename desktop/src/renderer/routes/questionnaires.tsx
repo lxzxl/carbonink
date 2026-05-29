@@ -58,11 +58,11 @@ function QuestionnairesLayout() {
 
 // Outbound (customer-fill) statuses only. Inbound (supplier-disclosure)
 // statuses live under their own route at `/supplier-disclosures/*`.
-type QStatus = 'parsing' | 'mapping' | 'answering' | 'exported';
+type QStatus = 'parsing' | 'mapping' | 'answering' | 'finalized' | 'exported';
 type QStatusFilter = 'all' | QStatus;
 type QSort = 'recent' | 'oldest' | 'customer' | 'due' | 'questions';
 
-const Q_STATUSES: QStatus[] = ['parsing', 'mapping', 'answering', 'exported'];
+const Q_STATUSES: QStatus[] = ['parsing', 'mapping', 'answering', 'finalized', 'exported'];
 
 function QuestionnairesListColumn() {
   const params = useParams({ strict: false }) as { id?: string };
@@ -93,6 +93,7 @@ function QuestionnairesListColumn() {
       parsing: 0,
       mapping: 0,
       answering: 0,
+      finalized: 0,
       exported: 0,
     };
     for (const r of searched) {
@@ -153,6 +154,7 @@ function QuestionnairesListColumn() {
     { value: 'parsing', label: m.questionnaires_status_parsing() },
     { value: 'mapping', label: m.questionnaires_status_mapping() },
     { value: 'answering', label: m.questionnaires_status_answering() },
+    { value: 'finalized', label: m.questionnaires_status_finalized() },
     { value: 'exported', label: m.questionnaires_status_exported() },
   ];
 

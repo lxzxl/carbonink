@@ -16,6 +16,8 @@ export function outboundStatusLabel(status: string): string {
       return m.questionnaires_status_mapping();
     case 'answering':
       return m.questionnaires_status_answering();
+    case 'finalized':
+      return m.questionnaires_status_finalized();
     case 'exported':
       return m.questionnaires_status_exported();
     default:
