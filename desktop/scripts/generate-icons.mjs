@@ -54,10 +54,31 @@ if (!directions[ACTIVE_DIRECTION]) {
 
 // ───────────────── Rasterizer ─────────────────
 
+/**
+ * macOS app-icon "safe area". Apple's icon grid places the rounded-rect
+ * body in an 824×824 box centered on the 1024 canvas — 100px of clear
+ * margin on every side. macOS renders `.icns` app icons AS-IS (unlike
+ * iOS, it adds no mask and no padding), so a full-bleed tile draws
+ * visibly larger than every neighbor in the Dock. We bake the margin in
+ * here by rendering each design into the inset body box; the transparent
+ * border around it is what makes CarbonInk match the size of other apps.
+ *
+ * 824 / 1024 = 0.8047. Nudge ICON_BODY_RATIO if the mark reads too
+ * small/large beside your other Dock icons. The shared `draw*` fns stay
+ * full-bleed on purpose — the web favicon ports them verbatim and wants
+ * no margin; the inset is an app-icon-only concern, so it lives here.
+ */
+const ICON_BODY_RATIO = 824 / 1024;
+
 function render(drawFn, size) {
   const canvas = createCanvas(size, size);
   const ctx = canvas.getContext('2d');
-  drawFn(ctx, size);
+  const body = Math.round(size * ICON_BODY_RATIO);
+  const inset = Math.round((size - body) / 2);
+  ctx.save();
+  ctx.translate(inset, inset);
+  drawFn(ctx, body); // design fills the inset box; the margin stays transparent
+  ctx.restore();
   return canvas.toBuffer('image/png');
 }
 
