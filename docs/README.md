@@ -61,6 +61,7 @@ Map of the `docs/` tree. **For *status* (what's shipped vs. in progress), see
 
 ## Research
 
+- [state-ui-intuitiveness-review](research/2026-05-29-state-ui-intuitiveness-review.md) — audit of every status state machine + UI flow, with prioritized fixes
 - [electron-42-upgrade-blocker](research/2026-05-25-electron-42-upgrade-blocker.md) — why Electron is pinned at 41
 - [pi-integration-spike](research/2026-05-26-pi-integration-spike.md) · [effect-ts-adoption](research/2026-05-15-effect-ts-adoption.md) · [excel-library-tradeoffs](research/2026-05-15-excel-library-tradeoffs.md) · [electron-gui-smoke-testing](research/2026-05-14-electron-gui-smoke-testing.md)
 
