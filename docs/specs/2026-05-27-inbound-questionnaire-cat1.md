@@ -488,6 +488,16 @@ Idempotency: re-running `ingest` on an already-`'ingested'` questionnaire is a n
 
 ## UI changes
 
+> **AS-BUILT (2026-05-29) — diverged from this section.** Mid-implementation the user
+> asked to keep inbound and outbound "完全分开" (fully separate). Instead of overloading
+> `/questionnaires` with a direction filter + an `$id/ingest` child, inbound shipped as its
+> own top-level nav item and route tree: **`/supplier-disclosures`** ("供应商披露"), with
+> outbound renamed to "披露填报" (`/questionnaires`, unchanged). So the as-built routes are
+> `/supplier-disclosures` (list), `.../new` (wizard), `.../$id` (detail), `.../$id/ingest`
+> (review-and-confirm). `InboundIngestPreview` was not split into its own component — the
+> preview renders inline in the ingest route. The original design (below) is kept for
+> rationale; read route paths as their `/supplier-disclosures` equivalents.
+
 **New routes:**
 - `/questionnaires/new` becomes a two-step wizard: pick direction → existing/new wizard branches.
 - `/questionnaires/$id/ingest` — review-and-confirm page (preview + accept/reject toggles).
@@ -565,9 +575,13 @@ The template's question text (`raw_zh` / `raw_en`) lives in `cat1.ts`, not in pa
 
 - `answer-handlers.test.ts` — `answer:generate` against an inbound questionnaire returns the typed refusal.
 
-**No e2e tests** for v2.0 — the file-picker dialog isn't easily playwright-able, and the meat is in the parse/ingest unit tests.
+**e2e (as-built):** the file-picker dialog still isn't playwright-able, so the parse/ingest
+meat stays in unit tests — but the `/supplier-disclosures` *page* is now captured by the
+Playwright route tour (`tests/e2e/tour.spec.ts`, snapshot `tour-05b-supplier-disclosures`),
+so the new nav + list render can't silently regress.
 
-**Baseline:** 830 → expected ≥ 860 with the new test files. Don't regress below 830.
+**Baseline:** 830 → **932/932 as-built** (the v2.0 inbound test files plus the later
+pi-agent answer-gen e2e). Never regress below the 830 baseline.
 
 ## Smoke checklist (manual, USER ACTION at end of plan)
 
@@ -612,16 +626,21 @@ After all tasks land:
 
 ## Verified smoke run (filled in after implementation)
 
+**Method.** Steps 1–6 + 8 were exercised by hand against a live `pnpm dev` session on
+2026-05-29 — that pass is what surfaced and got the import/ingest/notes/mount bugs fixed
+(see the plan's Task 13). The negative + edge paths (9–11) are pinned by unit tests rather
+than re-run manually; they're marked *unit* below. Build = dev (electron-vite, macOS).
+
 | Step | Date | Build | Outcome | Notes |
 |---|---|---|---|---|
-| 1. Create inbound draft | | | | |
-| 2. Export blank xlsx | | | | |
-| 3. Fill Tier 2 manually | | | | |
-| 4. Import + preview | | | | |
-| 5. Ingest + activity row | | | | |
-| 6. /activities badge | | | | |
-| 7. Dashboard scope 3 total | | | | |
-| 8. audit_event rows | | | | |
-| 9. Tier 1 path | | | | |
-| 10. Idempotent re-import | | | | |
-| 11. Sentinel rejection | | | | |
+| 1. Create inbound draft | 2026-05-29 | dev | ✅ | New supplier via `supplier:create` (needed allowlist fix `868d275`) |
+| 2. Export blank xlsx | 2026-05-29 | dev | ✅ | 4 sheets + hidden `__sentinels`; status draft→sent |
+| 3. Fill Tier 2 manually | 2026-05-29 | dev | ✅ | Values + a column-C note (note capture added `a57a8a7`) |
+| 4. Import + preview | 2026-05-29 | dev | ✅ | Answers + notes now echo on detail (`89b7aae`,`a57a8a7`) |
+| 5. Ingest + activity row | 2026-05-29 | dev | ✅ | Ingest page mount fixed (`4c5825d`); tier selector polished (`aea2c63`) |
+| 6. /activities badge | 2026-05-29 | dev | ✅ | "来自供应商披露 · {supplier}" backlink to disclosure (`aea2c63`) |
+| 7. Dashboard scope 3 total | — | dev | ⬜ | Not separately observed; AD row feeds the same scope-3 aggregate as v1 |
+| 8. audit_event rows | 2026-05-29 | dev | ✅ | exported / imported / ingested kinds present; shapes also unit-asserted |
+| 9. Tier 1 path | unit | — | ✅ | `inbound-questionnaire-service.test.ts` — Tier 1 PCF × inline quantity |
+| 10. Idempotent re-import | unit | — | ✅ | re-import overwrites tentative answers; no duplicate AD on re-ingest |
+| 11. Sentinel rejection | unit | — | ✅ | `excel-template-renderer.test.ts` — wrong-template sentinel mismatch throws |

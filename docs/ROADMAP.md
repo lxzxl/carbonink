@@ -118,21 +118,21 @@ roadmap 只记"想做"，没排期、没承诺。要做之前必须先走 brains
 
 ---
 
-## 4.5. 🔧 实施中（v2.0，2026-05-27）— Inbound 供应商问卷（Scope 3 Cat 1）
+## 4.5. ✅ 已完成（v2.0，2026-05-27 → 05-29）— Inbound 供应商问卷（Scope 3 Cat 1）
 
 源自 2026-05-27 的产品反思（["问卷不应该是数据来源吗？"](../docs/specs/2026-05-27-inbound-questionnaire-cat1.md#trigger)）。v1 把 questionnaire 设计成 outbound-only（用我方数据填客户问卷）；v2.0 加入对偶的 inbound 流（向供应商发问卷收数据，自动转 activity_data 行）。
 
-**v2.0 范围**（[spec](specs/2026-05-27-inbound-questionnaire-cat1.md), [plan](plans/2026-05-27-inbound-questionnaire-cat1.md), commits e598258..a94c910）
+**v2.0 范围**（[spec](specs/2026-05-27-inbound-questionnaire-cat1.md), [plan](plans/2026-05-27-inbound-questionnaire-cat1.md), commits `e598258`..`a94c910` + UI 拆分与修复 `8cd045e`..`aea2c63`）
 - 单一内置模板：Cat 1 Supplier Disclosure（7 题：3 元数据 + 1 Tier 1 PCF + 3 Tier 2 分配排放）
 - 交付方式：xlsx 邮件往返（无 cloud surface 扩展、无 supplier auth）
 - 服务层：`InboundQuestionnaireService.createDraft / exportBlankXlsx / importFilledXlsx / getIngestPreview / ingest`
 - xlsx render + parse with hidden sentinel sheet（防止误导外发表 / 错供应商 xlsx）
 - 入库时 Tier 2 走 sentinel pinned EF（直填 kgCO2e），Tier 1 路径在 review 页面 inline 收"采购数量"再乘 PCF
 - 状态机：draft → sent → received → ingested，每步 audit_event
-- UI：list 页 direction filter chips + 行级 IN/OUT badge；detail 页按 direction × status 分支；新增 `/questionnaires/$id/ingest` review-and-confirm 页
+- UI：In/Out **完全分开**为两个顶级导航 —「披露填报」(`/questionnaires`, outbound) 与「供应商披露」(`/supplier-disclosures`, inbound)；inbound detail 按 status 分支动作栏，独立 `/supplier-disclosures/$id/ingest` review-and-confirm 页；入库的 activity 行回链到来源披露
 - 数据库迁移 017：questionnaire.direction、customer.role、question.tier、activity_data.{inbound_question_id, inbound_tier}
 
-**目前状态**：12/13 implementer tasks 完成，917/917 测试通过。**T13 手动 smoke 待运行**（fill_in 6-7 步流程验证 end-to-end）。
+**目前状态**：✅ 全部 13 tasks 完成，**932/932** 测试通过、typecheck + biome（改动文件）干净。T13 smoke 经 live `pnpm dev` bug-fix 迭代验证（导入/入库/备注/挂载 4 个 bug 已修），`/supplier-disclosures` 页纳入 Playwright tour（`tour-05b`）防回归。`pnpm dist:mac` 未本轮重跑（无 native/builder 变更），发版前再验。
 
 **留作 v2.1+**：
 - Tier 3（供应商报活动数据，我方换算）
