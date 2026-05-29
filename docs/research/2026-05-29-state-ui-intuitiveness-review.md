@@ -4,8 +4,25 @@
 renderer surfaces that present them. **Method:** traced each status enum
 (migrations) → its transition points (services) → its user-facing label (paraglide)
 → how it renders (routes). Goal: find where the design fights the user's mental
-model, and propose concrete fixes. Recommendations are prioritized; nothing here
-is implemented yet.
+model, and propose concrete fixes. Recommendations are prioritized.
+
+## Implementation status (updated 2026-05-29)
+
+| Finding | Status |
+|---|---|
+| **H2** — `确认全部答案` finalizes all answers + no exported-regress | ✅ shipped `d0c9281` |
+| **H3** — no raw status enum leak (shared `outboundStatusLabel`) | ✅ shipped `d0c9281` |
+| **H4 / L3** — pages unified to 披露填报; dead `nav_questionnaires` removed | ✅ shipped `a913d71` |
+| **R1 (partial)** — `mapping` relabeled 映射中 → 草稿 | ✅ shipped `a913d71` |
+| **H1 / R1 (rest)** — DB-level `已定稿` status + clean arc | 🔧 migration-gated → [plan](../plans/2026-05-29-outbound-lifecycle-remodel.md) |
+| **M3 / R5** — `source_kind` / `boundary_kind` enum divergence | 🔧 migration-gated → plan Task 4 |
+| **R6 / L1** — action-bar emphasis | ⏸ partly mitigated by H2; revisit with R1 |
+| **M1** — `document.status='pending'` label | ✅ non-issue (buckets to `review_needed` by design) |
+| **M4** — inbound inline-Chinese | ⏸ tracked as v2.1 i18n debt (ROADMAP §4.5) |
+| **L2** — document "status" is a blend | 📄 documented here; no code change |
+
+Migration-class items are designed but not auto-run — they touch the schema /
+user data and want explicit greenlight (see the plan).
 
 ---
 

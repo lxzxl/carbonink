@@ -29,6 +29,9 @@ Map of the `docs/` tree. **For *status* (what's shipped vs. in progress), see
 
 ## Workstreams (plans, newest first)
 
+**State/UI intuitiveness fixes (2026-05-29, current)**
+- [outbound-lifecycle-remodel](plans/2026-05-29-outbound-lifecycle-remodel.md) — migration-gated remainder of the [state/UI review](research/2026-05-29-state-ui-intuitiveness-review.md) (non-migration fixes already shipped)
+
 **v2.0 inbound + agent answer-gen (2026-05-27, current)**
 - [inbound-questionnaire-cat1](plans/2026-05-27-inbound-questionnaire-cat1.md) — supplier disclosures → Scope 3 Cat 1 activity data
 - [pi-agent-answer-generation](plans/2026-05-27-pi-agent-answer-generation.md) — agentic outbound answer generation
