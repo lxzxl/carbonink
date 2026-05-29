@@ -110,6 +110,16 @@ test(`tour: dashboard + 6 top-level routes [${TOUR_LOCALE}]`, async () => {
     await snap(window, `tour-05-questionnaires${suffix}`, { fullPage: true });
 
     // -----------------------------------------------------------------------
+    // /supplier-disclosures — inbound (supplier-disclosure) flow, added with
+    // the 2026-05-27 inbound pivot. Distinct top-level route from
+    // /questionnaires (outbound "披露填报"); captured to keep the tour in
+    // sync with the new nav.
+    // -----------------------------------------------------------------------
+    await navigateTo(window, '/supplier-disclosures');
+    await waitForRouteSettled(window);
+    await snap(window, `tour-05b-supplier-disclosures${suffix}`, { fullPage: true });
+
+    // -----------------------------------------------------------------------
     // /audit
     // -----------------------------------------------------------------------
     await navigateTo(window, '/audit');
