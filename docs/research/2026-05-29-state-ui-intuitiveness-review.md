@@ -14,15 +14,15 @@ model, and propose concrete fixes. Recommendations are prioritized.
 | **H3** — no raw status enum leak (shared `outboundStatusLabel`) | ✅ shipped `d0c9281` |
 | **H4 / L3** — pages unified to 披露填报; dead `nav_questionnaires` removed | ✅ shipped `a913d71` |
 | **R1 (partial)** — `mapping` relabeled 映射中 → 草稿 | ✅ shipped `a913d71` |
-| **H1 / R1 (rest)** — DB-level `已定稿` status + clean arc | 🔧 migration-gated → [plan](../plans/2026-05-29-outbound-lifecycle-remodel.md) |
-| **M3 / R5** — `source_kind` / `boundary_kind` enum divergence | 🔧 migration-gated → plan Task 4 |
-| **R6 / L1** — action-bar emphasis | ⏸ partly mitigated by H2; revisit with R1 |
+| **H1 / R1 (rest)** — DB-level `已定稿` status + clean arc | ✅ shipped `9699eab` (017 CHECK widened; old data discarded → dev DB reset + reseeded via `scripts/reset-dev-db.mjs`) |
+| **M3 / R5** — `source_kind` / `boundary_kind` enum divergence | 🔧 still open — needs a decision (intentional vs drift) → [plan](../plans/2026-05-29-outbound-lifecycle-remodel.md) Task 4 |
+| **R6 / L1** — action-bar emphasis | ⏸ mitigated by H2 (`确认全部答案` is now meaningful); judgment call, not a bug |
 | **M1** — `document.status='pending'` label | ✅ non-issue (buckets to `review_needed` by design) |
 | **M4** — inbound inline-Chinese | ⏸ tracked as v2.1 i18n debt (ROADMAP §4.5) |
 | **L2** — document "status" is a blend | 📄 documented here; no code change |
 
-Migration-class items are designed but not auto-run — they touch the schema /
-user data and want explicit greenlight (see the plan).
+Only **M3/R5** remains, and it's a *decision* (align the diverging enums or document
+why they differ) rather than a build task.
 
 ---
 

@@ -7,16 +7,22 @@
 > before running against user data. Spec = the review doc (it has the proposed
 > state table + rationale).
 
-## Already shipped (no migration)
+## Shipped
 
 - **H2** — `确认全部答案` now stamps `finalized_at` on every answer (was a no-op on
   answers) + no longer regresses an exported questionnaire. (`d0c9281`)
 - **H3** — shared `outboundStatusLabel()`; no route renders the raw status enum. (`d0c9281`)
 - **H4 / L3** — pages unified to 披露填报; dead `nav_questionnaires` removed. (`a913d71`)
-- **R1 (partial)** — `mapping` relabeled 映射中 → 草稿 so the initial state isn't
-  pipeline-speak. (`a913d71`)
+- **R1 (relabel)** — `mapping` relabeled 映射中 → 草稿. (`a913d71`)
+- **R1 (DB-level finalized — Tasks 1+2 below)** ✅ — migration 017 CHECK widened to
+  allow `finalized`; `finalizeAnswering` advances `mapping → finalized`; new
+  `questionnaires_status_finalized` (已定稿/Finalized) label + list filter. Old data
+  discarded; dev DB reset + reseeded via **`scripts/reset-dev-db.mjs`** (headless
+  fresh-migrate + carry org/site/period + run the seed). (`9699eab`)
 
-## Remaining (needs a migration — greenlight required)
+## Remaining
+
+Only **Task 4** (enum hygiene, M3/R5) is open — and it's a *decision*, not a build:
 
 ### Task 1 — Migration 018: add `finalized` to `questionnaire.status`
 
