@@ -304,8 +304,33 @@ export class QuestionnaireService {
       .all() as Array<Questionnaire & { customer_name: string; question_count: number }>;
   }
 
+  /**
+   * "确认全部答案" / Finalize answers. Stamps `finalized_at` on every still-draft
+   * answer in this questionnaire — the bulk form of the per-answer finalize — so
+   * the action matches its label. (It previously only flipped the status flag and
+   * touched no answers, which made "确认全部答案" a no-op on the answers it named.)
+   *
+   * The status advances to 'answering' but never *regresses* an already-`exported`
+   * questionnaire (the `status != 'exported'` guard). Idempotent: re-running only
+   * stamps answers that are still drafts.
+   */
   finalizeAnswering(id: string): void {
-    this.deps.db.prepare(`UPDATE questionnaire SET status = 'answering' WHERE id = ?`).run(id);
+    const nowFn = this.deps.now ?? (() => new Date().toISOString());
+    const tx = this.deps.db.transaction(() => {
+      this.deps.db
+        .prepare(
+          `UPDATE answer SET finalized_at = ?
+             WHERE finalized_at IS NULL
+               AND question_id IN (SELECT id FROM question WHERE questionnaire_id = ?)`,
+        )
+        .run(nowFn(), id);
+      this.deps.db
+        .prepare(
+          `UPDATE questionnaire SET status = 'answering' WHERE id = ? AND status != 'exported'`,
+        )
+        .run(id);
+    });
+    tx();
   }
 
   markExported(id: string): void {

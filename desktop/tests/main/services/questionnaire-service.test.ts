@@ -258,6 +258,71 @@ describe('QuestionnaireService.markExported', () => {
   });
 });
 
+describe('QuestionnaireService.finalizeAnswering', () => {
+  it('stamps finalized_at on every draft answer + advances status to answering', async () => {
+    const { svc, db } = setup({
+      llmQuestions: [
+        {
+          raw_text: 'Q1',
+          normalized_text: 'q1',
+          answer_cell_ref: 'B2',
+          expected_unit: null,
+          sheet: 'Sheet1',
+          question_row: 2,
+          question_kind: 'narrative',
+        },
+      ],
+    });
+    const r = await svc.createFromUpload({
+      customer_name: 'Acme',
+      reporting_year: 2026,
+      due_date: null,
+      file_bytes: new Uint8Array([0]),
+      filename: 'q.xlsx',
+    });
+    const q = db
+      .prepare(`SELECT id FROM question WHERE questionnaire_id = ?`)
+      .get(r.questionnaire_id) as { id: string };
+    // Draft answer: finalized_at IS NULL
+    db.prepare(
+      `INSERT INTO answer (id, question_id, value, unit, source_kind, source_summary, finalized_at)
+       VALUES ('ans-fin-1', ?, '42', 'kWh', 'manual', NULL, NULL)`,
+    ).run(q.id);
+
+    svc.finalizeAnswering(r.questionnaire_id);
+
+    const ans = db.prepare(`SELECT finalized_at FROM answer WHERE id = 'ans-fin-1'`).get() as {
+      finalized_at: string | null;
+    };
+    expect(ans.finalized_at).not.toBeNull(); // the button now actually finalizes the answer
+    const qn = db
+      .prepare(`SELECT status FROM questionnaire WHERE id = ?`)
+      .get(r.questionnaire_id) as {
+      status: string;
+    };
+    expect(qn.status).toBe('answering');
+  });
+
+  it('does not regress an already-exported questionnaire', async () => {
+    const { svc, db } = setup({ llmQuestions: [] });
+    const r = await svc.createFromUpload({
+      customer_name: 'Beta',
+      reporting_year: 2026,
+      due_date: null,
+      file_bytes: new Uint8Array([0]),
+      filename: 'q.xlsx',
+    });
+    svc.markExported(r.questionnaire_id);
+    svc.finalizeAnswering(r.questionnaire_id); // must NOT pull it back to 'answering'
+    const qn = db
+      .prepare(`SELECT status FROM questionnaire WHERE id = ?`)
+      .get(r.questionnaire_id) as {
+      status: string;
+    };
+    expect(qn.status).toBe('exported');
+  });
+});
+
 describe('QuestionnaireService.getById', () => {
   it('returns questionnaire + customer + document + questions', async () => {
     const { svc } = setup({

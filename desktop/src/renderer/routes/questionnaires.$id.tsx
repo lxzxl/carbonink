@@ -5,6 +5,7 @@ import { activityApi } from '@renderer/lib/api/activity-data';
 import { answerApi } from '@renderer/lib/api/answer';
 import { orgApi } from '@renderer/lib/api/organization';
 import { questionnaireApi } from '@renderer/lib/api/questionnaire';
+import { outboundStatusLabel } from '@renderer/lib/questionnaire-status';
 import * as m from '@renderer/paraglide/messages';
 import type { Answer, Question } from '@shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -60,6 +61,9 @@ function QuestionnaireDetailRoute() {
     mutationFn: () => questionnaireApi.finalize({ id }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['questionnaire:get-by-id', id] });
+      // finalize now stamps every answer's finalized_at — refresh the answer
+      // cards so their draft→已确认 badges update too, not just the header status.
+      void queryClient.invalidateQueries({ queryKey: ['answer:list-by-questionnaire', id] });
       toast.success(m.questionnaires_finalize_button());
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : String(e)),
@@ -190,7 +194,8 @@ function DetailBody({
         <div>
           <h1 className="text-2xl font-semibold">{customer.name}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {questionnaire.reporting_year} · {questionnaire.status} · {document.filename}
+            {questionnaire.reporting_year} · {outboundStatusLabel(questionnaire.status)} ·{' '}
+            {document.filename}
           </p>
         </div>
         {inventoryEmpty && (

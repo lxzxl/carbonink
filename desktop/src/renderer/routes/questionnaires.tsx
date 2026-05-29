@@ -8,6 +8,7 @@ import {
   ResizablePanelGroup,
 } from '@renderer/components/ui/resizable';
 import { questionnaireApi } from '@renderer/lib/api/questionnaire';
+import { outboundStatusLabel } from '@renderer/lib/questionnaire-status';
 import { cn } from '@renderer/lib/utils';
 import * as m from '@renderer/paraglide/messages';
 import type { Questionnaire } from '@shared/types';
@@ -53,21 +54,6 @@ function QuestionnairesLayout() {
       </ResizablePanel>
     </ResizablePanelGroup>
   );
-}
-
-function statusLabel(status: string): string {
-  switch (status) {
-    case 'parsing':
-      return m.questionnaires_status_parsing();
-    case 'mapping':
-      return m.questionnaires_status_mapping();
-    case 'answering':
-      return m.questionnaires_status_answering();
-    case 'exported':
-      return m.questionnaires_status_exported();
-    default:
-      return status;
-  }
 }
 
 // Outbound (customer-fill) statuses only. Inbound (supplier-disclosure)
@@ -265,7 +251,7 @@ function QuestionnairesListColumn() {
                     <>
                       <span>{r.reporting_year}</span>
                       <span>·</span>
-                      <span>{statusLabel(r.status)}</span>
+                      <span>{outboundStatusLabel(r.status)}</span>
                       <span>·</span>
                       <span>
                         {r.question_count} {m.questionnaires_table_questions()}

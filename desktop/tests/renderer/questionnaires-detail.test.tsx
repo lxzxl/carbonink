@@ -167,8 +167,8 @@ describe('/questionnaires/$id detail route', () => {
       expect(screen.getByText('Acme Corp')).toBeTruthy();
     });
 
-    // Verify header info
-    expect(screen.getByText('2025 · answering · questionnaire_2025.xlsx')).toBeTruthy();
+    // Verify header info — shows the *translated* status label, not the raw enum.
+    expect(screen.getByText('2025 · Answering · questionnaire_2025.xlsx')).toBeTruthy();
 
     // Verify each question's raw_text appears in an AnswerReviewCard
     expect(screen.getByText('Total energy (kWh)')).toBeTruthy();
