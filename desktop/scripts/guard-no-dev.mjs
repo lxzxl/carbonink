@@ -8,18 +8,26 @@
  * sees the binary change and triggers a destabilizing reload cycle in
  * the user's interactive Electron window (looks like rapid flicker).
  *
- * This guard refuses to proceed if it detects `electron-vite dev` in
- * the process list. Stop `pnpm dev` first, then re-run.
+ * This guard refuses to proceed if it detects an `electron-vite … dev`
+ * process. Stop `pnpm dev` first, then re-run.
  *
- * Detection: `pgrep -fl "electron-vite dev"`. The `-f` flag matches
- * against the full command line; `-l` prints matching lines so the
- * error message can show what's running.
+ * Detection: `pgrep -fl "electron-vite[^ ]* dev"`. The `-f` flag matches
+ * against the full command line; `-l` prints matching lines so the error
+ * message can show what's running.
+ *
+ * Pattern shape — DON'T simplify back to the literal `"electron-vite dev"`:
+ * `pnpm dev` actually launches `node …/electron-vite/bin/electron-vite.js
+ * dev`, so the binary name carries a `.js` extension and the literal
+ * (space-separated) pattern never matched — the guard was silently dead.
+ * `electron-vite[^ ]* dev` matches the bare form, the real `.js` form, and
+ * any future extension variant, while the trailing ` dev` (space + word)
+ * keeps it from firing on `electron-vite … build`.
  *
  * Platform: macOS + Linux. Windows is out of scope for v1.
  */
 import { execFileSync } from 'node:child_process';
 
-const PATTERN = 'electron-vite dev';
+const PATTERN = 'electron-vite[^ ]* dev';
 
 let matches = '';
 try {
