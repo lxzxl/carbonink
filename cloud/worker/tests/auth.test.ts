@@ -53,6 +53,32 @@ describe('POST /v1/auth/magic-link + /v1/auth/exchange', () => {
     expect(body.session.split('.').length).toBe(3);
   });
 
+  it('magic-link honors lang: zh-CN → /zh/ callback URL + Chinese email', async () => {
+    await env.DB.prepare('INSERT INTO customer (user_id, email, created_at) VALUES (?, ?, ?)')
+      .bind('usr_zh_lang', 'zh-lang@example.com', 1)
+      .run();
+    let sentMsg: { html: string; subject: string } | null = null;
+    const req = new Request('https://carbonink.xyz/api/v1/auth/magic-link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'zh-lang@example.com', lang: 'zh-CN' }),
+    });
+    const ctx = createExecutionContext();
+    // biome-ignore lint/suspicious/noExplicitAny: test override of env secrets
+    (env as any).SESSION_PRIVATE_KEY_HEX = SESSION_KEY;
+    // biome-ignore lint/suspicious/noExplicitAny: test stub of the EMAIL binding
+    (env as any).EMAIL = {
+      send: async (m: { html: string; subject: string }) => {
+        sentMsg = m;
+      },
+    };
+    const res = await worker.fetch(req, env, ctx);
+    await waitOnExecutionContext(ctx);
+    expect(res.status).toBe(200);
+    expect(sentMsg?.html).toContain('https://carbonink.xyz/zh/account/login/callback?t=');
+    expect(sentMsg?.subject).toBe('碳墨 登录链接');
+  });
+
   it('exchange consumes the token (single-use)', async () => {
     await env.DB.prepare('INSERT INTO customer (user_id, email, created_at) VALUES (?, ?, ?)')
       .bind('usr_auth_single', 'single-use@example.com', 1)

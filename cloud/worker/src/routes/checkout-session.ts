@@ -6,6 +6,9 @@ import { createCheckoutSession } from '../lib/stripe.js';
 const checkoutSessionRequest = z.object({
   plan: z.enum(['base@2026-q2']),
   email: z.string().email().optional(),
+  // Locale of the buyer's session — prefixes the post-checkout
+  // activate / cancel URLs with /zh/ for Chinese. Optional → English.
+  lang: z.enum(['zh-CN', 'en']).optional(),
 });
 
 const PLAN_TO_PRICE_ENV: Record<string, keyof Env> = {
@@ -22,13 +25,14 @@ export async function handleCheckoutSession(request: Request, env: Env): Promise
   const priceId = (env as unknown as Record<string, string>)[priceEnv];
   if (!priceId) return err('Internal', 'price not configured for plan', 500);
 
+  const prefix = (parsed.data.lang ?? 'en') === 'zh-CN' ? '/zh' : '';
   const session = await createCheckoutSession({
     secretKey: env.STRIPE_SECRET_KEY,
     priceId,
     plan: parsed.data.plan,
     tier: 'base',
-    successUrl: 'https://carbonink.xyz/activate?session_id={CHECKOUT_SESSION_ID}',
-    cancelUrl: 'https://carbonink.xyz/pricing?cancelled=1',
+    successUrl: `https://carbonink.xyz${prefix}/activate?session_id={CHECKOUT_SESSION_ID}`,
+    cancelUrl: `https://carbonink.xyz${prefix}/pricing?cancelled=1`,
     customerEmail: parsed.data.email,
   });
   return json({ checkout_url: session.url });

@@ -5,7 +5,13 @@ import { newUserId } from '../lib/id.js';
 import { err, json } from '../lib/responses.js';
 import { newMagicLinkToken, signSessionJwt } from '../lib/session.js';
 
-const magicLinkReq = z.object({ email: z.string().email() });
+const magicLinkReq = z.object({
+  email: z.string().email(),
+  // Locale of the page the request came from — selects the callback
+  // URL prefix (/zh/ for Chinese) and the email language. Optional;
+  // older clients / direct API callers default to English.
+  lang: z.enum(['zh-CN', 'en']).optional(),
+});
 const exchangeReq = z.object({ token: z.string().min(1) });
 
 const SESSION_TTL_S = 30 * 86_400;
@@ -52,9 +58,11 @@ export async function handleMagicLink(
     { expirationTtl: MAGIC_LINK_TTL_S },
   );
 
-  const url = `https://carbonink.xyz/account/login/callback?t=${token}`;
+  const lang = parsed.data.lang ?? 'en';
+  const prefix = lang === 'zh-CN' ? '/zh' : '';
+  const url = `https://carbonink.xyz${prefix}/account/login/callback?t=${token}`;
   ctx.waitUntil(
-    sendMagicLinkEmail({ email: env.EMAIL, to: parsed.data.email, url, lang: 'en' }),
+    sendMagicLinkEmail({ email: env.EMAIL, to: parsed.data.email, url, lang }),
   );
   return json({ sent: true });
 }

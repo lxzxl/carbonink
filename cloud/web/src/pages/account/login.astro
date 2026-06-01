@@ -112,6 +112,7 @@ const tx = isZh
       const sentBody = document.getElementById('sent-body');
       const data = new FormData(form);
       const email = String(data.get('email') ?? '');
+      const lang = location.pathname.startsWith('/zh/') ? 'zh-CN' : 'en';
       const errTip = error.getAttribute('data-error-tip') || '';
       const netTip = error.getAttribute('data-network-tip') || '';
       error.classList.add('hidden');
@@ -120,7 +121,7 @@ const tx = isZh
         const res = await fetch('/api/v1/auth/magic-link', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email }),
+          body: JSON.stringify({ email, lang }),
         });
         if (res.ok) {
           formView.classList.add('hidden');
