@@ -51,7 +51,14 @@ export default defineConfig({
           exclude: ['tests/e2e/**'],
           globals: false,
         },
-        resolve: { alias },
+        // Main-process suites transitively import { app, dialog, BrowserWindow,
+        // ... } from 'electron'. Under plain Node that module throws unless the
+        // Electron binary was downloaded (postinstall writes path.txt) — which
+        // CI skips, so the module is absent and the import crashes the suite at
+        // load. Alias it to a benign stub so logic tests never depend on the
+        // binary. tsc still uses the real electron types (this is runtime-only).
+        // See tests/stubs/electron.ts for the full rationale.
+        resolve: { alias: { ...alias, electron: resolve('tests/stubs/electron.ts') } },
       }),
     ],
     coverage: {
