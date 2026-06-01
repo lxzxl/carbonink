@@ -2,12 +2,12 @@ name = "carbonink-cloud-api"
 main = "src/index.ts"
 compatibility_date = "2025-05-01"
 
-# Single-domain routing: this worker handles every `/api/*` path under
-# carbonink.xyz. The entrypoint strips the `/api` prefix so existing
-# handlers (matching `/v1/*`) keep working.
-routes = [
-  { pattern = "carbonink.xyz/api/*", zone_name = "carbonink.xyz" },
-]
+# RETIRED with the open-source pivot (2026-06-01). This worker is no longer
+# deployed (see README.md). The `/api/*` route is removed so nothing routes here
+# even if the worker is accidentally deployed.
+# routes = [
+#   { pattern = "carbonink.xyz/api/*", zone_name = "carbonink.xyz" },
+# ]
 # No nodejs_compat needed: we use @noble/curves (pure-JS WebCrypto-based)
 # for Ed25519 and raw fetch() calls (no stripe SDK) for Stripe + Resend.
 # If a future contributor adds the `stripe` npm package, they MUST also

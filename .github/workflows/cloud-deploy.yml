@@ -79,15 +79,8 @@ jobs:
         # internal esbuild.
         run: pnpm cloud:build:web
 
-      - name: Deploy cloud/worker (carbonink-cloud-api)
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        # Worker order matters: the api worker handles /api/*, so we
-        # deploy it BEFORE the catch-all web worker. If both deploys
-        # rolled simultaneously, the web worker could briefly route
-        # /api/* to itself during the api worker's swap window.
-        run: cd cloud/worker && pnpm exec wrangler deploy
-
+      # cloud/worker (carbonink-cloud-api) is retired with the open-source pivot
+      # — no longer deployed. See cloud/worker/README.md.
       - name: Deploy cloud/web (carbonink-cloud-web)
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -97,8 +90,7 @@ jobs:
         run: |
           echo "### Cloud deploy complete" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "- worker: \`carbonink-cloud-api\` → \`carbonink.xyz/api/*\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- web:    \`carbonink-cloud-web\` → \`carbonink.xyz/*\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- web: \`carbonink-cloud-web\` → \`carbonink.xyz/*\` (cloud/worker retired)" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "Triggered by: \`${{ github.event_name }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "Deployed SHA: \`${{ github.event.workflow_run.head_sha || github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
