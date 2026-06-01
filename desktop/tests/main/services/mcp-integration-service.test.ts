@@ -1,6 +1,13 @@
-import { mkdirSync, mkdtempSync, readFileSync as readSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync as readSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { runMigrations } from '@main/db/migrate';
 import {
   McpIntegrationService,
@@ -17,6 +24,23 @@ afterEach(() => {
   for (const db of dbs.splice(0)) db.close();
   for (const d of tmpDirs.splice(0)) rmSync(d, { recursive: true, force: true });
 });
+
+// Mirror McpIntegrationService.clientConfigPath('claudeDesktop') so fixtures
+// land where the service actually reads/writes — the path is platform-specific.
+// Hardcoding the macOS path made the service look elsewhere on Linux CI, so
+// fixtures were invisible (installed:false, backupPath:null) — the cause of the
+// 8 failures here. Keeping this in lockstep with the service keeps the suite
+// green on macOS, Linux, and Windows.
+function claudeDesktopCfg(home: string): string {
+  if (process.platform === 'darwin')
+    return join(home, 'Library/Application Support/Claude/claude_desktop_config.json');
+  if (process.platform === 'win32')
+    return join(
+      process.env.APPDATA ?? join(home, 'AppData/Roaming'),
+      'Claude/claude_desktop_config.json',
+    );
+  return join(home, '.config/Claude/claude_desktop_config.json');
+}
 
 function makeService(overrides: Partial<{ paths: PathResolver; now: () => Date }> = {}) {
   const db = new Database(':memory:');
@@ -75,8 +99,8 @@ describe('McpIntegrationService.detectClients', () => {
 
   it('Claude Desktop installed but mcpServers missing → configured:false', async () => {
     const { svc, home } = makeServiceWithTmpHome();
-    const cfg = join(home, 'Library/Application Support/Claude/claude_desktop_config.json');
-    mkdirSync(join(home, 'Library/Application Support/Claude'), { recursive: true });
+    const cfg = claudeDesktopCfg(home);
+    mkdirSync(dirname(cfg), { recursive: true });
     writeFileSync(cfg, JSON.stringify({ preferences: {} }));
     const r = await svc.detectClients();
     expect(r.claudeDesktop).toEqual({ installed: true, configured: false, configPath: cfg });
@@ -84,8 +108,8 @@ describe('McpIntegrationService.detectClients', () => {
 
   it('Claude Desktop with matching carbonink entry → configured:true, not differing', async () => {
     const { svc, home } = makeServiceWithTmpHome();
-    const cfg = join(home, 'Library/Application Support/Claude/claude_desktop_config.json');
-    mkdirSync(join(home, 'Library/Application Support/Claude'), { recursive: true });
+    const cfg = claudeDesktopCfg(home);
+    mkdirSync(dirname(cfg), { recursive: true });
     writeFileSync(
       cfg,
       JSON.stringify({
@@ -109,8 +133,8 @@ describe('McpIntegrationService.detectClients', () => {
 
   it('Claude Desktop with legacy carbonbook key pointing at our script → entryDiffersFromCurrent:true', async () => {
     const { svc, home } = makeServiceWithTmpHome();
-    const cfg = join(home, 'Library/Application Support/Claude/claude_desktop_config.json');
-    mkdirSync(join(home, 'Library/Application Support/Claude'), { recursive: true });
+    const cfg = claudeDesktopCfg(home);
+    mkdirSync(dirname(cfg), { recursive: true });
     writeFileSync(
       cfg,
       JSON.stringify({
@@ -129,8 +153,8 @@ describe('McpIntegrationService.detectClients', () => {
 
   it('Claude Desktop config is invalid JSON → returns error:invalid_json', async () => {
     const { svc, home } = makeServiceWithTmpHome();
-    const cfg = join(home, 'Library/Application Support/Claude/claude_desktop_config.json');
-    mkdirSync(join(home, 'Library/Application Support/Claude'), { recursive: true });
+    const cfg = claudeDesktopCfg(home);
+    mkdirSync(dirname(cfg), { recursive: true });
     writeFileSync(cfg, '{ not valid json');
     const r = await svc.detectClients();
     expect(r.claudeDesktop).toEqual({
@@ -183,8 +207,8 @@ describe('McpIntegrationService.configureClient', () => {
 
   it('different existing content: writes backup with ISO timestamp', async () => {
     const { svc, home } = makeServiceWithTmpHome();
-    const cfg = join(home, 'Library/Application Support/Claude/claude_desktop_config.json');
-    mkdirSync(join(home, 'Library/Application Support/Claude'), { recursive: true });
+    const cfg = claudeDesktopCfg(home);
+    mkdirSync(dirname(cfg), { recursive: true });
     writeFileSync(cfg, JSON.stringify({ mcpServers: { other: { command: 'x', args: [] } } }));
     const result = await svc.configureClient('claudeDesktop');
     expect(result.backupPath).toMatch(/\.carbonink-bak-\d{4}-\d{2}-\d{2}T/);
@@ -195,8 +219,8 @@ describe('McpIntegrationService.configureClient', () => {
 
   it('legacy carbonbook key + same script: deletes old key, writes carbonink', async () => {
     const { svc, home } = makeServiceWithTmpHome();
-    const cfg = join(home, 'Library/Application Support/Claude/claude_desktop_config.json');
-    mkdirSync(join(home, 'Library/Application Support/Claude'), { recursive: true });
+    const cfg = claudeDesktopCfg(home);
+    mkdirSync(dirname(cfg), { recursive: true });
     writeFileSync(
       cfg,
       JSON.stringify({
@@ -257,8 +281,8 @@ describe('McpIntegrationService.removeClient', () => {
 
   it('preserves sibling mcpServers entries', async () => {
     const { svc, home } = makeServiceWithTmpHome();
-    const cfg = join(home, 'Library/Application Support/Claude/claude_desktop_config.json');
-    mkdirSync(join(home, 'Library/Application Support/Claude'), { recursive: true });
+    const cfg = claudeDesktopCfg(home);
+    mkdirSync(dirname(cfg), { recursive: true });
     writeFileSync(
       cfg,
       JSON.stringify({
@@ -273,8 +297,8 @@ describe('McpIntegrationService.removeClient', () => {
 
   it('no-op when entry absent', async () => {
     const { svc, home } = makeServiceWithTmpHome();
-    const cfg = join(home, 'Library/Application Support/Claude/claude_desktop_config.json');
-    mkdirSync(join(home, 'Library/Application Support/Claude'), { recursive: true });
+    const cfg = claudeDesktopCfg(home);
+    mkdirSync(dirname(cfg), { recursive: true });
     writeFileSync(cfg, JSON.stringify({ mcpServers: {} }));
     const result = await svc.removeClient('claudeDesktop');
     expect(result.backupPath).toBeNull();
@@ -282,8 +306,8 @@ describe('McpIntegrationService.removeClient', () => {
 
   it('drops legacy carbonbook key (args[0] match) even without carbonink key', async () => {
     const { svc, home } = makeServiceWithTmpHome();
-    const cfg = join(home, 'Library/Application Support/Claude/claude_desktop_config.json');
-    mkdirSync(join(home, 'Library/Application Support/Claude'), { recursive: true });
+    const cfg = claudeDesktopCfg(home);
+    mkdirSync(dirname(cfg), { recursive: true });
     // Pre-existing legacy entry pointing at our script, no carbonink key
     writeFileSync(
       cfg,
@@ -306,8 +330,8 @@ describe('backup retention', () => {
     (base.svc as unknown as { deps: { now: () => Date } }).deps.now = () =>
       new Date(2026, 4, 26, 12, 0, counter++);
     const { svc, home } = base;
-    const cfg = join(home, 'Library/Application Support/Claude/claude_desktop_config.json');
-    mkdirSync(join(home, 'Library/Application Support/Claude'), { recursive: true });
+    const cfg = claudeDesktopCfg(home);
+    mkdirSync(dirname(cfg), { recursive: true });
 
     // Write 5 *different* configs so each configure produces a real backup.
     for (let i = 0; i < 5; i++) {
@@ -315,8 +339,6 @@ describe('backup retention', () => {
       await svc.configureClient('claudeDesktop');
     }
 
-    const { readdirSync } = await import('node:fs');
-    const { dirname } = await import('node:path');
     const backups = readdirSync(dirname(cfg)).filter((f) => f.includes('.carbonink-bak-'));
     expect(backups.length).toBe(3);
   });
