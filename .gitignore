@@ -90,3 +90,14 @@ desktop/scripts/.climatiq-cache/
 # The app writes `inbound-<uuid>.xlsx` via the export save-dialog; these
 # are throwaway test artifacts, never source.
 desktop/inbound-*.xlsx
+
+# Per-feature design docs — kept locally, NOT tracked. They're the dev-process
+# trail (brainstorm → spec → plan, plus research / release-notes / archive),
+# not shipped artifacts. The living references (docs/conventions/,
+# docs/ROADMAP.md, docs/README.md) stay tracked. See docs/README.md.
+docs/specs/
+docs/plans/
+docs/research/
+docs/release-notes/
+docs/todo/
+docs/archive/
