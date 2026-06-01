@@ -29,6 +29,9 @@ Map of the `docs/` tree. **For *status* (what's shipped vs. in progress), see
 
 ## Workstreams (plans, newest first)
 
+**Free & open-source pivot (2026-06-01, current)**
+- [open-source-free-pivot](plans/2026-06-01-open-source-free-pivot.md) — remove licensing (desktop), decommission the cloud worker, strip pricing from the site, MIT ([spec](specs/2026-06-01-open-source-free-pivot.md))
+
 **State/UI intuitiveness fixes (2026-05-29, current)**
 - [outbound-lifecycle-remodel](plans/2026-05-29-outbound-lifecycle-remodel.md) — migration-gated remainder of the [state/UI review](research/2026-05-29-state-ui-intuitiveness-review.md) (non-migration fixes already shipped)
 
