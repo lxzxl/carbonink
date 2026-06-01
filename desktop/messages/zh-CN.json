@@ -470,7 +470,7 @@
   "settings_data_import_success": "已还原备份，正在重启…",
   "settings_data_import_failed": "还原失败",
   "settings_data_reset_heading": "重置所有数据",
-  "settings_data_reset_body": "删除全部数据 — 组织、厂区、活动、文档、抽取记录、审计日志。应用将重启并进入引导流程。许可证保留在本设备。",
+  "settings_data_reset_body": "删除全部数据 — 组织、厂区、活动、文档、抽取记录、审计日志。应用将重启并进入引导流程。",
   "settings_data_reset_button": "重置所有数据",
   "settings_data_reset_confirm_input": "输入 RESET 确认",
   "settings_data_reset_confirm": "重置并重启",

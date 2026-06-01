@@ -10,7 +10,7 @@ import type { ReactNode } from 'react';
  * Layout decisions:
  *
  *   1. Vertical centering. With the global app chrome stripped (sidebar +
- *      header + license banner all suppressed for `/onboarding/*` — see
+ *      header all suppressed for `/onboarding/*` — see
  *      `__root.tsx`), the form was pinned to the top-left of the viewport
  *      with vast empty space below. A centered card creates the focused,
  *      modal-like feel of an installer / setup assistant.

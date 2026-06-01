@@ -36,7 +36,6 @@ import { useState } from 'react';
  *   │   ● AMap     │   <section body>                       │
  *   │   ◯ MCP      │                                        │
  *   │   ◯ Org      │                                        │
- *   │   ◯ License  │                                        │
  *   │   ◯ Update   │                                        │
  *   └──────────────┴────────────────────────────────────────┘
  *

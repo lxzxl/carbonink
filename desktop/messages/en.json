@@ -470,7 +470,7 @@
   "settings_data_import_success": "Backup restored — restarting…",
   "settings_data_import_failed": "Restore failed",
   "settings_data_reset_heading": "Reset all data",
-  "settings_data_reset_body": "Deletes everything — organization, sites, activities, documents, extractions, audit log. The app will restart and run the onboarding wizard. Your license stays activated on this device.",
+  "settings_data_reset_body": "Deletes everything — organization, sites, activities, documents, extractions, audit log. The app will restart and run the onboarding wizard.",
   "settings_data_reset_button": "Reset all data",
   "settings_data_reset_confirm_input": "Type RESET to confirm",
   "settings_data_reset_confirm": "Reset and restart",

@@ -27,8 +27,8 @@ const ogImage =
     : 'https://carbonink.xyz/screenshots/en/dashboard.png';
 
 // Compute the mirror-page URL for hreflang. This tells Google that
-// `/pricing` (zh) and `/en/pricing` (en) are translations of the
-// same content, not duplicate pages. Without these tags Google often
+// `/download` (en, at the apex) and `/zh/download` (zh) are
+// translations of the same content, not duplicate pages. Without these tags Google often
 // indexes only one locale, hides the other behind a "we filtered
 // similar results" notice, or picks the wrong canonical entirely.
 //
@@ -138,7 +138,7 @@ const keywords =
         misrouted visitors bounce to the correct mirror page before any
         wrong-language paint. Two responsibilities:
 
-        1. On marketing-surface paths (`/`, `/pricing`, `/download`,
+        1. On marketing-surface paths (`/`, `/download`,
            `/privacy` + `/zh/*` mirrors), read the `carbonink_locale`
            cookie. If unset, detect from `navigator.languages` — any
            `zh*` prefix wins → zh-CN, otherwise default to English. Write
@@ -152,11 +152,9 @@ const keywords =
            the detector from bouncing them back to the auto-detected
            locale on the next page load.
 
-        Out-of-scope paths: `/activate`, `/account/*`, `/admin/*`. Those
-        have auth-flow URL bindings (login callback, magic-link tokens)
-        that mid-flow locale redirects would break. They still get the
-        manual-toggle wiring below — the language toggle works there,
-        just no auto-redirect on arrival. */}
+        The app is fully local now — there are no auth / account /
+        activate surfaces left, so every served path is a marketing
+        page and the `isMarketing` gate below covers the whole site. */}
     <script is:inline>
       (function () {
         // Skip the auto-redirect entirely for known search/preview
@@ -178,7 +176,7 @@ const keywords =
 
         var path = location.pathname;
 
-        var isMarketing = /^\/(zh\/?)?(pricing|download|privacy)?\/?$/.test(path);
+        var isMarketing = /^\/(zh\/?)?(download|privacy)?\/?$/.test(path);
         if (isMarketing) {
           var isZh = path === '/zh' || path.indexOf('/zh/') === 0;
           var m = document.cookie.match(/(?:^|;\s*)carbonink_locale=(zh-CN|en)/);
@@ -238,7 +236,7 @@ const keywords =
     {/* Three JSON-LD blocks — schema.org recommends emitting
         multiple smaller @type entities rather than nesting them in
         a single @graph. Google parses each independently:
-        - SoftwareApplication: app metadata, OS, pricing slot
+        - SoftwareApplication: app metadata, OS, free Offer (price 0)
         - Organization: builds the Knowledge Panel (logo, sameAs)
         - WebSite: site-name display + search-action hook */}
     <script type="application/ld+json" is:inline set:html={JSON.stringify(structuredData)} />

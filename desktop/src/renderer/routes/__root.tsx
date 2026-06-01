@@ -61,7 +61,7 @@ function RootComponent() {
   }
 
   // Onboarding chrome strip: until the user has completed the wizard,
-  // the sidebar nav + header back/forward + license chip are all
+  // the sidebar nav + header back/forward are all
   // distractions. The wizard is linear, modal in spirit. We render
   // ONLY the page content + a minimal macOS drag region (preserves the
   // hidden-titlebar window-drag affordance) until they exit

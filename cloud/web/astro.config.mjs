@@ -5,19 +5,15 @@ import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'astro/config';
 
 /**
- * Single merged Astro site — serves everything except `/api/*`.
+ * Static Astro marketing site — serves all of `carbonink.xyz/*`.
  *
- * Topology after the 3-site merge:
- *   carbonink.xyz/api/*  → carbonink-cloud-api (separate worker, backend)
- *   carbonink.xyz/*      → this worker (marketing + activate + account)
- *
- * Hybrid output: `output: 'server'` means default-SSR, but every page
- * that doesn't need request-time data opts back into prerender via
- * `export const prerender = true`. The marketing static pages
- * (`/`, `/pricing`, `/download`, `/privacy`, + their `/en/*`
- * mirrors) all prerender; activate / account / login serve via
- * SSR. Net effect — marketing pages are still CDN-cached HTML; the
- * portal pages get the request context they need.
+ * Every page is prerendered (`export const prerender = true`) to
+ * CDN-cached HTML: `/`, `/download`, `/privacy` + their `/zh/`
+ * mirrors. There are no SSR / portal pages anymore — the open-source
+ * pivot retired the activate / account / admin flows and the `/api/*`
+ * backend. `output: 'server'` is kept only because the Cloudflare
+ * adapter emits the Static-Assets worker entry from it; with every
+ * route prerendered the net effect is a fully static site.
  */
 export default defineConfig({
   // `site` is required for @astrojs/sitemap to emit absolute URLs +
@@ -37,14 +33,14 @@ export default defineConfig({
     // per-locale sitemap files) so submitting it via Google Search
     // Console exposes every prerendered marketing page at once.
     //
-    // SSR pages (activate / account / admin / login) are
-    // automatically excluded — the integration only walks
-    // prerendered routes. Explicit `filter` keeps it that way even
-    // if a stray prerender flag flips later.
+    // The retired portal/auth surfaces (activate / account / admin /
+    // login) no longer exist; the `filter` below stays as a defensive
+    // guard so they never leak into the sitemap if a stub ever returns.
     //
-    // `i18n` makes the sitemap emit hreflang relationships between
-    // zh-CN and en mirror pages so Google understands `/pricing` and
-    // `/en/pricing` are the same content in two languages.
+    // `i18n` makes the sitemap emit hreflang relationships between the
+    // en (apex) and zh (`/zh/`) mirror pages so Google understands
+    // `/download` and `/zh/download` are the same content in two
+    // languages.
     sitemap({
       filter: (page) => {
         // Block portal / auth / admin surfaces from the sitemap —
@@ -89,7 +85,7 @@ export default defineConfig({
   vite: { plugins: [tailwindcss()] },
   i18n: {
     // English is the default locale — served unprefixed at the apex
-    // (`/`, `/pricing/`, …). Chinese lives under `/zh/` via the custom
+    // (`/`, `/download/`, …). Chinese lives under `/zh/` via the custom
     // `path` mapping (locale code stays `zh-CN`; the URL segment is the
     // shorter `zh`). `prefixDefaultLocale: false` keeps en at the root.
     defaultLocale: 'en',

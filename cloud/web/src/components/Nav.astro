@@ -6,16 +6,16 @@ import LogoMark from './LogoMark.astro';
  * Figma Make redesign.
  *
  * Layout:
- *   [logo + brand]  [pricing | download | docs]      [EN ↔ 中文] [Trial CTA]
+ *   [logo + brand]  [source | download | docs]      [EN ↔ 中文] [Download]
  *
  * Mobile (< md): the 3 center links + lang + CTA collapse into a
  * burger drawer. Vanilla JS — no React — to keep the marketing
  * bundle dependency-free.
  *
  * Bilingual: `lang` prop drives copy; the "swap language" button
- * computes the mirror path (current path with the /en prefix
- * toggled). Defaulting to "swap to /en" or "swap to /" keeps the
- * URL canonical even when the user lands deep in the site.
+ * computes the mirror path. English is the default locale (apex);
+ * Chinese lives under `/zh/`. The toggle adds or strips the `/zh`
+ * prefix so deep links survive a language swap.
  */
 
 const { lang } = Astro.props as { lang: 'zh-CN' | 'en' };
@@ -39,10 +39,10 @@ const tx = isZh
       langLabel: '中文',
     };
 
-// Build the mirror-language URL for the current path. zh-CN is the
-// unprefixed default; en pages live under /en/*. This keeps the lang
-// toggle path-aware (clicking it on /pricing flips you to /en/pricing
-// or back) so deep links survive a language swap.
+// Build the mirror-language URL for the current path. English is the
+// unprefixed default (apex); zh pages live under /zh/*. This keeps the
+// lang toggle path-aware (clicking it on /download flips you to
+// /zh/download or back) so deep links survive a language swap.
 const path = Astro.url.pathname;
 const swapHref = isZh
   ? path.startsWith('/zh/') ? path.slice(3) || '/' : path === '/zh' ? '/' : path

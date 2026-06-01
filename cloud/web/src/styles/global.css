@@ -20,7 +20,7 @@
  * etc. Lightness progresses 95% → 17% across the 50/100/200/300/500/
  * 600/700/800/900 stops; saturation and hue stay near HSL(109°, 12%).
  *
- * Numbers / license keys / version strings render in JetBrains Mono so
+ * Numbers / IDs / version strings render in JetBrains Mono so
  * they read as "machine truth" not "marketing copy".
  *
  * Dark mode is intentionally light-only for v1 — the hero ships a

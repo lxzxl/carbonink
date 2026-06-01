@@ -1,13 +1,9 @@
-# Single carbonink-cloud web worker — serves everything under
-# carbonink.xyz/* except `/api/*` (that goes to carbonink-cloud-api,
-# a separate worker for the backend).
+# carbonink-cloud-web — the only deployed worker. Serves the static
+# Astro marketing site across all of carbonink.xyz/*.
 #
-# Before the 3-site merge this was 3 Astro workers (marketing static,
-# activate SSR, account SSR). The merge collapsed them into one
-# hybrid Astro site:
-#
-#   prerendered routes (CDN):  /, /pricing, /download, /privacy + their /en/* mirrors
-#   SSR routes:                /activate, /account/*, /en/activate, /en/account/*
+# Every page prerenders to CDN HTML: /, /download, /privacy + their
+# /zh/ mirrors. There is no /api/* route — the open-source pivot retired
+# the backend (license/payments/accounts); see ../worker/README.md.
 #
 # Astro 6's @astrojs/cloudflare adapter injects the Worker entry
 # (`main`) at build time pointing to `dist/_worker.js/index.js`, so
@@ -19,9 +15,9 @@ name = "carbonink-cloud-web"
 compatibility_date = "2025-05-23"
 compatibility_flags = ["nodejs_compat"]
 
-# Catch-all under carbonink.xyz. More-specific routes (just /api/*
-# after the merge) win via longest-prefix matching, so this captures
-# every non-API URL on the zone.
+# Catch-all under carbonink.xyz — captures the whole zone. (There used
+# to be a more-specific /api/* route to the backend worker; it's
+# retired, so this now owns every URL.)
 routes = [
   { pattern = "carbonink.xyz/*", zone_name = "carbonink.xyz" },
 ]
@@ -35,8 +31,6 @@ directory = "./dist"
 # from the retired API worker so it stays deployable after the API worker is torn
 # down.)
 
-# Secrets needed by SSR routes:
-#   STRIPE_SECRET_KEY   — used by /activate to resolve a Stripe
-#                         checkout session into an email + license key
-# Set via:
-#   pnpm --filter @carbonink-cloud/web exec wrangler secret put STRIPE_SECRET_KEY
+# No secrets: the site is fully static — no Stripe key, no license key,
+# no sessions. The pre-pivot /activate SSR route needed STRIPE_SECRET_KEY;
+# that route and its secret are gone.

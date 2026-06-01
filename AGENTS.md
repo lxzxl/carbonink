@@ -28,8 +28,9 @@ read on demand.
   `NODE_MODULE_VERSION 145 vs 137`. Fix: `pnpm --filter carbonink run rebuild:node`.
   Environmental, never a regression.
 - **Electron is pinned at `^41.5.1`** — do not upgrade (better-sqlite3 v8 blocker).
-- **Workflow: brainstorm → spec → plan → implement.** Specs land in `docs/specs/`,
-  plans in `docs/plans/`, one per feature.
+- **Workflow: brainstorm → spec → plan → implement.** Specs land in
+  `docs/specs/`, plans in `docs/plans/` — both **local-only / gitignored** (the
+  dev trail isn't tracked), one per feature.
 
 ## Where things live
 
@@ -38,8 +39,8 @@ pnpm workspace; two apps share `docs/` + tooling:
 | Path | What |
 |---|---|
 | `desktop/` | Electron app (`carbonink`) — `src/{main,preload,renderer,shared}`, `tests/` (vitest) |
-| `cloud/worker/` | `@carbonink-cloud/worker` — API + cron |
-| `cloud/web/` | Astro site (marketing + activate + account), Workers + Static Assets |
+| `cloud/worker/` | `@carbonink-cloud/worker` — old license/payments API. **Retired** (not deployed); code + tests kept for history |
+| `cloud/web/` | Astro **static marketing site** (`/`, `/download`, `/privacy` + `/zh/` mirrors), Workers + Static Assets |
 | `cloud/packages/shared/` | `@carbonink-cloud/shared` — Zod + JWT-claim types (lockstep with desktop) |
 
 ```bash
@@ -61,8 +62,8 @@ Brand palette + "don't reintroduce sky-blue" rule: `cloud/CLAUDE.md`.
 
 ## Docs map
 
-- [`docs/README.md`](docs/README.md) — index of every spec / plan / research doc
-- [`docs/ROADMAP.md`](docs/ROADMAP.md) — status of every workstream
-- `docs/specs/` + `docs/plans/` — per-feature design + implementation
-- `docs/research/` — investigations · `docs/release-notes/` — shipped versions
-- `docs/todo/` — open backlogs · `docs/archive/` — retired phase-0/1 scaffolding
+- [`docs/README.md`](docs/README.md) — docs index
+- [`docs/ROADMAP.md`](docs/ROADMAP.md) — post-launch ideas
+- [`docs/conventions/`](docs/conventions/) — how-we-build references (tracked)
+- `docs/{specs,plans,research,release-notes,todo,archive}/` — per-feature design +
+  implementation trail, **local-only** (gitignored; not in the public repo)

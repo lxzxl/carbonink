@@ -3,7 +3,7 @@
 # entries, external backlinks) to its unprefixed equivalent so they keep
 # their link equity instead of 404ing.
 #
-# `:splat` is the part matched by `*`, so /en/pricing/ → /pricing/ and
+# `:splat` is the part matched by `*`, so /en/download/ → /download/ and
 # /en/ → / (empty splat). The bare /en (no trailing slash) needs its own
 # rule since /en/* only matches paths under /en/.
 /en/*  /:splat  301
