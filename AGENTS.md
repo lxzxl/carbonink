@@ -8,8 +8,9 @@ read on demand.
 
 ## Non-negotiables (read before any change)
 
-- **Git: commit/push only when explicitly asked.** Never force-push, never run
-  destructive git. If on the default branch, branch first.
+- **Git: commit freely without asking; push only when explicitly allowed.**
+  Never force-push, never run destructive git. If on the default branch, branch
+  first.
 - **Tests must not regress.** `pnpm desktop:test` is at **932/932** (2026-05-29);
   the v1.0.0 floor was 662. Don't land a commit that drops the count.
 - **Don't touch the biome debt incidentally.** ~940 pre-existing errors are
