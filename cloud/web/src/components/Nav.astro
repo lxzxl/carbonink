@@ -24,18 +24,18 @@ const isZh = lang === 'zh-CN';
 const tx = isZh
   ? {
       brand: '碳墨',
-      pricing: '定价',
+      source: '源码',
       download: '下载',
       docs: '文档',
-      trial: '免费试用',
+      trial: '免费下载',
       langLabel: 'EN',
     }
   : {
       brand: 'CarbonInk',
-      pricing: 'Pricing',
+      source: 'Source',
       download: 'Download',
       docs: 'Docs',
-      trial: 'Start free trial',
+      trial: 'Download',
       langLabel: '中文',
     };
 
@@ -60,7 +60,7 @@ const swapTargetLang = isZh ? 'en' : 'zh-CN';
 const prefix = isZh ? '/zh' : '';
 
 const links = [
-  { href: `${prefix}/pricing/`, label: tx.pricing },
+  { href: 'https://github.com/lxzxl/carbonink', label: tx.source },
   { href: `${prefix}/download/`, label: tx.download },
   { href: '#', label: tx.docs },
 ];

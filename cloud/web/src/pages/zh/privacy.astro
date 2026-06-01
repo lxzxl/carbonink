@@ -22,27 +22,23 @@ import Base from '../../layouts/Base.astro';
 
         <section>
           <h2 class="text-xl font-semibold mb-3">云端只知道什么</h2>
-          <p class="text-muted-foreground mb-3">为了发放和验证许可证，碳墨云端会记录：</p>
-          <ul class="space-y-2 text-muted-foreground pl-5 list-disc">
-            <li>许可证密钥（你购买后我们颁发的标识）</li>
-            <li>激活的设备标识（一个匿名的设备 ID，不包含设备名、用户名、网络位置）</li>
-            <li>账户邮箱（用于发送账单和支持沟通）</li>
-            <li>Stripe 订阅状态（由 Stripe 维护，我们只读）</li>
-          </ul>
+          <p class="text-muted-foreground">
+            基本上什么都不知道。碳墨是免费开源软件——没有账户、没有激活、没有许可证服务器。你下载应用直接运行即可；
+            唯一的云端就是这个介绍站，加上你下载安装包的 GitHub Release。
+          </p>
         </section>
 
         <section>
           <h2 class="text-xl font-semibold mb-3">第三方</h2>
           <p class="text-muted-foreground">
-            支付由 Stripe 处理；我们不接触你的支付卡信息。本站不使用 Google Analytics、Mixpanel、或任何第三方分析。
+            没有支付、没有登录、不接触任何卡信息。本站不使用 Google Analytics、Mixpanel、或任何第三方分析。
           </p>
         </section>
 
         <section>
-          <h2 class="text-xl font-semibold mb-3">数据导出 + 注销</h2>
+          <h2 class="text-xl font-semibold mb-3">你的数据</h2>
           <p class="text-muted-foreground">
-            在「我的账户」可以导出账户元数据（许可证、设备、账单）。点击「注销账户」会永久删除上述记录，同时取消未到期的订阅。
-            本地数据库由你自己掌控，需要清理时直接删除应用数据目录即可。
+            你录入的一切都保存在本机的本地数据库里，永不上传。需要清理时直接删除应用数据目录即可。
           </p>
         </section>
 

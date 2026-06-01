@@ -22,30 +22,27 @@ import Base from '../layouts/Base.astro';
         </section>
 
         <section>
-          <h2 class="text-xl font-semibold mb-3">What the cloud does know</h2>
-          <p class="text-muted-foreground mb-3">To issue and verify licenses, the CarbonInk cloud records:</p>
-          <ul class="space-y-2 text-muted-foreground pl-5 list-disc">
-            <li>License key (the identifier we issue after you purchase)</li>
-            <li>Activated device ID (an anonymous device identifier; no device name, username, or network info)</li>
-            <li>Account email (for billing receipts and support correspondence)</li>
-            <li>Stripe subscription status (maintained by Stripe; we read-only)</li>
-          </ul>
+          <h2 class="text-xl font-semibold mb-3">What the cloud knows</h2>
+          <p class="text-muted-foreground">
+            Essentially nothing. CarbonInk is free and open-source — there's no account, no activation,
+            and no license server. You download the app and run it; the only cloud is this marketing site
+            plus the GitHub release you download from.
+          </p>
         </section>
 
         <section>
           <h2 class="text-xl font-semibold mb-3">Third parties</h2>
           <p class="text-muted-foreground">
-            Payments are processed by Stripe; we never touch your card information. This site uses no Google
-            Analytics, no Mixpanel, no third-party analytics of any kind.
+            No payments, no sign-in, no card details. This site uses no Google Analytics, no Mixpanel, no
+            third-party analytics of any kind.
           </p>
         </section>
 
         <section>
-          <h2 class="text-xl font-semibold mb-3">Data export and deletion</h2>
+          <h2 class="text-xl font-semibold mb-3">Your data</h2>
           <p class="text-muted-foreground">
-            "My Account" lets you export your account metadata (license, devices, invoices). Clicking
-            "Delete account" permanently removes those records and cancels any active subscription. Your local
-            database stays under your control — to clear it, delete the app's data directory.
+            Everything you enter lives in a local database on your own machine. It is never uploaded. To
+            clear it, delete the app's data directory.
           </p>
         </section>
 

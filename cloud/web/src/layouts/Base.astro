@@ -52,9 +52,8 @@ const enUrl = new URL(enPath, 'https://carbonink.xyz').toString();
 
 // JSON-LD SoftwareApplication schema. Helps Google understand this
 // is a downloadable app (not a SaaS, not a blog), and unlocks rich
-// results in the "Software" knowledge panel. Pricing is intentionally
-// vague (the cloud worker decides via license requests); listing a
-// fake price would mislead Google's pricing-card eligibility check.
+// results in the "Software" knowledge panel. CarbonInk is free &
+// open-source, so the Offer lists price 0.
 // `applicationCategory` follows schema.org's accepted enum values.
 const structuredData = {
   '@context': 'https://schema.org',
@@ -70,11 +69,9 @@ const structuredData = {
   inLanguage: ['zh-CN', 'en'],
   offers: {
     '@type': 'Offer',
+    price: '0',
+    priceCurrency: 'USD',
     availability: 'https://schema.org/InStock',
-    priceSpecification: {
-      '@type': 'PriceSpecification',
-      priceCurrency: 'CNY',
-    },
   },
   publisher: {
     '@type': 'Organization',

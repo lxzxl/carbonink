@@ -26,8 +26,8 @@ const tx = isZh
       badge: '本地运行 · 数据不上云',
       h1: '把碳核算搬到桌面端',
       sub: '完全离线运行，数据不出内网。AI 帮你做数据工程，一键出 ISO 14064-1 报告。',
-      cta1: '下载免费试用',
-      cta2: '查看定价',
+      cta1: '免费下载',
+      cta2: 'GitHub 源码',
       windowTitle: '碳墨 — 2025 年度 GHG 盘查',
       screenshotAlt: '碳墨桌面端：2025 年度 GHG 盘查仪表盘截图',
     }
@@ -35,8 +35,8 @@ const tx = isZh
       badge: 'Local-first · Your data stays on device',
       h1: 'Local GHG accounting. No spreadsheets. No cloud.',
       sub: 'Runs entirely on your machine. AI extracts emission data from your bills. One-click ISO 14064-1 inventory report.',
-      cta1: 'Download free trial',
-      cta2: 'See pricing',
+      cta1: 'Download free',
+      cta2: 'View source',
       windowTitle: 'CarbonInk — 2025 Annual GHG Inventory',
       screenshotAlt: 'CarbonInk desktop app: 2025 annual GHG inventory dashboard screenshot',
     };
@@ -74,7 +74,9 @@ const shotDir = isZh ? '/screenshots' : '/screenshots/en';
           {tx.cta1}
         </a>
         <a
-          href={`${prefix}/pricing/`}
+          href="https://github.com/lxzxl/carbonink"
+          target="_blank"
+          rel="noopener"
           class="inline-flex items-center gap-2 border border-border text-foreground px-5 py-2.5 rounded font-medium text-sm hover:bg-muted transition-colors"
         >
           {tx.cta2}
