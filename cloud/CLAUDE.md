@@ -70,7 +70,7 @@ type story muddier.
 
 ## Two-step magic-link confirm
 
-`cloud/web/src/pages/account/login/callback.astro` and its `/en/`
+`cloud/web/src/pages/account/login/callback.astro` and its `/zh/`
 mirror are deliberately a **GET-then-POST** flow, not a one-click
 auto-exchange. The token from the email link is consumed only on
 POST.
@@ -133,21 +133,23 @@ default happy path.
 
 ## SEO — making carbonink.xyz findable
 
-The marketing pages need to be indexable; everything else (activate,
-account, admin, login + their `/en/` mirrors) is private and stays
-out of the sitemap.
+English is the default locale, served at the apex (`/`, `/pricing/`, …);
+Chinese lives under `/zh/` (flipped 2026-06; was zh-at-apex before). The
+marketing pages need to be indexable; everything else (activate, account,
+admin, login + their `/zh/` mirrors) is private and stays out of the
+sitemap.
 
 **Generated artifacts** (live):
 
 - `https://carbonink.xyz/sitemap-index.xml` — Astro sitemap index
-- `https://carbonink.xyz/sitemap-0.xml` — 8 entries (zh + en mirrors
-  of `/`, `/download`, `/pricing`, `/privacy`) each with
+- `https://carbonink.xyz/sitemap-0.xml` — 8 entries (English at the apex
+  + zh mirrors under `/zh/` of `/`, `/download`, `/pricing`, `/privacy`) each with
   `<xhtml:link rel="alternate" hreflang="...">` cross-references
 
 Built by `@astrojs/sitemap` from prerendered routes. The integration
 is configured in `cloud/web/astro.config.mjs` with a `filter`
 function that explicitly drops `activate`, `account`, `admin`,
-`login` (and their `/en/` versions). New marketing pages get
+`login` (and their `/zh/` versions). New marketing pages get
 indexed automatically; new auth surfaces need to be added to the
 filter list.
 
@@ -168,9 +170,10 @@ filter list.
 
 **Bot-aware locale redirect**: the inline locale-detect script in
 `Base.astro` short-circuits for any UA matching
-`/bot|crawl|spider|.../i`. Without this, Googlebot would hit `/`,
-get bounced to `/en/` by the navigator-languages heuristic, and
-never independently index the zh-CN homepage. The hreflang tags
+`/bot|crawl|spider|.../i`. Without this, a crawler advertising a
+Chinese Accept-Language would hit `/`, get bounced to `/zh/` by the
+navigator-languages heuristic, and Google couldn't independently index
+both the apex (English) and `/zh/` homepages. The hreflang tags
 above tell Google about the mirror relationship; the bot-skip
 lets Google actually crawl both sides to use it.
 
@@ -185,7 +188,7 @@ existing Cloudflare records:
    step 1 → wait ~1 min for propagation → click "Verify" in GSC
 3. GSC sidebar → Sitemaps → submit `https://carbonink.xyz/sitemap-index.xml`
 4. (Optional) URL Inspection → `https://carbonink.xyz/` → "Request
-   indexing" → repeat for `/en/`, `/pricing`, `/en/pricing` to
+   indexing" → repeat for `/zh/`, `/pricing`, `/zh/pricing` to
    prioritize the first crawl. GSC will reject "Request indexing"
    if you do too many in a session — that's fine, the sitemap
    covers the rest.
