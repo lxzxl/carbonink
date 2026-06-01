@@ -578,7 +578,6 @@ export function baselineIpcMocks(locale: Locale = 'zh-CN'): Record<string, unkno
     'questionnaire:list': FIXTURE_QUESTIONNAIRE_LIST,
     'questionnaire:list-questions': localizeQuestions(locale),
     'audit:list': localizeAuditEvents(locale),
-    'license:get-state': FIXTURE_LICENSE_TRIAL,
     'mcp:get-status': {
       built: true,
       installed: false,

@@ -145,26 +145,6 @@ test('settings page renders + screenshots each tab', async () => {
     });
 
     // -----------------------------------------------------------------------
-    // Capture: License section — most distinctive after Phase-4 work.
-    // -----------------------------------------------------------------------
-
-    // Locale-agnostic match: zh-CN "许可" or en "License".
-    const licenseBtn = railButtons.filter({ hasText: /license|许可/i }).first();
-    await licenseBtn.click();
-    // Wait for License-section-specific text to render in the right pane
-    // — guarantees state has fully propagated, not just the click event
-    // landed. Matches the activation-form copy from the License section.
-    await window
-      .getByText(/license activation|激活授权|未激活|active/i)
-      .first()
-      .waitFor({ state: 'visible', timeout: 5_000 });
-
-    await window.screenshot({
-      path: join(SCREENSHOT_DIR, 'settings-license.png'),
-      fullPage: false,
-    });
-
-    // -----------------------------------------------------------------------
     // Capture: full-page screenshot of the default view — for README / deck.
     // -----------------------------------------------------------------------
     const aiBtn = railButtons.filter({ hasText: /ai|llm/i }).first();
