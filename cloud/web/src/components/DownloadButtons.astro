@@ -20,24 +20,28 @@ const isZh = lang === 'zh-CN';
 const tx = isZh
   ? {
       mac: '下载 macOS 版（.dmg）',
-      macNote: 'Apple Silicon + Intel · macOS 12+',
+      macNote: 'Apple Silicon · macOS 12+',
+      macIntel: '使用 Intel 芯片的 Mac？下载 Intel 版',
       win: '下载 Windows 版（.exe）',
       winNote: 'Windows 10/11 x64',
       signing: '应用已签名，macOS 可能提示「未知开发者」，请参见安装说明。',
     }
   : {
       mac: 'Download for macOS (.dmg)',
-      macNote: 'Apple Silicon + Intel · macOS 12+',
+      macNote: 'Apple Silicon · macOS 12+',
+      macIntel: 'On an Intel Mac? Get the Intel build',
       win: 'Download for Windows (.exe)',
       winNote: 'Windows 10/11 x64',
       signing: 'The app is signed. macOS may show an "Unknown developer" prompt — see the installation guide.',
     };
 
-// Real download URLs land here once releases go live. For now we
-// route to the GitHub releases page — Cloudflare worker can later
-// rewrite these to specific .dmg/.exe asset URLs.
-const macHref = 'https://github.com/carbonink/carbonink/releases/latest';
-const winHref = 'https://github.com/carbonink/carbonink/releases/latest';
+// Worker redirect endpoints (cloud/web/src/pages/download/*.ts) resolve
+// the latest GitHub Release asset at request time and 302 to it, so the
+// version is never hard-coded here. `/download/mac` defaults to Apple
+// Silicon; the Intel link passes `?arch=x64`.
+const macHref = '/download/mac';
+const winHref = '/download/win';
+const macIntelHref = '/download/mac?arch=x64';
 ---
 <div class="flex flex-col gap-3 mb-10">
   <a
@@ -58,6 +62,10 @@ const winHref = 'https://github.com/carbonink/carbonink/releases/latest';
       <polyline points="7 10 12 15 17 10" />
       <line x1="12" y1="15" x2="12" y2="3" />
     </svg>
+  </a>
+
+  <a href={macIntelHref} class="text-xs text-muted-foreground hover:text-foreground transition-colors self-start -mt-1.5 ml-1">
+    {tx.macIntel}
   </a>
 
   <a
