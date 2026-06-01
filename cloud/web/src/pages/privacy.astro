@@ -3,53 +3,56 @@ export const prerender = true;
 
 import Base from '../layouts/Base.astro';
 ---
-<Base title="碳墨 — 隐私政策" lang="zh-CN">
+<Base title="CarbonInk — Privacy" lang="en">
   <section class="py-20 px-5">
     <div class="max-w-3xl mx-auto">
-      <h1 class="text-3xl md:text-4xl font-semibold tracking-tight mb-2">隐私政策</h1>
+      <h1 class="text-3xl md:text-4xl font-semibold tracking-tight mb-2">Privacy Policy</h1>
       <p class="text-sm text-muted-foreground mb-10" style="font-family: var(--font-mono);">
-        生效日期：2026-05-25
+        Effective 2026-05-25
       </p>
 
       <div class="space-y-8 text-[15px] leading-relaxed text-foreground">
         <section>
-          <h2 class="text-xl font-semibold mb-3">我们不收集你的核算数据</h2>
+          <h2 class="text-xl font-semibold mb-3">We don't collect your inventory data</h2>
           <p class="text-muted-foreground">
-            碳墨是一个本地优先的桌面应用。所有核算数据（包括但不限于活动数据、排放因子、报告内容、问卷答案、AI 对话）只存在于你的设备本地 SQLite 数据库中。
-            云端不接收这些内容，没有副本，没有备份。
+            CarbonInk is a local-first desktop application. All inventory data — activity data, emission factors,
+            report contents, questionnaire answers, AI conversations — lives only in the SQLite database on your
+            device. The cloud never receives this content. No copies, no backups.
           </p>
         </section>
 
         <section>
-          <h2 class="text-xl font-semibold mb-3">云端只知道什么</h2>
-          <p class="text-muted-foreground mb-3">为了发放和验证许可证，碳墨云端会记录：</p>
+          <h2 class="text-xl font-semibold mb-3">What the cloud does know</h2>
+          <p class="text-muted-foreground mb-3">To issue and verify licenses, the CarbonInk cloud records:</p>
           <ul class="space-y-2 text-muted-foreground pl-5 list-disc">
-            <li>许可证密钥（你购买后我们颁发的标识）</li>
-            <li>激活的设备标识（一个匿名的设备 ID，不包含设备名、用户名、网络位置）</li>
-            <li>账户邮箱（用于发送账单和支持沟通）</li>
-            <li>Stripe 订阅状态（由 Stripe 维护，我们只读）</li>
+            <li>License key (the identifier we issue after you purchase)</li>
+            <li>Activated device ID (an anonymous device identifier; no device name, username, or network info)</li>
+            <li>Account email (for billing receipts and support correspondence)</li>
+            <li>Stripe subscription status (maintained by Stripe; we read-only)</li>
           </ul>
         </section>
 
         <section>
-          <h2 class="text-xl font-semibold mb-3">第三方</h2>
+          <h2 class="text-xl font-semibold mb-3">Third parties</h2>
           <p class="text-muted-foreground">
-            支付由 Stripe 处理；我们不接触你的支付卡信息。本站不使用 Google Analytics、Mixpanel、或任何第三方分析。
+            Payments are processed by Stripe; we never touch your card information. This site uses no Google
+            Analytics, no Mixpanel, no third-party analytics of any kind.
           </p>
         </section>
 
         <section>
-          <h2 class="text-xl font-semibold mb-3">数据导出 + 注销</h2>
+          <h2 class="text-xl font-semibold mb-3">Data export and deletion</h2>
           <p class="text-muted-foreground">
-            在「我的账户」可以导出账户元数据（许可证、设备、账单）。点击「注销账户」会永久删除上述记录，同时取消未到期的订阅。
-            本地数据库由你自己掌控，需要清理时直接删除应用数据目录即可。
+            "My Account" lets you export your account metadata (license, devices, invoices). Clicking
+            "Delete account" permanently removes those records and cancels any active subscription. Your local
+            database stays under your control — to clear it, delete the app's data directory.
           </p>
         </section>
 
         <section>
-          <h2 class="text-xl font-semibold mb-3">联系</h2>
+          <h2 class="text-xl font-semibold mb-3">Contact</h2>
           <p class="text-muted-foreground">
-            隐私问题请联系：<a href="mailto:privacy@carbonink.xyz" class="text-primary hover:underline">privacy@carbonink.xyz</a>
+            Privacy questions: <a href="mailto:privacy@carbonink.xyz" class="text-primary hover:underline">privacy@carbonink.xyz</a>
           </p>
         </section>
       </div>

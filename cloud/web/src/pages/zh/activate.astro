@@ -20,7 +20,7 @@ import { lookupLicenseForSession } from '../../lib/stripe-lookup.ts';
 const url = new URL(Astro.request.url);
 const sessionId = url.searchParams.get('session_id');
 const directKey = url.searchParams.get('key');
-const lang = 'en' as const;
+const lang = 'zh-CN' as const;
 
 let licenseKey: string | null = null;
 let lookupError: string | null = null;

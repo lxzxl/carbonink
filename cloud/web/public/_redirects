@@ -1,0 +1,10 @@
+# Legacy locale redirects — English moved from /en/* to the apex when
+# English became the default locale. 301 any old /en/* URL (stale index
+# entries, external backlinks) to its unprefixed equivalent so they keep
+# their link equity instead of 404ing.
+#
+# `:splat` is the part matched by `*`, so /en/pricing/ → /pricing/ and
+# /en/ → / (empty splat). The bare /en (no trailing slash) needs its own
+# rule since /en/* only matches paths under /en/.
+/en/*  /:splat  301
+/en    /        301

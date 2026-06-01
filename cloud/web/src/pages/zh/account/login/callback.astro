@@ -33,9 +33,9 @@ import { apiFetch, getApiBinding } from '../../../../lib/api-fetch.ts';
  * `/en/account/login/callback` = en).
  */
 const reqUrl = new URL(Astro.request.url);
-const lang: 'zh-CN' | 'en' = reqUrl.pathname.startsWith('/en/') ? 'en' : 'zh-CN';
+const lang: 'zh-CN' | 'en' = reqUrl.pathname.startsWith('/zh/') ? 'zh-CN' : 'en';
 const isZh = lang === 'zh-CN';
-const redirectTarget = isZh ? '/account/' : '/en/account/';
+const redirectTarget = isZh ? '/zh/account/' : '/account/';
 
 type State = 'confirm' | 'invalid';
 let state: State;
@@ -79,7 +79,7 @@ const tx = isZh
       invalidHeading: '登录链接已失效',
       invalidBody: '该链接已过期或已被使用。请回到登录页重新申请。',
       invalidCta: '重新申请登录链接',
-      loginHref: '/account/login',
+      loginHref: '/zh/account/login',
     }
   : {
       titleConfirm: 'Confirm sign-in — CarbonInk',
@@ -91,7 +91,7 @@ const tx = isZh
       invalidHeading: 'Sign-in link invalid',
       invalidBody: 'The link is expired or has already been used.',
       invalidCta: 'Request a new link',
-      loginHref: '/en/account/login',
+      loginHref: '/account/login',
     };
 const title = state === 'confirm' ? tx.titleConfirm : tx.titleInvalid;
 ---

@@ -24,6 +24,10 @@ export default defineConfig({
   // for canonical-link generation elsewhere. Don't set `base` — we
   // serve from the apex.
   site: 'https://carbonink.xyz',
+  // Legacy /en/* redirects live in `public/_redirects` (CF splat
+  // syntax) — Astro's `redirects` config mistranslates `[...rest]`
+  // into a broken `/en/*/index.html` target for the Cloudflare
+  // adapter, so we hand-write the rule instead.
   output: 'server',
   adapter: cloudflare(),
   integrations: [
@@ -50,16 +54,16 @@ export default defineConfig({
         if (path.startsWith('/account')) return false;
         if (path.startsWith('/admin')) return false;
         if (path.includes('/login')) return false;
-        if (path.startsWith('/en/activate')) return false;
-        if (path.startsWith('/en/account')) return false;
-        if (path.includes('/en/login')) return false;
+        if (path.startsWith('/zh/activate')) return false;
+        if (path.startsWith('/zh/account')) return false;
+        if (path.includes('/zh/login')) return false;
         return true;
       },
       i18n: {
-        defaultLocale: 'zh-CN',
+        defaultLocale: 'en',
         locales: {
-          'zh-CN': 'zh-CN',
           en: 'en',
+          'zh-CN': 'zh',
         },
       },
       // `lastmod` (= build time) + `changefreq` tells Google how
@@ -77,15 +81,19 @@ export default defineConfig({
         item.lastmod = new Date().toISOString();
         item.changefreq = 'monthly';
         const path = new URL(item.url).pathname;
-        item.priority = path === '/' || path === '/en/' ? 1.0 : 0.7;
+        item.priority = path === '/' || path === '/zh/' ? 1.0 : 0.7;
         return item;
       },
     }),
   ],
   vite: { plugins: [tailwindcss()] },
   i18n: {
-    defaultLocale: 'zh-CN',
-    locales: ['zh-CN', 'en'],
+    // English is the default locale — served unprefixed at the apex
+    // (`/`, `/pricing/`, …). Chinese lives under `/zh/` via the custom
+    // `path` mapping (locale code stays `zh-CN`; the URL segment is the
+    // shorter `zh`). `prefixDefaultLocale: false` keeps en at the root.
+    defaultLocale: 'en',
+    locales: ['en', { path: 'zh', codes: ['zh-CN'] }],
     routing: { prefixDefaultLocale: false },
   },
 });

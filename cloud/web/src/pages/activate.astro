@@ -28,7 +28,7 @@ import { lookupLicenseForSession } from '../lib/stripe-lookup.ts';
 const url = new URL(Astro.request.url);
 const sessionId = url.searchParams.get('session_id');
 const directKey = url.searchParams.get('key');
-const lang: 'zh-CN' | 'en' = url.pathname.startsWith('/en/') ? 'en' : 'zh-CN';
+const lang: 'zh-CN' | 'en' = url.pathname.startsWith('/zh/') ? 'zh-CN' : 'en';
 const isZh = lang === 'zh-CN';
 
 let licenseKey: string | null = null;

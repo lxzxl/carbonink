@@ -20,10 +20,10 @@ const tx = isZh
       brand: '碳墨',
       tagline: '把碳核算搬到桌面端',
       links: [
-        { label: '定价', href: '/pricing/' },
-        { label: '下载', href: '/download/' },
+        { label: '定价', href: '/zh/pricing/' },
+        { label: '下载', href: '/zh/download/' },
         { label: '文档', href: '#' },
-        { label: '隐私政策', href: '/privacy/' },
+        { label: '隐私政策', href: '/zh/privacy/' },
         { label: '服务条款', href: '#' },
         { label: '联系支持', href: 'mailto:support@carbonink.xyz' },
       ],
@@ -34,10 +34,10 @@ const tx = isZh
       brand: 'CarbonInk',
       tagline: 'Local GHG accounting for factories',
       links: [
-        { label: 'Pricing', href: '/en/pricing/' },
-        { label: 'Download', href: '/en/download/' },
+        { label: 'Pricing', href: '/pricing/' },
+        { label: 'Download', href: '/download/' },
         { label: 'Docs', href: '#' },
-        { label: 'Privacy', href: '/en/privacy/' },
+        { label: 'Privacy', href: '/privacy/' },
         { label: 'Terms', href: '#' },
         { label: 'Contact', href: 'mailto:support@carbonink.xyz' },
       ],
@@ -47,8 +47,8 @@ const tx = isZh
 
 const path = Astro.url.pathname;
 const swapHref = isZh
-  ? path === '/' ? '/en/' : `/en${path}`
-  : path.startsWith('/en/') ? path.slice(3) || '/' : path === '/en' ? '/' : path;
+  ? path.startsWith('/zh/') ? path.slice(3) || '/' : path === '/zh' ? '/' : path
+  : path === '/' ? '/zh/' : `/zh${path}`;
 ---
 <footer class="border-t border-border bg-muted/30 px-5 py-10">
   <div class="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6">

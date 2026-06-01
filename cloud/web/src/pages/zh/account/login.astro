@@ -16,7 +16,7 @@ import LogoMark from '../../../components/LogoMark.astro';
  */
 
 const url = new URL(Astro.request.url);
-const lang: 'zh-CN' | 'en' = url.pathname.startsWith('/en/') ? 'en' : 'zh-CN';
+const lang: 'zh-CN' | 'en' = url.pathname.startsWith('/zh/') ? 'zh-CN' : 'en';
 const isZh = lang === 'zh-CN';
 
 const tx = isZh

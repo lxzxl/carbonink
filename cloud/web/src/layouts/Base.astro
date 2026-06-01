@@ -38,13 +38,15 @@ const ogImage =
 // Search Console: when in doubt, surface the English page to
 // international searchers.
 const currentPath = Astro.url.pathname;
-const isEnPath = currentPath === '/en' || currentPath.startsWith('/en/');
-const zhPath = isEnPath
-  ? currentPath === '/en' || currentPath === '/en/'
+const isZhPath = currentPath === '/zh' || currentPath.startsWith('/zh/');
+// en is the default (apex) locale; zh lives under /zh/. Strip the
+// prefix to get the en URL, add it to get the zh URL.
+const enPath = isZhPath
+  ? currentPath === '/zh' || currentPath === '/zh/'
     ? '/'
     : currentPath.slice(3)
   : currentPath;
-const enPath = isEnPath ? currentPath : currentPath === '/' ? '/en/' : `/en${currentPath}`;
+const zhPath = isZhPath ? currentPath : currentPath === '/' ? '/zh/' : `/zh${currentPath}`;
 const zhUrl = new URL(zhPath, 'https://carbonink.xyz').toString();
 const enUrl = new URL(enPath, 'https://carbonink.xyz').toString();
 
@@ -140,7 +142,7 @@ const keywords =
         wrong-language paint. Two responsibilities:
 
         1. On marketing-surface paths (`/`, `/pricing`, `/download`,
-           `/privacy` + `/en/*` mirrors), read the `carbonink_locale`
+           `/privacy` + `/zh/*` mirrors), read the `carbonink_locale`
            cookie. If unset, detect from `navigator.languages` — any
            `zh*` prefix wins → zh-CN, otherwise default to English. Write
            the choice to the cookie (1y). Redirect to the mirror URL if
@@ -179,9 +181,9 @@ const keywords =
 
         var path = location.pathname;
 
-        var isMarketing = /^\/(en\/?)?(pricing|download|privacy)?\/?$/.test(path);
+        var isMarketing = /^\/(zh\/?)?(pricing|download|privacy)?\/?$/.test(path);
         if (isMarketing) {
-          var isEn = path === '/en' || path.indexOf('/en/') === 0;
+          var isZh = path === '/zh' || path.indexOf('/zh/') === 0;
           var m = document.cookie.match(/(?:^|;\s*)carbonink_locale=(zh-CN|en)/);
           var preferred = m ? m[1] : null;
           if (!preferred) {
@@ -196,12 +198,12 @@ const keywords =
             }
             document.cookie = 'carbonink_locale=' + preferred + '; path=/; max-age=31536000; SameSite=Lax';
           }
-          if (preferred === 'en' && !isEn) {
-            location.replace('/en' + path + location.search + location.hash);
+          if (preferred === 'zh-CN' && !isZh) {
+            location.replace('/zh' + path + location.search + location.hash);
             return;
           }
-          if (preferred === 'zh-CN' && isEn) {
-            var stripped = (path === '/en' || path === '/en/') ? '/' : path.slice(3);
+          if (preferred === 'en' && isZh) {
+            var stripped = (path === '/zh' || path === '/zh/') ? '/' : path.slice(3);
             location.replace(stripped + location.search + location.hash);
             return;
           }

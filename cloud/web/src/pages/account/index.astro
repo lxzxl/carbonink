@@ -21,7 +21,7 @@ import { apiFetch, getApiBinding } from '../../lib/api-fetch.ts';
  */
 
 const url = new URL(Astro.request.url);
-const lang: 'zh-CN' | 'en' = url.pathname.startsWith('/en/') ? 'en' : 'zh-CN';
+const lang: 'zh-CN' | 'en' = url.pathname.startsWith('/zh/') ? 'zh-CN' : 'en';
 const isZh = lang === 'zh-CN';
 
 const cookie = Astro.request.headers.get('Cookie') ?? '';
@@ -80,8 +80,8 @@ const tx = isZh
       devices: { label: '激活设备', seatSuffix: `${devices.length} / ${SEAT_LIMIT} 席位`, none: '无已激活设备。', deactivate: '停用', verPrefix: '版本 ', lastPrefix: '最近活跃：' },
       invoices: { label: '账单', none: '暂无账单。订阅生效后可在此查看历史发票。' },
       account: { label: '账户', signout: '退出登录', danger: '危险区域', delete: '注销账户', deleteHint: '永久删除账户、取消活跃订阅、移除全部设备。此操作不可撤销。', deleteConfirm: '这将永久删除你的账户、取消活跃订阅、移除全部设备。继续？' },
-      pricingHref: '/pricing#buy-base',
-      loginHref: '/account/login',
+      pricingHref: '/zh/pricing#buy-base',
+      loginHref: '/zh/account/login',
     }
   : {
       title: 'My Account — CarbonInk',
@@ -91,8 +91,8 @@ const tx = isZh
       devices: { label: 'My Devices', seatSuffix: `${devices.length} / ${SEAT_LIMIT} slot`, none: 'No active devices.', deactivate: 'Deactivate', verPrefix: 'v', lastPrefix: 'Last seen: ' },
       invoices: { label: 'Invoices', none: 'No invoices yet. Receipts will appear here once your subscription is active.' },
       account: { label: 'Account', signout: 'Sign out', danger: 'Danger zone', delete: 'Delete account', deleteHint: 'Deletes your account, cancels active subscriptions, and removes all devices. This cannot be undone.', deleteConfirm: 'This permanently deletes your account, cancels active subscriptions, and removes every device. Continue?' },
-      pricingHref: '/en/pricing#buy-base',
-      loginHref: '/en/account/login',
+      pricingHref: '/pricing#buy-base',
+      loginHref: '/account/login',
     };
 ---
 <Base title={tx.title} lang={lang}>

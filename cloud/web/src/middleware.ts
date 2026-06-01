@@ -26,15 +26,19 @@ import { apiFetch, getApiBinding } from './lib/api-fetch.ts';
  */
 
 function isAccountPath(pathname: string): boolean {
-  return pathname.startsWith('/account/') || pathname === '/account'
-    || pathname.startsWith('/en/account/') || pathname === '/en/account';
+  return (
+    pathname.startsWith('/account/') ||
+    pathname === '/account' ||
+    pathname.startsWith('/zh/account/') ||
+    pathname === '/zh/account'
+  );
 }
 
 function isLoginPath(pathname: string): boolean {
   // Includes the magic-link callback under `/login/callback`. Use
   // `startsWith` so a `?next=...` query string doesn't bypass the
   // gate by ending up at `/account/login?next=/whatever`.
-  return pathname.startsWith('/account/login') || pathname.startsWith('/en/account/login');
+  return pathname.startsWith('/account/login') || pathname.startsWith('/zh/account/login');
 }
 
 function isAdminPath(pathname: string): boolean {
@@ -48,7 +52,7 @@ function loginRedirectFor(pathname: string): string {
   if (pathname.startsWith('/admin')) {
     return '/account/login?next=' + encodeURIComponent(pathname);
   }
-  return pathname.startsWith('/en/') ? '/en/account/login' : '/account/login';
+  return pathname.startsWith('/zh/') ? '/zh/account/login' : '/account/login';
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {

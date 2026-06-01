@@ -45,8 +45,8 @@ const tx = isZh
 // or back) so deep links survive a language swap.
 const path = Astro.url.pathname;
 const swapHref = isZh
-  ? path === '/' ? '/en/' : `/en${path}`
-  : path.startsWith('/en/') ? path.slice(3) || '/' : path === '/en' ? '/' : path;
+  ? path.startsWith('/zh/') ? path.slice(3) || '/' : path === '/zh' ? '/' : path
+  : path === '/' ? '/zh/' : `/zh${path}`;
 
 // The language the toggle flips TO. Used by the cookie-writing click
 // handler in Base.astro — clicking sets `carbonink_locale` to this
@@ -54,10 +54,10 @@ const swapHref = isZh
 // future visits and stops the auto-detector from bouncing them back.
 const swapTargetLang = isZh ? 'en' : 'zh-CN';
 
-// Path prefix for in-site links — '' for zh-CN (the default locale),
-// '/en' for English. The href builder below pre-fixes every link with
+// Path prefix for in-site links — '' for en (the default locale),
+// '/zh' for Chinese. The href builder below pre-fixes every link with
 // this so a single template can serve both locales.
-const prefix = isZh ? '' : '/en';
+const prefix = isZh ? '/zh' : '';
 
 const links = [
   { href: `${prefix}/pricing/`, label: tx.pricing },
