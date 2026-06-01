@@ -60,14 +60,14 @@ const swapTargetLang = isZh ? 'en' : 'zh-CN';
 const prefix = isZh ? '' : '/en';
 
 const links = [
-  { href: `${prefix}/pricing`, label: tx.pricing },
-  { href: `${prefix}/download`, label: tx.download },
+  { href: `${prefix}/pricing/`, label: tx.pricing },
+  { href: `${prefix}/download/`, label: tx.download },
   { href: '#', label: tx.docs },
 ];
 ---
 <nav class="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
   <div class="max-w-6xl mx-auto px-5 flex items-center justify-between h-14">
-    <a href={prefix || '/'} class="flex items-center gap-2.5">
+    <a href={prefix ? `${prefix}/` : '/'} class="flex items-center gap-2.5">
       <LogoMark size={26} />
       <span class="font-semibold text-[15px] tracking-tight text-foreground">{tx.brand}</span>
     </a>
@@ -89,7 +89,7 @@ const links = [
         {tx.langLabel}
       </a>
       <a
-        href={`${prefix}/download`}
+        href={`${prefix}/download/`}
         class="text-sm bg-primary text-primary-foreground px-3.5 py-1.5 rounded font-medium hover:bg-moss-600 transition-colors"
       >
         {tx.trial}
@@ -123,7 +123,7 @@ const links = [
         {tx.langLabel}
       </a>
       <a
-        href={`${prefix}/download`}
+        href={`${prefix}/download/`}
         class="text-sm bg-primary text-primary-foreground px-4 py-1.5 rounded font-medium"
       >
         {tx.trial}
