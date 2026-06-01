@@ -1,4 +1,3 @@
-import { LicenseChip } from '@renderer/components/LicenseChip';
 import { useIsScrolled } from '@renderer/components/layout/scroll-context';
 import { Separator } from '@renderer/components/ui/separator';
 import { SidebarTrigger } from '@renderer/components/ui/sidebar';
@@ -71,9 +70,7 @@ export function Header({ className, children, ...props }: HeaderProps) {
        * banner takes over for urgent). `ml-auto` pushes the slot to
        * the trailing edge regardless of how much children render on
        * the left. */}
-      <div className="ml-auto flex items-center gap-2 [-webkit-app-region:no-drag]">
-        <LicenseChip />
-      </div>
+      <div className="ml-auto flex items-center gap-2 [-webkit-app-region:no-drag]"></div>
     </header>
   );
 }

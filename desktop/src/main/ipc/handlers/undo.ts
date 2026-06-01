@@ -12,10 +12,6 @@ const doInput = z.object({
  * Undo/Redo IPC handlers — thin pass-through to `ctx.undoManager`. The
  * heavy lifting (closure storage, stack discipline, depth cap) lives
  * in the manager class so it can be unit-tested without an IPC harness.
- *
- * `undo:do` is in the license-gate read-only block set
- * (`license-gate.ts`) so expired/revoked licenses can't sneak writes
- * back in through the inverse path.
  */
 export function undoHandlers(ctx: IpcContext): HandlerMap {
   return {

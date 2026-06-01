@@ -1,4 +1,3 @@
-import { LicenseSection } from '@renderer/components/LicenseSection';
 import { AboutSection } from '@renderer/components/settings/AboutSection';
 import { AIProviderSection } from '@renderer/components/settings/AIProviderSection';
 import { AmapKeySection } from '@renderer/components/settings/AmapKeySection';
@@ -18,7 +17,6 @@ import {
   MapPin,
   RefreshCw,
   Settings as SettingsIcon,
-  ShieldCheck,
   Sparkles,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -55,16 +53,7 @@ import { useState } from 'react';
  * navigated-to deliberately, not deep-linked.
  */
 
-type SectionKey =
-  | 'general'
-  | 'ai'
-  | 'amap'
-  | 'mcp'
-  | 'org'
-  | 'license'
-  | 'data'
-  | 'updates'
-  | 'about';
+type SectionKey = 'general' | 'ai' | 'amap' | 'mcp' | 'org' | 'data' | 'updates' | 'about';
 
 interface SectionDef {
   key: SectionKey;
@@ -109,13 +98,6 @@ const SECTIONS: SectionDef[] = [
     label: () => m.settings_section_org(),
     description: () => m.settings_section_org_description(),
     render: () => <OrganizationProfileSection />,
-  },
-  {
-    key: 'license',
-    icon: ShieldCheck,
-    label: () => m.settings_section_license(),
-    description: () => m.settings_section_license_description(),
-    render: () => <LicenseSection />,
   },
   {
     key: 'data',

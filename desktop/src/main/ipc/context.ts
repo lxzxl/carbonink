@@ -25,8 +25,6 @@ import { EfService } from '@main/services/ef-service.js';
 import { EmissionSourceService } from '@main/services/emission-source-service.js';
 import { ExtractionService } from '@main/services/extraction-service.js';
 import { InboundQuestionnaireService } from '@main/services/inbound-questionnaire-service.js';
-import { loadLicensePublicKey } from '@main/services/license-public-key.js';
-import { LicenseService } from '@main/services/license-service.js';
 import {
   McpIntegrationService,
   type PathResolver,
@@ -96,8 +94,6 @@ export interface IpcContext {
   auditEventService: AuditEventService;
   // Phase 3 sub-project 4 — questionnaire PDF export.
   questionnairePdfDataService: QuestionnairePdfDataService;
-  // Phase 4 sub-project A — license JWT verify + state machine.
-  licenseService: LicenseService;
   // MCP integration — detect / configure / remove MCP clients (Claude
   // Desktop, Claude Code, Cursor, Pi). Owns the file mutations on the
   // user's other-app configs and the carbonink server-entry shape.
@@ -131,13 +127,6 @@ export interface IpcContextOverrides {
   uploadsDir?: string;
   documentService?: DocumentService;
   extractionService?: ExtractionService;
-  /**
-   * Test override for LicenseService — handler / integration tests pass a
-   * pre-built instance backed by an in-memory blob store + a test-only
-   * keypair so they don't trip the all-zero placeholder guard in
-   * `license-public-key.ts`.
-   */
-  licenseService?: LicenseService;
   efMatcherService?: EfMatcherService;
   classificationService?: ClassificationService;
   customerService?: CustomerService;
@@ -219,7 +208,6 @@ export function createIpcContext(
   let answerLayerInstance: Layer.Layer<AnswerR> | undefined;
   let routingLayerInstance: Layer.Layer<RoutingR> | undefined;
   let reportDataServiceInstance: ReportDataService | undefined;
-  let licenseServiceInstance: LicenseService | undefined = overrides.licenseService;
 
   const getCredential = (): CredentialService => {
     if (!credentialServiceInstance) credentialServiceInstance = defaultCredentialService();
@@ -486,24 +474,6 @@ export function createIpcContext(
     },
     auditEventService: new AuditEventService({ db: svc.db }),
     questionnairePdfDataService: new QuestionnairePdfDataService({ db: svc.db }),
-    get licenseService() {
-      if (!licenseServiceInstance) {
-        // Lazy: defer the public-key load + CredentialStore singleton
-        // wakeup until something actually touches the license channel.
-        // Production: real safeStorage + filesystem blob deletion.
-        // Tests that need the service pass `overrides.licenseService`
-        // (see `tests/main/ipc/license-handlers.test.ts` pattern).
-        licenseServiceInstance = new LicenseService({
-          db: svc.db,
-          now: svc.now,
-          nowSeconds: () => Math.floor(Date.parse(svc.now()) / 1000),
-          publicKey: loadLicensePublicKey(),
-          credentialStore: getCredentialStore(),
-          deleteBlob: deleteCredentialBlob,
-        });
-      }
-      return licenseServiceInstance;
-    },
     mcpIntegrationService,
     agentSkillService,
     printRenderUrl:

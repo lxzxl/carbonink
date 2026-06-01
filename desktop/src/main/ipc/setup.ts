@@ -15,7 +15,6 @@ import { efMatcherHandlers } from './handlers/ef-matcher.js';
 import { emissionSourceHandlers } from './handlers/emission-source.js';
 import { extractionHandlers } from './handlers/extraction.js';
 import { inboundQuestionnaireHandlers } from './handlers/inbound-questionnaire.js';
-import { licenseHandlers } from './handlers/license.js';
 import { mcpHandlers } from './handlers/mcp.js';
 import { organizationHandlers } from './handlers/organization.js';
 import { questionnaireHandlers } from './handlers/questionnaire.js';
@@ -25,7 +24,6 @@ import { settingsHandlers } from './handlers/settings.js';
 import { supplierHandlers } from './handlers/supplier.js';
 import { undoHandlers } from './handlers/undo.js';
 import { updaterHandlers } from './handlers/updater.js';
-import { licenseGate } from './license-gate.js';
 import { createProgressEmitter } from './progress.js';
 import { sanitize } from './sanitize.js';
 import type { IpcTypeMap } from './types.js';
@@ -53,7 +51,6 @@ const HANDLER_FACTORIES: ReadonlyArray<HandlerFactory> = [
   agentSkillHandlers,
   reportHandlers,
   auditHandlers,
-  licenseHandlers,
   updaterHandlers,
   appHandlers,
   dataHandlers,
@@ -76,19 +73,9 @@ export function setupIpc(): void {
 
   for (const factory of HANDLER_FACTORIES) {
     for (const [channel, handler] of Object.entries(factory(ctx))) {
-      // Compose: license gate runs first (cheap state read; throws
-      // LicenseReadOnlyError for blocked channels in expired/revoked state),
-      // then sanitize wraps that whole pipeline so the gate's tagged error
-      // passes through to the renderer while everything else gets the
-      // correlation-id treatment. `licenseHandlers` (license:get-state etc.)
-      // are also pumped through both — the gate fast-paths channels not in
-      // the blocked set, so license:* never hits getState recursion.
-      const gated = licenseGate(
-        channel,
-        ctx.licenseService,
-        handler as (...a: unknown[]) => unknown,
-      );
-      const wrapped = sanitize(channel, gated);
+      // sanitize wraps every handler so raw errors (SQL fragments, file paths)
+      // never cross the IPC boundary; tagged user-actionable errors pass through.
+      const wrapped = sanitize(channel, handler as (...a: unknown[]) => unknown);
       // biome-ignore lint/suspicious/noExplicitAny: heterogeneous handler dispatch
       (l.handle as (c: string, h: (...a: any[]) => unknown) => void)(
         channel,

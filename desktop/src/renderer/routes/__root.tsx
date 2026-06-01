@@ -1,6 +1,5 @@
 import { AppSidebar } from '@renderer/components/AppSidebar';
 import { CommandPalette } from '@renderer/components/command-palette';
-import { LicenseBanner } from '@renderer/components/LicenseBanner';
 import { Header } from '@renderer/components/layout/header';
 import { NavArrows } from '@renderer/components/layout/nav-arrows';
 import { NavigationProgress } from '@renderer/components/layout/navigation-progress';
@@ -137,7 +136,6 @@ function RootComponent() {
           <Header>
             <NavArrows />
           </Header>
-          <LicenseBanner />
           {/* `@container/content` lets nested `<Main>` opt-in to the
            * `@7xl/content:max-w-7xl` cap on wide displays. `flex-1
            * min-h-0 overflow-auto` makes this the scroll container.

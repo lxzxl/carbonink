@@ -5,7 +5,6 @@ import {
   StageDoesNotSupportVisionError,
 } from '@main/services/extraction-service.js';
 import { z } from 'zod';
-import { LicenseReadOnlyError } from './license-gate.js';
 
 /**
  * Wraps an IPC handler so we never leak raw error messages
@@ -49,8 +48,7 @@ export function sanitize(
       if (
         err instanceof PdfNotReadableError ||
         err instanceof VisionUnsupportedError ||
-        err instanceof StageDoesNotSupportVisionError ||
-        err instanceof LicenseReadOnlyError
+        err instanceof StageDoesNotSupportVisionError
       ) {
         // Still log server-side for support / debugging.
         console.error(`[ipc:${channel}] ${err.name}`, err);

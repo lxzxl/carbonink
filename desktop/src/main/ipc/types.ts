@@ -431,42 +431,6 @@ export type IpcTypeMap = {
     | { ok: false; error: string }
   >;
 
-  // license domain (Phase 4 sub-project A — Ed25519 JWT + state machine)
-  // `license:get-state` is read-mostly (called on every UI render that
-  // shows the License section / banner). `license:set-jwt` validates +
-  // persists; failures come back as a discriminated `_tag` so the UI can
-  // render distinct messages without parsing error strings.
-  'license:get-state': () => import('@shared/types.js').LicenseStateView;
-  'license:set-jwt': (input: { jwt: string }) =>
-    | { ok: true }
-    | {
-        ok: false;
-        error: { _tag: 'BadSignature' | 'BadSchema' | 'Malformed'; message: string };
-      };
-  // Exchange a humanized key (cik-XXXXX-XXXXX-XXXXX-XXXXX) for a license
-  // JWT by calling /api/v1/activate, then persist the JWT via setJwt.
-  // The desktop-friendly entry point — users never need to see the raw
-  // JWT, just paste the key from their activation email.
-  'license:activate-with-key': (input: { license_key: string }) => Promise<
-    | { ok: true }
-    | {
-        ok: false;
-        error: {
-          _tag:
-            | 'Network'
-            | 'KeyNotFound'
-            | 'RateLimited'
-            | 'DeviceCapReached'
-            | 'BadSignature'
-            | 'Malformed'
-            | 'Server';
-          message: string;
-          status?: number;
-        };
-      }
-  >;
-  'license:clear': () => void;
-
   // updater domain (Phase 5 — auto-update via electron-updater)
   // `updater:get-status` is a cheap read of the in-memory status slot in
   // `auto-updater.ts`; the renderer subscribes to `updater:status` (push)
