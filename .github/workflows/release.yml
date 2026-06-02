@@ -52,9 +52,12 @@ jobs:
 
       - name: Set version from tag
         working-directory: desktop
+        # `pnpm pkg set` (not `pnpm version`) — the latter errors "Version not
+        # changed" when the tag matches the current package.json version, which
+        # is exactly the case for a v1.0.0 release of a 1.0.0 package.
         run: |
           VERSION=${GITHUB_REF_NAME#v}
-          pnpm version --no-git-tag-version "$VERSION"
+          pnpm pkg set "version=$VERSION"
 
       - name: Build + package (unsigned — notarize off, ad-hoc sign)
         working-directory: desktop
@@ -83,9 +86,11 @@ jobs:
       - name: Set version from tag
         working-directory: desktop
         shell: pwsh
+        # `pnpm pkg set` (not `pnpm version`) — see the mac job: avoids the
+        # "Version not changed" error when tag == current package.json version.
         run: |
           $version = $env:GITHUB_REF_NAME -replace '^v', ''
-          pnpm version --no-git-tag-version $version
+          pnpm pkg set "version=$version"
 
       - name: Build + package (unsigned — Azure sign hook self-skips with no creds)
         working-directory: desktop
