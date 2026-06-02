@@ -53,9 +53,9 @@ export function installUpdate(): void {
  * Configuration:
  * - `autoDownload: true` — download in background once found
  * - `autoInstallOnAppQuit: true` — install on next quit
- * - Update URL points to R2-hosted manifests via the embedded
- *   `app-update.yml` baked in by electron-builder at packaging time;
- *   no runtime URL config is needed here.
+ * - Update source is the GitHub Releases feed, via the embedded
+ *   `app-update.yml` baked in by electron-builder (publish: github) at
+ *   packaging time; no runtime URL config is needed here.
  *
  * In development (non-packaged), electron-updater throws because the
  * `app-update.yml` file isn't present and there's no valid code

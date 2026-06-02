@@ -91,14 +91,17 @@ nsis:
   deleteAppDataOnUninstall: false
 
 # --- Auto-update publish target ---
-# IMPORTANT: manifests (latest-mac.yml, latest.yml) live at the BUCKET ROOT
-# of the releases/ prefix. Binary artifacts live under releases/{platform}/{version}/
-# and are referenced by absolute URL inside the manifests. This keeps
-# electron-updater's manifest lookup at a single stable path while letting
-# binaries stay versioned + platform-segregated.
+# GitHub Releases. electron-updater reads the channel manifest
+# (stable-mac.yml / stable.yml) + the installer from the release assets of the
+# matching tag; release.yml uploads all three. The app's app-update.yml is
+# generated from this block at packaging time (no runtime URL needed).
+#
+# Heads-up: v1.0.0 shipped with the old generic/R2 target, so v1.0.0 installs
+# won't auto-update. v1.0.1+ (built from this config) will.
 publish:
-  provider: generic
-  url: https://r2.carbonink.xyz/releases
+  provider: github
+  owner: lxzxl
+  repo: carbonink
   channel: stable
 
 # --- electron-builder will look for these build resources ---

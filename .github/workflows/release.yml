@@ -23,6 +23,11 @@ on:
 permissions:
   contents: write
 
+# Opt JS actions onto Node 24 now — checkout/setup-node/pnpm/gh-release ship on
+# the deprecated Node 20; GitHub forces Node 24 by 2026-06-16 regardless.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   # Create the draft release FIRST so the two platform builds upload into it
   # rather than racing to create the same tag's release (parallel "create if
@@ -63,10 +68,13 @@ jobs:
         working-directory: desktop
         run: pnpm build && pnpm exec electron-builder --mac --publish never
 
-      - name: Upload installers to GitHub Release
+      - name: Upload installers + update manifest to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: desktop/release/*.dmg
+          files: |
+            desktop/release/*.dmg
+            desktop/release/*.dmg.blockmap
+            desktop/release/stable-mac.yml
           draft: true
 
   build-win:
@@ -96,10 +104,13 @@ jobs:
         working-directory: desktop
         run: pnpm build && pnpm exec electron-builder --win --publish never
 
-      - name: Upload installers to GitHub Release
+      - name: Upload installers + update manifest to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: desktop/release/*.exe
+          files: |
+            desktop/release/*.exe
+            desktop/release/*.exe.blockmap
+            desktop/release/stable.yml
           draft: true
 
   publish-release:
