@@ -101,3 +101,6 @@ docs/research/
 docs/release-notes/
 docs/todo/
 docs/archive/
+
+# Eval harness output (timestamped runs) — regenerable, not source.
+desktop/scripts/eval/results/

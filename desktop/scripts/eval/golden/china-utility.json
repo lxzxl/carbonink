@@ -1,0 +1,67 @@
+[
+  {
+    "id": "util-01-standard",
+    "note": "Plain 国网 bill. Account has spaces (id-normalized). Baseline case.",
+    "billText": "国家电网上海市浦东供电公司\n电费通知单\n户号：3300 1234 5678\n计费期间：2025年03月01日 至 2025年03月31日\n本月用电量：1234.5 度\n应收合计：802.40 元",
+    "expected": {
+      "supplier_name": "国家电网上海市浦东供电公司",
+      "account_no": "3300 1234 5678",
+      "amount_kwh": 1234.5,
+      "amount_yuan": 802.4,
+      "period_start": "2025-03-01",
+      "period_end": "2025-03-31"
+    }
+  },
+  {
+    "id": "util-02-wandu-yearmonth",
+    "note": "Hard: 万度 → ×10000, and year-month-only period → first/last day. The terse prompt omits both rules, so it should lose points here.",
+    "billText": "南方电网广东电网公司广州供电局\n用电客户编号：A8801234\n用电期间：2025-06\n本期电量：1.2 万度\n本月电费：78,540.00 元",
+    "expected": {
+      "supplier_name": "南方电网广东电网公司广州供电局",
+      "account_no": "A8801234",
+      "amount_kwh": 12000,
+      "amount_yuan": 78540.0,
+      "period_start": "2025-06-01",
+      "period_end": "2025-06-30"
+    }
+  },
+  {
+    "id": "util-03-null-account",
+    "note": "No account number on the bill → must be null, not hallucinated. Reading dates from 上次/本次抄表.",
+    "billText": "国网北京市电力公司\n电费单\n抄表区间：上次抄表 2025-01-05，本次抄表 2025-02-04\n实用电量：523 kWh\n应收金额：314.50 元",
+    "expected": {
+      "supplier_name": "国网北京市电力公司",
+      "account_no": null,
+      "amount_kwh": 523,
+      "amount_yuan": 314.5,
+      "period_start": "2025-01-05",
+      "period_end": "2025-02-04"
+    }
+  },
+  {
+    "id": "util-04-comma-slash",
+    "note": "Thousands separators in numbers, slash-format dates → ISO.",
+    "billText": "国网江苏省电力有限公司苏州供电分公司\n户  号: 9900876543\n用电量(度): 2,048.00\n应收合计(元): 1,331.20\n计费起止: 2025/04/01-2025/04/30",
+    "expected": {
+      "supplier_name": "国网江苏省电力有限公司苏州供电分公司",
+      "account_no": "9900876543",
+      "amount_kwh": 2048,
+      "amount_yuan": 1331.2,
+      "period_start": "2025-04-01",
+      "period_end": "2025-04-30"
+    }
+  },
+  {
+    "id": "util-05-yearmonth-clean",
+    "note": "Year-month period again (2025年09月) but otherwise clean; isolates the year-month→full-date rule.",
+    "billText": "国网浙江省电力有限公司杭州供电公司\n户号 7711002233\n计费期间 2025年09月\n用电量 880 度\n应收合计 561.20 元",
+    "expected": {
+      "supplier_name": "国网浙江省电力有限公司杭州供电公司",
+      "account_no": "7711002233",
+      "amount_kwh": 880,
+      "amount_yuan": 561.2,
+      "period_start": "2025-09-01",
+      "period_end": "2025-09-30"
+    }
+  }
+]
