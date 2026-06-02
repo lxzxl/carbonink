@@ -30,8 +30,6 @@
     "rebuild:native": "electron-rebuild -f -w better-sqlite3",
     "icons": "node scripts/generate-icons.mjs",
     "rebuild:node": "pnpm rebuild better-sqlite3",
-    "predist:mac": "node scripts/guard-prod-key.mjs",
-    "predist:win": "node scripts/guard-prod-key.mjs",
     "dist:mac": "pnpm build && electron-builder --mac --publish never",
     "dist:win": "pnpm build && electron-builder --win --publish never",
     "dist:publish": "pnpm build && electron-builder --mac --win --publish always",

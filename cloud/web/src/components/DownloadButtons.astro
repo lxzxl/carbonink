@@ -24,7 +24,7 @@ const tx = isZh
       macIntel: '使用 Intel 芯片的 Mac？下载 Intel 版',
       win: '下载 Windows 版（.exe）',
       winNote: 'Windows 10/11 x64',
-      signing: '应用已签名，macOS 可能提示「未知开发者」，请参见安装说明。',
+      signing: '应用未做代码签名（开源免费）。首次打开：macOS 请右键点按图标 →「打开」；Windows 在 SmartScreen 提示时选「更多信息 → 仍要运行」。',
     }
   : {
       mac: 'Download for macOS (.dmg)',
@@ -32,7 +32,7 @@ const tx = isZh
       macIntel: 'On an Intel Mac? Get the Intel build',
       win: 'Download for Windows (.exe)',
       winNote: 'Windows 10/11 x64',
-      signing: 'The app is signed. macOS may show an "Unknown developer" prompt — see the installation guide.',
+      signing: "The app isn't code-signed (it's free & open-source). First launch: on macOS, right-click the app → Open; on Windows, choose \"More info → Run anyway\" at the SmartScreen prompt.",
     };
 
 // Worker redirect endpoints (cloud/web/src/pages/download/*.ts) resolve

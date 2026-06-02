@@ -46,11 +46,11 @@ mac:
   gatekeeperAssess: false
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
-  # electron-builder v26: notarize is a boolean toggle now.
-  # Activation requires APPLE_TEAM_ID + APPLE_ID + APPLE_APP_SPECIFIC_PASSWORD
-  # (or APPLE_API_KEY/ID/ISSUER) in env at build time. Locally these are
-  # absent so notarize step no-ops; CI exports them from secrets.
-  notarize: true
+  # Unsigned, open-source build: notarization is OFF (no Apple Developer
+  # credentials after the open-source pivot). macOS Gatekeeper will show
+  # "unidentified developer" → users right-click → Open on first launch.
+  # With no `identity` set, electron-builder ad-hoc signs the .app.
+  notarize: false
 
 dmg:
   sign: false
