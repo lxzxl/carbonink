@@ -1,11 +1,17 @@
 # CarbonInk · 碳墨
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-blue.svg)](https://github.com/lxzxl/carbonink/releases/latest)
+[![Download](https://img.shields.io/badge/download-latest%20release-brightgreen.svg)](https://github.com/lxzxl/carbonink/releases/latest)
+
 **Free, open-source, local-first GHG accounting for the desktop.** Import your
 bills, let the AI extract the activity data, and produce an ISO 14064-1 inventory
 report — entirely on your own machine. No account, no cloud, no subscription.
 
 > Licensed under the [MIT License](LICENSE). Runs fully offline; your data never
 > leaves your device.
+
+![CarbonInk — ISO 14064-1 GHG inventory dashboard, running locally](cloud/web/public/screenshots/en/dashboard.png)
 
 ## Download
 
