@@ -54,6 +54,13 @@ marketing pages are the indexable surface.
 - **Fonts are self-hosted** (`public/fonts/`, OFL) — do NOT reintroduce the
   Google Fonts CDN; it's blocked in mainland China. CJK intentionally uses the
   system stack (PingFang SC / Microsoft YaHei), no CJK webfont.
+- **Cloudflare Web Analytics** — the beacon is committed in `Base.astro`
+  (PROD-gated; the token is a public site identifier, not a secret). The
+  dashboard's **"automatic setup" for this zone must stay OFF** or every visit
+  double-counts. Gotcha: auto-injection is **UA-conditional** (browsers get the
+  beacon, curl doesn't) — so "curl shows no beacon" never proves analytics is
+  off. Any change to what the site collects must update `/privacy/` + `/zh/privacy/`
+  in the same commit.
 - **Per page** (`cloud/web/src/layouts/Base.astro`): `<link rel="canonical">`,
   `hreflang` (zh-CN / en / x-default→en), full Open Graph + Twitter Card with a
   locale-aware OG screenshot, and three JSON-LD blocks (SoftwareApplication /
