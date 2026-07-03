@@ -297,6 +297,25 @@ const keywords =
       type="font/woff2"
       crossorigin
     />
+
+    {/* Cloudflare Web Analytics — cookieless aggregate RUM. The token is a
+        public site identifier (it ships in every page's HTML), not a secret.
+        PROD-only so dev/preview sessions don't pollute the numbers.
+
+        IMPORTANT: the dashboard's "automatic setup" for this zone must stay
+        OFF now that the snippet is committed — auto-injection adds a second
+        beacon (only for browser-like UAs — which is why curl never sees it)
+        and double-counts every visit. Disclosure lives in /privacy/. */}
+    {
+      import.meta.env.PROD && (
+        <script
+          is:inline
+          defer
+          src="https://static.cloudflareinsights.com/beacon.min.js"
+          data-cf-beacon='{"token": "9511fb73e3ec4ca2b1302b0356e9a2df"}'
+        />
+      )
+    }
   </head>
   <body class="bg-background text-foreground font-[family-name:var(--font-body)] min-h-screen flex flex-col">
     <Nav lang={lang} />
