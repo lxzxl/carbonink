@@ -1,0 +1,149 @@
+---
+title: 'How to build an ISO 14064-1 GHG inventory, step by step'
+description: 'A practical seven-step walkthrough of a corporate greenhouse-gas inventory under ISO 14064-1:2018 — boundaries, activity data, emission factors, calculation, base year, and the report.'
+pubDate: 2026-07-03
+related:
+  - iso-14064-1-vs-ghg-protocol
+  - ghg-inventory-vs-verification
+---
+
+A greenhouse-gas inventory is an account: every tonne of CO₂e your organization
+reports should trace back to a meter reading, an invoice, or a supplier
+statement, multiplied by an emission factor you can name. ISO 14064-1:2018 is
+the standard that says what that account must contain for it to be
+verifiable. This guide walks the whole process in seven steps, in the order a
+practitioner actually does them.
+
+## What ISO 14064-1 actually asks for
+
+ISO 14064-1 specifies requirements for quantifying and reporting emissions and
+removals **at the organization level**. The 2018 revision organizes emissions
+into six categories:
+
+| Category | What it covers | GHG Protocol equivalent |
+| --- | --- | --- |
+| 1 | Direct emissions and removals (combustion, process, fugitives, company vehicles) | Scope 1 |
+| 2 | Indirect emissions from imported energy (electricity, heat, steam, cooling) | Scope 2 |
+| 3 | Indirect emissions from transportation (upstream/downstream freight, commuting, business travel) | parts of Scope 3 |
+| 4 | Indirect emissions from products used by the organization (purchased goods, services, capital goods, waste) | parts of Scope 3 |
+| 5 | Indirect emissions associated with the use of the organization's products | parts of Scope 3 |
+| 6 | Indirect emissions from other sources | parts of Scope 3 |
+
+Categories 3–6 are only reported when **significant** — but you must define and
+apply documented significance criteria, not silently skip them. All seven GHG
+families count: CO₂, CH₄, N₂O, HFCs, PFCs, SF₆ and NF₃, each converted to CO₂e.
+
+## Step 1 — Fix the organizational boundary
+
+Decide which legal entities and facilities are "you", using one consolidation
+approach applied consistently:
+
+- **Operational control** — you count 100% of emissions from operations you run.
+  The most common choice, and usually the one that matches how your data is
+  collected.
+- **Financial control** — 100% of what you control financially.
+- **Equity share** — emissions in proportion to ownership.
+
+List every site in scope (plants, warehouses, offices, vehicles), and record
+why anything is excluded. Boundary gaps are the first thing a verifier probes.
+
+## Step 2 — Fix the reporting boundary
+
+Within the organizational boundary, decide which of categories 1–6 you will
+quantify. Category 1 and 2 are always in. For 3–6, rank sources by estimated
+magnitude, data availability, and stakeholder expectations, then write down the
+significance criteria you applied. A first-year inventory that covers
+categories 1–2 completely and the two or three largest category 3–4 sources is
+more defensible than one that covers everything thinly.
+
+## Step 3 — Collect activity data (and keep the evidence)
+
+Activity data is the measured quantity that drives each source: kWh purchased,
+litres of diesel, kilograms of refrigerant topped up, tonne-kilometres shipped.
+Practical rules:
+
+- **Prefer measured over estimated**: meter readings and invoices beat
+  floor-area allocations and industry averages.
+- **Keep the source document** for every figure — the utility bill PDF, the
+  fuel card export, the waste-contractor report. In verification you will be
+  asked to produce them by sample.
+- **Watch the units** at entry time: kWh vs MWh, litres vs m³, kg vs tonnes.
+  Unit slips are the most common calculation error in first inventories.
+- **Close the gaps explicitly.** Where a month of data is missing, document the
+  estimation method (pro-rata, same month last year) rather than leaving it
+  silent.
+
+## Step 4 — Pick emission factors you can defend
+
+An emission factor converts activity data into emissions. Defensible means:
+published source, correct geography, correct year, documented in the inventory.
+The usual references:
+
+- **IPCC Emission Factor Database (EFDB)** — the international default for fuels
+  and processes.
+- **UK Government (DEFRA/DESNZ) conversion factors** — updated annually, free,
+  widely used far beyond the UK for transport, waste, and materials.
+- **US EPA GHG Emission Factor Hub and eGRID** — US fuels and regional grid
+  electricity.
+- **National grid factors** for your electricity market — for example the
+  official annual grid-average factors published by national authorities
+  (China's Ministry of Ecology and Environment launched a national GHG
+  emission-factor database in 2025).
+- **Supplier-specific factors** where you have them — a supplier's verified
+  product footprint beats any average.
+
+For electricity, the GHG Protocol's Scope 2 guidance (widely applied alongside
+ISO 14064-1) expects **dual reporting**: a location-based figure using the grid
+average, and a market-based figure reflecting your contracts (green tariffs,
+RECs, PPAs).
+
+## Step 5 — Calculate: AD × EF × GWP
+
+The core arithmetic is simple:
+
+> emissions (tCO₂e) = activity data × emission factor × GWP
+
+GWP (global warming potential) converts non-CO₂ gases to CO₂e. Use the GWP set
+your reporting program mandates and **say which one you used** — IPCC AR6
+100-year values put fossil methane at 29.8 and N₂O at 273, while many programs
+still fix AR5 or AR4 values. Mixing GWP vintages across sources is a classic
+verification finding.
+
+Do the calculation somewhere that preserves the chain from source document →
+activity data → factor → result. That chain is the difference between a number
+and an auditable number.
+
+## Step 6 — Set a base year and manage quality
+
+Pick a base year with complete, representative data and recalculate it when
+structural changes (acquisitions, divestments), methodology changes, or
+discovered errors move it beyond your documented significance threshold.
+Alongside it, write the two short documents that make year two cheaper than
+year one: a data-quality / uncertainty note (which figures are measured,
+which estimated, and how confident you are) and an inventory management plan
+(who collects what, when, from where).
+
+## Step 7 — Assemble the report
+
+An ISO 14064-1 report states, at minimum: the organization and the person
+responsible; the reporting period; organizational boundaries and the
+consolidation approach; reporting boundaries and significance criteria;
+quantification methodologies and any changes; emissions by category and by gas,
+in tCO₂e; the base year and any recalculations; uncertainty; and a statement
+that the report was prepared in accordance with ISO 14064-1. If the inventory
+will face third-party verification (ISO 14064-3), agree the level of assurance
+and materiality with the verifier before you finalize — see the companion
+guide on [inventory vs verification](/guides/ghg-inventory-vs-verification/).
+
+## Common mistakes that fail verification
+
+- Refrigerant top-ups (fugitive HFCs) missing from category 1 entirely.
+- Scope 2 reported market-based only, with no location-based figure.
+- Emission factors with no source, no year, or the wrong country's grid.
+- Excluded sites and sources with no documented justification.
+- Activity data that can't be traced back to a document.
+- Unit errors and GWP-set mixing.
+
+None of these are hard to avoid — they are all versions of the same failure:
+losing the link between the number and its evidence. Keep that link and the
+rest of the inventory follows.

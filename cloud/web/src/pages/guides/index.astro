@@ -1,0 +1,38 @@
+---
+export const prerender = true;
+
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+
+const guides = (await getCollection('guides', ({ id }) => id.startsWith('en/'))).sort(
+  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+);
+---
+<Base
+  title="Guides — carbon accounting, ISO 14064-1 & GHG inventories | CarbonInk"
+  description="Practical, standards-accurate guides to carbon accounting: building an ISO 14064-1 GHG inventory, ISO 14064-1 vs the GHG Protocol, inventory vs verification, and more."
+  lang="en"
+>
+  <section class="py-16 px-5">
+    <div class="max-w-3xl mx-auto">
+      <p class="text-xs font-medium text-primary uppercase tracking-widest mb-3">Guides</p>
+      <h1 class="text-3xl md:text-4xl font-semibold tracking-tight mb-3">
+        Carbon accounting, explained properly
+      </h1>
+      <p class="text-muted-foreground leading-relaxed mb-12 max-w-2xl">
+        Vendor-neutral, standards-accurate guides to greenhouse-gas inventories — written for the
+        consultants and sustainability teams whose numbers have to get past an auditor.
+      </p>
+      <ul class="divide-y divide-border border border-border rounded-md">
+        {guides.map((g) => (
+          <li>
+            <a href={`/guides/${g.id.slice(3)}/`} class="block px-5 py-5 hover:bg-muted/30 transition-colors">
+              <p class="font-medium text-[15px] mb-1">{g.data.title}</p>
+              <p class="text-sm text-muted-foreground">{g.data.description}</p>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+</Base>

@@ -1,0 +1,17 @@
+---
+export const prerender = true;
+
+import { getCollection } from 'astro:content';
+import GuideLayout from '../../layouts/GuideLayout.astro';
+
+export async function getStaticPaths() {
+  const guides = await getCollection('guides', ({ id }) => id.startsWith('en/'));
+  return guides.map((entry) => ({
+    params: { slug: entry.id.slice('en/'.length) },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+---
+<GuideLayout entry={entry} lang="en" />

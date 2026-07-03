@@ -1,0 +1,126 @@
+---
+/**
+ * Faq — homepage FAQ accordion + FAQPage JSON-LD.
+ *
+ * Questions mirror the highest-intent "what is / is it free / where's
+ * my data" queries from the SEO keyword research. Native
+ * <details>/<summary> (no JS) so the answers are in the initial HTML —
+ * crawlers and AI engines read them without interaction. The JSON-LD
+ * uses the same strings, plain-text only.
+ */
+const { lang } = Astro.props as { lang: 'zh-CN' | 'en' };
+const isZh = lang === 'zh-CN';
+const prefix = isZh ? '/zh' : '';
+
+const tx = isZh
+  ? {
+      label: '常见问题',
+      title: '关于碳墨',
+      items: [
+        {
+          q: '碳墨真的免费吗？',
+          a: '真的。碳墨以 MIT 协议开源，没有账号、激活码、订阅或任何付费墙。下载即用，源代码公开在 GitHub。',
+          more: { href: 'https://github.com/lxzxl/carbonink', label: '查看源码' },
+        },
+        {
+          q: '什么是碳核算（碳盘查）？',
+          a: '按 ISO 14064-1 或 GHG Protocol 等标准，把企业一年的温室气体排放量化成一份可追溯、可核查的清单 —— 从电费单、燃料发票等原始凭证，到活动数据、排放因子，再到分类别的 CO₂e 排放量。',
+          more: { href: `${prefix}/guides/ghg-inventory/`, label: '盘查七步指南' },
+        },
+        {
+          q: '我的数据存在哪里？',
+          a: '只存在你自己电脑上的 SQLite 数据库里。碳墨完全离线运行，没有云端同步、没有账号体系，活动数据、排放因子和报告内容永远不出你的内网。',
+          more: { href: `${prefix}/privacy/`, label: '隐私政策' },
+        },
+        {
+          q: '支持什么标准？',
+          a: '报告导出遵循 ISO 14064-1:2018（类别 1–6），同时提供范围一 / 二 / 三（GHG Protocol）映射 —— 一套数据，两种口径。',
+          more: { href: `${prefix}/guides/iso-14064-1-vs-ghg-protocol/`, label: '两个标准的区别' },
+        },
+        {
+          q: '支持哪些系统？',
+          a: 'macOS 和 Windows 桌面端，内置自动更新，中英双语界面。',
+          more: { href: `${prefix}/download/`, label: '前往下载' },
+        },
+      ],
+    }
+  : {
+      label: 'FAQ',
+      title: 'About CarbonInk',
+      items: [
+        {
+          q: 'Is CarbonInk really free?',
+          a: "Yes. CarbonInk is open-source under the MIT license — no account, no activation key, no subscription, no paywall. Download it and use it; the source code is public on GitHub.",
+          more: { href: 'https://github.com/lxzxl/carbonink', label: 'View source' },
+        },
+        {
+          q: 'What is carbon accounting?',
+          a: "Quantifying an organization's greenhouse-gas emissions for a year into a traceable, verifiable inventory under a standard like ISO 14064-1 or the GHG Protocol — from source documents (utility bills, fuel invoices) to activity data, emission factors, and CO₂e by category.",
+          more: { href: `${prefix}/guides/ghg-inventory/`, label: 'The seven-step guide' },
+        },
+        {
+          q: 'Where does my data live?',
+          a: 'In a SQLite database on your own machine, and nowhere else. CarbonInk runs fully offline — no cloud sync, no accounts. Activity data, emission factors, and report contents never leave your network.',
+          more: { href: `${prefix}/privacy/`, label: 'Privacy policy' },
+        },
+        {
+          q: 'Which standards does it follow?',
+          a: 'Report export follows ISO 14064-1:2018 (categories 1–6) with a Scope 1/2/3 (GHG Protocol) mapping — one dataset, both presentations.',
+          more: { href: `${prefix}/guides/iso-14064-1-vs-ghg-protocol/`, label: 'How the standards differ' },
+        },
+        {
+          q: 'Which platforms are supported?',
+          a: 'macOS and Windows desktop, with auto-update built in and a bilingual English / Chinese interface.',
+          more: { href: `${prefix}/download/`, label: 'Go to download' },
+        },
+      ],
+    };
+
+const faqLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: tx.items.map((i) => ({
+    '@type': 'Question',
+    name: i.q,
+    acceptedAnswer: { '@type': 'Answer', text: i.a },
+  })),
+};
+---
+<section class="py-20 px-5">
+  <div class="max-w-3xl mx-auto">
+    <p class="text-xs font-medium text-primary uppercase tracking-widest mb-3">{tx.label}</p>
+    <h2 class="text-2xl md:text-3xl font-semibold tracking-tight mb-10">{tx.title}</h2>
+    <div class="divide-y divide-border border border-border rounded-md">
+      {tx.items.map((item) => (
+        <details class="group">
+          <summary class="flex items-center justify-between gap-4 px-5 py-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden font-medium text-[15px]">
+            {item.q}
+            <svg
+              class="w-4 h-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </summary>
+          <div class="px-5 pb-5 text-sm text-muted-foreground leading-relaxed">
+            <p class="mb-2">{item.a}</p>
+            <a
+              href={item.more.href}
+              class="text-moss-600 hover:text-moss-700 font-medium transition-colors"
+              {...(item.more.href.startsWith('http') ? { target: '_blank', rel: 'noopener' } : {})}
+            >
+              {item.more.label} →
+            </a>
+          </div>
+        </details>
+      ))}
+    </div>
+  </div>
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(faqLd)} />
+</section>

@@ -3,17 +3,21 @@ export const prerender = true;
 
 import Base from '../layouts/Base.astro';
 import Differentiators from '../components/Differentiators.astro';
+import Faq from '../components/Faq.astro';
 import Hero from '../components/Hero.astro';
+import HomeGuides from '../components/HomeGuides.astro';
 import HowItWorks from '../components/HowItWorks.astro';
 import PrivacyCallout from '../components/PrivacyCallout.astro';
 import Problems from '../components/Problems.astro';
 import ScreenshotGallery from '../components/ScreenshotGallery.astro';
 ---
-<Base title="CarbonInk — Local GHG accounting for factories" lang="en">
+<Base title="CarbonInk — Free open-source carbon accounting software" lang="en">
   <Hero lang="en" />
   <Problems lang="en" />
   <HowItWorks lang="en" />
   <Differentiators lang="en" />
   <ScreenshotGallery lang="en" />
+  <HomeGuides lang="en" />
   <PrivacyCallout lang="en" />
+  <Faq lang="en" />
 </Base>

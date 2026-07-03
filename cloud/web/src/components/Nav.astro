@@ -26,7 +26,7 @@ const tx = isZh
       brand: '碳墨',
       source: '源码',
       download: '下载',
-      docs: '文档',
+      docs: '指南',
       trial: '免费下载',
       langLabel: 'EN',
     }
@@ -34,7 +34,7 @@ const tx = isZh
       brand: 'CarbonInk',
       source: 'Source',
       download: 'Download',
-      docs: 'Docs',
+      docs: 'Guides',
       trial: 'Download',
       langLabel: '中文',
     };
@@ -62,7 +62,7 @@ const prefix = isZh ? '/zh' : '';
 const links = [
   { href: 'https://github.com/lxzxl/carbonink', label: tx.source },
   { href: `${prefix}/download/`, label: tx.download },
-  { href: '#', label: tx.docs },
+  { href: `${prefix}/guides/`, label: tx.docs },
 ];
 ---
 <nav class="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">

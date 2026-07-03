@@ -37,10 +37,12 @@ export default defineConfig({
     // login) no longer exist; the `filter` below stays as a defensive
     // guard so they never leak into the sitemap if a stub ever returns.
     //
-    // `i18n` makes the sitemap emit hreflang relationships between the
-    // en (apex) and zh (`/zh/`) mirror pages so Google understands
-    // `/download` and `/zh/download` are the same content in two
-    // languages.
+    // hreflang: the integration's `i18n` option can't pair an
+    // UNPREFIXED default locale (en at the apex) with `/zh/*` — it
+    // matches locales by path prefix, so with `prefixDefaultLocale:
+    // false` it silently emitted no <xhtml:link> at all. We inject the
+    // alternates by hand in `serialize` below instead (same mechanical
+    // mirror-path derivation Base.astro uses for the in-page tags).
     sitemap({
       filter: (page) => {
         // Block portal / auth / admin surfaces from the sitemap —
@@ -54,13 +56,6 @@ export default defineConfig({
         if (path.startsWith('/zh/account')) return false;
         if (path.includes('/zh/login')) return false;
         return true;
-      },
-      i18n: {
-        defaultLocale: 'en',
-        locales: {
-          en: 'en',
-          'zh-CN': 'zh',
-        },
       },
       // `lastmod` (= build time) + `changefreq` tells Google how
       // often we ship updates and when this URL last changed. Both
@@ -78,6 +73,19 @@ export default defineConfig({
         item.changefreq = 'monthly';
         const path = new URL(item.url).pathname;
         item.priority = path === '/' || path === '/zh/' ? 1.0 : 0.7;
+
+        // Emit <xhtml:link rel="alternate" hreflang> pairs for the
+        // en (apex) ↔ zh (/zh/) mirrors. Every marketing/guide page
+        // ships in both locales (the content-layer contract), so the
+        // mirror URL always exists. x-default → en matches Base.astro.
+        const isZh = path === '/zh/' || path.startsWith('/zh/');
+        const enPath = isZh ? (path === '/zh/' ? '/' : path.slice(3)) : path;
+        const zhPath = isZh ? path : path === '/' ? '/zh/' : `/zh${path}`;
+        item.links = [
+          { url: `https://carbonink.xyz${enPath}`, lang: 'en' },
+          { url: `https://carbonink.xyz${zhPath}`, lang: 'zh-CN' },
+          { url: `https://carbonink.xyz${enPath}`, lang: 'x-default' },
+        ];
         return item;
       },
     }),

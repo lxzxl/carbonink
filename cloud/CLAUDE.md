@@ -36,10 +36,24 @@ Chinese lives under `/zh/` (flipped 2026-06; was zh-at-apex before). The
 marketing pages are the indexable surface.
 
 - **Sitemap** — `@astrojs/sitemap` emits `sitemap-index.xml` + `sitemap-0.xml`
-  (6 entries: `/`, `/download`, `/privacy` at the en apex + their `/zh/`
-  mirrors), each with `<xhtml:link rel="alternate" hreflang="…">` cross-refs.
-  Built from prerendered routes via the `filter` in `astro.config.mjs`; new
-  marketing pages get indexed automatically.
+  (all prerendered pages: `/`, `/download`, `/privacy`, `/guides/` + per-guide
+  pages at the en apex + their `/zh/` mirrors), each with
+  `<xhtml:link rel="alternate" hreflang="…">` cross-refs. Gotcha: the
+  integration's `i18n` option can't pair an unprefixed default locale with
+  `/zh/*`, so the alternates are injected by hand in `serialize`
+  (astro.config.mjs). New marketing pages get indexed automatically.
+- **Guides content layer** — `src/content/guides/{en,zh}/<slug>.mdx`
+  (content collection, `src/content.config.ts`), rendered by
+  `GuideLayout.astro` (TOC, breadcrumbs + BreadcrumbList/TechArticle JSON-LD,
+  related links, download CTA). **Guides must ship as en+zh pairs with the
+  same slug** — Base.astro derives hreflang mechanically, so a missing mirror
+  advertises a 404 to Google.
+- **robots.txt / llms.txt** — `public/robots.txt` references the sitemap and
+  explicitly allows AI crawlers (GPTBot/ClaudeBot/PerplexityBot);
+  `public/llms.txt` is the AI-engine product summary.
+- **Fonts are self-hosted** (`public/fonts/`, OFL) — do NOT reintroduce the
+  Google Fonts CDN; it's blocked in mainland China. CJK intentionally uses the
+  system stack (PingFang SC / Microsoft YaHei), no CJK webfont.
 - **Per page** (`cloud/web/src/layouts/Base.astro`): `<link rel="canonical">`,
   `hreflang` (zh-CN / en / x-default→en), full Open Graph + Twitter Card with a
   locale-aware OG screenshot, and three JSON-LD blocks (SoftwareApplication /

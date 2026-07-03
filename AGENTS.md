@@ -41,7 +41,7 @@ pnpm workspace; two apps share `docs/` + tooling:
 |---|---|
 | `desktop/` | Electron app (`carbonink`) — `src/{main,preload,renderer,shared}`, `tests/` (vitest) |
 | `cloud/worker/` | `@carbonink-cloud/worker` — old license/payments API. **Retired** (not deployed); code + tests kept for history |
-| `cloud/web/` | Astro **static marketing site** (`/`, `/download`, `/privacy` + `/zh/` mirrors), Workers + Static Assets |
+| `cloud/web/` | Astro **static marketing site** (`/`, `/download`, `/privacy`, `/guides/*` + `/zh/` mirrors; guides ship as en+zh pairs), Workers + Static Assets |
 | `cloud/packages/shared/` | `@carbonink-cloud/shared` — Zod + JWT-claim types (lockstep with desktop) |
 
 ```bash

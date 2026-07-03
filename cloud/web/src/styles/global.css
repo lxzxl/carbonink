@@ -1,6 +1,38 @@
 @import "tailwindcss";
 
 /* ─────────────────────────────────────────────────────────────────────────
+ * Self-hosted fonts — served from /fonts/ on our own zone instead of the
+ * Google Fonts CDN. fonts.googleapis.com is blocked in mainland China, so
+ * the CDN route left zh visitors staring at a stalled preconnect; same-
+ * origin files ride the existing Cloudflare edge everywhere. Latin text
+ * uses Inter (variable, one file covers 100–900); CJK intentionally has
+ * NO webfont — PingFang SC / Microsoft YaHei render via the system stack
+ * below, which is both the native-feel doctrine (DESIGN.md) and the only
+ * sane option (CJK webfonts are megabytes across dozens of slices).
+ * ──────────────────────────────────────────────────────────────────── */
+@font-face {
+  font-family: "Inter Variable";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/InterVariable.woff2") format("woff2");
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/JetBrainsMono-Regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/JetBrainsMono-Medium.woff2") format("woff2");
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
  * Theme tokens — aligned with the desktop app's X2 identity.
  *
  * Token names follow the shadcn convention (`bg-background`,
@@ -34,7 +66,7 @@
   --color-card-foreground: #0f172a;
   --color-muted: #f1f5f9;
   --color-muted-foreground: #64748b;
-  --color-primary: #6B8266;
+  --color-primary: #6b8266;
   --color-primary-foreground: #ffffff;
   --color-border: #e2e8f0;
   --color-input-background: #ffffff;
@@ -50,7 +82,7 @@
   --color-moss-100: #e3ebe1;
   --color-moss-200: #c8d5c4;
   --color-moss-300: #a3b8a0;
-  --color-moss-500: #6B8266;
+  --color-moss-500: #6b8266;
   --color-moss-600: #586c54;
   --color-moss-700: #475743;
   --color-moss-800: #364238;
@@ -60,16 +92,20 @@
    * Rebound to moss so a fading-out reference doesn't suddenly show the
    * old sky-blue on a partially-migrated page. */
   --color-brand-50: #f1f4f0;
-  --color-brand-500: #6B8266;
+  --color-brand-500: #6b8266;
   --color-brand-700: #475743;
   --color-ink-900: #0f172a;
   --color-ink-500: #64748b;
   --color-bg: #ffffff;
   --color-bg-muted: #f8fafc;
 
-  --font-body: "Inter Variable", "Noto Sans SC", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display: "Inter Variable", "Noto Sans SC", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --font-body:
+    "Inter Variable", -apple-system, "Segoe UI", "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei UI", "Microsoft YaHei", system-ui, sans-serif;
+  --font-display:
+    "Inter Variable", -apple-system, "Segoe UI", "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei UI", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 
 /* zh-CN line-height bump — Chinese needs more vertical breathing room
@@ -90,4 +126,104 @@ html[lang="en"] body {
 :focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * .guide-prose — article typography for the /guides/ content layer.
+ * Hand-rolled instead of @tailwindcss/typography to avoid a new dep;
+ * covers exactly what the MDX guides emit (h2/h3, p, lists, tables,
+ * code, blockquote, hr). Tailwind preflight strips list/table styling,
+ * so everything here is restoration + ledger-flavored restraint:
+ * neutral 1px rules, no color floods, moss only on links.
+ * ──────────────────────────────────────────────────────────────────── */
+.guide-prose {
+  font-size: 1rem;
+  line-height: 1.75;
+}
+.guide-prose h2 {
+  font-size: 1.375rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 2.5rem 0 0.875rem;
+  /* clear the fixed h-14 Nav when jumped to from the TOC */
+  scroll-margin-top: 5rem;
+}
+.guide-prose h3 {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  margin: 1.75rem 0 0.5rem;
+  scroll-margin-top: 5rem;
+}
+.guide-prose p {
+  margin: 0.875rem 0;
+}
+.guide-prose a {
+  color: var(--color-moss-600);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.guide-prose a:hover {
+  color: var(--color-moss-700);
+}
+.guide-prose ul,
+.guide-prose ol {
+  margin: 0.875rem 0;
+  padding-left: 1.5rem;
+}
+.guide-prose ul {
+  list-style: disc;
+}
+.guide-prose ol {
+  list-style: decimal;
+}
+.guide-prose li {
+  margin: 0.375rem 0;
+}
+.guide-prose li > ul,
+.guide-prose li > ol {
+  margin: 0.375rem 0;
+}
+/* display:block turns the table into its own horizontal scroller so a
+ * wide comparison table never forces the page to scroll sideways. */
+.guide-prose table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  margin: 1.25rem 0;
+}
+.guide-prose th,
+.guide-prose td {
+  border: 1px solid var(--color-border);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+.guide-prose th {
+  font-weight: 600;
+  background: var(--color-muted);
+  white-space: nowrap;
+}
+.guide-prose code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--color-muted);
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+}
+.guide-prose blockquote {
+  border-left: 2px solid var(--color-border);
+  padding-left: 1rem;
+  color: var(--color-muted-foreground);
+  margin: 1.25rem 0;
+}
+.guide-prose strong {
+  font-weight: 600;
+}
+.guide-prose hr {
+  border: 0;
+  border-top: 1px solid var(--color-border);
+  margin: 2.25rem 0;
 }

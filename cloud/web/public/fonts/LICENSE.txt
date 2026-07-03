@@ -1,0 +1,9 @@
+Self-hosted webfonts — both licensed under the SIL Open Font License 1.1
+(vendoring the compiled woff2 files is permitted; OFL full text at
+https://openfontlicense.org):
+
+- InterVariable.woff2 — Inter, © The Inter Project Authors
+  (https://github.com/rsms/inter)
+- JetBrainsMono-{Regular,Medium}.woff2 — JetBrains Mono,
+  © 2020 The JetBrains Mono Project Authors
+  (https://github.com/JetBrains/JetBrainsMono)
