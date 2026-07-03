@@ -10,8 +10,8 @@ const { title, lang = 'zh-CN', description } = Astro.props as {
 };
 
 const defaultDesc = lang === 'zh-CN'
-  ? '碳墨 — 完全离线运行的桌面端碳核算工具。AI 解析单据，一键导出 ISO 14064-1 报告。'
-  : 'CarbonInk — local-first GHG accounting for factories. AI extracts emission data from bills. One-click ISO 14064-1 report.';
+  ? '碳墨（CarbonInk）是免费开源的桌面碳核算 / 碳盘查软件，完全离线运行、数据不出内网。AI 解析票据单据，一键导出 ISO 14064-1 温室气体盘查报告。'
+  : 'Free, open-source carbon accounting software for macOS & Windows. Fully offline: AI extracts data from your bills, one click exports an ISO 14064-1 GHG report.';
 
 // Canonical URL + OG image URL — we use carbonink.xyz as the
 // public origin. The OG image reuses the hero's dashboard screenshot
@@ -123,8 +123,8 @@ const websiteData = {
 // stuff — these are the *actual* search queries we want to rank for.
 const keywords =
   lang === 'zh-CN'
-    ? '碳核算软件,碳盘查,ISO 14064-1,温室气体核算,GHG accounting,碳排放管理,产品碳足迹,Scope 1 2 3'
-    : 'GHG accounting software,ISO 14064-1,carbon accounting,emissions tracking,Scope 1 2 3,product carbon footprint,desktop carbon tool';
+    ? '碳核算软件,碳盘查软件,碳盘查,温室气体清单,ISO 14064-1,碳排放核算,排放因子,碳足迹,免费碳核算'
+    : 'carbon accounting software,free carbon accounting software,open source carbon accounting,GHG accounting,ISO 14064-1,ghg inventory,scope 1 2 3,carbon footprint software';
 ---
 <!doctype html>
 <html lang={lang}>
@@ -283,15 +283,20 @@ const keywords =
     <meta name="twitter:description" content={description ?? defaultDesc} />
     <meta name="twitter:image" content={ogImage} />
 
-    {/* Self-host Inter Variable + JetBrains Mono via Google Fonts CDN.
-        `display=swap` lets text render in the fallback while the
-        variable font streams in, avoiding the 1-2s FOIT users see on
-        slow connections. Pinned to weight 400/500/600 (we don't use
-        heavier weights anywhere in the design) to keep the request
-        small. */}
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600&display=swap" />
+    {/* Fonts are self-hosted from /fonts/ (see global.css @font-face).
+        The Google Fonts CDN is blocked in mainland China, which stalled
+        zh visitors on the preconnect; same-origin woff2 rides our own
+        Cloudflare edge everywhere. Preload the Latin variable font (the
+        only render-critical file — CJK uses the system stack, no
+        download). `crossorigin` is required even same-origin: font
+        fetches are CORS-mode, and a mismatch double-downloads. */}
+    <link
+      rel="preload"
+      href="/fonts/InterVariable.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
   </head>
   <body class="bg-background text-foreground font-[family-name:var(--font-body)] min-h-screen flex flex-col">
     <Nav lang={lang} />

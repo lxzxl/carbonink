@@ -33,7 +33,7 @@ const tx = isZh
     }
   : {
       badge: 'Local-first · Your data stays on device',
-      h1: 'Local GHG accounting. No spreadsheets. No cloud.',
+      h1: 'Carbon accounting on your desktop. No spreadsheets. No cloud.',
       sub: 'Runs entirely on your machine. AI extracts emission data from your bills. One-click ISO 14064-1 inventory report.',
       cta1: 'Download free',
       cta2: 'View source',
@@ -106,6 +106,7 @@ const shotDir = isZh ? '/screenshots' : '/screenshots/en';
         width="1400"
         height="900"
         loading="eager"
+        fetchpriority="high"
         decoding="async"
         class="block w-full h-auto aspect-[1400/900]"
       />

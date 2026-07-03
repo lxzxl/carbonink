@@ -1,0 +1,53 @@
+---
+import { getCollection } from 'astro:content';
+
+/**
+ * HomeGuides — three latest guides on the homepage.
+ *
+ * The homepage's job in the internal-link graph is to feed the content
+ * layer: without this section the guides are only reachable from the
+ * Nav, and visitors who finish the marketing scroll have no second
+ * click to make.
+ */
+const { lang } = Astro.props as { lang: 'zh-CN' | 'en' };
+const isZh = lang === 'zh-CN';
+const prefix = isZh ? '/zh' : '';
+const localePrefix = isZh ? 'zh/' : 'en/';
+
+const guides = (await getCollection('guides', ({ id }) => id.startsWith(localePrefix)))
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
+  .slice(0, 3);
+
+const tx = isZh
+  ? { label: '指南', title: '把碳核算讲清楚', all: '全部指南' }
+  : { label: 'Guides', title: 'Learn the craft', all: 'All guides' };
+---
+{guides.length > 0 && (
+  <section class="py-20 px-5">
+    <div class="max-w-6xl mx-auto">
+      <div class="flex items-end justify-between gap-4 mb-10">
+        <div>
+          <p class="text-xs font-medium text-primary uppercase tracking-widest mb-3">{tx.label}</p>
+          <h2 class="text-2xl md:text-3xl font-semibold tracking-tight">{tx.title}</h2>
+        </div>
+        <a
+          href={`${prefix}/guides/`}
+          class="text-sm text-moss-600 hover:text-moss-700 font-medium whitespace-nowrap transition-colors"
+        >
+          {tx.all} →
+        </a>
+      </div>
+      <div class="grid md:grid-cols-3 gap-4">
+        {guides.map((g) => (
+          <a
+            href={`${prefix}/guides/${g.id.slice(3)}/`}
+            class="block border border-border rounded-md p-5 hover:border-moss-300 transition-colors"
+          >
+            <p class="font-medium text-[15px] leading-snug mb-2">{g.data.title}</p>
+            <p class="text-sm text-muted-foreground leading-relaxed">{g.data.description}</p>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+)}

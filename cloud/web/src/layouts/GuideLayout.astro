@@ -1,0 +1,176 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { getCollection, render } from 'astro:content';
+import Base from './Base.astro';
+
+/**
+ * GuideLayout — the article template for /guides/ content.
+ *
+ * Fixed furniture on every guide (the dwell-time + internal-linking
+ * contract from the SEO plan): breadcrumb, TOC built from h2 headings,
+ * a "related guides" grid resolved from frontmatter slugs, and a
+ * download CTA. Emits TechArticle + BreadcrumbList JSON-LD on top of
+ * Base.astro's site-level schema.
+ */
+const { entry, lang } = Astro.props as {
+  entry: CollectionEntry<'guides'>;
+  lang: 'zh-CN' | 'en';
+};
+const isZh = lang === 'zh-CN';
+const prefix = isZh ? '/zh' : '';
+const localePrefix = isZh ? 'zh/' : 'en/';
+const slug = entry.id.replace(/^(en|zh)\//, '');
+
+const { Content, headings } = await render(entry);
+const toc = headings.filter((h) => h.depth === 2);
+
+const tx = isZh
+  ? {
+      home: '首页',
+      guides: '指南',
+      toc: '本文目录',
+      related: '相关指南',
+      published: '发布于',
+      updated: '更新于',
+      ctaTitle: '把这套流程交给碳墨',
+      ctaBody:
+        '免费开源的桌面碳核算软件：AI 解析票据单据、自动匹配排放因子、一键导出 ISO 14064-1 盘查报告。完全离线运行，数据不出内网。',
+      ctaDownload: '免费下载',
+      ctaSource: 'GitHub 源码',
+      siteTitle: '碳墨指南',
+    }
+  : {
+      home: 'Home',
+      guides: 'Guides',
+      toc: 'On this page',
+      related: 'Related guides',
+      published: 'Published',
+      updated: 'Updated',
+      ctaTitle: 'Put this workflow on rails',
+      ctaBody:
+        'CarbonInk is free, open-source carbon accounting for the desktop: AI extracts data from your bills, matches emission factors, and exports an ISO 14064-1 inventory report. Fully offline — your data never leaves your machine.',
+      ctaDownload: 'Download free',
+      ctaSource: 'View source',
+      siteTitle: 'CarbonInk Guides',
+    };
+
+// Resolve related slugs within the entry's own locale; silently drop
+// anything that doesn't resolve so a typo can't 500 the page.
+const siblings = await getCollection('guides', ({ id }) => id.startsWith(localePrefix));
+const related = entry.data.related
+  .map((s) => siblings.find((e) => e.id === localePrefix + s))
+  .filter((e): e is CollectionEntry<'guides'> => Boolean(e));
+
+const pageUrl = new URL(`${prefix}/guides/${slug}/`, 'https://carbonink.xyz').toString();
+const articleLd = {
+  '@context': 'https://schema.org',
+  '@type': 'TechArticle',
+  headline: entry.data.title,
+  description: entry.data.description,
+  inLanguage: lang,
+  datePublished: entry.data.pubDate.toISOString(),
+  dateModified: (entry.data.updatedDate ?? entry.data.pubDate).toISOString(),
+  mainEntityOfPage: pageUrl,
+  author: { '@type': 'Organization', name: 'CarbonInk', url: 'https://carbonink.xyz' },
+  publisher: { '@type': 'Organization', name: 'CarbonInk', url: 'https://carbonink.xyz' },
+};
+const breadcrumbLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: tx.home, item: `https://carbonink.xyz${prefix}/` },
+    { '@type': 'ListItem', position: 2, name: tx.guides, item: `https://carbonink.xyz${prefix}/guides/` },
+    { '@type': 'ListItem', position: 3, name: entry.data.title, item: pageUrl },
+  ],
+};
+
+const fmtDate = (d: Date) =>
+  isZh
+    ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    : d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+---
+<Base title={`${entry.data.title} — ${tx.siteTitle}`} description={entry.data.description} lang={lang}>
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(articleLd)} />
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(breadcrumbLd)} />
+
+  <article class="py-14 px-5">
+    <div class="max-w-3xl mx-auto">
+      <nav aria-label="Breadcrumb" class="text-xs text-muted-foreground mb-8">
+        <a href={`${prefix}/`} class="hover:text-foreground transition-colors">{tx.home}</a>
+        <span class="mx-1.5" aria-hidden="true">/</span>
+        <a href={`${prefix}/guides/`} class="hover:text-foreground transition-colors">{tx.guides}</a>
+        <span class="mx-1.5" aria-hidden="true">/</span>
+        <span class="text-foreground">{entry.data.title}</span>
+      </nav>
+
+      <h1 class="text-3xl md:text-[2.5rem] font-semibold tracking-tight leading-[1.15] mb-4">
+        {entry.data.title}
+      </h1>
+      <p class="text-lg text-muted-foreground leading-relaxed mb-4">{entry.data.description}</p>
+      <p class="text-xs text-muted-foreground mb-10" style="font-family: var(--font-mono);">
+        {tx.published} {fmtDate(entry.data.pubDate)}
+        {entry.data.updatedDate && ` · ${tx.updated} ${fmtDate(entry.data.updatedDate)}`}
+      </p>
+
+      {toc.length > 2 && (
+        <nav aria-label={tx.toc} class="border border-border rounded-md p-5 mb-10 bg-muted/30">
+          <p class="text-xs font-medium text-muted-foreground mb-3">{tx.toc}</p>
+          <ol class="space-y-1.5">
+            {toc.map((h, i) => (
+              <li class="text-sm">
+                <a href={`#${h.slug}`} class="text-foreground hover:text-moss-600 transition-colors">
+                  <span class="text-muted-foreground mr-2" style="font-family: var(--font-mono);">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  {h.text}
+                </a>
+              </li>
+            ))}
+          </ol>
+        </nav>
+      )}
+
+      <div class="guide-prose">
+        <Content />
+      </div>
+
+      {related.length > 0 && (
+        <section class="mt-14 pt-10 border-t border-border">
+          <h2 class="text-lg font-semibold mb-5">{tx.related}</h2>
+          <div class="grid sm:grid-cols-2 gap-4">
+            {related.map((r) => (
+              <a
+                href={`${prefix}/guides/${r.id.replace(/^(en|zh)\//, '')}/`}
+                class="block border border-border rounded-md p-4 hover:border-moss-300 transition-colors"
+              >
+                <p class="font-medium text-[15px] mb-1.5">{r.data.title}</p>
+                <p class="text-sm text-muted-foreground">{r.data.description}</p>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <aside class="mt-10 border border-moss-200 bg-moss-50 rounded-md p-6 md:p-8">
+        <h2 class="text-lg font-semibold mb-2">{tx.ctaTitle}</h2>
+        <p class="text-sm text-muted-foreground leading-relaxed mb-5 max-w-xl">{tx.ctaBody}</p>
+        <div class="flex flex-wrap gap-3">
+          <a
+            href={`${prefix}/download/`}
+            class="inline-flex items-center bg-primary text-primary-foreground px-4 py-2 rounded font-medium text-sm hover:bg-moss-600 transition-colors"
+          >
+            {tx.ctaDownload}
+          </a>
+          <a
+            href="https://github.com/lxzxl/carbonink"
+            target="_blank"
+            rel="noopener"
+            class="inline-flex items-center border border-border bg-background text-foreground px-4 py-2 rounded font-medium text-sm hover:bg-muted transition-colors"
+          >
+            {tx.ctaSource}
+          </a>
+        </div>
+      </aside>
+    </div>
+  </article>
+</Base>

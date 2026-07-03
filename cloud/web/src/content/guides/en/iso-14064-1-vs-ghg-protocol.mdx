@@ -1,0 +1,91 @@
+---
+title: 'ISO 14064-1 vs the GHG Protocol: which one do you need?'
+description: 'Both govern corporate GHG inventories — one is a certifiable ISO standard, the other a free methodology family. How they differ, how scopes map to categories, and when to use which.'
+pubDate: 2026-07-03
+related:
+  - ghg-inventory
+  - ghg-inventory-vs-verification
+---
+
+Ask three practitioners which standard a corporate carbon footprint should
+follow and you'll hear both names. The honest answer is that ISO 14064-1 and
+the GHG Protocol are not competitors so much as two documents doing different
+jobs — and most real inventories quietly use both. Here is the difference,
+without the vendor fog.
+
+## Two documents, two jobs
+
+The **GHG Protocol Corporate Accounting and Reporting Standard** (WRI/WBCSD,
+free to download) is a *methodology*: it teaches you how to think about
+boundaries, scopes 1–3, calculation approaches, and reporting principles. Most
+of the world's disclosure programs — CDP, SBTi, the ESRS under CSRD, the SEC
+and California climate rules — trace their accounting language back to it.
+
+**ISO 14064-1:2018** (paid ISO document) is a *requirements standard*: a list
+of auditable "shall" statements about what a conforming inventory and report
+must contain. Its value is the interface it creates with **ISO 14064-3**, the
+verification standard — when a tender, a regulator, or a customer asks for "an
+ISO 14064-1 inventory, third-party verified," that request is checkable in a
+way "we followed good practice" is not.
+
+## Side-by-side
+
+| | ISO 14064-1:2018 | GHG Protocol Corporate Standard |
+| --- | --- | --- |
+| Publisher | ISO | WRI + WBCSD |
+| Access | Paid standard | Free PDFs |
+| Nature | Certifiable requirements ("shall") | Methodology + guidance |
+| Emission structure | Direct (cat. 1) + five indirect categories (2–6) | Scope 1, 2, 3 (15 scope-3 categories) |
+| Verification interface | ISO 14064-3 designed to pair with it | No companion assurance standard |
+| Scope 2 treatment | Category 2; commonly reported dual per GHGP guidance | Explicit location-based + market-based dual reporting |
+| Typical pull | Tenders, certification schemes, regulators in Asia (e.g. Taiwan's listed-company inventory mandate), supply-chain asks for "verified per ISO" | CDP, SBTi, CSRD/ESRS, most voluntary disclosure |
+
+## How scopes map to categories
+
+The two structures reconcile cleanly — nothing is lost in either direction:
+
+| GHG Protocol | ISO 14064-1:2018 |
+| --- | --- |
+| Scope 1 | Category 1 (direct) |
+| Scope 2 | Category 2 (imported energy) |
+| Scope 3 — transport-related (cat. 4, 6, 7, 9 of the 15) | Category 3 (transportation) |
+| Scope 3 — purchased goods, capital goods, fuel- and energy-related, waste (cat. 1, 2, 3, 5) | Category 4 (products used) |
+| Scope 3 — downstream: use of sold products, end-of-life, leased assets, franchises, investments (cat. 10–15) | Categories 5–6 |
+
+A well-built data model records each source once and renders it either way —
+which is exactly how software should treat the two standards (CarbonInk's
+report export follows ISO 14064-1 with a scope mapping, for instance).
+
+## When ISO 14064-1 is the right frame
+
+- A customer, tender, or certification scheme **names ISO 14064-1** — common in
+  East Asian supply chains and public procurement.
+- You plan **third-party verification** and want the inventory built against
+  the same requirements the verifier will test (ISO 14064-3).
+- You operate where regulation references ISO — Taiwan's phased mandatory
+  inventories for listed companies are the loudest current example.
+
+## When the GHG Protocol is the right frame
+
+- Your disclosure target is **CDP, SBTi, or CSRD/ESRS**, whose questionnaires
+  and datapoints speak scope language natively.
+- You need the **free, detailed calculation guidance** — the Scope 2 guidance
+  and the 15-category Scope 3 standard have no ISO equivalent at that level of
+  cookbook detail.
+- You're starting out and want the most widely understood vocabulary for
+  benchmarking against peers.
+
+## In practice: use both
+
+The standard pattern for a serious inventory is:
+
+1. **Calculate with GHG Protocol methodology** — boundaries, scope 2 dual
+   reporting, scope 3 screening across the 15 categories.
+2. **Structure and state the report per ISO 14064-1** — categories 1–6,
+   significance criteria, uncertainty, the conformity statement.
+3. **Verify against ISO 14064-3** if anyone downstream needs assurance.
+
+Done this way there is no double work: one dataset, two presentations, and
+every stakeholder — CDP portal or ISO-quoting procurement officer — gets the
+shape they asked for. For the full build process, see the step-by-step
+[ISO 14064-1 inventory guide](/guides/ghg-inventory/).
