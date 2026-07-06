@@ -636,11 +636,14 @@
   "updater_status_idle": "No update check performed yet.",
   "updater_status_checking": "Checking for updates...",
   "updater_status_available": "Version {version} is available.",
+  "updater_status_available_manual": "Version {version} is available. Automatic install isn't supported on macOS yet — download it from the website to update.",
   "updater_status_not_available": "You are running the latest version.",
   "updater_status_downloading": "Downloading update... {percent}%",
   "updater_status_downloaded": "Version {version} is ready to install. It will be applied on next restart.",
   "updater_status_error": "Update check failed: {message}",
   "updater_check_button": "Check for Updates",
   "updater_install_button": "Restart & Update",
+  "updater_download_button": "Open Download Page",
+  "updater_download_url": "carbonink.xyz/download",
   "updater_current_version": "Current version: {version}"
 }

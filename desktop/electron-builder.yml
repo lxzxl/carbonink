@@ -33,6 +33,13 @@ extraResources:
 mac:
   category: public.app-category.business
   target:
+    # dmg only — deliberately NO `zip` target. The zip would exist solely to
+    # feed Squirrel.Mac auto-install, which validates the downloaded bundle
+    # against the running app's designated requirement — cdhash-pinned for
+    # ad-hoc signatures, so a different version can never pass. The in-app
+    # updater is therefore notify-only on macOS (src/main/updater/
+    # auto-updater.ts); if real Developer ID signing returns, add `zip` back
+    # and upload *.zip/*.zip.blockmap in release.yml.
     - target: dmg
       arch:
         - arm64

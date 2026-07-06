@@ -636,11 +636,14 @@
   "updater_status_idle": "尚未检查更新。",
   "updater_status_checking": "正在检查更新...",
   "updater_status_available": "版本 {version} 可用。",
+  "updater_status_available_manual": "版本 {version} 已发布。macOS 暂不支持自动安装——请前往官网下载更新。",
   "updater_status_not_available": "当前已是最新版本。",
   "updater_status_downloading": "正在下载更新... {percent}%",
   "updater_status_downloaded": "版本 {version} 已准备就绪，将在下次重启时安装。",
   "updater_status_error": "检查更新失败：{message}",
   "updater_check_button": "检查更新",
   "updater_install_button": "重启并更新",
+  "updater_download_button": "打开下载页",
+  "updater_download_url": "carbonink.xyz/zh/download",
   "updater_current_version": "当前版本：{version}"
 }

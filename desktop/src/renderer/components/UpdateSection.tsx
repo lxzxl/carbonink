@@ -74,6 +74,15 @@ export function UpdateSection() {
             {m.updater_install_button()}
           </Button>
         )}
+
+        {status.state === 'available-manual' && (
+          <Button
+            type="button"
+            onClick={() => window.open(`https://${m.updater_download_url()}`, '_blank')}
+          >
+            {m.updater_download_button()}
+          </Button>
+        )}
       </div>
     </div>
   );
@@ -87,6 +96,8 @@ function StatusMessage({ status }: { status: UpdateStatus }) {
       return <p className="text-muted-foreground">{m.updater_status_checking()}</p>;
     case 'available':
       return <p>{m.updater_status_available({ version: status.version })}</p>;
+    case 'available-manual':
+      return <p>{m.updater_status_available_manual({ version: status.version })}</p>;
     case 'not-available':
       return <p className="text-muted-foreground">{m.updater_status_not_available()}</p>;
     case 'downloading':
