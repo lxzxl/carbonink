@@ -8,6 +8,16 @@
   <true/>
   <key>com.apple.security.cs.allow-dyld-environment-variables</key>
   <true/>
+  <!-- Load-bearing for the unsigned (ad-hoc-signed) release: hardenedRuntime
+       enables library validation, which only admits libraries with the same
+       Team ID as the main executable — ad-hoc signatures have no Team ID, so
+       without this entitlement dyld refuses Electron Framework and the app
+       crashes at launch on every Mac ("different Team IDs"; killed the v1.0.0
+       dmg). Also required for the ad-hoc build's native modules
+       (better-sqlite3). Notarization accepts it, so keep it even if real
+       Developer ID signing ever returns. -->
+  <key>com.apple.security.cs.disable-library-validation</key>
+  <true/>
   <key>com.apple.security.network.client</key>
   <true/>
   <key>com.apple.security.files.user-selected.read-write</key>

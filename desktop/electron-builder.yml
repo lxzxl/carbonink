@@ -42,6 +42,9 @@ mac:
   # the key, electron-builder auto-detects the "Developer ID Application"
   # identity from the keychain populated by CSC_LINK / CSC_KEY_PASSWORD
   # in CI (and falls back to ad-hoc / unsigned for local dev builds).
+  # hardenedRuntime with an ad-hoc signature only launches because
+  # entitlements.mac.plist carries cs.disable-library-validation — see the
+  # comment there before touching either side of that pair.
   hardenedRuntime: true
   gatekeeperAssess: false
   entitlements: build/entitlements.mac.plist

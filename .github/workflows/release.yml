@@ -68,6 +68,19 @@ jobs:
         working-directory: desktop
         run: pnpm build && pnpm exec electron-builder --mac --publish never
 
+      # Launch-smoke the packaged .app before uploading. ELECTRON_RUN_AS_NODE
+      # exercises the same dyld load of Electron Framework as a real launch,
+      # headless — it catches signature/entitlement regressions like v1.0.0's
+      # "different Team IDs" crash (ad-hoc + hardened runtime without the
+      # disable-library-validation entitlement), which no vitest seam can
+      # reach. arm64 only: the runner is arm64 and the signing config is
+      # arch-independent, so one arch covers config-level regressions.
+      - name: Smoke-test packaged app launches
+        working-directory: desktop
+        run: |
+          ELECTRON_RUN_AS_NODE=1 "release/mac-arm64/CarbonInk.app/Contents/MacOS/CarbonInk" \
+            -e "console.log('smoke: Electron Framework loaded')"
+
       - name: Upload installers + update manifest to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
