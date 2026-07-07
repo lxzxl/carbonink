@@ -1,0 +1,200 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-31T00:00:00Z",
+  "title": "Design System: CarbonInk",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Carbonink Green",
+        "canonical": "oklch(0.55 0.16 160)",
+        "tonalRamp": [
+          "oklch(0.20 0.07 160)",
+          "oklch(0.30 0.10 160)",
+          "oklch(0.40 0.13 160)",
+          "oklch(0.48 0.15 160)",
+          "oklch(0.55 0.16 160)",
+          "oklch(0.68 0.15 160)",
+          "oklch(0.82 0.10 160)",
+          "oklch(0.93 0.04 160)"
+        ]
+      },
+      "foreground": {
+        "role": "neutral",
+        "displayName": "Ledger Ink",
+        "canonical": "oklch(0.18 0.012 95)",
+        "tonalRamp": [
+          "oklch(0.18 0.012 95)",
+          "oklch(0.30 0.012 95)",
+          "oklch(0.42 0.012 95)",
+          "oklch(0.50 0.012 95)",
+          "oklch(0.65 0.010 95)",
+          "oklch(0.80 0.008 95)",
+          "oklch(0.92 0.008 95)",
+          "oklch(0.985 0.004 95)"
+        ]
+      },
+      "background": {
+        "role": "neutral",
+        "displayName": "Page White",
+        "canonical": "oklch(1 0 0)",
+        "tonalRamp": [
+          "oklch(0.929 0 0)",
+          "oklch(0.95 0.008 95)",
+          "oklch(0.96 0.008 95)",
+          "oklch(0.97 0.006 95)",
+          "oklch(0.985 0 0)",
+          "oklch(0.99 0 0)",
+          "oklch(0.995 0 0)",
+          "oklch(1 0 0)"
+        ]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Rule Line",
+        "canonical": "oklch(0.929 0 0)",
+        "tonalRamp": [
+          "oklch(0.40 0 0)",
+          "oklch(0.55 0 0)",
+          "oklch(0.70 0 0)",
+          "oklch(0.82 0 0)",
+          "oklch(0.90 0 0)",
+          "oklch(0.929 0 0)",
+          "oklch(0.96 0 0)",
+          "oklch(0.99 0 0)"
+        ]
+      },
+      "destructive": {
+        "role": "tertiary",
+        "displayName": "Alarm Red",
+        "canonical": "oklch(0.55 0.2 25)",
+        "tonalRamp": [
+          "oklch(0.25 0.10 25)",
+          "oklch(0.35 0.14 25)",
+          "oklch(0.45 0.18 25)",
+          "oklch(0.55 0.20 25)",
+          "oklch(0.65 0.18 25)",
+          "oklch(0.78 0.12 25)",
+          "oklch(0.90 0.06 25)",
+          "oklch(0.96 0.02 25)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": { "displayName": "Headline", "purpose": "Page and route titles — the largest text in the app; there are no heroes." },
+      "title": { "displayName": "Title", "purpose": "Section headers, card titles, drawer headings, the primary identifier in a list row." },
+      "body": { "displayName": "Body", "purpose": "Workhorse size: form fields, descriptions, table cells, prose (cap measure at 65–75ch)." },
+      "label": { "displayName": "Label", "purpose": "Field labels, chip text, secondary metadata, status text — sentence case." },
+      "mono": { "displayName": "Mono", "purpose": "Emission-factor codes, IDs, scope tags, any fixed-width identifier." }
+    },
+    "shadows": [
+      { "name": "float", "value": "0 8px 24px -6px rgba(0,0,0,0.12), 0 2px 6px -2px rgba(0,0,0,0.08)", "purpose": "Genuinely floating layers only — popovers, dropdowns, dialogs, sheets, command palette. Resting cards/rows never get this." },
+      { "name": "sticky-bar", "value": "none", "purpose": "Pinned bottom action bars separate via border-top + bg-background/95 + backdrop-blur, not shadow." }
+    ],
+    "motion": [
+      { "name": "transition-colors", "value": "150ms cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Default for hover/active color shifts on buttons, rows, chips." },
+      { "name": "press", "value": "transform scale(0.98) on :active", "purpose": "Real pressed state on buttons — distinct from hover, mimics NSButton." },
+      { "name": "reduced-motion", "value": "all durations pinned to 0.01ms under prefers-reduced-motion", "purpose": "Honors the OS reduce-motion preference while keeping transitionEnd handlers firing." }
+    ],
+    "breakpoints": [
+      { "name": "container-content", "value": "@container/content (renderer scroll root drives layout, not viewport media queries)" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single most important action on a page — filled carbonink green. One per page.",
+      "html": "<button class=\"ds-btn-primary\">定稿盘查 · Finalize</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; height: 2.5rem; padding: 0 1rem; border: none; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 500; color: oklch(0.99 0.005 95); background: oklch(0.55 0.16 160); transition: background 150ms cubic-bezier(0.4,0,0.2,1), transform 150ms cubic-bezier(0.4,0,0.2,1); } .ds-btn-primary:hover { background: oklch(0.55 0.16 160 / 0.9); } .ds-btn-primary:active { background: oklch(0.55 0.16 160 / 0.95); transform: scale(0.98); } .ds-btn-primary:focus-visible { outline: none; }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "The default for every secondary action — 1px border, near-white fill, ring-less focus.",
+      "html": "<button class=\"ds-btn-outline\">导出 Excel</button>",
+      "css": ".ds-btn-outline { display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; height: 2.5rem; padding: 0 1rem; border: 1px solid oklch(0.929 0 0); border-radius: 0.5rem; font-size: 0.875rem; font-weight: 500; color: oklch(0.18 0.012 95); background: oklch(1 0 0 / 0.4); transition: background 150ms cubic-bezier(0.4,0,0.2,1), border-color 150ms; } .ds-btn-outline:hover { background: oklch(1 0 0 / 0.8); } .ds-btn-outline:active { background: oklch(1 0 0); transform: scale(0.98); } .ds-btn-outline:focus-visible { outline: none; border-color: oklch(0.55 0.16 160); }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Tertiary and in-row actions — no border; focus paints a faint ink wash.",
+      "html": "<button class=\"ds-btn-ghost\">取消</button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; height: 2.5rem; padding: 0 1rem; border: none; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 500; color: oklch(0.18 0.012 95); background: transparent; transition: background 150ms cubic-bezier(0.4,0,0.2,1); } .ds-btn-ghost:hover { background: oklch(0.18 0.012 95 / 0.05); } .ds-btn-ghost:active { background: oklch(0.18 0.012 95 / 0.08); transform: scale(0.98); } .ds-btn-ghost:focus-visible { outline: none; background: oklch(0.18 0.012 95 / 0.08); }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "White field, 1px Rule Line border, border-color focus shift with no outer halo so it never clips inside overflow:auto panes.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"排放源名称 / Source name\" />",
+      "css": ".ds-input { display: flex; width: 100%; height: 2.5rem; padding: 0.5rem 0.75rem; border: 1px solid oklch(0.9 0.008 95); border-radius: 0.5rem; font-size: 0.875rem; color: oklch(0.18 0.012 95); background: oklch(1 0 0); cursor: text; transition: border-color 150ms; } .ds-input::placeholder { color: oklch(0.5 0.012 95); } .ds-input:focus-visible { outline: none; border-color: oklch(0.55 0.16 160); } .ds-input:disabled { opacity: 0.5; cursor: not-allowed; }"
+    },
+    {
+      "name": "Scope Badge",
+      "kind": "chip",
+      "refersTo": "badge-default",
+      "description": "The most common chip — a scope tag. Uppercase label pairs with color so meaning never rides on color alone.",
+      "html": "<span class=\"ds-badge-scope\"><svg viewBox=\"0 0 24 24\" width=\"12\" height=\"12\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/></svg>SCOPE 1</span>",
+      "css": ".ds-badge-scope { display: inline-flex; align-items: center; justify-content: center; gap: 0.25rem; width: fit-content; white-space: nowrap; padding: 0.125rem 0.5rem; border-radius: 0.5rem; border: 1px solid transparent; font-size: 0.75rem; font-weight: 500; letter-spacing: 0.02em; color: oklch(0.99 0.005 95); background: oklch(0.55 0.16 160); } .ds-badge-scope svg { width: 12px; height: 12px; pointer-events: none; }"
+    },
+    {
+      "name": "List Row",
+      "kind": "card",
+      "refersTo": "list-row",
+      "description": "The signature data primitive — preferred over tables. Title row (truncating identifier + status) over a meta row of chips and dot-separated metadata, ruled by dividers.",
+      "html": "<ul class=\"ds-list\"><li class=\"ds-list-row\"><div class=\"ds-list-main\"><div class=\"ds-list-titlerow\"><span class=\"ds-list-title\">柴油发电机 · Diesel generator</span><span class=\"ds-list-status\"><svg viewBox=\"0 0 24 24\" width=\"14\" height=\"14\" fill=\"none\" stroke=\"oklch(0.55 0.16 160)\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20 6 9 17l-5-5\"/></svg>已定稿</span></div><div class=\"ds-list-meta\"><span class=\"ds-list-scope\">SCOPE 1</span><span>固定燃烧</span><span class=\"ds-list-num\">1,284.50 tCO₂e</span></div></div></li></ul>",
+      "css": ".ds-list { list-style: none; margin: 0; padding: 0; border: 1px solid oklch(0.929 0 0); border-radius: 0.5rem; background: oklch(1 0 0); overflow: hidden; } .ds-list-row { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.75rem 1rem; border-top: 1px solid oklch(0.929 0 0); transition: background 150ms; } .ds-list-row:first-child { border-top: none; } .ds-list-row:hover { background: oklch(0.95 0.008 95 / 0.3); } .ds-list-main { flex: 1; min-width: 0; } .ds-list-titlerow { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; } .ds-list-title { font-size: 0.9375rem; font-weight: 600; color: oklch(0.18 0.012 95); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-list-status { display: inline-flex; align-items: center; gap: 0.25rem; flex-shrink: 0; font-size: 0.75rem; font-weight: 500; color: oklch(0.5 0.012 95); } .ds-list-meta { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem; font-size: 0.75rem; color: oklch(0.5 0.012 95); } .ds-list-meta > span + span::before { content: '·'; margin-right: 0.5rem; color: oklch(0.5 0.012 95); } .ds-list-scope { padding: 0.0625rem 0.375rem; border-radius: 0.25rem; background: oklch(0.95 0.008 95); font-weight: 500; letter-spacing: 0.02em; color: oklch(0.3 0.012 95); } .ds-list-scope::before { content: none !important; } .ds-list-num { font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Sidebar Nav Row",
+      "kind": "nav",
+      "refersTo": "list-row",
+      "description": "App-shell navigation row — cursor:default (chrome, not a web link), active state on the green-tinted accent.",
+      "html": "<nav class=\"ds-sidebar\"><a class=\"ds-nav-row ds-nav-active\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 3v18h18\"/><path d=\"m19 9-5 5-4-4-3 3\"/></svg>排放清单</a><a class=\"ds-nav-row\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z\"/><path d=\"M14 2v6h6\"/></svg>问卷披露</a></nav>",
+      "css": ".ds-sidebar { display: flex; flex-direction: column; gap: 0.125rem; width: 13rem; padding: 0.5rem; background: oklch(0.985 0 0); border-right: 1px solid oklch(0.929 0 0); } .ds-nav-row { display: flex; align-items: center; gap: 0.625rem; padding: 0.5rem 0.625rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 500; color: oklch(0.18 0.012 95); cursor: default; user-select: none; transition: background 150ms; } .ds-nav-row:hover { background: oklch(0.18 0.012 95 / 0.06); } .ds-nav-active { background: oklch(0.94 0.012 160); color: oklch(0.30 0.13 160); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Ledger",
+    "overview": "CarbonInk is an accountant's ledger made digital. Pure-white pages, ink-dark figures, and a single green mark of verification. The interface never competes with the data on it; it is the calm, ruled surface the numbers sit on. Density is a feature, earned by being relentlessly quiet — hierarchy comes from type scale, weight, and whitespace, never from color floods or chrome. Borders and near-imperceptible tonal steps separate surfaces; the forest-green brand is the one accent, spent sparingly so its appearance always means something. The craft bar is a first-class native macOS/Windows app, measured against the calm, legible data display of the Stripe Dashboard. It rejects the flashy SaaS marketing-dashboard, consumer-app cuteness, web-app tells, and the undifferentiated enterprise spreadsheet.",
+    "keyCharacteristics": [
+      "Pure-white surfaces, separated by 1px borders and ≤2% tonal steps, not shadow.",
+      "One brand color (carbonink green), spent on ≤10% of any screen.",
+      "Type-and-space hierarchy; the screen is calm even when it is full.",
+      "Native chrome down to cursors, font stacks, and window-drag regions.",
+      "Bilingual zh-CN / en parity is structural — layouts hold in both, always.",
+      "Numbers are tabular-nums; codes and identifiers are monospace."
+    ],
+    "rules": [
+      { "name": "The One Mark Rule", "body": "Carbonink green covers ≤10% of any screen and never two co-equal greens at once. Reserve the filled-green button for the single most important action per page; everything else is outline or ghost. When green appears, it means verified, primary, or active — never decoration.", "section": "colors" },
+      { "name": "The No-Fill-For-Cards Rule", "body": "Cards and the page share one white. Separation is a 1px Rule Line plus, at most, a ≤2% tonal step. If you reach for a gray card fill to create depth, you have broken the ledger.", "section": "colors" },
+      { "name": "The Sentence-Case Rule", "body": "Labels and section eyebrows are sentence case. No all-caps tracked eyebrows above sections — uppercase is reserved for short scope tags (SCOPE 1) and nowhere else. whitespace-nowrap on every button label so 2-character CJK labels never wrap to a vertical stack.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "If it is not actually floating above the page, it has no shadow. Depth at rest is border + tone. If you find yourself adding a box-shadow to a card to make it pop, you have left the system — pull it back to a Rule Line.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do reserve the filled green button for the single most important action on a page; everything else is outline or ghost (the One Mark Rule, ≤10% green).",
+      "Do convey depth with a 1px border (oklch(0.929 0 0)) and ≤2% tonal steps; give shadow only to genuinely floating layers (popovers, dialogs, command palette).",
+      "Do keep cards and the page on the same pure white (oklch(1 0 0)).",
+      "Do use cursor: default on all chrome; restore the I-beam only on inputs and the pointer only on inline content links.",
+      "Do test every layout in both zh-CN and en; add whitespace-nowrap to button labels so CJK never stacks vertically. Keys land in both messages/*.json.",
+      "Do use tabular-nums for figures and font-mono for codes/IDs.",
+      "Do pair status/scope color with an icon or label so meaning never rides on color alone; honor prefers-reduced-motion.",
+      "Do hold muted body text at oklch(0.5 0.012 95) or darker on white — verify ≥4.5:1 (≥3:1 for large text), placeholders included."
+    ],
+    "donts": [
+      "Don't build the flashy SaaS marketing-dashboard: no hero-metric template, no decorative gradients, no glassmorphism. That energy lives in cloud/web, never in the app shell.",
+      "Don't introduce consumer-app cuteness — no mascots, bouncy/elastic motion, or emoji-as-UI.",
+      "Don't ship web-app tells: cursor: pointer on chrome, painted CSS window corners, or fonts that fight the OS stack.",
+      "Don't add a box-shadow to a resting card to make it pop — use a Rule Line.",
+      "Don't give a card a gray fill to fake elevation (the No-Fill-For-Cards Rule).",
+      "Don't add a 2–3px focus ring/halo — shift the border to ring instead.",
+      "Don't use all-caps tracked eyebrows above sections; uppercase is for short scope tags only.",
+      "Don't reach for a table on an interactive data page — use the list-row; tables truncate the moment one descriptor grows.",
+      "Don't use border-left/border-right > 1px as a colored accent stripe on cards, rows, or callouts."
+    ]
+  }
+}
