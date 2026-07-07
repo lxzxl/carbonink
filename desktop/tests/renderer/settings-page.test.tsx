@@ -124,46 +124,54 @@ describe('SettingsPage', () => {
     render(harness(<SettingsPage />));
     gotoAiSection();
 
-    // Wait for the catalog query to resolve AND the options to appear in
-    // the DOM — `waitFor` re-evaluates the dropdown contents each tick so
-    // we don't race the React reconciler.
-    await waitFor(() => {
-      const providerSelect = screen.getByLabelText(/Provider/i) as HTMLSelectElement;
-      const optionValues = Array.from(providerSelect.options).map((o) => o.value);
-      // The catalog options are rendered as <option> children. We assert
-      // representative providers — sorting is exercised by a dedicated case.
-      expect(optionValues).toContain('openai');
-      expect(optionValues).toContain('anthropic');
-      expect(optionValues).toContain('azure-openai-responses');
-    });
+    // The provider picker is a searchable combobox (pi-ai's catalog is too
+    // long for a native <select>). Its trigger mounts disabled until the
+    // `settings:list-providers` query resolves, so wait for that first.
+    const trigger = (await screen.findByRole('combobox', {
+      name: /Provider/i,
+    })) as HTMLButtonElement;
+    await waitFor(() => expect(trigger.disabled).toBe(false));
 
-    const providerSelect = screen.getByLabelText(/Provider/i) as HTMLSelectElement;
-    expect(providerSelect.value).toBe('');
+    // Nothing selected yet — the trigger shows the placeholder.
+    expect(trigger.textContent).toContain('Select a provider');
+
+    // Open the popover; the catalog options render (in a portal) as
+    // role=option rows. We assert representative providers — grouping is
+    // recommended-first, rest alphabetical.
+    fireEvent.click(trigger);
+    await waitFor(() => {
+      const optionNames = screen.getAllByRole('option').map((o) => o.textContent ?? '');
+      expect(optionNames).toContain('openai');
+      expect(optionNames).toContain('anthropic');
+      expect(optionNames).toContain('azure-openai-responses');
+    });
 
     const apiKey = screen.getByLabelText(/API key/i) as HTMLInputElement;
     expect(apiKey.value).toBe('');
     expect(apiKey.type).toBe('password');
   });
 
-  it('selecting a provider populates the Model dropdown from pi-ai and defaults to the first model', async () => {
+  it('selecting a provider populates the Model picker from pi-ai and defaults to the first model', async () => {
     render(harness(<SettingsPage />));
     gotoAiSection();
 
-    // Wait for the catalog to land in the DOM before driving the change.
-    await waitFor(() => {
-      const providerSelect = screen.getByLabelText(/Provider/i) as HTMLSelectElement;
-      expect(Array.from(providerSelect.options).map((o) => o.value)).toContain('openai');
-    });
+    // Wait for the catalog to enable the combobox before driving it.
+    const trigger = (await screen.findByRole('combobox', {
+      name: /Provider/i,
+    })) as HTMLButtonElement;
+    await waitFor(() => expect(trigger.disabled).toBe(false));
 
-    fireEvent.change(screen.getByLabelText(/Provider/i), { target: { value: 'openai' } });
+    // Open the picker and choose openai. cmdk items select on click.
+    fireEvent.click(trigger);
+    fireEvent.click(await screen.findByRole('option', { name: 'openai' }));
 
     // The renderer fetches the model list for the selected provider and
     // defaults to the first id; `gpt-4o-mini` leads our stand-in catalog
-    // for openai so it should land selected.
+    // for openai so it should land in the Model combobox trigger.
     await waitFor(() => {
       expect(settingsApi.listModels).toHaveBeenCalledWith('openai');
-      const modelSelect = screen.getByLabelText(/^Model$/i) as HTMLSelectElement;
-      expect(modelSelect.value).toBe('gpt-4o-mini');
+      const modelTrigger = screen.getByRole('combobox', { name: /^Model$/i });
+      expect(modelTrigger.textContent).toContain('gpt-4o-mini');
     });
   });
 
@@ -215,23 +223,21 @@ describe('SettingsPage', () => {
     render(harness(<SettingsPage />));
     gotoAiSection();
 
-    // Wait for the provider catalog to populate the dropdown before driving
-    // the change events. Without this, the next fireEvent races the query
-    // resolution and selects on a yet-empty <select>.
-    await waitFor(() => {
-      const providerSelect = screen.getByLabelText(/Provider/i) as HTMLSelectElement;
-      expect(Array.from(providerSelect.options).map((o) => o.value)).toContain('openai');
-    });
+    // Drive the pickers the way the user would: open the provider
+    // combobox, pick openai, confirm the model default lands, then enter
+    // an API key. Without hardcoded defaults, the form requires both
+    // selections before Save is enabled — Task 10c moved provider/model
+    // defaults out of this component and onto pi-ai's runtime catalog.
+    const trigger = (await screen.findByRole('combobox', {
+      name: /Provider/i,
+    })) as HTMLButtonElement;
+    await waitFor(() => expect(trigger.disabled).toBe(false));
+    fireEvent.click(trigger);
+    fireEvent.click(await screen.findByRole('option', { name: 'openai' }));
 
-    // Drive the dropdowns the way the user would: pick provider, then
-    // confirm the model default lands, then enter an API key. Without
-    // hardcoded defaults, the form requires both selections before Save
-    // is enabled — Task 10c moved provider/model defaults out of this
-    // component and onto pi-ai's runtime catalog.
-    fireEvent.change(screen.getByLabelText(/Provider/i), { target: { value: 'openai' } });
     await waitFor(() => {
-      const modelSelect = screen.getByLabelText(/^Model$/i) as HTMLSelectElement;
-      expect(modelSelect.value).toBe('gpt-4o-mini');
+      const modelTrigger = screen.getByRole('combobox', { name: /^Model$/i });
+      expect(modelTrigger.textContent).toContain('gpt-4o-mini');
     });
 
     fireEvent.change(screen.getByLabelText(/API key/i), {

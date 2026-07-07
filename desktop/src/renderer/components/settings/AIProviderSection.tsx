@@ -1,9 +1,15 @@
 import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
+import {
+  Combobox,
+  type ComboboxGroup,
+  type ComboboxOption,
+} from '@renderer/components/ui/combobox';
 import { Input } from '@renderer/components/ui/input';
 import { Label } from '@renderer/components/ui/label';
 import { settingsApi } from '@renderer/lib/api/settings';
 import { friendlyErrorDescription } from '@renderer/lib/error-message';
+import { cn } from '@renderer/lib/utils';
 import * as m from '@renderer/paraglide/messages';
 import type { ProviderCatalogModel, ProviderConfigV2 } from '@shared/types';
 import { useForm, useStore } from '@tanstack/react-form';
@@ -37,6 +43,11 @@ import { useEffect, useMemo, useState } from 'react';
  *   `azure-openai-responses`); pulling the lists at runtime closes that
  *   drift class entirely.
  *
+ *   Both pickers render as searchable comboboxes (Popover + cmdk), not
+ *   native <select>s: the runtime catalog is 32 providers, and model
+ *   lists run past 250 entries for the gateway providers (openrouter,
+ *   vercel-ai-gateway) — beyond what an unfiltered dropdown can navigate.
+ *
  *   The Azure-specific `resourceName` input + the openai-compat-specific
  *   `baseUrl` input have collapsed into one universally-visible
  *   "Override base URL (advanced)" field. Empty by default; users only
@@ -66,12 +77,12 @@ import { useEffect, useMemo, useState } from 'react';
  */
 
 /**
- * Providers surfaced at the top of the Provider dropdown. Everything else
- * sorts alphabetically below. We curate this list (rather than letting
- * popularity bubble up automatically) so the picker has a predictable
- * default ordering — newer users without a strong preference get
- * recommended options first; advanced users still see every pi-ai
- * provider further down.
+ * Providers surfaced in the "Recommended" group at the top of the provider
+ * picker. Everything else sorts alphabetically in an "All providers" group
+ * below. We curate this list (rather than letting popularity bubble up
+ * automatically) so the picker has a predictable default ordering — newer
+ * users without a strong preference get recommended options first; advanced
+ * users still see every pi-ai provider further down.
  */
 const RECOMMENDED_PROVIDERS: ReadonlySet<string> = new Set([
   'deepseek',
@@ -81,17 +92,17 @@ const RECOMMENDED_PROVIDERS: ReadonlySet<string> = new Set([
   'moonshotai-cn',
 ]);
 
-function sortProviders(ids: ReadonlyArray<string>): string[] {
-  // Stable two-bucket sort: recommended (in RECOMMENDED_PROVIDERS-declaration
-  // order — we walk that set instead of relying on insertion order through
-  // sort comparators, which would otherwise scramble the recommended order
-  // alphabetically when more than one recommended id is present).
+function splitProviders(ids: ReadonlyArray<string>): { recommended: string[]; rest: string[] } {
+  // Recommended keeps RECOMMENDED_PROVIDERS-declaration order — we walk that
+  // set instead of relying on insertion order through sort comparators, which
+  // would otherwise scramble the curated order alphabetically when more than
+  // one recommended id is present. Everything else sorts alphabetically.
   const recommended: string[] = [];
   for (const id of RECOMMENDED_PROVIDERS) {
     if (ids.includes(id)) recommended.push(id);
   }
   const rest = ids.filter((id) => !RECOMMENDED_PROVIDERS.has(id)).sort();
-  return [...recommended, ...rest];
+  return { recommended, rest };
 }
 
 type SettingsFormValues = {
@@ -128,17 +139,33 @@ function buildProviderConfigV2(v: SettingsFormValues): ProviderConfigV2 | null {
 }
 
 /**
- * Render a one-line label for a model option: prefers the human `name`
- * (e.g. "DeepSeek V4 Pro"), falls back to the raw id when the catalog
- * doesn't carry one. Capability badges (image, reasoning) trail the
- * label so they're discoverable at a glance without a tooltip.
+ * Build the structured combobox row for a model: mono id, then the human
+ * `name` (e.g. "DeepSeek V4 Pro") in muted text when the catalog carries
+ * one, with capability text (image, reasoning) trailing so it's
+ * discoverable at a glance without a tooltip. The name and capability
+ * strings also feed cmdk's filter via `keywords`, so searching either
+ * still finds the row.
  */
-function renderModelLabel(model: ProviderCatalogModel): string {
-  const base = model.name && model.name !== model.id ? `${model.id} · ${model.name}` : model.id;
-  const badges: string[] = [];
-  if (model.input.includes('image')) badges.push('image');
-  if (model.reasoning) badges.push('reasoning');
-  return badges.length > 0 ? `${base} (${badges.join(', ')})` : base;
+function buildModelOption(model: ProviderCatalogModel): ComboboxOption {
+  const showName = model.name !== '' && model.name !== model.id;
+  const capabilities: string[] = [];
+  if (model.input.includes('image')) capabilities.push(m.settings_model_capability_image());
+  if (model.reasoning) capabilities.push(m.settings_model_capability_reasoning());
+  return {
+    value: model.id,
+    keywords: [...(showName ? [model.name] : []), ...capabilities],
+    label: (
+      <span className="flex min-w-0 flex-1 items-baseline gap-2">
+        <span className="truncate font-mono text-[0.8125rem]">{model.id}</span>
+        {showName && <span className="truncate text-xs text-muted-foreground">{model.name}</span>}
+        {capabilities.length > 0 && (
+          <span className="ms-auto shrink-0 text-xs text-muted-foreground">
+            {capabilities.join(' · ')}
+          </span>
+        )}
+      </span>
+    ),
+  };
 }
 
 export function AIProviderSection() {
@@ -194,10 +221,23 @@ export function AIProviderSection() {
   const apiKeyValue = useStore(form.store, (s) => s.values.apiKey);
   const modelValue = useStore(form.store, (s) => s.values.model);
 
-  const sortedProviders = useMemo(
-    () => (providersQuery.data ? sortProviders(providersQuery.data) : []),
-    [providersQuery.data],
-  );
+  const providerGroups = useMemo<ComboboxGroup[]>(() => {
+    const { recommended, rest } = splitProviders(providersQuery.data ?? []);
+    const groups: ComboboxGroup[] = [];
+    if (recommended.length > 0) {
+      groups.push({
+        heading: m.settings_provider_group_recommended(),
+        options: recommended.map((p) => ({ value: p })),
+      });
+    }
+    if (rest.length > 0) {
+      groups.push({
+        heading: m.settings_provider_group_all(),
+        options: rest.map((p) => ({ value: p })),
+      });
+    }
+    return groups;
+  }, [providersQuery.data]);
 
   const knownProviders = providersQuery.data ?? [];
   const hasUnknownProvider = provider !== '' && !knownProviders.includes(provider);
@@ -300,12 +340,15 @@ export function AIProviderSection() {
     return true;
   })();
 
-  // The model catalog drives the dropdown vs. text-input choice: pi-ai
-  // returned models → render a <select>; empty → fall back to a free-form
-  // <Input> so the user can type an id we don't yet know about (or escape
-  // a transient catalog read failure).
-  const modelsCatalog = modelsQuery.data ?? [];
-  const useModelDropdown = !hasUnknownProvider && modelsCatalog.length > 0;
+  // The model catalog drives the picker vs. text-input choice: pi-ai
+  // returned models → render a searchable combobox; empty → fall back to a
+  // free-form <Input> so the user can type an id we don't yet know about
+  // (or escape a transient catalog read failure).
+  const modelOptions = useMemo<ComboboxOption[]>(
+    () => (modelsQuery.data ?? []).map(buildModelOption),
+    [modelsQuery.data],
+  );
+  const useModelDropdown = !hasUnknownProvider && modelOptions.length > 0;
 
   return (
     <form
@@ -320,35 +363,30 @@ export function AIProviderSection() {
         children={(field) => (
           <div className="space-y-1">
             <Label htmlFor="settings-provider">{m.settings_provider_picker_label()}</Label>
-            <select
+            <Combobox
               id="settings-provider"
               value={field.state.value}
-              onChange={(e) => handleProviderChange(e.target.value)}
-              className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:border-ring"
-            >
-              {/* Placeholder option only renders before a provider is chosen,
-                  so the dropdown isn't pre-filled with the alphabetically
-                  first id (which would mislead users into thinking they had
-                  configured something they hadn't). */}
-              {field.state.value === '' && (
-                <option value="" disabled>
-                  {m.settings_provider_picker_placeholder()}
-                </option>
+              onValueChange={handleProviderChange}
+              groups={providerGroups}
+              placeholder={m.settings_provider_picker_placeholder()}
+              searchPlaceholder={m.settings_provider_search_placeholder()}
+              emptyText={m.settings_picker_no_match()}
+              disabled={providersQuery.isPending}
+              renderValue={(v) => (
+                // A saved id that left pi-ai's catalog stays visible in the
+                // trigger (the combobox renders the value even when it maps
+                // to no option), tinted destructive to match the warning
+                // below, so the user sees exactly what needs replacing.
+                <span
+                  className={cn(
+                    'font-mono text-[0.8125rem]',
+                    hasUnknownProvider && 'text-destructive',
+                  )}
+                >
+                  {v}
+                </span>
               )}
-              {sortedProviders.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-              {/* If the saved provider id isn't in pi-ai's list, render it
-                  as a visible disabled option so the user sees what's there
-                  and can pick a replacement. */}
-              {hasUnknownProvider && (
-                <option key={provider} value={provider} disabled>
-                  {provider} (unknown)
-                </option>
-              )}
-            </select>
+            />
             {hasUnknownProvider && (
               <p className="text-xs text-destructive">
                 {m.settings_provider_unknown_warning({ provider })}
@@ -377,25 +415,16 @@ export function AIProviderSection() {
           <div className="space-y-1">
             <Label htmlFor="settings-model">{m.settings_provider_model_label()}</Label>
             {useModelDropdown ? (
-              <select
+              <Combobox
                 id="settings-model"
                 value={field.state.value}
-                onChange={(e) => field.handleChange(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:border-ring"
-              >
-                {/* Render a placeholder when the form hasn't picked a model
-                    yet (initial render before the catalog effect runs). */}
-                {field.state.value === '' && (
-                  <option value="" disabled>
-                    {m.settings_provider_picker_placeholder()}
-                  </option>
-                )}
-                {modelsCatalog.map((model) => (
-                  <option key={model.id} value={model.id}>
-                    {renderModelLabel(model)}
-                  </option>
-                ))}
-              </select>
+                onValueChange={field.handleChange}
+                groups={[{ options: modelOptions }]}
+                placeholder={m.settings_model_picker_placeholder()}
+                searchPlaceholder={m.settings_model_search_placeholder()}
+                emptyText={m.settings_picker_no_match()}
+                renderValue={(v) => <span className="font-mono text-[0.8125rem]">{v}</span>}
+              />
             ) : (
               <Input
                 id="settings-model"

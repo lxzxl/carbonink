@@ -187,6 +187,37 @@ test('settings page renders + screenshots each tab', async () => {
       path: join(SCREENSHOT_DIR, 'settings-about.png'),
       fullPage: false,
     });
+
+    // -----------------------------------------------------------------------
+    // Interaction: provider combobox type-to-search. The picker is a
+    // Popover + cmdk combobox over pi-ai's real bundled catalog (the
+    // list-providers/list-models IPC is NOT mocked by launchApp), so this
+    // exercises the actual 32-provider list. Runs last so the form-state
+    // change doesn't bleed into the canonical screenshots above.
+    // -----------------------------------------------------------------------
+    const aiBtnAgain = railButtons.filter({ hasText: /ai|llm/i }).first();
+    await aiBtnAgain.click();
+    const providerTrigger = window.locator('#settings-provider');
+    await providerTrigger.waitFor({ state: 'visible', timeout: 5_000 });
+    await expect(providerTrigger).toContainText('openai');
+    await providerTrigger.click();
+
+    const searchInput = window.getByPlaceholder(/search providers|搜索服务商/i);
+    await searchInput.waitFor({ state: 'visible', timeout: 5_000 });
+    await searchInput.fill('kimi');
+
+    // Filtering narrows the 32-provider list to the single fuzzy match.
+    const kimiOption = window.getByRole('option', { name: /kimi-coding/ });
+    await kimiOption.waitFor({ state: 'visible', timeout: 5_000 });
+    await expect(window.getByRole('option')).toHaveCount(1);
+    await window.screenshot({
+      path: join(SCREENSHOT_DIR, 'settings-ai-provider-search.png'),
+      fullPage: false,
+    });
+
+    // Selecting closes the popover and lands the id in the trigger.
+    await kimiOption.click();
+    await expect(providerTrigger).toContainText('kimi-coding');
   } finally {
     await teardown(setup);
   }
