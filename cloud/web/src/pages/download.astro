@@ -4,12 +4,20 @@ export const prerender = true;
 import Base from '../layouts/Base.astro';
 import DownloadButtons from '../components/DownloadButtons.astro';
 import LogoMark from '../components/LogoMark.astro';
+// Read the version from the desktop app's own manifest at build time —
+// never hardcode it here (this line said "v0.4.1" through three releases).
+// The release flow bumps desktop/package.json on main before tagging, and
+// the site redeploys on every main push, so the built page tracks
+// releases with no manual edit. The download buttons are independent of
+// this label: they resolve the latest GitHub release asset at request
+// time (lib/latest-download.ts).
+import desktopPkg from '../../../../desktop/package.json';
 
-const version = 'v0.4.1';
+const version = `v${desktopPkg.version}`;
 ---
 <Base
   title="Download CarbonInk — free carbon accounting for macOS & Windows"
-  description="Download CarbonInk free for macOS and Windows. Open-source carbon accounting that runs fully offline — no account, no license key, auto-update included."
+  description="Download CarbonInk free for macOS and Windows. Open-source carbon accounting that runs fully offline — no account, no license key."
   lang="en"
 >
   <section class="py-28 px-5">
@@ -19,7 +27,7 @@ const version = 'v0.4.1';
       </div>
       <h1 class="text-3xl font-semibold tracking-tight mt-6 mb-2">Download CarbonInk</h1>
       <p class="text-muted-foreground text-sm mb-10" style="font-family: var(--font-mono);">
-        Version {version} — auto-update included
+        Version {version} · auto-updates on Windows, update notices on macOS
       </p>
 
       <DownloadButtons lang="en" />
