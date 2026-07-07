@@ -218,6 +218,37 @@ test('settings page renders + screenshots each tab', async () => {
     // Selecting closes the popover and lands the id in the trigger.
     await kimiOption.click();
     await expect(providerTrigger).toContainText('kimi-coding');
+
+    // -----------------------------------------------------------------------
+    // Interaction: model combobox custom-id escape hatch. The bundled
+    // catalog lags live provider lists, so typing an id it doesn't know
+    // must offer a "use verbatim" row instead of a dead end.
+    // -----------------------------------------------------------------------
+    const modelTrigger = window.locator('#settings-model');
+    await modelTrigger.waitFor({ state: 'visible', timeout: 5_000 });
+    // The provider switch auto-defaults the model from kimi-coding's real
+    // catalog; wait for that to land so the picker is in a settled state.
+    await expect(modelTrigger).not.toContainText(/select a model|请选择模型/i);
+    await modelTrigger.click();
+
+    const modelSearch = window.getByPlaceholder(/search models|搜索模型/i);
+    await modelSearch.waitFor({ state: 'visible', timeout: 5_000 });
+    await modelSearch.fill('tencent/hy3:free');
+
+    const customRow = window.getByRole('option', { name: /tencent\/hy3:free/ });
+    await customRow.waitFor({ state: 'visible', timeout: 5_000 });
+    await window.screenshot({
+      path: join(SCREENSHOT_DIR, 'settings-ai-model-custom.png'),
+      fullPage: false,
+    });
+
+    await customRow.click();
+    await expect(modelTrigger).toContainText('tencent/hy3:free');
+    // The catalog-miss hint points at Test connection as the validation.
+    await window
+      .getByText(/custom id|自定义 id/i)
+      .first()
+      .waitFor({ state: 'visible', timeout: 5_000 });
   } finally {
     await teardown(setup);
   }

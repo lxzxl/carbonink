@@ -257,4 +257,53 @@ describe('SettingsPage', () => {
       apiKey: 'sk-test-key',
     });
   });
+
+  it('typing an uncatalogued model id offers the custom-id escape hatch', async () => {
+    render(harness(<SettingsPage />));
+    gotoAiSection();
+
+    const trigger = (await screen.findByRole('combobox', {
+      name: /Provider/i,
+    })) as HTMLButtonElement;
+    await waitFor(() => expect(trigger.disabled).toBe(false));
+    fireEvent.click(trigger);
+    fireEvent.click(await screen.findByRole('option', { name: 'openai' }));
+
+    const modelTrigger = await screen.findByRole('combobox', { name: /^Model$/i });
+    await waitFor(() => expect(modelTrigger.textContent).toContain('gpt-4o-mini'));
+
+    // Type an id the stand-in catalog doesn't know. The filter matches
+    // nothing, so the trailing custom-value row is the only option left.
+    fireEvent.click(modelTrigger);
+    fireEvent.change(screen.getByPlaceholderText(/Search models/i), {
+      target: { value: 'my-custom-model' },
+    });
+    fireEvent.click(await screen.findByRole('option', { name: /use "my-custom-model"/i }));
+
+    // The verbatim id lands in the trigger, with the catalog-miss hint below.
+    expect(modelTrigger.textContent).toContain('my-custom-model');
+    expect(screen.getByText(/Custom id: not in the bundled catalog/i)).toBeTruthy();
+  });
+
+  it('a saved custom model id survives catalog hydration (not clobbered to the first model)', async () => {
+    vi.mocked(settingsApi.getProvider).mockResolvedValue({
+      provider: 'openai',
+      model: 'brand-new-model:free',
+      apiKeyMasked: 'sk-...abcd',
+    });
+
+    render(harness(<SettingsPage />));
+    gotoAiSection();
+
+    // Wait until the openai model catalog has loaded — the moment the old
+    // effect would have overwritten an uncatalogued id with gpt-4o-mini.
+    await waitFor(() => {
+      expect(settingsApi.listModels).toHaveBeenCalledWith('openai');
+    });
+    const modelTrigger = await screen.findByRole('combobox', { name: /^Model$/i });
+    await waitFor(() => {
+      expect(modelTrigger.textContent).toContain('brand-new-model:free');
+      expect(screen.getByText(/Custom id: not in the bundled catalog/i)).toBeTruthy();
+    });
+  });
 });

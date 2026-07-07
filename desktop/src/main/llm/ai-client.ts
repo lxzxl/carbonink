@@ -2,7 +2,6 @@ import {
   type Api,
   type AssistantMessage,
   complete,
-  getModel,
   type Model,
   type Tool,
 } from '@earendil-works/pi-ai';
@@ -19,6 +18,7 @@ import {
   AiSchemaMismatch,
   AiTimeout,
 } from './errors.js';
+import { resolveModel } from './pi-catalog.js';
 
 /**
  * Effect-wrapped wrapper around `@earendil-works/pi-ai`.
@@ -134,9 +134,11 @@ function looksLikeAuthError(message: string | undefined): boolean {
  * - Reads the API key up front (overrideKey ?? credentials.get(keyref)).
  *   This is cheap enough to do at layer build time, and lets methods short-
  *   circuit synchronously with `AiAuthError` when the key is missing.
- * - Resolves the pi-ai `Model` via `getModel(provider, modelId)` unless the
- *   caller provides one (tests). pi-ai's `getModel` returns `undefined` for
- *   unknown provider/model strings; we fail loudly with `AiProviderError`.
+ * - Resolves the pi-ai `Model` via `resolveModel(provider, modelId)` unless
+ *   the caller provides one (tests). That helper falls back to a synthetic
+ *   same-provider model for ids the bundled catalog doesn't know (the
+ *   Settings custom-model escape hatch) and returns `undefined` only for
+ *   unknown providers; we fail loudly with `AiProviderError` then.
  */
 export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClientTag> {
   return Layer.effect(
@@ -145,19 +147,15 @@ export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClien
       const { config, credentials, overrideKey } = deps;
       const apiKey = overrideKey ?? credentials.get(apiKeyKeyrefForProvider(config.provider));
 
-      // The pi-ai model object: either supplied by tests, or looked up from
-      // pi-ai's generated MODELS registry. The cast is unavoidable —
-      // `ProviderConfigV2.provider` is a free-form string (pi-ai's `getModel`
-      // is keyed off `KnownProvider`). If the lookup misses, every method
-      // fails with `AiProviderError`; we don't pre-validate at Layer
-      // construction so a build with a stale config still loads and surfaces
-      // a recognizable error at call time.
+      // The pi-ai model object: either supplied by tests, or resolved from
+      // pi-ai's generated MODELS registry — with a synthetic fallback for
+      // custom ids newer than the bundled catalog (see resolveModel). Only
+      // an unknown provider leaves this undefined; every method then fails
+      // with `AiProviderError`. We don't pre-validate at Layer construction
+      // so a build with a stale config still loads and surfaces a
+      // recognizable error at call time.
       const resolvedModel: Model<Api> | undefined =
-        deps.model ??
-        (getModel as unknown as (p: string, m: string) => Model<Api> | undefined)(
-          config.provider,
-          config.model,
-        );
+        deps.model ?? resolveModel(config.provider, config.model);
 
       /**
        * Validate auth + model availability up front. Returns the same narrow

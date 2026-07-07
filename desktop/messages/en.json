@@ -404,6 +404,8 @@
   "settings_org_profile_subheading": "Used by the inventory report.",
   "settings_model_capability_image": "Image",
   "settings_model_capability_reasoning": "Reasoning",
+  "settings_model_custom_hint": "Custom id: not in the bundled catalog. Test the connection before saving.",
+  "settings_model_custom_option": "Use \"{id}\" as a custom model id",
   "settings_model_picker_placeholder": "Select a model…",
   "settings_model_search_placeholder": "Search models…",
   "settings_picker_no_match": "No matches",

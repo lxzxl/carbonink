@@ -61,6 +61,14 @@ type ComboboxProps = {
    * left the catalog) so the user can see what needs replacing.
    */
   renderValue?: (value: string) => React.ReactNode;
+  /**
+   * Escape hatch for values outside the option list. When set and the
+   * search text isn't exactly an existing option value, a trailing row
+   * offers to use the typed text verbatim (e.g. a model id newer than
+   * the bundled catalog). The callback builds the localized row label
+   * from the current query.
+   */
+  customValueLabel?: (query: string) => string;
   disabled?: boolean;
 };
 
@@ -73,17 +81,33 @@ export function Combobox({
   searchPlaceholder,
   emptyText,
   renderValue,
+  customValueLabel,
   disabled,
 }: ComboboxProps) {
   const [open, setOpen] = useState(false);
+  // Controlled so the custom-value row can mirror the query; reset on
+  // every open so each visit starts unfiltered.
+  const [search, setSearch] = useState('');
 
   const handleSelect = (next: string) => {
     onValueChange(next);
     setOpen(false);
   };
 
+  const customQuery = search.trim();
+  const showCustomRow =
+    customValueLabel !== undefined &&
+    customQuery !== '' &&
+    !groups.some((group) => group.options.some((option) => option.value === customQuery));
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (next) setSearch('');
+      }}
+    >
       <PopoverTrigger asChild>
         <button
           type="button"
@@ -108,9 +132,16 @@ export function Combobox({
         {/* defaultValue pre-highlights the current selection so cmdk
             scrolls it into view on open — native-select behavior. */}
         <Command {...(value !== '' ? { defaultValue: value } : {})}>
-          <CommandInput autoFocus placeholder={searchPlaceholder} />
+          <CommandInput
+            autoFocus
+            placeholder={searchPlaceholder}
+            value={search}
+            onValueChange={setSearch}
+          />
           <CommandList>
-            <CommandEmpty>{emptyText}</CommandEmpty>
+            {/* When the custom-value row is up it IS the empty-state
+                action, so the plain "no matches" line yields to it. */}
+            {!showCustomRow && <CommandEmpty>{emptyText}</CommandEmpty>}
             {groups.map((group) => (
               <CommandGroup
                 key={group.heading ?? group.options[0]?.value ?? 'empty'}
@@ -137,6 +168,22 @@ export function Combobox({
                 ))}
               </CommandGroup>
             ))}
+            {showCustomRow && (
+              // forceMount opts this row out of cmdk's filtering: its label
+              // is *about* the query, not matched by it. cmdk's keyboard
+              // auto-highlight walks rendered items, so when the filter
+              // matches nothing this row is the Enter target.
+              <CommandGroup forceMount>
+                <CommandItem
+                  forceMount
+                  value="__carbonink-custom-value__"
+                  onSelect={() => handleSelect(customQuery)}
+                  className="pr-2 pl-8"
+                >
+                  <span className="truncate">{customValueLabel(customQuery)}</span>
+                </CommandItem>
+              </CommandGroup>
+            )}
           </CommandList>
         </Command>
       </PopoverContent>

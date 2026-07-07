@@ -48,6 +48,14 @@ import { useEffect, useMemo, useState } from 'react';
  *   lists run past 250 entries for the gateway providers (openrouter,
  *   vercel-ai-gateway) — beyond what an unfiltered dropdown can navigate.
  *
+ *   The bundled catalog is a snapshot and lags live provider lists
+ *   (models launch on openrouter daily), so the model picker carries a
+ *   custom-id escape hatch: when the search matches no catalog id
+ *   exactly, a trailing row offers the typed text verbatim. The main
+ *   side mirrors this — `resolveModel` in pi-catalog.ts synthesizes a
+ *   runnable model for uncatalogued ids, and "Test connection" is the
+ *   real validation.
+ *
  *   The Azure-specific `resourceName` input + the openai-compat-specific
  *   `baseUrl` input have collapsed into one universally-visible
  *   "Override base URL (advanced)" field. Empty by default; users only
@@ -297,15 +305,16 @@ export function AIProviderSection() {
   };
 
   // When the model catalog for the selected provider arrives, default to
-  // the first model unless the form already has a value (preserves the
-  // user's choice when they switch providers and come back).
+  // the first model — but only if the field is empty (a fresh provider
+  // pick; handleProviderChange resets it to ''). A non-empty value is
+  // either a catalog id or a custom id the user typed for a model newer
+  // than the bundled catalog; clobbering the latter on hydration would
+  // undo the escape hatch.
   // biome-ignore lint/correctness/useExhaustiveDependencies: form is stable; we explicitly only run when models data flips.
   useEffect(() => {
     const models = modelsQuery.data;
     if (!models || models.length === 0) return;
-    const current = form.state.values.model;
-    const stillValid = models.some((m) => m.id === current);
-    if (stillValid) return;
+    if (form.state.values.model !== '') return;
     form.setFieldValue('model', models[0]?.id ?? '');
   }, [modelsQuery.data]);
 
@@ -349,6 +358,13 @@ export function AIProviderSection() {
     [modelsQuery.data],
   );
   const useModelDropdown = !hasUnknownProvider && modelOptions.length > 0;
+  // A selected id outside the catalog = the custom-id escape hatch in use
+  // (typed via the picker's trailing row, or hydrated from a saved config).
+  // Surfaces a hint pointing at "Test connection" as the real validation.
+  const modelIsCustom =
+    useModelDropdown &&
+    modelValue.trim() !== '' &&
+    !modelOptions.some((o) => o.value === modelValue);
 
   return (
     <form
@@ -424,6 +440,7 @@ export function AIProviderSection() {
                 searchPlaceholder={m.settings_model_search_placeholder()}
                 emptyText={m.settings_picker_no_match()}
                 renderValue={(v) => <span className="font-mono text-[0.8125rem]">{v}</span>}
+                customValueLabel={(q) => m.settings_model_custom_option({ id: q })}
               />
             ) : (
               <Input
@@ -434,6 +451,9 @@ export function AIProviderSection() {
                   hasUnknownProvider ? 'pick a known provider above first' : 'gpt-4o-mini'
                 }
               />
+            )}
+            {modelIsCustom && (
+              <p className="text-xs text-muted-foreground">{m.settings_model_custom_hint()}</p>
             )}
             {field.state.meta.errors[0] && (
               <p className="text-xs text-destructive">{String(field.state.meta.errors[0])}</p>

@@ -1,4 +1,4 @@
-import { getModels, getProviders } from '@earendil-works/pi-ai';
+import { type Api, getModel, getModels, getProviders, type Model } from '@earendil-works/pi-ai';
 import type { ProviderCatalogModel } from '@shared/types.js';
 
 /**
@@ -11,6 +11,12 @@ import type { ProviderCatalogModel } from '@shared/types.js';
  * id, post-migration legacy strings) and returns `[]` rather than throwing —
  * the renderer falls back to a free-form text input when the catalog comes
  * back empty, so the user is never stuck.
+ *
+ * `resolveModel` is the runtime lookup used by AiClient. It adds the
+ * custom-model escape hatch on top of pi-ai's `getModel`: the bundled
+ * catalog is a snapshot and structurally lags live provider lists (models
+ * launch on openrouter daily), so an id the catalog doesn't know is
+ * synthesized from a same-provider template instead of failing.
  */
 
 /** All pi-ai provider ids, in declaration order from `getProviders()`. */
@@ -24,6 +30,45 @@ export function listProviderIds(): string[] {
  * providers (pi-ai's typed `getModels` throws on a bad id; we coerce that
  * into an empty list).
  */
+/**
+ * Resolve `modelId` for `provider` into a runnable pi-ai `Model`.
+ *
+ * - Catalog hit → pi-ai's own entry, verbatim.
+ * - Catalog miss on a known provider → a **synthetic** model cloned from
+ *   the provider's first catalog entry with `id`/`name` swapped for the
+ *   custom id. Within one pi-ai provider every model shares the transport
+ *   fields that make requests work (`api`, `baseUrl`, `provider`,
+ *   `headers`, `compat`), so the clone is wire-correct; the metadata
+ *   fields (`cost`, `contextWindow`, `maxTokens`, `input`) are the
+ *   template's and therefore approximations. `reasoning` is forced off
+ *   and `thinkingLevelMap` dropped so the request shape stays the
+ *   conservative one every model accepts.
+ * - Unknown provider (nothing to clone) → `undefined`; the caller keeps
+ *   its existing loud `AiProviderError` path.
+ *
+ * This is the main-side half of the Settings UI's custom-model escape
+ * hatch: the id is user-typed, and "Test connection" performs the real
+ * validation against the provider.
+ */
+export function resolveModel(provider: string, modelId: string): Model<Api> | undefined {
+  // pi-ai types both lookups over literal unions of known ids; we accept
+  // free-form strings from config, so the casts mirror listModelsForProvider.
+  const exact = (getModel as unknown as (p: string, m: string) => Model<Api> | undefined)(
+    provider,
+    modelId,
+  );
+  if (exact) return exact;
+  try {
+    const models = getModels(provider as never) as Array<Model<Api>>;
+    const template = models[0];
+    if (!template) return undefined;
+    const { thinkingLevelMap: _dropped, ...rest } = template;
+    return { ...rest, id: modelId, name: modelId, reasoning: false };
+  } catch {
+    return undefined;
+  }
+}
+
 export function listModelsForProvider(provider: string): ProviderCatalogModel[] {
   try {
     // pi-ai's `getModels` is generic over a literal-union of known providers;

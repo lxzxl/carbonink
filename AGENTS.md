@@ -11,10 +11,9 @@ read on demand.
 - **Git: commit freely without asking; push only when explicitly allowed.**
   Never force-push, never run destructive git. If on the default branch, branch
   first.
-- **Tests must not regress.** `pnpm desktop:test` is at **893/893** (2026-07-07,
-  verified green after the AI-provider comboboxes landed; the suite had grown
-  past the previously recorded 889 before that). Don't land a commit that drops
-  the count.
+- **Tests must not regress.** `pnpm desktop:test` is at **900/900** (2026-07-07,
+  after the AI-provider comboboxes + custom-model escape hatch landed). Don't
+  land a commit that drops the count.
 - **No licensing.** CarbonInk is free & open-source (MIT) — there is no license
   gate, activation, account, or payment. Don't reintroduce one.
 - **Don't touch the biome debt incidentally.** ~940 pre-existing errors are
