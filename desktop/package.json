@@ -15,7 +15,7 @@
   "packageManager": "pnpm@10.0.0",
   "scripts": {
     "predev": "electron-rebuild -f -w better-sqlite3 && pnpm run build:mcp",
-    "dev": "electron-vite dev",
+    "dev": "electron-vite dev --watch",
     "prebuild": "electron-rebuild -f -w better-sqlite3",
     "build": "electron-vite build && pnpm run build:mcp",
     "build:mcp": "vite build -c vite.mcp.config.ts",

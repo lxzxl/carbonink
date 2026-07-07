@@ -37,7 +37,7 @@ pnpm test                 # all packages (workspace-concurrency=1)
 **Per-package scripts** still work via filter:
 
 ```bash
-pnpm --filter carbonink dev          # electron-vite dev (desktop)
+pnpm --filter carbonink dev          # electron-vite dev --watch (renderer HMR + main/preload hot-restart)
 pnpm --filter @carbonink-cloud/worker test
 pnpm --filter @carbonink-cloud/web build
 ```

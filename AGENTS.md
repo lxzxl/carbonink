@@ -45,7 +45,7 @@ pnpm workspace; two apps share `docs/` + tooling:
 
 ```bash
 pnpm test                 # all packages          pnpm desktop:test / desktop:typecheck
-pnpm --filter carbonink dev                       # electron-vite dev (desktop)
+pnpm --filter carbonink dev                       # electron-vite dev --watch (renderer HMR + main/preload hot-restart)
 pnpm --filter @carbonink-cloud/web build
 ```
 
