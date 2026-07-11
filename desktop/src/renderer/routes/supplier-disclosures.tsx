@@ -9,6 +9,7 @@ import {
 } from '@renderer/components/ui/resizable';
 import { questionnaireApi } from '@renderer/lib/api/questionnaire';
 import { cn } from '@renderer/lib/utils';
+import * as m from '@renderer/paraglide/messages';
 import type { Questionnaire } from '@shared/types';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, Outlet, useParams } from '@tanstack/react-router';
@@ -67,10 +68,35 @@ function statusLabel(status: string): string {
 }
 
 type IStatus = 'draft' | 'sent' | 'received' | 'ingested';
-type IStatusFilter = 'all' | IStatus;
+type IStatusFilter = 'all' | IStatus | 'overdue';
 type ISort = 'recent' | 'oldest' | 'supplier' | 'due' | 'questions';
 
 const I_STATUSES: IStatus[] = ['draft', 'sent', 'received', 'ingested'];
+
+/**
+ * Local-timezone YYYY-MM-DD. `due_date` is a bare date, so comparing
+ * against a UTC-derived "today" would flag rows as overdue a few hours
+ * early (or late) for anyone east of Greenwich — sv-SE locale happens to
+ * format exactly as ISO date.
+ */
+function localToday(): string {
+  return new Date().toLocaleDateString('sv-SE');
+}
+
+/**
+ * Overdue = the ball is in the supplier's court past the deadline:
+ * sent, has a due date, and that date is behind us. `received` past due
+ * is NOT overdue — the pending work (ingest) is ours, and the existing
+ * status chip already surfaces it.
+ */
+function isOverdue(row: { status: string; due_date: string | null }, today: string): boolean {
+  return row.status === 'sent' && row.due_date !== null && row.due_date < today;
+}
+
+function overdueDays(dueDate: string, today: string): number {
+  const ms = new Date(`${today}T00:00:00`).getTime() - new Date(`${dueDate}T00:00:00`).getTime();
+  return Math.max(1, Math.round(ms / 86_400_000));
+}
 
 function SupplierDisclosuresListColumn(): JSX.Element {
   const params = useParams({ strict: false }) as { id?: string };
@@ -98,6 +124,8 @@ function SupplierDisclosuresListColumn(): JSX.Element {
     return list.filter((r) => r.customer_name.toLowerCase().includes(query));
   }, [list, search]);
 
+  const today = localToday();
+
   const statusCounts = useMemo(() => {
     const counts: Record<IStatusFilter, number> = {
       all: searched.length,
@@ -105,19 +133,22 @@ function SupplierDisclosuresListColumn(): JSX.Element {
       sent: 0,
       received: 0,
       ingested: 0,
+      overdue: 0,
     };
     for (const r of searched) {
       if ((I_STATUSES as readonly string[]).includes(r.status)) {
         counts[r.status as IStatus] += 1;
       }
+      if (isOverdue(r, today)) counts.overdue += 1;
     }
     return counts;
-  }, [searched]);
+  }, [searched, today]);
 
   const statusFiltered = useMemo(() => {
     if (statusFilter === 'all') return searched;
+    if (statusFilter === 'overdue') return searched.filter((r) => isOverdue(r, today));
     return searched.filter((r) => r.status === statusFilter);
-  }, [searched, statusFilter]);
+  }, [searched, statusFilter, today]);
 
   const visible = useMemo(() => {
     const arr = [...statusFiltered];
@@ -163,6 +194,7 @@ function SupplierDisclosuresListColumn(): JSX.Element {
     { value: 'sent', label: '已发送' },
     { value: 'received', label: '已回收' },
     { value: 'ingested', label: '已入库' },
+    { value: 'overdue', label: m.inbound_filter_overdue() },
   ];
 
   const filtersActive = search !== '' || statusFilter !== 'all';
@@ -264,7 +296,15 @@ function SupplierDisclosuresListColumn(): JSX.Element {
                       {r.due_date && (
                         <>
                           <span>·</span>
-                          <span>截止 {r.due_date}</span>
+                          {isOverdue(r, today) ? (
+                            <span className="font-medium text-destructive">
+                              {m.inbound_overdue_days({
+                                days: String(overdueDays(r.due_date, today)),
+                              })}
+                            </span>
+                          ) : (
+                            <span>{m.inbound_due_on({ date: r.due_date })}</span>
+                          )}
                         </>
                       )}
                     </>
