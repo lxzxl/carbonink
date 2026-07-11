@@ -105,6 +105,12 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   // audit domain (Phase 3 sub-project 3 — audit_event log viewer)
   'audit:list',
   'audit:export-csv',
+  'audit:list-by-record',
+  // evidence + lineage domains (audit-readiness 2026-07-11)
+  'evidence:add',
+  'evidence:list',
+  'evidence:remove',
+  'lineage:get',
   // license domain (Phase 4 sub-project A — Ed25519 JWT + state machine)
   // updater domain (Phase 5 — auto-update via electron-updater)
   'updater:get-status',

@@ -18,6 +18,29 @@ const ALLOWED_MIME_TYPES: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * Evidence attachments (migration 018) accept a wider set than the
+ * extraction pipeline: images are legitimate audit evidence (meter photos,
+ * screenshots of internal ledgers) even though no extraction stage can
+ * process them. Kept separate from {@link ALLOWED_MIME_TYPES} so widening
+ * evidence never accidentally lets images into the extraction entry points.
+ */
+const EVIDENCE_MIME_TYPES: ReadonlySet<string> = new Set([
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+]);
+
+/**
+ * Soft cap for evidence uploads. Extraction uploads stay ungated (the
+ * pipeline already bounds them in practice); evidence files are kept
+ * out-of-band forever, so an explicit cap prevents a stray screen
+ * recording from bloating the uploads dir.
+ */
+const EVIDENCE_MAX_BYTES = 50 * 1024 * 1024;
+
+/**
  * Pick a filesystem extension from a user-supplied filename. We use the
  * *last* `.foo` segment (lowercased) so `bill.zh-CN.PDF` lands as `.pdf`.
  * Falls back to `.bin` for filenames with no extension — better than no
@@ -66,15 +89,37 @@ export class DocumentService {
   /**
    * Compute sha256, write the bytes to `<uploadsDir>/<sha[0:2]>/<sha>.<ext>`,
    * and insert a `document` row. If a row already exists for this sha256,
-   * we return it untouched — no second filesystem write, no second db row.
+   * we return it (mostly) untouched — no second filesystem write, no second
+   * db row.
    *
-   * Throws if `mimeType` is not in {@link ALLOWED_MIME_TYPES}. The error
+   * `purpose` selects the mime allowlist and the initial `doc_type`:
+   * - `'extraction'` (default): {@link ALLOWED_MIME_TYPES}, `doc_type` NULL
+   *   (ClassificationService fills it in later). If the dedupe hit is a row
+   *   previously uploaded as evidence, its `doc_type = 'evidence'` tag is
+   *   cleared so the doc becomes visible in the /documents workspace again —
+   *   the evidence_attachment links are unaffected (they key on document_id).
+   * - `'evidence'`: {@link EVIDENCE_MIME_TYPES} (adds images), 50MB cap,
+   *   `doc_type = 'evidence'` on fresh inserts. A dedupe hit onto an
+   *   extraction doc keeps its classified doc_type — a document can back
+   *   both roles at once.
+   *
+   * Throws if `mimeType` is not in the selected allowlist. The error
    * message names the rejected mime so the IPC layer can surface it.
    */
-  uploadFile(input: { filename: string; mimeType: string; bytes: Buffer }): Document {
-    if (!ALLOWED_MIME_TYPES.has(input.mimeType)) {
+  uploadFile(
+    input: { filename: string; mimeType: string; bytes: Buffer },
+    opts: { purpose?: 'extraction' | 'evidence' } = {},
+  ): Document {
+    const purpose = opts.purpose ?? 'extraction';
+    const allowed = purpose === 'evidence' ? EVIDENCE_MIME_TYPES : ALLOWED_MIME_TYPES;
+    if (!allowed.has(input.mimeType)) {
       throw new Error(
-        `Unsupported mimeType: ${input.mimeType}. Accepted: application/pdf, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.`,
+        `Unsupported mimeType: ${input.mimeType}. Accepted: ${[...allowed].join(', ')}.`,
+      );
+    }
+    if (purpose === 'evidence' && input.bytes.length > EVIDENCE_MAX_BYTES) {
+      throw new Error(
+        `Evidence file too large: ${input.bytes.length} bytes (max ${EVIDENCE_MAX_BYTES}).`,
       );
     }
 
@@ -85,7 +130,16 @@ export class DocumentService {
     // 003) — two distinct Buffers with the same sha256 would be a
     // cryptographic collision, far outside our threat model.
     const existing = this.findBySha(sha);
-    if (existing) return existing;
+    if (existing) {
+      if (purpose === 'extraction' && existing.doc_type === 'evidence') {
+        // Re-uploaded through an extraction entry point: un-hide it from the
+        // /documents workspace (listAll filters 'evidence') and let
+        // classification assign a real type.
+        this.updateDocType(existing.id, null);
+        return this.getById(existing.id) ?? existing;
+      }
+      return existing;
+    }
 
     const ext = pickExt(input.filename);
     const dir = join(this.ctx.uploadsDir, sha.slice(0, 2));
@@ -100,10 +154,19 @@ export class DocumentService {
     this.ctx.db
       .prepare(
         `INSERT INTO document
-           (id, sha256, filename, mime_type, size_bytes, storage_path, uploaded_at, uploaded_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?, NULL)`,
+           (id, sha256, filename, mime_type, size_bytes, storage_path, uploaded_at, uploaded_by, doc_type)
+         VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?)`,
       )
-      .run(id, sha, input.filename, input.mimeType, input.bytes.length, absPath, ts);
+      .run(
+        id,
+        sha,
+        input.filename,
+        input.mimeType,
+        input.bytes.length,
+        absPath,
+        ts,
+        purpose === 'evidence' ? 'evidence' : null,
+      );
 
     const row = this.getById(id);
     if (!row) {
@@ -135,10 +198,19 @@ export class DocumentService {
    * which paginates beyond that — callers that want everything can pass a
    * very large limit. We sort by `uploaded_at` (the table's ISO8601 timestamp
    * column) since the schema does not carry a separate `created_at`.
+   *
+   * Evidence-only uploads (`doc_type = 'evidence'`, migration-018 feature)
+   * are excluded: the /documents workspace is the extraction pipeline's
+   * inbox, and evidence files are browsed from the record they're attached
+   * to (lineage panel), not here.
    */
   listAll(limit = 100): Document[] {
     return this.ctx.db
-      .prepare('SELECT * FROM document ORDER BY uploaded_at DESC, id DESC LIMIT ?')
+      .prepare(
+        `SELECT * FROM document
+          WHERE doc_type IS NULL OR doc_type != 'evidence'
+          ORDER BY uploaded_at DESC, id DESC LIMIT ?`,
+      )
       .all(limit) as Document[];
   }
 

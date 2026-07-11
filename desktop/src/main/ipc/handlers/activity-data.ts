@@ -1,5 +1,6 @@
 import type { ActivityData, ActivityDataCreateInput } from '@shared/types.js';
 import { activityDataCreateInput } from '@shared/types.js';
+import { newId } from '@shared/ulid.js';
 import { z } from 'zod';
 import type { IpcContext } from '../context.js';
 import type { IpcTypeMap } from '../types.js';
@@ -73,6 +74,40 @@ export function activityDataHandlers(ctx: IpcContext): {
               )`,
             )
             .run(result);
+          // Keep the per-record audit timeline coherent: the service wrote
+          // `activity_data.created` on the original create, `svc.delete`
+          // writes `.deleted` on undo — the redo re-INSERT above bypasses
+          // the service (verbatim row restore, same id), so it records its
+          // own creation event here. Same payload discipline: ids + numbers,
+          // no free text.
+          ctx.db
+            .prepare(
+              'INSERT INTO audit_event (id, event_kind, payload, occurred_at) VALUES (?, ?, ?, ?)',
+            )
+            .run(
+              newId(),
+              'activity_data.created',
+              JSON.stringify({
+                activity_id: result.id,
+                site_id: result.site_id,
+                emission_source_id: result.emission_source_id,
+                reporting_period_id: result.reporting_period_id,
+                amount: result.amount,
+                unit: result.unit,
+                ef: {
+                  factor_code: result.ef_factor_code,
+                  year: result.ef_year,
+                  source: result.ef_source,
+                  geography: result.ef_geography,
+                  dataset_version: result.ef_dataset_version,
+                },
+                computed_co2e_kg: result.computed_co2e_kg,
+                provenance: result.extraction_id ? 'extraction' : 'manual',
+                extraction_id: result.extraction_id,
+                via: 'redo',
+              }),
+              ctx.now(),
+            );
         },
       }),
       (input) => svc.create(activityDataCreateInput.parse(input)),

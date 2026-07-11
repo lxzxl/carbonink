@@ -430,6 +430,43 @@ export type IpcTypeMap = {
     | { ok: true; path: string; rows_written: number }
     | { ok: false; error: string }
   >;
+  /**
+   * Per-record audit timeline (audit-readiness 2026-07-11): every event
+   * whose payload references the given activity/answer id, newest first.
+   * At least one id key must be present (the handler rejects empty refs).
+   */
+  'audit:list-by-record': (input: {
+    activity_data_id?: string;
+    answer_id?: string;
+    limit?: number;
+  }) => import('@shared/types.js').AuditEvent[];
+
+  // evidence domain (audit-readiness 2026-07-11 — generic attachments on
+  // activity_data / answer rows; files ride the document store)
+  // `evidence:add` carries raw bytes as Uint8Array for the same
+  // structured-clone reason as `document:upload`. Exactly one of
+  // activity_data_id / answer_id must be set (zod-refined in the handler,
+  // CHECK-enforced in the DB).
+  'evidence:add': (input: {
+    activity_data_id?: string;
+    answer_id?: string;
+    filename: string;
+    mimeType: string;
+    bytes: Uint8Array;
+    note?: string;
+  }) => import('@shared/types.js').EvidenceAttachmentWithDocument;
+  'evidence:list': (input: {
+    activity_data_id?: string;
+    answer_id?: string;
+  }) => import('@shared/types.js').EvidenceAttachmentWithDocument[];
+  'evidence:remove': (input: { id: string }) => void;
+
+  // lineage domain (audit-readiness 2026-07-11 — end-to-end provenance
+  // chain for the renderer's 溯源 panel, one IPC call per record)
+  'lineage:get': (input: {
+    entity: 'activity_data' | 'answer';
+    id: string;
+  }) => import('@shared/types.js').LineageResult;
 
   // updater domain (Phase 5 — auto-update via electron-updater)
   // `updater:get-status` is a cheap read of the in-memory status slot in

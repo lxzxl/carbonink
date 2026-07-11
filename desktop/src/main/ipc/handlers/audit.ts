@@ -12,6 +12,16 @@ const listInput = z.object({
   limit: z.number().int().positive().optional(),
 });
 
+const listByRecordInput = z
+  .object({
+    activity_data_id: z.string().min(1).optional(),
+    answer_id: z.string().min(1).optional(),
+    limit: z.number().int().positive().optional(),
+  })
+  .refine((v) => v.activity_data_id !== undefined || v.answer_id !== undefined, {
+    message: 'at least one of activity_data_id / answer_id is required',
+  });
+
 /**
  * Audit-event read-only handler. The table is append-only via DB trigger;
  * producers write directly from their own services (e.g.
@@ -27,6 +37,18 @@ export function auditHandlers(ctx: IpcContext): {
       const parsed = listInput.parse(input);
       const listParams = toListParams(parsed);
       return ctx.auditEventService.list(listParams);
+    },
+    'audit:list-by-record': (input) => {
+      const parsed = listByRecordInput.parse(input);
+      const ref = {
+        ...(parsed.activity_data_id !== undefined
+          ? { activity_data_id: parsed.activity_data_id }
+          : {}),
+        ...(parsed.answer_id !== undefined ? { answer_id: parsed.answer_id } : {}),
+      };
+      return parsed.limit !== undefined
+        ? ctx.auditEventService.listByRecord(ref, parsed.limit)
+        : ctx.auditEventService.listByRecord(ref);
     },
     'audit:export-csv': async (input) => {
       const parsed = listInput.parse(input);

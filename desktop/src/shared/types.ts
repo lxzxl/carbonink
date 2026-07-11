@@ -703,6 +703,100 @@ export type ActivityRebindEfPayload = {
 };
 
 // ---------------------------------------------------------------------------
+// Evidence attachments + lineage (audit-readiness — migration 018,
+// spec docs/specs/2026-07-11-audit-evidence-lineage.md)
+// ---------------------------------------------------------------------------
+
+/**
+ * Row shape mirroring the `evidence_attachment` table (migration 018).
+ * Exactly one of `activity_data_id` / `answer_id` is non-null (DB CHECK).
+ */
+export type EvidenceAttachment = {
+  id: string;
+  activity_data_id: string | null;
+  answer_id: string | null;
+  document_id: string;
+  note: string | null;
+  created_at: string;
+};
+
+/** Attachment row joined with its backing `document` for display. */
+export type EvidenceAttachmentWithDocument = EvidenceAttachment & {
+  filename: string;
+  mime_type: string;
+  size_bytes: number;
+  sha256: string;
+};
+
+/** Identifies the record an attachment hangs off. Exactly one key. */
+export type EvidenceTargetRef = { activity_data_id: string } | { answer_id: string };
+
+/**
+ * The origin node of an activity row's lineage chain. Three provenance
+ * states: OCR extraction (links back to the uploaded document), inbound
+ * supplier disclosure (links back to the questionnaire), or hand-typed.
+ */
+export type LineageSourceNode =
+  | { kind: 'document'; document_id: string; filename: string; extraction_id: string }
+  | {
+      kind: 'inbound';
+      questionnaire_id: string;
+      supplier_name: string | null;
+      question_id: string;
+      tier: Tier | null;
+    }
+  | { kind: 'manual' };
+
+/** A downstream questionnaire answer sourced from this activity row. */
+export type LineageAnswerRef = {
+  answer_id: string;
+  question_id: string;
+  questionnaire_id: string;
+  question_text: string;
+  value: string;
+  finalized_at: string | null;
+};
+
+/** A frozen calculation-snapshot line derived from this activity row. */
+export type LineageSnapshotRef = {
+  snapshot_id: string;
+  frozen_at: string;
+  revision: number;
+};
+
+/** End-to-end lineage for one activity_data row. */
+export type ActivityLineage = {
+  entity: 'activity_data';
+  activity: ActivityData;
+  source: LineageSourceNode;
+  /** Null only if the pinned EF row is missing (should not happen — FK). */
+  pinned_ef: PinnedEmissionFactor | null;
+  emission_source_name: string;
+  answers: LineageAnswerRef[];
+  snapshots: LineageSnapshotRef[];
+  evidence: EvidenceAttachmentWithDocument[];
+};
+
+/** End-to-end lineage for one questionnaire answer. */
+export type AnswerLineage = {
+  entity: 'answer';
+  answer: Answer;
+  question_text: string;
+  questionnaire: {
+    id: string;
+    direction: 'outbound' | 'inbound';
+    reporting_year: number;
+    customer_name: string | null;
+  };
+  /** One level of upstream chain when source_kind = 'mapped_inventory'
+   * points at an activity row; null for other source kinds. */
+  source_activity: ActivityLineage | null;
+  evidence: EvidenceAttachmentWithDocument[];
+};
+
+export type LineageResult = ActivityLineage | AnswerLineage;
+
+// ---------------------------------------------------------------------------
 // MCP integration types (cross-process — used by main service, IPC layer, renderer)
 // ---------------------------------------------------------------------------
 

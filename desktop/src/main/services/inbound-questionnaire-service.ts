@@ -705,6 +705,21 @@ export class InboundQuestionnaireService {
 
       if (questionIds.length > 0) {
         const placeholders = questionIds.map(() => '?').join(', ');
+        // Evidence links on the rows/answers about to go: cleaned up
+        // explicitly because evidence_attachment FKs are NO ACTION by
+        // design (see migration 018 header for the rebuild footgun).
+        this.deps.db
+          .prepare(
+            `DELETE FROM evidence_attachment WHERE activity_data_id IN
+               (SELECT id FROM activity_data WHERE inbound_question_id IN (${placeholders}))`,
+          )
+          .run(...questionIds);
+        this.deps.db
+          .prepare(
+            `DELETE FROM evidence_attachment WHERE answer_id IN
+               (SELECT id FROM answer WHERE question_id IN (${placeholders}))`,
+          )
+          .run(...questionIds);
         const adResult = this.deps.db
           .prepare(`DELETE FROM activity_data WHERE inbound_question_id IN (${placeholders})`)
           .run(...questionIds);
@@ -790,6 +805,19 @@ export class InboundQuestionnaireService {
   }
 
   private wipeTentativeAnswers(questionnaireId: string): void {
+    // Evidence links first — the answer FK on evidence_attachment is
+    // NO ACTION by design (migration 018), so the answer DELETE below
+    // would otherwise trip SQLITE_CONSTRAINT for any attached row.
+    this.deps.db
+      .prepare(
+        `DELETE FROM evidence_attachment
+           WHERE answer_id IN (
+             SELECT id FROM answer
+              WHERE source_kind = 'manual'
+                AND finalized_at IS NULL
+                AND question_id IN (SELECT id FROM question WHERE questionnaire_id = ?))`,
+      )
+      .run(questionnaireId);
     this.deps.db
       .prepare(
         `DELETE FROM answer

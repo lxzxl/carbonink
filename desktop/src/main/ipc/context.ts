@@ -23,8 +23,10 @@ import { DocumentService } from '@main/services/document-service.js';
 import { EfMatcherService } from '@main/services/ef-matcher-service.js';
 import { EfService } from '@main/services/ef-service.js';
 import { EmissionSourceService } from '@main/services/emission-source-service.js';
+import { EvidenceService } from '@main/services/evidence-service.js';
 import { ExtractionService } from '@main/services/extraction-service.js';
 import { InboundQuestionnaireService } from '@main/services/inbound-questionnaire-service.js';
+import { LineageService } from '@main/services/lineage-service.js';
 import {
   McpIntegrationService,
   type PathResolver,
@@ -102,6 +104,10 @@ export interface IpcContext {
   // `~/.agents/skills/carbonink-mcp/` plus per-host symlinks (claude-code,
   // codex, pi). Pairs with the renderer's Settings → Integrations step 1.
   agentSkillService: AgentSkillService;
+  // Audit-readiness (2026-07-11) — generic evidence attachments +
+  // end-to-end lineage assembly for the 溯源 panel.
+  evidenceService: EvidenceService;
+  lineageService: LineageService;
   // Post-launch (spec 2026-05-25) — session-scoped undo/redo stack.
   undoManager: UndoManager;
   // URL for the print-render route (used by PDF export for hidden BrowserWindow).
@@ -208,6 +214,8 @@ export function createIpcContext(
   let answerLayerInstance: Layer.Layer<AnswerR> | undefined;
   let routingLayerInstance: Layer.Layer<RoutingR> | undefined;
   let reportDataServiceInstance: ReportDataService | undefined;
+  let evidenceServiceInstance: EvidenceService | undefined;
+  let lineageServiceInstance: LineageService | undefined;
 
   const getCredential = (): CredentialService => {
     if (!credentialServiceInstance) credentialServiceInstance = defaultCredentialService();
@@ -228,6 +236,12 @@ export function createIpcContext(
       documentServiceInstance = new DocumentService({ ...svc, uploadsDir });
     }
     return documentServiceInstance;
+  };
+  const getEvidence = (): EvidenceService => {
+    if (!evidenceServiceInstance) {
+      evidenceServiceInstance = new EvidenceService({ ...svc, documentService: getDocument() });
+    }
+    return evidenceServiceInstance;
   };
 
   // MCP integration service — wired eagerly because the renderer's
@@ -471,6 +485,18 @@ export function createIpcContext(
         reportDataServiceInstance = new ReportDataService({ db: svc.db });
       }
       return reportDataServiceInstance;
+    },
+    get evidenceService() {
+      return getEvidence();
+    },
+    get lineageService() {
+      if (!lineageServiceInstance) {
+        lineageServiceInstance = new LineageService({
+          db: svc.db,
+          evidenceService: getEvidence(),
+        });
+      }
+      return lineageServiceInstance;
     },
     auditEventService: new AuditEventService({ db: svc.db }),
     questionnairePdfDataService: new QuestionnairePdfDataService({ db: svc.db }),

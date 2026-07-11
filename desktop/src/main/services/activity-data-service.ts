@@ -180,10 +180,36 @@ export class ActivityDataService {
           ts,
         );
 
+      // 6. Audit: creation event (audit-readiness spec 2026-07-11). Payload
+      // is ids + numbers only — `notes` free text stays out by design.
+      this.writeAudit('activity_data.created', ts, {
+        activity_id: id,
+        site_id: sourceRow.site_id,
+        emission_source_id: parsed.emission_source_id,
+        reporting_period_id: parsed.reporting_period_id,
+        amount: parsed.amount,
+        unit: parsed.unit,
+        ef: efPk,
+        computed_co2e_kg: computed.co2e_kg,
+        provenance: parsed.extraction_id ? 'extraction' : 'manual',
+        extraction_id: parsed.extraction_id ?? null,
+      });
+
       return this.getById(id)!;
     });
 
     return tx();
+  }
+
+  /**
+   * Append one audit_event row. Payload discipline (see
+   * answer-generation/audit.ts): ids, counts, EF tuples, computed numbers —
+   * never free text (`notes`) or prompt content.
+   */
+  private writeAudit(kind: string, ts: string, payload: Record<string, unknown>): void {
+    this.db
+      .prepare('INSERT INTO audit_event (id, event_kind, payload, occurred_at) VALUES (?, ?, ?, ?)')
+      .run(newId(), kind, JSON.stringify(payload), ts);
   }
 
   /** Lookup a single activity_data by id, or null. */
@@ -419,7 +445,27 @@ export class ActivityDataService {
         `activity_data ${id} is referenced by ${refs.c} questionnaire answer(s) — detach the answer's data source before deleting`,
       );
     }
-    this.db.prepare('DELETE FROM activity_data WHERE id = ?').run(id);
+    const row = this.getById(id);
+    if (!row) return; // match the historical silent no-op on unknown ids
+
+    const tx = this.db.transaction(() => {
+      // Evidence links are cleaned up explicitly (their FK is NO ACTION by
+      // design — see migration 018 header); backing documents stay.
+      const evidence = this.db
+        .prepare('DELETE FROM evidence_attachment WHERE activity_data_id = ?')
+        .run(id);
+      this.db.prepare('DELETE FROM activity_data WHERE id = ?').run(id);
+      this.writeAudit('activity_data.deleted', this.now(), {
+        activity_id: id,
+        emission_source_id: row.emission_source_id,
+        reporting_period_id: row.reporting_period_id,
+        amount: row.amount,
+        unit: row.unit,
+        computed_co2e_kg: row.computed_co2e_kg,
+        evidence_removed_count: evidence.changes,
+      });
+    });
+    tx();
   }
 
   /**
@@ -586,28 +632,17 @@ export class ActivityDataService {
           now,
           input.activity_id,
         );
-      const auditId = newId();
-      this.db
-        .prepare(
-          `INSERT INTO audit_event (id, event_kind, payload, occurred_at)
-           VALUES (?, ?, ?, ?)`,
-        )
-        .run(
-          auditId,
-          'activity_rebind_ef',
-          JSON.stringify({
-            activity_id: input.activity_id,
-            old_ef: old_ef_pk,
-            new_ef: input.new_ef_pk,
-            old_amount,
-            old_unit,
-            old_computed_co2e_kg: old_co2e_kg,
-            new_amount: newAmount,
-            new_unit: efRow.input_unit,
-            new_computed_co2e_kg: newCo2eKg,
-          }),
-          now,
-        );
+      this.writeAudit('activity_rebind_ef', now, {
+        activity_id: input.activity_id,
+        old_ef: old_ef_pk,
+        new_ef: input.new_ef_pk,
+        old_amount,
+        old_unit,
+        old_computed_co2e_kg: old_co2e_kg,
+        new_amount: newAmount,
+        new_unit: efRow.input_unit,
+        new_computed_co2e_kg: newCo2eKg,
+      });
     })();
 
     const updated = this.db
