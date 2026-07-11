@@ -1,3 +1,4 @@
+import { LineageDrawer } from '@renderer/components/lineage/LineageDrawer';
 import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
 import { Input } from '@renderer/components/ui/input';
@@ -7,6 +8,7 @@ import { answerApi } from '@renderer/lib/api/answer';
 import * as m from '@renderer/paraglide/messages';
 import type { Answer, Question } from '@shared/types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { ListTree } from 'lucide-react';
 import { useState } from 'react';
 
 export interface AnswerReviewCardProps {
@@ -19,6 +21,8 @@ export function AnswerReviewCard({ question, answer, questionnaireId }: AnswerRe
   const queryClient = useQueryClient();
   const [value, setValue] = useState(answer?.value ?? '');
   const [unit, setUnit] = useState(answer?.unit ?? '');
+  // 溯源 drawer (audit-readiness spec 2026-07-11) — per-card, lazy.
+  const [lineageOpen, setLineageOpen] = useState(false);
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: ['answer:list-by-questionnaire', questionnaireId] });
@@ -117,6 +121,17 @@ export function AnswerReviewCard({ question, answer, questionnaireId }: AnswerRe
             {m.answer_source_reused()}
           </span>
         )}
+        <button
+          type="button"
+          onClick={() => setLineageOpen(true)}
+          className={`${
+            answer.finalized_at || answer.source_kind === 'reused' ? '' : 'ml-auto '
+          }inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground`}
+          title={m.lineage_open_button()}
+        >
+          <ListTree className="h-3 w-3" aria-hidden="true" />
+          {m.lineage_open_button()}
+        </button>
       </header>
 
       {question.question_kind === 'narrative' ? (
@@ -197,6 +212,10 @@ export function AnswerReviewCard({ question, answer, questionnaireId }: AnswerRe
           </>
         )}
       </div>
+
+      {lineageOpen && (
+        <LineageDrawer entity="answer" id={answer.id} onClose={() => setLineageOpen(false)} />
+      )}
     </div>
   );
 }

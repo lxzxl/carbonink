@@ -1,6 +1,7 @@
 import { ActivityAddDrawer } from '@renderer/components/ActivityAddDrawer';
 import { DocumentPreviewDrawer } from '@renderer/components/DocumentPreviewDrawer';
 import { Main } from '@renderer/components/layout/main';
+import { LineageDrawer } from '@renderer/components/lineage/LineageDrawer';
 import { RebindEfDrawer } from '@renderer/components/RebindEfDrawer';
 import { SortMenu, type SortMenuOption } from '@renderer/components/sort-menu';
 import { ChipCountBadge } from '@renderer/components/source-filters';
@@ -14,7 +15,7 @@ import * as m from '@renderer/paraglide/messages';
 import type { ActivityDataWithDocument, EmissionSource, ReportingPeriod } from '@shared/types';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, Navigate } from '@tanstack/react-router';
-import { Download, FileText, Search } from 'lucide-react';
+import { Download, FileText, ListTree, PenLine, Search } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 /**
@@ -74,6 +75,8 @@ type ActivityScopeFilter = 'all' | 1 | 2 | 3;
 function ActivitiesList({ organizationId }: { organizationId: string }) {
   const [formOpen, setFormOpen] = useState(false);
   const [rebindActivityId, setRebindActivityId] = useState<string | null>(null);
+  // 溯源 drawer target (audit-readiness spec 2026-07-11).
+  const [lineageActivityId, setLineageActivityId] = useState<string | null>(null);
   // Source-document preview drawer state. `previewDoc` carries enough to
   // render the title before the doc list query (re-)resolves; we also
   // keep the doc id for the actual <PdfPreview> fetch.
@@ -398,21 +401,44 @@ function ActivitiesList({ organizationId }: { organizationId: string }) {
                         title={a.inbound_supplier_name ?? undefined}
                       >
                         <Download className="h-3 w-3" aria-hidden="true" />
-                        来自供应商披露
+                        {m.activities_from_supplier_disclosure()}
                         {a.inbound_supplier_name ? ` · ${a.inbound_supplier_name}` : ''}
                       </Link>
                     </div>
                   )}
+                  {/* Manual-entry provenance: the third state, made explicit
+                   * (audit-readiness spec 2026-07-11). A hand-typed row used
+                   * to be recognizable only by the ABSENCE of a source line —
+                   * an auditor shouldn't have to infer that. */}
+                  {!a.source_document_id && !a.inbound_questionnaire_id && (
+                    <div className="text-xs text-muted-foreground">
+                      <span className="inline-flex items-center gap-1">
+                        <PenLine className="h-3 w-3" aria-hidden="true" />
+                        {m.activities_source_manual()}
+                      </span>
+                    </div>
+                  )}
                 </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setRebindActivityId(a.id)}
-                  className="shrink-0"
-                >
-                  {m.rebind_button()}
-                </Button>
+                <div className="flex shrink-0 items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setLineageActivityId(a.id)}
+                    title={m.lineage_open_button()}
+                  >
+                    <ListTree className="h-3.5 w-3.5" aria-hidden="true" />
+                    {m.lineage_open_button()}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setRebindActivityId(a.id)}
+                  >
+                    {m.rebind_button()}
+                  </Button>
+                </div>
               </li>
             );
           })}
@@ -439,6 +465,12 @@ function ActivitiesList({ organizationId }: { organizationId: string }) {
           onClose={() => setRebindActivityId(null)}
         />
       )}
+
+      <LineageDrawer
+        entity="activity_data"
+        id={lineageActivityId}
+        onClose={() => setLineageActivityId(null)}
+      />
     </Main>
   );
 }
