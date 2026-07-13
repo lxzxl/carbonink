@@ -1,0 +1,5 @@
+因子编码,中文名称,英文名称,范围,类别,年份,地区,计量单位,排放因子值,GWP基准
+DIESEL-INTERNAL,内部柴油因子,Internal diesel,1,fuel.combustion,2024,CN,L,2.6842,AR6
+GRID-EAST-CN,华东电网电力,East China grid,2,electricity.grid,2024,CN-East,kWh,0.7035,AR6
+FREIGHT-ROAD,公路货运,Road freight,3,freight.road,2024,CN,tkm,0.1122,AR6
+BAD-SCOPE,坏行示例,Bad row,9,misc,2024,CN,kg,1.0,AR6
