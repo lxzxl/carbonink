@@ -18,10 +18,15 @@
  * the composer.
  */
 
+import type { Organization } from '../../src/shared/schemas/organization.js';
+
 // ---------------------------------------------------------------------------
 // Organization, site, reporting period
 // ---------------------------------------------------------------------------
 
+// Exception to the `unknown` rule above: the org also feeds the harness's
+// typed `cannedOrg` slot (not just the JSON `cannedIpc` map), so it must
+// satisfy the real schema type — e.g. `boundary_kind` as the literal union.
 export const FIXTURE_ORG = {
   id: 'org_e2e_demo',
   name_zh: '碳墨示例公司',
@@ -35,7 +40,7 @@ export const FIXTURE_ORG = {
   recalc_threshold_pct: 5,
   created_at: '2026-01-01T00:00:00.000Z',
   updated_at: '2026-05-01T00:00:00.000Z',
-};
+} satisfies Organization;
 
 export const FIXTURE_PERIOD = {
   id: 'period_2026_annual',
