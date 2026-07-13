@@ -9,6 +9,11 @@ import type {
   Customer,
   Document,
   EfCompositePk,
+  EfImportFileError,
+  EfImportMapping,
+  EfImportPreview,
+  EfImportValidation,
+  EfLibraryImportResult,
   EfLookupQuery,
   EmissionFactor,
   EmissionSource,
@@ -36,6 +41,7 @@ import type {
   Site,
   SiteCreateInput,
   UnitDefinition,
+  UserEfLibrary,
 } from '@shared/types.js';
 
 /**
@@ -85,6 +91,34 @@ export type IpcTypeMap = {
   'ef:list': (input: EfLookupQuery) => EmissionFactor[];
   'ef:get-by-pk': (input: EfCompositePk) => EmissionFactor | null;
   'units:list': () => UnitDefinition[];
+
+  // user-ef-library domain (ROADMAP §8.1-④ — user-imported EF libraries).
+  // pick-file/save-template open native dialogs in the main process (same
+  // boundary split as the data: domain).
+  'ef-library:pick-file': () => Promise<
+    | { canceled: true }
+    | { canceled: false; preview: EfImportPreview }
+    | { canceled: false; error: EfImportFileError }
+  >;
+  'ef-library:revalidate': (input: {
+    token: string;
+    mapping: EfImportMapping;
+  }) => EfImportValidation | null;
+  'ef-library:import': (input: {
+    token: string;
+    name: string;
+    version: string;
+    allow_replace: boolean;
+    mapping: EfImportMapping;
+  }) => EfLibraryImportResult;
+  'ef-library:discard': (input: { token: string }) => { ok: true };
+  'ef-library:list': () => UserEfLibrary[];
+  'ef-library:delete': (input: {
+    id: string;
+  }) => { ok: true; deleted_factor_count: number } | { ok: false };
+  'ef-library:save-template': () => Promise<
+    { canceled: true } | { ok: true; path: string } | { ok: false; error: string }
+  >;
 
   // ef-matcher domain (Phase 1c — LLM-assisted emission factor recommendation)
   'ef:recommend': (input: RecommendQuery) => Promise<MatcherResult>;

@@ -2,6 +2,7 @@ import { efApi } from '@renderer/lib/api/ef-library';
 import { efMatcherApi } from '@renderer/lib/api/ef-matcher';
 import * as m from '@renderer/paraglide/messages';
 import type { EfCompositePk, EmissionFactor, MatcherResult } from '@shared/types';
+import { USER_EF_SOURCE_PREFIX } from '@shared/types';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
@@ -154,6 +155,14 @@ function EfRow({
       <input type="radio" name="ef" className="mt-1" checked={selected} onChange={onClick} />
       <span className="flex-1">
         <span className="font-medium">{ef.name_zh ?? ef.name_en ?? ef.factor_code}</span>
+        {ef.source.startsWith(USER_EF_SOURCE_PREFIX) && (
+          <span
+            className="ml-1.5 inline-flex items-center rounded-sm border border-border bg-secondary px-1 text-[11px] leading-4 text-muted-foreground"
+            title={m.ef_user_library_badge()}
+          >
+            {ef.source.slice(USER_EF_SOURCE_PREFIX.length)}
+          </span>
+        )}
         <span className="text-muted-foreground">
           {' '}
           · {ef.geography} · {ef.year} · {ef.co2e_kg_per_unit} kg CO2e/{ef.input_unit}

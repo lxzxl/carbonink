@@ -17,6 +17,14 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   'ef:list',
   'ef:get-by-pk',
   'units:list',
+  // user-ef-library domain (ROADMAP §8.1-④ — user-imported EF libraries)
+  'ef-library:pick-file',
+  'ef-library:revalidate',
+  'ef-library:import',
+  'ef-library:discard',
+  'ef-library:list',
+  'ef-library:delete',
+  'ef-library:save-template',
   // ef-matcher domain (Phase 1c — LLM-assisted EF recommendation)
   'ef:recommend',
   // emission-source domain

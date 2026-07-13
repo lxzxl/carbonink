@@ -2,6 +2,7 @@ import { AboutSection } from '@renderer/components/settings/AboutSection';
 import { AIProviderSection } from '@renderer/components/settings/AIProviderSection';
 import { AmapKeySection } from '@renderer/components/settings/AmapKeySection';
 import { DataSection } from '@renderer/components/settings/DataSection';
+import { EfLibrarySection } from '@renderer/components/settings/EfLibrarySection';
 import { GeneralSection } from '@renderer/components/settings/GeneralSection';
 import { McpSection } from '@renderer/components/settings/McpSection';
 import { OrganizationProfileSection } from '@renderer/components/settings/OrganizationProfileSection';
@@ -13,6 +14,7 @@ import {
   Cable,
   Database,
   Info,
+  Library,
   type LucideIcon,
   MapPin,
   RefreshCw,
@@ -52,7 +54,16 @@ import { useState } from 'react';
  * navigated-to deliberately, not deep-linked.
  */
 
-type SectionKey = 'general' | 'ai' | 'amap' | 'mcp' | 'org' | 'data' | 'updates' | 'about';
+type SectionKey =
+  | 'general'
+  | 'ai'
+  | 'amap'
+  | 'mcp'
+  | 'org'
+  | 'efLibrary'
+  | 'data'
+  | 'updates'
+  | 'about';
 
 interface SectionDef {
   key: SectionKey;
@@ -97,6 +108,13 @@ const SECTIONS: SectionDef[] = [
     label: () => m.settings_section_org(),
     description: () => m.settings_section_org_description(),
     render: () => <OrganizationProfileSection />,
+  },
+  {
+    key: 'efLibrary',
+    icon: Library,
+    label: () => m.settings_section_ef_library(),
+    description: () => m.settings_section_ef_library_description(),
+    render: () => <EfLibrarySection />,
   },
   {
     key: 'data',

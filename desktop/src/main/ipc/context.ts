@@ -39,6 +39,7 @@ import { buildRoutingLayer, type RoutingR } from '@main/services/routing/tags.js
 import { SettingsService } from '@main/services/settings-service.js';
 import { UndoManager } from '@main/services/undo-manager.js';
 import { UnitConversionService } from '@main/services/unit-conversion-service.js';
+import { UserEfLibraryService } from '@main/services/user-ef-library-service.js';
 import type { ProviderConfigV2 } from '@shared/types.js';
 import { Layer } from 'effect';
 import { app } from 'electron';
@@ -108,6 +109,9 @@ export interface IpcContext {
   // end-to-end lineage assembly for the 溯源 panel.
   evidenceService: EvidenceService;
   lineageService: LineageService;
+  // ROADMAP §8.1-④ — user-imported EF libraries (import staging, catalog
+  // writes under the user: source namespace, library registry).
+  userEfLibraryService: UserEfLibraryService;
   // Post-launch (spec 2026-05-25) — session-scoped undo/redo stack.
   undoManager: UndoManager;
   // URL for the print-render route (used by PDF export for hidden BrowserWindow).
@@ -216,6 +220,7 @@ export function createIpcContext(
   let reportDataServiceInstance: ReportDataService | undefined;
   let evidenceServiceInstance: EvidenceService | undefined;
   let lineageServiceInstance: LineageService | undefined;
+  let userEfLibraryServiceInstance: UserEfLibraryService | undefined;
 
   const getCredential = (): CredentialService => {
     if (!credentialServiceInstance) credentialServiceInstance = defaultCredentialService();
@@ -497,6 +502,15 @@ export function createIpcContext(
         });
       }
       return lineageServiceInstance;
+    },
+    get userEfLibraryService() {
+      if (!userEfLibraryServiceInstance) {
+        userEfLibraryServiceInstance = new UserEfLibraryService({
+          ...svc,
+          documentService: getDocument(),
+        });
+      }
+      return userEfLibraryServiceInstance;
     },
     auditEventService: new AuditEventService({ db: svc.db }),
     questionnairePdfDataService: new QuestionnairePdfDataService({ db: svc.db }),

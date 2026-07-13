@@ -310,6 +310,197 @@ export type PinnedEmissionFactor = Omit<EmissionFactor, 'notes' | 'biogenic_co2_
 };
 
 // ---------------------------------------------------------------------------
+// User-imported EF libraries (2026-07-11 — ROADMAP §8.1-④)
+// ---------------------------------------------------------------------------
+
+/**
+ * Source-namespace prefix for user-imported emission factors. Every imported
+ * row gets `source = USER_EF_SOURCE_PREFIX + library name`, which cannot
+ * collide with the built-in sources (DEFRA, IPCC_AR6, MEE_China, ...). The
+ * renderer uses the same prefix to badge user-library rows in pickers.
+ */
+export const USER_EF_SOURCE_PREFIX = 'user:';
+
+/** Row shape mirroring the `user_ef_library` registry table (migration 019). */
+export type UserEfLibrary = {
+  id: string;
+  name: string;
+  /** `'user:' || name` — the `emission_factor.source` namespace of this library. */
+  source: string;
+  /** Library version string; written into every row's `dataset_version`. */
+  version: string;
+  source_filename: string | null;
+  /** Original uploaded file in the content-addressed document store. */
+  document_id: string | null;
+  factor_count: number;
+  imported_at: string;
+  created_at: string;
+};
+
+/**
+ * Target fields of the EF-import column mapping. Everything on
+ * `emission_factor` except the derived identity columns (`source` comes from
+ * the library name, `dataset_version` from the library version) and
+ * `ghg_protocol_path` (internal taxonomy, not meaningful in user files).
+ */
+export type EfImportField =
+  | 'factor_code'
+  | 'name_zh'
+  | 'name_en'
+  | 'scope'
+  | 'category'
+  | 'year'
+  | 'geography'
+  | 'input_unit'
+  | 'co2e_kg_per_unit'
+  | 'ch4_kg_per_unit'
+  | 'n2o_kg_per_unit'
+  | 'hfc_kg_per_unit'
+  | 'pfc_kg_per_unit'
+  | 'sf6_kg_per_unit'
+  | 'nf3_kg_per_unit'
+  | 'biogenic_co2_factor'
+  | 'gwp_basis'
+  | 'description_zh'
+  | 'description_en'
+  | 'notes'
+  | 'citation_url';
+
+/**
+ * Column mapping for an EF import: target field → 0-based column index in the
+ * parsed header row. Absent key = field not mapped.
+ */
+export type EfImportMapping = Partial<Record<EfImportField, number>>;
+
+/**
+ * All mappable fields in canonical (template/display) order. Shared so the
+ * renderer's mapping editor and the main-process validator agree on the
+ * universe of fields.
+ */
+export const EF_IMPORT_FIELDS: readonly EfImportField[] = [
+  'factor_code',
+  'name_zh',
+  'name_en',
+  'scope',
+  'category',
+  'year',
+  'geography',
+  'input_unit',
+  'co2e_kg_per_unit',
+  'ch4_kg_per_unit',
+  'n2o_kg_per_unit',
+  'hfc_kg_per_unit',
+  'pfc_kg_per_unit',
+  'sf6_kg_per_unit',
+  'nf3_kg_per_unit',
+  'biogenic_co2_factor',
+  'gwp_basis',
+  'description_zh',
+  'description_en',
+  'notes',
+  'citation_url',
+];
+
+/** Fields the import cannot proceed without a mapped column for. */
+export const EF_IMPORT_REQUIRED_FIELDS: readonly EfImportField[] = [
+  'scope',
+  'year',
+  'input_unit',
+  'co2e_kg_per_unit',
+];
+
+/**
+ * Locale-neutral issue codes for per-row import problems. The renderer maps
+ * each code to a paraglide message (`ef_import_issue_<code>`), keeping
+ * zh-CN/en parity structural instead of shipping main-process prose over IPC.
+ * `detail` carries the short interpolation payload (the offending value or
+ * the user's own column header) where one exists.
+ */
+export type EfImportIssueCode =
+  | 'name_missing'
+  | 'scope_missing'
+  | 'scope_invalid'
+  | 'year_missing'
+  | 'year_invalid'
+  | 'unit_missing'
+  | 'co2e_missing'
+  | 'value_invalid'
+  | 'gwp_invalid'
+  | 'duplicate_key'
+  | 'category_empty'
+  | 'unit_unknown';
+
+/** File-level parse failure codes (same renderer-side mapping approach). */
+export type EfImportFileErrorCode =
+  | 'file_empty'
+  | 'file_too_large'
+  | 'too_many_rows'
+  | 'xlsx_invalid'
+  | 'unsupported_file_type'
+  | 'file_read_failed';
+
+/** Wire shape for a file-level import failure (`ef-library:pick-file`). */
+export type EfImportFileError = {
+  _tag: 'EfImportParseFailed';
+  code: EfImportFileErrorCode;
+  detail?: string;
+};
+
+/** One per-row problem, keyed by the 1-based row number in the user's file. */
+export type EfImportRowIssue = { row: number; code: EfImportIssueCode; detail?: string };
+
+/**
+ * A normalized import row as it will land in `emission_factor`, minus the
+ * two identity columns derived from the library (source, dataset_version).
+ */
+export type EfImportSampleRow = Omit<EmissionFactor, 'source' | 'dataset_version'>;
+
+/**
+ * Validation summary for a staged EF import. `errors` / `warnings` are capped
+ * (the full counts stay in `error_count` / `warning_count`) so a pathological
+ * 50k-row file can't flood the IPC payload.
+ */
+export type EfImportValidation = {
+  total_rows: number;
+  valid_count: number;
+  error_count: number;
+  warning_count: number;
+  errors: EfImportRowIssue[];
+  warnings: EfImportRowIssue[];
+  /** First few normalized valid rows, for the preview pane. */
+  sample: EfImportSampleRow[];
+};
+
+/** Result of `ef-library:pick-file` when a file was chosen and parsed. */
+export type EfImportPreview = {
+  /** Opaque handle to the staged parse; consumed by revalidate/import. */
+  token: string;
+  filename: string;
+  headers: string[];
+  total_rows: number;
+  /** Auto-detected mapping (header aliases, zh + en). */
+  mapping: EfImportMapping;
+  /** Validation under the auto-detected mapping. */
+  validation: EfImportValidation;
+};
+
+export type EfLibraryImportErrorTag =
+  | 'TokenExpired'
+  | 'NameExists'
+  | 'InvalidName'
+  | 'NothingToImport';
+
+export type EfLibraryImportResult =
+  | {
+      ok: true;
+      library: UserEfLibrary;
+      imported_count: number;
+      skipped_count: number;
+      replaced: boolean;
+    }
+  | { ok: false; error: { _tag: EfLibraryImportErrorTag } };
+
+// ---------------------------------------------------------------------------
 // emission_source / activity_data — Zod inputs + DB row types (Phase 1a task 6)
 // ---------------------------------------------------------------------------
 //

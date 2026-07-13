@@ -26,6 +26,7 @@ import { settingsHandlers } from './handlers/settings.js';
 import { supplierHandlers } from './handlers/supplier.js';
 import { undoHandlers } from './handlers/undo.js';
 import { updaterHandlers } from './handlers/updater.js';
+import { userEfLibraryHandlers } from './handlers/user-ef-library.js';
 import { createProgressEmitter } from './progress.js';
 import { sanitize } from './sanitize.js';
 import type { IpcTypeMap } from './types.js';
@@ -38,6 +39,7 @@ type HandlerFactory = (ctx: IpcContext) => HandlerMap;
 const HANDLER_FACTORIES: ReadonlyArray<HandlerFactory> = [
   organizationHandlers,
   efLibraryHandlers,
+  userEfLibraryHandlers,
   efMatcherHandlers,
   emissionSourceHandlers,
   activityDataHandlers,

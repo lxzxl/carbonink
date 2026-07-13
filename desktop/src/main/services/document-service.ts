@@ -33,10 +33,22 @@ const EVIDENCE_MIME_TYPES: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Soft cap for evidence uploads. Extraction uploads stay ungated (the
- * pipeline already bounds them in practice); evidence files are kept
- * out-of-band forever, so an explicit cap prevents a stray screen
- * recording from bloating the uploads dir.
+ * EF-library imports (migration 019) store the user's original spreadsheet
+ * for audit provenance — only the two formats the import parser accepts.
+ * Separate set for the same reason as evidence: widening one entry point
+ * must never widen the others.
+ */
+const EF_LIBRARY_MIME_TYPES: ReadonlySet<string> = new Set([
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'text/csv',
+]);
+
+/**
+ * Soft cap for evidence / ef-library uploads. Extraction uploads stay
+ * ungated (the pipeline already bounds them in practice); the other
+ * purposes keep files out-of-band forever, so an explicit cap prevents a
+ * stray screen recording from bloating the uploads dir. (The EF import
+ * parser applies its own tighter 20MB cap before bytes ever reach here.)
  */
 const EVIDENCE_MAX_BYTES = 50 * 1024 * 1024;
 
@@ -102,24 +114,33 @@ export class DocumentService {
    *   `doc_type = 'evidence'` on fresh inserts. A dedupe hit onto an
    *   extraction doc keeps its classified doc_type — a document can back
    *   both roles at once.
+   * - `'ef_library'`: {@link EF_LIBRARY_MIME_TYPES} (xlsx/csv only), same
+   *   cap, `doc_type = 'ef_library'` on fresh inserts — provenance copy of
+   *   a user-imported EF library file (migration 019). Same dedupe
+   *   semantics as evidence.
    *
    * Throws if `mimeType` is not in the selected allowlist. The error
    * message names the rejected mime so the IPC layer can surface it.
    */
   uploadFile(
     input: { filename: string; mimeType: string; bytes: Buffer },
-    opts: { purpose?: 'extraction' | 'evidence' } = {},
+    opts: { purpose?: 'extraction' | 'evidence' | 'ef_library' } = {},
   ): Document {
     const purpose = opts.purpose ?? 'extraction';
-    const allowed = purpose === 'evidence' ? EVIDENCE_MIME_TYPES : ALLOWED_MIME_TYPES;
+    const allowed =
+      purpose === 'evidence'
+        ? EVIDENCE_MIME_TYPES
+        : purpose === 'ef_library'
+          ? EF_LIBRARY_MIME_TYPES
+          : ALLOWED_MIME_TYPES;
     if (!allowed.has(input.mimeType)) {
       throw new Error(
         `Unsupported mimeType: ${input.mimeType}. Accepted: ${[...allowed].join(', ')}.`,
       );
     }
-    if (purpose === 'evidence' && input.bytes.length > EVIDENCE_MAX_BYTES) {
+    if (purpose !== 'extraction' && input.bytes.length > EVIDENCE_MAX_BYTES) {
       throw new Error(
-        `Evidence file too large: ${input.bytes.length} bytes (max ${EVIDENCE_MAX_BYTES}).`,
+        `${purpose === 'evidence' ? 'Evidence' : 'EF library'} file too large: ${input.bytes.length} bytes (max ${EVIDENCE_MAX_BYTES}).`,
       );
     }
 
@@ -131,9 +152,12 @@ export class DocumentService {
     // cryptographic collision, far outside our threat model.
     const existing = this.findBySha(sha);
     if (existing) {
-      if (purpose === 'extraction' && existing.doc_type === 'evidence') {
+      if (
+        purpose === 'extraction' &&
+        (existing.doc_type === 'evidence' || existing.doc_type === 'ef_library')
+      ) {
         // Re-uploaded through an extraction entry point: un-hide it from the
-        // /documents workspace (listAll filters 'evidence') and let
+        // /documents workspace (listAll filters hidden types) and let
         // classification assign a real type.
         this.updateDocType(existing.id, null);
         return this.getById(existing.id) ?? existing;
@@ -165,7 +189,7 @@ export class DocumentService {
         input.bytes.length,
         absPath,
         ts,
-        purpose === 'evidence' ? 'evidence' : null,
+        purpose === 'extraction' ? null : purpose,
       );
 
     const row = this.getById(id);
@@ -200,15 +224,16 @@ export class DocumentService {
    * column) since the schema does not carry a separate `created_at`.
    *
    * Evidence-only uploads (`doc_type = 'evidence'`, migration-018 feature)
-   * are excluded: the /documents workspace is the extraction pipeline's
-   * inbox, and evidence files are browsed from the record they're attached
-   * to (lineage panel), not here.
+   * and EF-library provenance files (`doc_type = 'ef_library'`, migration
+   * 019) are excluded: the /documents workspace is the extraction
+   * pipeline's inbox; evidence is browsed from the lineage panel and
+   * library files from Settings → EF libraries.
    */
   listAll(limit = 100): Document[] {
     return this.ctx.db
       .prepare(
         `SELECT * FROM document
-          WHERE doc_type IS NULL OR doc_type != 'evidence'
+          WHERE doc_type IS NULL OR doc_type NOT IN ('evidence', 'ef_library')
           ORDER BY uploaded_at DESC, id DESC LIMIT ?`,
       )
       .all(limit) as Document[];
