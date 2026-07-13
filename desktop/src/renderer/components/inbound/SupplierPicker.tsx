@@ -2,6 +2,7 @@ import { Button } from '@renderer/components/ui/button';
 import { Input } from '@renderer/components/ui/input';
 import { Label } from '@renderer/components/ui/label';
 import { supplierApi } from '@renderer/lib/api/supplier';
+import * as m from '@renderer/paraglide/messages';
 import type { Supplier } from '@shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
@@ -34,14 +35,16 @@ export function SupplierPicker({ value, onChange, disabled }: SupplierPickerProp
 
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState('');
+  const [newEmail, setNewEmail] = useState('');
 
   const createMutation = useMutation({
-    mutationFn: (name: string) => supplierApi.create({ name }),
+    mutationFn: (input: { name: string; email?: string }) => supplierApi.create(input),
     onSuccess: (created: Supplier) => {
       void queryClient.invalidateQueries({ queryKey: ['supplier:list'] });
       onChange(created.id);
       setIsCreating(false);
       setNewName('');
+      setNewEmail('');
     },
   });
 
@@ -60,11 +63,29 @@ export function SupplierPicker({ value, onChange, disabled }: SupplierPickerProp
             disabled={createMutation.isPending}
             autoFocus
           />
+          <div className="space-y-1">
+            <Label htmlFor="supplier-email" className="text-xs text-muted-foreground">
+              {m.supplier_email_optional_label()}
+            </Label>
+            <Input
+              id="supplier-email"
+              type="email"
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+              placeholder="esg@example.com"
+              disabled={createMutation.isPending}
+            />
+          </div>
           <div className="flex items-center gap-2">
             <Button
               type="button"
               size="sm"
-              onClick={() => createMutation.mutate(newName.trim())}
+              onClick={() =>
+                createMutation.mutate({
+                  name: newName.trim(),
+                  ...(newEmail.trim() !== '' ? { email: newEmail.trim() } : {}),
+                })
+              }
               disabled={newName.trim() === '' || createMutation.isPending}
             >
               {createMutation.isPending ? '创建中...' : '创建并选择'}

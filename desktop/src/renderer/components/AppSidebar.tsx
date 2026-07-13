@@ -11,6 +11,8 @@ import {
   SidebarMenuItem,
 } from '@renderer/components/ui/sidebar';
 import { mcpApi } from '@renderer/lib/api/mcp';
+import { questionnaireApi } from '@renderer/lib/api/questionnaire';
+import { isOverdue, localToday } from '@renderer/lib/inbound-overdue';
 import { cn } from '@renderer/lib/utils';
 import * as m from '@renderer/paraglide/messages';
 import { useQuery } from '@tanstack/react-query';
@@ -55,6 +57,20 @@ export function AppSidebar() {
     refetchOnWindowFocus: true,
   });
 
+  // Overdue inbound disclosures → destructive count badge on 供应商披露.
+  // Shares the list route's query key, so every send/import/ingest/delete
+  // mutation that invalidates ['questionnaire:list'] refreshes the badge
+  // for free; window-focus refetch catches the midnight rollover.
+  const disclosures = useQuery({
+    queryKey: ['questionnaire:list'],
+    queryFn: questionnaireApi.list,
+    refetchOnWindowFocus: true,
+  });
+  const today = localToday();
+  const overdueCount = (disclosures.data ?? []).filter(
+    (r) => r.direction === 'inbound' && isOverdue(r, today),
+  ).length;
+
   // Post-redesign the sidebar only reflects a binary "is any client
   // configured to talk to us?" — the old "not built" state isn't
   // derivable from the new IPC surface (getServerEntry always returns
@@ -81,7 +97,7 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        {getSidebarData().navGroups.map((group) => (
+        {getSidebarData({ supplierDisclosuresOverdue: overdueCount }).navGroups.map((group) => (
           <NavGroup key={group.title} {...group} />
         ))}
       </SidebarContent>

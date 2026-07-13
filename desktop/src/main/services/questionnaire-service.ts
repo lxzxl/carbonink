@@ -404,7 +404,7 @@ export class QuestionnaireService {
     if (!questionnaire) return null;
 
     const customer = this.deps.db
-      .prepare(`SELECT id, name, notes FROM customer WHERE id = ?`)
+      .prepare(`SELECT id, name, notes, role, email FROM customer WHERE id = ?`)
       .get(questionnaire.customer_id) as Customer;
 
     const document = this.deps.db

@@ -39,6 +39,7 @@ const FAKE_CUSTOMER = {
   name: 'Acme Corp',
   notes: null,
   role: 'customer' as const,
+  email: null,
 };
 
 const FAKE_DOCUMENT = {

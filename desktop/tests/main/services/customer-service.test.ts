@@ -113,4 +113,43 @@ describe('CustomerService', () => {
     svc.createOrGetByName('Just A Customer');
     expect(svc.listSuppliers()).toEqual([]);
   });
+
+  it('createSupplier defaults email to null', () => {
+    const { svc } = setup();
+    const s = svc.createSupplier({ name: 'Acme Steel' });
+    expect(s.email).toBeNull();
+    expect(svc.listSuppliers()[0]?.email).toBeNull();
+  });
+
+  it('createSupplier persists optional email (trimmed)', () => {
+    const { svc } = setup();
+    const s = svc.createSupplier({ name: 'Acme Steel', email: '  esg@acme-steel.cn ' });
+    expect(s.email).toBe('esg@acme-steel.cn');
+    expect(svc.listSuppliers()[0]?.email).toBe('esg@acme-steel.cn');
+  });
+
+  it('createSupplier treats a blank email as null', () => {
+    const { svc } = setup();
+    const s = svc.createSupplier({ name: 'Acme Steel', email: '   ' });
+    expect(s.email).toBeNull();
+  });
+
+  it('setSupplierEmail sets, then clears, the email', () => {
+    const { svc } = setup();
+    const s = svc.createSupplier({ name: 'Acme Steel' });
+    const updated = svc.setSupplierEmail(s.id, 'esg@acme-steel.cn');
+    expect(updated?.email).toBe('esg@acme-steel.cn');
+    const cleared = svc.setSupplierEmail(s.id, null);
+    expect(cleared?.email).toBeNull();
+    expect(svc.listSuppliers()[0]?.email).toBeNull();
+  });
+
+  it('setSupplierEmail misses customer-role rows and unknown ids', () => {
+    const { svc } = setup();
+    const c = svc.createOrGetByName('Acme Corp');
+    expect(svc.setSupplierEmail(c.id, 'x@y.cn')).toBeNull();
+    expect(svc.setSupplierEmail('no-such-id', 'x@y.cn')).toBeNull();
+    // The customer row is untouched.
+    expect(svc.getById(c.id)?.email).toBeNull();
+  });
 });

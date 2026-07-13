@@ -24,25 +24,31 @@ export class CustomerService {
    */
   createOrGetByName(name: string): Customer {
     const existing = this.deps.db
-      .prepare(`SELECT id, name, notes, role FROM customer WHERE name = ? AND role = 'customer'`)
+      .prepare(
+        `SELECT id, name, notes, role, email FROM customer WHERE name = ? AND role = 'customer'`,
+      )
       .get(name) as Customer | undefined;
     if (existing) return existing;
     const id = randomUUID();
     this.deps.db
       .prepare(`INSERT INTO customer (id, name, notes, role) VALUES (?, ?, NULL, 'customer')`)
       .run(id, name);
-    return { id, name, notes: null, role: 'customer' };
+    return { id, name, notes: null, role: 'customer', email: null };
   }
 
   list(): Customer[] {
     return this.deps.db
-      .prepare(`SELECT id, name, notes, role FROM customer WHERE role = 'customer' ORDER BY name`)
+      .prepare(
+        `SELECT id, name, notes, role, email FROM customer WHERE role = 'customer' ORDER BY name`,
+      )
       .all() as Customer[];
   }
 
   getById(id: string): Customer | null {
     const row = this.deps.db
-      .prepare(`SELECT id, name, notes, role FROM customer WHERE id = ? AND role = 'customer'`)
+      .prepare(
+        `SELECT id, name, notes, role, email FROM customer WHERE id = ? AND role = 'customer'`,
+      )
       .get(id) as Customer | undefined;
     return row ?? null;
   }
@@ -53,7 +59,9 @@ export class CustomerService {
    */
   listSuppliers(): Supplier[] {
     return this.deps.db
-      .prepare(`SELECT id, name, notes, role FROM customer WHERE role = 'supplier' ORDER BY name`)
+      .prepare(
+        `SELECT id, name, notes, role, email FROM customer WHERE role = 'supplier' ORDER BY name`,
+      )
       .all() as Supplier[];
   }
 
@@ -64,12 +72,37 @@ export class CustomerService {
    * If you want create-or-get behavior, the caller can `listSuppliers()`
    * first and filter.
    */
-  createSupplier(input: { name: string; notes?: string }): Supplier {
+  createSupplier(input: { name: string; notes?: string; email?: string }): Supplier {
     const id = randomUUID();
     const notes = input.notes ?? null;
+    const email = normalizeEmail(input.email);
     this.deps.db
-      .prepare(`INSERT INTO customer (id, name, notes, role) VALUES (?, ?, ?, 'supplier')`)
-      .run(id, input.name, notes);
-    return { id, name: input.name, notes, role: 'supplier' };
+      .prepare(
+        `INSERT INTO customer (id, name, notes, role, email) VALUES (?, ?, ?, 'supplier', ?)`,
+      )
+      .run(id, input.name, notes, email);
+    return { id, name: input.name, notes, role: 'supplier', email };
   }
+
+  /**
+   * Set (or clear, with null/blank) a supplier's contact email. Supplier-
+   * scoped like everything else here: a customer-role id is a miss, not an
+   * update. Returns the updated row, or null when no supplier matched.
+   */
+  setSupplierEmail(id: string, email: string | null): Supplier | null {
+    const normalized = normalizeEmail(email);
+    const changed = this.deps.db
+      .prepare(`UPDATE customer SET email = ? WHERE id = ? AND role = 'supplier'`)
+      .run(normalized, id).changes;
+    if (changed === 0) return null;
+    return this.deps.db
+      .prepare(`SELECT id, name, notes, role, email FROM customer WHERE id = ?`)
+      .get(id) as Supplier;
+  }
+}
+
+/** Trim + collapse blank to NULL so "cleared" and "never set" are one state. */
+function normalizeEmail(email: string | null | undefined): string | null {
+  const trimmed = email?.trim() ?? '';
+  return trimmed === '' ? null : trimmed;
 }

@@ -86,6 +86,7 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   'questionnaire:inbound-delete',
   'supplier:list',
   'supplier:create',
+  'supplier:set-email',
   // answer domain (Phase 2.2b — auto-answer pipeline)
   'answer:export-to-xlsx',
   'answer:generate',
@@ -154,6 +155,7 @@ export const allowedPushChannels: ReadonlyArray<keyof IpcPushTypeMap> = [
   'updater:status',
   'menu:undo',
   'menu:redo',
+  'app:navigate',
 ];
 
 export type InvokeFn = (channel: string, ...args: unknown[]) => Promise<unknown>;

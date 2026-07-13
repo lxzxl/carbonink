@@ -69,8 +69,18 @@ export function NavGroup({ title, items }: NavGroupProps) {
   );
 }
 
-function NavBadge({ children }: { children: ReactNode }) {
-  return <Badge className="rounded-full px-1 py-0 text-xs">{children}</Badge>;
+function NavBadge({
+  children,
+  variant = 'default',
+}: {
+  children: ReactNode;
+  variant?: 'default' | 'destructive' | undefined;
+}) {
+  return (
+    <Badge variant={variant} className="rounded-full px-1 py-0 text-xs">
+      {children}
+    </Badge>
+  );
 }
 
 function SidebarMenuLink({ item, href }: { item: NavLink; href: string }) {
@@ -81,7 +91,7 @@ function SidebarMenuLink({ item, href }: { item: NavLink; href: string }) {
         <Link to={item.url} onClick={() => setOpenMobile(false)}>
           {item.icon && <item.icon />}
           <span>{item.title}</span>
-          {item.badge && <NavBadge>{item.badge}</NavBadge>}
+          {item.badge && <NavBadge variant={item.badgeVariant}>{item.badge}</NavBadge>}
         </Link>
       </SidebarMenuButton>
     </SidebarMenuItem>

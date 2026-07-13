@@ -5,9 +5,10 @@ import { NavArrows } from '@renderer/components/layout/nav-arrows';
 import { NavigationProgress } from '@renderer/components/layout/navigation-progress';
 import { ScrollProvider } from '@renderer/components/layout/scroll-context';
 import { SidebarInset, SidebarProvider } from '@renderer/components/ui/sidebar';
+import { subscribe } from '@renderer/lib/ipc';
 import { useUndo } from '@renderer/lib/use-undo';
-import { createRootRoute, Outlet, useRouterState } from '@tanstack/react-router';
-import { type UIEvent, useState } from 'react';
+import { createRootRoute, Outlet, useRouter, useRouterState } from '@tanstack/react-router';
+import { type UIEvent, useEffect, useState } from 'react';
 
 export const Route = createRootRoute({
   component: RootComponent,
@@ -55,6 +56,12 @@ function RootComponent() {
   // values; not destructuring them here keeps render-cost zero for the
   // root component itself.
   useUndo();
+
+  // Main→renderer deep link (overdue-notification click). History-level
+  // push instead of typed navigate: the payload is an arbitrary string
+  // path and the typed-route union would demand a cast anyway.
+  const router = useRouter();
+  useEffect(() => subscribe('app:navigate', (path) => router.history.push(path)), [router]);
 
   if (pathname === '/print-render') {
     return <Outlet />;

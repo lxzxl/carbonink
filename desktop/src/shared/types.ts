@@ -41,12 +41,14 @@ export type CounterpartyRole = 'customer' | 'supplier';
 // Customer types
 // ---------------------------------------------------------------------------
 
-/** Row shape mirroring the `customer` table. See migration 005 + 017. */
+/** Row shape mirroring the `customer` table. See migration 005 + 017 + 020. */
 export type Customer = {
   id: string;
   name: string;
   notes: string | null;
   role: CounterpartyRole;
+  /** Contact email (migration 020). NULL until captured. */
+  email: string | null;
 };
 
 /**
@@ -59,6 +61,8 @@ export type Supplier = {
   name: string;
   notes: string | null;
   role: 'supplier';
+  /** Contact email (migration 020). Reminder mailto target; NULL until captured. */
+  email: string | null;
 };
 
 // ---------------------------------------------------------------------------

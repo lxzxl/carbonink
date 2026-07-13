@@ -28,6 +28,7 @@ const CUSTOMER = {
   name: 'Acme Manufacturing Co',
   notes: null,
   role: 'customer',
+  email: null,
 };
 const DOC = {
   id: 'doc_uploaded',

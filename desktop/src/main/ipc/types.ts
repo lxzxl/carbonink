@@ -338,7 +338,12 @@ export type IpcTypeMap = {
   'supplier:create': (input: {
     name: string;
     notes?: string;
+    email?: string;
   }) => Promise<import('@shared/types').Supplier>;
+  'supplier:set-email': (input: {
+    id: string;
+    email: string | null;
+  }) => Promise<import('@shared/types').Supplier | null>;
 
   // mcp-integration domain (Settings → Integrations sub-page)
   'mcp:detect': () => Promise<McpDetectResult>;
@@ -625,4 +630,8 @@ export type IpcPushTypeMap = {
   // object keeps the IpcPushTypeMap shape consistent with the others.
   'menu:undo': Record<string, never>;
   'menu:redo': Record<string, never>;
+  // Overdue-notification deep link (spec 2026-07-13): main asks the
+  // renderer to route somewhere, payload = target path. The root layout
+  // subscribes and forwards to the router.
+  'app:navigate': string;
 };

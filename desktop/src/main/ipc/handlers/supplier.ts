@@ -5,6 +5,14 @@ import type { IpcTypeMap } from '../types.js';
 const createInput = z.object({
   name: z.string().min(1),
   notes: z.string().optional(),
+  // Loose shape on purpose: a malformed address just yields a dud mailto,
+  // and hard-failing here would strand the reminder dialog. Length only.
+  email: z.string().max(320).optional(),
+});
+
+const setEmailInput = z.object({
+  id: z.string().min(1),
+  email: z.string().max(320).nullable(),
 });
 
 /**
@@ -26,11 +34,15 @@ export function supplierHandlers(ctx: IpcContext): {
     'supplier:list': async () => ctx.customerService.listSuppliers(),
     'supplier:create': async (input) => {
       const parsed = createInput.parse(input);
-      return ctx.customerService.createSupplier(
-        parsed.notes !== undefined
-          ? { name: parsed.name, notes: parsed.notes }
-          : { name: parsed.name },
-      );
+      return ctx.customerService.createSupplier({
+        name: parsed.name,
+        ...(parsed.notes !== undefined ? { notes: parsed.notes } : {}),
+        ...(parsed.email !== undefined ? { email: parsed.email } : {}),
+      });
+    },
+    'supplier:set-email': async (input) => {
+      const parsed = setEmailInput.parse(input);
+      return ctx.customerService.setSupplierEmail(parsed.id, parsed.email);
     },
   };
 }

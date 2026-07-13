@@ -7,5 +7,7 @@ import { invoke } from '../ipc.js';
  */
 export const supplierApi = {
   list: () => invoke('supplier:list'),
-  create: (input: { name: string; notes?: string }) => invoke('supplier:create', input),
+  create: (input: { name: string; notes?: string; email?: string }) =>
+    invoke('supplier:create', input),
+  setEmail: (input: { id: string; email: string | null }) => invoke('supplier:set-email', input),
 };

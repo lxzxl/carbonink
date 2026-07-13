@@ -9,13 +9,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@renderer/components/ui/dialog';
+import { Input } from '@renderer/components/ui/input';
+import { Label } from '@renderer/components/ui/label';
 import { answerApi } from '@renderer/lib/api/answer';
 import { inboundQuestionnaireApi } from '@renderer/lib/api/inbound-questionnaire';
+import { orgApi } from '@renderer/lib/api/organization';
 import { questionnaireApi } from '@renderer/lib/api/questionnaire';
+import { supplierApi } from '@renderer/lib/api/supplier';
+import { isOverdue, localToday, overdueDays } from '@renderer/lib/inbound-overdue';
+import { buildReminderMailto } from '@renderer/lib/reminder-mailto';
+import * as m from '@renderer/paraglide/messages';
 import type { Question, Questionnaire } from '@shared/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { Download, Trash2, Upload } from 'lucide-react';
+import { Download, Mail, Trash2, Upload } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 /**
@@ -97,7 +104,7 @@ function InboundDetailBody({
 }: {
   id: string;
   questionnaire: Questionnaire;
-  supplier: { name: string };
+  supplier: { id: string; name: string; email: string | null };
   questions: Question[];
 }): JSX.Element {
   const navigate = useNavigate();
@@ -153,6 +160,57 @@ function InboundDetailBody({
     onError: (e) => toast.error(e instanceof Error ? e.message : String(e)),
   });
 
+  // 催办邮件 (spec 2026-07-13): compose a reminder draft in the OS mail
+  // client. Needs the supplier's email — when missing, a small dialog
+  // collects + persists it first, then composes with the fresh address.
+  const today = localToday();
+  const overdue = isOverdue(questionnaire, today);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [emailInput, setEmailInput] = useState('');
+
+  // fetchQuery (not a render-time useQuery) so a click right after mount
+  // can't race the org load and silently drop the sign-off; failure just
+  // omits the signature.
+  const openReminder = async (email: string): Promise<void> => {
+    const org = await queryClient
+      .fetchQuery({ queryKey: ['org:get-current'], queryFn: () => orgApi.getCurrent() })
+      .catch(() => null);
+    window.open(
+      buildReminderMailto({
+        email,
+        supplierName: supplier.name,
+        reportingYear: questionnaire.reporting_year,
+        dueDate: questionnaire.due_date,
+        daysOverdue:
+          overdue && questionnaire.due_date !== null
+            ? overdueDays(questionnaire.due_date, today)
+            : null,
+        orgName: org?.name_zh ?? org?.name_en ?? null,
+      }),
+    );
+  };
+
+  const setEmailMutation = useMutation({
+    mutationFn: (email: string) => supplierApi.setEmail({ id: supplier.id, email }),
+    onSuccess: (updated) => {
+      setEmailDialogOpen(false);
+      void queryClient.invalidateQueries({ queryKey: ['questionnaire:get-by-id', id] });
+      void queryClient.invalidateQueries({ queryKey: ['supplier:list'] });
+      const email = updated?.email;
+      if (email) void openReminder(email);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : String(e)),
+  });
+
+  const handleRemind = (): void => {
+    if (supplier.email) {
+      void openReminder(supplier.email);
+    } else {
+      setEmailInput('');
+      setEmailDialogOpen(true);
+    }
+  };
+
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const deleteMutation = useMutation({
     mutationFn: () => inboundQuestionnaireApi.delete({ questionnaire_id: id }),
@@ -177,7 +235,36 @@ function InboundDetailBody({
         <p className="text-sm text-muted-foreground">
           {questionnaire.reporting_year} · {statusLabel(questionnaire.status)} · Cat 1 Supplier
           Disclosure · {questions.length} 题
+          {questionnaire.due_date && (
+            <>
+              {' · '}
+              {overdue ? (
+                <span className="font-medium text-destructive">
+                  {m.inbound_overdue_days({
+                    days: String(overdueDays(questionnaire.due_date, today)),
+                  })}
+                </span>
+              ) : (
+                m.inbound_due_on({ date: questionnaire.due_date })
+              )}
+            </>
+          )}
         </p>
+        {supplier.email && (
+          <p className="text-xs text-muted-foreground">
+            {supplier.email}
+            <button
+              type="button"
+              onClick={() => {
+                setEmailInput(supplier.email ?? '');
+                setEmailDialogOpen(true);
+              }}
+              className="ml-2 rounded px-1 py-0.5 font-medium text-foreground/70 hover:bg-foreground/5"
+            >
+              {m.inbound_remind_email_edit()}
+            </button>
+          </p>
+        )}
       </div>
 
       <div className="flex-1 min-h-0 overflow-auto px-6 py-3 space-y-4">
@@ -214,6 +301,10 @@ function InboundDetailBody({
           )}
           {questionnaire.status === 'sent' && (
             <>
+              <Button type="button" variant="outline" onClick={handleRemind}>
+                <Mail className="mr-1.5 h-4 w-4" />
+                {m.inbound_remind_button()}
+              </Button>
               <Button
                 type="button"
                 variant="outline"
@@ -264,6 +355,44 @@ function InboundDetailBody({
           )}
         </div>
       </div>
+
+      <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{m.inbound_remind_email_dialog_title()}</DialogTitle>
+            <DialogDescription>{m.inbound_remind_email_dialog_desc()}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="supplier-email-input">{m.inbound_remind_email_label()}</Label>
+            <Input
+              id="supplier-email-input"
+              type="email"
+              value={emailInput}
+              onChange={(e) => setEmailInput(e.target.value)}
+              placeholder="esg@example.com"
+              disabled={setEmailMutation.isPending}
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setEmailDialogOpen(false)}
+              disabled={setEmailMutation.isPending}
+            >
+              {m.cancel()}
+            </Button>
+            <Button
+              type="button"
+              onClick={() => setEmailMutation.mutate(emailInput.trim())}
+              disabled={emailInput.trim() === '' || setEmailMutation.isPending}
+            >
+              {m.inbound_remind_email_save()}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
         <DialogContent>

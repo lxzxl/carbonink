@@ -42,7 +42,11 @@ import type { NavGroup } from './types';
  * forced by LocaleProvider's `key={locale}`.
  */
 
-export function getSidebarData(): { navGroups: NavGroup[] } {
+export function getSidebarData(opts?: {
+  /** Overdue inbound-disclosure count; >0 renders a badge on 供应商披露. */
+  supplierDisclosuresOverdue?: number;
+}): { navGroups: NavGroup[] } {
+  const overdue = opts?.supplierDisclosuresOverdue ?? 0;
   return {
     navGroups: [
       {
@@ -65,7 +69,14 @@ export function getSidebarData(): { navGroups: NavGroup[] } {
         items: [
           { title: m.nav_documents(), url: '/documents', icon: FileText },
           { title: m.nav_disclosure_filings(), url: '/questionnaires', icon: ClipboardList },
-          { title: m.nav_supplier_disclosures(), url: '/supplier-disclosures', icon: Download },
+          {
+            title: m.nav_supplier_disclosures(),
+            url: '/supplier-disclosures',
+            icon: Download,
+            ...(overdue > 0
+              ? { badge: String(overdue), badgeVariant: 'destructive' as const }
+              : {}),
+          },
         ],
       },
     ],

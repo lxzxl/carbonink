@@ -4,6 +4,7 @@ import { runMigrations } from '@main/db/migrate.js';
 import { cleanupIpc, setupIpc } from '@main/ipc/setup.js';
 import { runAutoBackupIfDue } from '@main/services/auto-backup-service.js';
 import { installLogger } from '@main/services/logger-service.js';
+import { notifyOverdueDisclosures } from '@main/services/overdue-notify-service.js';
 import { initAutoUpdater } from '@main/updater/auto-updater.js';
 import { app, BrowserWindow, Menu, nativeImage } from 'electron';
 import { buildAppMenu } from './menu.js';
@@ -71,6 +72,14 @@ app.whenReady().then(() => {
       | undefined;
     const enabled = row?.value !== 'false';
     if (enabled) runAutoBackupIfDue();
+  }
+
+  // ROADMAP §8.1-⑤ v2: one aggregate OS notification per local day when
+  // inbound supplier disclosures are overdue. Decides for itself whether
+  // it's due (setting `overdue_notify.last_notified_date`) — safe every
+  // launch. E2E skipped so notifications never pop over test runs.
+  if (process.env.CARBONINK_E2E !== '1') {
+    notifyOverdueDisclosures(db);
   }
 
   // E2E test hook: when `CARBONINK_E2E_DEFER_WINDOW=1`, defer opening the
