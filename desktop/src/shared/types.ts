@@ -505,6 +505,189 @@ export type EfLibraryImportResult =
   | { ok: false; error: { _tag: EfLibraryImportErrorTag } };
 
 // ---------------------------------------------------------------------------
+// Batch activity-data import (spec 2026-07-21-batch-activity-import)
+// ---------------------------------------------------------------------------
+
+/**
+ * Target fields of the activity-import column mapping: what a consultant's
+ * activity-data ledger can carry. The reporting period is a wizard-level
+ * choice (one import = one period), never a column.
+ */
+export type ActivityImportField =
+  | 'source_name'
+  | 'description'
+  | 'amount'
+  | 'unit'
+  | 'occurred_at_start'
+  | 'occurred_at_end'
+  | 'notes';
+
+/** Column mapping: target field → 0-based column index. Absent = unmapped. */
+export type ActivityImportMapping = Partial<Record<ActivityImportField, number>>;
+
+/** All mappable fields in canonical (display) order. */
+export const ACTIVITY_IMPORT_FIELDS: readonly ActivityImportField[] = [
+  'source_name',
+  'description',
+  'amount',
+  'unit',
+  'occurred_at_start',
+  'occurred_at_end',
+  'notes',
+];
+
+/** Fields the import cannot proceed without a mapped column for. */
+export const ACTIVITY_IMPORT_REQUIRED_FIELDS: readonly ActivityImportField[] = [
+  'source_name',
+  'description',
+  'amount',
+  'unit',
+];
+
+/**
+ * Locale-neutral issue codes (renderer maps each to a paraglide message
+ * `activity_import_issue_<code>` — same structural i18n approach as the EF
+ * import). The first six are errors (row skipped at import); the rest are
+ * warnings and never block. `unit_dimension_mismatch` is special: it is
+ * raised at the group-confirm step, where an EF whose unit family differs
+ * from the group's without a fuel binding cannot produce a number at all,
+ * so that confirm is refused rather than warned.
+ */
+export type ActivityImportIssueCode =
+  | 'source_name_missing'
+  | 'description_missing'
+  | 'amount_missing'
+  | 'amount_invalid'
+  | 'unit_missing'
+  | 'date_invalid'
+  | 'date_range_invalid'
+  | 'period_mismatch'
+  | 'duplicate_in_file'
+  | 'duplicate_in_db'
+  | 'unit_dimension_mismatch'
+  | 'amount_outlier';
+
+/** One per-row problem, keyed by the 1-based row number in the user's file. */
+export type ActivityImportRowIssue = {
+  row: number;
+  code: ActivityImportIssueCode;
+  detail?: string;
+};
+
+/**
+ * A normalized valid row. Dates are ISO `YYYY-MM-DD`; null means the column
+ * was absent/empty and the row inherits the reporting period's bounds.
+ */
+export type ActivityImportRow = {
+  row: number;
+  source_name: string;
+  description: string;
+  amount: number;
+  unit: string;
+  occurred_at_start: string | null;
+  occurred_at_end: string | null;
+  notes: string | null;
+};
+
+/** Validation summary (issue lists capped, full counts preserved). */
+export type ActivityImportValidation = {
+  total_rows: number;
+  valid_count: number;
+  error_count: number;
+  warning_count: number;
+  errors: ActivityImportRowIssue[];
+  warnings: ActivityImportRowIssue[];
+  /** First few normalized valid rows, for the preview pane. */
+  sample: ActivityImportRow[];
+};
+
+/**
+ * Result of `activity-import:pick-file`. File-level parse failures reuse
+ * `EfImportFileError` — both wizards share the same parser.
+ */
+export type ActivityImportPreview = {
+  /** Opaque handle to the staged parse; consumed by the later steps. */
+  token: string;
+  filename: string;
+  headers: string[];
+  total_rows: number;
+  mapping: ActivityImportMapping;
+  validation: ActivityImportValidation;
+};
+
+/** Per distinct source_name value: match state against existing sources. */
+export type ActivityImportSourceStatus = {
+  name: string;
+  row_count: number;
+  /** Auto-match against existing emission_source names (normalized exact). */
+  matched_source_id: string | null;
+  /** User-confirmed target (prefilled from the auto-match). */
+  resolved_source_id: string | null;
+};
+
+/** The user's EF pick for a group — the 5 identity columns that get pinned. */
+export type ActivityImportEfChoice = {
+  factor_code: string;
+  year: number;
+  source: string;
+  geography: string;
+  dataset_version: string;
+};
+
+export type ActivityImportGroupStatus = 'pending' | 'confirmed' | 'skipped';
+
+/**
+ * A confirm-unit of the wizard: rows sharing (normalized description, unit,
+ * resolved source). One human EF decision per group, applied to every row —
+ * the group is how "every number is human-confirmed" survives 5k-row files.
+ */
+export type ActivityImportGroup = {
+  key: string;
+  description: string;
+  unit: string;
+  source_id: string;
+  source_name: string;
+  row_count: number;
+  amount_total: number;
+  status: ActivityImportGroupStatus;
+  ef: ActivityImportEfChoice | null;
+  fuel_code: string | null;
+};
+
+export type ActivityImportConfirmResult =
+  | { ok: true }
+  | {
+      ok: false;
+      error: 'TokenExpired' | 'GroupNotFound' | 'EfNotFound' | 'DimensionMismatch';
+    };
+
+/** Rows excluded from the final import, bucketed by why. */
+export type ActivityImportSkippedSummary = {
+  validation_errors: number;
+  unresolved_sources: number;
+  skipped_groups: number;
+};
+
+export type ActivityImportErrorTag =
+  | 'TokenExpired'
+  | 'PeriodMissing'
+  | 'UnconfirmedGroups'
+  | 'NothingToImport';
+
+export type ActivityImportResult =
+  | {
+      ok: true;
+      imported_count: number;
+      skipped: ActivityImportSkippedSummary;
+      /** Post-import warnings: outliers, db duplicates, period mismatches. */
+      warnings: ActivityImportRowIssue[];
+      warning_count: number;
+      /** Content-addressed archive of the imported ledger file. */
+      document_id: string;
+    }
+  | { ok: false; error: { _tag: ActivityImportErrorTag } };
+
+// ---------------------------------------------------------------------------
 // emission_source / activity_data — Zod inputs + DB row types (Phase 1a task 6)
 // ---------------------------------------------------------------------------
 //
