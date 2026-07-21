@@ -77,9 +77,7 @@ function medianOf(sorted: readonly number[]): number {
  * (both directions — a dropped zero is as suspicious as an extra one).
  * Groups below OUTLIER_MIN_GROUP_SIZE rows are skipped entirely.
  */
-export function detectAmountOutliers(
-  rows: readonly ResolvedImportRow[],
-): ActivityImportRowIssue[] {
+export function detectAmountOutliers(rows: readonly ResolvedImportRow[]): ActivityImportRowIssue[] {
   const byGroup = new Map<string, ResolvedImportRow[]>();
   for (const row of rows) {
     const key = groupKeyOf(row.description, row.unit, row.source_id);

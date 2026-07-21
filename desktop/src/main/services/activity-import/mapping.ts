@@ -24,11 +24,33 @@ const SAMPLE_SIZE = 5;
 const FIELD_ALIASES: ReadonlyArray<{ field: ActivityImportField; aliases: readonly string[] }> = [
   {
     field: 'source_name',
-    aliases: ['sourcename', 'emissionsource', 'source', 'facility', '排放源名称', '排放源', '源名称', '设施', '设备'],
+    aliases: [
+      'sourcename',
+      'emissionsource',
+      'source',
+      'facility',
+      '排放源名称',
+      '排放源',
+      '源名称',
+      '设施',
+      '设备',
+    ],
   },
   {
     field: 'description',
-    aliases: ['description', 'activity', 'item', 'detail', '活动描述', '描述', '说明', '摘要', '品名', '项目', '名称'],
+    aliases: [
+      'description',
+      'activity',
+      'item',
+      'detail',
+      '活动描述',
+      '描述',
+      '说明',
+      '摘要',
+      '品名',
+      '项目',
+      '名称',
+    ],
   },
   {
     field: 'amount',
@@ -37,7 +59,17 @@ const FIELD_ALIASES: ReadonlyArray<{ field: ActivityImportField; aliases: readon
   { field: 'unit', aliases: ['unit', '单位', '计量单位', '活动单位'] },
   {
     field: 'occurred_at_start',
-    aliases: ['occurredatstart', 'startdate', 'datefrom', 'start', '开始日期', '起始日期', '开始时间', '日期', 'date'],
+    aliases: [
+      'occurredatstart',
+      'startdate',
+      'datefrom',
+      'start',
+      '开始日期',
+      '起始日期',
+      '开始时间',
+      '日期',
+      'date',
+    ],
   },
   {
     field: 'occurred_at_end',
@@ -101,9 +133,7 @@ function pad2(n: number): string {
 /** True iff (y, m, d) is a real calendar date. */
 function isRealDate(y: number, m: number, d: number): boolean {
   const date = new Date(Date.UTC(y, m - 1, d));
-  return (
-    date.getUTCFullYear() === y && date.getUTCMonth() === m - 1 && date.getUTCDate() === d
-  );
+  return date.getUTCFullYear() === y && date.getUTCMonth() === m - 1 && date.getUTCDate() === d;
 }
 
 /**

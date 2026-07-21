@@ -124,13 +124,13 @@ export class DocumentService {
    */
   uploadFile(
     input: { filename: string; mimeType: string; bytes: Buffer },
-    opts: { purpose?: 'extraction' | 'evidence' | 'ef_library' } = {},
+    opts: { purpose?: 'extraction' | 'evidence' | 'ef_library' | 'activity_import' } = {},
   ): Document {
     const purpose = opts.purpose ?? 'extraction';
     const allowed =
       purpose === 'evidence'
         ? EVIDENCE_MIME_TYPES
-        : purpose === 'ef_library'
+        : purpose === 'ef_library' || purpose === 'activity_import'
           ? EF_LIBRARY_MIME_TYPES
           : ALLOWED_MIME_TYPES;
     if (!allowed.has(input.mimeType)) {
@@ -140,7 +140,7 @@ export class DocumentService {
     }
     if (purpose !== 'extraction' && input.bytes.length > EVIDENCE_MAX_BYTES) {
       throw new Error(
-        `${purpose === 'evidence' ? 'Evidence' : 'EF library'} file too large: ${input.bytes.length} bytes (max ${EVIDENCE_MAX_BYTES}).`,
+        `${purpose === 'evidence' ? 'Evidence' : 'Import'} file too large: ${input.bytes.length} bytes (max ${EVIDENCE_MAX_BYTES}).`,
       );
     }
 
@@ -154,7 +154,9 @@ export class DocumentService {
     if (existing) {
       if (
         purpose === 'extraction' &&
-        (existing.doc_type === 'evidence' || existing.doc_type === 'ef_library')
+        (existing.doc_type === 'evidence' ||
+          existing.doc_type === 'ef_library' ||
+          existing.doc_type === 'activity_import')
       ) {
         // Re-uploaded through an extraction entry point: un-hide it from the
         // /documents workspace (listAll filters hidden types) and let
@@ -233,7 +235,7 @@ export class DocumentService {
     return this.ctx.db
       .prepare(
         `SELECT * FROM document
-          WHERE doc_type IS NULL OR doc_type NOT IN ('evidence', 'ef_library')
+          WHERE doc_type IS NULL OR doc_type NOT IN ('evidence', 'ef_library', 'activity_import')
           ORDER BY uploaded_at DESC, id DESC LIMIT ?`,
       )
       .all(limit) as Document[];
