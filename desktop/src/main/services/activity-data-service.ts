@@ -243,7 +243,13 @@ export class ActivityDataService {
                 e.document_id AS source_document_id,
                 d.filename    AS source_document_filename,
                 iq.questionnaire_id AS inbound_questionnaire_id,
-                ic.name             AS inbound_supplier_name
+                ic.name             AS inbound_supplier_name,
+                EXISTS(
+                  SELECT 1 FROM evidence_attachment ea
+                  JOIN document ld ON ld.id = ea.document_id
+                  WHERE ea.activity_data_id = ad.id
+                    AND ld.doc_type = 'activity_import'
+                ) AS from_ledger_import
            FROM activity_data ad
            LEFT JOIN extraction e   ON e.id = ad.extraction_id
            LEFT JOIN document   d   ON d.id = e.document_id

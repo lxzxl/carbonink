@@ -107,6 +107,7 @@ const MANUAL_ROW = {
   source_document_filename: null,
   inbound_questionnaire_id: null,
   inbound_supplier_name: null,
+  from_ledger_import: 0 as const,
 };
 
 const activitiesComponent: NonNullable<typeof ActivitiesRoute.options.component> = (() => {

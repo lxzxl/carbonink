@@ -12,6 +12,12 @@ export interface EfPickerProps {
   currentEfPk: EfCompositePk | null;
   /** Drives the Recommended pane. Omit to hide that pane entirely. */
   matcherHint?: { extraction_id: string; stage_id?: string } | undefined;
+  /**
+   * Free-text alternative to matcherHint (batch activity import): the
+   * Recommended pane queries `ef:recommend-text` with this hint instead of
+   * an extraction. Ignored when matcherHint is present.
+   */
+  textHint?: string | undefined;
   /** Optional scope filter to narrow the Browse pane. */
   scopeFilter?: 1 | 2 | 3 | undefined;
   /** Fires when user picks an EF. Passes both the composite PK and the full row metadata. */
@@ -43,17 +49,31 @@ export function EfPicker({
   selectedSourceId,
   currentEfPk,
   matcherHint,
+  textHint,
   scopeFilter,
   onChange,
 }: EfPickerProps) {
+  const hasHint = !!matcherHint || (textHint !== undefined && textHint.trim() !== '');
   const recommendQuery = useQuery<MatcherResult>({
-    queryKey: ['ef:recommend', matcherHint?.extraction_id ?? '', selectedSourceId ?? ''],
-    queryFn: (): Promise<MatcherResult> =>
-      efMatcherApi.recommend({
-        extraction_id: matcherHint!.extraction_id,
-        emission_source_id: selectedSourceId!,
-      }) as unknown as Promise<MatcherResult>,
-    enabled: !!matcherHint && !!selectedSourceId,
+    queryKey: [
+      'ef:recommend',
+      matcherHint?.extraction_id ?? `text:${textHint ?? ''}`,
+      selectedSourceId ?? '',
+    ],
+    queryFn: (): Promise<MatcherResult> => {
+      if (!selectedSourceId) return Promise.resolve({ recommended: [], ranked_full: [] });
+      const call = matcherHint
+        ? efMatcherApi.recommend({
+            extraction_id: matcherHint.extraction_id,
+            emission_source_id: selectedSourceId,
+          })
+        : efMatcherApi.recommendText({
+            hint_text: (textHint ?? '').trim(),
+            emission_source_id: selectedSourceId,
+          });
+      return call as unknown as Promise<MatcherResult>;
+    },
+    enabled: hasHint && !!selectedSourceId,
     staleTime: Number.POSITIVE_INFINITY,
     retry: false,
   });
@@ -69,8 +89,8 @@ export function EfPicker({
   // BEFORE the fieldset, mirroring the original ActivityForm structure for test compatibility.
   return (
     <div className="ef-picker">
-      {/* Recommended section — only shown when matcherHint + loading/has candidates */}
-      {matcherHint &&
+      {/* Recommended section — only shown when a hint is present + loading/has candidates */}
+      {hasHint &&
         (recommendQuery.isPending || (recommendQuery.data?.recommended?.length ?? 0) > 0) && (
           <div className="rounded-md border border-[color:var(--color-primary)]/40 bg-[color:var(--color-primary)]/5 p-3">
             <h4 className="text-sm font-medium">{m.ef_matcher_recommended_heading()}</h4>
@@ -114,7 +134,7 @@ export function EfPicker({
       {/* Browse/All fieldset - always shown when a source is selected */}
       <fieldset className="space-y-2 rounded-md border border-border bg-background/40 p-3">
         <legend className="px-1 text-sm font-medium">
-          {matcherHint && selectedSourceId ? m.ef_matcher_all_candidates() : m.activities_form_ef()}
+          {hasHint && selectedSourceId ? m.ef_matcher_all_candidates() : m.activities_form_ef()}
         </legend>
         {!selectedSourceId ? (
           <p className="text-xs text-muted-foreground">

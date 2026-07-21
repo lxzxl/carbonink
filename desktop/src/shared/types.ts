@@ -805,6 +805,9 @@ export type ActivityDataWithDocument = ActivityData & {
    * questionnaire id (for deep-linking back) + supplier name. NULL otherwise. */
   inbound_questionnaire_id: string | null;
   inbound_supplier_name: string | null;
+  /** 1 when the row came from a batch ledger import (evidence link onto a
+   * doc_type='activity_import' document); SQLite EXISTS yields 0/1. */
+  from_ledger_import: 0 | 1;
 };
 
 export type EmissionSourceCreateInput = z.infer<typeof emissionSourceCreateInput>;

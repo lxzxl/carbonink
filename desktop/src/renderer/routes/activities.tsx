@@ -1,4 +1,5 @@
 import { ActivityAddDrawer } from '@renderer/components/ActivityAddDrawer';
+import { ActivityImportDrawer } from '@renderer/components/ActivityImportDrawer';
 import { DocumentPreviewDrawer } from '@renderer/components/DocumentPreviewDrawer';
 import { Main } from '@renderer/components/layout/main';
 import { LineageDrawer } from '@renderer/components/lineage/LineageDrawer';
@@ -15,7 +16,7 @@ import * as m from '@renderer/paraglide/messages';
 import type { ActivityDataWithDocument, EmissionSource, ReportingPeriod } from '@shared/types';
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, Navigate } from '@tanstack/react-router';
-import { Download, FileText, ListTree, PenLine, Search } from 'lucide-react';
+import { Download, FileSpreadsheet, FileText, ListTree, PenLine, Search } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 /**
@@ -74,6 +75,8 @@ type ActivityScopeFilter = 'all' | 1 | 2 | 3;
 
 function ActivitiesList({ organizationId }: { organizationId: string }) {
   const [formOpen, setFormOpen] = useState(false);
+  // Batch ledger import wizard (ROADMAP §8.1-①).
+  const [importOpen, setImportOpen] = useState(false);
   const [rebindActivityId, setRebindActivityId] = useState<string | null>(null);
   // 溯源 drawer target (audit-readiness spec 2026-07-11).
   const [lineageActivityId, setLineageActivityId] = useState<string | null>(null);
@@ -239,7 +242,13 @@ function ActivitiesList({ organizationId }: { organizationId: string }) {
            * stays visible behind the overlay so the user can scan
            * existing rows for the date range / source they're about to
            * duplicate. */}
-          <Button onClick={() => setFormOpen(true)}>{m.activities_add_button()}</Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" className="gap-2" onClick={() => setImportOpen(true)}>
+              <FileSpreadsheet className="h-4 w-4" aria-hidden="true" />
+              {m.activity_import_button()}
+            </Button>
+            <Button onClick={() => setFormOpen(true)}>{m.activities_add_button()}</Button>
+          </div>
         </div>
 
         {/* Filter + sort: visible whenever there are activities. The
@@ -406,18 +415,33 @@ function ActivitiesList({ organizationId }: { organizationId: string }) {
                       </Link>
                     </div>
                   )}
-                  {/* Manual-entry provenance: the third state, made explicit
+                  {/* Ledger-import provenance: the row was created by the
+                   * batch import wizard and carries an evidence link to the
+                   * archived ledger file (openable from the 溯源 drawer). */}
+                  {!a.source_document_id &&
+                    !a.inbound_questionnaire_id &&
+                    a.from_ledger_import === 1 && (
+                      <div className="text-xs text-muted-foreground">
+                        <span className="inline-flex items-center gap-1">
+                          <FileSpreadsheet className="h-3 w-3" aria-hidden="true" />
+                          {m.activities_from_ledger_import()}
+                        </span>
+                      </div>
+                    )}
+                  {/* Manual-entry provenance: the last state, made explicit
                    * (audit-readiness spec 2026-07-11). A hand-typed row used
                    * to be recognizable only by the ABSENCE of a source line —
                    * an auditor shouldn't have to infer that. */}
-                  {!a.source_document_id && !a.inbound_questionnaire_id && (
-                    <div className="text-xs text-muted-foreground">
-                      <span className="inline-flex items-center gap-1">
-                        <PenLine className="h-3 w-3" aria-hidden="true" />
-                        {m.activities_source_manual()}
-                      </span>
-                    </div>
-                  )}
+                  {!a.source_document_id &&
+                    !a.inbound_questionnaire_id &&
+                    a.from_ledger_import !== 1 && (
+                      <div className="text-xs text-muted-foreground">
+                        <span className="inline-flex items-center gap-1">
+                          <PenLine className="h-3 w-3" aria-hidden="true" />
+                          {m.activities_source_manual()}
+                        </span>
+                      </div>
+                    )}
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
                   <Button
@@ -450,6 +474,12 @@ function ActivitiesList({ organizationId }: { organizationId: string }) {
         sources={sources}
         open={formOpen}
         onClose={() => setFormOpen(false)}
+      />
+
+      <ActivityImportDrawer
+        organizationId={organizationId}
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
       />
 
       <DocumentPreviewDrawer
