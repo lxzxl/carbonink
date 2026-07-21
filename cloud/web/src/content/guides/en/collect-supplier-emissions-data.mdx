@@ -1,0 +1,112 @@
+---
+title: 'How to collect emissions data from suppliers (Scope 3 in practice)'
+description: 'A practical playbook for supplier emissions data collection: choosing between PCF, allocated emissions, and activity data; designing a form suppliers actually return; and keeping the numbers audit-ready.'
+pubDate: 2026-07-21
+related:
+  - ghg-inventory
+  - iso-14064-1-vs-ghg-protocol
+  - ghg-inventory-vs-verification
+---
+
+For most manufacturers and trading companies, the biggest block in the whole
+inventory is not the chimney — it is **what you buy**. The GHG Protocol calls
+it Scope 3 category 1 (purchased goods and services); under ISO 14064-1:2018
+it lands in category 4 (see
+[how the two standards map](/guides/iso-14064-1-vs-ghg-protocol/)). In year
+one almost everyone estimates it with industry-average emission factors, and
+that is fine — the standards allow it. But the moment the inventory becomes an
+annual exercise, faces verification, or a customer starts asking questions,
+the direction is fixed: replace industry averages with **supplier-specific
+data**, one supplier at a time.
+
+The hard part is not the arithmetic. The hard part is getting dozens of
+suppliers to actually return the form.
+
+## Decide which tier of data to ask for
+
+Supplier data comes in three tiers. The higher the tier, the better the
+number — and the fewer suppliers can produce it:
+
+| Tier | What the supplier provides | What you do | Who can produce it |
+| --- | --- | --- | --- |
+| Product carbon footprint (PCF) | kgCO₂e per unit of product, ideally third-party verified | Multiply by your purchase volume | The few who have done an LCA / ISO 14067 |
+| Allocated emissions | Your share of their annual emissions, allocated by revenue or output (kgCO₂e) | Check the basis, then book it | Those with an organizational inventory |
+| Activity data | Raw electricity, fuel, and similar figures | You pick the factors and convert | Those with nothing but utility bills |
+
+The practical answer is to **collect mixed**: one form that accommodates both
+the PCF and the allocated-emissions path, letting each supplier take the lane
+they can actually drive. Sending a PCF-only questionnaire is a classic
+mistake — most suppliers cannot answer it, and what you get back is not a
+downgraded reply but silence.
+
+Whatever the tier, three metadata fields are non-negotiable: the **reporting
+period** (which year the number describes), the **method** (which standard it
+was calculated under), and **whether it was third-party verified**. Without
+these you cannot weight data quality, and you cannot defend the number in
+verification (see
+[inventory vs verification](/guides/ghg-inventory-vs-verification/)).
+
+## Response rate is the real constraint
+
+Your questionnaire sits below real work in the supplier's queue — a large
+supplier fields dozens of these requests a year. Every unit of friction costs
+you responses:
+
+- **Requiring an account or a platform login is the single biggest unit of
+  friction.** The person filling it in must register, verify an email, and
+  learn an unfamiliar interface — to enter seven or eight numbers. Cross-border
+  chains make it worse: asking a Chinese supplier to sign up to an overseas
+  SaaS platform frequently kills the request outright.
+- A spreadsheet attachment, anyone can fill. If they can open Excel, they can
+  respond — that is what zero-barrier collection looks like.
+- **Fewer questions.** Ten or less; every extra question is an argument for
+  giving up.
+- Bilingual headers. When the chain crosses languages, do not expect the
+  supplier to translate for you.
+- A **deadline** and a named contact on your side. A request without a date
+  has no priority.
+
+## Close the loop as a process
+
+Collection is not an email — it is a stateful process. Threads scattered
+across a mailbox stop being reconstructable within a quarter:
+
+- **Keep a ledger**: one row per supplier, four statuses — draft, sent,
+  received, ingested. At any moment you can see who is still missing.
+- **Make overdue visible and chasing cheap**: record the send date and the
+  due date, flag what has slipped, and keep a reminder template ready (with
+  the deadline and days overdue in it) so a nudge is one click, not a
+  drafting session.
+- **Review before booking**: returned forms do not go straight into the
+  accounts. Check units (kg or t), plausibility of magnitude, and that the
+  reporting period matches your inventory year — then confirm.
+- **Archive the original file**: when the verifier asks where a number came
+  from, the right answer is the supplier's original file, not an untraceable
+  manual entry.
+- **Keep the chain clickable**: activity rows created from a disclosure
+  should link back to that disclosure and its file — the same
+  evidence-per-number principle from the
+  [seven-step inventory guide](/guides/ghg-inventory/), extended to supplier
+  data.
+
+## Common failure modes
+
+- PCF-only questionnaires, answered by silence (see above: collect mixed).
+- No reporting period on the form — 2023 numbers booked into a 2025
+  inventory.
+- Units left open; kg and t are three orders of magnitude apart and nearly
+  impossible to spot once mixed in.
+- **Double counting**: the supplier's PCF is cradle-to-gate and already
+  includes upstream transport, and you count the same inbound leg again under
+  the transport category. Ask for the PCF boundary explicitly.
+- No verification status collected, so every number carries equal weight —
+  until the verifier weighs them for you, line by line.
+- Forms returned with restructured tables, or supplier A's template filled in
+  by supplier B, booked without any check.
+- Numbers detached from their original files — one failure, but enough to
+  undo everything else at the verification table.
+
+Supplier data is one part questionnaire design, seven parts process
+discipline. Push the barrier to zero, keep the statuses in a ledger, keep the
+originals in the chain — response rates and auditability are not luck. They
+are designed.
