@@ -3,6 +3,14 @@ import type {
   ActivityDataCreateInput,
   ActivityDataWithDocument,
   ActivityDataWithEf,
+  ActivityImportConfirmResult,
+  ActivityImportEfChoice,
+  ActivityImportGroup,
+  ActivityImportMapping,
+  ActivityImportPreview,
+  ActivityImportResult,
+  ActivityImportSourceStatus,
+  ActivityImportValidation,
   Answer,
   ClassifyAndRunResult,
   CompleteOnboardingInput,
@@ -40,6 +48,7 @@ import type {
   ReportingPeriodCreateInput,
   Site,
   SiteCreateInput,
+  TextRecommendQuery,
   UnitDefinition,
   UserEfLibrary,
 } from '@shared/types.js';
@@ -122,6 +131,42 @@ export type IpcTypeMap = {
 
   // ef-matcher domain (Phase 1c — LLM-assisted emission factor recommendation)
   'ef:recommend': (input: RecommendQuery) => Promise<MatcherResult>;
+  // Text-hint variant for the batch activity import (ROADMAP §8.1-①):
+  // one call per confirm-group, hint = ledger description + unit.
+  'ef:recommend-text': (input: TextRecommendQuery) => Promise<MatcherResult>;
+
+  // activity-import domain (ROADMAP §8.1-① — batch ledger import wizard).
+  // pick-file opens the native dialog in the main process (same boundary
+  // split as user-ef-library); everything else drives the staged token.
+  'activity-import:pick-file': () => Promise<
+    | { canceled: true }
+    | { canceled: false; preview: ActivityImportPreview }
+    | { canceled: false; error: EfImportFileError }
+  >;
+  'activity-import:revalidate': (input: {
+    token: string;
+    mapping: ActivityImportMapping;
+    period_id: string;
+  }) => ActivityImportValidation | null;
+  'activity-import:list-sources': (input: {
+    token: string;
+    organization_id: string;
+  }) => ActivityImportSourceStatus[] | null;
+  'activity-import:resolve-source': (input: {
+    token: string;
+    name: string;
+    source_id: string | null;
+  }) => { ok: boolean };
+  'activity-import:list-groups': (input: { token: string }) => ActivityImportGroup[] | null;
+  'activity-import:confirm-group': (input: {
+    token: string;
+    group_key: string;
+    ef: ActivityImportEfChoice;
+    fuel_code: string | null;
+  }) => ActivityImportConfirmResult;
+  'activity-import:skip-group': (input: { token: string; group_key: string }) => { ok: boolean };
+  'activity-import:import': (input: { token: string }) => ActivityImportResult;
+  'activity-import:discard': (input: { token: string }) => { ok: true };
 
   // emission-source domain (per-site source definitions)
   'source:create': (input: EmissionSourceCreateInput) => EmissionSource;

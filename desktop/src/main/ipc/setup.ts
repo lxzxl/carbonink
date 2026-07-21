@@ -4,6 +4,7 @@ import { defaultNow } from '@main/services/base.js';
 import { getMainWindow } from '@main/window.js';
 import { createIpcContext, type IpcContext } from './context.js';
 import { activityDataHandlers } from './handlers/activity-data.js';
+import { activityImportHandlers } from './handlers/activity-import.js';
 import { agentSkillHandlers } from './handlers/agent-skill.js';
 import { answerHandlers } from './handlers/answer.js';
 import { appHandlers } from './handlers/app.js';
@@ -43,6 +44,7 @@ const HANDLER_FACTORIES: ReadonlyArray<HandlerFactory> = [
   efMatcherHandlers,
   emissionSourceHandlers,
   activityDataHandlers,
+  activityImportHandlers,
   settingsHandlers,
   documentHandlers,
   extractionHandlers,

@@ -9,6 +9,7 @@ import { ExcelParser } from '@main/excel/parser.js';
 import { buildAiAgentLayer } from '@main/llm/ai-agent.js';
 import { buildAiClientLayer } from '@main/llm/ai-client.js';
 import { ActivityDataService } from '@main/services/activity-data-service.js';
+import { ActivityImportService } from '@main/services/activity-import-service.js';
 import { AgentSkillService, type SkillResolver } from '@main/services/agent-skill-service.js';
 import type { AnswerR } from '@main/services/answer-generation/tags.js';
 import { AnswerToolsTag, buildAnswerLayer } from '@main/services/answer-generation/tags.js';
@@ -112,6 +113,8 @@ export interface IpcContext {
   // ROADMAP §8.1-④ — user-imported EF libraries (import staging, catalog
   // writes under the user: source namespace, library registry).
   userEfLibraryService: UserEfLibraryService;
+  // ROADMAP §8.1-① — batch activity-data ledger import wizard.
+  activityImportService: ActivityImportService;
   // Post-launch (spec 2026-05-25) — session-scoped undo/redo stack.
   undoManager: UndoManager;
   // URL for the print-render route (used by PDF export for hidden BrowserWindow).
@@ -221,6 +224,7 @@ export function createIpcContext(
   let evidenceServiceInstance: EvidenceService | undefined;
   let lineageServiceInstance: LineageService | undefined;
   let userEfLibraryServiceInstance: UserEfLibraryService | undefined;
+  let activityImportServiceInstance: ActivityImportService | undefined;
 
   const getCredential = (): CredentialService => {
     if (!credentialServiceInstance) credentialServiceInstance = defaultCredentialService();
@@ -511,6 +515,19 @@ export function createIpcContext(
         });
       }
       return userEfLibraryServiceInstance;
+    },
+    get activityImportService() {
+      if (!activityImportServiceInstance) {
+        activityImportServiceInstance = new ActivityImportService({
+          ...svc,
+          documentService: getDocument(),
+          activityDataService,
+          efService,
+          unitConversionService,
+          emissionSourceService,
+        });
+      }
+      return activityImportServiceInstance;
     },
     auditEventService: new AuditEventService({ db: svc.db }),
     questionnairePdfDataService: new QuestionnairePdfDataService({ db: svc.db }),
