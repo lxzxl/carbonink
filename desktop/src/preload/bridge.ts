@@ -27,6 +27,17 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   'ef-library:save-template',
   // ef-matcher domain (Phase 1c — LLM-assisted EF recommendation)
   'ef:recommend',
+  'ef:recommend-text',
+  // activity-import domain (ROADMAP §8.1-① — batch ledger import wizard)
+  'activity-import:pick-file',
+  'activity-import:revalidate',
+  'activity-import:list-sources',
+  'activity-import:resolve-source',
+  'activity-import:list-groups',
+  'activity-import:confirm-group',
+  'activity-import:skip-group',
+  'activity-import:import',
+  'activity-import:discard',
   // emission-source domain
   'source:create',
   'source:get-by-id',
