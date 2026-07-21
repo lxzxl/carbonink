@@ -1032,6 +1032,16 @@ export type RecommendQuery = {
   emission_source_id: string;
 };
 
+/**
+ * Input to EfMatcherService.recommendForText(): free text instead of an
+ * extraction — the batch-import path, where the hint is a ledger group's
+ * description + unit rather than a parsed document.
+ */
+export type TextRecommendQuery = {
+  hint_text: string;
+  emission_source_id: string;
+};
+
 /** One LLM-recommended emission factor with a short Chinese reasoning note. */
 export type MatcherRecommendation = {
   ef: EmissionFactor;

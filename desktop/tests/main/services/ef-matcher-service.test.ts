@@ -235,3 +235,85 @@ describe('EfMatcherService.recommend', () => {
     expect(recommend).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('EfMatcherService.recommendForText', () => {
+  beforeEach(() => {
+    vi.mocked(runAiObject).mockReset();
+  });
+
+  it('returns ranked_full from the source candidate pool even when LLM fails', async () => {
+    const { svc } = makeService({
+      extraction: null,
+      source: { scope: 1, category: 'fuel.combustion' },
+      candidates: [CANDIDATE_GASOLINE, CANDIDATE_DIESEL],
+      llmError: new Error('LLM down'),
+    });
+    const r = await svc.recommendForText({ hint_text: '柴油 叉车 L', emission_source_id: 's1' });
+    expect(r.recommended).toEqual([]);
+    expect(r.ranked_full).toHaveLength(2);
+  });
+
+  it('keeps LLM picks whose PK matches a candidate, drops hallucinations', async () => {
+    const { svc } = makeService({
+      extraction: null,
+      source: { scope: 1, category: 'fuel.combustion' },
+      candidates: [CANDIDATE_DIESEL],
+      llmResult: {
+        recommendations: [
+          {
+            factor_code: CANDIDATE_DIESEL.factor_code,
+            year: CANDIDATE_DIESEL.year,
+            source: CANDIDATE_DIESEL.source,
+            geography: CANDIDATE_DIESEL.geography,
+            dataset_version: CANDIDATE_DIESEL.dataset_version,
+            reasoning_zh: '台账描述为柴油',
+          },
+          {
+            factor_code: 'HALLUCINATED',
+            year: 2024,
+            source: 'X',
+            geography: 'X',
+            dataset_version: 'x',
+            reasoning_zh: '幻觉',
+          },
+          {
+            factor_code: 'ALSO_HALLUCINATED',
+            year: 2024,
+            source: 'X',
+            geography: 'X',
+            dataset_version: 'x',
+            reasoning_zh: '幻觉2',
+          },
+        ],
+      },
+    });
+    const r = await svc.recommendForText({ hint_text: '柴油', emission_source_id: 's1' });
+    expect(r.recommended).toHaveLength(1);
+    expect(r.recommended[0]?.ef.factor_code).toBe('fuel.diesel.combustion');
+    expect(r.recommended[0]?.reasoning_zh).toBe('台账描述为柴油');
+  });
+
+  it('short-circuits on blank hint without calling the LLM', async () => {
+    const { svc, recommend } = makeService({
+      extraction: null,
+      source: { scope: 1, category: 'fuel.combustion' },
+      candidates: [CANDIDATE_DIESEL],
+    });
+    const r = await svc.recommendForText({ hint_text: '   ', emission_source_id: 's1' });
+    expect(r).toEqual({ recommended: [], ranked_full: [] });
+    expect(recommend).not.toHaveBeenCalled();
+  });
+
+  it('caches by (source_id, hint_text)', async () => {
+    const { svc, recommend } = makeService({
+      extraction: null,
+      source: { scope: 1, category: 'fuel.combustion' },
+      candidates: [CANDIDATE_DIESEL],
+    });
+    await svc.recommendForText({ hint_text: '柴油 L', emission_source_id: 's1' });
+    await svc.recommendForText({ hint_text: '柴油 L', emission_source_id: 's1' });
+    expect(recommend).toHaveBeenCalledTimes(1);
+    await svc.recommendForText({ hint_text: '汽油 L', emission_source_id: 's1' });
+    expect(recommend).toHaveBeenCalledTimes(2);
+  });
+});
