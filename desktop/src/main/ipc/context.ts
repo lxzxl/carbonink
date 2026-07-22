@@ -15,6 +15,7 @@ import type { AnswerR } from '@main/services/answer-generation/tags.js';
 import { AnswerToolsTag, buildAnswerLayer } from '@main/services/answer-generation/tags.js';
 import { buildAnswerTools } from '@main/services/answer-generation/tools.js';
 import { AuditEventService } from '@main/services/audit-event-service.js';
+import { BatchExtractionService } from '@main/services/batch-extraction-service.js';
 import type { ServiceContext } from '@main/services/base.js';
 import { CalculationService } from '@main/services/calculation-service.js';
 import { ClassificationService } from '@main/services/classification-service.js';
@@ -82,6 +83,8 @@ export interface IpcContext {
   efMatcherService: EfMatcherService;
   // Phase 1c Task 4 — auto-classify doc-type + run extraction.
   classificationService: ClassificationService;
+  // Batch extraction queue (spec 2026-07-22) — manual N-doc run, concurrency 2.
+  batchExtractionService: BatchExtractionService;
   // Phase 2.2a — questionnaire upload + extract pipeline.
   customerService: CustomerService;
   questionnaireService: QuestionnaireService;
@@ -225,6 +228,7 @@ export function createIpcContext(
   let lineageServiceInstance: LineageService | undefined;
   let userEfLibraryServiceInstance: UserEfLibraryService | undefined;
   let activityImportServiceInstance: ActivityImportService | undefined;
+  let batchExtractionServiceInstance: BatchExtractionService | undefined;
 
   const getCredential = (): CredentialService => {
     if (!credentialServiceInstance) credentialServiceInstance = defaultCredentialService();
@@ -392,6 +396,23 @@ export function createIpcContext(
         });
       }
       return classificationServiceInstance;
+    },
+    get batchExtractionService() {
+      if (!batchExtractionServiceInstance) {
+        batchExtractionServiceInstance = new BatchExtractionService({
+          // Deferred duck-type: touching ctx.classificationService eagerly
+          // would throw "AI provider not configured" on first batch-status
+          // hydration. Per-call resolution keeps status/cancel provider-free
+          // and lets a mid-batch provider failure land in the per-doc
+          // failure aggregation instead of an opaque handler throw.
+          classificationService: {
+            classifyAndRun: (id: string) => ctx.classificationService.classifyAndRun(id),
+          },
+          documentService: getDocument(),
+          pushProgress: (progress) => ctx.pushEvent('extraction:batch-progress', progress),
+        });
+      }
+      return batchExtractionServiceInstance;
     },
     get customerService() {
       if (!customerServiceInstance) {

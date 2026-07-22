@@ -1026,6 +1026,43 @@ export type ClassifyAndRunResult =
   | { status: 'classify_failed' };
 
 // ---------------------------------------------------------------------------
+// Batch extraction queue (spec 2026-07-22-batch-extraction-queue)
+// ---------------------------------------------------------------------------
+
+/** One document the batch could not bring to review_needed. */
+export type BatchExtractionFailure = {
+  document_id: string;
+  filename: string;
+  /** classify_failed = the service's soft failure; error = thrown. */
+  reason: 'classify_failed' | 'error';
+  detail?: string;
+};
+
+/**
+ * Live progress of the (single) in-flight batch. Pushed on
+ * `extraction:batch-progress` after every completed document and readable
+ * via `extraction:batch-status` for hydration on mount. `running: false`
+ * marks the terminal event of a batch (finished or canceled).
+ */
+export type BatchExtractionProgress = {
+  total: number;
+  /** Completed (ok + failed). Cancel skips the rest: done can end < total. */
+  done: number;
+  ok_count: number;
+  failed_count: number;
+  running: boolean;
+  canceled: boolean;
+  /** Documents currently being classified/extracted (≤ concurrency). */
+  current_document_ids: string[];
+  /** Capped list — the full count stays in failed_count. */
+  failed: BatchExtractionFailure[];
+};
+
+export type BatchExtractionStartResult =
+  | { ok: true; total: number }
+  | { ok: false; error: { _tag: 'BatchAlreadyRunning' | 'NothingToRun' } };
+
+// ---------------------------------------------------------------------------
 // EF Matcher types (Phase 1c Task 5)
 // ---------------------------------------------------------------------------
 

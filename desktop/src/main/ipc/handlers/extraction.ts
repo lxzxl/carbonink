@@ -34,6 +34,16 @@ export function extractionHandlers(ctx: IpcContext): {
       const parsed = z.object({ document_id: z.string().min(1) }).parse(input);
       return ctx.classificationService.classifyAndRun(parsed.document_id);
     },
+    // Batch extraction queue (spec 2026-07-22). `batch-run` acknowledges
+    // immediately; progress rides the extraction:batch-progress push channel.
+    'extraction:batch-run': (input) => {
+      const parsed = z
+        .object({ document_ids: z.array(z.string().min(1)).max(500) })
+        .parse(input);
+      return ctx.batchExtractionService.start(parsed.document_ids);
+    },
+    'extraction:batch-cancel': () => ({ ok: ctx.batchExtractionService.cancel() }),
+    'extraction:batch-status': () => ctx.batchExtractionService.status(),
     'extraction:run': (input) => {
       const parsed = runInput.parse(input);
       return svc.run(parsed);

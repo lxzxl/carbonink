@@ -12,6 +12,8 @@ import type {
   ActivityImportSourceStatus,
   ActivityImportValidation,
   Answer,
+  BatchExtractionProgress,
+  BatchExtractionStartResult,
   ClassifyAndRunResult,
   CompleteOnboardingInput,
   Customer,
@@ -303,6 +305,11 @@ export type IpcTypeMap = {
   // `extraction:run` is async — it reads the PDF, calls the LLM, and writes
   // the row; the sanitize wrapper already awaits handlers, so this is fine.
   'extraction:classify-and-run': (input: { document_id: string }) => Promise<ClassifyAndRunResult>;
+  // Batch extraction queue (spec 2026-07-22): manual N-document run with
+  // concurrency 2; progress rides the extraction:batch-progress push channel.
+  'extraction:batch-run': (input: { document_ids: string[] }) => BatchExtractionStartResult;
+  'extraction:batch-cancel': () => { ok: boolean };
+  'extraction:batch-status': () => BatchExtractionProgress | null;
   'extraction:run': (input: { document_id: string; stage_id: string }) => Promise<Extraction>;
   'extraction:list-pending': () => Extraction[];
   'extraction:list-by-document': (input: { document_id: string }) => Extraction[];
@@ -653,6 +660,10 @@ export type IpcPushTypeMap = {
     /** Stage of the pipeline the event was emitted from. */
     phase: 'vision';
   };
+  // Batch extraction queue (spec 2026-07-22): one event per completed
+  // document + a terminal running:false event. Payload is the full
+  // progress snapshot so the renderer never has to accumulate state.
+  'extraction:batch-progress': BatchExtractionProgress;
   'report:progress': {
     report_id: string;
     phase: 'assembling' | 'narrative' | 'finalizing';

@@ -73,6 +73,9 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   'document:read-bytes',
   // extraction domain (Phase 1b — AI extraction pipeline)
   'extraction:classify-and-run',
+  'extraction:batch-run',
+  'extraction:batch-cancel',
+  'extraction:batch-status',
   'extraction:run',
   'extraction:list-pending',
   'extraction:list-by-document',
@@ -162,6 +165,7 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
  */
 export const allowedPushChannels: ReadonlyArray<keyof IpcPushTypeMap> = [
   'extraction:progress',
+  'extraction:batch-progress',
   'report:progress',
   'updater:status',
   'menu:undo',
