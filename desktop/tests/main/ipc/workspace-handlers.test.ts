@@ -52,9 +52,9 @@ describe('workspace:* handler glue', () => {
 
     const created = handlers['workspace:create']?.({ name: '客户甲' });
     if (!created?.ok) throw new Error('expected ok');
-    expect(handlers['workspace:rename']?.({ id: created.workspace.id, name: '客户甲2026' })).toEqual(
-      { ok: true },
-    );
+    expect(
+      handlers['workspace:rename']?.({ id: created.workspace.id, name: '客户甲2026' }),
+    ).toEqual({ ok: true });
 
     expect(handlers['workspace:switch']?.({ id: created.workspace.id })).toEqual({ ok: true });
     expect(scheduled).toHaveLength(1);

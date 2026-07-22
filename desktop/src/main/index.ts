@@ -1,12 +1,12 @@
 import { closeAppDb, openAppDb } from '@main/db/connection.js';
 import { runMigrations } from '@main/db/migrate.js';
 import { cleanupIpc, setupIpc } from '@main/ipc/setup.js';
-import { WorkspaceService } from '@main/services/workspace-service.js';
-import { configureWorkspaceSwitch } from '@main/workspace-switch.js';
 import { runAutoBackupIfDue } from '@main/services/auto-backup-service.js';
 import { installLogger } from '@main/services/logger-service.js';
 import { notifyOverdueDisclosures } from '@main/services/overdue-notify-service.js';
+import { WorkspaceService } from '@main/services/workspace-service.js';
 import { initAutoUpdater } from '@main/updater/auto-updater.js';
+import { configureWorkspaceSwitch } from '@main/workspace-switch.js';
 import { app, BrowserWindow, Menu, nativeImage } from 'electron';
 import { buildAppMenu } from './menu.js';
 import { createMainWindow, devIconPath, getMainWindow } from './window.js';

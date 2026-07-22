@@ -4,7 +4,9 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@renderer/components/ui/sidebar';
+import { workspaceApi } from '@renderer/lib/api/workspace';
 import * as m from '@renderer/paraglide/messages';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { Leaf } from 'lucide-react';
 
@@ -53,6 +55,24 @@ import { Leaf } from 'lucide-react';
  */
 export function AppTitle() {
   const { setOpenMobile } = useSidebar();
+  // Client workspaces (spec 2026-07-22): once a consultant runs more than
+  // one 账套, the subtitle becomes the active workspace's name — the one
+  // piece of context they must never misread. Single-workspace installs
+  // keep the brand tagline (zero visual change for existing users).
+  const workspacesQuery = useQuery({
+    queryKey: ['workspace:list'],
+    queryFn: workspaceApi.list,
+    staleTime: 60_000,
+  });
+  const activeQuery = useQuery({
+    queryKey: ['workspace:get-active'],
+    queryFn: workspaceApi.getActive,
+    staleTime: 60_000,
+  });
+  const subtitle =
+    (workspacesQuery.data?.length ?? 0) > 1 && activeQuery.data
+      ? activeQuery.data.name
+      : m.app_tagline();
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -81,7 +101,7 @@ export function AppTitle() {
               <span className="truncate text-base font-semibold tracking-tight text-foreground">
                 {m.app_title()}
               </span>
-              <span className="truncate text-xs text-muted-foreground">{m.app_tagline()}</span>
+              <span className="truncate text-xs text-muted-foreground">{subtitle}</span>
             </span>
           </Link>
         </SidebarMenuButton>

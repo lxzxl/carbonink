@@ -6,10 +6,12 @@ import { EfLibrarySection } from '@renderer/components/settings/EfLibrarySection
 import { GeneralSection } from '@renderer/components/settings/GeneralSection';
 import { McpSection } from '@renderer/components/settings/McpSection';
 import { OrganizationProfileSection } from '@renderer/components/settings/OrganizationProfileSection';
+import { WorkspaceSection } from '@renderer/components/settings/WorkspaceSection';
 import { UpdateSection } from '@renderer/components/UpdateSection';
 import { cn } from '@renderer/lib/utils';
 import * as m from '@renderer/paraglide/messages';
 import {
+  Briefcase,
   Building2,
   Cable,
   Database,
@@ -56,6 +58,7 @@ import { useState } from 'react';
 
 type SectionKey =
   | 'general'
+  | 'workspaces'
   | 'ai'
   | 'amap'
   | 'mcp'
@@ -108,6 +111,13 @@ const SECTIONS: SectionDef[] = [
     label: () => m.settings_section_org(),
     description: () => m.settings_section_org_description(),
     render: () => <OrganizationProfileSection />,
+  },
+  {
+    key: 'workspaces',
+    icon: Briefcase,
+    label: () => m.settings_section_workspaces(),
+    description: () => m.settings_section_workspaces_description(),
+    render: () => <WorkspaceSection />,
   },
   {
     key: 'efLibrary',
