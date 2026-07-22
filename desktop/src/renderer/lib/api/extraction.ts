@@ -15,6 +15,11 @@ import { invoke } from '../ipc.js';
  */
 export const extractionApi = {
   classifyAndRun: (input: { document_id: string }) => invoke('extraction:classify-and-run', input),
+  // Batch extraction queue (spec 2026-07-22): run acknowledges instantly,
+  // progress rides the extraction:batch-progress push channel.
+  batchRun: (input: { document_ids: string[] }) => invoke('extraction:batch-run', input),
+  batchCancel: () => invoke('extraction:batch-cancel'),
+  batchStatus: () => invoke('extraction:batch-status'),
   run: (input: { document_id: string; stage_id: string }) => invoke('extraction:run', input),
   listPending: () => invoke('extraction:list-pending'),
   listByDocument: (input: { document_id: string }) => invoke('extraction:list-by-document', input),

@@ -1,4 +1,5 @@
 import { ListItem, StatusDot } from '@renderer/components/app-shell/ListItem';
+import { BatchExtractionBar } from '@renderer/components/BatchExtractionBar';
 import { DocumentsUpload } from '@renderer/components/DocumentsUpload';
 import { SortMenu, type SortMenuOption } from '@renderer/components/sort-menu';
 import { ChipCountBadge } from '@renderer/components/source-filters';
@@ -298,6 +299,13 @@ function DocumentsList() {
     setStatusFilter('all');
   };
 
+  // Batch pool = docs with no extraction at all (chip 'none'). Rejected
+  // docs are a human decision — they don't re-enter the batch.
+  const pendingDocIds = useMemo(
+    () => decoratedDocs.filter(({ chip }) => chip === 'none').map(({ doc }) => doc.id),
+    [decoratedDocs],
+  );
+
   if (docsQuery.isLoading) {
     return <p className="px-4 py-3 text-sm text-muted-foreground">{m.loading()}</p>;
   }
@@ -307,6 +315,10 @@ function DocumentsList() {
 
   return (
     <div>
+      {/* Batch extraction control (spec 2026-07-22) — visible whenever
+       *  unextracted docs exist or a batch is running/just finished. */}
+      <BatchExtractionBar pendingDocIds={pendingDocIds} />
+
       {/* Filter bar — sits under the upload panel inside the list column.
        *  Compact: search box on row 1; status chip row + sort dropdown
        *  on row 2 (chip row scrolls horizontally if many statuses, but

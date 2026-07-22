@@ -52,7 +52,9 @@ describe('extraction:batch-* handler glue', () => {
   });
 
   it('rejects malformed input at the zod boundary', () => {
-    expect(() => handlers['extraction:batch-run']?.({ document_ids: 'nope' })).toThrow();
+    expect(() =>
+      handlers['extraction:batch-run']?.({ document_ids: 'nope' as unknown as string[] }),
+    ).toThrow();
     expect(() => handlers['extraction:batch-run']?.({ document_ids: [''] })).toThrow();
   });
 
