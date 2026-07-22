@@ -2,6 +2,7 @@ import { runMigrations } from '@main/db/migrate';
 import { createIpcContext, type IpcContext } from '@main/ipc/context';
 import { extractionHandlers } from '@main/ipc/handlers/extraction';
 import type { ClassificationService } from '@main/services/classification-service';
+import type { ExtractionService } from '@main/services/extraction-service';
 import type { BatchExtractionProgress } from '@shared/types';
 import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -24,6 +25,15 @@ beforeEach(() => {
     { db, now: () => '2026-07-22T00:00:00.000Z' },
     {
       classificationService: { classifyAndRun } as unknown as ClassificationService,
+      // extractionHandlers eagerly reads ctx.extractionService at map build;
+      // without this stub the real getter chains into CredentialStore, which
+      // throws on Linux CI ("Linux is not supported"). Same pattern as
+      // extraction-classify-handlers.test.ts.
+      extractionService: {
+        run: vi.fn(),
+        discard: vi.fn(),
+        listByDocument: vi.fn(),
+      } as unknown as ExtractionService,
       progressEmitter: (channel, payload) => {
         events.push([channel, payload as BatchExtractionProgress]);
       },
