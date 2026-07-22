@@ -8,4 +8,12 @@ export const reportApi = {
     invoke('report:export-pdf', input as never),
   exportXlsx: (input: { data: unknown; narrative: unknown; language: 'zh-CN' | 'en' }) =>
     invoke('report:export-xlsx', input as never),
+  // TCFD four-pillar report (spec 2026-07-22-tcfd-report). Cancel is shared.
+  generateTcfd: (input: {
+    report_id: string;
+    reporting_period_id: string;
+    language: 'zh-CN' | 'en';
+  }) => invoke('report:generate-tcfd', input),
+  exportTcfdPdf: (input: { data: unknown; narrative: unknown; language: 'zh-CN' | 'en' }) =>
+    invoke('report:export-tcfd-pdf', input as never),
 };

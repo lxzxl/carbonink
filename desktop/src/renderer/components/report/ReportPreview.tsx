@@ -119,7 +119,9 @@ function OrgProfile({ data }: { data: InventoryReportData }) {
   );
 }
 
-function ScopeTable({ data }: { data: InventoryReportData }) {
+// Exported for reuse by TcfdReportPreview (spec 2026-07-22-tcfd-report) —
+// the metrics pillar shows the same scope table the ISO report opens with.
+export function ScopeTable({ data }: { data: InventoryReportData }) {
   const lang = data.language;
   const labels =
     lang === 'zh-CN'

@@ -115,3 +115,68 @@ describe('reportHandlers', () => {
     expect(result).toEqual({ canceled: false, error: { _tag: 'NoProvider' } });
   });
 });
+
+const FAKE_TCFD = {
+  governance: 'g'.repeat(120),
+  strategy: 's'.repeat(120),
+  risk_management: 'r'.repeat(120),
+  metrics_targets: 'm'.repeat(150),
+};
+
+describe('reportHandlers — TCFD (spec 2026-07-22)', () => {
+  it('report:generate-tcfd returns assembled data + four-pillar narrative', async () => {
+    vi.mocked(runAiObject).mockResolvedValue(FAKE_TCFD);
+    const ctx = makeCtx();
+    const handlers = reportHandlers(ctx as never);
+    const result = await handlers['report:generate-tcfd']?.({
+      report_id: 'tcfd-1',
+      reporting_period_id: 'per-1',
+      language: 'zh-CN',
+    });
+    expect(result?.canceled).toBe(false);
+    if (result && !result.canceled && !('error' in result)) {
+      expect(result.data.org.id).toBe('org-1');
+      expect(result.narrative.metrics_targets.length).toBeGreaterThan(100);
+    }
+    // Progress rode the shared report:progress channel.
+    expect(ctx.pushEvent).toHaveBeenCalledWith(
+      'report:progress',
+      expect.objectContaining({ report_id: 'tcfd-1', phase: 'assembling' }),
+    );
+  });
+
+  it('report:generate-tcfd returns NoProvider when settings missing', async () => {
+    const ctx = makeCtx();
+    ctx.settingsService.getProviderConfigWithKey = vi.fn().mockReturnValue(null);
+    const handlers = reportHandlers(ctx as never);
+    const result = await handlers['report:generate-tcfd']?.({
+      report_id: 'tcfd-2',
+      reporting_period_id: 'per-1',
+      language: 'zh-CN',
+    });
+    expect(result).toEqual({ canceled: false, error: { _tag: 'NoProvider' } });
+  });
+
+  it('report:cancel aborts an in-flight TCFD generation via the shared map', async () => {
+    let resolveCall: (() => void) | undefined;
+    vi.mocked(runAiObject).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveCall = () => resolve(FAKE_TCFD);
+        }),
+    );
+    const ctx = makeCtx();
+    const handlers = reportHandlers(ctx as never);
+    const inflight = handlers['report:generate-tcfd']?.({
+      report_id: 'tcfd-3',
+      reporting_period_id: 'per-1',
+      language: 'zh-CN',
+    });
+    setTimeout(() => {
+      handlers['report:cancel']?.({ report_id: 'tcfd-3' });
+      resolveCall?.();
+    }, 10);
+    const result = await inflight;
+    expect(result).toEqual({ canceled: true });
+  });
+});

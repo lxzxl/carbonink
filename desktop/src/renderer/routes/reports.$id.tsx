@@ -1,6 +1,8 @@
 import type { ReportNarrative } from '@main/llm/report-narrative';
+import type { TcfdNarrative } from '@main/llm/tcfd-narrative';
 import type { InventoryReportData } from '@main/services/report-data-service';
 import { ReportPreview } from '@renderer/components/report/ReportPreview';
+import { TcfdReportPreview } from '@renderer/components/report/TcfdReportPreview';
 import { toast } from '@renderer/components/toast';
 import { reportApi } from '@renderer/lib/api/report';
 import { subscribe } from '@renderer/lib/ipc';
@@ -12,15 +14,20 @@ import { ulid } from 'ulid';
 
 export const Route = createFileRoute('/reports/$id')({ component: ReportDetail });
 
+type ReportKind = 'iso' | 'tcfd';
+
+type GeneratedReport =
+  | { kind: 'iso'; data: InventoryReportData; narrative: ReportNarrative }
+  | { kind: 'tcfd'; data: InventoryReportData; narrative: TcfdNarrative };
+
 function ReportDetail() {
   const { id } = Route.useParams();
   const [language, setLanguage] = useState<'zh-CN' | 'en'>('zh-CN');
+  // TCFD four-pillar report (spec 2026-07-22): one detail page, two kinds.
+  const [reportKind, setReportKind] = useState<ReportKind>('iso');
   const [reportId, setReportId] = useState<string | null>(null);
   const [progressLabel, setProgressLabel] = useState<string>(m.reports_progress_assembling());
-  const [generated, setGenerated] = useState<{
-    data: InventoryReportData;
-    narrative: ReportNarrative;
-  } | null>(null);
+  const [generated, setGenerated] = useState<GeneratedReport | null>(null);
 
   // Subscribe to progress events for the duration of an inflight call.
   useEffect(() => {
@@ -55,24 +62,44 @@ function ReportDetail() {
   }, [reportId]);
 
   const generateMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (): Promise<
+      | { canceled: true }
+      | { canceled: false; error: { _tag: string; message?: string | undefined } }
+      | { canceled: false; error?: never; report: GeneratedReport }
+    > => {
       const newId = ulid();
       setReportId(newId);
       setProgressLabel(m.reports_progress_assembling());
-      return reportApi.generate({ report_id: newId, reporting_period_id: id, language });
+      const input = { report_id: newId, reporting_period_id: id, language };
+      if (reportKind === 'tcfd') {
+        const result = await reportApi.generateTcfd(input);
+        if (result.canceled) return { canceled: true };
+        if (result.error) return { canceled: false, error: result.error };
+        return {
+          canceled: false,
+          report: { kind: 'tcfd', data: result.data, narrative: result.narrative },
+        };
+      }
+      const result = await reportApi.generate(input);
+      if (result.canceled) return { canceled: true };
+      if (result.error) return { canceled: false, error: result.error };
+      return {
+        canceled: false,
+        report: { kind: 'iso', data: result.data, narrative: result.narrative },
+      };
     },
-    onSuccess: (result) => {
+    onSuccess: (outcome) => {
       setReportId(null);
-      if ('canceled' in result && result.canceled) return;
-      if ('error' in result) {
-        if (result.error._tag === 'NoProvider') {
+      if (outcome.canceled) return;
+      if (outcome.error) {
+        if (outcome.error._tag === 'NoProvider') {
           toast.error(m.reports_no_provider());
         } else {
-          toast.error(m.reports_generate_failed({ message: result.error.message ?? '' }));
+          toast.error(m.reports_generate_failed({ message: outcome.error.message ?? '' }));
         }
         return;
       }
-      setGenerated({ data: result.data, narrative: result.narrative });
+      setGenerated(outcome.report);
     },
     onError: (err) => {
       setReportId(null);
@@ -84,9 +111,26 @@ function ReportDetail() {
     if (reportId) reportApi.cancel({ report_id: reportId });
   };
 
+  const exportTcfdPdf = useMutation({
+    mutationFn: async () => {
+      if (generated?.kind !== 'tcfd') throw new Error('no tcfd narrative');
+      const pdfResult = await reportApi.exportTcfdPdf({
+        data: generated.data,
+        narrative: generated.narrative,
+        language,
+      });
+      if ('canceled' in pdfResult && pdfResult.canceled) return;
+      if ('ok' in pdfResult && pdfResult.ok) {
+        toast.success(m.reports_export_success({ kind: 'PDF', path: pdfResult.path }));
+      } else if ('ok' in pdfResult && !pdfResult.ok) {
+        toast.error(m.reports_export_failed({ message: pdfResult.error }));
+      }
+    },
+  });
+
   const exportBoth = useMutation({
     mutationFn: async () => {
-      if (!generated) throw new Error('no narrative');
+      if (generated?.kind !== 'iso') throw new Error('no narrative');
       const pdfResult = await reportApi.exportPdf({
         data: generated.data,
         narrative: generated.narrative,
@@ -124,6 +168,17 @@ function ReportDetail() {
         <div className="flex-1 min-h-0 overflow-auto">
           <div className="container mx-auto max-w-4xl space-y-4 px-4 py-8">
             <label className="block">
+              <span className="text-sm">{m.reports_kind_label()}</span>
+              <select
+                value={reportKind}
+                onChange={(e) => setReportKind(e.target.value as ReportKind)}
+                className="block mt-1 border rounded px-2 py-1"
+              >
+                <option value="iso">{m.reports_kind_iso()}</option>
+                <option value="tcfd">{m.reports_kind_tcfd()}</option>
+              </select>
+            </label>
+            <label className="block">
               <span className="text-sm">{m.reports_lang_label()}</span>
               <select
                 value={language}
@@ -158,14 +213,25 @@ function ReportDetail() {
         <>
           {/* === Sticky top action bar === */}
           <div className="shrink-0 flex gap-2 border-b border-border bg-background/95 backdrop-blur px-4 py-3">
-            <button
-              type="button"
-              onClick={() => exportBoth.mutate()}
-              disabled={exportBoth.isPending}
-              className="rounded bg-black text-white px-3 py-2"
-            >
-              {m.reports_export_both_button()}
-            </button>
+            {generated.kind === 'iso' ? (
+              <button
+                type="button"
+                onClick={() => exportBoth.mutate()}
+                disabled={exportBoth.isPending}
+                className="rounded bg-black text-white px-3 py-2"
+              >
+                {m.reports_export_both_button()}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => exportTcfdPdf.mutate()}
+                disabled={exportTcfdPdf.isPending}
+                className="rounded bg-black text-white px-3 py-2"
+              >
+                {m.reports_export_pdf_button()}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => {
@@ -182,15 +248,25 @@ function ReportDetail() {
           {/* === Scrolling report body === */}
           <div className="flex-1 min-h-0 overflow-auto">
             <div className="container mx-auto max-w-4xl px-4 py-8">
-              <ReportPreview
-                data={generated.data}
-                narrative={generated.narrative}
-                printMode={false}
-                editable
-                onChange={(next) =>
-                  setGenerated((prev) => (prev ? { ...prev, narrative: next } : prev))
-                }
-              />
+              {generated.kind === 'iso' ? (
+                <ReportPreview
+                  data={generated.data}
+                  narrative={generated.narrative}
+                  printMode={false}
+                  editable
+                  onChange={(next) =>
+                    setGenerated((prev) =>
+                      prev?.kind === 'iso' ? { ...prev, narrative: next } : prev,
+                    )
+                  }
+                />
+              ) : (
+                <TcfdReportPreview
+                  data={generated.data}
+                  narrative={generated.narrative}
+                  printMode={false}
+                />
+              )}
             </div>
           </div>
         </>

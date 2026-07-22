@@ -1,5 +1,6 @@
 import * as fs from 'node:fs/promises';
 import type { ReportNarrative } from '@main/llm/report-narrative';
+import type { TcfdNarrative } from '@main/llm/tcfd-narrative';
 import { BrowserWindow, type WebContents } from 'electron';
 import ExcelJS from 'exceljs';
 import type { InventoryReportData } from './report-data-service.js';
@@ -151,8 +152,10 @@ export interface ExportPdfDeps {
 export async function renderReportPdf(
   args: {
     data: InventoryReportData;
-    narrative: ReportNarrative;
+    narrative: ReportNarrative | TcfdNarrative;
     language: 'zh-CN' | 'en';
+    /** Which print-render payload to mount. Defaults to the ISO report. */
+    kind?: 'inventory_report' | 'tcfd_report';
   },
   deps: ExportPdfDeps,
 ): Promise<Buffer> {
@@ -170,7 +173,7 @@ export async function renderReportPdf(
     // route reads window.__REPORT_PAYLOAD__ on mount.
     await win.webContents.executeJavaScript(
       `window.__REPORT_PAYLOAD__ = ${JSON.stringify({
-        kind: 'inventory_report',
+        kind: args.kind ?? 'inventory_report',
         data: args.data,
         narrative: args.narrative,
         language: args.language,
@@ -234,6 +237,17 @@ export function defaultExportFilename(args: {
     args.data.period.granularity === 'annual' ? '' : `-${args.data.period.granularity}`;
   const base = `${slug}-iso-14064-1-${args.data.period.year}${granSuffix}-${args.language}`;
   return args.kind === 'pdf' ? `${base}.pdf` : `${base}-appendix.xlsx`;
+}
+
+/** TCFD report filename (spec 2026-07-22-tcfd-report): PDF only in v1. */
+export function tcfdExportFilename(args: {
+  data: InventoryReportData;
+  language: 'zh-CN' | 'en';
+}): string {
+  const slug = slugifyOrgName(args.data);
+  const granSuffix =
+    args.data.period.granularity === 'annual' ? '' : `-${args.data.period.granularity}`;
+  return `${slug}-tcfd-${args.data.period.year}${granSuffix}-${args.language}.pdf`;
 }
 
 export interface ExportPdfDeps {

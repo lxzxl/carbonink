@@ -1,8 +1,10 @@
 import * as fs from 'node:fs/promises';
 import { generateReportNarrative } from '@main/llm/report-narrative.js';
+import { generateTcfdNarrative } from '@main/llm/tcfd-narrative.js';
 import {
   defaultExportFilename,
   renderReportPdf,
+  tcfdExportFilename,
   writeAppendixXlsx,
 } from '@main/services/report-export-service.js';
 import { dialog } from 'electron';
@@ -118,6 +120,97 @@ export function reportHandlers(ctx: IpcContext): {
       try {
         const buf = await renderReportPdf(
           { data: input.data, narrative: input.narrative, language: input.language },
+          { printRenderUrl: ctx.printRenderUrl },
+        );
+        await fs.writeFile(result.filePath, buf);
+        return { ok: true as const, path: result.filePath };
+      } catch (err) {
+        return { ok: false as const, error: (err as Error).message };
+      }
+    },
+
+    // TCFD four-pillar report (spec 2026-07-22-tcfd-report). Mirrors
+    // report:generate — same assembly, same progress channel, same
+    // cancel semantics (shared inflight map) — with the TCFD narrative.
+    'report:generate-tcfd': async (raw) => {
+      const input = generateInput.parse(raw);
+      const providerCfg = ctx.settingsService.getProviderConfigWithKey();
+      if (!providerCfg) {
+        return { canceled: false as const, error: { _tag: 'NoProvider' as const } };
+      }
+
+      const controller = new AbortController();
+      inflight.set(input.report_id, controller);
+      try {
+        ctx.pushEvent('report:progress', {
+          report_id: input.report_id,
+          phase: 'assembling',
+          sub_phase: null,
+        });
+        const data = ctx.reportDataService.assembleReportData({
+          reporting_period_id: input.reporting_period_id,
+          language: input.language,
+        });
+
+        ctx.pushEvent('report:progress', {
+          report_id: input.report_id,
+          phase: 'narrative',
+          sub_phase: null,
+        });
+        const narrative = await generateTcfdNarrative({
+          data,
+          config: providerCfg.config,
+          credentials: ctx.credentialService,
+          onProgress: (ev) => {
+            ctx.pushEvent('report:progress', {
+              report_id: input.report_id,
+              phase: 'narrative',
+              sub_phase: ev.sub_phase,
+            });
+          },
+          abortSignal: controller.signal,
+        });
+
+        ctx.pushEvent('report:progress', {
+          report_id: input.report_id,
+          phase: 'finalizing',
+          sub_phase: null,
+        });
+        return { canceled: false as const, data, narrative };
+      } catch (err) {
+        const e = err as { _tag?: string; message?: string; name?: string };
+        if (
+          controller.signal.aborted ||
+          e.name === 'AbortError' ||
+          e._tag === 'LlmNarrativeCanceled'
+        ) {
+          return { canceled: true as const };
+        }
+        return {
+          canceled: false as const,
+          error: { _tag: 'Refused' as const, message: e.message ?? String(err) },
+        };
+      } finally {
+        inflight.delete(input.report_id);
+      }
+    },
+
+    'report:export-tcfd-pdf': async (raw) => {
+      const input = raw as Parameters<IpcTypeMap['report:export-tcfd-pdf']>[0];
+      const result = await dialog.showSaveDialog({
+        title: 'Export TCFD report (PDF)',
+        defaultPath: tcfdExportFilename({ data: input.data, language: input.language }),
+        filters: [{ name: 'PDF', extensions: ['pdf'] }],
+      });
+      if (result.canceled || !result.filePath) return { canceled: true as const };
+      try {
+        const buf = await renderReportPdf(
+          {
+            data: input.data,
+            narrative: input.narrative,
+            language: input.language,
+            kind: 'tcfd_report',
+          },
           { printRenderUrl: ctx.printRenderUrl },
         );
         await fs.writeFile(result.filePath, buf);

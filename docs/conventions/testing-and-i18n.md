@@ -19,7 +19,7 @@ it's debt, not precedent.
 ## Test discipline
 
 - **vitest baseline:** 662/662 was the floor on `main` after `v1.0.0`.
-  Current passing count is **1093/1093** (2026-07-22). Don't land a commit
+  Current passing count is **1104/1104** (2026-07-22). Don't land a commit
   that drops the passing count.
 - **Biome lint debt:** the pre-existing ~940 errors are documented as
   deferred to v1.0.1. Don't fix it incidentally. New code MUST lint

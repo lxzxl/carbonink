@@ -1,7 +1,9 @@
 import type { ReportNarrative } from '@main/llm/report-narrative';
+import type { TcfdNarrative } from '@main/llm/tcfd-narrative';
 import type { InventoryReportData } from '@main/services/report-data-service';
 import { QuestionnairePdfPreview } from '@renderer/components/questionnaire-pdf/QuestionnairePdfPreview';
 import { ReportPreview } from '@renderer/components/report/ReportPreview';
+import { TcfdReportPreview } from '@renderer/components/report/TcfdReportPreview';
 import type { QuestionnairePdfData } from '@shared/types';
 import { createFileRoute } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
@@ -14,11 +16,17 @@ type InventoryReportPayload = {
   narrative: ReportNarrative;
   language: 'zh-CN' | 'en';
 };
+type TcfdReportPayload = {
+  kind: 'tcfd_report';
+  data: InventoryReportData;
+  narrative: TcfdNarrative;
+  language: 'zh-CN' | 'en';
+};
 type QuestionnairePdfPayload = {
   kind: 'questionnaire_pdf';
   data: QuestionnairePdfData;
 };
-type PrintPayload = InventoryReportPayload | QuestionnairePdfPayload;
+type PrintPayload = InventoryReportPayload | TcfdReportPayload | QuestionnairePdfPayload;
 
 declare global {
   interface Window {
@@ -63,6 +71,9 @@ function PrintRender() {
 
   if (payload.kind === 'inventory_report') {
     return <ReportPreview data={payload.data} narrative={payload.narrative} printMode={true} />;
+  }
+  if (payload.kind === 'tcfd_report') {
+    return <TcfdReportPreview data={payload.data} narrative={payload.narrative} printMode={true} />;
   }
   if (payload.kind === 'questionnaire_pdf') {
     return <QuestionnairePdfPreview data={payload.data} />;

@@ -497,6 +497,36 @@ export type IpcTypeMap = {
       }
   >;
   'report:cancel': (input: { report_id: string }) => void;
+  // TCFD four-pillar report (spec 2026-07-22-tcfd-report). Same data
+  // assembly, its own narrative; report:cancel covers both kinds (shared
+  // inflight map keyed by report_id).
+  'report:generate-tcfd': (input: {
+    report_id: string;
+    reporting_period_id: string;
+    language: 'zh-CN' | 'en';
+  }) => Promise<
+    | { canceled: true }
+    | {
+        canceled: false;
+        data: import('@main/services/report-data-service').InventoryReportData;
+        narrative: import('@main/llm/tcfd-narrative').TcfdNarrative;
+        error?: never;
+      }
+    | {
+        canceled: false;
+        error: {
+          _tag: 'NoProvider' | 'Refused' | 'RateLimit' | 'Timeout';
+          message?: string | undefined;
+        };
+        data?: never;
+        narrative?: never;
+      }
+  >;
+  'report:export-tcfd-pdf': (input: {
+    data: import('@main/services/report-data-service').InventoryReportData;
+    narrative: import('@main/llm/tcfd-narrative').TcfdNarrative;
+    language: 'zh-CN' | 'en';
+  }) => Promise<{ canceled: true } | { ok: true; path: string } | { ok: false; error: string }>;
   'report:export-pdf': (input: {
     data: import('@main/services/report-data-service').InventoryReportData;
     narrative: import('@main/llm/report-narrative').ReportNarrative;
