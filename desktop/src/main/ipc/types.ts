@@ -53,6 +53,7 @@ import type {
   TextRecommendQuery,
   UnitDefinition,
   UserEfLibrary,
+  Workspace,
 } from '@shared/types.js';
 
 /**
@@ -310,6 +311,16 @@ export type IpcTypeMap = {
   'extraction:batch-run': (input: { document_ids: string[] }) => BatchExtractionStartResult;
   'extraction:batch-cancel': () => { ok: boolean };
   'extraction:batch-status': () => BatchExtractionProgress | null;
+
+  // workspace domain (spec 2026-07-22 — client workspaces / 账套). Switch
+  // replies first, then swaps the DB + rebuilds IPC + reloads the renderer.
+  'workspace:list': () => Workspace[];
+  'workspace:get-active': () => Workspace;
+  'workspace:create': (input: {
+    name: string;
+  }) => { ok: true; workspace: Workspace } | { ok: false; error: 'InvalidName' };
+  'workspace:rename': (input: { id: string; name: string }) => { ok: boolean };
+  'workspace:switch': (input: { id: string }) => { ok: boolean };
   'extraction:run': (input: { document_id: string; stage_id: string }) => Promise<Extraction>;
   'extraction:list-pending': () => Extraction[];
   'extraction:list-by-document': (input: { document_id: string }) => Extraction[];

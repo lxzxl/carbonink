@@ -28,6 +28,7 @@ import { supplierHandlers } from './handlers/supplier.js';
 import { undoHandlers } from './handlers/undo.js';
 import { updaterHandlers } from './handlers/updater.js';
 import { userEfLibraryHandlers } from './handlers/user-ef-library.js';
+import { workspaceHandlers } from './handlers/workspace.js';
 import { createProgressEmitter } from './progress.js';
 import { sanitize } from './sanitize.js';
 import type { IpcTypeMap } from './types.js';
@@ -63,6 +64,7 @@ const HANDLER_FACTORIES: ReadonlyArray<HandlerFactory> = [
   appHandlers,
   dataHandlers,
   undoHandlers,
+  workspaceHandlers,
 ];
 
 export function setupIpc(): void {

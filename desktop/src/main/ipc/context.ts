@@ -42,6 +42,7 @@ import { SettingsService } from '@main/services/settings-service.js';
 import { UndoManager } from '@main/services/undo-manager.js';
 import { UnitConversionService } from '@main/services/unit-conversion-service.js';
 import { UserEfLibraryService } from '@main/services/user-ef-library-service.js';
+import { WorkspaceService } from '@main/services/workspace-service.js';
 import type { ProviderConfigV2 } from '@shared/types.js';
 import { Layer } from 'effect';
 import { app } from 'electron';
@@ -85,6 +86,9 @@ export interface IpcContext {
   classificationService: ClassificationService;
   // Batch extraction queue (spec 2026-07-22) — manual N-doc run, concurrency 2.
   batchExtractionService: BatchExtractionService;
+  // Client workspaces / 账套 (spec 2026-07-22) — registry CRUD only; the
+  // DB swap lives in workspace-switch.ts.
+  workspaceService: WorkspaceService;
   // Phase 2.2a — questionnaire upload + extract pipeline.
   customerService: CustomerService;
   questionnaireService: QuestionnaireService;
@@ -141,6 +145,8 @@ export interface IpcContextOverrides {
    * Application Support directory.
    */
   uploadsDir?: string;
+  /** Tests: workspace registry dir override (defaults to app userData). */
+  userDataDir?: string;
   documentService?: DocumentService;
   extractionService?: ExtractionService;
   efMatcherService?: EfMatcherService;
@@ -229,6 +235,7 @@ export function createIpcContext(
   let userEfLibraryServiceInstance: UserEfLibraryService | undefined;
   let activityImportServiceInstance: ActivityImportService | undefined;
   let batchExtractionServiceInstance: BatchExtractionService | undefined;
+  let workspaceServiceInstance: WorkspaceService | undefined;
 
   const getCredential = (): CredentialService => {
     if (!credentialServiceInstance) credentialServiceInstance = defaultCredentialService();
@@ -396,6 +403,14 @@ export function createIpcContext(
         });
       }
       return classificationServiceInstance;
+    },
+    get workspaceService() {
+      if (!workspaceServiceInstance) {
+        workspaceServiceInstance = new WorkspaceService(
+          overrides.userDataDir ?? app.getPath('userData'),
+        );
+      }
+      return workspaceServiceInstance;
     },
     get batchExtractionService() {
       if (!batchExtractionServiceInstance) {

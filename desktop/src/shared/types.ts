@@ -1063,6 +1063,29 @@ export type BatchExtractionStartResult =
   | { ok: false; error: { _tag: 'BatchAlreadyRunning' | 'NothingToRun' } };
 
 // ---------------------------------------------------------------------------
+// Client workspaces / 账套 (spec 2026-07-22-client-workspaces)
+// ---------------------------------------------------------------------------
+
+/**
+ * One client workspace = one standalone SQLite file under userData. `file`
+ * is always a bare basename (never a path) — the registry can't be steered
+ * outside the userData directory.
+ */
+export type Workspace = {
+  id: string;
+  name: string;
+  file: string;
+  created_at: string;
+};
+
+/** Shape of `<userData>/workspaces.json` — lives outside every workspace DB. */
+export type WorkspaceRegistry = {
+  version: 1;
+  workspaces: Workspace[];
+  active_id: string;
+};
+
+// ---------------------------------------------------------------------------
 // EF Matcher types (Phase 1c Task 5)
 // ---------------------------------------------------------------------------
 

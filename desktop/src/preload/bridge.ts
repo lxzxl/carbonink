@@ -76,6 +76,12 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   'extraction:batch-run',
   'extraction:batch-cancel',
   'extraction:batch-status',
+  // workspace domain (spec 2026-07-22 — client workspaces / 账套)
+  'workspace:list',
+  'workspace:get-active',
+  'workspace:create',
+  'workspace:rename',
+  'workspace:switch',
   'extraction:run',
   'extraction:list-pending',
   'extraction:list-by-document',

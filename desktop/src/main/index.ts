@@ -1,7 +1,8 @@
-import { join } from 'node:path';
-import { openAppDb } from '@main/db/connection.js';
+import { closeAppDb, openAppDb } from '@main/db/connection.js';
 import { runMigrations } from '@main/db/migrate.js';
 import { cleanupIpc, setupIpc } from '@main/ipc/setup.js';
+import { WorkspaceService } from '@main/services/workspace-service.js';
+import { configureWorkspaceSwitch } from '@main/workspace-switch.js';
 import { runAutoBackupIfDue } from '@main/services/auto-backup-service.js';
 import { installLogger } from '@main/services/logger-service.js';
 import { notifyOverdueDisclosures } from '@main/services/overdue-notify-service.js';
@@ -37,11 +38,27 @@ app.whenReady().then(() => {
     app.dock?.setIcon(nativeImage.createFromPath(devIcon));
   }
 
-  const dbPath = join(app.getPath('userData'), 'app.sqlite');
-  const db = openAppDb(dbPath);
+  // Client workspaces (spec 2026-07-22): the registry decides which
+  // SQLite file is active; first run bootstraps app.sqlite as 默认账套.
+  const workspaceService = new WorkspaceService(app.getPath('userData'));
+  const db = openAppDb(workspaceService.activeDbPath());
   runMigrations(db);
 
   setupIpc();
+
+  // Wire the workspace-switch orchestration (reply → teardown → reopen →
+  // rebuild IPC → reload renderer). Lives outside the IPC layer because
+  // the switch disposes the very listener that dispatched it.
+  configureWorkspaceSwitch({
+    workspaceService,
+    cleanupIpc,
+    closeAppDb,
+    openAppDb,
+    runMigrations,
+    setupIpc,
+    reloadWindow: () => getMainWindow()?.webContents.reload(),
+    schedule: (fn) => setTimeout(fn, 50),
+  });
 
   // Post-launch (spec 2026-05-25): install the application menu so
   // ⌘Z / Ctrl+Z reach the renderer's undo handler. Skipped in E2E so
