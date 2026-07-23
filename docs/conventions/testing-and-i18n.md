@@ -21,9 +21,14 @@ it's debt, not precedent.
 - **vitest baseline:** 662/662 was the floor on `main` after `v1.0.0`.
   Current passing count is **1113/1113** (2026-07-22). Don't land a commit
   that drops the passing count.
-- **Biome lint debt:** the pre-existing ~940 errors are documented as
-  deferred to v1.0.1. Don't fix it incidentally. New code MUST lint
-  clean on a scoped `biome check <changed files>` though.
+- **Biome lint debt: CLEARED (2026-07-22).** Desktop `biome check .` is at
+  **0 errors**. What survived the cleanup: ~170 warnings/infos, dominated by
+  `noNonNullAssertion` (88, mostly deliberate `!` in tests) plus small
+  style rules — accepted residue, not a queue. Keep errors at zero; don't
+  bulk-churn the warnings. The three real fixes worth knowing: hook-order
+  split in ActivityRebindCard, `role="link"` removed from BreadcrumbPage
+  (deviation from shadcn upstream, commented inline), redundant setter
+  deps dropped in sidebar.tsx.
 - **better-sqlite3 ABI flip:** after `pnpm build` (or any script that runs
   `electron-rebuild`), vitest will fail with `NODE_MODULE_VERSION 145 vs 137`
   because better-sqlite3's native binding flipped to Electron ABI. Restore

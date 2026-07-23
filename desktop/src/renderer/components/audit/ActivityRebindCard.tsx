@@ -27,18 +27,23 @@ function useEfName(pk: EfCompositePk): string {
 }
 
 export function ActivityRebindCard({ event }: { event: AuditEvent }) {
-  const [showRaw, setShowRaw] = useState(false);
+  // Parse guard lives in a wrapper so the inner component can call hooks
+  // unconditionally (React hook rules — the early return used to sit
+  // above the useEfName calls).
   let payload: ActivityRebindEfPayload | null = null;
-  let parseError = false;
   try {
     payload = JSON.parse(event.payload) as ActivityRebindEfPayload;
   } catch {
-    parseError = true;
+    payload = null;
   }
-  if (parseError || !payload) {
+  if (!payload) {
     return <div className="text-sm text-destructive">{m.audit_malformed_payload()}</div>;
   }
+  return <ActivityRebindCardBody payload={payload} />;
+}
 
+function ActivityRebindCardBody({ payload }: { payload: ActivityRebindEfPayload }) {
+  const [showRaw, setShowRaw] = useState(false);
   const delta = payload.new_computed_co2e_kg - payload.old_computed_co2e_kg;
   const pct = payload.old_computed_co2e_kg === 0 ? 0 : (delta / payload.old_computed_co2e_kg) * 100;
   const activityIdShort = payload.activity_id.slice(0, 8);

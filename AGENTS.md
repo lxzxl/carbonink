@@ -16,8 +16,11 @@ read on demand.
   count.
 - **No licensing.** CarbonInk is free & open-source (MIT) — there is no license
   gate, activation, account, or payment. Don't reintroduce one.
-- **Don't touch the biome debt incidentally.** ~940 pre-existing errors are
-  deferred to v1.0.1. New code MUST pass a scoped `biome check <changed files>`.
+- **Biome errors stay at ZERO.** The historic ~940-error debt was cleared
+  2026-07-22 (`pnpm exec biome check .` in desktop/ reports 0 errors; the
+  remaining ~170 warnings/infos — mostly noNonNullAssertion in tests — are
+  accepted style residue, don't churn them). New code MUST pass a scoped
+  `biome check <changed files>` with no NEW errors or warnings.
 - **i18n keys go in BOTH `messages/en.json` + `messages/zh-CN.json`** — same key
   set, same commit. (Inbound v2.0's inline Chinese is acknowledged debt, not a
   pattern to copy.)

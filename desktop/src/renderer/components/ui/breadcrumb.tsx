@@ -50,10 +50,12 @@ function BreadcrumbLink({
 
 function BreadcrumbPage({ className, ...props }: React.ComponentProps<'span'>) {
   return (
+    // Deviation from shadcn upstream: no role="link" — the current page is
+    // not a link (it's non-interactive and non-focusable), and
+    // aria-current="page" already conveys the semantics. Fixes the
+    // useFocusableInteractive/useSemanticElements a11y errors upstream ships.
     <span
       data-slot="breadcrumb-page"
-      role="link"
-      aria-disabled="true"
       aria-current="page"
       className={cn('font-normal text-foreground', className)}
       {...props}
