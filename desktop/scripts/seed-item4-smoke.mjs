@@ -91,11 +91,9 @@ if (!existsSync(DB_PATH)) {
 // ---------------------------------------------------------------------------
 
 console.log('━━━ Step 1: inventory seed (seed-test-data.mjs) ━━━');
-const inv = spawnSync(
-  'node',
-  [join(__dirname, 'seed-test-data.mjs'), '--db', DB_PATH],
-  { stdio: 'inherit' },
-);
+const inv = spawnSync('node', [join(__dirname, 'seed-test-data.mjs'), '--db', DB_PATH], {
+  stdio: 'inherit',
+});
 if (inv.status !== 0) {
   console.error('✗ Inventory seed failed; aborting before questionnaire seed.');
   process.exit(inv.status ?? 1);
@@ -306,9 +304,7 @@ for (const q of QUESTIONS) {
   );
   qInserted++;
 }
-console.log(
-  `  + ${qInserted} question(s)${qSkipped ? `, ${qSkipped} already present` : ''}`,
-);
+console.log(`  + ${qInserted} question(s)${qSkipped ? `, ${qSkipped} already present` : ''}`);
 
 db.close();
 
@@ -344,7 +340,7 @@ console.log("         \"SELECT json_extract(payload, '$.isFallback'),");
 console.log("                 json_extract(payload, '$.turnCount'),");
 console.log("                 json_extract(payload, '$.stopReason'),");
 console.log("                 json_extract(payload, '$.toolCallSummary')");
-console.log("            FROM audit_event");
+console.log('            FROM audit_event');
 console.log("            WHERE event_kind='agent_answer.generate'");
 console.log('            ORDER BY occurred_at DESC LIMIT 10;"');
 console.log('');

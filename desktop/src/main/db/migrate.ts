@@ -70,11 +70,9 @@ export function runMigrations(db: Database): void {
     try {
       const tx = db.transaction(() => {
         db.exec(m.sql);
-        db.prepare('INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)').run(
-          m.version,
-          m.name,
-          new Date().toISOString(),
-        );
+        db.prepare(
+          'INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)',
+        ).run(m.version, m.name, new Date().toISOString());
       });
       tx();
     } finally {
@@ -82,9 +80,7 @@ export function runMigrations(db: Database): void {
     }
     const violations = db.pragma('foreign_key_check') as Array<unknown>;
     if (violations.length > 0) {
-      throw new Error(
-        `Migration ${m.name} produced FK violations: ${JSON.stringify(violations)}`,
-      );
+      throw new Error(`Migration ${m.name} produced FK violations: ${JSON.stringify(violations)}`);
     }
   }
 }

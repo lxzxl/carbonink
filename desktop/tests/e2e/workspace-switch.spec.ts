@@ -59,9 +59,7 @@ test('workspace switch: create → switch to empty → onboarding → switch bac
     await snap(window, 'workspace-01-default');
 
     // Create 客户甲.
-    await window
-      .getByPlaceholder(/新账套名称|new workspace name/i)
-      .fill('客户甲');
+    await window.getByPlaceholder(/新账套名称|new workspace name/i).fill('客户甲');
     await window.getByRole('button', { name: /新建账套|new workspace/i }).click();
     await window.getByText('客户甲', { exact: true }).waitFor({ timeout: 10_000 });
     await snap(window, 'workspace-02-created');

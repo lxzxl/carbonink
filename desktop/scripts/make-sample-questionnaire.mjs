@@ -34,8 +34,7 @@ wb.creator = 'CarbonInk — sample test fixture';
 const ws = wb.addWorksheet('碳排放披露问卷');
 ws.columns = [{ width: 6 }, { width: 66 }, { width: 26 }, { width: 36 }];
 
-ws.getCell('A1').value =
-  '2025 年度供应商碳排放披露问卷 / 2025 Supplier GHG Emissions Disclosure';
+ws.getCell('A1').value = '2025 年度供应商碳排放披露问卷 / 2025 Supplier GHG Emissions Disclosure';
 ws.getCell('A1').font = { bold: true, size: 14 };
 ws.getCell('A2').value =
   '说明：请在「回答」列填写。数据口径遵循 GHG Protocol（温室气体核算体系）。/ Please complete the "Response" column. Figures follow the GHG Protocol.';
@@ -59,7 +58,11 @@ const items = [
     unit: '运营控制权 / 股权比例 / 财务控制权\nOperational / Equity share / Financial control',
   },
   { section: '二、范围一与范围二排放  Scope 1 & Scope 2' },
-  { no: 4, q: '范围一（直接）温室气体排放总量 / Total Scope 1 (direct) GHG emissions', unit: 'tCO₂e' },
+  {
+    no: 4,
+    q: '范围一（直接）温室气体排放总量 / Total Scope 1 (direct) GHG emissions',
+    unit: 'tCO₂e',
+  },
   {
     no: 5,
     q: '范围二（外购电力）排放总量——基于位置法 / Total Scope 2 (purchased electricity), location-based',
@@ -69,10 +72,18 @@ const items = [
   { no: 7, q: '外购电力消耗总量 / Total purchased electricity consumption', unit: 'MWh' },
   { no: 8, q: '可再生能源电力占比 / Share of renewable electricity', unit: '%' },
   { section: '三、范围三排放  Scope 3' },
-  { no: 9, q: '是否核算范围三排放？/ Do you account for Scope 3 emissions?', unit: '是 / 否 / 部分  Yes / No / Partial' },
+  {
+    no: 9,
+    q: '是否核算范围三排放？/ Do you account for Scope 3 emissions?',
+    unit: '是 / 否 / 部分  Yes / No / Partial',
+  },
   { no: 10, q: '范围三排放总量（如适用）/ Total Scope 3 emissions (if applicable)', unit: 'tCO₂e' },
   { section: '四、减排目标与核查  Targets & verification' },
-  { no: 11, q: '是否已设定温室气体减排目标？/ Do you have a GHG reduction target?', unit: '是 / 否  Yes / No' },
+  {
+    no: 11,
+    q: '是否已设定温室气体减排目标？/ Do you have a GHG reduction target?',
+    unit: '是 / 否  Yes / No',
+  },
   {
     no: 12,
     q: '减排目标描述（基准年、目标年、减排比例）/ Reduction target (base year, target year, % cut)',
@@ -83,7 +94,11 @@ const items = [
     q: '温室气体清单核查状态 / GHG inventory verification status',
     unit: '未核查 / 自我声明 / 第三方核查 / ISO 14064\nNone / Self-reported / Third-party / ISO 14064',
   },
-  { no: 14, q: '核算方法与采用标准 / Calculation methodology & standard', unit: '如 GHG Protocol、ISO 14064-1' },
+  {
+    no: 14,
+    q: '核算方法与采用标准 / Calculation methodology & standard',
+    unit: '如 GHG Protocol、ISO 14064-1',
+  },
 ];
 
 let r = 4;
@@ -112,4 +127,6 @@ ws.views = [{ state: 'frozen', ySplit: 3 }];
 
 await wb.xlsx.writeFile(outPath);
 console.log(`✓ wrote ${outPath}`);
-console.log(`  ${items.filter((i) => !i.section).length} questions across ${items.filter((i) => i.section).length} sections`);
+console.log(
+  `  ${items.filter((i) => !i.section).length} questions across ${items.filter((i) => i.section).length} sections`,
+);

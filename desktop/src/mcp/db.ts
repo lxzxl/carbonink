@@ -14,11 +14,7 @@ export function defaultDbPath(): string {
     return join(home, 'Library', 'Application Support', 'CarbonInk', 'app.sqlite');
   }
   if (process.platform === 'win32') {
-    return join(
-      process.env.APPDATA ?? join(home, 'AppData', 'Roaming'),
-      'CarbonInk',
-      'app.sqlite',
-    );
+    return join(process.env.APPDATA ?? join(home, 'AppData', 'Roaming'), 'CarbonInk', 'app.sqlite');
   }
   return join(home, '.config', 'CarbonInk', 'app.sqlite');
 }

@@ -24,7 +24,7 @@
  *   DEEPSEEK_API_KEY=sk-... node desktop/scripts/climatiq-to-presets.mjs --limit 300
  */
 
-import { mkdir, readFile, writeFile, stat, rename } from 'node:fs/promises';
+import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -69,7 +69,9 @@ const BASE_URL = 'https://api.climatiq.io/data/v1';
 const RESULTS_PER_PAGE = 500;
 
 const DEFAULT_SOURCES = ['BEIS', 'EPA', 'IPCC', 'GHG Protocol', 'ADEME', 'ecoinvent'];
-const SOURCES = SOURCES_OVERRIDE ? SOURCES_OVERRIDE.split(',').map((s) => s.trim()) : DEFAULT_SOURCES;
+const SOURCES = SOURCES_OVERRIDE
+  ? SOURCES_OVERRIDE.split(',').map((s) => s.trim())
+  : DEFAULT_SOURCES;
 
 const ALLOWED_REGIONS = new Set(['CN', 'GLOBAL', 'World', 'GB', 'US', 'EU', 'OECD']);
 const REGION_PRIORITY = ['CN', 'GLOBAL', 'World', 'GB', 'US', 'EU', 'OECD'];
@@ -604,7 +606,7 @@ async function translateBatch(items, cache) {
     'You are translating short emission-factor activity names from English to Simplified Chinese for a carbon-accounting product.',
     '',
     'Rules:',
-    "- Output precise, concise Simplified Chinese (under 30 characters).",
+    '- Output precise, concise Simplified Chinese (under 30 characters).',
     '- Preserve any unit tokens verbatim (e.g. "kg", "kWh", "L", "km", "person-km").',
     '- Preserve technical acronyms (HFC, LPG, HVO, GHG, etc.).',
     '- Do NOT add explanations. Just the translation.',
@@ -789,7 +791,9 @@ async function main() {
       await rename(OUTPUT_FILE, BACKUP_FILE);
       console.log(`  Existing catalog backed up to: ${path.relative(DESKTOP_ROOT, BACKUP_FILE)}`);
     } else {
-      console.log(`  Backup already present at: ${path.relative(DESKTOP_ROOT, BACKUP_FILE)} (not overwriting)`);
+      console.log(
+        `  Backup already present at: ${path.relative(DESKTOP_ROOT, BACKUP_FILE)} (not overwriting)`,
+      );
     }
   }
 
@@ -810,7 +814,9 @@ async function main() {
     entries: outEntries,
   };
   await writeJson(OUTPUT_FILE, outDoc);
-  console.log(`  Wrote: ${path.relative(DESKTOP_ROOT, OUTPUT_FILE)} (${outEntries.length} entries)`);
+  console.log(
+    `  Wrote: ${path.relative(DESKTOP_ROOT, OUTPUT_FILE)} (${outEntries.length} entries)`,
+  );
 
   // Summary
   console.log('\n' + '═'.repeat(80));

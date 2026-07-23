@@ -23,7 +23,9 @@ const current = (billText: string): string => chinaUtilityStage.buildPrompt(bill
  * so a leaner prompt should measurably lose points there — demonstrating the
  * eval catching a prompt regression.
  */
-const terse = (billText: string): string => `Extract these fields from the Chinese electricity bill and return ONE JSON object (no prose, no code fences):
+const terse = (
+  billText: string,
+): string => `Extract these fields from the Chinese electricity bill and return ONE JSON object (no prose, no code fences):
 - doc_type: always "china_utility"
 - supplier_name: utility company name (string; "" if illegible)
 - account_no: 户号 / 用户编号 (string, or null if absent)

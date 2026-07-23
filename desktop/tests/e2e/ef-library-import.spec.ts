@@ -44,7 +44,11 @@ test('EF library import: pick → preview → import → replace → delete', as
     // Open the 因子库 section from the settings rail.
     const nav = window.getByRole('navigation').first();
     await nav.waitFor({ state: 'visible', timeout: 15_000 });
-    await nav.getByRole('button').filter({ hasText: /因子库|ef librar/i }).first().click();
+    await nav
+      .getByRole('button')
+      .filter({ hasText: /因子库|ef librar/i })
+      .first()
+      .click();
     await window
       .getByText(/导入排放因子库|import an emission-factor library/i)
       .first()
@@ -61,7 +65,9 @@ test('EF library import: pick → preview → import → replace → delete', as
     await window.getByRole('button', { name: /选择文件|choose file/i }).click();
 
     // Real parse happened in the main process: filename + counts render.
-    await window.getByText('ef-library-import.csv', { exact: true }).waitFor({ state: 'visible', timeout: 10_000 });
+    await window
+      .getByText('ef-library-import.csv', { exact: true })
+      .waitFor({ state: 'visible', timeout: 10_000 });
     await expect(window.getByText(/3 条有效|3 valid/)).toBeVisible();
     await expect(window.getByText(/1 条错误|1 errors?/)).toBeVisible();
     // The bad row is reported with its file row number + coded message.
@@ -80,7 +86,10 @@ test('EF library import: pick → preview → import → replace → delete', as
     await window.getByRole('button', { name: /^导入$|^import$/i }).click();
 
     // Success toast + drawer closes + registry row appears (real DB read).
-    await window.getByText(/已导入 3 条因子|imported 3 factors/i).last().waitFor({ timeout: 10_000 });
+    await window
+      .getByText(/已导入 3 条因子|imported 3 factors/i)
+      .last()
+      .waitFor({ timeout: 10_000 });
     const row = window.getByText('user:内部台账');
     await row.waitFor({ state: 'visible', timeout: 10_000 });
     await expect(window.getByText(/v1 · 3 条因子|v1 · 3 factors/)).toBeVisible();
@@ -91,7 +100,9 @@ test('EF library import: pick → preview → import → replace → delete', as
     // ---------------------------------------------------------------------
     await window.getByRole('button', { name: /导入因子库|import library/i }).click();
     await window.getByRole('button', { name: /选择文件|choose file/i }).click();
-    await window.getByText('ef-library-import.csv', { exact: true }).waitFor({ state: 'visible', timeout: 10_000 });
+    await window
+      .getByText('ef-library-import.csv', { exact: true })
+      .waitFor({ state: 'visible', timeout: 10_000 });
     await window.getByLabel(/库名称|library name/i).fill('内部台账');
     await window.getByRole('button', { name: /^导入$|^import$/i }).click();
 
@@ -100,7 +111,10 @@ test('EF library import: pick → preview → import → replace → delete', as
       .waitFor({ state: 'visible', timeout: 5_000 });
     await snap(window, 'ef-library-04-replace-confirm');
     await window.getByRole('button', { name: /替换导入|replace library/i }).click();
-    await window.getByText(/已导入 3 条因子|imported 3 factors/i).last().waitFor({ timeout: 10_000 });
+    await window
+      .getByText(/已导入 3 条因子|imported 3 factors/i)
+      .last()
+      .waitFor({ timeout: 10_000 });
     // Blank version defaulted to the import date; still exactly one registry row.
     await expect(window.getByText('user:内部台账')).toHaveCount(1);
 

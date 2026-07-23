@@ -37,9 +37,7 @@ export function extractionHandlers(ctx: IpcContext): {
     // Batch extraction queue (spec 2026-07-22). `batch-run` acknowledges
     // immediately; progress rides the extraction:batch-progress push channel.
     'extraction:batch-run': (input) => {
-      const parsed = z
-        .object({ document_ids: z.array(z.string().min(1)).max(500) })
-        .parse(input);
+      const parsed = z.object({ document_ids: z.array(z.string().min(1)).max(500) }).parse(input);
       return ctx.batchExtractionService.start(parsed.document_ids);
     },
     'extraction:batch-cancel': () => ({ ok: ctx.batchExtractionService.cancel() }),

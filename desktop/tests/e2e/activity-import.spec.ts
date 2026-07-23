@@ -125,7 +125,9 @@ test('activity import: ledger → mapping → sources → groups → import → 
     // Step 4: two confirm-groups; pick a real catalog EF in each embedded
     // picker and confirm. Real FTS candidates, no LLM (no provider).
     // ---------------------------------------------------------------------
-    await window.getByText(/按组确认排放因子|confirm emission factors/i).waitFor({ timeout: 10_000 });
+    await window
+      .getByText(/按组确认排放因子|confirm emission factors/i)
+      .waitFor({ timeout: 10_000 });
     const gridCard = window
       .locator('div.rounded-md.border')
       .filter({ has: window.getByText('电网电力', { exact: true }) })
@@ -150,7 +152,9 @@ test('activity import: ledger → mapping → sources → groups → import → 
     await window.getByRole('button', { name: /^导入$|^import$/i }).click();
     await window.getByText(/导入完成|import complete/i).waitFor({ timeout: 15_000 });
     await expect(window.getByText(/已导入 4 行|4 rows imported/)).toBeVisible();
-    await expect(window.getByText(/1 行跳过（校验错误）|1 skipped \(validation errors\)/)).toBeVisible();
+    await expect(
+      window.getByText(/1 行跳过（校验错误）|1 skipped \(validation errors\)/),
+    ).toBeVisible();
     await snap(window, 'activity-import-04-result');
     await window.getByRole('button', { name: /^完成$|^done$/i }).click();
     // Let the vaul exit animation finish so the list screenshot is clean.

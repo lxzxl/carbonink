@@ -32,7 +32,13 @@ const TCFD_DATA = {
     significant_changes_text: null,
   },
   sites: [{ id: 'site-1', name_zh: '总部', name_en: null, address: null }],
-  scope_totals: { scope1_kg: 252.56, scope2_kg: 1254.66, scope3_kg: 0, total_kg: 1507.22, biogenic_kg: 0 },
+  scope_totals: {
+    scope1_kg: 252.56,
+    scope2_kg: 1254.66,
+    scope3_kg: 0,
+    total_kg: 1507.22,
+    biogenic_kg: 0,
+  },
   all_sources: [
     { id: 'src-grid', name: '电网电表', scope: 2, co2e_kg: 1254.66, share_pct: 83.2 },
     { id: 'src-boiler', name: '新锅炉', scope: 1, co2e_kg: 252.56, share_pct: 16.8 },
@@ -45,10 +51,14 @@ const TCFD_DATA = {
 };
 
 const TCFD_NARRATIVE = {
-  governance: '董事会通过可持续发展负责人对气候相关议题进行监督，管理层按年度审阅温室气体盘查结果并向董事会汇报。本期治理安排的细化流程尚在建设中，后续将明确气候议题的议事频率与职责分工。',
-  strategy: '公司识别的气候相关影响目前以运营用能的转型风险为主。本期未开展定量情景分析，后续计划结合盘查数据评估不同气候情景下的能源成本变化，并据此制定减排路径。',
-  risk_management: '气候相关风险的识别与评估目前依托年度温室气体盘查流程：以排放源清单为基础识别主要暴露点。本期未开展独立的气候风险定量评估，相关流程将随盘查周期逐步完善并纳入整体风险管理。',
-  metrics_targets: '本期温室气体排放合计 1507.22 kg CO2e，其中范围一 252.56 kg、范围二 1254.66 kg、范围三本期未评估。主要排放源为电网电表（占 83.2%）。排放因子采用 AR6 GWP 基准。与上一期（2023 年，1400 kg CO2e）相比有所上升，公司尚未设定量化减排目标，将在建立完整基准年后制定。',
+  governance:
+    '董事会通过可持续发展负责人对气候相关议题进行监督，管理层按年度审阅温室气体盘查结果并向董事会汇报。本期治理安排的细化流程尚在建设中，后续将明确气候议题的议事频率与职责分工。',
+  strategy:
+    '公司识别的气候相关影响目前以运营用能的转型风险为主。本期未开展定量情景分析，后续计划结合盘查数据评估不同气候情景下的能源成本变化，并据此制定减排路径。',
+  risk_management:
+    '气候相关风险的识别与评估目前依托年度温室气体盘查流程：以排放源清单为基础识别主要暴露点。本期未开展独立的气候风险定量评估，相关流程将随盘查周期逐步完善并纳入整体风险管理。',
+  metrics_targets:
+    '本期温室气体排放合计 1507.22 kg CO2e，其中范围一 252.56 kg、范围二 1254.66 kg、范围三本期未评估。主要排放源为电网电表（占 83.2%）。排放因子采用 AR6 GWP 基准。与上一期（2023 年，1400 kg CO2e）相比有所上升，公司尚未设定量化减排目标，将在建立完整基准年后制定。',
 };
 
 test('tcfd report: kind selector → canned generate → four pillars + metrics tables', async () => {

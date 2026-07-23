@@ -229,7 +229,11 @@ export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClien
             // (text + image blocks). All our image input is PNG from the
             // pdf-to-images render path; widen later if other mime types
             // surface.
-            const userContent: string | Array<{ type: 'text'; text: string } | { type: 'image'; data: string; mimeType: string }> =
+            const userContent:
+              | string
+              | Array<
+                  { type: 'text'; text: string } | { type: 'image'; data: string; mimeType: string }
+                > =
               args.images && args.images.length > 0
                 ? [
                     { type: 'text', text: args.prompt },

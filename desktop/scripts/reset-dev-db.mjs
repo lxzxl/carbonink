@@ -69,7 +69,11 @@ db.pragma('foreign_keys = ON');
 const migrations = readdirSync(MIGRATIONS_DIR)
   .filter((f) => /^\d{3}_.+\.sql$/.test(f))
   .sort((a, b) => a.localeCompare(b))
-  .map((f) => ({ version: Number.parseInt(f.slice(0, 3), 10), name: f.replace(/\.sql$/, ''), file: f }));
+  .map((f) => ({
+    version: Number.parseInt(f.slice(0, 3), 10),
+    name: f.replace(/\.sql$/, ''),
+    file: f,
+  }));
 
 for (const m of migrations) {
   db.exec(readFileSync(join(MIGRATIONS_DIR, m.file), 'utf8'));

@@ -199,7 +199,11 @@ export function reportHandlers(ctx: IpcContext): {
       const input = raw as Parameters<IpcTypeMap['report:export-tcfd-pdf']>[0];
       const result = await dialog.showSaveDialog({
         title: 'Export TCFD report (PDF)',
-        defaultPath: tcfdExportFilename({ data: input.data, language: input.language, kind: 'pdf' }),
+        defaultPath: tcfdExportFilename({
+          data: input.data,
+          language: input.language,
+          kind: 'pdf',
+        }),
         filters: [{ name: 'PDF', extensions: ['pdf'] }],
       });
       if (result.canceled || !result.filePath) return { canceled: true as const };

@@ -52,7 +52,7 @@ function toNumber(v: unknown): number | null {
   if (typeof v === 'number') return Number.isFinite(v) ? v : null;
   const cleaned = String(v)
     .replace(/,/g, '')
-    .replace(/[^0-9.\-]/g, '');
+    .replace(/[^0-9.-]/g, '');
   if (cleaned === '' || cleaned === '-' || cleaned === '.') return null;
   const n = Number(cleaned);
   return Number.isFinite(n) ? n : null;

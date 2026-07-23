@@ -63,8 +63,14 @@ const { values } = parseArgs({
 });
 
 const provider = String(values.provider);
-const models = String(values.models).split(',').map((s) => s.trim()).filter(Boolean);
-const promptNames = String(values.prompts).split(',').map((s) => s.trim()).filter(Boolean);
+const models = String(values.models)
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+const promptNames = String(values.prompts)
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
 const runs = Math.max(1, Number(values.runs) || 1);
 
 const apiKey = process.env.DEEPSEEK_API_KEY ?? process.env.EVAL_API_KEY;
@@ -154,7 +160,11 @@ async function callModel(modelId: string, prompt: string): Promise<CallResult> {
       { apiKey, maxRetries: 1 },
     );
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e), latencyMs: Date.now() - t0 };
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : String(e),
+      latencyMs: Date.now() - t0,
+    };
   }
   const latencyMs = Date.now() - t0;
   const usage: Usage = { input: msg?.usage?.input ?? 0, output: msg?.usage?.output ?? 0 };
@@ -164,10 +174,19 @@ async function callModel(modelId: string, prompt: string): Promise<CallResult> {
 
   const content = msg?.content ?? [];
   const toolCall = content.find((c) => c?.type === 'toolCall' && c?.name === 'submit_response');
-  const rawText = content.filter((c) => c?.type === 'text').map((c) => c.text ?? '').join('');
+  const rawText = content
+    .filter((c) => c?.type === 'text')
+    .map((c) => c.text ?? '')
+    .join('');
   const { raw, wrapped } = unwrapEnvelope(toolCall?.arguments ?? extractJsonFromText(rawText));
   if (raw == null || typeof raw !== 'object') {
-    return { ok: false, error: 'no structured output', raw: rawText.slice(0, 800), usage, latencyMs };
+    return {
+      ok: false,
+      error: 'no structured output',
+      raw: rawText.slice(0, 800),
+      usage,
+      latencyMs,
+    };
   }
   const parsed = chinaUtilityExtraction.safeParse(raw);
   if (!parsed.success) {
@@ -350,7 +369,11 @@ async function main(): Promise<void> {
   const outFile = join(outDir, `extract-china_utility-${stamp}.json`);
   writeFileSync(
     outFile,
-    JSON.stringify({ provider, models, promptNames, runs, prices: PRICES, cells, perItem }, null, 2),
+    JSON.stringify(
+      { provider, models, promptNames, runs, prices: PRICES, cells, perItem },
+      null,
+      2,
+    ),
   );
   console.error(`↳ raw results: ${outFile}`);
 }
