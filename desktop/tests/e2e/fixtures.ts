@@ -290,8 +290,23 @@ export const FIXTURE_QUESTIONNAIRE = {
   template_kind: 'cdp',
   reporting_year: 2026,
   status: 'answering',
+  direction: 'outbound',
   due_date: '2026-06-30',
   created_at: '2026-04-15T00:00:00Z',
+};
+
+/**
+ * Inbound supplier-disclosure rows for the /supplier-disclosures tour shot
+ * (the marketing gallery uses it). Three lifecycle states on purpose:
+ * received (green path), sent-and-overdue (the red reminder selling
+ * point), and ingested (the finished state).
+ */
+const FIXTURE_INBOUND_BASE = {
+  document_id: null,
+  template_kind: null,
+  reporting_year: 2026,
+  direction: 'inbound',
+  question_count: 6,
 };
 
 export const FIXTURE_QUESTIONNAIRE_LIST = [
@@ -299,6 +314,33 @@ export const FIXTURE_QUESTIONNAIRE_LIST = [
     ...FIXTURE_QUESTIONNAIRE,
     customer_name: 'Unilever Supply Chain',
     question_count: 12,
+  },
+  {
+    ...FIXTURE_INBOUND_BASE,
+    id: 'qst_in_fastener',
+    customer_id: 'sup_fastener',
+    status: 'received',
+    due_date: '2026-07-15',
+    created_at: '2026-06-20T00:00:00Z',
+    customer_name: '宁波紧固件供应商',
+  },
+  {
+    ...FIXTURE_INBOUND_BASE,
+    id: 'qst_in_molding',
+    customer_id: 'sup_molding',
+    status: 'sent',
+    due_date: '2026-07-01',
+    created_at: '2026-06-10T00:00:00Z',
+    customer_name: '苏州注塑件厂',
+  },
+  {
+    ...FIXTURE_INBOUND_BASE,
+    id: 'qst_in_packaging',
+    customer_id: 'sup_packaging',
+    status: 'ingested',
+    due_date: null,
+    created_at: '2026-05-28T00:00:00Z',
+    customer_name: '天津包装材料',
   },
 ];
 
