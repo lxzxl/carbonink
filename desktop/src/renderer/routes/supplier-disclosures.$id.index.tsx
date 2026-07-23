@@ -55,14 +55,14 @@ function SupplierDisclosureDetailRoute(): JSX.Element {
     queryFn: () => questionnaireApi.getById({ id }),
   });
 
-  if (q.isLoading) return <p className="p-6 text-muted-foreground">加载中…</p>;
+  if (q.isLoading) return <p className="p-6 text-muted-foreground">{m.loading()}</p>;
   if (!q.data) {
     return (
       <div className="space-y-4 p-6">
         <Link to="/supplier-disclosures" className="text-sm text-primary hover:underline">
-          ← 返回披露列表
+          {m.inbound_back_to_list()}
         </Link>
-        <p className="text-destructive">披露不存在。</p>
+        <p className="text-destructive">{m.inbound_not_found()}</p>
       </div>
     );
   }
@@ -74,13 +74,13 @@ function SupplierDisclosureDetailRoute(): JSX.Element {
   if (questionnaire.direction !== 'inbound') {
     return (
       <div className="space-y-3 p-6">
-        <p className="text-sm text-destructive">这条记录是「客户披露填报」，不在此处。</p>
+        <p className="text-sm text-destructive">{m.inbound_wrong_direction()}</p>
         <Link
           to="/questionnaires/$id"
           params={{ id }}
           className="text-sm text-primary hover:underline"
         >
-          → 转到披露填报详情
+          {m.inbound_goto_outbound()}
         </Link>
       </div>
     );
@@ -134,7 +134,7 @@ function InboundDetailBody({
     mutationFn: () => inboundQuestionnaireApi.exportXlsx({ questionnaire_id: id }),
     onSuccess: (r) => {
       if (r.canceled) return;
-      toast.success(`已导出到 ${r.path}（${r.bytes_written} 字节）。将文件邮件发给供应商。`);
+      toast.success(m.inbound_export_success({ path: r.path, bytes: String(r.bytes_written) }));
       void queryClient.invalidateQueries({ queryKey: ['questionnaire:get-by-id', id] });
       void queryClient.invalidateQueries({ queryKey: ['questionnaire:list'] });
     },
@@ -146,11 +146,13 @@ function InboundDetailBody({
     onSuccess: (r) => {
       if (r.canceled) return;
       if ('error' in r) {
-        toast.error('导入失败', { description: r.error.message });
+        toast.error(m.inbound_import_failed(), { description: r.error.message });
         return;
       }
       toast.success(
-        `已解析 ${r.preview.answers.filter((a) => !a.is_blank).length} 题答案。进入审核页面。`,
+        m.inbound_import_parsed({
+          count: String(r.preview.answers.filter((a) => !a.is_blank).length),
+        }),
       );
       void queryClient.invalidateQueries({ queryKey: ['questionnaire:get-by-id', id] });
       void queryClient.invalidateQueries({ queryKey: ['questionnaire:list'] });
@@ -218,8 +220,10 @@ function InboundDetailBody({
       setConfirmDeleteOpen(false);
       toast.success(
         r.deleted_activity_data > 0
-          ? `已删除披露，并移除 ${r.deleted_activity_data} 条已入库活动数据。`
-          : '已删除披露。',
+          ? m.inbound_delete_success_with_activities({
+              count: String(r.deleted_activity_data),
+            })
+          : m.inbound_delete_success(),
       );
       void queryClient.invalidateQueries({ queryKey: ['questionnaire:list'] });
       void queryClient.invalidateQueries({ queryKey: ['activity:list-by-period'] });
@@ -234,7 +238,7 @@ function InboundDetailBody({
         <h1 className="text-2xl font-semibold">{supplier.name}</h1>
         <p className="text-sm text-muted-foreground">
           {questionnaire.reporting_year} · {statusLabel(questionnaire.status)} · Cat 1 Supplier
-          Disclosure · {questions.length} 题
+          Disclosure · {m.inbound_question_count({ count: String(questions.length) })}
           {questionnaire.due_date && (
             <>
               {' · '}
@@ -285,7 +289,7 @@ function InboundDetailBody({
           onClick={() => setConfirmDeleteOpen(true)}
         >
           <Trash2 className="mr-1.5 h-4 w-4" />
-          删除
+          {m.inbound_delete_button()}
         </Button>
 
         <div className="flex items-center gap-2">
@@ -296,7 +300,7 @@ function InboundDetailBody({
               disabled={exportMutation.isPending}
             >
               <Download className="mr-1.5 h-4 w-4" />
-              {exportMutation.isPending ? '导出中...' : '导出空白 xlsx'}
+              {exportMutation.isPending ? m.inbound_exporting() : m.inbound_export_blank()}
             </Button>
           )}
           {questionnaire.status === 'sent' && (
@@ -311,7 +315,7 @@ function InboundDetailBody({
                 onClick={() => exportMutation.mutate()}
                 disabled={exportMutation.isPending}
               >
-                重新导出
+                {m.inbound_reexport()}
               </Button>
               <Button
                 type="button"
@@ -319,7 +323,7 @@ function InboundDetailBody({
                 disabled={importMutation.isPending}
               >
                 <Upload className="mr-1.5 h-4 w-4" />
-                {importMutation.isPending ? '导入中...' : '导入回填表'}
+                {importMutation.isPending ? m.inbound_importing() : m.inbound_import_filled()}
               </Button>
             </>
           )}
@@ -332,7 +336,7 @@ function InboundDetailBody({
                 disabled={importMutation.isPending}
               >
                 <Upload className="mr-1.5 h-4 w-4" />
-                {importMutation.isPending ? '导入中...' : '重新导入回填表'}
+                {importMutation.isPending ? m.inbound_importing() : m.inbound_reimport_filled()}
               </Button>
               <Button
                 type="button"
@@ -340,7 +344,7 @@ function InboundDetailBody({
                   void navigate({ to: '/supplier-disclosures/$id/ingest', params: { id } })
                 }
               >
-                审核并入库
+                {m.inbound_review_ingest()}
               </Button>
             </>
           )}
@@ -350,7 +354,7 @@ function InboundDetailBody({
               variant="outline"
               onClick={() => void navigate({ to: '/activities' })}
             >
-              查看关联活动数据
+              {m.inbound_view_activities()}
             </Button>
           )}
         </div>
@@ -397,13 +401,11 @@ function InboundDetailBody({
       <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>删除供应商披露？</DialogTitle>
+            <DialogTitle>{m.inbound_delete_dialog_title()}</DialogTitle>
             <DialogDescription>
-              将删除「{supplier.name}」的这份披露及其全部题目与已收回的答案。
-              {questionnaire.status === 'ingested'
-                ? ' 该披露已入库，其生成的活动数据也会一并从 Scope 3 库存中移除。'
-                : ''}
-              此操作不可撤销。
+              {m.inbound_delete_dialog_desc({ name: supplier.name })}
+              {questionnaire.status === 'ingested' ? m.inbound_delete_dialog_ingested_extra() : ''}
+              {m.inbound_delete_dialog_irreversible()}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -413,7 +415,7 @@ function InboundDetailBody({
               onClick={() => setConfirmDeleteOpen(false)}
               disabled={deleteMutation.isPending}
             >
-              取消
+              {m.cancel()}
             </Button>
             <Button
               type="button"
@@ -421,7 +423,7 @@ function InboundDetailBody({
               onClick={() => deleteMutation.mutate()}
               disabled={deleteMutation.isPending}
             >
-              {deleteMutation.isPending ? '删除中...' : '确认删除'}
+              {deleteMutation.isPending ? m.inbound_deleting() : m.inbound_delete_confirm()}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -448,13 +450,13 @@ function parseNote(sourceSummary: string | null): string {
 function statusLabel(status: string): string {
   switch (status) {
     case 'draft':
-      return '草稿（待导出）';
+      return m.inbound_detail_status_draft();
     case 'sent':
-      return '已发送供应商';
+      return m.inbound_detail_status_sent();
     case 'received':
-      return '已收回（待审核）';
+      return m.inbound_detail_status_received();
     case 'ingested':
-      return '已入库';
+      return m.inbound_detail_status_ingested();
     default:
       return status;
   }
@@ -462,12 +464,10 @@ function statusLabel(status: string): string {
 
 function StatusHint({ status }: { status: string }): JSX.Element | null {
   const hints: Record<string, string> = {
-    draft:
-      '下一步：点击右下角「导出空白 xlsx」，将文件邮件发给供应商。供应商填写后邮件回传，再回到本页面导入。',
-    sent: '已发送给供应商。等待回传后，点击右下角「导入回填表」上传供应商邮件附件。',
-    received:
-      '供应商回传已解析，等待人工审核。点击「审核并入库」进入审核页面，确认无误后写入活动数据库。如供应商发来修正版，可点「重新导入回填表」覆盖上次解析结果。',
-    ingested: '已入库。供应商回传的排放数据已写入 Scope 3 库存，可在「活动数据」页面查看。',
+    draft: m.inbound_hint_draft(),
+    sent: m.inbound_hint_sent(),
+    received: m.inbound_hint_received(),
+    ingested: m.inbound_hint_ingested(),
   };
   const text = hints[status];
   if (!text) return null;

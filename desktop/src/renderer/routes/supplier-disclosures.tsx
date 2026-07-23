@@ -56,13 +56,13 @@ function SupplierDisclosuresLayout(): JSX.Element {
 function statusLabel(status: string): string {
   switch (status) {
     case 'draft':
-      return '草稿';
+      return m.inbound_status_draft();
     case 'sent':
-      return '已发送';
+      return m.inbound_status_sent();
     case 'received':
-      return '已回收';
+      return m.inbound_status_received();
     case 'ingested':
-      return '已入库';
+      return m.inbound_status_ingested();
     default:
       return status;
   }
@@ -155,21 +155,21 @@ function SupplierDisclosuresListColumn(): JSX.Element {
 
   const sortOptions = useMemo<SortMenuOption<ISort>[]>(
     () => [
-      { value: 'recent', label: '最近创建' },
-      { value: 'oldest', label: '最早创建' },
-      { value: 'supplier', label: '按供应商名' },
-      { value: 'due', label: '按截止日期' },
-      { value: 'questions', label: '按题目数' },
+      { value: 'recent', label: m.inbound_sort_recent() },
+      { value: 'oldest', label: m.inbound_sort_oldest() },
+      { value: 'supplier', label: m.inbound_sort_supplier() },
+      { value: 'due', label: m.inbound_sort_due() },
+      { value: 'questions', label: m.inbound_sort_questions() },
     ],
     [],
   );
 
   const STATUS_FILTERS: { value: IStatusFilter; label: string }[] = [
-    { value: 'all', label: '全部状态' },
-    { value: 'draft', label: '草稿' },
-    { value: 'sent', label: '已发送' },
-    { value: 'received', label: '已回收' },
-    { value: 'ingested', label: '已入库' },
+    { value: 'all', label: m.inbound_filter_all() },
+    { value: 'draft', label: m.inbound_status_draft() },
+    { value: 'sent', label: m.inbound_status_sent() },
+    { value: 'received', label: m.inbound_status_received() },
+    { value: 'ingested', label: m.inbound_status_ingested() },
     { value: 'overdue', label: m.inbound_filter_overdue() },
   ];
 
@@ -182,21 +182,19 @@ function SupplierDisclosuresListColumn(): JSX.Element {
   return (
     <div className="h-full overflow-y-auto">
       <header className="sticky top-0 z-10 flex items-center justify-between gap-2 bg-background/85 backdrop-blur-sm px-4 py-3 border-b border-border/60">
-        <h1 className="text-sm font-semibold">供应商披露</h1>
+        <h1 className="text-sm font-semibold">{m.inbound_list_title()}</h1>
         <Button asChild variant="outline" size="sm">
           <Link to="/supplier-disclosures/new" className="gap-1">
             <Plus className="size-3.5" aria-hidden="true" />
-            新建披露
+            {m.inbound_new_button()}
           </Link>
         </Button>
       </header>
 
       {q.isLoading ? (
-        <p className="px-4 py-3 text-sm text-muted-foreground">加载中…</p>
+        <p className="px-4 py-3 text-sm text-muted-foreground">{m.loading()}</p>
       ) : list.length === 0 ? (
-        <p className="px-4 py-6 text-sm text-muted-foreground">
-          尚无供应商披露。点击右上「+ 新建披露」开始向上游供应商收集 Scope 3 Cat 1 数据。
-        </p>
+        <p className="px-4 py-6 text-sm text-muted-foreground">{m.inbound_list_empty()}</p>
       ) : (
         <>
           <div className="space-y-2 px-4 py-3 border-b border-border/40">
@@ -209,7 +207,7 @@ function SupplierDisclosuresListColumn(): JSX.Element {
                 type="search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="搜索供应商名称…"
+                placeholder={m.inbound_search_placeholder()}
                 className="w-full rounded-md border border-border bg-background py-1 pl-7 pr-2 text-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring"
               />
             </div>
@@ -241,14 +239,14 @@ function SupplierDisclosuresListColumn(): JSX.Element {
 
           {visible.length === 0 ? (
             <div className="flex flex-col items-center gap-2 px-4 py-12 text-center text-sm text-muted-foreground">
-              <p>没有符合筛选条件的披露。</p>
+              <p>{m.inbound_list_no_match()}</p>
               {filtersActive && (
                 <button
                   type="button"
                   onClick={resetFilters}
                   className="rounded px-2 py-1 text-xs font-medium text-foreground/70 hover:bg-foreground/5"
                 >
-                  清除筛选
+                  {m.inbound_clear_filters()}
                 </button>
               )}
             </div>
@@ -268,7 +266,7 @@ function SupplierDisclosuresListColumn(): JSX.Element {
                       <span>·</span>
                       <span>{statusLabel(r.status)}</span>
                       <span>·</span>
-                      <span>{r.question_count} 题</span>
+                      <span>{m.inbound_question_count({ count: String(r.question_count) })}</span>
                       {r.due_date && (
                         <>
                           <span>·</span>

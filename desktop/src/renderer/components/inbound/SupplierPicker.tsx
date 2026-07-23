@@ -53,13 +53,13 @@ export function SupplierPicker({ value, onChange, disabled }: SupplierPickerProp
 
   return (
     <div className="space-y-2">
-      <Label htmlFor="supplier-select">供应商 / Supplier</Label>
+      <Label htmlFor="supplier-select">{m.inbound_supplier_label()}</Label>
       {isCreating ? (
         <div className="space-y-2 rounded-md border border-border bg-card p-3">
           <Input
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            placeholder="供应商法定名称 / Supplier legal name"
+            placeholder={m.inbound_supplier_name_placeholder()}
             disabled={createMutation.isPending}
             autoFocus
           />
@@ -88,7 +88,7 @@ export function SupplierPicker({ value, onChange, disabled }: SupplierPickerProp
               }
               disabled={newName.trim() === '' || createMutation.isPending}
             >
-              {createMutation.isPending ? '创建中...' : '创建并选择'}
+              {createMutation.isPending ? m.inbound_creating() : m.inbound_supplier_create_select()}
             </Button>
             <Button
               type="button"
@@ -100,12 +100,14 @@ export function SupplierPicker({ value, onChange, disabled }: SupplierPickerProp
               }}
               disabled={createMutation.isPending}
             >
-              取消
+              {m.cancel()}
             </Button>
           </div>
           {createMutation.error && (
             <p className="text-xs text-destructive">
-              {createMutation.error instanceof Error ? createMutation.error.message : '创建失败'}
+              {createMutation.error instanceof Error
+                ? createMutation.error.message
+                : m.inbound_create_failed()}
             </p>
           )}
         </div>
@@ -119,7 +121,7 @@ export function SupplierPicker({ value, onChange, disabled }: SupplierPickerProp
             className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
           >
             <option value="" disabled>
-              {suppliersQuery.isLoading ? '加载中...' : '选择供应商'}
+              {suppliersQuery.isLoading ? m.loading() : m.inbound_supplier_placeholder()}
             </option>
             {suppliers.map((s) => (
               <option key={s.id} value={s.id}>
@@ -135,7 +137,7 @@ export function SupplierPicker({ value, onChange, disabled }: SupplierPickerProp
             disabled={disabled}
           >
             <Plus className="mr-1 h-4 w-4" />
-            新建
+            {m.inbound_supplier_new()}
           </Button>
         </div>
       )}

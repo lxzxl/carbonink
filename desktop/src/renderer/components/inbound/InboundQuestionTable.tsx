@@ -1,4 +1,5 @@
 import { cn } from '@renderer/lib/utils';
+import * as m from '@renderer/paraglide/messages';
 import type { Question } from '@shared/types';
 
 /**
@@ -34,7 +35,7 @@ function tierBadge(tier: 1 | 2 | null): { label: string; className: string } {
     };
   }
   return {
-    label: '元数据',
+    label: m.inbound_table_meta_badge(),
     className: 'bg-muted text-muted-foreground border-border',
   };
 }
@@ -44,7 +45,7 @@ export function InboundQuestionTable({
   answersByQuestionId,
 }: InboundQuestionTableProps): JSX.Element {
   if (questions.length === 0) {
-    return <p className="text-muted-foreground italic">尚未配置题目。请回到「新建」重选模板。</p>;
+    return <p className="text-muted-foreground italic">{m.inbound_table_empty()}</p>;
   }
 
   // Sort by tier (null→1→2) then position so the table reads
@@ -80,7 +81,9 @@ export function InboundQuestionTable({
                     {q.expected_unit}
                   </>
                 )}
-                {q.required === 1 && <span className="ml-2 text-destructive">*必填</span>}
+                {q.required === 1 && (
+                  <span className="ml-2 text-destructive">{m.inbound_table_required()}</span>
+                )}
               </p>
               {answersByQuestionId &&
                 (() => {
@@ -90,18 +93,24 @@ export function InboundQuestionTable({
                   return (
                     <>
                       <p className="text-sm">
-                        <span className="text-muted-foreground">供应商填写：</span>
+                        <span className="text-muted-foreground">
+                          {m.inbound_table_supplier_value_prefix()}
+                        </span>
                         {hasValue ? (
                           <span className="font-medium tabular-nums">
                             {ans?.value}
                             {ans?.unit ? ` ${ans.unit}` : ''}
                           </span>
                         ) : (
-                          <span className="italic text-muted-foreground">未填写</span>
+                          <span className="italic text-muted-foreground">
+                            {m.inbound_answer_blank()}
+                          </span>
                         )}
                       </p>
                       {hasNote && (
-                        <p className="text-xs text-muted-foreground">备注：{ans?.note}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {m.inbound_table_note({ note: ans?.note ?? '' })}
+                        </p>
                       )}
                     </>
                   );

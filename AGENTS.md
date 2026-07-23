@@ -22,8 +22,8 @@ read on demand.
   accepted style residue, don't churn them). New code MUST pass a scoped
   `biome check <changed files>` with no NEW errors or warnings.
 - **i18n keys go in BOTH `messages/en.json` + `messages/zh-CN.json`** — same key
-  set, same commit. (Inbound v2.0's inline Chinese is acknowledged debt, not a
-  pattern to copy.)
+  set, same commit. (Inbound v2.0's inline-Chinese debt was cleared 2026-07-23;
+  no surface is exempt anymore.)
 - **`audit_event` payloads carry no prompt content** — only tool names, IDs,
   counts, decision flags. `organizationId` is injected server-side, never
   user-supplied.
