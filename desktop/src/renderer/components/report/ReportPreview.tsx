@@ -1,7 +1,7 @@
 import '@renderer/styles/report-preview.css';
 import type { ReportNarrative } from '@main/llm/report-narrative';
 import type { InventoryReportData } from '@main/services/report-data-service';
-import { boundaryKindLabel, granularityLabel } from '@renderer/lib/format';
+import { boundaryKindLabel, formatCo2e, granularityLabel } from '@renderer/lib/format';
 
 export interface ReportPreviewProps {
   data: InventoryReportData;
@@ -156,27 +156,27 @@ export function ScopeTable({ data }: { data: InventoryReportData }) {
         <tbody>
           <tr>
             <td>{labels.scope1}</td>
-            <td>{data.scope_totals.scope1_kg}</td>
+            <td>{formatCo2e(data.scope_totals.scope1_kg)}</td>
           </tr>
           <tr>
             <td>{labels.scope2}</td>
-            <td>{data.scope_totals.scope2_kg}</td>
+            <td>{formatCo2e(data.scope_totals.scope2_kg)}</td>
           </tr>
           <tr>
             <td>{labels.scope3}</td>
-            <td>{data.scope_totals.scope3_kg}</td>
+            <td>{formatCo2e(data.scope_totals.scope3_kg)}</td>
           </tr>
           <tr>
             <td>
               <strong>{labels.total}</strong>
             </td>
             <td>
-              <strong>{data.scope_totals.total_kg}</strong>
+              <strong>{formatCo2e(data.scope_totals.total_kg)}</strong>
             </td>
           </tr>
           <tr>
             <td>{labels.biogenic}</td>
-            <td>{data.scope_totals.biogenic_kg}</td>
+            <td>{formatCo2e(data.scope_totals.biogenic_kg)}</td>
           </tr>
         </tbody>
       </table>

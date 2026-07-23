@@ -265,6 +265,12 @@ function ReportDetail() {
                   data={generated.data}
                   narrative={generated.narrative}
                   printMode={false}
+                  editable
+                  onChange={(next) =>
+                    setGenerated((prev) =>
+                      prev?.kind === 'tcfd' ? { ...prev, narrative: next } : prev,
+                    )
+                  }
                 />
               )}
             </div>

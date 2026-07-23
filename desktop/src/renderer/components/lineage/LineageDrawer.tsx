@@ -4,6 +4,7 @@ import { Button } from '@renderer/components/ui/button';
 import { auditApi } from '@renderer/lib/api/audit';
 import { evidenceApi } from '@renderer/lib/api/evidence';
 import { lineageApi } from '@renderer/lib/api/lineage';
+import { formatCo2e } from '@renderer/lib/format';
 import * as m from '@renderer/paraglide/messages';
 import type {
   ActivityLineage,
@@ -234,7 +235,7 @@ function ActivityChain({
           {a.amount} {a.unit}
         </span>
         <span className="mx-1 text-muted-foreground">→</span>
-        <span className="tabular-nums">{a.computed_co2e_kg} kg CO2e</span>
+        <span className="tabular-nums">{formatCo2e(a.computed_co2e_kg)} kg CO2e</span>
         {embedded && (
           <Link
             to="/activities"

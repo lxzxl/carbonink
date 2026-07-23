@@ -104,6 +104,44 @@ export class WorkspaceService {
     return true;
   }
 
+  /**
+   * Remove a workspace from the registry and archive its database file
+   * (rename to `<file>.deleted-<stamp>`, WAL/SHM siblings included) —
+   * never a hard delete, so a mistaken removal is recoverable by hand.
+   * The active workspace and the last remaining workspace are refused;
+   * switch away first.
+   */
+  remove(
+    id: string,
+  ):
+    | { ok: true; archived_file: string | null }
+    | { ok: false; error: 'NotFound' | 'ActiveWorkspace' | 'LastWorkspace' } {
+    const registry = this.load();
+    const workspace = registry.workspaces.find((w) => w.id === id);
+    if (!workspace) return { ok: false, error: 'NotFound' };
+    if (registry.active_id === id) return { ok: false, error: 'ActiveWorkspace' };
+    if (registry.workspaces.length <= 1) return { ok: false, error: 'LastWorkspace' };
+
+    registry.workspaces = registry.workspaces.filter((w) => w.id !== id);
+    this.save(registry);
+
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const base = join(this.userDataDir, workspace.file);
+    let archivedFile: string | null = null;
+    // A workspace that was created but never opened has no file yet.
+    if (existsSync(base)) {
+      archivedFile = `${workspace.file}.deleted-${stamp}`;
+      renameSync(base, join(this.userDataDir, archivedFile));
+    }
+    for (const suffix of ['-wal', '-shm']) {
+      const sibling = `${base}${suffix}`;
+      if (existsSync(sibling)) {
+        renameSync(sibling, `${join(this.userDataDir, workspace.file)}${suffix}.deleted-${stamp}`);
+      }
+    }
+    return { ok: true, archived_file: archivedFile };
+  }
+
   /** Mark a workspace active (the orchestrator does the actual DB swap). */
   setActive(id: string): boolean {
     const registry = this.load();

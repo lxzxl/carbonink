@@ -24,5 +24,6 @@ export function workspaceHandlers(ctx: IpcContext): HandlerMap {
       return { ok: ctx.workspaceService.rename(parsed.id, parsed.name) };
     },
     'workspace:switch': (input) => requestWorkspaceSwitch(idInput.parse(input).id),
+    'workspace:delete': (input) => ctx.workspaceService.remove(idInput.parse(input).id),
   };
 }

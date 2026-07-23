@@ -5,7 +5,7 @@ import { workspaceApi } from '@renderer/lib/api/workspace';
 import * as m from '@renderer/paraglide/messages';
 import type { Workspace } from '@shared/types';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowRightLeft, FolderPlus, Pencil } from 'lucide-react';
+import { ArrowRightLeft, FolderPlus, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 /**
@@ -49,6 +49,17 @@ export function WorkspaceSection() {
       return;
     }
     setRenamingId(null);
+    refresh();
+  };
+
+  const remove = async (workspace: Workspace) => {
+    if (!window.confirm(m.workspace_delete_confirm({ name: workspace.name }))) return;
+    const result = await workspaceApi.delete({ id: workspace.id });
+    if (!result.ok) {
+      toast.error(m.workspace_delete_failed());
+      return;
+    }
+    toast.success(m.workspace_deleted_toast());
     refresh();
   };
 
@@ -128,16 +139,28 @@ export function WorkspaceSection() {
                   {m.workspace_rename_button()}
                 </Button>
                 {workspace.id !== activeId && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="gap-1"
-                    onClick={() => void switchTo(workspace)}
-                  >
-                    <ArrowRightLeft className="size-3.5" aria-hidden="true" />
-                    {m.workspace_switch_button()}
-                  </Button>
+                  <>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="gap-1"
+                      onClick={() => void switchTo(workspace)}
+                    >
+                      <ArrowRightLeft className="size-3.5" aria-hidden="true" />
+                      {m.workspace_switch_button()}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="gap-1 text-destructive hover:text-destructive"
+                      onClick={() => void remove(workspace)}
+                    >
+                      <Trash2 className="size-3.5" aria-hidden="true" />
+                      {m.workspace_delete_button()}
+                    </Button>
+                  </>
                 )}
               </div>
             )}

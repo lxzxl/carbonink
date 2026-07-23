@@ -5,6 +5,7 @@ vi.mock('@renderer/lib/api/workspace', () => ({
     create: vi.fn(),
     rename: vi.fn(),
     switch: vi.fn(),
+    delete: vi.fn(),
   },
 }));
 vi.mock('@renderer/components/toast', () => ({
@@ -99,6 +100,33 @@ describe('<WorkspaceSection>', () => {
     confirmSpy.mockReturnValue(true);
     fireEvent.click(screen.getByRole('button', { name: /切换|switch/i }));
     await waitFor(() => expect(workspaceApi.switch).toHaveBeenCalledWith({ id: 'w-client' }));
+  });
+
+  it('deletes a non-active workspace after confirm; active row has no delete button', async () => {
+    vi.mocked(workspaceApi.delete).mockResolvedValue({ ok: true, archived_file: 'x.deleted-1' });
+    const confirmSpy = vi.fn().mockReturnValue(true);
+    vi.stubGlobal('confirm', confirmSpy);
+    mount();
+    await screen.findByText('客户甲');
+    // Only the non-active row offers delete.
+    const deleteButtons = screen.getAllByRole('button', { name: /删除|delete/i });
+    expect(deleteButtons).toHaveLength(1);
+    fireEvent.click(deleteButtons[0] as HTMLElement);
+    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('客户甲'));
+    await waitFor(() => expect(workspaceApi.delete).toHaveBeenCalledWith({ id: 'w-client' }));
+    expect(toast.success).toHaveBeenCalled();
+  });
+
+  it('surfaces delete refusal as an error toast', async () => {
+    vi.mocked(workspaceApi.delete).mockResolvedValue({
+      ok: false,
+      error: 'ActiveWorkspace',
+    });
+    vi.stubGlobal('confirm', vi.fn().mockReturnValue(true));
+    mount();
+    await screen.findByText('客户甲');
+    fireEvent.click(screen.getByRole('button', { name: /删除|delete/i }));
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
   });
 
   it('surfaces InvalidName as an error toast', async () => {

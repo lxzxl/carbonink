@@ -1,8 +1,8 @@
 import type { TcfdNarrative } from '@main/llm/tcfd-narrative';
 import type { InventoryReportData } from '@main/services/report-data-service';
 import { TcfdReportPreview } from '@renderer/components/report/TcfdReportPreview';
-import { cleanup, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 afterEach(() => cleanup());
 
@@ -69,6 +69,29 @@ describe('TcfdReportPreview', () => {
     expect(screen.getByText('附表 2 期间对比')).toBeTruthy();
     expect(screen.getByText('基准年')).toBeTruthy();
     expect(screen.getByText('上一期')).toBeTruthy();
+  });
+
+  it('editable mode renders textareas and propagates pillar edits', () => {
+    const onChange = vi.fn();
+    render(
+      <TcfdReportPreview
+        data={data()}
+        narrative={narrative}
+        printMode={false}
+        editable
+        onChange={onChange}
+      />,
+    );
+    const boxes = screen.getAllByRole('textbox');
+    expect(boxes).toHaveLength(4);
+    fireEvent.change(boxes[0] as HTMLElement, { target: { value: 'EDITED GOVERNANCE' } });
+    expect(onChange).toHaveBeenCalledWith({ ...narrative, governance: 'EDITED GOVERNANCE' });
+  });
+
+  it('printMode ignores editable and stays read-only', () => {
+    render(<TcfdReportPreview data={data()} narrative={narrative} printMode={true} editable />);
+    expect(screen.queryAllByRole('textbox')).toHaveLength(0);
+    expect(screen.getByText('GOVERNANCE TEXT')).toBeTruthy();
   });
 
   it('hides the comparison table when no base/prior period exists and uses en headings', () => {

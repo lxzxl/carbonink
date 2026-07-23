@@ -67,6 +67,35 @@ describe('WorkspaceService', () => {
     expect(new WorkspaceService(dir).activeWorkspace().file).toBe('app.sqlite');
   });
 
+  it('remove: refuses active/last/unknown, archives the db file otherwise', () => {
+    const active = svc.activeWorkspace();
+    expect(svc.remove(active.id)).toEqual({ ok: false, error: 'ActiveWorkspace' });
+    expect(svc.remove('missing')).toEqual({ ok: false, error: 'NotFound' });
+
+    const created = svc.create('客户丙');
+    if (!created.ok) throw new Error('expected ok');
+    // Simulate an opened workspace: db file + wal sibling exist.
+    writeFileSync(join(dir, created.workspace.file), 'db-bytes', 'utf-8');
+    writeFileSync(join(dir, `${created.workspace.file}-wal`), 'wal-bytes', 'utf-8');
+
+    const removed = svc.remove(created.workspace.id);
+    if (!removed.ok) throw new Error('expected ok');
+    expect(removed.archived_file).toMatch(new RegExp(`^${created.workspace.file}\\.deleted-`));
+    expect(svc.list()).toHaveLength(1);
+    // Original files are gone; archived renames exist.
+    expect(existsSync(join(dir, created.workspace.file))).toBe(false);
+    expect(existsSync(join(dir, removed.archived_file as string))).toBe(true);
+    expect(existsSync(join(dir, `${created.workspace.file}-wal`))).toBe(false);
+  });
+
+  it('remove: a never-opened workspace archives nothing but leaves the registry clean', () => {
+    const created = svc.create('客户丁');
+    if (!created.ok) throw new Error('expected ok');
+    const removed = svc.remove(created.workspace.id);
+    expect(removed).toEqual({ ok: true, archived_file: null });
+    expect(svc.list()).toHaveLength(1);
+  });
+
   it('re-bootstraps when the registry file is unreadable garbage', () => {
     writeFileSync(join(dir, 'workspaces.json'), '{"version":99}', 'utf-8');
     const registry = svc.load();

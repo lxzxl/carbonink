@@ -321,6 +321,11 @@ export type IpcTypeMap = {
   }) => { ok: true; workspace: Workspace } | { ok: false; error: 'InvalidName' };
   'workspace:rename': (input: { id: string; name: string }) => { ok: boolean };
   'workspace:switch': (input: { id: string }) => { ok: boolean };
+  'workspace:delete': (input: {
+    id: string;
+  }) =>
+    | { ok: true; archived_file: string | null }
+    | { ok: false; error: 'NotFound' | 'ActiveWorkspace' | 'LastWorkspace' };
   'extraction:run': (input: { document_id: string; stage_id: string }) => Promise<Extraction>;
   'extraction:list-pending': () => Extraction[];
   'extraction:list-by-document': (input: { document_id: string }) => Extraction[];

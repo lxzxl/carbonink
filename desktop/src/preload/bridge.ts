@@ -82,6 +82,7 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   'workspace:create',
   'workspace:rename',
   'workspace:switch',
+  'workspace:delete',
   'extraction:run',
   'extraction:list-pending',
   'extraction:list-by-document',

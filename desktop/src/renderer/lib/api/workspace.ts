@@ -11,4 +11,5 @@ export const workspaceApi = {
   create: (input: { name: string }) => invoke('workspace:create', input),
   rename: (input: { id: string; name: string }) => invoke('workspace:rename', input),
   switch: (input: { id: string }) => invoke('workspace:switch', input),
+  delete: (input: { id: string }) => invoke('workspace:delete', input),
 };

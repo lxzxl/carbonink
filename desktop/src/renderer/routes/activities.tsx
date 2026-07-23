@@ -11,6 +11,7 @@ import { Button } from '@renderer/components/ui/button';
 import { activityApi } from '@renderer/lib/api/activity-data';
 import { sourceApi } from '@renderer/lib/api/emission-source';
 import { orgApi } from '@renderer/lib/api/organization';
+import { formatCo2e } from '@renderer/lib/format';
 import { cn } from '@renderer/lib/utils';
 import * as m from '@renderer/paraglide/messages';
 import type { ActivityDataWithDocument, EmissionSource, ReportingPeriod } from '@shared/types';
@@ -362,7 +363,9 @@ function ActivitiesList({ organizationId }: { organizationId: string }) {
                       {a.amount} {a.unit}
                     </span>
                     <span className="mx-1.5 text-muted-foreground">→</span>
-                    <span className="font-medium tabular-nums">{a.computed_co2e_kg} kg CO2e</span>
+                    <span className="font-medium tabular-nums">
+                      {formatCo2e(a.computed_co2e_kg)} kg CO2e
+                    </span>
                   </div>
                   <div className="text-xs text-muted-foreground">
                     <span className="font-mono">{a.ef_factor_code}</span>

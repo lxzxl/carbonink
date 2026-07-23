@@ -1,12 +1,16 @@
 import '@renderer/styles/report-preview.css';
 import type { TcfdNarrative } from '@main/llm/tcfd-narrative';
 import type { InventoryReportData } from '@main/services/report-data-service';
+import { formatCo2e } from '@renderer/lib/format';
 import { ScopeTable } from './ReportPreview';
 
 export interface TcfdReportPreviewProps {
   data: InventoryReportData;
   narrative: TcfdNarrative;
   printMode: boolean;
+  /** Pillar textareas become editable (screen only — print stays read-only). */
+  editable?: boolean;
+  onChange?: (narrative: TcfdNarrative) => void;
 }
 
 const PILLAR_ORDER: Array<keyof TcfdNarrative> = [
@@ -38,9 +42,19 @@ const PILLAR_HEADINGS = {
  * comparison) — every number straight from InventoryReportData, the LLM
  * narrative never carries a figure the tables don't.
  */
-export function TcfdReportPreview({ data, narrative, printMode }: TcfdReportPreviewProps) {
+export function TcfdReportPreview({
+  data,
+  narrative,
+  printMode,
+  editable,
+  onChange,
+}: TcfdReportPreviewProps) {
   const lang = data.language;
   const headings = PILLAR_HEADINGS[lang];
+
+  const handleEdit = (key: keyof TcfdNarrative, value: string) => {
+    if (onChange) onChange({ ...narrative, [key]: value });
+  };
 
   return (
     <div className={`report-preview ${printMode ? 'report-preview--print' : ''}`}>
@@ -48,7 +62,16 @@ export function TcfdReportPreview({ data, narrative, printMode }: TcfdReportPrev
       {PILLAR_ORDER.map((key) => (
         <section key={key} className="report-preview__section">
           <h2>{headings[key]}</h2>
-          <p>{narrative[key]}</p>
+          {editable && !printMode ? (
+            <textarea
+              defaultValue={narrative[key]}
+              rows={6}
+              onChange={(e) => handleEdit(key, e.target.value)}
+              style={{ width: '100%' }}
+            />
+          ) : (
+            <p>{narrative[key]}</p>
+          )}
         </section>
       ))}
       <ScopeTable data={data} />
@@ -101,7 +124,7 @@ function TopSourcesTable({ data }: { data: InventoryReportData }) {
             <tr key={source.id}>
               <td>{source.name}</td>
               <td>{source.scope}</td>
-              <td>{source.co2e_kg}</td>
+              <td>{formatCo2e(source.co2e_kg)}</td>
               <td>{source.share_pct}%</td>
             </tr>
           ))}
@@ -142,13 +165,13 @@ function ComparisonTable({ data }: { data: InventoryReportData }) {
           <tr>
             <td>{lang === 'zh-CN' ? '本期' : 'This period'}</td>
             <td>{data.period.year}</td>
-            <td>{data.scope_totals.total_kg}</td>
+            <td>{formatCo2e(data.scope_totals.total_kg)}</td>
           </tr>
           {rows.map((row) => (
             <tr key={row.label}>
               <td>{row.label}</td>
               <td>{row.year}</td>
-              <td>{row.total_kg}</td>
+              <td>{formatCo2e(row.total_kg)}</td>
             </tr>
           ))}
         </tbody>
