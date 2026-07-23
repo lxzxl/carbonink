@@ -111,7 +111,7 @@ function ReportDetail() {
     if (reportId) reportApi.cancel({ report_id: reportId });
   };
 
-  const exportTcfdPdf = useMutation({
+  const exportTcfdBoth = useMutation({
     mutationFn: async () => {
       if (generated?.kind !== 'tcfd') throw new Error('no tcfd narrative');
       const pdfResult = await reportApi.exportTcfdPdf({
@@ -124,6 +124,18 @@ function ReportDetail() {
         toast.success(m.reports_export_success({ kind: 'PDF', path: pdfResult.path }));
       } else if ('ok' in pdfResult && !pdfResult.ok) {
         toast.error(m.reports_export_failed({ message: pdfResult.error }));
+        return;
+      }
+      const xlsxResult = await reportApi.exportTcfdXlsx({
+        data: generated.data,
+        narrative: generated.narrative,
+        language,
+      });
+      if ('canceled' in xlsxResult && xlsxResult.canceled) return;
+      if ('ok' in xlsxResult && xlsxResult.ok) {
+        toast.success(m.reports_export_success({ kind: 'Excel', path: xlsxResult.path }));
+      } else if ('ok' in xlsxResult && !xlsxResult.ok) {
+        toast.error(m.reports_export_failed({ message: xlsxResult.error }));
       }
     },
   });
@@ -225,11 +237,11 @@ function ReportDetail() {
             ) : (
               <button
                 type="button"
-                onClick={() => exportTcfdPdf.mutate()}
-                disabled={exportTcfdPdf.isPending}
+                onClick={() => exportTcfdBoth.mutate()}
+                disabled={exportTcfdBoth.isPending}
                 className="rounded bg-black text-white px-3 py-2"
               >
-                {m.reports_export_pdf_button()}
+                {m.reports_export_both_button()}
               </button>
             )}
             <button

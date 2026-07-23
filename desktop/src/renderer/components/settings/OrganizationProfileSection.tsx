@@ -4,6 +4,7 @@ import { Input } from '@renderer/components/ui/input';
 import { Label } from '@renderer/components/ui/label';
 import { COMMON_COUNTRIES, INDUSTRIES } from '@renderer/features/onboarding/lookups';
 import { orgApi } from '@renderer/lib/api/organization';
+import { settingsApi } from '@renderer/lib/api/settings';
 import { friendlyErrorDescription } from '@renderer/lib/error-message';
 import * as m from '@renderer/paraglide/messages';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -307,6 +308,73 @@ function ReportingProfileGroup({ orgId, initial, onSaved }: ReportingProfileProp
           {saveMutation.isPending ? m.settings_saving() : m.settings_reporting_profile_save()}
         </Button>
       </div>
+
+      <ReportLogoBlock />
+    </div>
+  );
+}
+
+/**
+ * White-label report logo (per-workspace — the setting lives in this
+ * client's database file). Shows on the ISO + TCFD report covers.
+ */
+function ReportLogoBlock() {
+  const queryClient = useQueryClient();
+  const logoQuery = useQuery({
+    queryKey: ['settings:get-report-logo'],
+    queryFn: settingsApi.getReportLogo,
+  });
+
+  const refresh = () => {
+    void queryClient.invalidateQueries({ queryKey: ['settings:get-report-logo'] });
+  };
+
+  const pick = async () => {
+    const result = await settingsApi.pickReportLogo();
+    if ('canceled' in result && result.canceled) return;
+    if ('ok' in result && result.ok) {
+      toast.success(m.settings_report_logo_saved());
+      refresh();
+      return;
+    }
+    if ('ok' in result && !result.ok) {
+      toast.error(
+        result.error === 'TooLarge'
+          ? m.settings_report_logo_too_large()
+          : m.settings_report_logo_invalid(),
+      );
+    }
+  };
+
+  const clear = async () => {
+    await settingsApi.clearReportLogo();
+    toast.success(m.settings_report_logo_cleared());
+    refresh();
+  };
+
+  return (
+    <div className="space-y-2 border-t border-border pt-4">
+      <h3 className="text-sm font-semibold">{m.settings_report_logo_heading()}</h3>
+      <p className="text-xs text-muted-foreground">{m.settings_report_logo_body()}</p>
+      {logoQuery.data ? (
+        <div className="flex items-center gap-3">
+          <img
+            src={logoQuery.data}
+            alt=""
+            className="h-12 max-w-48 rounded border border-border bg-card/30 object-contain p-1"
+          />
+          <Button type="button" variant="outline" size="sm" onClick={() => void pick()}>
+            {m.settings_report_logo_replace()}
+          </Button>
+          <Button type="button" variant="ghost" size="sm" onClick={() => void clear()}>
+            {m.settings_report_logo_clear()}
+          </Button>
+        </div>
+      ) : (
+        <Button type="button" variant="outline" size="sm" onClick={() => void pick()}>
+          {m.settings_report_logo_pick()}
+        </Button>
+      )}
     </div>
   );
 }

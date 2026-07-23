@@ -13,6 +13,9 @@ export interface InventoryReportData {
     country_code: string;
     boundary_kind: 'equity_share' | 'financial_control' | 'operational_control';
     responsible: { name: string | null; role: string | null };
+    /** White-label logo (data URL from the `report.logo` setting). Optional
+     *  so pre-existing fixtures/payloads stay valid. */
+    logo_data_url?: string | null;
   };
   period: {
     id: string;
@@ -244,6 +247,12 @@ export class ReportDataService {
       }
     }
 
+    // White-label logo rides the report payload so the print window (a
+    // separate BrowserWindow with no IPC bridge) can render it inline.
+    const logoRow = this.deps.db
+      .prepare('SELECT value FROM setting WHERE key = ?')
+      .get('report.logo') as { value: string } | undefined;
+
     return {
       org: {
         id: org.id,
@@ -256,6 +265,7 @@ export class ReportDataService {
           name: org.responsible_person_name,
           role: org.responsible_person_role,
         },
+        logo_data_url: logoRow?.value ?? null,
       },
       period: {
         id: period.id,

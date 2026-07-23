@@ -16,4 +16,6 @@ export const reportApi = {
   }) => invoke('report:generate-tcfd', input),
   exportTcfdPdf: (input: { data: unknown; narrative: unknown; language: 'zh-CN' | 'en' }) =>
     invoke('report:export-tcfd-pdf', input as never),
+  exportTcfdXlsx: (input: { data: unknown; narrative: unknown; language: 'zh-CN' | 'en' }) =>
+    invoke('report:export-tcfd-xlsx', input as never),
 };

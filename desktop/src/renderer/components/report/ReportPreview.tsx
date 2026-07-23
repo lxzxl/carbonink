@@ -89,6 +89,13 @@ function CoverPage({ data }: { data: InventoryReportData }) {
     lang === 'zh-CN' ? 'ISO 14064-1 温室气体盘查报告' : 'ISO 14064-1 GHG Inventory Report';
   return (
     <section className="report-preview__cover">
+      {data.org.logo_data_url && (
+        <img
+          src={data.org.logo_data_url}
+          alt=""
+          style={{ maxHeight: 56, maxWidth: 220, marginBottom: 16 }}
+        />
+      )}
       <h1>{title}</h1>
       <h2>{orgName}</h2>
       <p>

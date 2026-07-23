@@ -1,7 +1,10 @@
+import { readFile } from 'node:fs/promises';
+import { extname } from 'node:path';
 import { AiClientTag, buildAiClientLayer } from '@main/llm/ai-client.js';
 import { listModelsForProvider, listProviderIds } from '@main/llm/pi-catalog.js';
 import { providerConfigV2 } from '@shared/types.js';
 import { Effect } from 'effect';
+import { dialog } from 'electron';
 import { z } from 'zod';
 import type { IpcContext } from '../context.js';
 import type { IpcTypeMap } from '../types.js';
@@ -103,6 +106,38 @@ export function settingsHandlers(ctx: IpcContext): {
     'settings:set-amap-key': (input) => {
       const parsed = setAmapKeyInput.parse(input);
       ctx.settingsService.setAmapKey(parsed.value);
+    },
+    // White-label report logo. The 512KB cap keeps the data URL well under
+    // the setting-table comfort zone and the print payload lightweight.
+    'settings:get-report-logo': () => ctx.settingsService.getReportLogo(),
+    'settings:pick-report-logo': async () => {
+      const result = await dialog.showOpenDialog({
+        title: 'Choose report logo',
+        properties: ['openFile'],
+        filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg'] }],
+      });
+      const path = result.filePaths[0];
+      if (result.canceled || path === undefined) return { canceled: true as const };
+      let bytes: Buffer;
+      try {
+        bytes = await readFile(path);
+      } catch {
+        return { ok: false as const, error: 'ReadFailed' as const };
+      }
+      if (bytes.length > 512 * 1024) {
+        return { ok: false as const, error: 'TooLarge' as const };
+      }
+      const ext = extname(path).toLowerCase();
+      const mime =
+        ext === '.png' ? 'image/png' : ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : null;
+      if (!mime) return { ok: false as const, error: 'UnsupportedType' as const };
+      const dataUrl = `data:${mime};base64,${bytes.toString('base64')}`;
+      ctx.settingsService.setReportLogo(dataUrl);
+      return { ok: true as const, data_url: dataUrl };
+    },
+    'settings:clear-report-logo': () => {
+      ctx.settingsService.clearReportLogo();
+      return { ok: true as const };
     },
     // Item 3 Task 10c — runtime catalog channels. The renderer's Settings
     // form populates its Provider + Model dropdowns from pi-ai's `getProviders`

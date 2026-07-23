@@ -64,6 +64,9 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   'settings:ping-provider',
   'settings:get-amap-key',
   'settings:set-amap-key',
+  'settings:get-report-logo',
+  'settings:pick-report-logo',
+  'settings:clear-report-logo',
   'settings:list-providers',
   'settings:list-models',
   // document domain (Phase 1b — uploaded source files)
@@ -135,6 +138,7 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   // TCFD four-pillar report (spec 2026-07-22-tcfd-report)
   'report:generate-tcfd',
   'report:export-tcfd-pdf',
+  'report:export-tcfd-xlsx',
   // audit domain (Phase 3 sub-project 3 — audit_event log viewer)
   'audit:list',
   'audit:export-csv',

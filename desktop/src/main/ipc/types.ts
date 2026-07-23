@@ -280,6 +280,15 @@ export type IpcTypeMap = {
   }) => Promise<{ ok: true } | { ok: false; error: string }>;
   'settings:get-amap-key': () => string | null;
   'settings:set-amap-key': (input: { value: string }) => void;
+  // White-label report logo (per-workspace, data URL in the setting table).
+  // pick opens the native image chooser at the main-process boundary.
+  'settings:get-report-logo': () => string | null;
+  'settings:pick-report-logo': () => Promise<
+    | { canceled: true }
+    | { ok: true; data_url: string }
+    | { ok: false; error: 'TooLarge' | 'UnsupportedType' | 'ReadFailed' }
+  >;
+  'settings:clear-report-logo': () => { ok: true };
   // Item 3 Task 10c — pi-ai catalog read at runtime. `list-providers` is a
   // zero-arg snapshot of pi-ai's `getProviders()`; `list-models(provider)`
   // returns `[]` for unknown providers so the renderer can fall back to a
@@ -528,6 +537,11 @@ export type IpcTypeMap = {
       }
   >;
   'report:export-tcfd-pdf': (input: {
+    data: import('@main/services/report-data-service').InventoryReportData;
+    narrative: import('@main/llm/tcfd-narrative').TcfdNarrative;
+    language: 'zh-CN' | 'en';
+  }) => Promise<{ canceled: true } | { ok: true; path: string } | { ok: false; error: string }>;
+  'report:export-tcfd-xlsx': (input: {
     data: import('@main/services/report-data-service').InventoryReportData;
     narrative: import('@main/llm/tcfd-narrative').TcfdNarrative;
     language: 'zh-CN' | 'en';

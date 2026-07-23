@@ -88,6 +88,18 @@ describe('TcfdReportPreview', () => {
     expect(onChange).toHaveBeenCalledWith({ ...narrative, governance: 'EDITED GOVERNANCE' });
   });
 
+  it('renders the white-label logo on the cover when present', () => {
+    const logo = 'data:image/png;base64,AAAA';
+    const { container } = render(
+      <TcfdReportPreview
+        data={data({ org: { ...data().org, logo_data_url: logo } })}
+        narrative={narrative}
+        printMode={false}
+      />,
+    );
+    expect(container.querySelector(`img[src="${logo}"]`)).toBeTruthy();
+  });
+
   it('printMode ignores editable and stays read-only', () => {
     render(<TcfdReportPreview data={data()} narrative={narrative} printMode={true} editable />);
     expect(screen.queryAllByRole('textbox')).toHaveLength(0);

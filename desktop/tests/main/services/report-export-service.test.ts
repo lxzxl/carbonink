@@ -136,4 +136,27 @@ describe('writeAppendixXlsx', () => {
     // Header + 2 data rows.
     expect(activities.rowCount).toBe(3);
   });
+
+  it('kind=tcfd fills the narrative sheet with the four pillars', async () => {
+    const buf = await writeAppendixXlsx({
+      data: fakeData(),
+      narrative: {
+        governance: 'GOV'.repeat(30),
+        strategy: 'STR'.repeat(30),
+        risk_management: 'RSK'.repeat(30),
+        metrics_targets: 'MET'.repeat(40),
+      },
+      language: 'zh-CN',
+      kind: 'tcfd',
+    });
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(buf as unknown as ArrayBuffer);
+    const narrativeSheet = wb.worksheets.at(-1)!;
+    // Header + 4 pillar rows (vs 6 ISO sections).
+    expect(narrativeSheet.rowCount).toBe(5);
+    expect(narrativeSheet.getRow(2).getCell(1).value).toBe('治理');
+    expect(narrativeSheet.getRow(5).getCell(1).value).toBe('指标与目标');
+    // The data sheets are unchanged — same appendix backbone as ISO.
+    expect(wb.getWorksheet('活动明细')!.rowCount).toBe(3);
+  });
 });

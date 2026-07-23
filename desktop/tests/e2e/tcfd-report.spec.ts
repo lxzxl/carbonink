@@ -118,8 +118,10 @@ test('tcfd report: kind selector → canned generate → four pillars + metrics 
     await expect(window.getByText('附表 1 主要排放源')).toBeVisible();
     await expect(window.getByText('附表 2 期间对比')).toBeVisible();
     await expect(window.getByRole('cell', { name: '上一期' })).toBeVisible();
-    // The TCFD action bar exports PDF only (xlsx is ISO-only in v1).
-    await expect(window.getByRole('button', { name: /^导出 PDF$|^export pdf$/i })).toBeVisible();
+    // The TCFD action bar exports PDF + xlsx, same as the ISO report.
+    await expect(
+      window.getByRole('button', { name: /确认导出|confirm and export/i }),
+    ).toBeVisible();
     await snap(window, 'tcfd-02-generated');
   } finally {
     await teardown(setup);

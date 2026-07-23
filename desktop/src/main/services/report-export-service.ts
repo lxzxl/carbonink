@@ -46,10 +46,28 @@ const SECTION_LABELS = {
   },
 } as const;
 
+/** TCFD pillar labels for the narrative sheet (spec 2026-07-22-tcfd-report). */
+const TCFD_SECTION_LABELS = {
+  'zh-CN': {
+    governance: '治理',
+    strategy: '战略',
+    risk_management: '风险管理',
+    metrics_targets: '指标与目标',
+  },
+  en: {
+    governance: 'Governance',
+    strategy: 'Strategy',
+    risk_management: 'Risk management',
+    metrics_targets: 'Metrics and targets',
+  },
+} as const;
+
 export async function writeAppendixXlsx(args: {
   data: InventoryReportData;
-  narrative: ReportNarrative;
+  narrative: ReportNarrative | TcfdNarrative;
   language: 'zh-CN' | 'en';
+  /** Which narrative shape fills the narrative sheet. Defaults to ISO. */
+  kind?: 'iso' | 'tcfd';
 }): Promise<Buffer> {
   const { data, narrative, language } = args;
   const labels = SHEET_NAMES[language];
@@ -129,11 +147,20 @@ export async function writeAppendixXlsx(args: {
     sourcesSheet.addRow([s.name, s.scope, s.co2e_kg, s.share_pct.toFixed(2)]);
   }
 
-  // 5. Narrative
+  // 5. Narrative — section rows depend on the report kind.
   const narrativeSheet = wb.addWorksheet(labels.narrative);
   narrativeSheet.addRow([narrativeHdr.section, narrativeHdr.text]);
-  for (const key of Object.keys(sectionLabels) as Array<keyof typeof sectionLabels>) {
-    narrativeSheet.addRow([sectionLabels[key], narrative[key]]);
+  if (args.kind === 'tcfd') {
+    const tcfdLabels = TCFD_SECTION_LABELS[language];
+    const tcfd = narrative as TcfdNarrative;
+    for (const key of Object.keys(tcfdLabels) as Array<keyof typeof tcfdLabels>) {
+      narrativeSheet.addRow([tcfdLabels[key], tcfd[key]]);
+    }
+  } else {
+    const iso = narrative as ReportNarrative;
+    for (const key of Object.keys(sectionLabels) as Array<keyof typeof sectionLabels>) {
+      narrativeSheet.addRow([sectionLabels[key], iso[key]]);
+    }
   }
 
   const out = await wb.xlsx.writeBuffer();
@@ -239,15 +266,17 @@ export function defaultExportFilename(args: {
   return args.kind === 'pdf' ? `${base}.pdf` : `${base}-appendix.xlsx`;
 }
 
-/** TCFD report filename (spec 2026-07-22-tcfd-report): PDF only in v1. */
+/** TCFD report filename (spec 2026-07-22-tcfd-report). */
 export function tcfdExportFilename(args: {
   data: InventoryReportData;
   language: 'zh-CN' | 'en';
+  kind: 'pdf' | 'xlsx';
 }): string {
   const slug = slugifyOrgName(args.data);
   const granSuffix =
     args.data.period.granularity === 'annual' ? '' : `-${args.data.period.granularity}`;
-  return `${slug}-tcfd-${args.data.period.year}${granSuffix}-${args.language}.pdf`;
+  const base = `${slug}-tcfd-${args.data.period.year}${granSuffix}-${args.language}`;
+  return args.kind === 'pdf' ? `${base}.pdf` : `${base}-appendix.xlsx`;
 }
 
 export interface ExportPdfDeps {

@@ -199,7 +199,7 @@ export function reportHandlers(ctx: IpcContext): {
       const input = raw as Parameters<IpcTypeMap['report:export-tcfd-pdf']>[0];
       const result = await dialog.showSaveDialog({
         title: 'Export TCFD report (PDF)',
-        defaultPath: tcfdExportFilename({ data: input.data, language: input.language }),
+        defaultPath: tcfdExportFilename({ data: input.data, language: input.language, kind: 'pdf' }),
         filters: [{ name: 'PDF', extensions: ['pdf'] }],
       });
       if (result.canceled || !result.filePath) return { canceled: true as const };
@@ -213,6 +213,32 @@ export function reportHandlers(ctx: IpcContext): {
           },
           { printRenderUrl: ctx.printRenderUrl },
         );
+        await fs.writeFile(result.filePath, buf);
+        return { ok: true as const, path: result.filePath };
+      } catch (err) {
+        return { ok: false as const, error: (err as Error).message };
+      }
+    },
+
+    'report:export-tcfd-xlsx': async (raw) => {
+      const input = raw as Parameters<IpcTypeMap['report:export-tcfd-xlsx']>[0];
+      const result = await dialog.showSaveDialog({
+        title: 'Export TCFD appendix (Excel)',
+        defaultPath: tcfdExportFilename({
+          data: input.data,
+          language: input.language,
+          kind: 'xlsx',
+        }),
+        filters: [{ name: 'Excel', extensions: ['xlsx'] }],
+      });
+      if (result.canceled || !result.filePath) return { canceled: true as const };
+      try {
+        const buf = await writeAppendixXlsx({
+          data: input.data,
+          narrative: input.narrative,
+          language: input.language,
+          kind: 'tcfd',
+        });
         await fs.writeFile(result.filePath, buf);
         return { ok: true as const, path: result.filePath };
       } catch (err) {

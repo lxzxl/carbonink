@@ -30,6 +30,10 @@ export const settingsApi = {
     invoke('settings:ping-provider', input),
   getAmapKey: () => invoke('settings:get-amap-key'),
   setAmapKey: (input: { value: string }) => invoke('settings:set-amap-key', input),
+  // White-label report logo (per-workspace).
+  getReportLogo: () => invoke('settings:get-report-logo'),
+  pickReportLogo: () => invoke('settings:pick-report-logo'),
+  clearReportLogo: () => invoke('settings:clear-report-logo'),
   // Item 3 Task 10c — pi-ai runtime catalog. The renderer caches both lists
   // via TanStack Query; provider list is invalidated never (pi-ai's catalog
   // is bundled, not network-fetched), model list is invalidated per provider.

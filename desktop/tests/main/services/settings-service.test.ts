@@ -240,4 +240,15 @@ describe('SettingsService', () => {
     expect(credentials.get('llm.azure-openai-responses.apikey')).toBe('az-key');
     expect(credentials.get('llm.azure.apikey')).toBe('az-key');
   });
+
+  it('report logo: set / get / clear round-trips a data URL', () => {
+    expect(service.getReportLogo()).toBeNull();
+    const dataUrl = `data:image/png;base64,${Buffer.from('fake-png').toString('base64')}`;
+    service.setReportLogo(dataUrl);
+    expect(service.getReportLogo()).toBe(dataUrl);
+    service.setReportLogo(`${dataUrl}2`);
+    expect(service.getReportLogo()).toBe(`${dataUrl}2`);
+    service.clearReportLogo();
+    expect(service.getReportLogo()).toBeNull();
+  });
 });

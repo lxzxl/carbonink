@@ -9,6 +9,9 @@ import type { ServiceContext } from './base.js';
 const PROVIDER_SETTING_KEY = 'llm.provider';
 const AMAP_KEY_SETTING = 'routing.amap.apikey';
 const AUTO_BACKUP_ENABLED_SETTING = 'auto_backup.enabled';
+// White-label report logo (spec 2026-07-22-client-workspaces 后续切片):
+// a data URL stored per-workspace — each client DB carries its own logo.
+const REPORT_LOGO_SETTING = 'report.logo';
 
 /**
  * Persistence layer for the user-chosen LLM provider configuration.
@@ -155,6 +158,28 @@ export class SettingsService {
          ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
       )
       .run(AUTO_BACKUP_ENABLED_SETTING, enabled ? 'true' : 'false', ts);
+  }
+
+  /** White-label report logo as a data URL, or null when unset. */
+  getReportLogo(): string | null {
+    const row = this.ctx.db
+      .prepare('SELECT value FROM setting WHERE key = ?')
+      .get(REPORT_LOGO_SETTING) as { value: string } | undefined;
+    return row?.value ?? null;
+  }
+
+  setReportLogo(dataUrl: string): void {
+    const ts = this.ctx.now();
+    this.ctx.db
+      .prepare(
+        `INSERT INTO setting (key, value, updated_at) VALUES (?, ?, ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+      )
+      .run(REPORT_LOGO_SETTING, dataUrl, ts);
+  }
+
+  clearReportLogo(): void {
+    this.ctx.db.prepare('DELETE FROM setting WHERE key = ?').run(REPORT_LOGO_SETTING);
   }
 
   clearProviderConfig(): void {
