@@ -247,6 +247,22 @@ describe('settings IPC handlers', () => {
     expect(result).toEqual({ ok: false, error: 'provider_error: unknown' });
   });
 
+  // Batch-import outlier multiplier (spec 2026-07-23-import-outlier-threshold).
+  it('settings:get/set-import-outlier-ratio round-trips and rejects out-of-range', () => {
+    expect(handlers['settings:get-import-outlier-ratio']?.()).toEqual({ ratio: 10 });
+
+    handlers['settings:set-import-outlier-ratio']?.({ ratio: 5 });
+    expect(handlers['settings:get-import-outlier-ratio']?.()).toEqual({ ratio: 5 });
+
+    for (const bad of [1, 0, -3, 1001]) {
+      expect(() => handlers['settings:set-import-outlier-ratio']?.({ ratio: bad })).toThrow(
+        z.ZodError,
+      );
+    }
+    // Rejected writes must not clobber the stored value.
+    expect(handlers['settings:get-import-outlier-ratio']?.()).toEqual({ ratio: 5 });
+  });
+
   // Item 3 Task 10c — runtime catalog channels. The handlers delegate to
   // pi-catalog.ts which wraps pi-ai's `getProviders` / `getModels`. We
   // exercise the real catalog here (rather than mocking it) because the

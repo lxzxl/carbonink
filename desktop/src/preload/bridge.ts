@@ -67,6 +67,9 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   'settings:get-report-logo',
   'settings:pick-report-logo',
   'settings:clear-report-logo',
+  // Batch-import outlier multiplier (spec 2026-07-23-import-outlier-threshold)
+  'settings:get-import-outlier-ratio',
+  'settings:set-import-outlier-ratio',
   'settings:list-providers',
   'settings:list-models',
   // document domain (Phase 1b — uploaded source files)

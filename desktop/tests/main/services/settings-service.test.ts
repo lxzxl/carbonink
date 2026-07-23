@@ -251,4 +251,27 @@ describe('SettingsService', () => {
     service.clearReportLogo();
     expect(service.getReportLogo()).toBeNull();
   });
+
+  it('import outlier ratio: defaults to 10, round-trips, tolerates hand-edited garbage', () => {
+    expect(service.getImportOutlierRatio()).toBe(10);
+
+    service.setImportOutlierRatio(3.5);
+    expect(service.getImportOutlierRatio()).toBe(3.5);
+
+    // Hand-edited sqlite rows must degrade to the default, never disable
+    // the rule (spec 2026-07-23-import-outlier-threshold).
+    for (const garbage of ['not-a-number', '0', '1.9', '1001', '-5', 'Infinity']) {
+      db.prepare(
+        `INSERT INTO setting (key, value, updated_at) VALUES ('import.outlier_ratio', ?, '2026-07-23T00:00:00Z')
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+      ).run(garbage);
+      expect(service.getImportOutlierRatio()).toBe(10);
+    }
+
+    // Boundary values are honored, not clamped away.
+    service.setImportOutlierRatio(2);
+    expect(service.getImportOutlierRatio()).toBe(2);
+    service.setImportOutlierRatio(1000);
+    expect(service.getImportOutlierRatio()).toBe(1000);
+  });
 });

@@ -561,6 +561,7 @@ export function createIpcContext(
           efService,
           unitConversionService,
           emissionSourceService,
+          settingsService: getSettings(),
         });
       }
       return activityImportServiceInstance;

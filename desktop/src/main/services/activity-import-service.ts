@@ -39,6 +39,11 @@ interface EmissionSourceLookup {
   getById(id: string): EmissionSource | null;
 }
 
+/** Narrow settings surface — only the outlier multiplier is consumed. */
+interface SettingsLookup {
+  getImportOutlierRatio(): number;
+}
+
 type PendingImport = {
   token: string;
   filename: string;
@@ -88,6 +93,7 @@ export class ActivityImportService {
   private readonly efService: EfService;
   private readonly unitConversionService: UnitConversionService;
   private readonly emissionSourceService: EmissionSourceLookup;
+  private readonly settingsService: SettingsLookup;
   private pending: PendingImport | null = null;
 
   constructor(
@@ -97,6 +103,8 @@ export class ActivityImportService {
       efService: EfService;
       unitConversionService: UnitConversionService;
       emissionSourceService: EmissionSourceLookup;
+      /** Per-workspace outlier multiplier (spec 2026-07-23). */
+      settingsService: SettingsLookup;
     },
   ) {
     this.db = ctx.db;
@@ -106,6 +114,7 @@ export class ActivityImportService {
     this.efService = ctx.efService;
     this.unitConversionService = ctx.unitConversionService;
     this.emissionSourceService = ctx.emissionSourceService;
+    this.settingsService = ctx.settingsService;
   }
 
   /**
@@ -427,7 +436,12 @@ export class ActivityImportService {
         throw new Error('activity-import: no row survived create');
       }
 
-      for (const issue of detectAmountOutliers(importable)) pushWarning(issue);
+      for (const issue of detectAmountOutliers(
+        importable,
+        this.settingsService.getImportOutlierRatio(),
+      )) {
+        pushWarning(issue);
+      }
 
       this.writeAudit('activity_data.bulk_imported', ts, {
         document_id: doc.id,

@@ -310,6 +310,80 @@ function ReportingProfileGroup({ orgId, initial, onSaved }: ReportingProfileProp
       </div>
 
       <ReportLogoBlock />
+      <ImportAnomalyBlock />
+    </div>
+  );
+}
+
+/** Valid range mirrored from the main process (settings-service.ts). */
+const OUTLIER_RATIO_MIN = 2;
+const OUTLIER_RATIO_MAX = 1000;
+
+/**
+ * Batch-import outlier multiplier (per-workspace — spec
+ * 2026-07-23-import-outlier-threshold). A row is warned when its amount
+ * is more than N× away from its group's median during「批量导入」.
+ * Consultants tune it per client ledger; sits with the other per-client
+ * calculation rules (base year, recalc threshold) in this section.
+ */
+function ImportAnomalyBlock() {
+  const queryClient = useQueryClient();
+  const ratioQuery = useQuery({
+    queryKey: ['settings:get-import-outlier-ratio'],
+    queryFn: settingsApi.getImportOutlierRatio,
+  });
+
+  const [draft, setDraft] = useState<string | null>(null);
+  const stored = ratioQuery.data?.ratio;
+  const shown = draft ?? (stored !== undefined ? String(stored) : '');
+  const parsed = Number.parseFloat(shown);
+  const valid =
+    Number.isFinite(parsed) && parsed >= OUTLIER_RATIO_MIN && parsed <= OUTLIER_RATIO_MAX;
+
+  const saveMutation = useMutation({
+    mutationFn: (ratio: number) => settingsApi.setImportOutlierRatio({ ratio }),
+    onSuccess: () => {
+      setDraft(null);
+      void queryClient.invalidateQueries({ queryKey: ['settings:get-import-outlier-ratio'] });
+      toast.success(m.settings_import_outlier_saved());
+    },
+    onError: (err) => {
+      toast.error(m.settings_save_failed(), { description: friendlyErrorDescription(err) });
+    },
+  });
+
+  return (
+    <div className="space-y-2 border-t border-border pt-4">
+      <h3 className="text-sm font-semibold">{m.settings_import_outlier_heading()}</h3>
+      <p className="text-xs text-muted-foreground">{m.settings_import_outlier_body()}</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <Label htmlFor="import-outlier-ratio" className="text-xs">
+          {m.settings_import_outlier_label()}
+        </Label>
+        <Input
+          id="import-outlier-ratio"
+          type="number"
+          min={OUTLIER_RATIO_MIN}
+          max={OUTLIER_RATIO_MAX}
+          step="1"
+          value={shown}
+          onChange={(e) => setDraft(e.target.value)}
+          disabled={ratioQuery.isLoading}
+          className="w-28 font-mono tabular-nums"
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={!valid || saveMutation.isPending || parsed === stored}
+          onClick={() => saveMutation.mutate(parsed)}
+        >
+          {saveMutation.isPending ? m.settings_saving() : m.settings_reporting_profile_save()}
+        </Button>
+      </div>
+      {!valid && shown !== '' && (
+        <p className="text-xs text-destructive">{m.settings_import_outlier_invalid()}</p>
+      )}
     </div>
   );
 }

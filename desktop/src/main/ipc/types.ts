@@ -289,6 +289,10 @@ export type IpcTypeMap = {
     | { ok: false; error: 'TooLarge' | 'UnsupportedType' | 'ReadFailed' }
   >;
   'settings:clear-report-logo': () => { ok: true };
+  // Batch-import outlier multiplier (spec 2026-07-23-import-outlier-threshold).
+  // Per-workspace; valid range [2, 1000], default 10.
+  'settings:get-import-outlier-ratio': () => { ratio: number };
+  'settings:set-import-outlier-ratio': (input: { ratio: number }) => void;
   // Item 3 Task 10c — pi-ai catalog read at runtime. `list-providers` is a
   // zero-arg snapshot of pi-ai's `getProviders()`; `list-models(provider)`
   // returns `[]` for unknown providers so the renderer can fall back to a

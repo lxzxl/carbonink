@@ -73,11 +73,17 @@ function medianOf(sorted: readonly number[]): number {
 }
 
 /**
- * Flag rows whose amount is >OUTLIER_RATIO× away from their group's median
+ * Flag rows whose amount is >ratio× away from their group's median
  * (both directions — a dropped zero is as suspicious as an extra one).
  * Groups below OUTLIER_MIN_GROUP_SIZE rows are skipped entirely.
+ * `ratio` defaults to {@link OUTLIER_RATIO}; the per-workspace override
+ * lives in SettingsService (`import.outlier_ratio`) and is threaded in
+ * by ActivityImportService at confirm time.
  */
-export function detectAmountOutliers(rows: readonly ResolvedImportRow[]): ActivityImportRowIssue[] {
+export function detectAmountOutliers(
+  rows: readonly ResolvedImportRow[],
+  ratio: number = OUTLIER_RATIO,
+): ActivityImportRowIssue[] {
   const byGroup = new Map<string, ResolvedImportRow[]>();
   for (const row of rows) {
     const key = groupKeyOf(row.description, row.unit, row.source_id);
@@ -92,7 +98,7 @@ export function detectAmountOutliers(rows: readonly ResolvedImportRow[]): Activi
     const median = medianOf(bucket.map((r) => r.amount).sort((a, b) => a - b));
     if (median <= 0) continue;
     for (const row of bucket) {
-      if (row.amount > median * OUTLIER_RATIO || row.amount < median / OUTLIER_RATIO) {
+      if (row.amount > median * ratio || row.amount < median / ratio) {
         issues.push({
           row: row.row,
           code: 'amount_outlier',

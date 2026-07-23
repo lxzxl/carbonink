@@ -90,4 +90,19 @@ describe('detectAmountOutliers', () => {
     );
     expect(detectAmountOutliers([...a, ...b])).toEqual([]);
   });
+
+  it('honors a custom ratio (spec 2026-07-23-import-outlier-threshold)', () => {
+    const rows = [
+      row({ amount: 100 }),
+      row({ amount: 110 }),
+      row({ amount: 90 }),
+      row({ amount: 105 }),
+      row({ amount: 400, row: 42 }),
+    ];
+    // 400 is 4× the median: silent at the default 10×, flagged at 3×.
+    expect(detectAmountOutliers(rows)).toEqual([]);
+    expect(detectAmountOutliers(rows, 3)).toEqual([
+      { row: 42, code: 'amount_outlier', detail: expect.stringContaining('400') },
+    ]);
+  });
 });

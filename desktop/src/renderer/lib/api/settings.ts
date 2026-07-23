@@ -34,6 +34,10 @@ export const settingsApi = {
   getReportLogo: () => invoke('settings:get-report-logo'),
   pickReportLogo: () => invoke('settings:pick-report-logo'),
   clearReportLogo: () => invoke('settings:clear-report-logo'),
+  // Batch-import outlier multiplier (per-workspace, [2, 1000], default 10).
+  getImportOutlierRatio: () => invoke('settings:get-import-outlier-ratio'),
+  setImportOutlierRatio: (input: { ratio: number }) =>
+    invoke('settings:set-import-outlier-ratio', input),
   // Item 3 Task 10c — pi-ai runtime catalog. The renderer caches both lists
   // via TanStack Query; provider list is invalidated never (pi-ai's catalog
   // is bundled, not network-fetched), model list is invalidated per provider.

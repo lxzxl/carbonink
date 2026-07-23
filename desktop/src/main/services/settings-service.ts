@@ -12,6 +12,13 @@ const AUTO_BACKUP_ENABLED_SETTING = 'auto_backup.enabled';
 // White-label report logo (spec 2026-07-22-client-workspaces 后续切片):
 // a data URL stored per-workspace — each client DB carries its own logo.
 const REPORT_LOGO_SETTING = 'report.logo';
+const IMPORT_OUTLIER_RATIO_SETTING = 'import.outlier_ratio';
+
+/** Default ×-from-median multiplier for the batch-import outlier rule. */
+export const DEFAULT_IMPORT_OUTLIER_RATIO = 10;
+/** Sane bounds — below 2× everything is an outlier, above 1000× nothing is. */
+export const IMPORT_OUTLIER_RATIO_MIN = 2;
+export const IMPORT_OUTLIER_RATIO_MAX = 1000;
 
 /**
  * Persistence layer for the user-chosen LLM provider configuration.
@@ -176,6 +183,40 @@ export class SettingsService {
          ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
       )
       .run(REPORT_LOGO_SETTING, dataUrl, ts);
+  }
+
+  /**
+   * ×-from-median multiplier for the batch-import outlier warning
+   * (spec 2026-07-23-import-outlier-threshold, ROADMAP §8.1-① 留项).
+   * Per-workspace — consultants tune it per client ledger. Missing or
+   * garbage values (NaN, out of [MIN, MAX]) fall back to the default so
+   * a hand-edited sqlite row can never disable the rule by accident.
+   */
+  getImportOutlierRatio(): number {
+    const row = this.ctx.db
+      .prepare('SELECT value FROM setting WHERE key = ?')
+      .get(IMPORT_OUTLIER_RATIO_SETTING) as { value: string } | undefined;
+    if (!row) return DEFAULT_IMPORT_OUTLIER_RATIO;
+    const parsed = Number.parseFloat(row.value);
+    if (
+      !Number.isFinite(parsed) ||
+      parsed < IMPORT_OUTLIER_RATIO_MIN ||
+      parsed > IMPORT_OUTLIER_RATIO_MAX
+    ) {
+      return DEFAULT_IMPORT_OUTLIER_RATIO;
+    }
+    return parsed;
+  }
+
+  /** Caller (IPC layer) validates the range; stored as decimal text. */
+  setImportOutlierRatio(ratio: number): void {
+    const ts = this.ctx.now();
+    this.ctx.db
+      .prepare(
+        `INSERT INTO setting (key, value, updated_at) VALUES (?, ?, ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+      )
+      .run(IMPORT_OUTLIER_RATIO_SETTING, String(ratio), ts);
   }
 
   clearReportLogo(): void {

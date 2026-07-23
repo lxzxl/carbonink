@@ -2,6 +2,10 @@ import { readFile } from 'node:fs/promises';
 import { extname } from 'node:path';
 import { AiClientTag, buildAiClientLayer } from '@main/llm/ai-client.js';
 import { listModelsForProvider, listProviderIds } from '@main/llm/pi-catalog.js';
+import {
+  IMPORT_OUTLIER_RATIO_MAX,
+  IMPORT_OUTLIER_RATIO_MIN,
+} from '@main/services/settings-service.js';
 import { providerConfigV2 } from '@shared/types.js';
 import { Effect } from 'effect';
 import { dialog } from 'electron';
@@ -32,6 +36,10 @@ const pingProviderInput = z.object({
 
 const setAmapKeyInput = z.object({
   value: z.string(),
+});
+
+const setImportOutlierRatioInput = z.object({
+  ratio: z.number().min(IMPORT_OUTLIER_RATIO_MIN).max(IMPORT_OUTLIER_RATIO_MAX),
 });
 
 const listModelsInput = z.object({
@@ -134,6 +142,16 @@ export function settingsHandlers(ctx: IpcContext): {
       const dataUrl = `data:${mime};base64,${bytes.toString('base64')}`;
       ctx.settingsService.setReportLogo(dataUrl);
       return { ok: true as const, data_url: dataUrl };
+    },
+    // Batch-import outlier multiplier (spec 2026-07-23). Range enforced
+    // here so a renderer bug can't persist a rule-disabling value; the
+    // service getter additionally tolerates hand-edited garbage.
+    'settings:get-import-outlier-ratio': () => ({
+      ratio: ctx.settingsService.getImportOutlierRatio(),
+    }),
+    'settings:set-import-outlier-ratio': (input) => {
+      const parsed = setImportOutlierRatioInput.parse(input);
+      ctx.settingsService.setImportOutlierRatio(parsed.ratio);
     },
     'settings:clear-report-logo': () => {
       ctx.settingsService.clearReportLogo();

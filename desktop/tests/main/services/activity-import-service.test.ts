@@ -50,6 +50,8 @@ const CSV = [
 let db: Database.Database;
 let uploadsDir: string;
 let svc: ActivityImportService;
+/** Injected per-workspace outlier multiplier; tests may reassign before import. */
+let importOutlierRatio = 10;
 let sourceService: EmissionSourceService;
 let org: Organization;
 let site: Site;
@@ -64,6 +66,7 @@ function auditEvents(kind: string): Array<Record<string, unknown>> {
 }
 
 beforeEach(() => {
+  importOutlierRatio = 10;
   db = new Database(':memory:');
   db.pragma('foreign_keys = ON');
   runMigrations(db);
@@ -89,6 +92,7 @@ beforeEach(() => {
     efService,
     unitConversionService: unitConv,
     emissionSourceService: sourceService,
+    settingsService: { getImportOutlierRatio: () => importOutlierRatio },
   });
 
   org = orgService.createOrganization({
@@ -341,6 +345,28 @@ describe('import', () => {
     if (!result.ok) throw new Error('unreachable');
     expect(result.warnings.filter((w) => w.code === 'amount_outlier')).toEqual([
       { row: 7, code: 'amount_outlier', detail: expect.stringContaining('99999') },
+    ]);
+  });
+
+  it('honors the per-workspace outlier multiplier from settings (spec 2026-07-23)', async () => {
+    // 400 is 4× the median (100): invisible at the default 10×, flagged
+    // once the workspace tightens the rule to 3×.
+    importOutlierRatio = 3;
+    const csv = [
+      '排放源,描述,数量,单位',
+      ...[100, 110, 90, 105, 95].map((n) => `Grid meter,电网电力,${n},kWh`),
+      'Grid meter,电网电力,400,kWh',
+    ].join('\n');
+    const preview = await svc.stageImport(Buffer.from(csv, 'utf-8'), 'ledger.csv');
+    svc.revalidate(preview.token, preview.mapping, period.id);
+    svc.listSources(preview.token, org.id);
+    const groups = svc.listGroups(preview.token) ?? [];
+    svc.confirmGroup(preview.token, (groups[0] as { key: string }).key, GRID_EF, null);
+    const result = svc.import(preview.token);
+    expect(result).toMatchObject({ ok: true, imported_count: 6 });
+    if (!result.ok) throw new Error('unreachable');
+    expect(result.warnings.filter((w) => w.code === 'amount_outlier')).toEqual([
+      { row: 7, code: 'amount_outlier', detail: expect.stringContaining('400') },
     ]);
   });
 
