@@ -2,8 +2,9 @@ import type { CredentialService } from '@main/services/credential-service.js';
 import type { ProviderConfigV2 } from '@shared/types.js';
 import { Cause, Effect, Exit, Option } from 'effect';
 import type { ZodSchema } from 'zod';
+import { type AgentTool, type AgentTrace, AiAgentTag, buildAiAgentLayer } from './ai-agent.js';
 import { AiClientTag, buildAiClientLayer } from './ai-client.js';
-import type { AiErr } from './errors.js';
+import type { AgentMaxTurns, AgentStalled, AiErr } from './errors.js';
 
 /**
  * Boundary helper for Promise-shape consumers (extraction-service,
@@ -56,5 +57,39 @@ export async function runAiObject<T>(
   // Rethrow Effect's wrapper so the unexpected failure is at least
   // observable in logs; downstream catch handlers will see it as a
   // generic Error and surface a "something went wrong" message.
+  throw Cause.squash(exit.cause);
+}
+
+/**
+ * Agent-loop sibling of {@link runAiObject} for Promise-shape consumers
+ * (today: ef-matcher-service's group-recommendation loop). Same per-call
+ * layer construction, same tagged-error rethrow contract — the extra
+ * failure modes (`AgentMaxTurns`, `AgentStalled`) join the `AiErr` union
+ * in the throw path so callers can pattern-match on `_tag` to decide
+ * whether to fall back to a single-shot request.
+ */
+export async function runAiAgent<T>(
+  config: ProviderConfigV2,
+  credentials: CredentialService,
+  args: {
+    systemPrompt: string;
+    userPrompt: string;
+    schema: ZodSchema<T>;
+    tools: AgentTool[];
+    maxTurns?: number;
+    timeoutMs?: number;
+  },
+): Promise<{ result: T; trace: AgentTrace }> {
+  const layer = buildAiAgentLayer({ config, credentials });
+  const program = Effect.gen(function* () {
+    const agent = yield* AiAgentTag;
+    return yield* agent.run(args);
+  });
+  const exit = await Effect.runPromiseExit(program.pipe(Effect.provide(layer)));
+  if (Exit.isSuccess(exit)) return exit.value;
+  const failure = Cause.failureOption(exit.cause);
+  if (Option.isSome(failure)) {
+    throw failure.value satisfies AiErr | AgentMaxTurns | AgentStalled;
+  }
   throw Cause.squash(exit.cause);
 }
