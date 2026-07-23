@@ -556,6 +556,22 @@ export type IpcTypeMap = {
     narrative: import('@main/llm/report-narrative').ReportNarrative;
     language: 'zh-CN' | 'en';
   }) => Promise<{ canceled: true } | { ok: true; path: string } | { ok: false; error: string }>;
+  // Client deliverable bundle (spec 2026-07-23-client-deliverable-bundle):
+  // report PDF + xlsx appendix + evidence file copies + manifest.csv
+  // (sha256 checksums) in one zip. `kind` selects which report/narrative
+  // shape renders; evidence scope is the report's period, activity side.
+  'report:export-deliverable': (input: {
+    data: import('@main/services/report-data-service').InventoryReportData;
+    narrative:
+      | import('@main/llm/report-narrative').ReportNarrative
+      | import('@main/llm/tcfd-narrative').TcfdNarrative;
+    language: 'zh-CN' | 'en';
+    kind: 'iso' | 'tcfd';
+  }) => Promise<
+    | { canceled: true }
+    | { ok: true; path: string; evidence_count: number; missing_count: number }
+    | { ok: false; error: string }
+  >;
 
   // audit domain (Phase 3 sub-project 3 — audit_event log viewer)
   'audit:list': (input: {

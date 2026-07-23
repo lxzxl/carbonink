@@ -140,6 +140,43 @@ function ReportDetail() {
     },
   });
 
+  // Client deliverable bundle (spec 2026-07-23-client-deliverable-bundle):
+  // one zip with report PDF + appendix + evidence copies + sha256 manifest.
+  // Works for both report kinds; missing evidence files are flagged in the
+  // manifest and surfaced in the toast, never fatal.
+  const exportDeliverable = useMutation({
+    mutationFn: async () => {
+      if (!generated) throw new Error('no report');
+      const result = await reportApi.exportDeliverable({
+        data: generated.data,
+        narrative: generated.narrative,
+        language,
+        kind: generated.kind,
+      });
+      if ('canceled' in result && result.canceled) return;
+      if ('ok' in result && result.ok) {
+        if (result.missing_count > 0) {
+          toast.success(
+            m.reports_deliverable_success_missing({
+              path: result.path,
+              count: String(result.evidence_count),
+              missing: String(result.missing_count),
+            }),
+          );
+        } else {
+          toast.success(
+            m.reports_deliverable_success({
+              path: result.path,
+              count: String(result.evidence_count),
+            }),
+          );
+        }
+      } else if ('ok' in result && !result.ok) {
+        toast.error(m.reports_export_failed({ message: result.error }));
+      }
+    },
+  });
+
   const exportBoth = useMutation({
     mutationFn: async () => {
       if (generated?.kind !== 'iso') throw new Error('no narrative');
@@ -244,6 +281,14 @@ function ReportDetail() {
                 {m.reports_export_both_button()}
               </button>
             )}
+            <button
+              type="button"
+              onClick={() => exportDeliverable.mutate()}
+              disabled={exportDeliverable.isPending}
+              className="rounded border px-3 py-2"
+            >
+              {m.reports_export_deliverable_button()}
+            </button>
             <button
               type="button"
               onClick={() => {

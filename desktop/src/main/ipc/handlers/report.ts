@@ -1,8 +1,10 @@
 import * as fs from 'node:fs/promises';
 import { generateReportNarrative } from '@main/llm/report-narrative.js';
 import { generateTcfdNarrative } from '@main/llm/tcfd-narrative.js';
+import { buildDeliverableBundle } from '@main/services/deliverable-export-service.js';
 import {
   defaultExportFilename,
+  deliverableExportFilename,
   renderReportPdf,
   tcfdExportFilename,
   writeAppendixXlsx,
@@ -245,6 +247,75 @@ export function reportHandlers(ctx: IpcContext): {
         });
         await fs.writeFile(result.filePath, buf);
         return { ok: true as const, path: result.filePath };
+      } catch (err) {
+        return { ok: false as const, error: (err as Error).message };
+      }
+    },
+
+    // Client deliverable bundle (spec 2026-07-23-client-deliverable-bundle):
+    // renders the same PDF + xlsx the individual export buttons produce,
+    // then streams them + every evidence file of the period's activity
+    // rows + a sha256 manifest into one zip. Missing evidence files are
+    // flagged in the manifest, never fatal.
+    'report:export-deliverable': async (raw) => {
+      const input = raw as Parameters<IpcTypeMap['report:export-deliverable']>[0];
+      const isTcfd = input.kind === 'tcfd';
+      const result = await dialog.showSaveDialog({
+        title: isTcfd
+          ? 'Export TCFD deliverable bundle (ZIP)'
+          : 'Export ISO 14064-1 deliverable bundle (ZIP)',
+        defaultPath: deliverableExportFilename({
+          data: input.data,
+          language: input.language,
+          kind: input.kind,
+        }),
+        filters: [{ name: 'ZIP', extensions: ['zip'] }],
+      });
+      if (result.canceled || !result.filePath) return { canceled: true as const };
+      try {
+        const pdfBytes = await renderReportPdf(
+          {
+            data: input.data,
+            narrative: input.narrative,
+            language: input.language,
+            ...(isTcfd ? { kind: 'tcfd_report' as const } : {}),
+          },
+          { printRenderUrl: ctx.printRenderUrl },
+        );
+        const xlsxBytes = await writeAppendixXlsx({
+          data: input.data,
+          narrative: input.narrative,
+          language: input.language,
+          ...(isTcfd ? { kind: 'tcfd' as const } : {}),
+        });
+        const nameArgs = { data: input.data, language: input.language } as const;
+        const bundle = await buildDeliverableBundle({
+          db: ctx.db,
+          periodId: input.data.period.id,
+          activities: input.data.activities.map((a) => ({
+            id: a.id,
+            source_name: a.source_name,
+          })),
+          reportPdf: {
+            name: isTcfd
+              ? tcfdExportFilename({ ...nameArgs, kind: 'pdf' })
+              : defaultExportFilename({ ...nameArgs, kind: 'pdf' }),
+            bytes: pdfBytes,
+          },
+          appendixXlsx: {
+            name: isTcfd
+              ? tcfdExportFilename({ ...nameArgs, kind: 'xlsx' })
+              : defaultExportFilename({ ...nameArgs, kind: 'xlsx' }),
+            bytes: xlsxBytes,
+          },
+          outPath: result.filePath,
+        });
+        return {
+          ok: true as const,
+          path: result.filePath,
+          evidence_count: bundle.evidenceTotal,
+          missing_count: bundle.evidenceMissing,
+        };
       } catch (err) {
         return { ok: false as const, error: (err as Error).message };
       }

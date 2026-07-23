@@ -1,4 +1,3 @@
-import * as fs from 'node:fs/promises';
 import type { ReportNarrative } from '@main/llm/report-narrative';
 import type { TcfdNarrative } from '@main/llm/tcfd-narrative';
 import { BrowserWindow, type WebContents } from 'electron';
@@ -277,6 +276,24 @@ export function tcfdExportFilename(args: {
     args.data.period.granularity === 'annual' ? '' : `-${args.data.period.granularity}`;
   const base = `${slug}-tcfd-${args.data.period.year}${granSuffix}-${args.language}`;
   return args.kind === 'pdf' ? `${base}.pdf` : `${base}-appendix.xlsx`;
+}
+
+/**
+ * Client deliverable bundle filename
+ * (spec 2026-07-23-client-deliverable-bundle). Same slug/year/granularity/
+ * language segments as the PDF/xlsx names so the three artifacts sort
+ * together in the client's download folder.
+ */
+export function deliverableExportFilename(args: {
+  data: InventoryReportData;
+  language: 'zh-CN' | 'en';
+  kind: 'iso' | 'tcfd';
+}): string {
+  const slug = slugifyOrgName(args.data);
+  const granSuffix =
+    args.data.period.granularity === 'annual' ? '' : `-${args.data.period.granularity}`;
+  const kindSegment = args.kind === 'tcfd' ? 'tcfd' : 'iso-14064-1';
+  return `${slug}-${kindSegment}-${args.data.period.year}${granSuffix}-${args.language}-deliverable.zip`;
 }
 
 export interface ExportPdfDeps {

@@ -139,6 +139,8 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   'report:generate-tcfd',
   'report:export-tcfd-pdf',
   'report:export-tcfd-xlsx',
+  // Client deliverable bundle (spec 2026-07-23-client-deliverable-bundle)
+  'report:export-deliverable',
   // audit domain (Phase 3 sub-project 3 — audit_event log viewer)
   'audit:list',
   'audit:export-csv',

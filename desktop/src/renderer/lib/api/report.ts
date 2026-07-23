@@ -18,4 +18,11 @@ export const reportApi = {
     invoke('report:export-tcfd-pdf', input as never),
   exportTcfdXlsx: (input: { data: unknown; narrative: unknown; language: 'zh-CN' | 'en' }) =>
     invoke('report:export-tcfd-xlsx', input as never),
+  // Client deliverable bundle (spec 2026-07-23-client-deliverable-bundle).
+  exportDeliverable: (input: {
+    data: unknown;
+    narrative: unknown;
+    language: 'zh-CN' | 'en';
+    kind: 'iso' | 'tcfd';
+  }) => invoke('report:export-deliverable', input as never),
 };
