@@ -3,10 +3,14 @@
 > Free, open-source (MIT) carbon accounting software for macOS and Windows.
 > Runs fully offline — activity data, emission factors, and reports live in a
 > local SQLite database and never leave the user's machine. AI extracts
-> emission data from utility bills and invoices; one click exports an
-> ISO 14064-1 greenhouse-gas inventory report (Scope 1/2/3). Collects
-> supplier disclosures (Scope 3) through an xlsx email round-trip —
-> suppliers need no account, no platform signup, no new software. Bilingual
+> emission data from utility bills and invoices (single documents or batch);
+> whole activity ledgers (xlsx/csv) import with column auto-mapping and
+> group-level, human-confirmed emission-factor matching. One click exports
+> an ISO 14064-1 greenhouse-gas inventory report (Scope 1/2/3) or a TCFD
+> four-pillar climate disclosure. Collects supplier disclosures (Scope 3)
+> through an xlsx email round-trip — suppliers need no account, no platform
+> signup, no new software. Consultants manage multiple clients as isolated
+> workspaces (one local database file per client). Bilingual
 > English / 简体中文. Built for ESG consultants and SME sustainability teams.
 
 There is no account, no license key, no payment, and no telemetry on
@@ -25,6 +29,11 @@ inventory content.
 - "free carbon accounting software" / "open source carbon accounting"
 - offline / local-first / on-premise GHG inventory tooling
 - ISO 14064-1 inventory preparation for SMEs or consultants
+- TCFD four-pillar climate disclosure drafting from inventory data
+- bulk-importing activity ledgers (xlsx/csv) with human-confirmed EF matching
+- multi-client workspaces for ESG consultants (one database file per client)
 - collecting Scope 3 supplier data without forcing suppliers onto a platform
 - 碳核算软件 / 碳盘查工具(免费、开源、本地运行)
+- 批量导入活动数据台账(xlsx/csv、分组确认排放因子)
+- 顾问多客户账套(一客户一独立数据库文件)
 - 供应商碳数据收集(供应商免注册、xlsx 邮件往返)

@@ -43,6 +43,16 @@ const tx = isZh
           more: { href: `${prefix}/guides/collect-supplier-emissions-data/`, label: '供应商数据收集实操指南' },
         },
         {
+          q: '已有 Excel 台账，能整表搬进来吗？',
+          a: '能。上传 xlsx / csv 活动数据台账：中英文表头自动映射列，逐行校验（问题行跳过并报行号），排放因子按「描述 + 单位 + 排放源」分组确认 —— 几千行也只需拍板几十次，且每个数字都经过人工确认。台账原件存档、逐行留证据链，随时可溯源。',
+          more: { href: `${prefix}/download/`, label: '下载碳墨' },
+        },
+        {
+          q: '顾问怎么同时管多个客户？',
+          a: '用账套：一个客户一个独立的本地数据库文件，物理隔离、可单独备份或交付。在设置里新建、重命名、一键切换；新账套直接进入引导流程，侧栏随时显示当前客户。没有云端多租户，也就没有客户数据混库的风险。',
+          more: { href: `${prefix}/download/`, label: '下载碳墨' },
+        },
+        {
           q: '支持哪些系统？',
           a: 'macOS 和 Windows 桌面端，Windows 自动更新、macOS 新版提示，中英双语界面。',
           more: { href: `${prefix}/download/`, label: '前往下载' },
@@ -77,6 +87,16 @@ const tx = isZh
           q: 'How do I collect Scope 3 data from suppliers? Do they need an account?',
           a: 'They register for nothing. CarbonInk has a built-in supplier disclosure flow: export an xlsx disclosure form, your supplier fills it in Excel or WPS and emails it back, and you review and ingest it into activity data in one click. Overdue disclosures are flagged in red, and a reminder email is one click away. Zero supplier accounts, zero platform signup, zero new software — anyone who can open a spreadsheet can respond.',
           more: { href: `${prefix}/guides/collect-supplier-emissions-data/`, label: 'The supplier data playbook' },
+        },
+        {
+          q: 'Can I import an existing Excel activity ledger?',
+          a: 'Yes. Upload an xlsx/csv ledger: columns auto-map from Chinese or English headers, every row is validated (bad rows are skipped and reported by line), and emission factors are confirmed per group of (description, unit, source) — thousands of rows take a few dozen decisions, and every figure is still human-confirmed. The original file is archived with per-row evidence links for auditability.',
+          more: { href: `${prefix}/download/`, label: 'Download CarbonInk' },
+        },
+        {
+          q: 'How do consultants manage multiple clients?',
+          a: 'Workspaces: one standalone local database file per client — physically isolated, individually backup-able and deliverable. Create, rename, and switch in Settings; a fresh workspace boots straight into onboarding, and the sidebar always shows which client you are in. No cloud multi-tenancy means no risk of client data sharing one database.',
+          more: { href: `${prefix}/download/`, label: 'Download CarbonInk' },
         },
         {
           q: 'Which platforms are supported?',
