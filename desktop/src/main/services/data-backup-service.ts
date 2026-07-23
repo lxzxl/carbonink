@@ -1,5 +1,5 @@
 import { copyFileSync, existsSync, openSync, readSync, statSync, unlinkSync } from 'node:fs';
-import { closeAppDb, getAppDb } from '@main/db/connection.js';
+import { closeAppDb, getAppDb, getAppDbPath } from '@main/db/connection.js';
 import { app } from 'electron';
 
 /**
@@ -15,9 +15,11 @@ import { app } from 'electron';
  *     here" and "actual replacement there".
  *
  * Backup format:
- *   - Single SQLite file. We literally copy `app.sqlite` and recommend
- *     `.carbonink-backup` as the extension so the OS associates the
- *     file with CarbonInk (open-with menu), but `.sqlite` works too.
+ *   - Single SQLite file. We literally copy the ACTIVE workspace's
+ *     database (path from `getAppDbPath()` — with client workspaces this
+ *     is not always `app.sqlite`) and recommend `.carbonink-backup` as
+ *     the extension so the OS associates the file with CarbonInk
+ *     (open-with menu), but `.sqlite` works too.
  *   - Restore validates the SQLite magic header bytes + checks for the
  *     `schema_migrations` table presence. Cross-version restores rely
  *     on the normal migration runner — older backups get auto-migrated
@@ -38,7 +40,7 @@ const RELAUNCH_DELAY_MS = 250;
 
 export class DataBackupService {
   /**
-   * Copies the live `app.sqlite` to `targetPath`.
+   * Copies the live (active-workspace) database to `targetPath`.
    *
    * Process:
    *   1. WAL-checkpoint to flush any pending writes from the WAL into
@@ -55,8 +57,10 @@ export class DataBackupService {
    */
   exportToFile(targetPath: string): { bytes_written: number } {
     const db = getAppDb();
+    // Resolve the path BEFORE the checkpoint so the "connection open"
+    // invariant is checked first — both read the same live connection.
+    const dbPath = getAppDbPath();
     db.pragma('wal_checkpoint(TRUNCATE)');
-    const dbPath = this.getDbPath();
     copyFileSync(dbPath, targetPath);
     const stats = statSync(targetPath);
     return { bytes_written: stats.size };
@@ -64,7 +68,8 @@ export class DataBackupService {
 
   /**
    * Validates `sourcePath` is a CarbonInk-compatible backup, then
-   * replaces the live `app.sqlite` and schedules an app relaunch.
+   * replaces the ACTIVE workspace's database and schedules an app
+   * relaunch.
    *
    * Validation:
    *   - File exists and is readable.
@@ -73,9 +78,9 @@ export class DataBackupService {
    *     entries — confirming the schema_migrations table exists.
    *
    * On success the live connection is closed, the file is copied over
-   * `app.sqlite`, and `app.relaunch() + app.quit()` is scheduled.
-   * Migrations re-run on the next launch and pick up any schema upgrades
-   * between the backup's version and current code.
+   * the active workspace's database, and `app.relaunch() + app.quit()`
+   * is scheduled. Migrations re-run on the next launch and pick up any
+   * schema upgrades between the backup's version and current code.
    */
   importFromFile(sourcePath: string): { ok: true } | { ok: false; error: string } {
     if (!existsSync(sourcePath)) {
@@ -85,7 +90,9 @@ export class DataBackupService {
     if (validationError) {
       return { ok: false, error: validationError };
     }
-    const dbPath = this.getDbPath();
+    // Read the path BEFORE closing — getAppDbPath() throws once the
+    // connection is gone.
+    const dbPath = getAppDbPath();
     closeAppDb();
     // Best-effort: clean up WAL/SHM siblings before copying in the new
     // db. If they're stale, the next openAppDb call would mix them with
@@ -106,10 +113,11 @@ export class DataBackupService {
   }
 
   /**
-   * Deletes the live `app.sqlite` (and WAL/SHM siblings) and schedules
-   * an app relaunch. On next launch, `openAppDb` creates a fresh file,
-   * migrations run, and the dashboard's `org:has-any` returns false
-   * → onboarding redirect.
+   * Deletes the ACTIVE workspace's database (and WAL/SHM siblings) and
+   * schedules an app relaunch. On next launch, `openAppDb` creates a
+   * fresh file at the same workspace path, migrations run, and the
+   * dashboard's `org:has-any` returns false → onboarding redirect.
+   * Other workspaces' files are untouched.
    *
    * Does NOT clear the keychain — the license JWT stays for re-use on
    * the next onboarding completion. Users wanting a TRULY fresh start
@@ -118,7 +126,7 @@ export class DataBackupService {
    * common request).
    */
   reset(): void {
-    const dbPath = this.getDbPath();
+    const dbPath = getAppDbPath();
     closeAppDb();
     for (const ext of ['', '-wal', '-shm']) {
       const target = `${dbPath}${ext}`;
@@ -132,10 +140,6 @@ export class DataBackupService {
       }
     }
     this.scheduleRelaunch();
-  }
-
-  private getDbPath(): string {
-    return `${app.getPath('userData')}/app.sqlite`;
   }
 
   private validateBackup(sourcePath: string): string | null {

@@ -1,6 +1,7 @@
 import Database, { type Database as DbInstance } from 'better-sqlite3';
 
 let instance: DbInstance | null = null;
+let instancePath: string | null = null;
 
 /**
  * Opens (or returns the cached) SQLite connection at `path`.
@@ -23,6 +24,7 @@ export function openAppDb(path: string): DbInstance {
     );
   }
   instance = db;
+  instancePath = path;
   return db;
 }
 
@@ -31,9 +33,24 @@ export function getAppDb(): DbInstance {
   return instance;
 }
 
+/**
+ * Absolute path of the database file the live connection was opened on.
+ * With client workspaces (spec 2026-07-22) this is NOT always
+ * `<userData>/app.sqlite` — any consumer that needs "the current db
+ * file" (backup export/restore/reset) must read it from here instead of
+ * hardcoding the pre-workspace filename.
+ */
+export function getAppDbPath(): string {
+  if (!instance || instancePath === null) {
+    throw new Error('App DB not opened — call openAppDb() first.');
+  }
+  return instancePath;
+}
+
 export function closeAppDb(): void {
   if (instance) {
     instance.close();
     instance = null;
+    instancePath = null;
   }
 }
