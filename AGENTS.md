@@ -66,7 +66,7 @@ Brand palette + "don't reintroduce sky-blue" rule: `cloud/CLAUDE.md`.
 ## Docs map
 
 - [`docs/README.md`](docs/README.md) — docs index
-- [`docs/ROADMAP.md`](docs/ROADMAP.md) — post-launch ideas
 - [`docs/conventions/`](docs/conventions/) — how-we-build references (tracked)
+- `docs/ROADMAP.md` — post-launch ideas, **local-only** (gitignored)
 - `docs/{specs,plans,research,release-notes,todo,archive}/` — per-feature design +
   implementation trail, **local-only** (gitignored; not in the public repo)

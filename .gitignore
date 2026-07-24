@@ -93,14 +93,16 @@ desktop/inbound-*.xlsx
 
 # Per-feature design docs — kept locally, NOT tracked. They're the dev-process
 # trail (brainstorm → spec → plan, plus research / release-notes / archive),
-# not shipped artifacts. The living references (docs/conventions/,
-# docs/ROADMAP.md, docs/README.md) stay tracked. See docs/README.md.
+# not shipped artifacts. ROADMAP.md is local-only too — an ideas list, not a
+# public commitment. The living references (docs/conventions/, docs/README.md)
+# stay tracked. See docs/README.md.
 docs/specs/
 docs/plans/
 docs/research/
 docs/release-notes/
 docs/todo/
 docs/archive/
+docs/ROADMAP.md
 
 # Eval harness output (timestamped runs) — regenerable, not source.
 desktop/scripts/eval/results/
