@@ -17,6 +17,7 @@ import { navigateTo, snap, waitForReactMount } from './helpers.js';
  *
  * Flow: Settings → 因子库 → import drawer → pick csv (3 valid rows +
  * 1 bad-scope row) → validation preview → import → registry row →
+ * browse drawer (real catalog rows + CJK substring search) →
  * same-name re-import arms the replace confirmation → replace →
  * delete library → empty state again.
  */
@@ -94,6 +95,46 @@ test('EF library import: pick → preview → import → replace → delete', as
     await row.waitFor({ state: 'visible', timeout: 10_000 });
     await expect(window.getByText(/v1 · 3 条因子|v1 · 3 factors/)).toBeVisible();
     await snap(window, 'ef-library-03-imported');
+
+    // ---------------------------------------------------------------------
+    // Browse: the registry row opens a drawer over the real catalog rows.
+    // ---------------------------------------------------------------------
+    await window.getByRole('button', { name: /浏览因子|browse factors/i }).click();
+    // All three imported factors render, with the count reading "3 / 3".
+    await window
+      .getByText('内部柴油因子', { exact: true })
+      .waitFor({ state: 'visible', timeout: 10_000 });
+    await expect(window.getByText('华东电网电力', { exact: true })).toBeVisible();
+    await expect(window.getByText('公路货运', { exact: true })).toBeVisible();
+    await expect(window.getByText(/3 \/ 3|3 of 3/)).toBeVisible();
+    // The bad-scope row was skipped at import and must not appear here.
+    await expect(window.getByText('坏行示例')).toHaveCount(0);
+    // Let vaul's slide-in settle — Playwright counts a mid-animation drawer
+    // as visible, which would snapshot it clipped at the window edge.
+    await window.waitForTimeout(600);
+    await snap(window, 'ef-library-03b-browse');
+
+    // CJK substring search — the case FTS5's unicode61 tokenizer cannot
+    // serve (it treats 「内部柴油因子」 as one token, so MATCH 「柴油」
+    // misses). Proving it live is the point of this step.
+    const search = window.getByPlaceholder(/搜索名称或因子编码|search name or factor code/i);
+    await search.fill('柴油');
+    await expect(window.getByText(/1 \/ 1|1 of 1/)).toBeVisible({ timeout: 10_000 });
+    await expect(window.getByText('华东电网电力')).toHaveCount(0);
+    await snap(window, 'ef-library-03c-browse-search');
+
+    // A miss shows the "no match" copy, distinct from the empty-library one.
+    await search.fill('zzz-no-such-factor');
+    await window
+      .getByText(/没有匹配的因子|no factors match/i)
+      .waitFor({ state: 'visible', timeout: 10_000 });
+
+    // Close the drawer before continuing — the replace flow needs the
+    // section's own buttons back.
+    await window.keyboard.press('Escape');
+    await window
+      .getByText(/没有匹配的因子|no factors match/i)
+      .waitFor({ state: 'hidden', timeout: 10_000 });
 
     // ---------------------------------------------------------------------
     // Replace: same name again must arm the destructive confirmation.
