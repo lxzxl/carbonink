@@ -1,3 +1,4 @@
+import { EfLibraryBrowseDrawer } from '@renderer/components/EfLibraryBrowseDrawer';
 import { EfLibraryImportDrawer } from '@renderer/components/EfLibraryImportDrawer';
 import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
@@ -18,6 +19,7 @@ import { useState } from 'react';
 export function EfLibrarySection() {
   const queryClient = useQueryClient();
   const [importOpen, setImportOpen] = useState(false);
+  const [browsing, setBrowsing] = useState<UserEfLibrary | null>(null);
 
   const libraries = useQuery({
     queryKey: ['ef-library:list'],
@@ -102,7 +104,14 @@ export function EfLibrarySection() {
           <ul className="divide-y divide-border rounded-md border border-border bg-card">
             {libraries.data.map((library) => (
               <li key={library.id} className="flex items-start gap-3 px-4 py-3 hover:bg-muted/30">
-                <div className="min-w-0 flex-1">
+                <button
+                  type="button"
+                  className="min-w-0 flex-1 text-left"
+                  // The row's text content would otherwise be the accessible
+                  // name, which says nothing about what clicking does.
+                  aria-label={`${library.name} — ${m.ef_library_browse_open()}`}
+                  onClick={() => setBrowsing(library)}
+                >
                   <div className="flex items-center gap-2">
                     <span className="truncate text-sm font-medium" title={library.name}>
                       {library.name}
@@ -119,7 +128,7 @@ export function EfLibrarySection() {
                     })}
                     {library.source_filename !== null && ` · ${library.source_filename}`}
                   </p>
-                </div>
+                </button>
                 <Button
                   type="button"
                   variant="ghost"
@@ -143,6 +152,7 @@ export function EfLibrarySection() {
       </section>
 
       <EfLibraryImportDrawer open={importOpen} onClose={() => setImportOpen(false)} />
+      <EfLibraryBrowseDrawer library={browsing} onClose={() => setBrowsing(null)} />
     </div>
   );
 }

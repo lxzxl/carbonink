@@ -23,6 +23,7 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   'ef-library:import',
   'ef-library:discard',
   'ef-library:list',
+  'ef-library:browse',
   'ef-library:delete',
   'ef-library:save-template',
   // ef-matcher domain (Phase 1c — LLM-assisted EF recommendation)

@@ -5,6 +5,7 @@ vi.mock('@renderer/lib/api/user-ef-library', () => ({
     import: vi.fn(),
     discard: vi.fn(),
     list: vi.fn(),
+    browse: vi.fn(),
     delete: vi.fn(),
     saveTemplate: vi.fn(),
   },
@@ -16,7 +17,7 @@ vi.mock('@renderer/components/toast', () => ({
 import { EfLibrarySection } from '@renderer/components/settings/EfLibrarySection';
 import { toast } from '@renderer/components/toast';
 import { userEfLibraryApi } from '@renderer/lib/api/user-ef-library';
-import type { UserEfLibrary } from '@shared/types';
+import type { EmissionFactor, UserEfLibrary } from '@shared/types';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -32,6 +33,33 @@ const LIBRARY: UserEfLibrary = {
   imported_at: '2026-07-12T08:00:00.000Z',
   created_at: '2026-07-12T08:00:00.000Z',
 };
+
+const FACTOR = {
+  factor_code: 'DIESEL-1',
+  year: 2024,
+  source: 'user:内部台账',
+  geography: 'CN',
+  dataset_version: 'v1',
+  scope: 1,
+  category: 'fuel.combustion',
+  ghg_protocol_path: null,
+  input_unit: 'L',
+  co2e_kg_per_unit: 2.68,
+  ch4_kg_per_unit: null,
+  n2o_kg_per_unit: null,
+  hfc_kg_per_unit: null,
+  pfc_kg_per_unit: null,
+  sf6_kg_per_unit: null,
+  nf3_kg_per_unit: null,
+  gwp_basis: 'AR6',
+  biogenic_co2_factor: null,
+  name_zh: '内部柴油',
+  name_en: 'Internal diesel',
+  description_zh: null,
+  description_en: null,
+  notes: null,
+  citation_url: null,
+} satisfies EmissionFactor;
 
 function mount() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -104,6 +132,65 @@ describe('<EfLibrarySection>', () => {
     await waitFor(() =>
       expect(screen.getByRole('button', { name: /choose file|选择文件/i })).toBeTruthy(),
     );
+  });
+
+  it('opens the browse drawer from a library row and lists its factors', async () => {
+    vi.mocked(userEfLibraryApi.list).mockResolvedValue([LIBRARY]);
+    vi.mocked(userEfLibraryApi.browse).mockResolvedValue({
+      rows: [FACTOR],
+      total: 1,
+    });
+    mount();
+    await waitFor(() => expect(screen.getByText('内部台账')).toBeTruthy());
+
+    fireEvent.click(screen.getByRole('button', { name: /browse factors|浏览因子/i }));
+    await waitFor(() => expect(screen.getByText('内部柴油')).toBeTruthy());
+    expect(screen.getByText('DIESEL-1')).toBeTruthy();
+    expect(userEfLibraryApi.browse).toHaveBeenCalledWith(
+      expect.objectContaining({ library_id: 'lib-1' }),
+    );
+  });
+
+  it('passes the typed search text to the browse query', async () => {
+    vi.mocked(userEfLibraryApi.list).mockResolvedValue([LIBRARY]);
+    vi.mocked(userEfLibraryApi.browse).mockResolvedValue({ rows: [FACTOR], total: 1 });
+    mount();
+    await waitFor(() => expect(screen.getByText('内部台账')).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: /browse factors|浏览因子/i }));
+    await waitFor(() => expect(screen.getByText('内部柴油')).toBeTruthy());
+
+    fireEvent.change(screen.getByPlaceholderText(/search name|搜索名称/i), {
+      target: { value: '柴油' },
+    });
+    await waitFor(() =>
+      expect(userEfLibraryApi.browse).toHaveBeenCalledWith(
+        expect.objectContaining({ query: '柴油' }),
+      ),
+    );
+  });
+
+  it('distinguishes an empty library from an empty search result', async () => {
+    vi.mocked(userEfLibraryApi.list).mockResolvedValue([LIBRARY]);
+    vi.mocked(userEfLibraryApi.browse).mockResolvedValue({ rows: [], total: 0 });
+    mount();
+    await waitFor(() => expect(screen.getByText('内部台账')).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: /browse factors|浏览因子/i }));
+    await waitFor(() => expect(screen.getByText(/has no factors|该库内没有因子/i)).toBeTruthy());
+
+    fireEvent.change(screen.getByPlaceholderText(/search name|搜索名称/i), {
+      target: { value: 'zzz' },
+    });
+    await waitFor(() => expect(screen.getByText(/no factors match|没有匹配的因子/i)).toBeTruthy());
+  });
+
+  it('does not open the browse drawer when the delete button is clicked', async () => {
+    vi.mocked(userEfLibraryApi.list).mockResolvedValue([LIBRARY]);
+    (window as unknown as { confirm: (msg?: string) => boolean }).confirm = vi.fn(() => false);
+    mount();
+    await waitFor(() => expect(screen.getByText('内部台账')).toBeTruthy());
+
+    fireEvent.click(screen.getByRole('button', { name: /delete library|删除库/i }));
+    expect(userEfLibraryApi.browse).not.toHaveBeenCalled();
   });
 
   it('saves the template and toasts the target path', async () => {

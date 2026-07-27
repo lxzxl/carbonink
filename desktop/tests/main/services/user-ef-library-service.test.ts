@@ -386,3 +386,86 @@ describe('buildTemplateXlsx', () => {
     expect(preview.validation.error_count).toBe(0);
   });
 });
+
+describe('browseFactors', () => {
+  const OTHER_CSV = [
+    'factor_code,name_zh,name_en,scope,category,year,geography,input_unit,co2e_kg_per_unit,gwp_basis',
+    'OTHER-COAL,外部煤炭,External coal,1,fuel.combustion,2024,CN,t,2400,AR6',
+  ].join('\n');
+
+  async function importAndGet(name = '内部台账', csv?: string) {
+    const result = await importLibrary(name, 'v1', csv ? { csv } : {});
+    if (!result.ok) throw new Error('import failed');
+    return result.library;
+  }
+
+  it('pages a library and reports the full match total', async () => {
+    const library = await importAndGet();
+
+    const page = service.browseFactors({ library_id: library.id, limit: 2 });
+    expect(page.total).toBe(3);
+    expect(page.rows).toHaveLength(2);
+
+    const next = service.browseFactors({ library_id: library.id, limit: 2, offset: 2 });
+    expect(next.rows).toHaveLength(1);
+    // Pages don't overlap — offset walks the same factor_code ordering.
+    const keys = [...page.rows, ...next.rows].map((r) => r.factor_code);
+    expect(new Set(keys).size).toBe(3);
+  });
+
+  it('scopes results to one library — another library is invisible', async () => {
+    const mine = await importAndGet();
+    const other = await importAndGet('外部库', OTHER_CSV);
+
+    const page = service.browseFactors({ library_id: mine.id, query: '煤炭' });
+    expect(page.total).toBe(0);
+    expect(page.rows).toEqual([]);
+
+    // The other library does hold it — proving the query itself is sound.
+    const otherPage = service.browseFactors({ library_id: other.id, query: '煤炭' });
+    expect(otherPage.rows.map((r) => r.factor_code)).toEqual(['OTHER-COAL']);
+  });
+
+  it('matches a CJK substring — what FTS5 unicode61 cannot do', async () => {
+    const library = await importAndGet();
+    // 「柴油」 is a substring of 「内部柴油」, but unicode61 tokenizes the
+    // whole CJK run as one token, so an FTS MATCH would miss it.
+    const page = service.browseFactors({ library_id: library.id, query: '柴油' });
+    expect(page.total).toBe(1);
+    expect(page.rows[0]?.factor_code).toBe('DIESEL-1');
+  });
+
+  it('matches factor_code and English names, case-insensitively', async () => {
+    const library = await importAndGet();
+    expect(
+      service.browseFactors({ library_id: library.id, query: 'GRID-EAST' }).rows[0]?.factor_code,
+    ).toBe('GRID-EAST');
+    expect(
+      service.browseFactors({ library_id: library.id, query: 'east grid' }).rows[0]?.factor_code,
+    ).toBe('GRID-EAST');
+  });
+
+  it('AND-s multiple tokens instead of widening', async () => {
+    const library = await importAndGet();
+    // Both tokens appear in the diesel row; 「电网」 does not.
+    expect(service.browseFactors({ library_id: library.id, query: '内部 柴油' }).total).toBe(1);
+    expect(service.browseFactors({ library_id: library.id, query: '柴油 电网' }).total).toBe(0);
+  });
+
+  it('treats LIKE wildcards as literals, not as match-everything', async () => {
+    const library = await importAndGet();
+    // Unescaped, '%' would match every row in the library.
+    expect(service.browseFactors({ library_id: library.id, query: '%' }).total).toBe(0);
+  });
+
+  it('never throws on punctuation a user might type', async () => {
+    const library = await importAndGet();
+    for (const query of ['"', '(', 'a AND', '*', "'"]) {
+      expect(() => service.browseFactors({ library_id: library.id, query })).not.toThrow();
+    }
+  });
+
+  it('returns an empty page for an unknown library instead of throwing', () => {
+    expect(service.browseFactors({ library_id: 'nope' })).toEqual({ rows: [], total: 0 });
+  });
+});

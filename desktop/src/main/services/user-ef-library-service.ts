@@ -3,6 +3,7 @@ import type {
   EfImportPreview,
   EfImportValidation,
   EfLibraryImportResult,
+  EmissionFactor,
   UserEfLibrary,
 } from '@shared/types.js';
 import { EF_IMPORT_REQUIRED_FIELDS, USER_EF_SOURCE_PREFIX } from '@shared/types.js';
@@ -16,6 +17,20 @@ import { type EfImportGrid, parseEfImportFile } from './ef-import/parser.js';
 const LIBRARY_SELECT = `SELECT id, name, source, version, source_filename, document_id,
          factor_count, imported_at, created_at
     FROM user_ef_library`;
+
+/** Columns the browse drawer renders — the full row, minus nothing: the
+ * drawer is the "what exactly did I import" surface, so it shows the same
+ * shape every other EF consumer sees. */
+const EF_BROWSE_SELECT = `SELECT factor_code, year, source, geography, dataset_version,
+         scope, category, ghg_protocol_path, input_unit, co2e_kg_per_unit,
+         ch4_kg_per_unit, n2o_kg_per_unit, hfc_kg_per_unit, pfc_kg_per_unit,
+         sf6_kg_per_unit, nf3_kg_per_unit, gwp_basis, name_zh, name_en,
+         description_zh, description_en, notes, citation_url
+    FROM emission_factor`;
+
+/** Page size when the caller doesn't specify. Matches the drawer's
+ * "load more" increment. */
+const EF_BROWSE_DEFAULT_LIMIT = 50;
 
 const MAX_LIBRARY_NAME_LENGTH = 50;
 
@@ -256,6 +271,80 @@ export class UserEfLibraryService {
       skipped_count: validation.error_count,
       replaced: existing !== null,
     };
+  }
+
+  /**
+   * Browse one library's factors, optionally filtered by a free-text query.
+   *
+   * Why here and not on `EfService`: resolving library → `source` namespace
+   * is this service's job, and `EfService.list`'s contract is the *catalog*
+   * lookup used by pickers and the matcher (scope/category/year filters, no
+   * text search, no pagination). Keeping the library-scoped browse separate
+   * leaves that contract untouched.
+   *
+   * Search is a per-token substring match (每个空白分隔的词都要命中
+   * name_zh / name_en / factor_code 之一), NOT FTS5. `ef_fts`'s unicode61
+   * tokenizer treats a run of CJK as ONE token, so a MATCH on 「柴油」
+   * never hits a factor named 「内部柴油」 — useless for the "search my
+   * library" intent, which is substring-shaped. A scan is affordable here
+   * because the query is already narrowed to one library's `source` and
+   * capped by `limit`; it also has no query syntax the user can get wrong.
+   *
+   * `total` counts matches, not the page, so the UI can show "N / total"
+   * and decide whether a "load more" affordance is warranted.
+   */
+  browseFactors(args: { library_id: string; query?: string; limit?: number; offset?: number }): {
+    rows: EmissionFactor[];
+    total: number;
+  } {
+    const library = this.getById(args.library_id);
+    // Unknown / just-deleted library: an empty page beats throwing at a UI
+    // that may still hold a stale id from a closing drawer.
+    if (!library) return { rows: [], total: 0 };
+
+    const limit = args.limit ?? EF_BROWSE_DEFAULT_LIMIT;
+    const offset = args.offset ?? 0;
+    const query = (args.query ?? '').trim();
+
+    const { where, params } = this.buildBrowseWhere(library.source, query);
+    const total = this.countFactors(where, params);
+    const rows = this.db
+      .prepare(
+        `${EF_BROWSE_SELECT} WHERE ${where} ORDER BY factor_code ASC, year DESC LIMIT ? OFFSET ?`,
+      )
+      .all(...params, limit, offset) as EmissionFactor[];
+    return { rows, total };
+  }
+
+  /**
+   * `source = ?` plus one AND-ed group per search token. Multi-token
+   * queries narrow (「柴油 固定」 = both words present somewhere in the
+   * row), which is what a search box is expected to do.
+   */
+  private buildBrowseWhere(source: string, query: string): { where: string; params: unknown[] } {
+    const clauses = ['source = ?'];
+    const params: unknown[] = [source];
+    for (const token of query.split(/\s+/).filter((t) => t !== '')) {
+      // Escape LIKE wildcards so a literal '%' typed by the user matches a
+      // literal '%' instead of silently widening the search to everything.
+      const pattern = `%${token.replace(/[\\%_]/g, '\\$&')}%`;
+      clauses.push(
+        "(name_zh LIKE ? ESCAPE '\\' OR name_en LIKE ? ESCAPE '\\'" +
+          " OR factor_code LIKE ? ESCAPE '\\')",
+      );
+      params.push(pattern, pattern, pattern);
+    }
+    return { where: clauses.join(' AND '), params };
+  }
+
+  private countFactors(where: string, params: readonly unknown[]): number {
+    return (
+      this.db
+        .prepare(`SELECT COUNT(*) AS n FROM emission_factor WHERE ${where}`)
+        .get(...params) as {
+        n: number;
+      }
+    ).n;
   }
 
   /**

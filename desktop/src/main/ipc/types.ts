@@ -125,6 +125,12 @@ export type IpcTypeMap = {
   }) => EfLibraryImportResult;
   'ef-library:discard': (input: { token: string }) => { ok: true };
   'ef-library:list': () => UserEfLibrary[];
+  'ef-library:browse': (input: {
+    library_id: string;
+    query?: string;
+    limit?: number;
+    offset?: number;
+  }) => { rows: EmissionFactor[]; total: number };
   'ef-library:delete': (input: {
     id: string;
   }) => { ok: true; deleted_factor_count: number } | { ok: false };

@@ -48,6 +48,20 @@ const importInput = z.object({
 const idInput = z.object({ id: z.string().min(1) });
 
 /**
+ * Browse page request. `limit` is capped at 200 so a confused (or hostile)
+ * caller can't ask the main process to serialize a 50k-row library into one
+ * IPC reply; the drawer itself pages 50 at a time. Query text is left
+ * unvalidated beyond a length bound — the service treats it as opaque and
+ * degrades from FTS to LIKE on syntax errors.
+ */
+const browseInput = z.object({
+  library_id: z.string().min(1),
+  query: z.string().max(200).optional(),
+  limit: z.number().int().min(1).max(200).optional(),
+  offset: z.number().int().min(0).optional(),
+});
+
+/**
  * User EF library IPC (ROADMAP §8.1-④). The native open/save dialogs live
  * here — same split as handlers/data.ts: dialogs + file IO at the boundary,
  * parsing/import logic in UserEfLibraryService.
@@ -113,6 +127,19 @@ export function userEfLibraryHandlers(ctx: IpcContext): HandlerMap {
     },
 
     'ef-library:list': () => ctx.userEfLibraryService.list(),
+
+    'ef-library:browse': (input) => {
+      // Conditional spread, not a direct pass-through: zod types optionals
+      // as `T | undefined`, which `exactOptionalPropertyTypes` rejects
+      // against a `{ query?: string }` parameter.
+      const parsed = browseInput.parse(input);
+      return ctx.userEfLibraryService.browseFactors({
+        library_id: parsed.library_id,
+        ...(parsed.query !== undefined ? { query: parsed.query } : {}),
+        ...(parsed.limit !== undefined ? { limit: parsed.limit } : {}),
+        ...(parsed.offset !== undefined ? { offset: parsed.offset } : {}),
+      });
+    },
 
     'ef-library:delete': (input) => ctx.userEfLibraryService.delete(idInput.parse(input).id),
 

@@ -153,6 +153,44 @@ describe('staged import round-trip through handlers', () => {
   });
 });
 
+describe('ef-library:browse', () => {
+  it("returns the library's factors and honors the query", async () => {
+    const picked = await pickCsv();
+    if (!picked || picked.canceled !== false || !('preview' in picked)) {
+      throw new Error('expected a preview');
+    }
+    const { token, mapping } = picked.preview;
+    handlers['ef-library:import']?.({
+      token,
+      name: '台账',
+      version: 'v1',
+      allow_replace: false,
+      mapping,
+    });
+    const libraryId = handlers['ef-library:list']?.()[0]?.id as string;
+
+    const all = handlers['ef-library:browse']?.({ library_id: libraryId });
+    expect(all?.total).toBe(1);
+    expect(all?.rows).toHaveLength(1);
+
+    const miss = handlers['ef-library:browse']?.({ library_id: libraryId, query: 'zzz' });
+    expect(miss).toEqual({ rows: [], total: 0 });
+  });
+
+  it('rejects a missing library_id, an oversized limit, and a negative offset', () => {
+    // biome-ignore lint/suspicious/noExplicitAny: testing invalid runtime input
+    expect(() => handlers['ef-library:browse']?.({} as any)).toThrow(z.ZodError);
+    expect(() =>
+      // biome-ignore lint/suspicious/noExplicitAny: testing invalid runtime input
+      handlers['ef-library:browse']?.({ library_id: 'x', limit: 5000 } as any),
+    ).toThrow(z.ZodError);
+    expect(() =>
+      // biome-ignore lint/suspicious/noExplicitAny: testing invalid runtime input
+      handlers['ef-library:browse']?.({ library_id: 'x', offset: -1 } as any),
+    ).toThrow(z.ZodError);
+  });
+});
+
 describe('ef-library:save-template', () => {
   it('returns canceled when the save dialog is dismissed', async () => {
     showSaveDialog.mockResolvedValue({ canceled: true, filePath: undefined });

@@ -19,6 +19,8 @@ export const userEfLibraryApi = {
   }) => invoke('ef-library:import', input),
   discard: (input: { token: string }) => invoke('ef-library:discard', input),
   list: () => invoke('ef-library:list'),
+  browse: (input: { library_id: string; query?: string; limit?: number; offset?: number }) =>
+    invoke('ef-library:browse', input),
   delete: (input: { id: string }) => invoke('ef-library:delete', input),
   saveTemplate: () => invoke('ef-library:save-template'),
 };
