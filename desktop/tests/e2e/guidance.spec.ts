@@ -120,3 +120,33 @@ test('guidance: the answer-review tour plays once, then never again', async () =
     await teardown(setup);
   }
 });
+
+test('guidance: the questionnaire-list tour plays on the list screen', async () => {
+  const setup = await launchApp({
+    cannedExtractions: {},
+    cannedRecommendations: {},
+    guidance: true,
+    cannedIpc: { ...baselineIpcMocks() },
+  });
+
+  try {
+    const { window } = setup;
+    await waitForReactMount(window);
+
+    await navigateTo(window, '/questionnaires');
+    await waitForRouteSettled(window);
+
+    await expect(window.getByTestId('guidance-tooltip')).toBeVisible({ timeout: 10_000 });
+    await expect(window.getByText('从客户问卷开始')).toBeVisible();
+    await window.waitForTimeout(500);
+    await snap(window, 'guidance-05-questionnaire-list', { fullPage: false });
+
+    // Two steps here, so the last one says "done" rather than "next".
+    await window.getByRole('button', { name: '下一步' }).click();
+    await expect(window.getByText('按状态与到期日追踪')).toBeVisible();
+    await window.getByRole('button', { name: '知道了' }).click();
+    await expect(window.getByTestId('guidance-tooltip')).toBeHidden();
+  } finally {
+    await teardown(setup);
+  }
+});
