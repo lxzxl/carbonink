@@ -1,4 +1,5 @@
 import { currentLocale } from '@renderer/lib/i18n';
+import * as m from '@renderer/paraglide/messages';
 import { useEffect, useMemo, useState } from 'react';
 import { EVENTS, type EventData, Joyride, type Step } from 'react-joyride';
 import { hasSeenTour, isGuidanceEnabled, markTourSeen, type TourId } from './guidance-state';
@@ -161,6 +162,16 @@ export function GuidedTour({ tourId, ready = true }: GuidedTourProps) {
       continuous
       steps={steps}
       tooltipComponent={TourTooltip}
+      // joyride derives each button's aria-label from these; without them
+      // the buttons announce as English ("Next", "Skip") under a zh UI,
+      // whatever the visible label says.
+      locale={{
+        back: m.guidance_back(),
+        close: m.guidance_done(),
+        last: m.guidance_done(),
+        next: m.guidance_next(),
+        skip: m.guidance_skip(),
+      }}
       options={options}
       onEvent={handleEvent}
       {...(portalElement ? { portalElement } : {})}
