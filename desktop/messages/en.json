@@ -1105,5 +1105,6 @@
   "settings_general_guidance_on": "On",
   "settings_general_guidance_off": "Off",
   "settings_general_guidance_replay": "Replay all tours",
-  "settings_general_guidance_replay_done": "Guided tours will play again the next time you open each screen."
+  "settings_general_guidance_replay_done": "Guided tours will play again the next time you open each screen.",
+  "rebind_picker_heading": "Pick a new emission factor"
 }

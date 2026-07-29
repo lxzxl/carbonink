@@ -1,16 +1,17 @@
-import { currentLocale } from '@renderer/lib/i18n';
 import * as m from '@renderer/paraglide/messages';
-import { useEffect, useMemo, useState } from 'react';
-import { EVENTS, type EventData, Joyride, type Step } from 'react-joyride';
+import { type Driver, type DriveStep, driver, type PopoverDOM } from 'driver.js';
+import 'driver.js/dist/driver.css';
+import './guidance.css';
+import { useEffect } from 'react';
 import { hasSeenTour, isGuidanceEnabled, markTourSeen, type TourId } from './guidance-state';
-import { TourTooltip } from './TourTooltip';
 import { getTour } from './tours';
 
 /**
  * Plays one guidance tour the first time its screen is opened.
  *
- * Mount it anywhere on the screen it explains — it renders nothing until
- * it decides to run. The decision (once, on mount / when `ready` flips):
+ * Mount it anywhere on the screen it explains — it renders nothing of its
+ * own (the popover is driver.js's DOM on `document.body`) and decides
+ * once, on mount / when `ready` flips:
  *
  *   1. guidance enabled? (Settings switch; forced off under E2E)
  *   2. tour not seen yet?
@@ -21,9 +22,14 @@ import { getTour } from './tours';
  * tour. If no anchor resolves we stay silent AND leave the tour unseen,
  * so it gets another chance once the screen has content.
  *
- * Finishing, skipping or closing all mark the tour seen — "dismiss" means
- * permanently, per the roadmap's noise constraint. Settings → General can
- * replay them.
+ * Finishing, skipping and Escape all mark the tour seen — "dismiss" means
+ * permanently, per the roadmap's noise constraint; Settings → General can
+ * replay them. Navigating away mid-tour does not: the tour ends, but it
+ * stays unseen for the next visit.
+ *
+ * Copy is read when the tour starts rather than per render, so switching
+ * language mid-tour leaves the running tour alone; the next play is in
+ * the new language.
  */
 
 /**
@@ -55,128 +61,133 @@ export interface GuidedTourProps {
 }
 
 export function GuidedTour({ tourId, ready = true }: GuidedTourProps) {
-  const [run, setRun] = useState(false);
-  // Which anchors were present when we started. null = not started.
-  const [presentTargets, setPresentTargets] = useState<string[] | null>(null);
-  const [portalElement, setPortalElement] = useState<HTMLElement | null>(null);
-  // Re-derive step copy when the app language changes mid-tour.
-  const locale = currentLocale();
-
   useEffect(() => {
     if (!ready) return;
     if (!isGuidanceEnabled() || hasSeenTour(tourId)) return;
 
+    let instance: Driver | null = null;
     let claimed = false;
+
+    /**
+     * The user is done with this tour — finished it, skipped it, or hit
+     * Escape. All three mean "don't show me this again".
+     *
+     * `instance.destroy()` bypasses `onDestroyStarted`, so calling it
+     * here cannot recurse.
+     */
+    const dismiss = () => {
+      markTourSeen(tourId);
+      if (activeTourId === tourId) activeTourId = null;
+      instance?.destroy();
+    };
+
     const timer = setTimeout(() => {
       if (activeTourId !== null) return;
-      const tour = getTour(tourId);
-      const present = tour.steps
-        .map((s) => s.target)
-        .filter((selector) => document.querySelector(selector) !== null);
-      if (present.length === 0) return;
 
-      if (tour.portalTarget) {
-        const host = document.querySelector(tour.portalTarget);
-        // A tour that must be portalled (it plays inside a modal) but
-        // whose host is gone would render an unclickable tooltip — skip.
-        if (!(host instanceof HTMLElement)) return;
-        setPortalElement(host);
-      }
+      const steps: DriveStep[] = getTour(tourId)
+        .steps.filter((step) => document.querySelector(step.target) !== null)
+        .map((step) => ({
+          element: step.target,
+          popover: {
+            title: step.title(),
+            description: step.body(),
+            align: 'center' as const,
+            ...(step.placement ? { side: step.placement } : {}),
+          },
+        }));
+      if (steps.length === 0) return;
+
       activeTourId = tourId;
       claimed = true;
-      setPresentTargets(present);
-      setRun(true);
+
+      instance = driver({
+        steps,
+        popoverClass: 'carbonink-guidance',
+        // Ink wash rather than a black scrim. driver applies this as an
+        // inline style on the overlay path, so a CSS variable resolves.
+        overlayColor: 'var(--color-foreground)',
+        overlayOpacity: 0.32,
+        stagePadding: 6,
+        // Matches `rounded-md` on the surfaces being highlighted.
+        stageRadius: 8,
+        popoverOffset: 10,
+        showProgress: steps.length > 1,
+        progressText: '{{current}} / {{total}}',
+        nextBtnText: m.guidance_next(),
+        prevBtnText: m.guidance_back(),
+        doneBtnText: m.guidance_done(),
+        // The ✕ is replaced by an explicit skip button (see
+        // decoratePopover); Escape still ends the tour via `allowClose`.
+        showButtons: ['next', 'previous'],
+        allowClose: true,
+        // Clicking the dimmed area does nothing — dismissing is a
+        // deliberate act, not a stray click.
+        overlayClickBehavior: () => {},
+        // Don't let a click land on the highlighted control while we are
+        // explaining it (finalizing an answer mid-tour, say).
+        disableActiveInteraction: true,
+        animate: !prefersReducedMotion(),
+        smoothScroll: !prefersReducedMotion(),
+        onPopoverRender: (popover, opts) => {
+          decoratePopover(popover, opts.driver, steps.length, opts.index ?? 0, dismiss);
+        },
+        // Every dismissal driver initiates itself — the done button, the
+        // ✕-equivalent, Escape — lands here. Defining this hook makes US
+        // responsible for the teardown call, which is exactly the seam we
+        // want: mark seen, then tear down.
+        //
+        // (`onDestroyed` would be the obvious hook, but driver only fires
+        // it once a step has finished its highlight animation, so an
+        // early dismissal can skip it.)
+        onDestroyStarted: dismiss,
+      });
+      instance.drive();
     }, START_DELAY_MS);
 
     return () => {
       clearTimeout(timer);
+      // Navigating away mid-tour ends it WITHOUT marking it seen — the
+      // user never got the whole thing, so it plays again next visit.
+      // `destroy()` skips `onDestroyStarted`, so no seen flag is written.
+      instance?.destroy();
       if (claimed && activeTourId === tourId) activeTourId = null;
     };
   }, [ready, tourId]);
 
-  const steps = useMemo<Step[]>(() => {
-    if (!presentTargets) return [];
-    // `locale` is not read here — it is a dependency so the memo rebuilds
-    // (and joyride re-renders the tooltip) after a language switch.
-    void locale;
-    return getTour(tourId)
-      .steps.filter((s) => presentTargets.includes(s.target))
-      .map((s) => ({
-        target: s.target,
-        title: s.title(),
-        content: s.body(),
-        ...(s.placement ? { placement: s.placement } : {}),
-      }));
-  }, [tourId, presentTargets, locale]);
+  return null;
+}
 
-  const tour = getTour(tourId);
+/**
+ * Bend driver's popover into the shape the design system asks for: an
+ * explicit "skip" instead of an ✕, no disabled-looking "back" on the
+ * first step, and a progress indicator that announces properly ("2 / 3"
+ * reads as a fraction to a screen reader).
+ */
+function decoratePopover(
+  popover: PopoverDOM,
+  instance: Driver,
+  total: number,
+  index: number,
+  onSkip: () => void,
+): void {
+  popover.wrapper.setAttribute('data-testid', 'guidance-tooltip');
 
-  const options = useMemo(
-    () => ({
-      // Ledger surface: the tooltip is ours (TourTooltip), so these only
-      // cover the bits joyride paints itself — arrow, overlay, spotlight.
-      arrowColor: 'var(--color-popover)',
-      overlayColor: 'color-mix(in oklab, var(--color-foreground) 32%, transparent)',
-      spotlightPadding: 6,
-      spotlightRadius: 8,
-      // Above drawers (z-50) but below nothing else we own.
-      zIndex: 60,
-      hideOverlay: tour.hideOverlay ?? false,
-      // No pulsing beacon — the tour opens straight into the tooltip.
-      skipBeacon: true,
-      // Don't let a click land on the highlighted control while we are
-      // explaining it (finalizing an answer mid-tour, say).
-      blockTargetInteraction: true,
-      overlayClickAction: false as const,
-      // ✕ ends the tour rather than stepping forward — dismiss is dismiss.
-      closeButtonAction: 'skip' as const,
-      buttons: ['back' as const, 'primary' as const, 'skip' as const],
-      // Our own trap would fight vaul/Radix's inside a drawer.
-      disableFocusTrap: true,
-      skipScroll: prefersReducedMotion(),
-      scrollDuration: prefersReducedMotion() ? 0 : 300,
-    }),
-    [tour.hideOverlay],
-  );
+  popover.progress.setAttribute('role', 'status');
+  popover.progress.setAttribute('aria-label', m.guidance_progress({ current: index + 1, total }));
 
-  if (!run || steps.length === 0) return null;
+  if (instance.isFirstStep()) {
+    popover.previousButton.style.display = 'none';
+  }
 
-  const handleEvent = (data: EventData) => {
-    if (data.type === EVENTS.TOUR_END) {
-      setRun(false);
-      markTourSeen(tourId);
-      if (activeTourId === tourId) activeTourId = null;
-      return;
-    }
-    // An anchor vanished mid-tour (route re-render dropped it). Bail out
-    // quietly and leave the tour unseen so it can play again later.
-    if (data.type === EVENTS.TARGET_NOT_FOUND || data.type === EVENTS.ERROR) {
-      setRun(false);
-      if (activeTourId === tourId) activeTourId = null;
-    }
-  };
-
-  return (
-    <Joyride
-      run
-      continuous
-      steps={steps}
-      tooltipComponent={TourTooltip}
-      // joyride derives each button's aria-label from these; without them
-      // the buttons announce as English ("Next", "Skip") under a zh UI,
-      // whatever the visible label says.
-      locale={{
-        back: m.guidance_back(),
-        close: m.guidance_done(),
-        last: m.guidance_done(),
-        next: m.guidance_next(),
-        skip: m.guidance_skip(),
-      }}
-      options={options}
-      onEvent={handleEvent}
-      {...(portalElement ? { portalElement } : {})}
-    />
-  );
+  if (!instance.isLastStep()) {
+    const skip = document.createElement('button');
+    skip.type = 'button';
+    skip.className = 'driver-popover-footer-btn driver-guidance-skip-btn';
+    skip.textContent = m.guidance_skip();
+    skip.addEventListener('click', onSkip);
+    // Leftmost of the button group, ahead of back / next.
+    popover.footerButtons.prepend(skip);
+  }
 }
 
 function prefersReducedMotion(): boolean {
