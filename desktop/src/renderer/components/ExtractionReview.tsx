@@ -219,7 +219,10 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
          *     answers.
          *   - Confidence stays, with the existing color coding. Raw
          *     prompt_version available on hover via `title` for debugging. */}
-        <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        <div
+          className="mb-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground"
+          data-tour="extraction-stage"
+        >
           <span
             className="rounded border border-border bg-background px-2 py-0.5"
             title={extraction.prompt_version}
@@ -285,7 +288,7 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
         </div>
       ) : !showForm && !showStagePicker ? (
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" data-tour="extraction-actions">
             <Button type="button" onClick={() => setShowForm(true)}>
               {m.documents_review_confirm()}
             </Button>
@@ -301,6 +304,7 @@ export function ExtractionReview({ extraction, document }: ExtractionReviewProps
           <button
             type="button"
             onClick={() => setShowStagePicker(true)}
+            data-tour="extraction-switch-stage"
             className="text-xs text-muted-foreground underline hover:text-foreground"
           >
             {m.documents_review_switch_stage()}

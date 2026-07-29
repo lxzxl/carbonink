@@ -70,7 +70,10 @@ export function AnswerReviewCard({ question, answer, questionnaireId }: AnswerRe
         : String(generate.error)
       : null;
     return (
-      <div className="rounded-md border border-border bg-muted/30 p-4 text-sm space-y-3">
+      <div
+        className="rounded-md border border-border bg-muted/30 p-4 text-sm space-y-3"
+        data-tour="answer-card"
+      >
         <header className="flex items-baseline gap-2">
           {/* Round 4: raw position code ("公司信息IB2", "Sheet1!B5") moved
            * from visible chip → hover tooltip. It's useful for audit /
@@ -105,7 +108,10 @@ export function AnswerReviewCard({ question, answer, questionnaireId }: AnswerRe
   }
 
   return (
-    <div className="rounded-md border border-border bg-muted/30 p-4 text-sm space-y-3">
+    <div
+      className="rounded-md border border-border bg-muted/30 p-4 text-sm space-y-3"
+      data-tour="answer-card"
+    >
       <header className="flex items-baseline gap-2">
         <span className="font-medium">{question.raw_text}</span>
         {question.position && (
@@ -178,7 +184,7 @@ export function AnswerReviewCard({ question, answer, questionnaireId }: AnswerRe
 
       {isFinalized && <p className="text-xs text-muted-foreground">{m.answer_finalized_hint()}</p>}
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2" data-tour="answer-actions">
         {isFinalized ? (
           <Button
             type="button"

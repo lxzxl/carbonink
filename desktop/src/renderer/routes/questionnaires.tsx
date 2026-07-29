@@ -7,6 +7,7 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from '@renderer/components/ui/resizable';
+import { GuidedTour } from '@renderer/features/guidance';
 import { questionnaireApi } from '@renderer/lib/api/questionnaire';
 import { outboundStatusLabel } from '@renderer/lib/questionnaire-status';
 import { cn } from '@renderer/lib/utils';
@@ -165,13 +166,19 @@ function QuestionnairesListColumn() {
   };
 
   return (
-    <div className="h-full overflow-y-auto">
+    <div className="h-full overflow-y-auto" data-tour="questionnaire-list">
+      {/* First-visit walkthrough: what a questionnaire is and what the
+       * .xlsx upload turns into. Silent afterwards — see features/guidance.
+       * Held back while a questionnaire is open: this layout stays mounted
+       * around the detail route, whose own tour is the one that belongs on
+       * screen then. */}
+      <GuidedTour tourId="questionnaires" ready={!q.isLoading && !selectedId} />
       <header className="sticky top-0 z-10 flex items-center justify-between gap-2 bg-background/85 backdrop-blur-sm px-4 py-3 border-b border-border/60">
         <h1 className="text-sm font-semibold">{m.nav_disclosure_filings()}</h1>
         {/* New-questionnaire CTA promoted to a compact icon-text button in
          * the list-column header. The previous list-page used a heavier
          * `bg-primary` filled button at the top — too loud for native chrome. */}
-        <Button asChild variant="outline" size="sm">
+        <Button asChild variant="outline" size="sm" data-tour="questionnaire-new">
           <Link to="/questionnaires/new" className="gap-1">
             <Plus className="size-3.5" aria-hidden="true" />
             {m.questionnaires_new_button()}

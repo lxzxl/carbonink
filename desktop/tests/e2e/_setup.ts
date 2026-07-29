@@ -142,6 +142,15 @@ export type LaunchOpts = {
    * renderer ends up half-translated for whichever side loses.
    */
   locale?: 'zh-CN' | 'en';
+  /**
+   * Let in-app guidance tours auto-play in this launch.
+   *
+   * Every other spec must NOT see them: a tour drops an overlay over the
+   * screenshot and blocks the clicks the spec came to make. So the
+   * preload suppresses guidance whenever `CARBONINK_E2E=1` unless this
+   * opts back in — see `src/preload/index.ts`.
+   */
+  guidance?: boolean;
 };
 
 const MAIN_ENTRY = join(__dirname, '../../out/main/index.cjs');
@@ -161,6 +170,7 @@ export async function launchApp(opts: LaunchOpts): Promise<StageE2ESetup> {
       ...process.env,
       CARBONINK_TEST_USER_DATA_DIR: tempUserDataDir,
       CARBONINK_E2E: '1',
+      ...(opts.guidance ? { CARBONINK_E2E_GUIDANCE: '1' } : {}),
       // Defer window creation until after we've installed IPC mocks. Without
       // this, the renderer's `org:has-any` etc. queries can race the mock
       // install. See src/main/index.ts for the corresponding handler.

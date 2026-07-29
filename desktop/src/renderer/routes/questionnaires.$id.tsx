@@ -1,6 +1,7 @@
 import { AnswerReviewCard } from '@renderer/components/AnswerReviewCard';
 import { toast } from '@renderer/components/toast';
 import { Button } from '@renderer/components/ui/button';
+import { GuidedTour } from '@renderer/features/guidance';
 import { activityApi } from '@renderer/lib/api/activity-data';
 import { answerApi } from '@renderer/lib/api/answer';
 import { orgApi } from '@renderer/lib/api/organization';
@@ -189,6 +190,9 @@ function DetailBody({
     // Round 4: "返回问卷列表" back link removed — with the two-pane
     // layout the list is always visible on the left.
     <div className="flex h-full flex-col">
+      {/* First-visit walkthrough of the answer cards — generate vs. save
+       * vs. finalize. Only once there are questions to point at. */}
+      <GuidedTour tourId="answer-review" ready={questions.length > 0} />
       {/* === Fixed top === */}
       <div className="shrink-0 space-y-4 px-6 pt-6 pb-3">
         <div>
@@ -252,7 +256,10 @@ function DetailBody({
         // exports / AI-batch generation — secondary by intent, so they
         // use `outline`. Avoids the previous "wall of identical green
         // buttons" pattern (skill 06 — reserve filled for ONE action).
-        <div className="shrink-0 flex justify-end gap-2 border-t border-border bg-background/95 backdrop-blur px-6 py-3">
+        <div
+          className="shrink-0 flex justify-end gap-2 border-t border-border bg-background/95 backdrop-blur px-6 py-3"
+          data-tour="questionnaire-actions"
+        >
           <Button
             type="button"
             variant="outline"
