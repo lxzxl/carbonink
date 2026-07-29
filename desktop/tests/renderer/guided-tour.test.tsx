@@ -57,7 +57,9 @@ describe('GuidedTour', () => {
   it('marks the tour seen when the user skips it', async () => {
     render(<Screen />);
     await findTooltip();
-    fireEvent.click(screen.getByText(m.guidance_skip()));
+    // by role+name: the accessible name comes from joyride's `locale`, so
+    // this also pins that the buttons announce in the app's language.
+    fireEvent.click(screen.getByRole('button', { name: m.guidance_skip() }));
 
     await waitFor(() => expect(screen.queryByTestId(TOOLTIP)).toBeNull());
     expect(hasSeenTour('questionnaires')).toBe(true);

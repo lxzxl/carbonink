@@ -91,11 +91,14 @@ test('guidance: the answer-review tour plays once, then never again', async () =
     expect(box?.height ?? 0).toBeGreaterThan(60);
     expect(box?.x ?? -1).toBeGreaterThanOrEqual(0);
     expect(box?.y ?? -1).toBeGreaterThanOrEqual(0);
+    // The floater animates into place — settle before capturing.
+    await window.waitForTimeout(500);
     await snap(window, 'guidance-01-answer-review-step1', { fullPage: false });
 
     // Step 2 — the primary button is clickable through the overlay.
     await window.getByRole('button', { name: '下一步' }).click();
     await expect(window.getByText('保存 与 保存并定稿')).toBeVisible();
+    await window.waitForTimeout(500);
     await snap(window, 'guidance-02-answer-review-step2', { fullPage: false });
 
     // Walk to the end and dismiss.
