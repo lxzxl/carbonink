@@ -11,6 +11,18 @@ import { toast } from './toast';
 
 const NO_DRAG: CSSProperties = { WebkitAppRegion: 'no-drag' } as CSSProperties;
 
+/**
+ * Keep the drawer open when the interaction came from the guidance
+ * popover. driver.js renders it on `document.body` (above everything, at
+ * its own z-index), which Radix reads as an outside interaction.
+ */
+function keepOpenForGuidance(event: { target: EventTarget | null; preventDefault: () => void }) {
+  const target = event.target;
+  if (target instanceof Element && target.closest('.driver-popover')) {
+    event.preventDefault();
+  }
+}
+
 export interface RebindEfDrawerProps {
   activityId: string;
   open: boolean;
@@ -148,12 +160,14 @@ export function RebindEfDrawer({ activityId, open, onClose }: RebindEfDrawerProp
           aria-describedby={undefined}
           style={NO_DRAG}
           className="fixed right-0 top-0 bottom-0 z-50 flex w-[480px] flex-col border-l border-border bg-popover text-popover-foreground shadow-2xl"
-          data-tour-portal="rebind-drawer"
+          // The guidance popover (driver.js) lives on document.body, so
+          // every click inside it counts as "outside" to Radix's
+          // dismissable layer and would close the drawer under the tour.
+          onPointerDownOutside={keepOpenForGuidance}
+          onInteractOutside={keepOpenForGuidance}
         >
           {/* First-open walkthrough: why a factor can be swapped and what
-           * happens to the old snapshot. Portalled INTO this content (the
-           * tour definition names the data-tour-portal above) so the
-           * drawer's focus trap doesn't leave the tooltip unclickable. */}
+           * happens to the old snapshot. */}
           <GuidedTour tourId="ef-rebind" ready={!!activityQuery.data} />
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <Drawer.Title className="text-base font-semibold text-foreground">
@@ -195,7 +209,7 @@ export function RebindEfDrawer({ activityId, open, onClose }: RebindEfDrawerProp
 
                 <section className="mb-6 space-y-3" data-tour="rebind-picker">
                   <div className="text-sm font-semibold text-foreground">
-                    Pick a new emission factor
+                    {m.rebind_picker_heading()}
                   </div>
                   <EfPicker
                     selectedSourceId={activityQuery.data.emission_source_id}

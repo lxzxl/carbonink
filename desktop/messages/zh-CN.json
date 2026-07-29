@@ -1105,5 +1105,6 @@
   "settings_general_guidance_on": "开",
   "settings_general_guidance_off": "关",
   "settings_general_guidance_replay": "重新播放全部引导",
-  "settings_general_guidance_replay_done": "下次进入各个界面时会重新播放引导。"
+  "settings_general_guidance_replay_done": "下次进入各个界面时会重新播放引导。",
+  "rebind_picker_heading": "选择新的排放因子"
 }

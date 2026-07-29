@@ -93,6 +93,16 @@ describe('GuidedTour', () => {
     expect(screen.getAllByTestId(TOOLTIP)).toHaveLength(1);
   });
 
+  it('leaves the tour unseen when the screen is left mid-tour', async () => {
+    const view = render(<Screen />);
+    await findTooltip();
+    // Navigating away unmounts the route — the user never finished, so
+    // the tour has to play again next time.
+    view.unmount();
+    await waitFor(() => expect(screen.queryByTestId(TOOLTIP)).toBeNull());
+    expect(hasSeenTour('questionnaires')).toBe(false);
+  });
+
   it('stays silent — and unseen — when no anchor is on screen', async () => {
     render(<Screen withAnchors={false} />);
     await expectSilence();

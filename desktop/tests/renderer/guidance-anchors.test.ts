@@ -48,14 +48,4 @@ describe('guidance anchors', () => {
       expect(SOURCE, `${tourId}: .${className}`).toContain(className as string);
     }
   });
-
-  it('portal hosts exist too', () => {
-    for (const tourId of TOUR_IDS) {
-      const portalTarget = getTour(tourId).portalTarget;
-      if (!portalTarget) continue;
-      const attr = portalTarget.match(/^\[([\w-]+)="([^"]+)"\]$/);
-      expect(attr, `${tourId}: unrecognized portal selector ${portalTarget}`).not.toBeNull();
-      expect(SOURCE, `${tourId}: ${portalTarget}`).toContain(`${attr?.[1]}="${attr?.[2]}"`);
-    }
-  });
 });

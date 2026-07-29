@@ -20,27 +20,13 @@ export interface GuidanceStep {
   target: string;
   title: () => string;
   body: () => string;
-  /** Joyride placement; defaults to 'auto'-ish bottom when omitted. */
-  placement?: 'top' | 'bottom' | 'left' | 'right' | 'center';
+  /** Which side of the anchor the popover sits on. Defaults to bottom. */
+  placement?: 'top' | 'bottom' | 'left' | 'right';
 }
 
 export interface TourDefinition {
   id: TourId;
   steps: GuidanceStep[];
-  /**
-   * Drop the dimming overlay. Used for tours that play inside a drawer —
-   * the drawer already dims the page behind it, and a `position: fixed`
-   * overlay portalled into vaul's transformed content would size itself
-   * to the drawer rather than the viewport.
-   */
-  hideOverlay?: boolean;
-  /**
-   * Render the tooltip inside this element instead of `document.body`.
-   * Required inside Radix/vaul modals: their focus trap sets
-   * `pointer-events: none` outside the content, which would leave the
-   * tooltip's buttons unclickable.
-   */
-  portalTarget?: string;
 }
 
 export function getTour(id: TourId): TourDefinition {
@@ -117,8 +103,6 @@ export function getTour(id: TourId): TourDefinition {
     case 'ef-rebind':
       return {
         id,
-        hideOverlay: true,
-        portalTarget: '[data-tour-portal="rebind-drawer"]',
         steps: [
           {
             target: '[data-tour="rebind-current"]',
