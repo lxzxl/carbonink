@@ -4,6 +4,7 @@ import type { InventoryReportData } from '@main/services/report-data-service';
 import { ReportPreview } from '@renderer/components/report/ReportPreview';
 import { TcfdReportPreview } from '@renderer/components/report/TcfdReportPreview';
 import { toast } from '@renderer/components/toast';
+import { GuidedTour } from '@renderer/features/guidance';
 import { reportApi } from '@renderer/lib/api/report';
 import { subscribe } from '@renderer/lib/ipc';
 import * as m from '@renderer/paraglide/messages';
@@ -260,6 +261,9 @@ function ReportDetail() {
 
       {generated && (
         <>
+          {/* First-visit walkthrough of an ISO report: how Scope 1/2/3 are
+           * grouped and what each export writes. */}
+          <GuidedTour tourId="report-export" ready={generated.kind === 'iso'} />
           {/* === Sticky top action bar === */}
           <div className="shrink-0 flex gap-2 border-b border-border bg-background/95 backdrop-blur px-4 py-3">
             {generated.kind === 'iso' ? (
@@ -267,6 +271,7 @@ function ReportDetail() {
                 type="button"
                 onClick={() => exportBoth.mutate()}
                 disabled={exportBoth.isPending}
+                data-tour="report-export"
                 className="rounded bg-black text-white px-3 py-2"
               >
                 {m.reports_export_both_button()}
@@ -285,6 +290,7 @@ function ReportDetail() {
               type="button"
               onClick={() => exportDeliverable.mutate()}
               disabled={exportDeliverable.isPending}
+              data-tour="report-deliverable"
               className="rounded border px-3 py-2"
             >
               {m.reports_export_deliverable_button()}

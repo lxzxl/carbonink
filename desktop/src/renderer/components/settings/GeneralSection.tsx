@@ -1,3 +1,11 @@
+import { toast } from '@renderer/components/toast';
+import { Button } from '@renderer/components/ui/button';
+import {
+  isGuidanceEnabled,
+  resetGuidance,
+  setGuidanceEnabled,
+  subscribeToGuidanceChange,
+} from '@renderer/features/guidance';
 import { currentLocale, type Locale, setLocale } from '@renderer/lib/i18n';
 import {
   getStoredTheme,
@@ -23,6 +31,13 @@ const LANGUAGE_OPTIONS: Array<{ value: Locale; labelKey: () => string }> = [
   { value: 'en', labelKey: () => m.settings_general_language_en() },
 ];
 
+type GuidancePref = 'on' | 'off';
+
+const GUIDANCE_OPTIONS: Array<{ value: GuidancePref; labelKey: () => string }> = [
+  { value: 'on', labelKey: () => m.settings_general_guidance_on() },
+  { value: 'off', labelKey: () => m.settings_general_guidance_off() },
+];
+
 const THEME_OPTIONS: Array<{ value: ThemePref; labelKey: () => string }> = [
   { value: 'system', labelKey: () => m.settings_general_theme_system() },
   { value: 'light', labelKey: () => m.settings_general_theme_light() },
@@ -36,6 +51,16 @@ export function GeneralSection() {
   // segmented control's `aria-pressed` state in sync.
   const [activeTheme, setActiveTheme] = useState<ThemePref>(getStoredTheme());
   useEffect(() => subscribeToThemeChange((pref) => setActiveTheme(pref)), []);
+
+  // Guidance tours: same shape as theme — the state lives in localStorage
+  // and mutations announce themselves via a custom event.
+  const [guidance, setGuidance] = useState<GuidancePref>(() =>
+    isGuidanceEnabled() ? 'on' : 'off',
+  );
+  useEffect(
+    () => subscribeToGuidanceChange(() => setGuidance(isGuidanceEnabled() ? 'on' : 'off')),
+    [],
+  );
 
   return (
     <div className="space-y-8">
@@ -55,6 +80,32 @@ export function GeneralSection() {
           <p className="text-xs text-muted-foreground">{m.settings_general_theme_hint()}</p>
         </div>
         <SegmentedControl options={THEME_OPTIONS} active={activeTheme} onChange={setTheme} />
+      </div>
+
+      {/* Guided tours */}
+      <div className="space-y-3">
+        <div className="space-y-1.5">
+          <div className="text-sm font-medium">{m.settings_general_guidance_label()}</div>
+          <p className="text-xs text-muted-foreground">{m.settings_general_guidance_hint()}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <SegmentedControl
+            options={GUIDANCE_OPTIONS}
+            active={guidance}
+            onChange={(value) => setGuidanceEnabled(value === 'on')}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              resetGuidance();
+              toast.success(m.settings_general_guidance_replay_done());
+            }}
+          >
+            <span className="whitespace-nowrap">{m.settings_general_guidance_replay()}</span>
+          </Button>
+        </div>
       </div>
     </div>
   );

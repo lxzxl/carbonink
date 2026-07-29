@@ -7,6 +7,7 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from '@renderer/components/ui/resizable';
+import { GuidedTour } from '@renderer/features/guidance';
 import { documentApi } from '@renderer/lib/api/document';
 import { extractionApi } from '@renderer/lib/api/extraction';
 import { cn } from '@renderer/lib/utils';
@@ -137,6 +138,10 @@ function DocumentReview({ document }: { document: Document }) {
     // 35%. Header (filename + upload date) stays pinned at the top so
     // long extraction reviews don't push it offscreen.
     <div className="flex h-full flex-col gap-4 p-6">
+      {/* First-visit walkthrough of the extraction stages. Gated on an
+       * active extraction being on screen — during auto-classify there is
+       * nothing to point at yet. See features/guidance. */}
+      <GuidedTour tourId="extraction" ready={!!activeExtraction} />
       {/* Navigation header — replaces the always-visible docs list in
        * the parent layout (hidden when this route is active). Gives
        * users (a) a back link to the list, (b) prev/next arrows to

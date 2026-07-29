@@ -1,3 +1,4 @@
+import { GuidedTour } from '@renderer/features/guidance';
 import { activityApi } from '@renderer/lib/api/activity-data';
 import * as m from '@renderer/paraglide/messages';
 import type { EfCompositePk, EmissionFactor } from '@shared/types';
@@ -147,7 +148,13 @@ export function RebindEfDrawer({ activityId, open, onClose }: RebindEfDrawerProp
           aria-describedby={undefined}
           style={NO_DRAG}
           className="fixed right-0 top-0 bottom-0 z-50 flex w-[480px] flex-col border-l border-border bg-popover text-popover-foreground shadow-2xl"
+          data-tour-portal="rebind-drawer"
         >
+          {/* First-open walkthrough: why a factor can be swapped and what
+           * happens to the old snapshot. Portalled INTO this content (the
+           * tour definition names the data-tour-portal above) so the
+           * drawer's focus trap doesn't leave the tooltip unclickable. */}
+          <GuidedTour tourId="ef-rebind" ready={!!activityQuery.data} />
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <Drawer.Title className="text-base font-semibold text-foreground">
               {m.rebind_drawer_heading()}
@@ -166,7 +173,10 @@ export function RebindEfDrawer({ activityId, open, onClose }: RebindEfDrawerProp
             {activityQuery.isPending && <p>{m.ef_picker_loading()}</p>}
             {activityQuery.data && (
               <>
-                <section className="mb-6 space-y-2 rounded border border-border bg-secondary/30 p-3">
+                <section
+                  className="mb-6 space-y-2 rounded border border-border bg-secondary/30 p-3"
+                  data-tour="rebind-current"
+                >
                   <div className="text-sm font-semibold text-foreground">
                     {m.rebind_current_label()}
                   </div>
@@ -183,7 +193,7 @@ export function RebindEfDrawer({ activityId, open, onClose }: RebindEfDrawerProp
                   </div>
                 </section>
 
-                <section className="mb-6 space-y-3">
+                <section className="mb-6 space-y-3" data-tour="rebind-picker">
                   <div className="text-sm font-semibold text-foreground">
                     Pick a new emission factor
                   </div>
@@ -301,6 +311,7 @@ export function RebindEfDrawer({ activityId, open, onClose }: RebindEfDrawerProp
                 (preview?.crossFamily === true && overrideAmountNum === null)
               }
               onClick={() => rebindMutation.mutate()}
+              data-tour="rebind-confirm"
               className="flex-1 rounded bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {m.rebind_confirm()}
