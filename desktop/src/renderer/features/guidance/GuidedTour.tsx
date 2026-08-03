@@ -2,8 +2,14 @@ import * as m from '@renderer/paraglide/messages';
 import { type Driver, type DriveStep, driver, type PopoverDOM } from 'driver.js';
 import 'driver.js/dist/driver.css';
 import './guidance.css';
-import { useEffect } from 'react';
-import { hasSeenTour, isGuidanceEnabled, markTourSeen, type TourId } from './guidance-state';
+import { useEffect, useState } from 'react';
+import {
+  hasSeenTour,
+  isGuidanceEnabled,
+  markTourSeen,
+  subscribeToGuidanceReset,
+  type TourId,
+} from './guidance-state';
 import { getTour } from './tours';
 
 /**
@@ -61,6 +67,13 @@ export interface GuidedTourProps {
 }
 
 export function GuidedTour({ tourId, ready = true }: GuidedTourProps) {
+  // Bumped when seen flags are cleared (Settings → replay, or the dev
+  // console helper), so a tour can start on the screen the user is
+  // already looking at instead of only after navigating away and back.
+  const [replayNonce, setReplayNonce] = useState(0);
+  useEffect(() => subscribeToGuidanceReset(() => setReplayNonce((n) => n + 1)), []);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: replayNonce is not read here — it is the re-run trigger. Bumping it is how a cleared seen flag restarts the tour on the current screen.
   useEffect(() => {
     if (!ready) return;
     if (!isGuidanceEnabled() || hasSeenTour(tourId)) return;
@@ -152,7 +165,7 @@ export function GuidedTour({ tourId, ready = true }: GuidedTourProps) {
       instance?.destroy();
       if (claimed && activeTourId === tourId) activeTourId = null;
     };
-  }, [ready, tourId]);
+  }, [ready, tourId, replayNonce]);
 
   return null;
 }

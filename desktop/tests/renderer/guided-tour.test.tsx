@@ -2,6 +2,7 @@ import {
   GuidedTour,
   hasSeenTour,
   markTourSeen,
+  resetGuidance,
   setGuidanceEnabled,
 } from '@renderer/features/guidance';
 import * as m from '@renderer/paraglide/messages';
@@ -91,6 +92,19 @@ describe('GuidedTour', () => {
     await findTooltip();
     await new Promise((resolve) => setTimeout(resolve, 300));
     expect(screen.getAllByTestId(TOOLTIP)).toHaveLength(1);
+  });
+
+  it('replays on the current screen when the seen flags are cleared', async () => {
+    markTourSeen('questionnaires');
+    render(<Screen />);
+    await expectSilence();
+
+    // Settings → "replay all", or `guidance.replay()` in the console:
+    // the tour has to start where the user already is, not only after a
+    // navigation.
+    resetGuidance();
+    const tooltip = await findTooltip();
+    expect(tooltip.textContent).toContain(m.guidance_questionnaires_new_title());
   });
 
   it('leaves the tour unseen when the screen is left mid-tour', async () => {

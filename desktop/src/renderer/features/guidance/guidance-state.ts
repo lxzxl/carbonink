@@ -26,7 +26,19 @@ export type TourId = (typeof TOUR_IDS)[number];
 
 const SEEN_KEY = 'carbonink.guidance.seen';
 const ENABLED_KEY = 'carbonink.guidance.enabled';
+/**
+ * Dev-only: ignore every seen flag so tours replay on each visit. Set it
+ * from the devtools console (`guidance.always()`), not from the UI —
+ * see `dev-tools.ts`.
+ */
+const DEV_ALWAYS_KEY = 'carbonink.guidance.dev_always';
 const GUIDANCE_CHANGED_EVENT = 'carbonink:guidance-changed';
+/**
+ * Fired only when seen flags are cleared. Mounted tours listen for this
+ * so "replay" takes effect on the current screen instead of only after
+ * navigating away and back.
+ */
+const GUIDANCE_RESET_EVENT = 'carbonink:guidance-reset';
 
 function hasStorage(): boolean {
   return typeof localStorage !== 'undefined';
@@ -70,7 +82,29 @@ export function getSeenTours(): TourId[] {
 }
 
 export function hasSeenTour(id: TourId): boolean {
+  if (isDevReplayAlwaysOn()) return false;
   return getSeenTours().includes(id);
+}
+
+/**
+ * Dev-only escape hatch: replay every tour on every visit, so working on
+ * guidance copy or anchors doesn't mean clearing localStorage after each
+ * run. Always false in a production build.
+ */
+export function isDevReplayAlwaysOn(): boolean {
+  if (!import.meta.env.DEV || !hasStorage()) return false;
+  return localStorage.getItem(DEV_ALWAYS_KEY) === '1';
+}
+
+export function setDevReplayAlways(on: boolean): void {
+  if (!import.meta.env.DEV || !hasStorage()) return;
+  if (on) {
+    localStorage.setItem(DEV_ALWAYS_KEY, '1');
+  } else {
+    localStorage.removeItem(DEV_ALWAYS_KEY);
+  }
+  emitChange();
+  emitReset();
 }
 
 /**
@@ -89,6 +123,16 @@ export function markTourSeen(id: TourId): void {
 export function resetGuidance(): void {
   if (hasStorage()) localStorage.removeItem(SEEN_KEY);
   emitChange();
+  emitReset();
+}
+
+/** Clear one tour's seen flag — the devtools `guidance.replay(id)`. */
+export function unmarkTourSeen(id: TourId): void {
+  if (!hasStorage()) return;
+  const remaining = getSeenTours().filter((seen) => seen !== id);
+  localStorage.setItem(SEEN_KEY, JSON.stringify(remaining));
+  emitChange();
+  emitReset();
 }
 
 export function subscribeToGuidanceChange(handler: () => void): () => void {
@@ -97,7 +141,23 @@ export function subscribeToGuidanceChange(handler: () => void): () => void {
   return () => window.removeEventListener(GUIDANCE_CHANGED_EVENT, handler);
 }
 
+/**
+ * Subscribe to "seen flags were cleared". Separate from the general
+ * change event on purpose: mounted tours must NOT re-evaluate when a
+ * tour marks itself seen (that would fire while one is being dismissed).
+ */
+export function subscribeToGuidanceReset(handler: () => void): () => void {
+  if (typeof window === 'undefined') return () => {};
+  window.addEventListener(GUIDANCE_RESET_EVENT, handler);
+  return () => window.removeEventListener(GUIDANCE_RESET_EVENT, handler);
+}
+
 function emitChange(): void {
   if (typeof window === 'undefined') return;
   window.dispatchEvent(new CustomEvent(GUIDANCE_CHANGED_EVENT));
+}
+
+function emitReset(): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent(GUIDANCE_RESET_EVENT));
 }

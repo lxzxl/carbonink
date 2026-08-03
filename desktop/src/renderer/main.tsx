@@ -1,4 +1,5 @@
 import { Toaster } from '@renderer/components/toast';
+import { installGuidanceDevTools } from '@renderer/features/guidance';
 import { currentLocale, initLocale, subscribeToLocaleChange } from '@renderer/lib/i18n';
 import { initTheme } from '@renderer/lib/theme';
 import { router } from '@renderer/router';
@@ -16,6 +17,9 @@ import './styles/globals.css';
 
 initLocale();
 initTheme();
+// Dev-only `window.guidance` console helpers (replay / always / status).
+// No-op in a production build — see features/guidance/dev-tools.ts.
+installGuidanceDevTools();
 
 const queryClient = new QueryClient({
   defaultOptions: {
