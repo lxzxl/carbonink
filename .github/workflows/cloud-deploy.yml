@@ -1,6 +1,6 @@
 name: Deploy Cloud
 
-# Auto-deploys the two Cloudflare Workers (cloud/worker + cloud/web)
+# Auto-deploys the static marketing site (cloud/web → carbonink-cloud-web)
 # to production. Gated on the CI workflow passing on the same SHA —
 # so a green build is a prerequisite for going live.
 #
@@ -8,20 +8,11 @@ name: Deploy Cloud
 #   - workflow_run on CI completion → deploy iff conclusion == success
 #     and the run was on `main`. PR CI runs never reach this.
 #   - workflow_dispatch → manual "Run workflow" button for re-deploys
-#     without a fresh commit (e.g., re-issuing after a Worker secret
-#     rotation). Skips the CI gate; you're choosing to deploy HEAD.
+#     without a fresh commit. Skips the CI gate; you're choosing to
+#     deploy HEAD.
 #
-# What we do NOT auto-do:
-#   - D1 migrations. `wrangler d1 migrations apply` ships schema
-#     changes that go live the instant they land. Until we have a
-#     staging environment, that's a foot-gun — keep migrations
-#     explicit, applied by the developer who wrote them before
-#     merging the migration-bearing PR. (See cloud/DEPLOY.md §
-#     "Applying migrations".)
-#   - Worker secrets. Done out-of-band via cloud/scripts/push-secrets.sh
-#     when the secret values change. Per-deploy push would re-encrypt
-#     identical values for no reason.
-#   - Stripe webhook URL. One-shot dashboard config, not per-deploy.
+# The old carbonink-cloud-api worker was torn down 2026-08-24 — see
+# cloud/DEPLOY.md. This deploy is web-only.
 #
 # Required GitHub repo secret:
 #   CLOUDFLARE_API_TOKEN — same scopes as cloud/.env.local; see
@@ -77,13 +68,9 @@ jobs:
 
       - name: Build cloud/web (Astro)
         # cloud/web needs `dist/` populated before wrangler can pick
-        # up the SSR entry + Static Assets binding. cloud/worker has
-        # no build step — wrangler bundles src/ directly via its
-        # internal esbuild.
+        # up the SSR entry + Static Assets binding.
         run: pnpm cloud:build:web
 
-      # cloud/worker (carbonink-cloud-api) is retired with the open-source pivot
-      # — no longer deployed. See cloud/worker/README.md.
       - name: Deploy cloud/web (carbonink-cloud-web)
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -93,7 +80,7 @@ jobs:
         run: |
           echo "### Cloud deploy complete" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "- web: \`carbonink-cloud-web\` → \`carbonink.xyz/*\` (cloud/worker retired)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- web: \`carbonink-cloud-web\` → \`carbonink.xyz/*\`" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "Triggered by: \`${{ github.event_name }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "Deployed SHA: \`${{ github.event.workflow_run.head_sha || github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"

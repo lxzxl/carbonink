@@ -1,92 +1,41 @@
 #!/usr/bin/env bash
-# Deploy the 2 carbonink-cloud workers to Cloudflare.
+# Deploy the carbonink-cloud web site (the only deployed worker) to Cloudflare.
 #
 # Auth: reads CLOUDFLARE_API_TOKEN from cloud/.env.local (or shell env).
-# Auto-provisioning: wrangler 4.x auto-creates D1/KV/R2 resources on first
-# deploy when their IDs are placeholders, and writes the real IDs back to
-# wrangler.toml. So a clean first run does: cloud/worker deploy → creates
-# carbonink-cloud D1 + 4 KV namespaces + carbonink-releases R2, then the
-# merged web worker deploys as catch-all `carbonink.xyz/*`.
-#
-# Two workers:
-#   - cloud/worker  → carbonink-cloud-api (handles /api/*)
-#   - cloud/web     → carbonink-cloud-web (handles everything else)
 #
 # Usage:
-#   ./cloud/scripts/deploy.sh              # deploy both
-#   ./cloud/scripts/deploy.sh worker       # just the API worker
-#   ./cloud/scripts/deploy.sh web          # just the web (merged) site
+#   ./cloud/scripts/deploy.sh              # deploy
 #   ./cloud/scripts/deploy.sh --dry-run    # validate without deploying
-#
-# After first deploy:
-#   1. cloud/scripts/push-secrets.sh   (sets the 5 worker secrets)
-#   2. cd cloud/worker && pnpm exec wrangler d1 migrations apply DB --remote
-#   3. Manually set Stripe webhook URL in Stripe dashboard:
-#        https://carbonink.xyz/api/v1/stripe-webhook
 
 source "$(dirname "$0")/_lib.sh"
 
 require_env CLOUDFLARE_API_TOKEN
 
 DRY_RUN=""
-FILTER=""
 for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY_RUN="--dry-run" ;;
-    worker|web) FILTER="$arg" ;;
     *)
       echo "Unknown arg: $arg" >&2
-      echo "Usage: $0 [worker|web] [--dry-run]" >&2
+      echo "Usage: $0 [--dry-run]" >&2
       exit 1 ;;
   esac
 done
 
-# Map short name → directory (bash 3.2-compatible, no `declare -A`).
-filter_to_dir() {
-  case "$1" in
-    worker) echo cloud/worker ;;
-    web)    echo cloud/web ;;
-    *) echo "bug: unknown filter $1" >&2; exit 1 ;;
-  esac
-}
-
-# Decide what to deploy
-if [[ -n "$FILTER" ]]; then
-  TARGETS=("$(filter_to_dir "$FILTER")")
-else
-  TARGETS=("${WORKERS[@]}")
-fi
-
-echo "==> wrangler version: $(cd "$REPO_ROOT/cloud/worker" && pnpm exec wrangler --version 2>&1 | head -1)"
-echo "==> account: $(cd "$REPO_ROOT/cloud/worker" && pnpm exec wrangler whoami 2>&1 | grep -E 'email|account' | head -2 | tr '\n' ' ')"
+echo "==> wrangler version: $(cd "$REPO_ROOT/cloud/web" && pnpm exec wrangler --version 2>&1 | head -1)"
+echo "==> account: $(cd "$REPO_ROOT/cloud/web" && pnpm exec wrangler whoami 2>&1 | grep -E 'email|account' | head -2 | tr '\n' ' ')"
 echo ""
 
-# Astro web worker needs `pnpm build` first so `dist/` exists for
-# wrangler to pick up the SSR entry + static assets. The API worker
-# (cloud/worker) has no build step — wrangler bundles directly.
-build_if_static_site() {
-  local dir="$1"
-  if [[ "$dir" == cloud/web ]]; then
-    echo "==> Building $dir (Astro)..."
-    (cd "$REPO_ROOT/$dir" && pnpm run build)
-  fi
-}
+echo "===================================================================="
+echo " Building + deploying cloud/web"
+echo "===================================================================="
 
-for dir in "${TARGETS[@]}"; do
-  echo ""
-  echo "===================================================================="
-  echo " Deploying $dir"
-  echo "===================================================================="
-  build_if_static_site "$dir"
-  wr "$dir" deploy $DRY_RUN
-done
+# The Astro worker needs `pnpm build` first so `dist/` exists for
+# wrangler to pick up the SSR entry + static assets.
+echo "==> Building cloud/web (Astro)..."
+(cd "$REPO_ROOT/cloud/web" && pnpm run build)
+
+wr cloud/web deploy $DRY_RUN
 
 echo ""
 echo "==> Done."
-if [[ -z "$DRY_RUN" ]]; then
-  echo ""
-  echo "Next steps:"
-  echo "  1. Push secrets:       ./cloud/scripts/push-secrets.sh"
-  echo "  2. Apply D1 migrations: cd cloud/worker && pnpm exec wrangler d1 migrations apply DB --remote"
-  echo "  3. Set Stripe webhook URL: https://carbonink.xyz/api/v1/stripe-webhook"
-fi

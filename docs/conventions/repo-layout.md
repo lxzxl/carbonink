@@ -8,7 +8,7 @@ This is a pnpm workspace. Two top-level apps share tooling + docs:
 ```
 carbonink/
 ├── package.json              ← workspace root, monorepo scripts
-├── pnpm-workspace.yaml       ← lists desktop + cloud/* packages
+├── pnpm-workspace.yaml       ← lists desktop + cloud/web packages
 ├── docs/                     ← shared (specs, plans, release notes, conventions)
 ├── CLAUDE.md                 ← @AGENTS.md (the always-loaded conventions index)
 ├── desktop/                  ← Electron app (the user-facing v1)
@@ -16,13 +16,8 @@ carbonink/
 │   ├── src/                  ← main, preload, renderer, shared
 │   ├── tests/                ← vitest (932 passing as of 2026-05-29)
 │   └── …                     ← electron-vite, electron-builder, paraglide
-└── cloud/                    ← Cloudflare backend (license + payments)
-    ├── worker/               ← @carbonink-cloud/worker (API)
-    ├── packages/shared/      ← @carbonink-cloud/shared (Zod + types)
-    └── sites/                ← @carbonink-cloud/{marketing,activate,account}
-                                 (each is its own Worker with Static
-                                  Assets binding — Cloudflare's modern
-                                  replacement for Pages)
+└── cloud/                    ← Cloudflare static marketing site
+    └── web/                  ← @carbonink-cloud/web (Astro → Static Assets)
 ```
 
 **Top-level scripts** (run from repo root):
@@ -30,7 +25,6 @@ carbonink/
 ```bash
 pnpm desktop:test         # vitest tests in desktop/
 pnpm desktop:typecheck    # tsc --noEmit on desktop/
-pnpm cloud:test           # worker tests under cloud/worker/
 pnpm test                 # all packages (workspace-concurrency=1)
 ```
 
@@ -38,15 +32,14 @@ pnpm test                 # all packages (workspace-concurrency=1)
 
 ```bash
 pnpm --filter carbonink dev          # electron-vite dev --watch (renderer HMR + main/preload hot-restart)
-pnpm --filter @carbonink-cloud/worker test
 pnpm --filter @carbonink-cloud/web build
 ```
 
-**Why monorepo**: desktop's `Env`/`LicenseJwtClaims` types and cloud's
-`@carbonink-cloud/shared` JWT claims schema must stay in lockstep —
-they describe the same protocol. Having both in one repo + workspace
-means a single PR can update both sides atomically, and a future
-`packages/shared-protocol` could replace the parallel definitions.
+(The old `cloud/worker` API package + `@carbonink-cloud/shared` types were
+deleted 2026-08-24 with the license/payments teardown.)
+
+**Why monorepo**: desktop + the marketing site share tooling, CI, and docs in
+one place — a single PR can touch both apps atomically.
 
 **`onlyBuiltDependencies`** lives in the top-level `package.json` (pnpm
 warns if it's at a sub-package). Includes `better-sqlite3`, `electron`,

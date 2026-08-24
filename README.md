@@ -52,4 +52,3 @@ design specs, plans, and roadmap.
 | `cloud/web/` | the marketing site ([carbonink.xyz](https://carbonink.xyz)) |
 | `docs/` | specs, plans, research, roadmap |
 
-(`cloud/worker/` — the old license/payments API — is retired; see its README.)

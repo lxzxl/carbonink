@@ -1,13 +1,14 @@
 # carbonink-cloud — architecture notes
 
-`cloud/` is now a **single static marketing site**. CarbonInk went free &
-open-source (MIT), which removed activation, licensing, and payments — so the
-backend that powered them is **retired**.
+`cloud/` is a **single static marketing site**. CarbonInk went free &
+open-source (MIT), which removed activation, licensing, and payments — the
+backend that powered them (`carbonink-cloud-api`) was torn down 2026-08-24
+(worker, `/api/*` route, secrets; D1/KV/Stripe residue cleaned out of the
+dashboards). Code + docs live only in git history.
 
 | Package | What | Status |
 |---|---|---|
-| `cloud/web/` | Astro marketing site (`/`, `/download`, `/privacy` + `/zh/` mirrors), prerendered to static HTML, served by the `carbonink-cloud-web` Worker via Static Assets | **Live** — the only thing that deploys |
-| `cloud/worker/` | old `carbonink-cloud-api`: Stripe checkout, Ed25519 license signing, magic-link accounts, admin queue | **Retired** — not deployed, `/api/*` route commented out; code + tests kept for history ([README](worker/README.md)) |
+| `cloud/web/` | Astro marketing site (`/`, `/download`, `/privacy`, `/guides/*` + `/zh/` mirrors), prerendered to static HTML, served by the `carbonink-cloud-web` Worker via Static Assets | **Live** — the only thing that deploys |
 
 Deploy steps: [DEPLOY.md](./DEPLOY.md).
 
@@ -17,17 +18,17 @@ Deploy steps: [DEPLOY.md](./DEPLOY.md).
 carbonink.xyz/*  →  carbonink-cloud-web   (cloud/web — static Astro, CDN HTML)
 ```
 
-One Worker, one zone, all prerendered HTML. **There is no `/api/*` route
-anymore** — the desktop app is fully local and never phones home.
+One Worker, one zone, all prerendered HTML. **There is no `/api/*` route** —
+the desktop app is fully local and never phones home.
 
-> **History.** Before the OSS pivot this was two Workers wired by a service
-> binding: the web worker SSR'd `/activate` + `/account/*` and called the api
-> worker over `env.API` for license lookups, Stripe checkout resolution, and
-> magic-link session exchange. All retired. The one lesson worth keeping:
-> **never `fetch()` your own zone's public URL from inside a Worker** —
-> Cloudflare loops it at the routing layer for ~20s before giving up. If you
-> ever re-add a web→api hop, use a service binding, not a public self-fetch.
-> Full detail is in git history + `cloud/worker/README.md`.
+> **History.** Before the OSS pivot this zone hosted two Workers wired by a
+> service binding: the web worker SSR'd `/activate` + `/account/*` and called
+> the api worker over `env.API` for license lookups, Stripe checkout
+> resolution, and magic-link session exchange. All retired. The one lesson
+> worth keeping: **never `fetch()` your own zone's public URL from inside a
+> Worker** — Cloudflare loops it at the routing layer for ~20s before giving
+> up. If you ever re-add a web→api hop, use a service binding, not a public
+> self-fetch. Detail in git history (pre-2026-08-24).
 
 ## SEO — making carbonink.xyz findable
 
@@ -106,17 +107,3 @@ second palette.
 Reminder: this brand is "old money green" — pharmacist's apothecary jar,
 antique library, Jaguar dashboard — NOT a recycling-symbol / SaaS-eco green.
 Resist the urge to bump saturation when adding shades.
-
-## Test conventions
-
-`cloud/worker/tests/*.test.ts` still run in CI (`pnpm cloud:test`) even though
-the Worker is retired — keeping them green stops the frozen backend from
-bit-rotting until someone deletes it outright. They use
-`@cloudflare/vitest-pool-workers`:
-
-- **Migrations apply once per run** (`apply-migrations.ts`, `beforeAll`); D1/KV
-  bindings are *shared* across tests in a file — use distinct emails / IPs / IDs
-  rather than wiping state.
-- **Stub the EMAIL binding** with `vi.fn()`: `(env as any).EMAIL = { send: spy }`.
-- **Build session JWTs directly** with the test key (`signSessionJwt`); set as
-  `Cookie: session=<jwt>`. See `tests/admin.test.ts` for the full pattern.

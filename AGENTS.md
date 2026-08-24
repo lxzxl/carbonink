@@ -49,9 +49,12 @@ pnpm workspace; two apps share `docs/` + tooling:
 | Path | What |
 |---|---|
 | `desktop/` | Electron app (`carbonink`) — `src/{main,preload,renderer,shared}`, `tests/` (vitest) |
-| `cloud/worker/` | `@carbonink-cloud/worker` — old license/payments API. **Retired** (not deployed); code + tests kept for history |
 | `cloud/web/` | Astro **static marketing site** (`/`, `/download`, `/privacy`, `/guides/*` + `/zh/` mirrors; guides ship as en+zh pairs), Workers + Static Assets |
-| `cloud/packages/shared/` | `@carbonink-cloud/shared` — Zod + JWT-claim types (lockstep with desktop) |
+
+The old license/payments backend (`carbonink-cloud-api`, formerly
+`cloud/worker/` + `cloud/packages/shared/`) was torn down 2026-08-24 — code and
+docs removed; see git history if you need it. Don't reintroduce licensing or
+payments (see non-negotiables).
 
 ```bash
 pnpm test                 # all packages          pnpm desktop:test / desktop:typecheck

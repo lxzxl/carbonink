@@ -28,20 +28,9 @@ require_env() {
   fi
 }
 
-# Run wrangler from a specific worker directory.
-#   wr <worker-dir> <args...>
+# Run wrangler from a specific package directory.
+#   wr <dir> <args...>
 wr() {
   local dir="$1"; shift
   (cd "$REPO_ROOT/$dir" && pnpm exec wrangler "$@")
 }
-
-# The two wranglers we ship.
-#
-# After the 3-site merge → 1-site rename, only one Astro worker
-# remains:
-#   - cloud/worker   → carbonink-cloud-api (handles /api/*)
-#   - cloud/web      → carbonink-cloud-web (handles everything else)
-WORKERS=(
-  cloud/worker
-  cloud/web
-)

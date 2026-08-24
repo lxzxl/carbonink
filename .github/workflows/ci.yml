@@ -5,8 +5,7 @@ name: CI
 # What runs (single Linux runner, sequential, ~3–5 min total):
 #   1. desktop:typecheck   — tsc --noEmit
 #   2. desktop:test        — vitest run (baseline 662)
-#   3. cloud:test          — cloud/worker vitest (baseline 92)
-#   4. cloud:build:web     — Astro build, catches missing imports / SSR
+#   3. cloud:build:web     — Astro build, catches missing imports / SSR
 #                            breakage / lint-time TS errors in the web
 #
 # What is NOT run:
@@ -88,9 +87,6 @@ jobs:
 
       - name: Test desktop (vitest)
         run: pnpm desktop:test
-
-      - name: Test cloud worker (vitest)
-        run: pnpm cloud:test
 
       - name: Build cloud web (Astro)
         # Doubles as a smoke test for the SSR Worker entry — Astro

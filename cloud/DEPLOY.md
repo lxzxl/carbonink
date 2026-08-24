@@ -1,9 +1,9 @@
 # Deploying carbonink-cloud
 
 `cloud/web` is a **static Astro marketing site** — the only thing that deploys.
-The old `carbonink-cloud-api` Worker (Stripe / licensing / accounts) is
-**retired** (see [worker/README.md](worker/README.md)); these instructions
-cover the web site only.
+The old `carbonink-cloud-api` Worker (Stripe / licensing / accounts) was torn
+down 2026-08-24 (see § "API worker teardown"); these instructions cover the
+web site only.
 
 Deployment is scripted — no `wrangler login`. Auth is a single
 `CLOUDFLARE_API_TOKEN` env var.
@@ -52,7 +52,7 @@ carbonink.xyz/*  →  carbonink-cloud-web   (cloud/web — static Astro)
 ```
 
 One worker, catch-all on the zone. All routes prerender to CDN HTML; there is
-no `/api/*` route (the api worker is retired).
+no `/api/*` route (the api worker is gone — desktop never phones home).
 
 ## Deploy
 
@@ -76,13 +76,10 @@ wrangler uploads it and attaches `carbonink.xyz/*`.
 Two workflows in `.github/workflows/`:
 
 - **`ci.yml`** — PR + push-to-main gate: `desktop:typecheck`, `desktop:test`
-  (vitest), `cloud:test` (worker vitest — still run though the worker is
-  retired, so the frozen code stays green), `cloud:build:web` (Astro build).
-  ~3–5 min on one Linux runner.
+  (vitest), `cloud:build:web` (Astro build). ~3–5 min on one Linux runner.
 - **`cloud-deploy.yml`** — `workflow_run`-gated on a green CI run on `main`.
-  Builds + deploys **`cloud/web` only** (`cd cloud/web && wrangler deploy`). The
-  `cloud/worker` deploy step was removed with the OSS pivot. Also exposes a
-  manual `workflow_dispatch` button.
+  Builds + deploys **`cloud/web`** (`cd cloud/web && wrangler deploy`). Also
+  exposes a manual `workflow_dispatch` button.
 
 Required GitHub repo secret: **`CLOUDFLARE_API_TOKEN`** (same scopes as § 1) at
 *Repo → Settings → Secrets and variables → Actions*.
@@ -99,10 +96,21 @@ pnpm exec wrangler rollback           # previous
 pnpm exec wrangler rollback <VERSION> # specific
 ```
 
-## Tearing down the api worker (manual, optional)
+## API worker teardown — done 2026-08-24
 
-The `carbonink-cloud-api` worker is no longer deployed. If it's still attached
-in your Cloudflare account you can remove it — checklist in
-[worker/README.md](worker/README.md): delete the Worker, drop the D1 DB + KV
-namespaces, rotate the old license / Stripe secrets, and deactivate the Stripe
-product + webhook.
+The `carbonink-cloud-api` worker was fully removed on 2026-08-24:
+
+- ✅ Deleted the `carbonink.xyz/api/*` zone route + the worker script (its two
+  secrets, `LICENSE_PRIVATE_KEY_HEX` + `SESSION_PRIVATE_KEY_HEX`, went with it).
+- ✅ Deleted this repo's `cloud/worker/` + `cloud/packages/shared/` code and docs.
+
+Still to check in the dashboards (manual — the deploy token can't see them):
+
+- [ ] D1 database `carbonink-cloud` — drop it if it still exists.
+- [ ] KV namespaces `LICENSE_ACTIVE` / `HUMANIZED_KEYS` / `REVOCATION_SET` /
+  `RATE_LIMIT` — delete any that remain.
+- [ ] R2 bucket `carbonink-releases` (old installer hosting; downloads now
+  resolve to GitHub Releases and nothing binds it) — delete it.
+- [ ] Stripe: deactivate the product + webhook endpoint
+  (`https://carbonink.xyz/api/v1/stripe-webhook`) and revoke
+  `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET`.

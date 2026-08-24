@@ -3,7 +3,7 @@
 #
 # Every page prerenders to CDN HTML: /, /download, /privacy + their
 # /zh/ mirrors. There is no /api/* route — the open-source pivot retired
-# the backend (license/payments/accounts); see ../worker/README.md.
+# the backend (license/payments/accounts), torn down fully 2026-08-24.
 #
 # Astro 6's @astrojs/cloudflare adapter injects the Worker entry
 # (`main`) at build time pointing to `dist/_worker.js/index.js`, so
@@ -15,21 +15,15 @@ name = "carbonink-cloud-web"
 compatibility_date = "2025-05-23"
 compatibility_flags = ["nodejs_compat"]
 
-# Catch-all under carbonink.xyz — captures the whole zone. (There used
-# to be a more-specific /api/* route to the backend worker; it's
-# retired, so this now owns every URL.)
+# Catch-all under carbonink.xyz — captures the whole zone. (The old
+# more-specific /api/* route to the backend worker is gone, so this
+# owns every URL.)
 routes = [
   { pattern = "carbonink.xyz/*", zone_name = "carbonink.xyz" },
 ]
 
 [assets]
 directory = "./dist"
-
-# (The `env.API` service binding to carbonink-cloud-api was removed with the
-# open-source pivot — the SSR account/admin/activate pages that used it are gone,
-# and the remaining marketing pages are prerendered. This decouples the web worker
-# from the retired API worker so it stays deployable after the API worker is torn
-# down.)
 
 # No secrets: the site is fully static — no Stripe key, no license key,
 # no sessions. The pre-pivot /activate SSR route needed STRIPE_SECRET_KEY;

@@ -11,12 +11,12 @@ Per cloud package:
 
 - **`cloud/web/`** — Astro site, **fully prerendered** (`export const prerender
   = true` on every page) via `@astrojs/cloudflare` v13. Pages: `/`, `/download`,
-  `/privacy` + their `/zh/` mirrors — all CDN HTML, no SSR. Build emits
-  `dist/client/` (static) + `dist/_worker.js/index.js` (the Static-Assets worker
-  entry). Deploy: `cd cloud/web && pnpm exec wrangler deploy`.
-- **`cloud/worker/`** — old API worker (endpoints + scheduled cron). **Retired**
-  — not deployed, `/api/*` route commented out. Code + tests kept for history;
-  see `cloud/worker/README.md`.
+  `/privacy`, `/guides/*` + their `/zh/` mirrors — all CDN HTML, no SSR. Build
+  emits `dist/client/` (static) + `dist/_worker.js/index.js` (the Static-Assets
+  worker entry). Deploy: `cd cloud/web && pnpm exec wrangler deploy`.
+
+(The old API worker + shared types package were deleted 2026-08-24; detail in
+git history.)
 
 **Gotcha**: don't put `main` in `cloud/web/wrangler.toml`. The
 `@cloudflare/vite-plugin` bundled into `@astrojs/cloudflare` v13 resolves `main`
@@ -41,4 +41,7 @@ prefix (English at the apex `/`, Chinese under `/zh/*`).
 > talked over a service binding (`env.API`) with a `session` cookie +
 > license-JWT auth. Earlier still it was three subdomained Astro sites (`api.` /
 > `activate.` / `account.`) merged into one. All retired — detail in git
-> history. Don't reintroduce subdomains or a web→api hop without a strong reason.
+> history. Don't reintroduce subdomains or a web→api hop without a strong
+> reason, and if you do: use a service binding — **never `fetch()` your own
+> zone's public URL from inside a Worker** (Cloudflare loops it at the routing
+> layer for ~20s before giving up).
