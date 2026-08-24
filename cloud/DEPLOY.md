@@ -1,9 +1,7 @@
 # Deploying carbonink-cloud
 
 `cloud/web` is a **static Astro marketing site** — the only thing that deploys.
-The old `carbonink-cloud-api` Worker (Stripe / licensing / accounts) was torn
-down 2026-08-24 (see § "API worker teardown"); these instructions cover the
-web site only.
+These instructions cover the web site only.
 
 Deployment is scripted — no `wrangler login`. Auth is a single
 `CLOUDFLARE_API_TOKEN` env var.
@@ -24,10 +22,6 @@ Token. The static site needs only:
 
 **Account Resources** → Include → *your account*. **Zone Resources** → Include
 → *carbonink.xyz*. Copy the token (shown once).
-
-> The pre-pivot token also needed D1 / KV / R2 / Email / Stripe scopes for the
-> api worker. None of that is required anymore — the site is static and stores
-> nothing.
 
 ### 2. Fill in cloud/.env.local
 
@@ -51,8 +45,12 @@ site has no Stripe key, no license key, and no sessions. The file is gitignored.
 carbonink.xyz/*  →  carbonink-cloud-web   (cloud/web — static Astro)
 ```
 
-One worker, catch-all on the zone. All routes prerender to CDN HTML; there is
-no `/api/*` route (the api worker is gone — desktop never phones home).
+One worker, catch-all on the zone; all routes prerender to CDN HTML. Fully
+static — no SSR pages, no API. The desktop app never phones home.
+
+> Residue: the live worker still carries an orphaned `SESSION` KV binding
+> (leftover from the pre-OSS SSR era; nothing reads it). The next deploy
+> removes the binding; see § "Dashboard residue" for what's left to delete.
 
 ## Deploy
 
@@ -96,21 +94,18 @@ pnpm exec wrangler rollback           # previous
 pnpm exec wrangler rollback <VERSION> # specific
 ```
 
-## API worker teardown — done 2026-08-24
+## Dashboard residue
 
-The `carbonink-cloud-api` worker was fully removed on 2026-08-24:
+Live leftovers still sitting in the Cloudflare / Stripe dashboards (the
+deploy token can't see or remove them):
 
-- ✅ Deleted the `carbonink.xyz/api/*` zone route + the worker script (its two
-  secrets, `LICENSE_PRIVATE_KEY_HEX` + `SESSION_PRIVATE_KEY_HEX`, went with it).
-- ✅ Deleted this repo's `cloud/worker/` + `cloud/packages/shared/` code and docs.
-
-Still to check in the dashboards (manual — the deploy token can't see them):
-
-- [ ] D1 database `carbonink-cloud` — drop it if it still exists.
-- [ ] KV namespaces `LICENSE_ACTIVE` / `HUMANIZED_KEYS` / `REVOCATION_SET` /
-  `RATE_LIMIT` — delete any that remain.
-- [ ] R2 bucket `carbonink-releases` (old installer hosting; downloads now
-  resolve to GitHub Releases and nothing binds it) — delete it.
-- [ ] Stripe: deactivate the product + webhook endpoint
+- [ ] KV namespace `SESSION` (`ab3fa85f781b4beb825cfc4b44791dbb`) — orphaned
+  pre-OSS binding; nothing reads it. The next deploy drops the binding; delete
+  the namespace after that (earlier is also safe — it's unused).
+- [ ] Stripe: if not yet done, deactivate the product + webhook endpoint
   (`https://carbonink.xyz/api/v1/stripe-webhook`) and revoke
   `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET`.
+
+(Everything else from the old backend — D1 `carbonink-cloud`, the four license
+KVs, R2 `carbonink-releases`, the api worker + its secrets — was deleted
+2026-08-24.)

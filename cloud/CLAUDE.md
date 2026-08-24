@@ -1,10 +1,7 @@
 # carbonink-cloud — architecture notes
 
-`cloud/` is a **single static marketing site**. CarbonInk went free &
-open-source (MIT), which removed activation, licensing, and payments — the
-backend that powered them (`carbonink-cloud-api`) was torn down 2026-08-24
-(worker, `/api/*` route, secrets; D1/KV/Stripe residue cleaned out of the
-dashboards). Code + docs live only in git history.
+`cloud/` is a **single static marketing site** (CarbonInk is free &
+open-source — no backend, no accounts, no payments). One package:
 
 | Package | What | Status |
 |---|---|---|
@@ -18,17 +15,8 @@ Deploy steps: [DEPLOY.md](./DEPLOY.md).
 carbonink.xyz/*  →  carbonink-cloud-web   (cloud/web — static Astro, CDN HTML)
 ```
 
-One Worker, one zone, all prerendered HTML. **There is no `/api/*` route** —
-the desktop app is fully local and never phones home.
-
-> **History.** Before the OSS pivot this zone hosted two Workers wired by a
-> service binding: the web worker SSR'd `/activate` + `/account/*` and called
-> the api worker over `env.API` for license lookups, Stripe checkout
-> resolution, and magic-link session exchange. All retired. The one lesson
-> worth keeping: **never `fetch()` your own zone's public URL from inside a
-> Worker** — Cloudflare loops it at the routing layer for ~20s before giving
-> up. If you ever re-add a web→api hop, use a service binding, not a public
-> self-fetch. Detail in git history (pre-2026-08-24).
+One Worker, one zone, all prerendered HTML. The desktop app is fully local
+and never phones home.
 
 ## SEO — making carbonink.xyz findable
 

@@ -8,12 +8,11 @@ import { defineConfig } from 'astro/config';
  * Static Astro marketing site — serves all of `carbonink.xyz/*`.
  *
  * Every page is prerendered (`export const prerender = true`) to
- * CDN-cached HTML: `/`, `/download`, `/privacy` + their `/zh/`
- * mirrors. There are no SSR / portal pages anymore — the open-source
- * pivot retired the activate / account / admin flows and the `/api/*`
- * backend. `output: 'server'` is kept only because the Cloudflare
- * adapter emits the Static-Assets worker entry from it; with every
- * route prerendered the net effect is a fully static site.
+ * CDN-cached HTML: `/`, `/download`, `/privacy`, `/guides/*` + their
+ * `/zh/` mirrors — no SSR / portal pages. `output: 'server'` is kept
+ * only because the Cloudflare adapter emits the Static-Assets worker
+ * entry from it; with every route prerendered the net effect is a
+ * fully static site.
  */
 export default defineConfig({
   // `site` is required for @astrojs/sitemap to emit absolute URLs +

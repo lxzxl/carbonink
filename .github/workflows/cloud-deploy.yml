@@ -1,8 +1,8 @@
 name: Deploy Cloud
 
 # Auto-deploys the static marketing site (cloud/web → carbonink-cloud-web)
-# to production. Gated on the CI workflow passing on the same SHA —
-# so a green build is a prerequisite for going live.
+# to production. Web-only. Gated on the CI workflow passing on the same
+# SHA — so a green build is a prerequisite for going live.
 #
 # Triggers:
 #   - workflow_run on CI completion → deploy iff conclusion == success
@@ -10,9 +10,6 @@ name: Deploy Cloud
 #   - workflow_dispatch → manual "Run workflow" button for re-deploys
 #     without a fresh commit. Skips the CI gate; you're choosing to
 #     deploy HEAD.
-#
-# The old carbonink-cloud-api worker was torn down 2026-08-24 — see
-# cloud/DEPLOY.md. This deploy is web-only.
 #
 # Required GitHub repo secret:
 #   CLOUDFLARE_API_TOKEN — same scopes as cloud/.env.local; see

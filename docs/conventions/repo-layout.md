@@ -35,9 +35,6 @@ pnpm --filter carbonink dev          # electron-vite dev --watch (renderer HMR +
 pnpm --filter @carbonink-cloud/web build
 ```
 
-(The old `cloud/worker` API package + `@carbonink-cloud/shared` types were
-deleted 2026-08-24 with the license/payments teardown.)
-
 **Why monorepo**: desktop + the marketing site share tooling, CI, and docs in
 one place — a single PR can touch both apps atomically.
 

@@ -51,11 +51,6 @@ pnpm workspace; two apps share `docs/` + tooling:
 | `desktop/` | Electron app (`carbonink`) — `src/{main,preload,renderer,shared}`, `tests/` (vitest) |
 | `cloud/web/` | Astro **static marketing site** (`/`, `/download`, `/privacy`, `/guides/*` + `/zh/` mirrors; guides ship as en+zh pairs), Workers + Static Assets |
 
-The old license/payments backend (`carbonink-cloud-api`, formerly
-`cloud/worker/` + `cloud/packages/shared/`) was torn down 2026-08-24 — code and
-docs removed; see git history if you need it. Don't reintroduce licensing or
-payments (see non-negotiables).
-
 ```bash
 pnpm test                 # all packages          pnpm desktop:test / desktop:typecheck
 pnpm --filter carbonink dev                       # electron-vite dev --watch (renderer HMR + main/preload hot-restart)
