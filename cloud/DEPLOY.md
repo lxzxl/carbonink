@@ -48,9 +48,12 @@ carbonink.xyz/*  →  carbonink-cloud-web   (cloud/web — static Astro)
 One worker, catch-all on the zone; all routes prerender to CDN HTML. Fully
 static — no SSR pages, no API. The desktop app never phones home.
 
-> Residue: the live worker still carries an orphaned `SESSION` KV binding
-> (leftover from the pre-OSS SSR era; nothing reads it). The next deploy
-> removes the binding; see § "Dashboard residue" for what's left to delete.
+> Note: Astro 6's Cloudflare adapter auto-injects a `SESSION` KV binding when
+> no session driver is configured. `astro.config.mjs` pins the inert memory
+> driver so the generated wrangler config carries **no KV binding** — without
+> that, deploys fail with error 10210 once a referenced namespace is deleted
+> (this bit us on 2026-08-25 after the pre-OSS `SESSION` namespace was
+> removed). Keep the session pin if you ever regenerate the config.
 
 ## Deploy
 
@@ -99,13 +102,13 @@ pnpm exec wrangler rollback <VERSION> # specific
 Live leftovers still sitting in the Cloudflare / Stripe dashboards (the
 deploy token can't see or remove them):
 
-- [ ] KV namespace `SESSION` (`ab3fa85f781b4beb825cfc4b44791dbb`) — orphaned
-  pre-OSS binding; nothing reads it. The next deploy drops the binding; delete
-  the namespace after that (earlier is also safe — it's unused).
 - [ ] Stripe: if not yet done, deactivate the product + webhook endpoint
   (`https://carbonink.xyz/api/v1/stripe-webhook`) and revoke
   `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET`.
 
 (Everything else from the old backend — D1 `carbonink-cloud`, the four license
-KVs, R2 `carbonink-releases`, the api worker + its secrets — was deleted
-2026-08-24.)
+KVs, R2 `carbonink-releases`, the api worker + its secrets, and the orphaned
+`SESSION` KV namespace — was deleted 2026-08-24. The `SESSION` binding on the
+live web worker outlived its namespace and blocked deploys until 2026-08-25,
+when the adapter's auto-injected binding was removed at the source via the
+memory session driver.)

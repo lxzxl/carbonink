@@ -2,7 +2,7 @@ import cloudflare from '@astrojs/cloudflare';
 import mdx from '@astrojs/mdx';
 import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
-import { defineConfig } from 'astro/config';
+import { defineConfig, sessionDrivers } from 'astro/config';
 
 /**
  * Static Astro marketing site — serves all of `carbonink.xyz/*`.
@@ -25,6 +25,14 @@ export default defineConfig({
   // adapter, so we hand-write the rule instead.
   output: 'server',
   adapter: cloudflare(),
+  // Pin an inert session driver. Without one, the Cloudflare adapter
+  // auto-enables sessions backed by a `SESSION` KV binding and injects
+  // it into the generated wrangler config — which made every deploy
+  // fail once that namespace was deleted (error 10210: binding
+  // references a KV namespace that no longer exists). This site never
+  // touches `Astro.session`; the memory driver keeps the adapter from
+  // provisioning any storage while satisfying its "driver is set" check.
+  session: { driver: sessionDrivers.memory() },
   integrations: [
     mdx(),
     // Sitemap is the single fastest way to get a brand-new domain
