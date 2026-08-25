@@ -31,6 +31,17 @@ marketing pages are the indexable surface.
   integration's `i18n` option can't pair an unprefixed default locale with
   `/zh/*`, so the alternates are injected by hand in `serialize`
   (astro.config.mjs). New marketing pages get indexed automatically.
+- **Real 404s, agent-friendly bodies** — every nonexistent path returns a
+  genuine HTTP 404 (never a 200 with page shell), so crawlers and agents can
+  trust the status code. Two bodies for that one status: browsers get a
+  branded noindex page (`src/pages/404.astro`); non-HTML clients (curl,
+  agent harnesses — `Accept` without `text/html`, or `.md`/`.txt` paths) get
+  a short markdown body pointing at `/llms.txt`, the sitemap, and guides
+  (`src/middleware.ts`). Gotcha: keep `404.astro` **on-demand** (no
+  `prerender`) — prerendering bakes it to static `404.html` at build time,
+  where the build-time middleware pass (no browser Accept header) would bake
+  the markdown variant in AND Static Assets would then answer misses without
+  the worker, so runtime negotiation never runs.
 - **Guides content layer** — `src/content/guides/{en,zh}/<slug>.mdx`
   (content collection, `src/content.config.ts`), rendered by
   `GuideLayout.astro` (TOC, breadcrumbs + BreadcrumbList/TechArticle JSON-LD,

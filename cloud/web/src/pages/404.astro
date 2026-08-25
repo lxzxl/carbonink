@@ -1,0 +1,68 @@
+---
+import LogoMark from '../components/LogoMark.astro';
+import '../styles/global.css';
+
+/**
+ * Custom 404 — replaces Astro's built-in boilerplate error page.
+ *
+ * The status-code contract: every nonexistent path on carbonink.xyz
+ * returns a REAL 404 — never a 200 with page chrome — so crawlers and
+ * agents can trust that a hit means the URL exists.
+ *
+ * Two bodies serve that one status:
+ * - HTML (this page): browsers and HTML-fetching agents get a branded
+ *   landing whose visible links double as wayfinding for agents.
+ * - Markdown (`src/middleware.ts`): clients that don't signal
+ *   `Accept: text/html` (curl, most agent harnesses) get a short
+ *   markdown body pointing at llms.txt / sitemap / guides instead of
+ *   markup soup.
+ *
+ * Deliberately NOT built on Base.astro: an error surface shouldn't
+ * emit canonical/hreflang tags advertising mirrors of a URL we just
+ * 404'd, and it must carry `<meta name="robots" content="noindex">`
+ * so Search Console never mistakes soft-404 noise for indexable pages.
+ *
+ * Must stay ON-DEMAND (no `prerender`): prerendering bakes this page
+ * into a static `404.html` at build time, where two things break —
+ * the build-time middleware pass sees no browser `Accept` header and
+ * would bake the markdown variant into the file, and Static Assets
+ * then answers every miss directly, so the runtime negotiation in
+ * `src/middleware.ts` never runs. As an SSR route the page renders
+ * per-miss through the middleware chain, one cheap worker invocation
+ * on a path that already missed the CDN.
+ */
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Page not found · CarbonInk</title>
+    <meta name="theme-color" content="#6B8266" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class="bg-background text-foreground font-[family-name:var(--font-body)] min-h-screen">
+    <main class="min-h-screen flex flex-col items-center justify-center px-5 py-16 text-center">
+      <LogoMark size={44} />
+      <p class="mt-8 font-[family-name:var(--font-mono)] text-xs tracking-widest text-muted-foreground">HTTP 404</p>
+      <h1 class="mt-2 text-xl font-semibold tracking-tight">Page not found</h1>
+      <p class="mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
+        This URL doesn't exist on carbonink.xyz. Try one of these instead —
+        中文用户请访问<a href="/zh/" class="text-primary underline underline-offset-2 hover:text-moss-700">中文首页</a>。
+      </p>
+      <nav class="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-3 border-t border-border pt-6" aria-label="Site links">
+        <a href="/" class="text-sm font-medium text-primary underline-offset-2 hover:text-moss-700 hover:underline">Home</a>
+        <a href="/download/" class="text-sm font-medium text-primary underline-offset-2 hover:text-moss-700 hover:underline">Download</a>
+        <a href="/guides/" class="text-sm font-medium text-primary underline-offset-2 hover:text-moss-700 hover:underline">Guides</a>
+        <a href="/privacy/" class="text-sm font-medium text-primary underline-offset-2 hover:text-moss-700 hover:underline">Privacy</a>
+      </nav>
+      <p class="mt-10 font-[family-name:var(--font-mono)] text-xs text-muted-foreground">
+        Machine-readable:
+        <a href="/llms.txt" class="underline underline-offset-2 hover:text-foreground">/llms.txt</a>
+        ·
+        <a href="/sitemap-index.xml" class="underline underline-offset-2 hover:text-foreground">/sitemap-index.xml</a>
+      </p>
+    </main>
+  </body>
+</html>
