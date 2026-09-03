@@ -8,6 +8,7 @@ import type { IpcTypeMap } from '../types.js';
 type HandlerMap = { [K in keyof IpcTypeMap]?: IpcTypeMap[K] };
 
 const autoBackupEnabledInput = z.object({ enabled: z.boolean() });
+const openUrlInput = z.object({ url: z.string().url() });
 
 /**
  * App-level IPC handlers — version info + filesystem helpers that don't
@@ -52,6 +53,22 @@ export function appHandlers(ctx: IpcContext): HandlerMap {
     'app:open-auto-backup-dir': async () => {
       const err = await shell.openPath(getAutoBackupDir());
       return err === '' ? { ok: true } : { ok: false, error: err };
+    },
+    'app:open-url': async (input) => {
+      const parsed = openUrlInput.safeParse(input);
+      if (!parsed.success) {
+        return { ok: false, error: 'Invalid URL' };
+      }
+      const parsedUrl = new URL(parsed.data.url);
+      if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+        return { ok: false, error: 'Only http and https protocols are supported' };
+      }
+      try {
+        await shell.openExternal(parsed.data.url);
+        return { ok: true };
+      } catch (err) {
+        return { ok: false, error: err instanceof Error ? err.message : String(err) };
+      }
     },
     'app:get-auto-backup-enabled': () => ({
       enabled: ctx.settingsService.getAutoBackupEnabled(),

@@ -28,6 +28,17 @@ vi.mock('@renderer/lib/api/settings', () => ({
     clearAiCache: vi.fn(),
   },
 }));
+vi.mock('@renderer/lib/api/app', () => ({
+  appApi: {
+    getInfo: vi.fn(),
+    openDataDir: vi.fn(),
+    openLogDir: vi.fn(),
+    openAutoBackupDir: vi.fn(),
+    openUrl: vi.fn().mockResolvedValue({ ok: true }),
+    getAutoBackupEnabled: vi.fn(),
+    setAutoBackupEnabled: vi.fn(),
+  },
+}));
 
 // Phase 5: UpdateSection (rendered as part of SettingsPage) calls
 // `updaterApi.getStatus` via TanStack Query and `subscribe` from
@@ -45,6 +56,7 @@ vi.mock('@renderer/lib/ipc', () => ({
   subscribe: vi.fn(() => () => {}),
 }));
 
+import { appApi } from '@renderer/lib/api/app';
 import { settingsApi } from '@renderer/lib/api/settings';
 
 function harness(ui: React.ReactElement) {
@@ -310,5 +322,35 @@ describe('SettingsPage', () => {
       expect(modelTrigger.textContent).toContain('brand-new-model:free');
       expect(screen.getByText(/Custom id: not in the bundled catalog/i)).toBeTruthy();
     });
+  });
+
+  it('renders provider guidance with referral link and dispatches appApi.openUrl on click', async () => {
+    vi.mocked(settingsApi.getProviderGuidance).mockResolvedValue([
+      {
+        id: 'openai',
+        name: 'OpenAI',
+        latencyHintKey: 'provider_guidance_openai_latency',
+        noteKey: 'provider_guidance_openai_note',
+        recommendedFor: ['global'],
+        referralUrl: 'https://platform.openai.com/signup',
+      },
+    ]);
+
+    render(harness(<SettingsPage />));
+    gotoAiSection();
+
+    const trigger = (await screen.findByRole('combobox', {
+      name: /Provider/i,
+    })) as HTMLButtonElement;
+    await waitFor(() => expect(trigger.disabled).toBe(false));
+    fireEvent.click(trigger);
+    fireEvent.click(await screen.findByRole('option', { name: /^openai/i }));
+
+    const referralLink = await screen.findByRole('link', { name: /Get an account/i });
+    expect(referralLink).toBeTruthy();
+    expect(referralLink.getAttribute('href')).toBe('https://platform.openai.com/signup');
+
+    fireEvent.click(referralLink);
+    expect(appApi.openUrl).toHaveBeenCalledWith('https://platform.openai.com/signup');
   });
 });

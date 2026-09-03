@@ -11,6 +11,7 @@ export const appApi = {
   openDataDir: () => invoke('app:open-data-dir'),
   openLogDir: () => invoke('app:open-log-dir'),
   openAutoBackupDir: () => invoke('app:open-auto-backup-dir'),
+  openUrl: (url: string) => invoke('app:open-url', { url }),
   getAutoBackupEnabled: () => invoke('app:get-auto-backup-enabled'),
   setAutoBackupEnabled: (input: { enabled: boolean }) =>
     invoke('app:set-auto-backup-enabled', input),

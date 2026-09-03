@@ -49,13 +49,13 @@ const STATIC_GUIDANCE: Record<string, StaticGuidance> = {
     name: 'OpenAI',
     latencyHintKey: 'provider_guidance_openai_latency',
     noteKey: 'provider_guidance_openai_note',
-    recommendedFor: [],
+    recommendedFor: ['global'],
   },
   anthropic: {
     name: 'Anthropic',
     latencyHintKey: 'provider_guidance_anthropic_latency',
     noteKey: 'provider_guidance_anthropic_note',
-    recommendedFor: [],
+    recommendedFor: ['global'],
   },
 };
 

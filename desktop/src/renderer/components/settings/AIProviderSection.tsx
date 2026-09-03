@@ -7,12 +7,13 @@ import {
 } from '@renderer/components/ui/combobox';
 import { Input } from '@renderer/components/ui/input';
 import { Label } from '@renderer/components/ui/label';
+import { appApi } from '@renderer/lib/api/app';
 import { settingsApi } from '@renderer/lib/api/settings';
 import { friendlyErrorDescription } from '@renderer/lib/error-message';
 import { currentLocale } from '@renderer/lib/i18n';
 import { cn } from '@renderer/lib/utils';
 import * as m from '@renderer/paraglide/messages';
-import type { ProviderCatalogModel, ProviderConfigV2 } from '@shared/types';
+import type { ProviderCatalogModel, ProviderConfigV2, ProviderGuidance } from '@shared/types';
 import { useForm, useStore } from '@tanstack/react-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
@@ -241,23 +242,6 @@ export function AIProviderSection() {
   const apiKeyValue = useStore(form.store, (s) => s.values.apiKey);
   const modelValue = useStore(form.store, (s) => s.values.model);
 
-  const providerGroups = useMemo<ComboboxGroup[]>(() => {
-    const { recommended, rest } = splitProviders(providersQuery.data ?? []);
-    const groups: ComboboxGroup[] = [];
-    if (recommended.length > 0) {
-      groups.push({
-        heading: m.settings_provider_group_recommended(),
-        options: recommended.map((p) => ({ value: p })),
-      });
-    }
-    if (rest.length > 0) {
-      groups.push({
-        heading: m.settings_provider_group_all(),
-        options: rest.map((p) => ({ value: p })),
-      });
-    }
-    return groups;
-  }, [providersQuery.data]);
   const guidanceQuery = useQuery({
     queryKey: ['settings:provider-guidance'],
     queryFn: settingsApi.getProviderGuidance,
@@ -265,15 +249,73 @@ export function AIProviderSection() {
     // within a session, so we never refetch.
     staleTime: Number.POSITIVE_INFINITY,
   });
+
+  const guidanceMap = useMemo(() => {
+    const map = new Map<string, ProviderGuidance>();
+    for (const g of guidanceQuery.data ?? []) {
+      map.set(g.id, g);
+    }
+    return map;
+  }, [guidanceQuery.data]);
+
+  const isZh = currentLocale().startsWith('zh');
+
+  const providerGroups = useMemo<ComboboxGroup[]>(() => {
+    const { recommended, rest } = splitProviders(providersQuery.data ?? []);
+    const buildProviderOption = (id: string): ComboboxOption => {
+      const g = guidanceMap.get(id);
+      if (!g) return { value: id };
+      const latencyHint = resolveGuidanceCopy(g.latencyHintKey);
+      const matchesLocale =
+        (isZh && g.recommendedFor.includes('cn')) || (!isZh && g.recommendedFor.includes('global'));
+      return {
+        value: id,
+        keywords: [g.name, latencyHint],
+        label: (
+          <span className="flex min-w-0 flex-1 items-baseline gap-2">
+            <span className="truncate font-mono text-[0.8125rem]">{id}</span>
+            {g.name !== id && (
+              <span className="truncate text-xs text-muted-foreground">{g.name}</span>
+            )}
+            <span className="ms-auto flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
+              <span>{latencyHint}</span>
+              {matchesLocale && (
+                <span className="rounded-full border border-border px-1.5 py-0.5 text-[0.625rem]">
+                  {m.settings_provider_group_recommended()}
+                </span>
+              )}
+            </span>
+          </span>
+        ),
+      };
+    };
+
+    const groups: ComboboxGroup[] = [];
+    if (recommended.length > 0) {
+      groups.push({
+        heading: m.settings_provider_group_recommended(),
+        options: recommended.map(buildProviderOption),
+      });
+    }
+    if (rest.length > 0) {
+      groups.push({
+        heading: m.settings_provider_group_all(),
+        options: rest.map(buildProviderOption),
+      });
+    }
+    return groups;
+  }, [providersQuery.data, guidanceMap, isZh]);
+
   const selectedGuidance = useMemo(
     () => (guidanceQuery.data ?? []).find((g) => g.id === provider),
     [guidanceQuery.data, provider],
   );
   // Locale-local heuristic only — a hint, not a geo verdict. A zh-*
-  // app locale plus a 'cn' recommendation shows the chip; anything else renders
-  // the note without it.
+  // app locale matches 'cn'; any other locale matches 'global'.
   const showRecommendedChip =
-    selectedGuidance?.recommendedFor.includes('cn') === true && currentLocale().startsWith('zh');
+    selectedGuidance !== undefined &&
+    ((isZh && selectedGuidance.recommendedFor.includes('cn')) ||
+      (!isZh && selectedGuidance.recommendedFor.includes('global')));
 
   const knownProviders = providersQuery.data ?? [];
   const hasUnknownProvider = provider !== '' && !knownProviders.includes(provider);
@@ -455,16 +497,24 @@ export function AIProviderSection() {
           <p className="mt-1 text-muted-foreground">
             {resolveGuidanceCopy(selectedGuidance.noteKey)}
           </p>
-          {selectedGuidance.referralUrl && (
-            <a
-              href={selectedGuidance.referralUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-1 inline-block underline underline-offset-2"
-            >
-              {m.settings_provider_guidance_account()}
-            </a>
-          )}
+          {selectedGuidance.referralUrl &&
+            (() => {
+              const referralUrl = selectedGuidance.referralUrl;
+              return (
+                <a
+                  href={referralUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    void appApi.openUrl(referralUrl);
+                  }}
+                  className="mt-1 inline-block underline underline-offset-2"
+                >
+                  {m.settings_provider_guidance_account()}
+                </a>
+              );
+            })()}
         </div>
       )}
 

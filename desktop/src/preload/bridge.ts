@@ -173,6 +173,7 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   // Phase 5.3 — log dir + auto-backup dir
   'app:open-log-dir',
   'app:open-auto-backup-dir',
+  'app:open-url',
   'app:get-auto-backup-enabled',
   'app:set-auto-backup-enabled',
   // Undo/Redo (post-launch)

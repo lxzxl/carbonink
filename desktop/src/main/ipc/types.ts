@@ -711,6 +711,7 @@ export type IpcTypeMap = {
   'app:open-data-dir': () => Promise<{ ok: true } | { ok: false; error: string }>;
   'app:open-log-dir': () => Promise<{ ok: true } | { ok: false; error: string }>;
   'app:open-auto-backup-dir': () => Promise<{ ok: true } | { ok: false; error: string }>;
+  'app:open-url': (input: { url: string }) => Promise<{ ok: true } | { ok: false; error: string }>;
   // Auto-backup toggle. The runner itself lives in main and decides
   // per-launch whether a backup is due; this pair just reads / writes
   // the `auto_backup.enabled` setting row (defaults to true when absent).
