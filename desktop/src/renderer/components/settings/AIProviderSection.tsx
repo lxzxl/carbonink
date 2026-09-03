@@ -228,13 +228,19 @@ export function AIProviderSection() {
         });
         return;
       }
-      if (!value.apiKey.trim()) {
+      const isRetainingSavedKey =
+        existingQuery.data?.provider === value.provider && hasSavedKey && !isEditingKey;
+      const apiKeyTrimmed = value.apiKey.trim();
+      if (!apiKeyTrimmed && !isRetainingSavedKey) {
         toast.error(m.settings_save_failed(), {
           description: 'Please enter an API key.',
         });
         return;
       }
-      await saveMutation.mutateAsync({ config, apiKey: value.apiKey.trim() });
+      await saveMutation.mutateAsync({
+        config,
+        ...(apiKeyTrimmed ? { apiKey: apiKeyTrimmed } : {}),
+      });
     },
   });
 
@@ -411,11 +417,13 @@ export function AIProviderSection() {
     }
   };
 
+  const isRetainingSavedKey =
+    existingQuery.data?.provider === provider && hasSavedKey && !isEditingKey;
   const canSave = (() => {
     if (saveMutation.isPending) return false;
     if (!provider.trim()) return false;
     if (!modelValue.trim()) return false;
-    if (!apiKeyValue.trim()) return false;
+    if (!apiKeyValue.trim() && !isRetainingSavedKey) return false;
     return true;
   })();
 

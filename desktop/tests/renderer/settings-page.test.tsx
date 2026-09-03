@@ -274,6 +274,36 @@ describe('SettingsPage', () => {
       apiKey: 'sk-test-key',
     });
   });
+  it('Save with an existing key allows model change without re-typing API key', async () => {
+    vi.mocked(settingsApi.getProvider).mockResolvedValue({
+      provider: 'openai',
+      model: 'gpt-4o-mini',
+      apiKeyMasked: 'sk-...abcd',
+    });
+
+    render(harness(<SettingsPage />));
+    gotoAiSection();
+
+    // Wait for hydration and ensure Save button is enabled even without typing API key
+    const saveBtn = (await screen.findByRole('button', { name: /^Save$/i })) as HTMLButtonElement;
+    await waitFor(() => expect(saveBtn.disabled).toBe(false));
+
+    // Change the model
+    const modelTrigger = screen.getByRole('combobox', { name: /^Model$/i });
+    fireEvent.click(modelTrigger);
+    fireEvent.click(await screen.findByRole('option', { name: 'gpt-4o GPT-4o' }));
+
+    fireEvent.click(saveBtn);
+
+    await waitFor(() => {
+      expect(vi.mocked(settingsApi.saveProvider).mock.calls[0]?.[0]).toEqual({
+        config: {
+          provider: 'openai',
+          model: 'gpt-4o',
+        },
+      });
+    });
+  });
 
   it('typing an uncatalogued model id offers the custom-id escape hatch', async () => {
     render(harness(<SettingsPage />));

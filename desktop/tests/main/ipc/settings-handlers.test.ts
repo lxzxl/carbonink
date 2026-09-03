@@ -112,6 +112,21 @@ describe('settings IPC handlers', () => {
     const fetched = handlers['settings:get-provider']?.();
     expect(fetched).toEqual({ ...config, apiKeyMasked: 'sk-...2345' });
   });
+  it('settings:save-provider accepts omitted apiKey when key already exists', () => {
+    const config: ProviderConfigV2 = {
+      provider: 'openai',
+      model: 'gpt-4o-mini',
+    };
+    handlers['settings:save-provider']?.({ config, apiKey: 'sk-test-12345' });
+    expect(credentials.set).toHaveBeenCalledTimes(1);
+
+    // Update only the model without passing apiKey
+    handlers['settings:save-provider']?.({ config: { ...config, model: 'gpt-4o' } });
+    expect(credentials.set).toHaveBeenCalledTimes(1);
+
+    const fetched = handlers['settings:get-provider']?.();
+    expect(fetched).toEqual({ provider: 'openai', model: 'gpt-4o', apiKeyMasked: 'sk-...2345' });
+  });
 
   it('settings:save-provider rejects V1 shape (V2-only after Task 10b)', () => {
     // The handler now zod-parses against `providerConfigV2`, which has no

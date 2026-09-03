@@ -23,7 +23,7 @@ import { invoke } from '../ipc.js';
 export const settingsApi = {
   available: () => invoke('settings:available'),
   getProvider: () => invoke('settings:get-provider'),
-  saveProvider: (input: { config: ProviderConfigV2; apiKey: string }) =>
+  saveProvider: (input: { config: ProviderConfigV2; apiKey?: string }) =>
     invoke('settings:save-provider', input),
   clearProvider: () => invoke('settings:clear-provider'),
   pingProvider: (input: { config: ProviderConfigV2; apiKey?: string }) =>

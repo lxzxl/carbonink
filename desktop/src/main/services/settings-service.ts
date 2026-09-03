@@ -65,19 +65,23 @@ export class SettingsService {
    * re-saves all stored configs) without us having to special-case the
    * call site. External (IPC) callers always pass V2.
    */
-  saveProviderConfig(config: ProviderConfigV2 | unknown, apiKeyPlaintext: string): void {
+  saveProviderConfig(config: ProviderConfigV2 | unknown, apiKeyPlaintext?: string): void {
     const parsed = migrateProviderConfig(config);
     if (parsed === null) {
       throw new Error('Invalid provider config (neither V1 nor V2 shape).');
     }
 
-    // Order matters: write the credential first. If saveProviderConfig is
-    // ever interrupted, having the key without the config is harmless (the
-    // config row simply doesn't exist yet), but having the config without
-    // the key would surface as an `AiAuthError` when the user thinks they
-    // configured the provider.
-    this.ctx.credentials.set(apiKeyKeyrefForProvider(parsed.provider), apiKeyPlaintext);
-
+    const keyref = apiKeyKeyrefForProvider(parsed.provider);
+    if (apiKeyPlaintext !== undefined && apiKeyPlaintext !== '') {
+      // Order matters: write the credential first. If saveProviderConfig is
+      // ever interrupted, having the key without the config is harmless (the
+      // config row simply doesn't exist yet), but having the config without
+      // the key would surface as an `AiAuthError` when the user thinks they
+      // configured the provider.
+      this.ctx.credentials.set(keyref, apiKeyPlaintext);
+    } else if (this.ctx.credentials.get(keyref) === null) {
+      throw new Error(`No API key configured for provider '${parsed.provider}'.`);
+    }
     const value = JSON.stringify(parsed);
     const ts = this.ctx.now();
     // sqlite UPSERT keeps this idempotent — calling save twice with the

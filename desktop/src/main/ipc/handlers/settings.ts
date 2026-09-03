@@ -27,7 +27,7 @@ import type { IpcTypeMap } from '../types.js';
  */
 const saveProviderInput = z.object({
   config: providerConfigV2,
-  apiKey: z.string().min(1),
+  apiKey: z.string().min(1).optional(),
 });
 
 const pingProviderInput = z.object({

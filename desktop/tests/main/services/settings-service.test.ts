@@ -91,6 +91,34 @@ describe('SettingsService', () => {
     expect(rows.length).toBe(1);
     expect(JSON.parse(rows[0]!.value).model).toBe('gpt-4o');
   });
+  it('saveProviderConfig without apiKey retains existing key when already configured', () => {
+    const config: ProviderConfigV2 = {
+      provider: 'openai',
+      model: 'gpt-4o-mini',
+    };
+    service.saveProviderConfig(config, 'sk-first');
+    expect(credentials.set).toHaveBeenCalledTimes(1);
+
+    // Now update only the model, omitting apiKey
+    service.saveProviderConfig({ ...config, model: 'gpt-4o' });
+    // credentials.set should not be called again
+    expect(credentials.set).toHaveBeenCalledTimes(1);
+
+    const row = db.prepare('SELECT value FROM setting WHERE key = ?').get('llm.provider') as {
+      value: string;
+    };
+    expect(JSON.parse(row.value).model).toBe('gpt-4o');
+  });
+
+  it('saveProviderConfig without apiKey throws when no key is configured for the provider', () => {
+    const config: ProviderConfigV2 = {
+      provider: 'openai',
+      model: 'gpt-4o-mini',
+    };
+    expect(() => service.saveProviderConfig(config)).toThrow(
+      "No API key configured for provider 'openai'",
+    );
+  });
 
   it('getProviderConfig returns null when no config has been saved', () => {
     expect(service.getProviderConfig()).toBeNull();

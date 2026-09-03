@@ -279,7 +279,7 @@ export type IpcTypeMap = {
   // IPC contract.
   'settings:available': () => boolean;
   'settings:get-provider': () => (ProviderConfigV2 & { apiKeyMasked: string | null }) | null;
-  'settings:save-provider': (input: { config: ProviderConfigV2; apiKey: string }) => void;
+  'settings:save-provider': (input: { config: ProviderConfigV2; apiKey?: string }) => void;
   'settings:clear-provider': () => void;
   'settings:ping-provider': (input: {
     config: ProviderConfigV2;
