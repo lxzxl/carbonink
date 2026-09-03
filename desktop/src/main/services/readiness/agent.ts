@@ -1,5 +1,7 @@
 import type { AgentTool } from '@main/llm/ai-agent.js';
-import { runAiAgent } from '@main/llm/run-ai.js';
+import { buildCacheKey, sha256Hex, stableStringify } from '@main/llm/cache-key.js';
+import type { LlmCache } from '@main/llm/llm-cache.js';
+import { type AiCacheRequest, runAiAgent } from '@main/llm/run-ai.js';
 import type { CredentialService } from '@main/services/credential-service.js';
 import type { ProviderConfigV2, ReadinessFinding } from '@shared/types.js';
 import { newId } from '@shared/ulid.js';
@@ -26,6 +28,15 @@ const MAX_TURNS = (() => {
   return Number.isFinite(raw) && raw > 0 ? raw : 4;
 })();
 const TIMEOUT_MS = 60_000;
+
+/**
+ * Prompt version pinned into readiness cache keys. Bump when
+ * SYSTEM_PROMPT or reviewSchema changes.
+ */
+const READINESS_PROMPT_VERSION = 'v1';
+
+/** Inventories change across runs — a day-long TTL. */
+const READINESS_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const MAX_OBSERVATION_CHARS = 240;
 
 const reviewSchema = z.object({
@@ -71,6 +82,11 @@ export interface ReadinessAgentDeps {
    * undefined. Same hook `buildAiAgentLayer` already documents.
    */
   model?: Parameters<typeof runAiAgent>[2]['model'];
+  /**
+   * File-backed deterministic-result cache. Absent in unit tests;
+   * production wires the process `LlmCache` from the IPC context.
+   */
+  cache?: LlmCache;
 }
 
 interface SourceRow {
@@ -97,7 +113,8 @@ export class ReadinessAgentService {
 
     const startedAt = Date.now();
     try {
-      const { result, trace } = await runAiAgent(this.deps.config, this.deps.credentials, {
+      const cache = this.cacheRequest(period);
+      const { result, trace, cached } = await runAiAgent(this.deps.config, this.deps.credentials, {
         systemPrompt: SYSTEM_PROMPT,
         userPrompt:
           `Review the ${period.year} inventory. Start by listing the emission sources ` +
@@ -107,17 +124,22 @@ export class ReadinessAgentService {
         maxTurns: MAX_TURNS,
         timeoutMs: TIMEOUT_MS,
         ...(this.deps.model !== undefined ? { model: this.deps.model } : {}),
+        ...(cache ? { cache } : {}),
       });
 
-      this.writeTrace({
-        periodId: period.id,
-        stopReason: trace.stopReason,
-        turnCount: trace.turnCount,
-        tools: trace.toolCalls.map((c) => c.tool),
-        tokens: trace.totalTokens,
-        durationMs: trace.totalDurationMs,
-        findingCount: result.findings.length,
-      });
+      // Cache hits skip the audit row — same rationale as the EF matcher:
+      // no agent ran, so there is no attempt to record.
+      if (!cached) {
+        this.writeTrace({
+          periodId: period.id,
+          stopReason: trace.stopReason,
+          turnCount: trace.turnCount,
+          tools: trace.toolCalls.map((c) => c.tool),
+          tokens: trace.totalTokens,
+          durationMs: trace.totalDurationMs,
+          findingCount: result.findings.length,
+        });
+      }
 
       return this.sanitize(result.findings, knownIds, period.id);
     } catch {
@@ -193,6 +215,66 @@ export class ReadinessAgentService {
       .all(organizationId) as SourceRow[];
   }
 
+  private activitySummary(periodId: string, organizationId: string): unknown {
+    return this.deps.db
+      .prepare(
+        `SELECT es.id AS emission_source_id, es.name,
+                COUNT(ad.id) AS row_count,
+                COALESCE(SUM(ad.computed_co2e_kg), 0) AS co2e_kg
+           FROM emission_source es
+           JOIN site s ON s.id = es.site_id
+      LEFT JOIN activity_data ad
+             ON ad.emission_source_id = es.id AND ad.reporting_period_id = ?
+          WHERE s.organization_id = ?
+       GROUP BY es.id
+       ORDER BY co2e_kg DESC`,
+      )
+      .all(periodId, organizationId);
+  }
+
+  private orgProfile(organizationId: string): unknown {
+    const org = this.deps.db
+      .prepare(
+        `SELECT industry, country_code, boundary_kind,
+                (SELECT COUNT(*) FROM site WHERE organization_id = organization.id)
+                  AS site_count
+           FROM organization WHERE id = ?`,
+      )
+      .get(organizationId);
+    return org ?? { error: 'organization_not_found' };
+  }
+
+  /**
+   * Inventory fingerprint for cache keys: everything the review can
+   * observe through its tools (sources, per-source activity totals, org
+   * profile). Any edit that could change the review changes the
+   * fingerprint and invalidates the cached findings.
+   */
+  private cacheRequest(period: {
+    id: string;
+    organization_id: string;
+    year: number;
+  }): AiCacheRequest | undefined {
+    if (!this.deps.cache || !this.deps.config) return undefined;
+    const inventory = stableStringify({
+      sources: this.listSources(period.organization_id),
+      activity: this.activitySummary(period.id, period.organization_id),
+      profile: this.orgProfile(period.organization_id),
+    });
+    return {
+      store: this.deps.cache,
+      key: buildCacheKey({
+        scope: 'readiness',
+        provider: this.deps.config.provider,
+        model: this.deps.config.model,
+        promptVersion: READINESS_PROMPT_VERSION,
+        datasetVersion: sha256Hex(inventory),
+        payload: { period_id: period.id, year: period.year },
+      }),
+      ttlMs: READINESS_CACHE_TTL_MS,
+    };
+  }
+
   /** Read-only, organization-scoped, and small enough to fit a few turns. */
   private buildTools(organizationId: string, periodId: string): AgentTool[] {
     return [
@@ -211,20 +293,7 @@ export class ReadinessAgentService {
           'a material source from a token one.',
         parameters: z.toJSONSchema(z.object({})),
         execute: async () => ({
-          sources: this.deps.db
-            .prepare(
-              `SELECT es.id AS emission_source_id, es.name,
-                      COUNT(ad.id) AS row_count,
-                      COALESCE(SUM(ad.computed_co2e_kg), 0) AS co2e_kg
-                 FROM emission_source es
-                 JOIN site s ON s.id = es.site_id
-            LEFT JOIN activity_data ad
-                   ON ad.emission_source_id = es.id AND ad.reporting_period_id = ?
-                WHERE s.organization_id = ?
-             GROUP BY es.id
-             ORDER BY co2e_kg DESC`,
-            )
-            .all(periodId, organizationId),
+          sources: this.activitySummary(periodId, organizationId),
         }),
       },
       {
@@ -233,17 +302,7 @@ export class ReadinessAgentService {
           'The organization: industry, country, boundary and site count. Industry is ' +
           'what makes a missing source (C6) judgeable.',
         parameters: z.toJSONSchema(z.object({})),
-        execute: async () => {
-          const org = this.deps.db
-            .prepare(
-              `SELECT industry, country_code, boundary_kind,
-                      (SELECT COUNT(*) FROM site WHERE organization_id = organization.id)
-                        AS site_count
-                 FROM organization WHERE id = ?`,
-            )
-            .get(organizationId);
-          return org ?? { error: 'organization_not_found' };
-        },
+        execute: async () => this.orgProfile(organizationId),
       },
     ];
   }

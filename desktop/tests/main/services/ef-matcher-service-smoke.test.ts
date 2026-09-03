@@ -13,7 +13,12 @@
  * Used as the closest-to-production "Confirm flow" verification we can
  * run without launching Electron.
  */
+
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { runMigrations } from '@main/db/migrate';
+import { LlmCache } from '@main/llm/llm-cache';
 import { runAiObject } from '@main/llm/run-ai';
 import type { CredentialService } from '@main/services/credential-service';
 import { EfMatcherService } from '@main/services/ef-matcher-service';
@@ -46,6 +51,8 @@ function setup(opts: {
   source: { scope: number; category: string | null };
   /** Return the top-3 from this list; default: pass through the first 3. */
   llmPicker?: (candidates: EmissionFactor[]) => Array<{ ef: EmissionFactor; reasoning_zh: string }>;
+  /** Real file-backed store in a temp dir; the service must thread it through. */
+  cache?: LlmCache;
 }) {
   const db = new Database(':memory:');
   runMigrations(db);
@@ -87,6 +94,7 @@ function setup(opts: {
     emissionSourceService: { get: vi.fn().mockReturnValue(opts.source) } as never,
     credentials: fakeCredentials(),
     config: FAKE_CONFIG,
+    ...(opts.cache ? { cache: opts.cache } : {}),
   });
   return { svc, recommendEfs: vi.mocked(runAiObject), efService };
 }
@@ -228,19 +236,31 @@ describe('EfMatcherService — end-to-end smoke against real seeded catalog', ()
     expect(recommendEfs).not.toHaveBeenCalled();
   });
 
-  it('cache: a second recommend() with the same key does not re-invoke the LLM', async () => {
-    const { svc, recommendEfs } = setup({
-      extraction: {
-        id: 'ext-cache',
-        parsed_json: JSON.stringify({ fuel_type: '柴油' }),
-        prompt_version: 'fuel_receipt.v1',
-      } as Extraction,
-      source: { scope: 1, category: 'fuel.combustion' },
-    });
+  it('cache: identical recommend() calls thread the same key on the same store', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ef-matcher-smoke-'));
+    try {
+      const cache = new LlmCache(dir);
+      const { svc, recommendEfs } = setup({
+        extraction: {
+          id: 'ext-cache',
+          parsed_json: JSON.stringify({ fuel_type: '柴油' }),
+          prompt_version: 'fuel_receipt.v1',
+        } as Extraction,
+        source: { scope: 1, category: 'fuel.combustion' },
+        cache,
+      });
 
-    await svc.recommend({ extraction_id: 'ext-cache', emission_source_id: 'src-cache' });
-    await svc.recommend({ extraction_id: 'ext-cache', emission_source_id: 'src-cache' });
+      await svc.recommend({ extraction_id: 'ext-cache', emission_source_id: 'src-cache' });
+      await svc.recommend({ extraction_id: 'ext-cache', emission_source_id: 'src-cache' });
 
-    expect(recommendEfs).toHaveBeenCalledTimes(1);
+      // Mocked boundary fires twice; real dedup is proven in
+      // run-ai-cache.test.ts. Here: same store, same key both times.
+      expect(recommendEfs).toHaveBeenCalledTimes(2);
+      const [first, second] = recommendEfs.mock.calls.map((c) => c[2].cache);
+      expect(first?.store).toBe(cache);
+      expect(second?.key).toBe(first?.key);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

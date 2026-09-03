@@ -9,6 +9,7 @@ import { Input } from '@renderer/components/ui/input';
 import { Label } from '@renderer/components/ui/label';
 import { settingsApi } from '@renderer/lib/api/settings';
 import { friendlyErrorDescription } from '@renderer/lib/error-message';
+import { currentLocale } from '@renderer/lib/i18n';
 import { cn } from '@renderer/lib/utils';
 import * as m from '@renderer/paraglide/messages';
 import type { ProviderCatalogModel, ProviderConfigV2 } from '@shared/types';
@@ -147,6 +148,17 @@ function buildProviderConfigV2(v: SettingsFormValues): ProviderConfigV2 | null {
 }
 
 /**
+ * Resolve a guidance copy key shipped by the main process into the current
+ * locale's string. Keys travel over IPC (not resolved text) so a runtime
+ * locale switch re-renders without re-fetching; an unknown key falls back
+ * to the key itself rather than blanking the card.
+ */
+function resolveGuidanceCopy(key: string): string {
+  const fn = (m as unknown as Record<string, (() => string) | undefined>)[key];
+  return fn?.() ?? key;
+}
+
+/**
  * Build the structured combobox row for a model: mono id, then the human
  * `name` (e.g. "DeepSeek V4 Pro") in muted text when the catalog carries
  * one, with capability text (image, reasoning) trailing so it's
@@ -246,6 +258,22 @@ export function AIProviderSection() {
     }
     return groups;
   }, [providersQuery.data]);
+  const guidanceQuery = useQuery({
+    queryKey: ['settings:provider-guidance'],
+    queryFn: settingsApi.getProviderGuidance,
+    // Static table + maintainer-edited runtime file; cannot change
+    // within a session, so we never refetch.
+    staleTime: Number.POSITIVE_INFINITY,
+  });
+  const selectedGuidance = useMemo(
+    () => (guidanceQuery.data ?? []).find((g) => g.id === provider),
+    [guidanceQuery.data, provider],
+  );
+  // Locale-local heuristic only — a hint, not a geo verdict. A zh-*
+  // app locale plus a 'cn' recommendation shows the chip; anything else renders
+  // the note without it.
+  const showRecommendedChip =
+    selectedGuidance?.recommendedFor.includes('cn') === true && currentLocale().startsWith('zh');
 
   const knownProviders = providersQuery.data ?? [];
   const hasUnknownProvider = provider !== '' && !knownProviders.includes(provider);
@@ -411,6 +439,34 @@ export function AIProviderSection() {
           </div>
         )}
       />
+      {selectedGuidance && (
+        <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="font-medium">{selectedGuidance.name}</span>
+            <span className="text-muted-foreground">
+              {resolveGuidanceCopy(selectedGuidance.latencyHintKey)}
+            </span>
+            {showRecommendedChip && (
+              <span className="rounded-full border border-border px-2 py-0.5 text-[0.6875rem] text-muted-foreground">
+                {m.settings_provider_group_recommended()}
+              </span>
+            )}
+          </div>
+          <p className="mt-1 text-muted-foreground">
+            {resolveGuidanceCopy(selectedGuidance.noteKey)}
+          </p>
+          {selectedGuidance.referralUrl && (
+            <a
+              href={selectedGuidance.referralUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-1 inline-block underline underline-offset-2"
+            >
+              {m.settings_provider_guidance_account()}
+            </a>
+          )}
+        </div>
+      )}
 
       {provider === 'anthropic' && (
         // OAuth flow is a v1.x target — for now we just nudge users

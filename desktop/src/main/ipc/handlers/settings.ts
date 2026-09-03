@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { extname } from 'node:path';
 import { AiClientTag, buildAiClientLayer } from '@main/llm/ai-client.js';
 import { listModelsForProvider, listProviderIds } from '@main/llm/pi-catalog.js';
+import { getProviderGuidance } from '@main/llm/provider-guidance.js';
 import {
   IMPORT_OUTLIER_RATIO_MAX,
   IMPORT_OUTLIER_RATIO_MIN,
@@ -166,5 +167,10 @@ export function settingsHandlers(ctx: IpcContext): {
       const parsed = listModelsInput.parse(input);
       return listModelsForProvider(parsed.provider);
     },
+    // LLM provider guidance + deterministic cache (spec 2026-09-02).
+    // Guidance merges the static table with the maintainer's runtime
+    // referral overlay; clear wipes the file-backed LlmCache.
+    'settings:get-provider-guidance': () => getProviderGuidance(ctx.userDataDir),
+    'settings:clear-ai-cache': () => ({ cleared: ctx.llmCache.clear() }),
   };
 }

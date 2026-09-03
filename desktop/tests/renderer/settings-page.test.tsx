@@ -24,6 +24,8 @@ vi.mock('@renderer/lib/api/settings', () => ({
     setAmapKey: vi.fn(),
     listProviders: vi.fn(),
     listModels: vi.fn(),
+    getProviderGuidance: vi.fn(),
+    clearAiCache: vi.fn(),
   },
 }));
 
@@ -62,7 +64,7 @@ function harness(ui: React.ReactElement) {
  * zh ("AI 提供方") and en ("AI provider") label variants.
  */
 function gotoAiSection() {
-  const aiNav = screen.getByRole('button', { name: /ai|llm/i });
+  const aiNav = screen.getByRole('button', { name: /ai provider|ai 服务/i });
   fireEvent.click(aiNav);
 }
 
@@ -85,6 +87,9 @@ const TEST_MODELS: Record<string, Array<{ id: string; name: string }>> = {
 
 function mockModelCatalog() {
   vi.mocked(settingsApi.listProviders).mockResolvedValue(TEST_PROVIDERS);
+  // Guidance overlay: empty by default so the provider card path stays
+  // inert; individual tests seed entries when they exercise the card.
+  vi.mocked(settingsApi.getProviderGuidance).mockResolvedValue([]);
   vi.mocked(settingsApi.listModels).mockImplementation((provider: string) =>
     Promise.resolve(
       (TEST_MODELS[provider] ?? []).map((m) => ({

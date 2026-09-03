@@ -1,4 +1,8 @@
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { runMigrations } from '@main/db/migrate';
+import { LlmCache } from '@main/llm/llm-cache';
 import { runAiObject } from '@main/llm/run-ai';
 import type { CredentialService } from '@main/services/credential-service';
 import { EfMatcherService } from '@main/services/ef-matcher-service';
@@ -83,6 +87,8 @@ function makeService(opts: {
   candidates: EmissionFactor[];
   llmResult?: LlmResult;
   llmError?: Error;
+  /** Real file-backed store in a temp dir; the service must thread it through. */
+  cache?: LlmCache;
 }) {
   // `runAiObject` is mocked at module level; each `makeService` call resets
   // the per-test resolution so the same mock module can serve multiple
@@ -100,6 +106,7 @@ function makeService(opts: {
     emissionSourceService: { get: vi.fn().mockReturnValue(opts.source) } as never,
     credentials: fakeCredentials(),
     config: FAKE_CONFIG,
+    ...(opts.cache ? { cache: opts.cache } : {}),
   });
   return { svc, recommend: vi.mocked(runAiObject) };
 }
@@ -211,28 +218,41 @@ describe('EfMatcherService.recommend', () => {
     expect(first?.ef.factor_code).toBe('fuel.diesel.combustion');
   });
 
-  it('caches by (extraction_id, source_id)', async () => {
-    const { svc, recommend } = makeService({
-      extraction: {
-        id: 'e4',
-        document_id: 'doc4',
-        llm_provider: 'openai',
-        llm_model: 'gpt-4o-mini',
-        prompt_version: 'china_utility.v1',
-        raw_response: null,
-        parsed_json: '{}',
-        error_json: null,
-        status: 'parsed',
-        reviewed_by_user_at: null,
-        cost_usd: null,
-        created_at: '2024-01-01T00:00:00Z',
-      },
-      source: { scope: 1, category: 'fuel.combustion' },
-      candidates: [CANDIDATE_DIESEL],
-    });
-    await svc.recommend({ extraction_id: 'e4', emission_source_id: 's4' });
-    await svc.recommend({ extraction_id: 'e4', emission_source_id: 's4' });
-    expect(recommend).toHaveBeenCalledTimes(1);
+  it('threads a stable cache key across identical recommend() calls', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ef-matcher-test-'));
+    try {
+      const cache = new LlmCache(dir);
+      const { svc, recommend } = makeService({
+        extraction: {
+          id: 'e4',
+          document_id: 'doc4',
+          llm_provider: 'openai',
+          llm_model: 'gpt-4o-mini',
+          prompt_version: 'china_utility.v1',
+          raw_response: null,
+          parsed_json: '{}',
+          error_json: null,
+          status: 'parsed',
+          reviewed_by_user_at: null,
+          cost_usd: null,
+          created_at: '2024-01-01T00:00:00Z',
+        },
+        source: { scope: 1, category: 'fuel.combustion' },
+        candidates: [CANDIDATE_DIESEL],
+        cache,
+      });
+      await svc.recommend({ extraction_id: 'e4', emission_source_id: 's4' });
+      await svc.recommend({ extraction_id: 'e4', emission_source_id: 's4' });
+      // `runAiObject` is mocked at the module boundary so the mock fires
+      // twice; real dedup lives in `runAiObject` (run-ai-cache.test.ts).
+      // The service's job — a stable key on the same store — is asserted here.
+      expect(recommend).toHaveBeenCalledTimes(2);
+      const [first, second] = recommend.mock.calls.map((c) => c[2].cache);
+      expect(first?.store).toBe(cache);
+      expect(second?.key).toBe(first?.key);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 
@@ -304,16 +324,25 @@ describe('EfMatcherService.recommendForText', () => {
     expect(recommend).not.toHaveBeenCalled();
   });
 
-  it('caches by (source_id, hint_text)', async () => {
-    const { svc, recommend } = makeService({
-      extraction: null,
-      source: { scope: 1, category: 'fuel.combustion' },
-      candidates: [CANDIDATE_DIESEL],
-    });
-    await svc.recommendForText({ hint_text: '柴油 L', emission_source_id: 's1' });
-    await svc.recommendForText({ hint_text: '柴油 L', emission_source_id: 's1' });
-    expect(recommend).toHaveBeenCalledTimes(1);
-    await svc.recommendForText({ hint_text: '汽油 L', emission_source_id: 's1' });
-    expect(recommend).toHaveBeenCalledTimes(2);
+  it('keys recommendForText() by hint text: same hint, same key', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ef-matcher-test-'));
+    try {
+      const cache = new LlmCache(dir);
+      const { svc, recommend } = makeService({
+        extraction: null,
+        source: { scope: 1, category: 'fuel.combustion' },
+        candidates: [CANDIDATE_DIESEL],
+        cache,
+      });
+      await svc.recommendForText({ hint_text: '柴油 L', emission_source_id: 's1' });
+      await svc.recommendForText({ hint_text: '柴油 L', emission_source_id: 's1' });
+      await svc.recommendForText({ hint_text: '汽油 L', emission_source_id: 's1' });
+      const keys = recommend.mock.calls.map((c) => c[2].cache?.key);
+      expect(keys).toHaveLength(3);
+      expect(keys[1]).toBe(keys[0]);
+      expect(keys[2]).not.toBe(keys[0]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

@@ -43,4 +43,9 @@ export const settingsApi = {
   // is bundled, not network-fetched), model list is invalidated per provider.
   listProviders: () => invoke('settings:list-providers'),
   listModels: (provider: string) => invoke('settings:list-models', { provider }),
+  // LLM provider guidance overlay + deterministic cache (spec 2026-09-02).
+  // Guidance is cached for the session (static table; referral overlay
+  // changes only when the maintainer edits the runtime file).
+  getProviderGuidance: () => invoke('settings:get-provider-guidance'),
+  clearAiCache: () => invoke('settings:clear-ai-cache'),
 };

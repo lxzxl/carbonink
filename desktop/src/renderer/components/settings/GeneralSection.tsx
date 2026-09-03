@@ -6,6 +6,8 @@ import {
   setGuidanceEnabled,
   subscribeToGuidanceChange,
 } from '@renderer/features/guidance';
+import { settingsApi } from '@renderer/lib/api/settings';
+import { friendlyErrorDescription } from '@renderer/lib/error-message';
 import { currentLocale, type Locale, setLocale } from '@renderer/lib/i18n';
 import {
   getStoredTheme,
@@ -61,6 +63,7 @@ export function GeneralSection() {
     () => subscribeToGuidanceChange(() => setGuidance(isGuidanceEnabled() ? 'on' : 'off')),
     [],
   );
+  const [isClearingCache, setIsClearingCache] = useState(false);
 
   return (
     <div className="space-y-8">
@@ -106,6 +109,39 @@ export function GeneralSection() {
             <span className="whitespace-nowrap">{m.settings_general_guidance_replay()}</span>
           </Button>
         </div>
+      </div>
+      {/* AI cache */}
+      <div className="space-y-3">
+        <div className="space-y-1.5">
+          <div className="text-sm font-medium">{m.settings_ai_cache_label()}</div>
+          <p className="text-xs text-muted-foreground">{m.settings_ai_cache_hint()}</p>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={isClearingCache}
+          onClick={() => {
+            setIsClearingCache(true);
+            settingsApi
+              .clearAiCache()
+              .then((r) => {
+                toast.success(m.settings_ai_cache_cleared({ count: r.cleared }));
+              })
+              .catch((err: unknown) => {
+                toast.error(m.settings_ai_cache_clear_failed(), {
+                  description: friendlyErrorDescription(err),
+                });
+              })
+              .finally(() => {
+                setIsClearingCache(false);
+              });
+          }}
+        >
+          <span className="whitespace-nowrap">
+            {isClearingCache ? m.settings_ai_cache_clearing() : m.settings_ai_cache_clear()}
+          </span>
+        </Button>
       </div>
     </div>
   );

@@ -1,5 +1,7 @@
 import type { AgentTool } from '@main/llm/ai-agent.js';
-import { runAiAgent, runAiObject } from '@main/llm/run-ai.js';
+import { buildCacheKey } from '@main/llm/cache-key.js';
+import type { LlmCache } from '@main/llm/llm-cache.js';
+import { type AiCacheRequest, runAiAgent, runAiObject } from '@main/llm/run-ai.js';
 import type {
   EmissionFactor,
   MatcherResult,
@@ -39,6 +41,16 @@ const EF_MATCH_AGENT_MAX_TURNS = (() => {
  * the single-shot fallback serves the user faster than a thrashing loop.
  */
 const EF_MATCH_AGENT_TIMEOUT_MS = 60_000;
+
+/**
+ * Prompt versions pinned into cache keys. Bump when the corresponding
+ * prompt or schema changes so old cached results stop matching.
+ */
+const EF_SINGLE_PROMPT_VERSION = 'v1';
+const EF_AGENT_PROMPT_VERSION = 'v1';
+
+/** EF library data moves slowly — a week-long TTL halves repeat-run cost. */
+const EF_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * Schema + prompt for the LLM emission-factor recommendation step.
@@ -249,8 +261,6 @@ interface EmissionSourceLookup {
 }
 
 export class EfMatcherService {
-  private readonly cache = new Map<string, MatcherResult>();
-
   constructor(
     private readonly deps: {
       db: Database;
@@ -265,23 +275,59 @@ export class EfMatcherService {
        */
       credentials: CredentialService;
       config: ProviderConfigV2;
+      /**
+       * File-backed deterministic-result cache. Absent in unit tests
+       * (they drive the LLM seam directly); production wires the
+       * process `LlmCache` from the IPC context. Supersedes the v1
+       * in-memory `Map` — keyed by content + dataset version, not by
+       * row ids, so edited inputs re-fetch instead of serving stale
+       * recommendations.
+       */
+      cache?: LlmCache;
     },
   ) {}
 
-  async recommend(q: RecommendQuery): Promise<MatcherResult> {
-    const cacheKey = `${q.extraction_id}|${q.emission_source_id}`;
-    const cached = this.cache.get(cacheKey);
-    if (cached) return cached;
+  /**
+   * EF library fingerprint for cache keys: row count plus the distinct
+   * dataset versions. Any library edit (new factors, new version,
+   * user-library change landing in `emission_factor`) changes the
+   * fingerprint and invalidates cached recommendations.
+   */
+  private datasetVersion(): string {
+    const row = this.deps.db
+      .prepare(
+        'SELECT COUNT(*) AS n, GROUP_CONCAT(DISTINCT dataset_version) AS v FROM emission_factor',
+      )
+      .get() as { n: number; v: string | null };
+    return `${row.n}/${row.v ?? ''}`;
+  }
 
+  private cacheRequest(
+    scope: 'ef-single' | 'ef-text',
+    promptVersion: string,
+    payload: unknown,
+  ): AiCacheRequest | undefined {
+    if (!this.deps.cache) return undefined;
+    return {
+      store: this.deps.cache,
+      key: buildCacheKey({
+        scope,
+        provider: this.deps.config.provider,
+        model: this.deps.config.model,
+        promptVersion,
+        datasetVersion: this.datasetVersion(),
+        payload,
+      }),
+      ttlMs: EF_CACHE_TTL_MS,
+    };
+  }
+
+  async recommend(q: RecommendQuery): Promise<MatcherResult> {
     // Both services are synchronous (better-sqlite3 is fully sync).
     const ext = this.deps.extractionService.get(q.extraction_id);
     const src = this.deps.emissionSourceService.get(q.emission_source_id);
 
-    if (!ext || !src) {
-      const empty: MatcherResult = { recommended: [], ranked_full: [] };
-      this.cache.set(cacheKey, empty);
-      return empty;
-    }
+    if (!ext || !src) return { recommended: [], ranked_full: [] };
 
     const filter: { scope: 1 | 2 | 3; category?: string } = {
       scope: src.scope as 1 | 2 | 3,
@@ -289,22 +335,24 @@ export class EfMatcherService {
     if (src.category) filter.category = src.category;
     const candidates = this.deps.efService.list(filter);
 
-    if (candidates.length === 0) {
-      const empty: MatcherResult = { recommended: [], ranked_full: [] };
-      this.cache.set(cacheKey, empty);
-      return empty;
-    }
+    if (candidates.length === 0) return { recommended: [], ranked_full: [] };
 
     const parsed = JSON.parse(ext.parsed_json ?? '{}') as Record<string, unknown>;
     const hint = extractHint(ext.prompt_version, parsed);
     const rankedFull = this.rankByFts(candidates, hint).slice(0, CANDIDATE_LIMIT);
 
     const prompt = buildRecommendPrompt(ext.parsed_json ?? '{}', rankedFull);
-    const recommended = await this.llmRerank(prompt, rankedFull);
+    const recommended = await this.llmRerank(
+      prompt,
+      rankedFull,
+      this.cacheRequest('ef-single', EF_SINGLE_PROMPT_VERSION, {
+        parsed_json: ext.parsed_json,
+        scope: src.scope,
+        category: src.category,
+      }),
+    );
 
-    const result: MatcherResult = { recommended, ranked_full: rankedFull };
-    this.cache.set(cacheKey, result);
-    return result;
+    return { recommended, ranked_full: rankedFull };
   }
 
   /**
@@ -315,16 +363,8 @@ export class EfMatcherService {
    * keeps the LLM cost proportional to decisions rather than file size.
    */
   async recommendForText(q: TextRecommendQuery): Promise<MatcherResult> {
-    const cacheKey = `text|${q.emission_source_id}|${q.hint_text}`;
-    const cached = this.cache.get(cacheKey);
-    if (cached) return cached;
-
     const src = this.deps.emissionSourceService.get(q.emission_source_id);
-    if (!src || q.hint_text.trim() === '') {
-      const empty: MatcherResult = { recommended: [], ranked_full: [] };
-      this.cache.set(cacheKey, empty);
-      return empty;
-    }
+    if (!src || q.hint_text.trim() === '') return { recommended: [], ranked_full: [] };
 
     const filter: { scope: 1 | 2 | 3; category?: string } = {
       scope: src.scope as 1 | 2 | 3,
@@ -332,18 +372,21 @@ export class EfMatcherService {
     if (src.category) filter.category = src.category;
     const candidates = this.deps.efService.list(filter);
 
-    if (candidates.length === 0) {
-      const empty: MatcherResult = { recommended: [], ranked_full: [] };
-      this.cache.set(cacheKey, empty);
-      return empty;
-    }
+    if (candidates.length === 0) return { recommended: [], ranked_full: [] };
 
     const rankedFull = this.rankByFts(candidates, q.hint_text).slice(0, CANDIDATE_LIMIT);
-    const recommended = await this.agentRecommendWithFallback(q, candidates, rankedFull);
+    const recommended = await this.agentRecommendWithFallback(
+      q,
+      candidates,
+      rankedFull,
+      this.cacheRequest('ef-text', EF_AGENT_PROMPT_VERSION, {
+        hint_text: q.hint_text,
+        scope: src.scope,
+        category: src.category,
+      }),
+    );
 
-    const result: MatcherResult = { recommended, ranked_full: rankedFull };
-    this.cache.set(cacheKey, result);
-    return result;
+    return { recommended, ranked_full: rankedFull };
   }
 
   /**
@@ -359,26 +402,33 @@ export class EfMatcherService {
     q: TextRecommendQuery,
     candidates: readonly EmissionFactor[],
     rankedFull: readonly EmissionFactor[],
+    cache: AiCacheRequest | undefined,
   ): Promise<MatcherResult['recommended']> {
     const startedAt = Date.now();
     try {
-      const { result, trace } = await runAiAgent(this.deps.config, this.deps.credentials, {
+      const { result, trace, cached } = await runAiAgent(this.deps.config, this.deps.credentials, {
         systemPrompt: MATCH_AGENT_SYSTEM_PROMPT,
         userPrompt: buildAgentMatchUserPrompt(q.hint_text, rankedFull),
         schema: recommendSchema,
         tools: this.buildMatchTools(candidates),
         maxTurns: EF_MATCH_AGENT_MAX_TURNS,
         timeoutMs: EF_MATCH_AGENT_TIMEOUT_MS,
+        ...(cache ? { cache } : {}),
       });
-      this.writeAgentTrace({
-        emissionSourceId: q.emission_source_id,
-        isFallback: false,
-        stopReason: trace.stopReason,
-        turnCount: trace.turnCount,
-        toolCallSummary: trace.toolCalls.map((c) => c.tool),
-        tokens: trace.totalTokens,
-        durationMs: trace.totalDurationMs,
-      });
+      // Cache hits skip the audit row — no agent ran, so there is no
+      // attempt to record. Real attempts keep the one-row-per-attempt
+      // contract below.
+      if (!cached) {
+        this.writeAgentTrace({
+          emissionSourceId: q.emission_source_id,
+          isFallback: false,
+          stopReason: trace.stopReason,
+          turnCount: trace.turnCount,
+          toolCallSummary: trace.toolCalls.map((c) => c.tool),
+          tokens: trace.totalTokens,
+          durationMs: trace.totalDurationMs,
+        });
+      }
       return mapRecommendations(result.recommendations, candidates);
     } catch (err) {
       const { stopReason, turnCount } = stopReasonForError(err);
@@ -391,7 +441,7 @@ export class EfMatcherService {
         tokens: { input: 0, output: 0 },
         durationMs: Date.now() - startedAt,
       });
-      return this.llmRerank(buildTextRecommendPrompt(q.hint_text, rankedFull), rankedFull);
+      return this.llmRerank(buildTextRecommendPrompt(q.hint_text, rankedFull), rankedFull, cache);
     }
   }
 
@@ -512,11 +562,13 @@ export class EfMatcherService {
   private async llmRerank(
     prompt: string,
     rankedFull: readonly EmissionFactor[],
+    cache?: AiCacheRequest,
   ): Promise<MatcherResult['recommended']> {
     try {
       const llmResult = await runAiObject(this.deps.config, this.deps.credentials, {
         schema: recommendSchema,
         prompt,
+        ...(cache ? { cache } : {}),
       });
       return mapRecommendations(llmResult.recommendations, rankedFull);
     } catch (err) {

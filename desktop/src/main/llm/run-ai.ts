@@ -5,6 +5,21 @@ import type { ZodSchema } from 'zod';
 import { type AgentTool, type AgentTrace, AiAgentTag, buildAiAgentLayer } from './ai-agent.js';
 import { AiClientTag, buildAiClientLayer } from './ai-client.js';
 import type { AgentMaxTurns, AgentStalled, AiErr } from './errors.js';
+import type { LlmCache } from './llm-cache.js';
+
+/**
+ * Optional deterministic-result cache for a single AI call. When present
+ * the boundary checks the store (zod-validated) before building the
+ * AiClient layer and stores successes after. Callers build the key with
+ * `buildCacheKey` so every input the result depends on — provider, model,
+ * prompt version, dataset/inventory fingerprint — invalidates correctly.
+ */
+export interface AiCacheRequest {
+  store: LlmCache;
+  key: string;
+  /** Per-call-site TTL: EF data moves slowly, inventories faster. */
+  ttlMs: number;
+}
 
 /**
  * Boundary helper for Promise-shape consumers (extraction-service,
@@ -15,10 +30,7 @@ import type { AgentMaxTurns, AgentStalled, AiErr } from './errors.js';
  * Builds a fresh `AiClientLayer` per call so that provider config
  * changes between requests are picked up — matches the per-call layer
  * construction pattern already used by the IpcContext lazy getters for
- * `classificationService` / `answerLayer`. Future PR can hoist this to
- * a per-context layer if the per-call cost matters; today the pi-ai
- * model registry lookup is cheap and the credentials read is a single
- * `safeStorage` decrypt.
+ * `classificationService` / `answerLayer`.
  *
  * On failure, the underlying `AiErr` is rethrown directly (not wrapped
  * in Effect's `FiberFailure`). Callers do `catch (err)` and `instanceof`
@@ -34,9 +46,25 @@ export async function runAiObject<T>(
     system?: string;
     images?: Buffer[];
     timeoutMs?: number;
+    cache?: AiCacheRequest;
+    /**
+     * Test-only, forwarded to {@link buildAiClientLayer}'s existing hook: a
+     * faux `Model` from pi-ai's `registerFauxProvider()` so a suite can drive
+     * the real call path without a network or a key. Production callers leave
+     * it undefined and the layer resolves the model from the registry.
+     */
+    model?: Parameters<typeof buildAiClientLayer>[0]['model'];
   },
 ): Promise<T> {
-  const layer = buildAiClientLayer({ config, credentials });
+  if (args.cache) {
+    const hit = args.cache.store.get(args.cache.key, args.schema);
+    if (hit !== null) return hit;
+  }
+  const layer = buildAiClientLayer({
+    config,
+    credentials,
+    ...(args.model !== undefined ? { model: args.model } : {}),
+  });
   const program = Effect.gen(function* () {
     const ai = yield* AiClientTag;
     return yield* ai.generateObject(args);
@@ -48,7 +76,10 @@ export async function runAiObject<T>(
   // An error has occurred"), which makes it useless for downstream
   // `instanceof AiAuthError` / `err._tag === 'AiAuthError'` checks.
   const exit = await Effect.runPromiseExit(program.pipe(Effect.provide(layer)));
-  if (Exit.isSuccess(exit)) return exit.value;
+  if (Exit.isSuccess(exit)) {
+    args.cache?.store.set(args.cache.key, exit.value, args.cache.ttlMs);
+    return exit.value;
+  }
   const failure = Cause.failureOption(exit.cause);
   if (Option.isSome(failure)) {
     throw failure.value satisfies AiErr;
@@ -78,6 +109,7 @@ export async function runAiAgent<T>(
     tools: AgentTool[];
     maxTurns?: number;
     timeoutMs?: number;
+    cache?: AiCacheRequest;
     /**
      * Test-only, forwarded to {@link buildAiAgentLayer}'s existing hook: a
      * faux `Model` from pi-ai's `registerFauxProvider()` so a suite can drive
@@ -86,7 +118,23 @@ export async function runAiAgent<T>(
      */
     model?: Parameters<typeof buildAiAgentLayer>[0]['model'];
   },
-): Promise<{ result: T; trace: AgentTrace }> {
+): Promise<{ result: T; trace: AgentTrace; cached: boolean }> {
+  if (args.cache) {
+    const hit = args.cache.store.get(args.cache.key, args.schema);
+    if (hit !== null) {
+      return {
+        result: hit,
+        trace: {
+          turnCount: 0,
+          toolCalls: [],
+          totalTokens: { input: 0, output: 0 },
+          totalDurationMs: 0,
+          stopReason: 'completed',
+        },
+        cached: true,
+      };
+    }
+  }
   const layer = buildAiAgentLayer({
     config,
     credentials,
@@ -97,7 +145,10 @@ export async function runAiAgent<T>(
     return yield* agent.run(args);
   });
   const exit = await Effect.runPromiseExit(program.pipe(Effect.provide(layer)));
-  if (Exit.isSuccess(exit)) return exit.value;
+  if (Exit.isSuccess(exit)) {
+    args.cache?.store.set(args.cache.key, exit.value.result, args.cache.ttlMs);
+    return { ...exit.value, cached: false };
+  }
   const failure = Cause.failureOption(exit.cause);
   if (Option.isSome(failure)) {
     throw failure.value satisfies AiErr | AgentMaxTurns | AgentStalled;

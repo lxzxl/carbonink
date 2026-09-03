@@ -1,5 +1,7 @@
 import { AiClientTag } from '@main/llm/ai-client.js';
+import { buildCacheKey, sha256Hex } from '@main/llm/cache-key.js';
 import type { AiErr } from '@main/llm/errors.js';
+import type { LlmCache } from '@main/llm/llm-cache.js';
 import type { ClassifyAndRunResult } from '@shared/types.js';
 import type { Database } from 'better-sqlite3';
 import { Effect, Exit, type Layer } from 'effect';
@@ -13,6 +15,15 @@ import type { ExtractionService } from './extraction-service.js';
  * the renderer can prompt the user to pick a stage manually.
  */
 const CONFIDENCE_THRESHOLD = 0.7;
+
+/**
+ * Prompt version pinned into classification cache keys. Bump when
+ * `buildClassifyPrompt` or `classifySchema` changes.
+ */
+const CLASSIFY_PROMPT_VERSION = 'v1';
+
+/** Document bytes are immutable — a month-long TTL. */
+const CLASSIFY_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 /**
  * Injected PDF-to-images adapter shape. Matches the shape already defined
@@ -123,8 +134,31 @@ export class ClassificationService {
       readFile: (path: string) => Buffer;
       parsePdf: (buf: Buffer) => Promise<{ text: string }>;
       pdfToImages?: PdfToImages;
+      /**
+       * Identity of the provider/model backing `aiLayer`, for cache keys.
+       * Optional so unit tests (mock layer, no provider) keep compiling;
+       * the cache stays inactive unless all three are present.
+       */
+      provider?: string;
+      model?: string;
+      cache?: LlmCache;
     },
   ) {}
+
+  /**
+   * Cache key for a classify call. Images hash by bytes, text by content.
+   * Undefined when the cache or the provider/model identity is absent.
+   */
+  private classifyCacheKey(parsedText: string, images: Buffer[]): string | undefined {
+    if (!this.deps.cache || !this.deps.provider || !this.deps.model) return undefined;
+    return buildCacheKey({
+      scope: 'classify',
+      provider: this.deps.provider,
+      model: this.deps.model,
+      promptVersion: CLASSIFY_PROMPT_VERSION,
+      payload: { text: parsedText, images: images.map((b) => sha256Hex(b)) },
+    });
+  }
 
   async classifyAndRun(documentId: string): Promise<ClassifyAndRunResult> {
     const doc = this.deps.documentService.getById(documentId);
@@ -155,15 +189,37 @@ export class ClassificationService {
       // to classify_failed — see the class doc above for the rationale.
       // `runPromiseExit` (not `runPromise`) avoids throwing across the
       // boundary; we inspect `Exit` and log the failure tag for triage.
-      const exit = await Effect.runPromiseExit(
-        classify({ parsedText, images }).pipe(Effect.provide(this.deps.aiLayer)),
-      );
-      if (Exit.isFailure(exit)) {
-        // eslint-disable-next-line no-console
-        console.warn('[classify] AI call failed; collapsing to classify_failed');
-        return { status: 'classify_failed' };
+      // Deterministic-result cache: identical bytes classify identically.
+      // The stored blob is the raw schema output ('unknown' included) so a
+      // hit replays the same threshold/collapse logic as a fresh call.
+      const cacheKey = this.classifyCacheKey(parsedText, images);
+      const hit = cacheKey ? (this.deps.cache?.get(cacheKey, classifySchema) ?? null) : null;
+      let result: { doc_type: string | null; confidence: number };
+      if (hit) {
+        result = {
+          doc_type: hit.doc_type === 'unknown' ? null : hit.doc_type,
+          confidence: hit.confidence,
+        };
+      } else {
+        const exit = await Effect.runPromiseExit(
+          classify({ parsedText, images }).pipe(Effect.provide(this.deps.aiLayer)),
+        );
+        if (Exit.isFailure(exit)) {
+          // eslint-disable-next-line no-console
+          console.warn('[classify] AI call failed; collapsing to classify_failed');
+          return { status: 'classify_failed' };
+        }
+        result = exit.value;
+        if (cacheKey) {
+          // `doc_type: null` from the Effect core means 'unknown' (the
+          // no-text early return lands here too — deterministic, cacheable).
+          this.deps.cache?.set(
+            cacheKey,
+            { doc_type: result.doc_type ?? 'unknown', confidence: result.confidence },
+            CLASSIFY_CACHE_TTL_MS,
+          );
+        }
       }
-      const result = exit.value;
 
       if (!result.doc_type || result.confidence < CONFIDENCE_THRESHOLD) {
         return { status: 'classify_failed' };

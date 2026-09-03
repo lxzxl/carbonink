@@ -38,6 +38,11 @@ const tx = isZh
           more: { href: `${prefix}/guides/iso-14064-1-vs-ghg-protocol/`, label: '两个标准的区别' },
         },
         {
+          q: '该用哪个 AI 服务？',
+          a: '看你所在的位置。在中国大陆推荐 DeepSeek —— 延迟最低、中文能力强、按 token 计费成本低。境外用户可选 OpenAI 或 Anthropic，模型选择更广。碳墨在「设置 → AI 服务」里会按你的位置推荐；所有模型效果相同，只是速度和价格不同。',
+          more: { href: `${prefix}/download/`, label: '下载碳墨' },
+        },
+        {
           q: '怎么向供应商收 Scope 3 数据？对方要注册账户吗？',
           a: '不用注册任何东西。碳墨内置供应商披露流程：导出一份 xlsx 披露表发给供应商，对方用 Excel / WPS 填完邮件发回，你审核后一键入库成活动数据；逾期会红字提醒，催办邮件也是一键生成。供应商零账户、零平台注册、零新软件 —— 会开表格就能填。',
           more: { href: `${prefix}/guides/collect-supplier-emissions-data/`, label: '供应商数据收集实操指南' },
@@ -77,6 +82,11 @@ const tx = isZh
           q: 'Where does my data live?',
           a: 'In a SQLite database on your own machine, and nowhere else. CarbonInk runs fully offline — no cloud sync, no accounts. Activity data, emission factors, and report contents never leave your network.',
           more: { href: `${prefix}/privacy/`, label: 'Privacy policy' },
+        },
+        {
+          q: 'Which AI provider should I use?',
+          a: "Depends on where you are. In mainland China, DeepSeek gives the lowest latency, strong Chinese, and low per-token cost. Outside China, OpenAI and Anthropic offer the broadest model selection. CarbonInk recommends one based on your region in Settings → AI Provider — every provider produces the same results, only speed and price differ.",
+          more: { href: `${prefix}/download/`, label: 'Download CarbonInk' },
         },
         {
           q: 'Which standards does it follow?',

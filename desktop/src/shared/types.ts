@@ -959,6 +959,30 @@ export interface ProviderCatalogModel {
   maxTokens: number;
 }
 
+/**
+ * One row of the curated provider-guidance overlay (spec 2026-09-02 LLM
+ * provider guidance). Returned by `settings:get-provider-guidance`.
+ *
+ * Copy travels as paraglide message keys (not resolved strings) so a
+ * runtime locale switch re-renders without re-fetching. `referralUrl` is
+ * present only when the maintainer dropped a `provider-referrals.json`
+ * overlay into the userData dir — it is never repo content.
+ */
+export interface ProviderGuidance {
+  /** pi-ai provider id, e.g. "deepseek". */
+  id: string;
+  /** Human display name, e.g. "DeepSeek". */
+  name: string;
+  /** Paraglide key for the one-line latency hint. */
+  latencyHintKey: string;
+  /** Paraglide key for the suitability note. */
+  noteKey: string;
+  /** Locale tags this provider is recommended for ('cn' matches zh-*). */
+  recommendedFor: string[];
+  /** Maintainer's personal referral link, when configured. */
+  referralUrl?: string;
+}
+
 // ---------------------------------------------------------------------------
 // Document + Extraction (Phase 1b — AI extraction pipeline)
 // ---------------------------------------------------------------------------

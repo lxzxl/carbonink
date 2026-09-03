@@ -8,6 +8,7 @@ import {
 import { ExcelParser } from '@main/excel/parser.js';
 import { buildAiAgentLayer } from '@main/llm/ai-agent.js';
 import { buildAiClientLayer } from '@main/llm/ai-client.js';
+import { LlmCache } from '@main/llm/llm-cache.js';
 import { ActivityDataService } from '@main/services/activity-data-service.js';
 import { ActivityImportService } from '@main/services/activity-import-service.js';
 import { AgentSkillService, type SkillResolver } from '@main/services/agent-skill-service.js';
@@ -148,6 +149,13 @@ export interface IpcContext {
   undoManager: UndoManager;
   // URL for the print-render route (used by PDF export for hidden BrowserWindow).
   printRenderUrl: string;
+  // Deterministic LLM result cache (spec 2026-09-02) — file-backed under
+  // `<userData>/llm-cache`, shared by ef-matcher / readiness / classification
+  // via run-ai. Exposed for the Settings "Clear AI cache" channel.
+  llmCache: LlmCache;
+  // Resolved userData dir (override-aware for tests). Used by the provider
+  // guidance channel to locate the runtime referral overlay.
+  userDataDir: string;
   // Main→renderer push channel emitter, shared across all services.
   pushEvent: <C extends keyof IpcPushTypeMap>(channel: C, payload: IpcPushTypeMap[C]) => void;
 }
@@ -261,6 +269,17 @@ export function createIpcContext(
   let batchExtractionServiceInstance: BatchExtractionService | undefined;
   let workspaceServiceInstance: WorkspaceService | undefined;
 
+  const userDataDir = overrides.userDataDir ?? app.getPath('userData');
+  let llmCacheInstance: LlmCache | null = null;
+  const getLlmCache = (): LlmCache => {
+    if (!llmCacheInstance) {
+      // Lazy: `app.getPath('userData')` is only valid after app ready;
+      // unit tests override services and never touch this getter.
+      llmCacheInstance = new LlmCache(join(userDataDir, 'llm-cache'));
+    }
+    return llmCacheInstance;
+  };
+
   const getCredential = (): CredentialService => {
     if (!credentialServiceInstance) credentialServiceInstance = defaultCredentialService();
     return credentialServiceInstance;
@@ -351,6 +370,12 @@ export function createIpcContext(
     efService,
     unitConversionService,
     calculationService,
+    get llmCache() {
+      return getLlmCache();
+    },
+    get userDataDir() {
+      return userDataDir;
+    },
     get credentialService() {
       return getCredential();
     },
@@ -389,6 +414,7 @@ export function createIpcContext(
           },
           credentials: getCredential(),
           config: providerCfg.config,
+          cache: getLlmCache(),
         });
       }
       return efMatcherServiceInstance;
@@ -414,6 +440,9 @@ export function createIpcContext(
           extractionService: ctx.extractionService,
           documentService: getDocument(),
           readFile: (p: string) => readFileSync(p),
+          provider: providerCfg.config.provider,
+          model: providerCfg.config.model,
+          cache: getLlmCache(),
           parsePdf: async (buf: Buffer) => {
             const mod = await import('pdf-parse');
             const parser = new mod.PDFParse({ data: buf });
@@ -589,6 +618,7 @@ export function createIpcContext(
           now: svc.now,
           credentials: getCredential(),
           config: getSettings().getProviderConfigWithKey()?.config ?? null,
+          cache: getLlmCache(),
         });
       }
       return readinessAgentServiceInstance;

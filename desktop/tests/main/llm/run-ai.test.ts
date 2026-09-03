@@ -1,5 +1,9 @@
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { AiClientTag } from '@main/llm/ai-client';
 import { AiAuthError, AiProviderError } from '@main/llm/errors';
+import { LlmCache } from '@main/llm/llm-cache';
 import { runAiObject } from '@main/llm/run-ai';
 import type { CredentialService } from '@main/services/credential-service';
 import type { ProviderConfigV2 } from '@shared/types';
@@ -132,6 +136,52 @@ describe('runAiObject (Promise-boundary helper)', () => {
     // the forwarded object (exactOptionalPropertyTypes contract).
     expect(args?.system).toBeUndefined();
     expect(args?.images).toBeUndefined();
+  });
+
+  it('serves a cached result without calling the model twice', async () => {
+    generateObjectSpy.mockReturnValue(Effect.succeed({ value: 'ok', count: 7 }));
+    const schema = z.object({ value: z.string(), count: z.number() });
+    const dir = mkdtempSync(join(tmpdir(), 'carbonink-runai-'));
+    try {
+      const cache = { store: new LlmCache(dir), key: 'runai-test-key', ttlMs: 60_000 };
+      const first = await runAiObject(fakeConfig(), fakeCredentials(), {
+        schema,
+        prompt: 'hi',
+        cache,
+      });
+      const second = await runAiObject(fakeConfig(), fakeCredentials(), {
+        schema,
+        prompt: 'hi',
+        cache,
+      });
+      expect(first).toEqual({ value: 'ok', count: 7 });
+      expect(second).toEqual({ value: 'ok', count: 7 });
+      expect(generateObjectSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('does not cache failures — a retry re-calls the model', async () => {
+    generateObjectSpy.mockReturnValue(Effect.fail(new AiAuthError({ provider: 'deepseek' })));
+    const schema = z.object({ ok: z.boolean() });
+    const dir = mkdtempSync(join(tmpdir(), 'carbonink-runai-'));
+    try {
+      const cache = { store: new LlmCache(dir), key: 'runai-fail-key', ttlMs: 60_000 };
+      await expect(
+        runAiObject(fakeConfig(), fakeCredentials(), { schema, prompt: 'hi', cache }),
+      ).rejects.toMatchObject({ _tag: 'AiAuthError' });
+      generateObjectSpy.mockReturnValue(Effect.succeed({ ok: true }));
+      const retry = await runAiObject(fakeConfig(), fakeCredentials(), {
+        schema,
+        prompt: 'hi',
+        cache,
+      });
+      expect(retry).toEqual({ ok: true });
+      expect(generateObjectSpy).toHaveBeenCalledTimes(2);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   // Sanity: AiClientTag is consumed via Tag, not by reference. If somebody

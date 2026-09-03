@@ -20,7 +20,11 @@
  * the service degrades to the fallback path exactly as designed) and
  * `ef-matcher-service-smoke.test.ts` (extraction path against seeded data).
  */
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { runMigrations } from '@main/db/migrate';
+import { LlmCache } from '@main/llm/llm-cache';
 import { runAiAgent, runAiObject } from '@main/llm/run-ai';
 import type { CredentialService } from '@main/services/credential-service';
 import { EfMatcherService } from '@main/services/ef-matcher-service';
@@ -115,6 +119,7 @@ function taggedError(tag: string, extra: Record<string, unknown> = {}): Error {
 function makeService(opts: {
   source: { scope: number; category: string | null } | null;
   candidates: EmissionFactor[];
+  cache?: LlmCache;
 }) {
   const db = new Database(':memory:');
   runMigrations(db);
@@ -125,6 +130,7 @@ function makeService(opts: {
     emissionSourceService: { get: vi.fn().mockReturnValue(opts.source) } as never,
     credentials: fakeCredentials(),
     config: FAKE_CONFIG,
+    ...(opts.cache ? { cache: opts.cache } : {}),
   });
   return { db, svc };
 }
@@ -161,6 +167,7 @@ describe('recommendForText — agent path', () => {
         ],
       },
       trace: TRACE,
+      cached: false,
     });
 
     const r = await svc.recommendForText({ hint_text: '柴油 叉车', emission_source_id: 's1' });
@@ -210,6 +217,7 @@ describe('recommendForText — agent path', () => {
     vi.mocked(runAiAgent).mockResolvedValue({
       result: { recommendations: [pkOf(last, '经重搜命中')] },
       trace: TRACE,
+      cached: false,
     });
 
     const r = await svc.recommendForText({ hint_text: '能耗', emission_source_id: 's1' });
@@ -282,24 +290,35 @@ describe('recommendForText — agent path', () => {
     }
   });
 
-  it('cache hits do not re-run the agent or write additional audit rows', async () => {
-    const { db, svc } = makeService({
-      source: { scope: 1, category: 'fuel.combustion' },
-      candidates: [CANDIDATE_DIESEL],
-    });
-    vi.mocked(runAiAgent).mockResolvedValue({
-      result: { recommendations: [pkOf(CANDIDATE_DIESEL, '命中')] },
-      trace: TRACE,
-    });
+  it('forwards a stable file-cache key for identical calls; the service itself memoizes nothing', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'carbonink-efagent-'));
+    try {
+      const { svc } = makeService({
+        source: { scope: 1, category: 'fuel.combustion' },
+        candidates: [CANDIDATE_DIESEL],
+        cache: new LlmCache(dir),
+      });
+      vi.mocked(runAiAgent).mockResolvedValue({
+        result: { recommendations: [pkOf(CANDIDATE_DIESEL, '命中')] },
+        trace: TRACE,
+        cached: false,
+      });
 
-    await svc.recommendForText({ hint_text: '柴油 L', emission_source_id: 's1' });
-    await svc.recommendForText({ hint_text: '柴油 L', emission_source_id: 's1' });
-    expect(runAiAgent).toHaveBeenCalledTimes(1);
-    expect(agentTraceRows(db)).toHaveLength(1);
+      await svc.recommendForText({ hint_text: '柴油 L', emission_source_id: 's1' });
+      await svc.recommendForText({ hint_text: '柴油 L', emission_source_id: 's1' });
+      // No in-service result memo (the v1 Map is gone): the seam re-runs
+      // and the file-backed LlmCache inside the real runAiAgent dedupes.
+      expect(runAiAgent).toHaveBeenCalledTimes(2);
+      const keys = vi.mocked(runAiAgent).mock.calls.map((c) => c[2].cache?.key);
+      expect(keys[0]).toBeDefined();
+      expect(keys[0]).toBe(keys[1]);
 
-    await svc.recommendForText({ hint_text: '汽油 L', emission_source_id: 's1' });
-    expect(runAiAgent).toHaveBeenCalledTimes(2);
-    expect(agentTraceRows(db)).toHaveLength(2);
+      await svc.recommendForText({ hint_text: '汽油 L', emission_source_id: 's1' });
+      expect(runAiAgent).toHaveBeenCalledTimes(3);
+      expect(vi.mocked(runAiAgent).mock.calls[2]?.[2].cache?.key).not.toBe(keys[0]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 
@@ -322,7 +341,7 @@ describe('recommendForText — agent toolbox over the real seeded catalog', () =
     let captured: Parameters<typeof runAiAgent>[2] | undefined;
     vi.mocked(runAiAgent).mockImplementation(async (_config, _credentials, args) => {
       captured = args;
-      return { result: { recommendations: [] }, trace: TRACE };
+      return { result: { recommendations: [] }, trace: TRACE, cached: false };
     });
 
     await svc.recommendForText({ hint_text: '柴油 叉车', emission_source_id: 's1' });

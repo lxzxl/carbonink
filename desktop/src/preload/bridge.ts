@@ -73,6 +73,9 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   'settings:set-import-outlier-ratio',
   'settings:list-providers',
   'settings:list-models',
+  // LLM provider guidance + deterministic cache (spec 2026-09-02)
+  'settings:get-provider-guidance',
+  'settings:clear-ai-cache',
   // document domain (Phase 1b — uploaded source files)
   'document:upload',
   'document:list',

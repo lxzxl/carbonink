@@ -43,6 +43,7 @@ import type {
   PresetSource,
   ProviderCatalogModel,
   ProviderConfigV2,
+  ProviderGuidance,
   Question,
   Questionnaire,
   RecommendQuery,
@@ -305,6 +306,13 @@ export type IpcTypeMap = {
   // free-form model input rather than getting stuck.
   'settings:list-providers': () => string[];
   'settings:list-models': (input: { provider: string }) => ProviderCatalogModel[];
+  // LLM provider guidance + deterministic cache (spec 2026-09-02).
+  // `get-provider-guidance` returns the curated overlay (static table +
+  // runtime referral links); providers without an entry render as bare
+  // names. `clear-ai-cache` wipes the file-backed LlmCache and reports
+  // how many entries were dropped.
+  'settings:get-provider-guidance': () => ProviderGuidance[];
+  'settings:clear-ai-cache': () => { cleared: number };
 
   // document domain (Phase 1b — uploaded source files)
   // `document:upload` carries raw bytes as a `Uint8Array` so Electron's
