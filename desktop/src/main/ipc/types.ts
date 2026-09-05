@@ -279,6 +279,11 @@ export type IpcTypeMap = {
   // IPC contract.
   'settings:available': () => boolean;
   'settings:get-provider': () => (ProviderConfigV2 & { apiKeyMasked: string | null }) | null;
+  // Key status for the *currently selected* provider (not the saved one).
+  // The Settings form switches providers without saving; the key display +
+  // Test/Fetch gating must follow the selection, not the persisted config.
+  // Returns the masked key or null — never plaintext.
+  'settings:get-key-status': (input: { provider: string }) => { apiKeyMasked: string | null };
   'settings:save-provider': (input: { config: ProviderConfigV2; apiKey?: string }) => void;
   'settings:clear-provider': () => void;
   'settings:ping-provider': (input: {
@@ -301,11 +306,27 @@ export type IpcTypeMap = {
   'settings:get-import-outlier-ratio': () => { ratio: number };
   'settings:set-import-outlier-ratio': (input: { ratio: number }) => void;
   // Item 3 Task 10c — pi-ai catalog read at runtime. `list-providers` is a
-  // zero-arg snapshot of pi-ai's `getProviders()`; `list-models(provider)`
-  // returns `[]` for unknown providers so the renderer can fall back to a
-  // free-form model input rather than getting stuck.
+  // zero-arg snapshot of the collection's providers; `list-models(provider)`
+  // returns the merged bundled+dynamic catalog plus the dynamic cache
+  // freshness (`checkedAt`, null when never fetched). Unknown providers
+  // yield an empty model list so the renderer falls back to a free-form
+  // model input rather than getting stuck.
   'settings:list-providers': () => string[];
-  'settings:list-models': (input: { provider: string }) => ProviderCatalogModel[];
+  'settings:list-models': (input: { provider: string }) => {
+    models: ProviderCatalogModel[];
+    checkedAt: number | null;
+  };
+  // Live model discovery (pi-0.85 plan Phase C). Fetches the provider's own
+  // list endpoint with the saved or typed-but-not-saved key; persists to
+  // FileModelsStore and returns the merged catalog. Never throws — fetch
+  // failures surface as `{ok: false, error}` with a renderer-safe string.
+  'settings:fetch-models': (input: {
+    provider: string;
+    baseUrl?: string;
+    apiKey?: string;
+  }) => Promise<
+    { ok: true; models: ProviderCatalogModel[]; checkedAt: number } | { ok: false; error: string }
+  >;
   // LLM provider guidance + deterministic cache (spec 2026-09-02).
   // `get-provider-guidance` returns the curated overlay (static table +
   // runtime referral links); providers without an entry render as bare

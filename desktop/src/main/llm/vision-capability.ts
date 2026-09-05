@@ -1,52 +1,28 @@
+import { getModelsCollection } from '@main/llm/models.js';
+import { dynamicModelMirror, resolveModel } from '@main/llm/pi-catalog.js';
 import type { ProviderConfigV2 } from '@shared/types.js';
 
 /**
- * Models known to accept image inputs alongside text. Used by
- * `ExtractionService` to gate the vision fallback path — if the user's
- * currently-configured model isn't on this list, we surface a
- * `VisionUnsupportedError` toast pointing at Settings instead of
- * silently failing on the actual API call.
+ * Gate the vision (OCR fallback) path on the selected model's catalog
+ * capability — `ExtractionService` calls this before rendering PDF pages.
  *
- * Naming follows each provider's canonical model id (what the user
- * types into Settings). For `openai-compat` we don't know the backend
- * so we mark it `'unknown'` and let the API itself error if it
- * doesn't support images — better than over-restricting.
- *
- * Item 3 Task 10a: pi-ai's provider string is free-form (32+ providers).
- * Providers we don't have a vision-capability entry for fall through to
- * `'unknown'` and the actual API call is the source of truth. This keeps
- * Kimi/Qwen/etc. usable for vision without us having to maintain an
- * up-to-date allow-list for every provider pi-ai supports.
- *
- * Keep this list aligned with the suggestion copy in
- * `VisionUnsupportedError.suggestion` so the toast names something
- * the user can actually pick.
- */
-export const VISION_CAPABLE_MODELS: Record<string, ReadonlyArray<string> | 'unknown'> = {
-  openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'],
-  azure: ['gpt-4o', 'gpt-4o-mini'],
-  anthropic: [
-    'claude-3-5-sonnet',
-    'claude-sonnet-4',
-    'claude-sonnet-4-5',
-    'claude-3-opus',
-    'claude-3-haiku',
-  ],
-  deepseek: ['deepseek-vl'],
-  'openai-compat': 'unknown',
-};
-
-/**
- * Per-provider suggestion text appended to the user-facing error.
- * Names the most common vision-capable model on each platform so the
- * user has a concrete answer to "what should I switch to?".
+ * Rule (Decision 6 of the pi-0.85 plan):
+ * - bundled static entry with `input` including `image` → allow;
+ * - bundled static entry that is text-only → throw `VisionUnsupportedError`
+ *   with a concrete switch-to suggestion;
+ * - capability-unknown (dynamic-fetched rows, synthetic custom ids, unknown
+ *   providers) → permissive: the provider API is the source of truth.
+ *   pi-ai silently ignores images on non-vision models, so without this
+ *   gate a misconfigured text model would produce silent garbage — but
+ *   over-restricting unknown ids would block users with known-good
+ *   multimodal models we simply haven't catalogued.
  */
 const SUGGESTIONS: Record<string, string> = {
   openai: 'Switch to gpt-4o or gpt-4o-mini in Settings.',
   azure: 'Switch to a gpt-4o deployment in Settings.',
+  'azure-openai-responses': 'Switch to a gpt-4o deployment in Settings.',
   anthropic: 'Switch to claude-sonnet-4-5 (or any claude-3.5+) in Settings.',
-  deepseek: 'Switch from deepseek-chat to deepseek-vl in Settings.',
-  'openai-compat': 'Configure a vision-capable model in Settings.',
+  deepseek: 'Switch to a vision-capable DeepSeek model in Settings.',
 };
 
 const DEFAULT_SUGGESTION = 'Switch to a vision-capable model in Settings.';
@@ -73,23 +49,26 @@ export class VisionUnsupportedError extends Error {
 
 /**
  * Validate that a `ProviderConfigV2` resolves to a vision-capable model.
- * Throws `VisionUnsupportedError` on mismatch.
- *
- * Providers not in {@link VISION_CAPABLE_MODELS} (e.g. pi-ai's Kimi /
- * Qwen / Zhipu) and the explicit `'unknown'` sentinel (openai-compat) are
- * deliberately permissive — we don't have a reliable capability list for
- * every pi-ai provider, and over-restricting would block users with
- * known-good multimodal models we just haven't catalogued.
+ * Throws `VisionUnsupportedError` on a catalog-confirmed text-only model;
+ * passes through on image-capable or capability-unknown configurations.
  */
 export function assertVisionCapable(config: ProviderConfigV2): void {
-  const allowed = VISION_CAPABLE_MODELS[config.provider];
-  // Unknown provider (not in our table) — let the API call decide.
-  if (allowed === undefined) return;
-  if (allowed === 'unknown') return;
-  if (allowed.includes(config.model)) return;
-  throw new VisionUnsupportedError(
-    config.provider,
-    config.model,
-    SUGGESTIONS[config.provider] ?? DEFAULT_SUGGESTION,
-  );
+  const resolved = resolveModel(config.provider, config.model);
+  // Unknown provider (nothing to clone) — let the API call decide.
+  if (!resolved) return;
+  // Capability-unknown rows are permissive: dynamic-fetched entries (list
+  // endpoints expose no modality flags) and synthetic custom ids
+  // (user-typed, newer than any catalog).
+  if (dynamicModelMirror.get(config.provider)?.some((m) => m.id === config.model)) return;
+  const bundled = getModelsCollection().getModel(config.provider, config.model);
+  if (!bundled) return;
+  // Authoritative bundled entry: text-only (no `image` in `input`) is a
+  // confirmed mismatch — throw with a concrete suggestion.
+  if (!bundled.input.includes('image')) {
+    throw new VisionUnsupportedError(
+      config.provider,
+      config.model,
+      SUGGESTIONS[config.provider] ?? DEFAULT_SUGGESTION,
+    );
+  }
 }

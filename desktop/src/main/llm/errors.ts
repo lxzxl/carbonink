@@ -14,8 +14,16 @@ import { Data } from 'effect';
  * only a subset of failure modes is possible.
  */
 
-/** Provider rejected the request because the API key is missing or invalid (HTTP 401/403). */
-export class AiAuthError extends Data.TaggedError('AiAuthError')<{ provider: string }> {}
+/**
+ * Auth failure. `reason` distinguishes the two cases the Settings UI must
+ * render differently: `missing_key` (no keychain entry and no typed key —
+ * prompt to enter one) vs `rejected` (a key was sent and the provider
+ * refused it with 401/403 or an auth-shaped message).
+ */
+export class AiAuthError extends Data.TaggedError('AiAuthError')<{
+  provider: string;
+  reason: 'missing_key' | 'rejected';
+}> {}
 
 /** Provider returned HTTP 429. `retryAfter` is seconds when the provider sends a Retry-After header. */
 export class AiRateLimited extends Data.TaggedError('AiRateLimited')<{ retryAfter?: number }> {}

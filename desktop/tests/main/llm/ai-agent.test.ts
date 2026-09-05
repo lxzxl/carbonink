@@ -1,11 +1,13 @@
 import type { StreamOptions } from '@earendil-works/pi-ai';
 import {
-  type FauxProviderRegistration,
+  createModels,
+  type FauxProviderHandle,
   type FauxResponseFactory,
   fauxAssistantMessage,
+  fauxProvider,
   fauxText,
   fauxToolCall,
-  registerFauxProvider,
+  type MutableModels,
 } from '@earendil-works/pi-ai';
 import { type AgentTool, AiAgentTag, buildAiAgentLayer } from '@main/llm/ai-agent';
 import type { CredentialService } from '@main/services/credential-service';
@@ -51,10 +53,16 @@ function fauxErrorWithStatus(status: number, errorMessage: string): FauxResponse
   };
 }
 
-let faux: FauxProviderRegistration | undefined;
+let faux: FauxProviderHandle | undefined;
+
+function fauxModels(): MutableModels {
+  if (!faux) throw new Error('faux provider not registered — call fauxProvider() first');
+  const models = createModels();
+  models.setProvider(faux.provider);
+  return models;
+}
 
 afterEach(() => {
-  faux?.unregister();
   faux = undefined;
 });
 
@@ -64,12 +72,12 @@ afterEach(() => {
 
 describe('AiAgent — Layer + Tag wiring', () => {
   it('resolves the tag and exposes run()', async () => {
-    faux = registerFauxProvider();
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-chat' }] });
 
     const layer = buildAiAgentLayer({
       config: fakeConfig(),
       credentials: fakeCredentials(),
-      model: faux.getModel(),
+      modelsInstance: fauxModels(),
     });
 
     const program = Effect.gen(function* () {
@@ -83,12 +91,12 @@ describe('AiAgent — Layer + Tag wiring', () => {
   });
 
   it('rejects with AiAuthError when credentials are missing', async () => {
-    faux = registerFauxProvider();
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-chat' }] });
 
     const layer = buildAiAgentLayer({
       config: fakeConfig(),
       credentials: fakeCredentials(null),
-      model: faux.getModel(),
+      modelsInstance: fauxModels(),
     });
 
     const program = Effect.gen(function* () {
@@ -130,7 +138,7 @@ describe('AiAgent.run — happy path', () => {
       execute: vi.fn(async () => ({ rows: [{ id: 1, co2e_kg: 42 }] })),
     };
 
-    faux = registerFauxProvider();
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-chat' }] });
     faux.setResponses([
       // Turn 1: model calls our domain tool.
       fauxAssistantMessage([fauxToolCall('list_activities', {})], { stopReason: 'toolUse' }),
@@ -143,7 +151,7 @@ describe('AiAgent.run — happy path', () => {
     const layer = buildAiAgentLayer({
       config: fakeConfig(),
       credentials: fakeCredentials(),
-      model: faux.getModel(),
+      modelsInstance: fauxModels(),
     });
 
     const program = Effect.gen(function* () {
@@ -193,7 +201,7 @@ describe('AiAgent.run — max turns', () => {
       execute: vi.fn(async () => ({ ok: true })),
     };
 
-    faux = registerFauxProvider();
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-chat' }] });
     faux.setResponses([
       fauxAssistantMessage([fauxToolCall('call_many', { n: 1 })], { stopReason: 'toolUse' }),
       fauxAssistantMessage([fauxToolCall('call_many', { n: 2 })], { stopReason: 'toolUse' }),
@@ -204,7 +212,7 @@ describe('AiAgent.run — max turns', () => {
     const layer = buildAiAgentLayer({
       config: fakeConfig(),
       credentials: fakeCredentials(),
-      model: faux.getModel(),
+      modelsInstance: fauxModels(),
     });
 
     const program = Effect.gen(function* () {
@@ -254,7 +262,7 @@ describe('AiAgent.run — stalled detection', () => {
       execute: vi.fn(async () => ({ ok: true })),
     };
 
-    faux = registerFauxProvider();
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-chat' }] });
     // Two identical calls in a row → stalled trips on the second.
     faux.setResponses([
       fauxAssistantMessage([fauxToolCall('repeatable', { q: 'same' })], { stopReason: 'toolUse' }),
@@ -266,7 +274,7 @@ describe('AiAgent.run — stalled detection', () => {
     const layer = buildAiAgentLayer({
       config: fakeConfig(),
       credentials: fakeCredentials(),
-      model: faux.getModel(),
+      modelsInstance: fauxModels(),
     });
 
     const program = Effect.gen(function* () {
@@ -306,7 +314,7 @@ describe('AiAgent.run — stalled detection', () => {
       execute: vi.fn(async () => ({ ok: true })),
     };
 
-    faux = registerFauxProvider();
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-chat' }] });
     // Same logical args, different key order. Stalled detector should
     // recognize these as equal via canonicalized JSON.
     faux.setResponses([
@@ -324,7 +332,7 @@ describe('AiAgent.run — stalled detection', () => {
     const layer = buildAiAgentLayer({
       config: fakeConfig(),
       credentials: fakeCredentials(),
-      model: faux.getModel(),
+      modelsInstance: fauxModels(),
     });
 
     const program = Effect.gen(function* () {
@@ -359,7 +367,7 @@ describe('AiAgent.run — schema mismatch in submit_response', () => {
       category: z.string(),
     });
 
-    faux = registerFauxProvider();
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-chat' }] });
     faux.setResponses([
       // scope=99 is outside the literal union → safeParse fails.
       fauxAssistantMessage(
@@ -371,7 +379,7 @@ describe('AiAgent.run — schema mismatch in submit_response', () => {
     const layer = buildAiAgentLayer({
       config: fakeConfig(),
       credentials: fakeCredentials(),
-      model: faux.getModel(),
+      modelsInstance: fauxModels(),
     });
 
     const program = Effect.gen(function* () {
@@ -426,7 +434,7 @@ describe('AiAgent.run — tool execution failure recovery', () => {
       }),
     };
 
-    faux = registerFauxProvider();
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-chat' }] });
     faux.setResponses([
       // Turn 1: model calls the flaky tool — it throws, pi-agent-core
       // surfaces the error as a toolResult to the model.
@@ -443,7 +451,7 @@ describe('AiAgent.run — tool execution failure recovery', () => {
     const layer = buildAiAgentLayer({
       config: fakeConfig(),
       credentials: fakeCredentials(),
-      model: faux.getModel(),
+      modelsInstance: fauxModels(),
     });
 
     const program = Effect.gen(function* () {
@@ -470,7 +478,7 @@ describe('AiAgent.run — timeout', () => {
   it('fails AiTimeout when the LLM stream exceeds timeoutMs', async () => {
     const answerSchema = z.object({ answer: z.string() });
 
-    faux = registerFauxProvider();
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-chat' }] });
     // Slow factory — respects the abort signal so the test exits promptly
     // when the impl's AbortController fires.
     faux.setResponses([
@@ -491,7 +499,7 @@ describe('AiAgent.run — timeout', () => {
     const layer = buildAiAgentLayer({
       config: fakeConfig(),
       credentials: fakeCredentials(),
-      model: faux.getModel(),
+      modelsInstance: fauxModels(),
     });
 
     const program = Effect.gen(function* () {
@@ -530,13 +538,13 @@ describe('AiAgent.run — provider error mapping', () => {
   it('maps 401 → AiAuthError', async () => {
     const answerSchema = z.object({ answer: z.string() });
 
-    faux = registerFauxProvider();
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-chat' }] });
     faux.setResponses([fauxErrorWithStatus(401, 'Unauthorized: invalid API key')]);
 
     const layer = buildAiAgentLayer({
       config: fakeConfig(),
       credentials: fakeCredentials(),
-      model: faux.getModel(),
+      modelsInstance: fauxModels(),
     });
 
     const program = Effect.gen(function* () {

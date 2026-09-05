@@ -1,11 +1,13 @@
 import type { StreamOptions } from '@earendil-works/pi-ai';
 import {
-  type FauxProviderRegistration,
+  createModels,
+  type FauxProviderHandle,
   type FauxResponseFactory,
   fauxAssistantMessage,
+  fauxProvider,
   fauxText,
   fauxToolCall,
-  registerFauxProvider,
+  type MutableModels,
 } from '@earendil-works/pi-ai';
 import { AiClientTag, buildAiClientLayer } from '@main/llm/ai-client';
 import type { CredentialService } from '@main/services/credential-service';
@@ -60,23 +62,27 @@ function fauxErrorWithStatus(status: number, errorMessage: string): FauxResponse
 // Faux pi-ai provider — short-circuits the HTTP layer for unit tests
 // ---------------------------------------------------------------------------
 //
-// pi-ai ships `registerFauxProvider()` for this purpose. It returns a model
-// handle whose `api` field points at an in-memory scripted provider; calling
-// `complete(model, ...)` answers from a queue of `AssistantMessage`s instead
-// of hitting the network.
+// pi-ai ships `fauxProvider()` for this purpose. Each test registers a faux
+// provider with the same id the fake config points at (`deepseek`), scripts
+// its response queue, and hands a dedicated `Models` collection carrying
+// that provider to `buildAiClientLayer` via `modelsInstance`. Request
+// routing keys off `model.provider`, so `resolveModel` hits the faux
+// catalog and `complete()` answers from the queue instead of the network.
 //
-// The faux provider does NOT populate pi-ai's global `getModel(provider, id)`
-// registry — that registry is built once at module load from the generated
-// `MODELS` constant. So tests pass `model` directly into `buildAiClientLayer`,
-// bypassing the registry lookup. Production callers still get the
-// `getModel(provider, model)` happy path; the `model` override is the seam
-// where the spike-recommended Tag/Layer wiring meets a deterministic
-// in-memory provider.
+// One collection per test (fresh `createModels()`): the `Models` instance
+// holds provider state, and sharing it across queued-response tests would
+// leak responses between cases.
 
-let faux: FauxProviderRegistration | undefined;
+let faux: FauxProviderHandle | undefined;
+
+function fauxModels(): MutableModels {
+  if (!faux) throw new Error('faux provider not registered — call fauxProvider() first');
+  const models = createModels();
+  models.setProvider(faux.provider);
+  return models;
+}
 
 afterEach(() => {
-  faux?.unregister();
   faux = undefined;
 });
 
@@ -87,13 +93,13 @@ afterEach(() => {
 describe('AiClient.ping', () => {
   it('Layer + Tag wiring works (ping returns ok against faux pi-ai response)', async () => {
     // Arrange: register a faux pi-ai provider + script one assistant reply.
-    faux = registerFauxProvider();
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-chat' }] });
     faux.setResponses([fauxAssistantMessage([fauxText('ok')])]);
 
     const layer = buildAiClientLayer({
       config: fakeConfig(),
       credentials: fakeCredentials(),
-      model: faux.getModel(),
+      modelsInstance: fauxModels(),
     });
 
     const program = Effect.gen(function* () {
@@ -107,12 +113,12 @@ describe('AiClient.ping', () => {
   });
 
   it('rejects with AiAuthError when credentials are missing', async () => {
-    faux = registerFauxProvider();
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-chat' }] });
 
     const layer = buildAiClientLayer({
       config: fakeConfig(),
       credentials: fakeCredentials(null),
-      model: faux.getModel(),
+      modelsInstance: fauxModels(),
     });
 
     const program = Effect.gen(function* () {
@@ -133,7 +139,7 @@ describe('AiClient.ping', () => {
   });
 
   it('honours overrideKey (the Settings UI test-connection path)', async () => {
-    faux = registerFauxProvider();
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-chat' }] });
     faux.setResponses([fauxAssistantMessage([fauxText('ok')])]);
 
     const credentials = fakeCredentials(null);
@@ -141,7 +147,7 @@ describe('AiClient.ping', () => {
       config: fakeConfig(),
       credentials,
       overrideKey: 'sk-typed-but-not-saved',
-      model: faux.getModel(),
+      modelsInstance: fauxModels(),
     });
 
     const program = Effect.gen(function* () {
@@ -155,13 +161,13 @@ describe('AiClient.ping', () => {
   });
 
   it('maps pi-ai errors to AiProviderError', async () => {
-    faux = registerFauxProvider();
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-chat' }] });
     // No responses queued → faux's default error path fires.
 
     const layer = buildAiClientLayer({
       config: fakeConfig(),
       credentials: fakeCredentials(),
-      model: faux.getModel(),
+      modelsInstance: fauxModels(),
     });
 
     const program = Effect.gen(function* () {
@@ -190,7 +196,7 @@ describe('AiClient.generateObject', () => {
       category: z.string(),
     });
 
-    faux = registerFauxProvider();
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-chat' }] });
     faux.setResponses([
       fauxAssistantMessage(
         [fauxToolCall('submit_response', { scope: 2, category: 'electricity' })],
@@ -201,7 +207,7 @@ describe('AiClient.generateObject', () => {
     const layer = buildAiClientLayer({
       config: fakeConfig(),
       credentials: fakeCredentials(),
-      model: faux.getModel(),
+      modelsInstance: fauxModels(),
     });
 
     const program = Effect.gen(function* () {
@@ -220,7 +226,7 @@ describe('AiClient.generateObject', () => {
       category: z.string(),
     });
 
-    faux = registerFauxProvider();
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-chat' }] });
     faux.setResponses([
       // scope=99 is outside the literal union → safeParse should fail.
       fauxAssistantMessage(
@@ -232,7 +238,7 @@ describe('AiClient.generateObject', () => {
     const layer = buildAiClientLayer({
       config: fakeConfig(),
       credentials: fakeCredentials(),
-      model: faux.getModel(),
+      modelsInstance: fauxModels(),
     });
 
     const program = Effect.gen(function* () {
@@ -258,7 +264,7 @@ describe('AiClient.generateObject', () => {
   it('fails AiNoData when the response has no tool_use block', async () => {
     const schema = z.object({ scope: z.number() });
 
-    faux = registerFauxProvider();
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-chat' }] });
     faux.setResponses([
       // Plain text response, no tool call.
       fauxAssistantMessage([fauxText('I cannot answer that')]),
@@ -267,7 +273,7 @@ describe('AiClient.generateObject', () => {
     const layer = buildAiClientLayer({
       config: fakeConfig(),
       credentials: fakeCredentials(),
-      model: faux.getModel(),
+      modelsInstance: fauxModels(),
     });
 
     const program = Effect.gen(function* () {
@@ -287,13 +293,13 @@ describe('AiClient.generateObject', () => {
   it('401 response → AiAuthError, no retry', async () => {
     const schema = z.object({ scope: z.number() });
 
-    faux = registerFauxProvider();
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-chat' }] });
     faux.setResponses([fauxErrorWithStatus(401, 'Unauthorized: invalid API key')]);
 
     const layer = buildAiClientLayer({
       config: fakeConfig(),
       credentials: fakeCredentials(),
-      model: faux.getModel(),
+      modelsInstance: fauxModels(),
     });
 
     const program = Effect.gen(function* () {
@@ -317,7 +323,7 @@ describe('AiClient.generateObject', () => {
     const schema = z.object({ scope: z.number() });
 
     // Queue 3 rate-limit responses so the retry exhausts (max 2 retries = 3 calls).
-    faux = registerFauxProvider();
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-chat' }] });
     faux.setResponses([
       fauxErrorWithStatus(429, 'rate limit exceeded'),
       fauxErrorWithStatus(429, 'rate limit exceeded'),
@@ -327,7 +333,7 @@ describe('AiClient.generateObject', () => {
     const layer = buildAiClientLayer({
       config: fakeConfig(),
       credentials: fakeCredentials(),
-      model: faux.getModel(),
+      modelsInstance: fauxModels(),
     });
 
     const program = Effect.gen(function* () {
@@ -348,7 +354,7 @@ describe('AiClient.generateObject', () => {
   it('429 followed by success → returns the late success', async () => {
     const schema = z.object({ scope: z.number() });
 
-    faux = registerFauxProvider();
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-chat' }] });
     faux.setResponses([
       fauxErrorWithStatus(429, 'rate limit'),
       fauxAssistantMessage([fauxToolCall('submit_response', { scope: 1 })], {
@@ -359,7 +365,7 @@ describe('AiClient.generateObject', () => {
     const layer = buildAiClientLayer({
       config: fakeConfig(),
       credentials: fakeCredentials(),
-      model: faux.getModel(),
+      modelsInstance: fauxModels(),
     });
 
     const program = Effect.gen(function* () {
@@ -375,7 +381,7 @@ describe('AiClient.generateObject', () => {
   it('500 response → AiProviderError, retries', async () => {
     const schema = z.object({ scope: z.number() });
 
-    faux = registerFauxProvider();
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-chat' }] });
     faux.setResponses([
       fauxErrorWithStatus(500, 'server error'),
       fauxErrorWithStatus(500, 'server error'),
@@ -385,7 +391,7 @@ describe('AiClient.generateObject', () => {
     const layer = buildAiClientLayer({
       config: fakeConfig(),
       credentials: fakeCredentials(),
-      model: faux.getModel(),
+      modelsInstance: fauxModels(),
     });
 
     const program = Effect.gen(function* () {
@@ -408,7 +414,7 @@ describe('AiClient.generateObject', () => {
   it('timeout exceeded → AiTimeout, no retry', async () => {
     const schema = z.object({ scope: z.number() });
 
-    faux = registerFauxProvider();
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-chat' }] });
     // Factory that sleeps longer than the timeoutMs. Respects the AbortSignal
     // the impl wires in so the test exits promptly when the timeout fires.
     faux.setResponses([
@@ -429,7 +435,7 @@ describe('AiClient.generateObject', () => {
     const layer = buildAiClientLayer({
       config: fakeConfig(),
       credentials: fakeCredentials(),
-      model: faux.getModel(),
+      modelsInstance: fauxModels(),
     });
 
     const program = Effect.gen(function* () {
@@ -457,7 +463,7 @@ describe('AiClient.generateObject', () => {
   it('schema mismatch does not retry', async () => {
     const schema = z.object({ scope: z.literal(1) });
 
-    faux = registerFauxProvider();
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-chat' }] });
     faux.setResponses([
       fauxAssistantMessage([fauxToolCall('submit_response', { scope: 99 })], {
         stopReason: 'toolUse',
@@ -470,7 +476,7 @@ describe('AiClient.generateObject', () => {
     const layer = buildAiClientLayer({
       config: fakeConfig(),
       credentials: fakeCredentials(),
-      model: faux.getModel(),
+      modelsInstance: fauxModels(),
     });
 
     const program = Effect.gen(function* () {
@@ -495,13 +501,13 @@ describe('AiClient.generateObject', () => {
 
 describe('AiClient.generateText', () => {
   it('returns the concatenated text from the response', async () => {
-    faux = registerFauxProvider();
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-chat' }] });
     faux.setResponses([fauxAssistantMessage([fauxText('hello world')])]);
 
     const layer = buildAiClientLayer({
       config: fakeConfig(),
       credentials: fakeCredentials(),
-      model: faux.getModel(),
+      modelsInstance: fauxModels(),
     });
 
     const program = Effect.gen(function* () {
@@ -513,13 +519,13 @@ describe('AiClient.generateText', () => {
   });
 
   it('401 → AiAuthError', async () => {
-    faux = registerFauxProvider();
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-chat' }] });
     faux.setResponses([fauxErrorWithStatus(401, 'unauthorized')]);
 
     const layer = buildAiClientLayer({
       config: fakeConfig(),
       credentials: fakeCredentials(),
-      model: faux.getModel(),
+      modelsInstance: fauxModels(),
     });
 
     const program = Effect.gen(function* () {
@@ -538,7 +544,7 @@ describe('AiClient.generateText', () => {
   });
 
   it('500 → AiProviderError (retried)', async () => {
-    faux = registerFauxProvider();
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-chat' }] });
     faux.setResponses([
       fauxErrorWithStatus(500, 'internal'),
       fauxErrorWithStatus(500, 'internal'),
@@ -548,7 +554,7 @@ describe('AiClient.generateText', () => {
     const layer = buildAiClientLayer({
       config: fakeConfig(),
       credentials: fakeCredentials(),
-      model: faux.getModel(),
+      modelsInstance: fauxModels(),
     });
 
     const program = Effect.gen(function* () {
@@ -569,14 +575,14 @@ describe('AiClient.generateText', () => {
   });
 
   it('empty content → AiNoData', async () => {
-    faux = registerFauxProvider();
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-chat' }] });
     // Empty content array — no text to return.
     faux.setResponses([fauxAssistantMessage([])]);
 
     const layer = buildAiClientLayer({
       config: fakeConfig(),
       credentials: fakeCredentials(),
-      model: faux.getModel(),
+      modelsInstance: fauxModels(),
     });
 
     const program = Effect.gen(function* () {

@@ -23,6 +23,7 @@ import { invoke } from '../ipc.js';
 export const settingsApi = {
   available: () => invoke('settings:available'),
   getProvider: () => invoke('settings:get-provider'),
+  getKeyStatus: (provider: string) => invoke('settings:get-key-status', { provider }),
   saveProvider: (input: { config: ProviderConfigV2; apiKey?: string }) =>
     invoke('settings:save-provider', input),
   clearProvider: () => invoke('settings:clear-provider'),
@@ -43,6 +44,8 @@ export const settingsApi = {
   // is bundled, not network-fetched), model list is invalidated per provider.
   listProviders: () => invoke('settings:list-providers'),
   listModels: (provider: string) => invoke('settings:list-models', { provider }),
+  fetchModels: (input: { provider: string; baseUrl?: string; apiKey?: string }) =>
+    invoke('settings:fetch-models', input),
   // LLM provider guidance overlay + deterministic cache (spec 2026-09-02).
   // Guidance is cached for the session (static table; referral overlay
   // changes only when the maintainer edits the runtime file).

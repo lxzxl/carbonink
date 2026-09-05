@@ -17,6 +17,7 @@ vi.mock('@renderer/lib/api/settings', () => ({
   settingsApi: {
     available: vi.fn(),
     getProvider: vi.fn(),
+    getKeyStatus: vi.fn(),
     saveProvider: vi.fn(),
     clearProvider: vi.fn(),
     pingProvider: vi.fn(),
@@ -24,6 +25,7 @@ vi.mock('@renderer/lib/api/settings', () => ({
     setAmapKey: vi.fn(),
     listProviders: vi.fn(),
     listModels: vi.fn(),
+    fetchModels: vi.fn(),
     getProviderGuidance: vi.fn(),
     clearAiCache: vi.fn(),
   },
@@ -103,8 +105,8 @@ function mockModelCatalog() {
   // inert; individual tests seed entries when they exercise the card.
   vi.mocked(settingsApi.getProviderGuidance).mockResolvedValue([]);
   vi.mocked(settingsApi.listModels).mockImplementation((provider: string) =>
-    Promise.resolve(
-      (TEST_MODELS[provider] ?? []).map((m) => ({
+    Promise.resolve({
+      models: (TEST_MODELS[provider] ?? []).map((m) => ({
         id: m.id,
         name: m.name,
         api: 'openai-completions',
@@ -115,7 +117,8 @@ function mockModelCatalog() {
         contextWindow: 8192,
         maxTokens: 4096,
       })),
-    ),
+      checkedAt: null,
+    }),
   );
 }
 
@@ -124,7 +127,7 @@ describe('SettingsPage', () => {
     vi.mocked(settingsApi.getProvider).mockResolvedValue(null);
     vi.mocked(settingsApi.saveProvider).mockResolvedValue(undefined);
     vi.mocked(settingsApi.pingProvider).mockResolvedValue({ ok: true });
-    vi.mocked(settingsApi.getAmapKey).mockResolvedValue(null);
+    vi.mocked(settingsApi.getKeyStatus).mockResolvedValue({ apiKeyMasked: null });
     vi.mocked(settingsApi.setAmapKey).mockResolvedValue(undefined);
     mockModelCatalog();
   });
@@ -201,6 +204,8 @@ describe('SettingsPage', () => {
       model: 'gpt-4o-mini',
       apiKeyMasked: 'sk-...abcd',
     });
+    // Key display follows the selected provider via get-key-status.
+    vi.mocked(settingsApi.getKeyStatus).mockResolvedValue({ apiKeyMasked: 'sk-...abcd' });
 
     render(harness(<SettingsPage />));
     gotoAiSection();
@@ -221,6 +226,7 @@ describe('SettingsPage', () => {
       model: 'gpt-4o-mini',
       apiKeyMasked: 'sk-...abcd',
     });
+    vi.mocked(settingsApi.getKeyStatus).mockResolvedValue({ apiKeyMasked: 'sk-...abcd' });
 
     render(harness(<SettingsPage />));
     gotoAiSection();
@@ -280,6 +286,7 @@ describe('SettingsPage', () => {
       model: 'gpt-4o-mini',
       apiKeyMasked: 'sk-...abcd',
     });
+    vi.mocked(settingsApi.getKeyStatus).mockResolvedValue({ apiKeyMasked: 'sk-...abcd' });
 
     render(harness(<SettingsPage />));
     gotoAiSection();
@@ -382,5 +389,39 @@ describe('SettingsPage', () => {
 
     fireEvent.click(referralLink);
     expect(appApi.openUrl).toHaveBeenCalledWith('https://platform.openai.com/signup');
+  });
+  it('switching providers flips the key display to the new provider (no stale mask)', async () => {
+    // Saved config + key belong to openai; the key-status channel reports
+    // per selected provider — anthropic has no key saved.
+    vi.mocked(settingsApi.getProvider).mockResolvedValue({
+      provider: 'openai',
+      model: 'gpt-4o-mini',
+      apiKeyMasked: 'sk-...abcd',
+    });
+    vi.mocked(settingsApi.getKeyStatus).mockImplementation((provider: string) =>
+      Promise.resolve(
+        provider === 'openai' ? { apiKeyMasked: 'sk-...abcd' } : { apiKeyMasked: null },
+      ),
+    );
+
+    render(harness(<SettingsPage />));
+    gotoAiSection();
+
+    await waitFor(() => {
+      expect(screen.getByText('sk-...abcd')).toBeTruthy();
+    });
+
+    const trigger = (await screen.findByRole('combobox', {
+      name: /Provider/i,
+    })) as HTMLButtonElement;
+    await waitFor(() => expect(trigger.disabled).toBe(false));
+    fireEvent.click(trigger);
+    fireEvent.click(await screen.findByRole('option', { name: 'anthropic' }));
+
+    // The openai mask is gone; the password input is back for anthropic.
+    await waitFor(() => {
+      expect(screen.queryByText('sk-...abcd')).toBeNull();
+    });
+    expect(document.querySelector('input[type="password"]')).not.toBeNull();
   });
 });

@@ -1,10 +1,4 @@
-import {
-  type Api,
-  type AssistantMessage,
-  complete,
-  type Model,
-  type Tool,
-} from '@earendil-works/pi-ai';
+import type { Api, AssistantMessage, Model, Models, Tool } from '@earendil-works/pi-ai';
 import type { CredentialService } from '@main/services/credential-service.js';
 import { apiKeyKeyrefForProvider, type ProviderConfigV2 } from '@shared/types.js';
 import { Context, Effect, Layer, Schedule } from 'effect';
@@ -18,7 +12,8 @@ import {
   AiSchemaMismatch,
   AiTimeout,
 } from './errors.js';
-import { resolveModel } from './pi-catalog.js';
+import { getModelsCollection } from './models.js';
+import { resolveModelWith } from './pi-catalog.js';
 
 /**
  * Effect-wrapped wrapper around `@earendil-works/pi-ai`.
@@ -105,11 +100,12 @@ export interface BuildAiClientDeps {
    */
   overrideKey?: string;
   /**
-   * Test-only injection. Production callers leave this undefined — the
-   * layer resolves the model via pi-ai's registry. Tests pass a faux
-   * `Model` from `registerFauxProvider()` so the network is never touched.
+   * Test-only injection. Production callers leave this undefined — the layer
+   * resolves the model from the shared collection. Tests pass a faux-backed
+   * collection (`createModels()` + `setProvider` of a `fauxProvider()`) so
+   * the network is never touched and the resolved model routes to faux.
    */
-  model?: Model<Api>;
+  modelsInstance?: Models;
 }
 
 /**
@@ -146,16 +142,24 @@ export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClien
     Effect.sync(() => {
       const { config, credentials, overrideKey } = deps;
       const apiKey = overrideKey ?? credentials.get(apiKeyKeyrefForProvider(config.provider));
-
-      // The pi-ai model object: either supplied by tests, or resolved from
-      // pi-ai's generated MODELS registry — with a synthetic fallback for
-      // custom ids newer than the bundled catalog (see resolveModel). Only
-      // an unknown provider leaves this undefined; every method then fails
-      // with `AiProviderError`. We don't pre-validate at Layer construction
-      // so a build with a stale config still loads and surfaces a
-      // recognizable error at call time.
+      // Request routing target: production uses the shared singleton;
+      // tests inject a faux-backed collection (see `modelsInstance`).
+      const models = deps.modelsInstance ?? getModelsCollection();
+      // The pi-ai model object, resolved from the collection — with a
+      // synthetic fallback for custom ids newer than the bundled catalog
+      // (see resolveModelWith). Only an unknown provider leaves this
+      // undefined; every method then fails with `AiProviderError`. We don't
+      // pre-validate at Layer construction so a build with a stale config
+      // still loads and surfaces a recognizable error at call time.
       const resolvedModel: Model<Api> | undefined =
-        deps.model ?? resolveModel(config.provider, config.model);
+        models.getModel(config.provider, config.model) ??
+        resolveModelWith(models, config.provider, config.model);
+      // The Settings "Override base URL" field (self-hosted gateways, Azure
+      // resource endpoints) was previously stored but never reached pi-ai.
+      // Apply it here as a per-request model clone — never mutate the shared
+      // catalog entry (the collection may be a process-wide singleton).
+      const effectiveModel: Model<Api> | undefined =
+        resolvedModel && config.baseUrl ? { ...resolvedModel, baseUrl: config.baseUrl } : resolvedModel;
 
       /**
        * Validate auth + model availability up front. Returns the same narrow
@@ -168,16 +172,16 @@ export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClien
         AiAuthError | AiProviderError
       > => {
         if (apiKey === null || apiKey === undefined || apiKey === '') {
-          return Effect.fail(new AiAuthError({ provider: config.provider }));
+          return Effect.fail(new AiAuthError({ provider: config.provider, reason: 'missing_key' }));
         }
-        if (!resolvedModel) {
+        if (!effectiveModel) {
           return Effect.fail(
             new AiProviderError({
               cause: `pi-ai has no model registered for provider="${config.provider}" model="${config.model}"`,
             }),
           );
         }
-        return Effect.succeed({ model: resolvedModel, apiKey });
+        return Effect.succeed({ model: effectiveModel, apiKey });
       };
 
       /**
@@ -203,7 +207,7 @@ export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClien
       }): Effect.Effect<{ msg: AssistantMessage; httpStatus: number | undefined }, AiErr, never> =>
         Effect.async<{ msg: AssistantMessage; httpStatus: number | undefined }, AiErr, never>(
           (resume) => {
-            if (!resolvedModel) {
+            if (!effectiveModel) {
               resume(
                 Effect.fail(
                   new AiProviderError({
@@ -214,7 +218,9 @@ export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClien
               return;
             }
             if (!apiKey) {
-              resume(Effect.fail(new AiAuthError({ provider: config.provider })));
+              resume(
+                Effect.fail(new AiAuthError({ provider: config.provider, reason: 'missing_key' })),
+              );
               return;
             }
             const controller = new AbortController();
@@ -245,8 +251,8 @@ export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClien
                   ]
                 : args.prompt;
 
-            complete(
-              resolvedModel,
+            models.complete(
+              effectiveModel,
               {
                 ...(args.system ? { systemPrompt: args.system } : {}),
                 messages: [{ role: 'user', content: userContent, timestamp: Date.now() }],
@@ -284,7 +290,7 @@ export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClien
                 resume(
                   Effect.fail(
                     looksLikeAuthError(errMsg)
-                      ? new AiAuthError({ provider: config.provider })
+                      ? new AiAuthError({ provider: config.provider, reason: 'rejected' })
                       : new AiProviderError({ cause: e }),
                   ),
                 );
@@ -310,7 +316,7 @@ export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClien
           return new AiProviderError({ cause: 'aborted' });
         }
         if (httpStatus === 401 || httpStatus === 403) {
-          return new AiAuthError({ provider: config.provider });
+          return new AiAuthError({ provider: config.provider, reason: 'rejected' });
         }
         if (httpStatus === 429) {
           return new AiRateLimited({});
@@ -322,7 +328,7 @@ export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClien
           });
         }
         if (looksLikeAuthError(msg.errorMessage)) {
-          return new AiAuthError({ provider: config.provider });
+          return new AiAuthError({ provider: config.provider, reason: 'rejected' });
         }
         return new AiProviderError({
           ...(httpStatus !== undefined ? { status: httpStatus } : {}),
@@ -449,7 +455,7 @@ export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClien
             // pi-ai's stopReason isn't 'error'.
             const message = yield* Effect.tryPromise({
               try: () =>
-                complete(
+                models.complete(
                   model,
                   { messages: [{ role: 'user', content: 'ok', timestamp: Date.now() }] },
                   { apiKey, maxTokens: 4 },
@@ -461,7 +467,7 @@ export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClien
                 // unless the underlying message looks like an auth failure.
                 const errMsg = e instanceof Error ? e.message : String(e);
                 return looksLikeAuthError(errMsg)
-                  ? new AiAuthError({ provider: config.provider })
+                  ? new AiAuthError({ provider: config.provider, reason: 'rejected' })
                   : new AiProviderError({ cause: e });
               },
             });
@@ -472,7 +478,9 @@ export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClien
             // codes on AssistantMessage).
             if (message.stopReason === 'error' || message.stopReason === 'aborted') {
               if (looksLikeAuthError(message.errorMessage)) {
-                return yield* Effect.fail(new AiAuthError({ provider: config.provider }));
+                return yield* Effect.fail(
+                  new AiAuthError({ provider: config.provider, reason: 'rejected' }),
+                );
               }
               return yield* Effect.fail(
                 new AiProviderError({ cause: message.errorMessage ?? message.stopReason }),

@@ -1,4 +1,5 @@
-import { type Api, getModel, getModels, type Model } from '@earendil-works/pi-ai';
+import type { Api, Model } from '@earendil-works/pi-ai';
+import { getBuiltinModel, getBuiltinModels } from '@earendil-works/pi-ai/providers/all';
 import { AiClientTag, buildAiClientLayer } from '@main/llm/ai-client';
 import { resolveModel } from '@main/llm/pi-catalog';
 import type { CredentialService } from '@main/services/credential-service';
@@ -15,14 +16,12 @@ import { describe, expect, it, vi } from 'vitest';
  */
 describe('resolveModel', () => {
   it('returns the catalog entry verbatim on an exact hit', () => {
-    const catalog = getModels('deepseek');
+    const catalog = getBuiltinModels('deepseek');
     const first = catalog[0];
     if (!first) throw new Error('pi-ai catalog unexpectedly empty for deepseek');
 
     const resolved = resolveModel('deepseek', first.id);
-    expect(resolved).toEqual(
-      (getModel as unknown as (p: string, m: string) => Model<Api>)('deepseek', first.id),
-    );
+    expect(resolved).toEqual(getBuiltinModel('deepseek', first.id as never) as Model<Api>);
     expect(resolved?.id).toBe(first.id);
   });
 
@@ -30,9 +29,9 @@ describe('resolveModel', () => {
     // The motivating case: a model that launched on openrouter after the
     // bundled pi-ai snapshot was published.
     const customId = 'tencent/hy3:free';
-    const template = getModels('openrouter')[0];
+    const template = getBuiltinModels('openrouter')[0];
     if (!template) throw new Error('pi-ai catalog unexpectedly empty for openrouter');
-    expect(getModels('openrouter').some((m) => m.id === customId)).toBe(false);
+    expect(getBuiltinModels('openrouter').some((m) => m.id === customId)).toBe(false);
 
     const synthetic = resolveModel('openrouter', customId);
     expect(synthetic).toBeDefined();

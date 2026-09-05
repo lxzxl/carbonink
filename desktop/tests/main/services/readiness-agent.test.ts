@@ -1,8 +1,10 @@
 import {
-  type FauxProviderRegistration,
+  createModels,
+  type FauxProviderHandle,
   fauxAssistantMessage,
+  fauxProvider,
   fauxToolCall,
-  registerFauxProvider,
+  type MutableModels,
 } from '@earendil-works/pi-ai';
 import { runMigrations } from '@main/db/migrate';
 import { ReadinessAgentService } from '@main/services/readiness/agent';
@@ -22,10 +24,16 @@ const NOW = '2026-02-01T00:00:00.000Z';
 const CONFIG: ProviderConfigV2 = { provider: 'deepseek', model: 'deepseek-v4-flash' };
 
 let db: Database.Database;
-let faux: FauxProviderRegistration | undefined;
+let faux: FauxProviderHandle | undefined;
+
+function fauxModels(): MutableModels {
+  if (!faux) throw new Error('faux provider not registered — call fauxProvider() first');
+  const models = createModels();
+  models.setProvider(faux.provider);
+  return models;
+}
 
 afterEach(() => {
-  faux?.unregister();
   faux = undefined;
   db.close();
 });
@@ -48,7 +56,7 @@ function build(config: ProviderConfigV2 | null = CONFIG): ReadinessAgentService 
     config,
     // Drive the REAL turn loop against the faux provider, so the tool schemas
     // and executors are exercised rather than mocked past.
-    ...(faux ? { model: faux.getModel() } : {}),
+    ...(faux ? { modelsInstance: fauxModels() } : {}),
   });
 }
 
@@ -62,7 +70,7 @@ function traces(): Array<Record<string, unknown>> {
 
 /** One turn of tool use, then a submit_response carrying the findings. */
 function scriptFindings(findings: unknown[]): void {
-  faux = registerFauxProvider();
+  faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-v4-flash' }] });
   faux.setResponses([
     fauxAssistantMessage([fauxToolCall('list_emission_sources', {})], {
       stopReason: 'toolUse',
@@ -169,7 +177,7 @@ describe('readiness agent review', () => {
 
   it('returns nothing when the loop fails, and still records the attempt', async () => {
     // No scripted responses: the faux provider runs dry and the loop errors.
-    faux = registerFauxProvider();
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-v4-flash' }] });
     faux.setResponses([]);
 
     expect(await build().review('rp-1')).toEqual([]);

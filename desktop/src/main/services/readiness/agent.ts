@@ -77,11 +77,11 @@ export interface ReadinessAgentDeps {
   /** Null when the user has not configured a provider — review() then no-ops. */
   config: ProviderConfigV2 | null;
   /**
-   * Test-only. A faux `Model` lets a suite drive the real turn loop (and so
-   * the real tool schemas) without a network or a key; production leaves it
-   * undefined. Same hook `buildAiAgentLayer` already documents.
+   * Test-only. A faux-backed `Models` collection lets a suite drive the real
+   * turn loop (and so the real tool schemas) without a network or a key;
+   * production leaves it undefined. Same hook `buildAiAgentLayer` documents.
    */
-  model?: Parameters<typeof runAiAgent>[2]['model'];
+  modelsInstance?: Parameters<typeof runAiAgent>[2]['modelsInstance'];
   /**
    * File-backed deterministic-result cache. Absent in unit tests;
    * production wires the process `LlmCache` from the IPC context.
@@ -123,7 +123,9 @@ export class ReadinessAgentService {
         tools: this.buildTools(period.organization_id, period.id),
         maxTurns: MAX_TURNS,
         timeoutMs: TIMEOUT_MS,
-        ...(this.deps.model !== undefined ? { model: this.deps.model } : {}),
+        ...(this.deps.modelsInstance !== undefined
+          ? { modelsInstance: this.deps.modelsInstance }
+          : {}),
         ...(cache ? { cache } : {}),
       });
 

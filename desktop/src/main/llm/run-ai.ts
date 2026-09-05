@@ -49,11 +49,11 @@ export async function runAiObject<T>(
     cache?: AiCacheRequest;
     /**
      * Test-only, forwarded to {@link buildAiClientLayer}'s existing hook: a
-     * faux `Model` from pi-ai's `registerFauxProvider()` so a suite can drive
-     * the real call path without a network or a key. Production callers leave
-     * it undefined and the layer resolves the model from the registry.
+     * faux-backed `Models` collection so a suite can drive the real call path
+     * without a network or a key. Production callers leave it undefined and
+     * the layer resolves the model from the shared collection.
      */
-    model?: Parameters<typeof buildAiClientLayer>[0]['model'];
+    modelsInstance?: Parameters<typeof buildAiClientLayer>[0]['modelsInstance'];
   },
 ): Promise<T> {
   if (args.cache) {
@@ -63,7 +63,7 @@ export async function runAiObject<T>(
   const layer = buildAiClientLayer({
     config,
     credentials,
-    ...(args.model !== undefined ? { model: args.model } : {}),
+    ...(args.modelsInstance !== undefined ? { modelsInstance: args.modelsInstance } : {}),
   });
   const program = Effect.gen(function* () {
     const ai = yield* AiClientTag;
@@ -112,11 +112,11 @@ export async function runAiAgent<T>(
     cache?: AiCacheRequest;
     /**
      * Test-only, forwarded to {@link buildAiAgentLayer}'s existing hook: a
-     * faux `Model` from pi-ai's `registerFauxProvider()` so a suite can drive
-     * the real turn loop without a network or a key. Production callers leave
-     * it undefined and the layer resolves the model from the registry.
+     * faux-backed `Models` collection so a suite can drive the real turn loop
+     * without a network or a key. Production callers leave it undefined and
+     * the layer resolves the model from the shared collection.
      */
-    model?: Parameters<typeof buildAiAgentLayer>[0]['model'];
+    modelsInstance?: Parameters<typeof buildAiAgentLayer>[0]['modelsInstance'];
   },
 ): Promise<{ result: T; trace: AgentTrace; cached: boolean }> {
   if (args.cache) {
@@ -138,7 +138,7 @@ export async function runAiAgent<T>(
   const layer = buildAiAgentLayer({
     config,
     credentials,
-    ...(args.model !== undefined ? { model: args.model } : {}),
+    ...(args.modelsInstance !== undefined ? { modelsInstance: args.modelsInstance } : {}),
   });
   const program = Effect.gen(function* () {
     const agent = yield* AiAgentTag;

@@ -1,8 +1,10 @@
 import {
-  type FauxProviderRegistration,
+  createModels,
+  type FauxProviderHandle,
   fauxAssistantMessage,
+  fauxProvider,
   fauxToolCall,
-  registerFauxProvider,
+  type MutableModels,
 } from '@earendil-works/pi-ai';
 import { runMigrations } from '@main/db/migrate';
 import { buildAiAgentLayer } from '@main/llm/ai-agent';
@@ -59,9 +61,15 @@ const CONFIG: ProviderConfigV2 = { provider: 'deepseek', model: 'deepseek-v4-fla
 // real seeded rows (30000 + 40000).
 const SCOPE2_TOTAL = 70000;
 
-let faux: FauxProviderRegistration | undefined;
+let faux: FauxProviderHandle | undefined;
+
+function e2eFauxModels(fauxReg: FauxProviderHandle): MutableModels {
+  const models = createModels();
+  models.setProvider(fauxReg.provider);
+  return models;
+}
+
 afterEach(() => {
-  faux?.unregister();
   faux = undefined;
 });
 
@@ -70,7 +78,6 @@ function fakeCredentials(apiKey: string | null = 'sk-fake-test-key') {
     get: vi.fn(() => apiKey),
     set: vi.fn(),
     getMasked: vi.fn(),
-    delete: vi.fn(),
     isAvailable: vi.fn().mockReturnValue(true),
   } as never;
 }
@@ -227,7 +234,7 @@ function seed(db: Database.Database): {
 function buildRealLayer(
   db: Database.Database,
   organizationId: string,
-  fauxReg: FauxProviderRegistration,
+  fauxReg: FauxProviderHandle,
   fallbackGenerateObject?: ReturnType<typeof vi.fn>,
 ): Layer.Layer<answerSvc.AnswerR> {
   // Real services. Heavy create-path sub-deps (ef/calculation/unit/document/
@@ -260,7 +267,7 @@ function buildRealLayer(
   const agentLayer = buildAiAgentLayer({
     config: CONFIG,
     credentials: fakeCredentials(),
-    model: fauxReg.getModel(),
+    modelsInstance: e2eFauxModels(fauxReg),
   });
 
   const stubAi = makeStubAi(
@@ -301,7 +308,7 @@ describe('Item 4 e2e — agent answer generation (real tools + real inventory + 
     runMigrations(db);
     const { organizationId, questionIds } = seed(db);
 
-    faux = registerFauxProvider();
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-v4-flash' }] });
     faux.setResponses([
       // Turn 1: the model decides to aggregate scope-2 emissions.
       fauxAssistantMessage([fauxToolCall('sum_co2e', { scope: 2, year: 2025 })], {
@@ -357,7 +364,7 @@ describe('Item 4 e2e — agent answer generation (real tools + real inventory + 
     runMigrations(db);
     const { organizationId, questionIds } = seed(db);
 
-    faux = registerFauxProvider();
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-v4-flash' }] });
     // Same tool + identical args twice in a row → the real agent loop's
     // no-progress detector trips AgentStalled, which the orchestrator
     // recovers from by switching to the single-shot fallback.
@@ -403,7 +410,7 @@ describe('Item 4 e2e — agent answer generation (real tools + real inventory + 
     runMigrations(db);
     const { organizationId, questionnaireId } = seed(db);
 
-    faux = registerFauxProvider();
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-v4-flash' }] });
     // Each agent run finalizes in one turn (turn 1 = submit_response →
     // terminate), so each run consumes exactly one queued step. The 3
     // unanswered questions run at concurrency 3; queue 3 identical

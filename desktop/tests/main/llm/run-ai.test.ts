@@ -106,7 +106,7 @@ describe('runAiObject (Promise-boundary helper)', () => {
   });
 
   it('rejects with AiAuthError when AiClient.generateObject fails with auth error', async () => {
-    generateObjectSpy.mockReturnValue(Effect.fail(new AiAuthError({ provider: 'deepseek' })));
+    generateObjectSpy.mockReturnValue(Effect.fail(new AiAuthError({ provider: 'deepseek', reason: 'rejected' })));
 
     const schema = z.object({ ok: z.boolean() });
     await expect(
@@ -163,7 +163,7 @@ describe('runAiObject (Promise-boundary helper)', () => {
   });
 
   it('does not cache failures — a retry re-calls the model', async () => {
-    generateObjectSpy.mockReturnValue(Effect.fail(new AiAuthError({ provider: 'deepseek' })));
+    generateObjectSpy.mockReturnValue(Effect.fail(new AiAuthError({ provider: 'deepseek', reason: 'rejected' })));
     const schema = z.object({ ok: z.boolean() });
     const dir = mkdtempSync(join(tmpdir(), 'carbonink-runai-'));
     try {

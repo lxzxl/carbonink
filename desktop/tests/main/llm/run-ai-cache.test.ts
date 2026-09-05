@@ -2,10 +2,12 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
-  type FauxProviderRegistration,
+  createModels,
+  type FauxProviderHandle,
   fauxAssistantMessage,
+  fauxProvider,
   fauxToolCall,
-  registerFauxProvider,
+  type MutableModels,
 } from '@earendil-works/pi-ai';
 import { buildCacheKey } from '@main/llm/cache-key';
 import { LlmCache } from '@main/llm/llm-cache';
@@ -39,18 +41,25 @@ function fakeCredentials(): CredentialService {
   } as unknown as CredentialService;
 }
 
-let faux: FauxProviderRegistration | undefined;
+let faux: FauxProviderHandle | undefined;
+
+function fauxModels(): MutableModels {
+  if (!faux) throw new Error('faux provider not registered — call fauxProvider() first');
+  const models = createModels();
+  models.setProvider(faux.provider);
+  return models;
+}
+
 let dir = '';
 
 afterEach(() => {
-  faux?.unregister();
   faux = undefined;
   if (dir) rmSync(dir, { recursive: true, force: true });
   dir = '';
 });
 
 function setup(scriptedAnswer: string) {
-  faux = registerFauxProvider();
+  faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-chat' }] });
   faux.setResponses([
     fauxAssistantMessage([fauxToolCall('submit_response', { answer: scriptedAnswer })], {
       stopReason: 'toolUse',
@@ -75,7 +84,7 @@ function setup(scriptedAnswer: string) {
           }),
           ttlMs: 60_000,
         },
-        model: faux?.getModel(),
+        modelsInstance: faux ? fauxModels() : undefined,
       }),
   };
 }
@@ -112,7 +121,7 @@ describe('runAiObject cache', () => {
   });
 
   it('without a cache request every call hits the model', async () => {
-    faux = registerFauxProvider();
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-chat' }] });
     faux.setResponses([
       fauxAssistantMessage([fauxToolCall('submit_response', { answer: 'a' })], {
         stopReason: 'toolUse',
@@ -122,7 +131,7 @@ describe('runAiObject cache', () => {
       }),
     ]);
     const invoke = () =>
-      runAiObject(CONFIG, fakeCredentials(), { schema, prompt: 'p', model: faux?.getModel() });
+      runAiObject(CONFIG, fakeCredentials(), { schema, prompt: 'p', modelsInstance: fauxModels() });
 
     await expect(invoke()).resolves.toEqual({ answer: 'a' });
     await expect(invoke()).resolves.toEqual({ answer: 'b' });

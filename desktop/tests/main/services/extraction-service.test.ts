@@ -511,7 +511,7 @@ describe('ExtractionService', () => {
       getProviderConfigWithKey: vi.fn(() => ({
         config: {
           provider: 'deepseek' as const,
-          model: 'deepseek-chat',
+          model: 'deepseek-v4-pro',
         },
         apiKey: 'sk-fake',
       })),

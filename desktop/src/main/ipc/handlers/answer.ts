@@ -92,7 +92,11 @@ export function answerHandlers(ctx: IpcContext): {
         case 'AiSchemaMismatch':
           throw new Error('LLM 返回的内容格式不符合预期，请重试。');
         case 'AiAuthError':
-          throw new Error('AI provider 鉴权失败，请在设置中检查 API key。');
+          throw new Error(
+            err?.reason === 'missing_key'
+              ? 'AI provider 未配置 API key，请在设置中填写后重试。'
+              : 'AI provider 鉴权失败，请在设置中检查 API key。',
+          );
         case 'AiRateLimited':
           throw new Error('AI provider 限流，请稍后重试。');
         case 'AiTimeout':

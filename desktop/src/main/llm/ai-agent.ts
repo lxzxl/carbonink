@@ -5,18 +5,19 @@ import {
   type AgentToolResult,
   agentLoop,
   type AgentTool as PiAgentTool,
+  type StreamFn,
 } from '@earendil-works/pi-agent-core';
-import {
-  type Api,
-  type AssistantMessage,
-  getModel,
-  type Message,
-  type Model,
-  type StreamOptions,
-  streamSimple,
-  type ToolCall,
-  type TSchema,
+import type {
+  Api,
+  AssistantMessage,
+  Message,
+  Model,
+  Models,
+  ToolCall,
+  TSchema,
 } from '@earendil-works/pi-ai';
+import { getModelsCollection } from './models.js';
+import { resolveModelWith } from './pi-catalog.js';
 import type { CredentialService } from '@main/services/credential-service.js';
 import { apiKeyKeyrefForProvider, type ProviderConfigV2 } from '@shared/types.js';
 import { Context, Effect, Layer } from 'effect';
@@ -176,10 +177,11 @@ export interface BuildAiAgentDeps {
   overrideKey?: string;
   /**
    * Test-only injection. Production callers leave this undefined — the
-   * layer resolves the model via pi-ai's registry. Tests pass a faux
-   * `Model` from `registerFauxProvider()` so the network is never touched.
+   * layer resolves the model from the shared collection. Tests pass a
+   * faux-backed collection (`createModels()` + `setProvider` of a
+   * `fauxProvider()`) so the network is never touched.
    */
-  model?: Model<Api>;
+  modelsInstance?: Models;
 }
 
 /**
@@ -235,16 +237,18 @@ export function buildAiAgentLayer(deps: BuildAiAgentDeps): Layer.Layer<AiAgentTa
       const { config, credentials, overrideKey } = deps;
       const apiKey = overrideKey ?? credentials.get(apiKeyKeyrefForProvider(config.provider));
 
-      // Mirror ai-client.ts: tests inject a Model directly; production looks
-      // it up from pi-ai's generated registry. The `getModel` signature in
-      // pi-ai's d.ts is keyed off `KnownProvider`, but our config carries a
-      // free-form `string` — the cast is the same trick ai-client uses.
-      const resolvedModel: Model<Api> | undefined =
-        deps.model ??
-        (getModel as unknown as (p: string, m: string) => Model<Api> | undefined)(
-          config.provider,
-          config.model,
-        );
+      // Request routing target: production uses the shared singleton;
+      // tests inject a faux-backed collection (see `modelsInstance`).
+      const models = deps.modelsInstance ?? getModelsCollection();
+      const resolvedModel: Model<Api> | undefined = resolveModelWith(
+        models,
+        config.provider,
+        config.model,
+      );
+      // Settings "Override base URL" — same per-request clone as ai-client
+      // (never mutate the shared catalog entry).
+      const effectiveModel: Model<Api> | undefined =
+        resolvedModel && config.baseUrl ? { ...resolvedModel, baseUrl: config.baseUrl } : resolvedModel;
 
       const agent: AiAgent = {
         run: <T>(args: {
@@ -269,10 +273,12 @@ export function buildAiAgentLayer(deps: BuildAiAgentDeps): Layer.Layer<AiAgentTa
           >((resume) => {
             // ---- Pre-flight: auth + model availability -----------------
             if (apiKey === null || apiKey === undefined || apiKey === '') {
-              resume(Effect.fail(new AiAuthError({ provider: config.provider })));
+              resume(
+                Effect.fail(new AiAuthError({ provider: config.provider, reason: 'missing_key' })),
+              );
               return;
             }
-            if (!resolvedModel) {
+            if (!effectiveModel) {
               resume(
                 Effect.fail(
                   new AiProviderError({
@@ -379,7 +385,7 @@ export function buildAiAgentLayer(deps: BuildAiAgentDeps): Layer.Layer<AiAgentTa
 
             // ---- agentLoop config --------------------------------------
             const config_: AgentLoopConfig = {
-              model: resolvedModel,
+              model: effectiveModel,
               apiKey,
               maxRetries: 0,
               // Pass-through filter: pi-agent-core's `AgentMessage` is a
@@ -448,16 +454,12 @@ export function buildAiAgentLayer(deps: BuildAiAgentDeps): Layer.Layer<AiAgentTa
               },
             };
 
-            // ---- Stream function: pi-ai's streamSimple + our onResponse
+            // ---- Stream function: collection `streamSimple` + our onResponse
             // We wrap streamSimple so onResponse captures HTTP status (for
             // 401/429/5xx mapping) and our timeout's AbortController wins
             // over pi-ai's own (per-provider, inconsistent) timeout.
-            const streamFn = (
-              model: Model<Api>,
-              context: Parameters<typeof streamSimple>[1],
-              opts?: StreamOptions,
-            ): ReturnType<typeof streamSimple> => {
-              return streamSimple(model, context, {
+            const streamFn: StreamFn = (model, context, opts) => {
+              return models.streamSimple(model, context, {
                 ...opts,
                 apiKey,
                 signal: controller.signal,
@@ -596,7 +598,9 @@ export function buildAiAgentLayer(deps: BuildAiAgentDeps): Layer.Layer<AiAgentTa
                     return;
                   }
                   if (httpStatus === 401 || httpStatus === 403) {
-                    settleWith(Effect.fail(new AiAuthError({ provider: config.provider })));
+                    settleWith(
+                      Effect.fail(new AiAuthError({ provider: config.provider, reason: 'rejected' })),
+                    );
                     return;
                   }
                   if (httpStatus === 429) {
@@ -617,7 +621,9 @@ export function buildAiAgentLayer(deps: BuildAiAgentDeps): Layer.Layer<AiAgentTa
                     return;
                   }
                   if (looksLikeAuthError(lastAssistant.errorMessage)) {
-                    settleWith(Effect.fail(new AiAuthError({ provider: config.provider })));
+                    settleWith(
+                      Effect.fail(new AiAuthError({ provider: config.provider, reason: 'rejected' })),
+                    );
                     return;
                   }
                   settleWith(
@@ -679,7 +685,7 @@ export function buildAiAgentLayer(deps: BuildAiAgentDeps): Layer.Layer<AiAgentTa
                 settleWith(
                   Effect.fail(
                     looksLikeAuthError(errMsg)
-                      ? new AiAuthError({ provider: config.provider })
+                      ? new AiAuthError({ provider: config.provider, reason: 'rejected' })
                       : new AiProviderError({ cause: err }),
                   ),
                 );
