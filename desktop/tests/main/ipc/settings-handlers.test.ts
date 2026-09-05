@@ -228,14 +228,19 @@ describe('settings IPC handlers', () => {
   });
 
   it('settings:ping-provider maps rejected AiAuthError to key-rejected copy', async () => {
-    pingSpy.mockReturnValue(Effect.fail(new AiAuthError({ provider: 'openai', reason: 'rejected' })));
+    pingSpy.mockReturnValue(
+      Effect.fail(new AiAuthError({ provider: 'openai', reason: 'rejected' })),
+    );
     const config: ProviderConfigV2 = {
       provider: 'openai',
       model: 'gpt-4o-mini',
     };
 
     const result = await handlers['settings:ping-provider']?.({ config, apiKey: 'sk-bad' });
-    expect(result).toEqual({ ok: false, error: 'auth_failed: openai (key rejected — check the key and retry)' });
+    expect(result).toEqual({
+      ok: false,
+      error: 'auth_failed: openai (key rejected — check the key and retry)',
+    });
   });
   it('settings:ping-provider maps missing-key AiAuthError to no-key copy', async () => {
     pingSpy.mockReturnValue(

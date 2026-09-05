@@ -159,7 +159,9 @@ export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClien
       // Apply it here as a per-request model clone — never mutate the shared
       // catalog entry (the collection may be a process-wide singleton).
       const effectiveModel: Model<Api> | undefined =
-        resolvedModel && config.baseUrl ? { ...resolvedModel, baseUrl: config.baseUrl } : resolvedModel;
+        resolvedModel && config.baseUrl
+          ? { ...resolvedModel, baseUrl: config.baseUrl }
+          : resolvedModel;
 
       /**
        * Validate auth + model availability up front. Returns the same narrow
@@ -251,22 +253,23 @@ export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClien
                   ]
                 : args.prompt;
 
-            models.complete(
-              effectiveModel,
-              {
-                ...(args.system ? { systemPrompt: args.system } : {}),
-                messages: [{ role: 'user', content: userContent, timestamp: Date.now() }],
-                ...(args.tools ? { tools: args.tools } : {}),
-              },
-              {
-                apiKey,
-                signal: controller.signal,
-                maxRetries: 0, // Effect.retry is the single retry authority
-                onResponse: (r) => {
-                  httpStatus = r.status;
+            models
+              .complete(
+                effectiveModel,
+                {
+                  ...(args.system ? { systemPrompt: args.system } : {}),
+                  messages: [{ role: 'user', content: userContent, timestamp: Date.now() }],
+                  ...(args.tools ? { tools: args.tools } : {}),
                 },
-              },
-            )
+                {
+                  apiKey,
+                  signal: controller.signal,
+                  maxRetries: 0, // Effect.retry is the single retry authority
+                  onResponse: (r) => {
+                    httpStatus = r.status;
+                  },
+                },
+              )
               .then((msg) => {
                 clearTimeout(timer);
                 // pi-ai catches AbortSignal-driven rejections and returns a

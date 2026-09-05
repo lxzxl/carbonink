@@ -16,8 +16,6 @@ import type {
   ToolCall,
   TSchema,
 } from '@earendil-works/pi-ai';
-import { getModelsCollection } from './models.js';
-import { resolveModelWith } from './pi-catalog.js';
 import type { CredentialService } from '@main/services/credential-service.js';
 import { apiKeyKeyrefForProvider, type ProviderConfigV2 } from '@shared/types.js';
 import { Context, Effect, Layer } from 'effect';
@@ -33,6 +31,8 @@ import {
   AiSchemaMismatch,
   AiTimeout,
 } from './errors.js';
+import { getModelsCollection } from './models.js';
+import { resolveModelWith } from './pi-catalog.js';
 
 /**
  * Effect-wrapped wrapper around `@earendil-works/pi-agent-core`.
@@ -248,7 +248,9 @@ export function buildAiAgentLayer(deps: BuildAiAgentDeps): Layer.Layer<AiAgentTa
       // Settings "Override base URL" — same per-request clone as ai-client
       // (never mutate the shared catalog entry).
       const effectiveModel: Model<Api> | undefined =
-        resolvedModel && config.baseUrl ? { ...resolvedModel, baseUrl: config.baseUrl } : resolvedModel;
+        resolvedModel && config.baseUrl
+          ? { ...resolvedModel, baseUrl: config.baseUrl }
+          : resolvedModel;
 
       const agent: AiAgent = {
         run: <T>(args: {
@@ -599,7 +601,9 @@ export function buildAiAgentLayer(deps: BuildAiAgentDeps): Layer.Layer<AiAgentTa
                   }
                   if (httpStatus === 401 || httpStatus === 403) {
                     settleWith(
-                      Effect.fail(new AiAuthError({ provider: config.provider, reason: 'rejected' })),
+                      Effect.fail(
+                        new AiAuthError({ provider: config.provider, reason: 'rejected' }),
+                      ),
                     );
                     return;
                   }
@@ -622,7 +626,9 @@ export function buildAiAgentLayer(deps: BuildAiAgentDeps): Layer.Layer<AiAgentTa
                   }
                   if (looksLikeAuthError(lastAssistant.errorMessage)) {
                     settleWith(
-                      Effect.fail(new AiAuthError({ provider: config.provider, reason: 'rejected' })),
+                      Effect.fail(
+                        new AiAuthError({ provider: config.provider, reason: 'rejected' }),
+                      ),
                     );
                     return;
                   }

@@ -344,7 +344,9 @@ describe('answer-generation.generate (Effect Step 2)', () => {
   });
 
   it('AiAuthError from agent path propagates — does NOT trigger fallback', async () => {
-    const agentRun = vi.fn().mockReturnValue(Effect.fail(new AiAuthError({ provider: 'openai', reason: 'rejected' })));
+    const agentRun = vi
+      .fn()
+      .mockReturnValue(Effect.fail(new AiAuthError({ provider: 'openai', reason: 'rejected' })));
     const { testLayer, generateObjectMock } = setup({
       seedQuestionnaire: { id: 'qn-1', reporting_year: 2026, customer_name: 'Acme' },
       seedQuestion: { id: 'q-1', questionnaire_id: 'qn-1', raw_text: 'Q' },
