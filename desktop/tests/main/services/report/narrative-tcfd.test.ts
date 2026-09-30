@@ -132,6 +132,22 @@ describe('generateTcfdNarrative', () => {
     expect(runAiObject).not.toHaveBeenCalled();
   });
 
+  it('translates AiCanceled into LlmNarrativeCanceled (mid-flight abort)', async () => {
+    vi.mocked(runAiObject).mockRejectedValue(
+      Object.assign(new Error('aborted'), { _tag: 'AiCanceled' }),
+    );
+
+    await expect(
+      generateTcfdNarrative({
+        data: fakeData(),
+        config: fakeConfig(),
+        credentials: fakeCredentials(),
+        onProgress: () => {},
+        abortSignal: new AbortController().signal,
+      }),
+    ).rejects.toBeInstanceOf(LlmNarrativeCanceled);
+  });
+
   it('translates AiSchemaMismatch into LlmNarrativeRefused', async () => {
     vi.mocked(runAiObject).mockRejectedValue(
       Object.assign(new Error('bad shape'), { _tag: 'AiSchemaMismatch' }),

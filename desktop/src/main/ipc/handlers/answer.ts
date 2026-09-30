@@ -1,30 +1,12 @@
 import * as fs from 'node:fs/promises';
 import { type AnswerCell, writeAnswers } from '@main/excel/answer-writer.js';
+import { aiErrToast } from '@main/llm/error-copy.js';
 import * as answerSvc from '@main/services/answer-generation/index.js';
 import { Cause, Effect, Either, Exit, Option } from 'effect';
 import { dialog } from 'electron';
 import { z } from 'zod';
 import type { IpcContext } from '../context.js';
 import type { IpcTypeMap } from '../types.js';
-
-/**
- * Build the human-readable suffix for an `AiProviderError` toast. Returns
- * an empty string when there's nothing actionable to add (e.g. opaque
- * non-Error cause) so the caller can fall back to the generic copy.
- *
- * Examples:
- *   - cause = "pi-ai has no model registered for provider=deepseek model=deepseek-chat"
- *       → "pi-ai has no model registered for provider=deepseek model=deepseek-chat"
- *   - cause = Error("ECONNREFUSED")  → "ECONNREFUSED"
- *   - cause = undefined, status = 503 → "HTTP 503"
- *   - cause = {weird: "object"}      → "" (caller uses fallback copy)
- */
-function formatProviderErrorDetail(cause: unknown, status?: number): string {
-  if (typeof cause === 'string' && cause.trim() !== '') return cause.trim();
-  if (cause instanceof Error && cause.message.trim() !== '') return cause.message.trim();
-  if (status !== undefined) return `HTTP ${status}`;
-  return '';
-}
 
 const generateInput = z.object({ question_id: z.string().min(1) });
 const saveInput = z.object({
@@ -85,37 +67,15 @@ export function answerHandlers(ctx: IpcContext): {
           throw new Error('该年度暂无活动数据，无法推断答案。请先录入活动数据。');
         case 'QuestionAlreadyAnswered':
           throw new Error('该题已有答案。');
-        // AiClient-shaped errors. The set is fixed by `AiErr` in
-        // @main/llm/errors.ts; if pi-ai grows new failure modes we'd add
-        // cases here. Falling through to the default branch produces a
-        // useless "未知错误" toast, so we surface every tag explicitly.
-        case 'AiSchemaMismatch':
-          throw new Error('LLM 返回的内容格式不符合预期，请重试。');
-        case 'AiAuthError':
-          throw new Error(
-            err?.reason === 'missing_key'
-              ? 'AI provider 未配置 API key，请在设置中填写后重试。'
-              : 'AI provider 鉴权失败，请在设置中检查 API key。',
-          );
-        case 'AiRateLimited':
-          throw new Error('AI provider 限流，请稍后重试。');
-        case 'AiTimeout':
-          throw new Error('LLM 调用超时，请重试或检查网络。');
-        case 'AiNoData':
-          throw new Error('LLM 未返回任何可解析内容，请重试。');
-        case 'AiProviderError': {
-          // Surface the underlying `cause` whenever it's stringifiable.
-          // The previous flat "check network and API key" copy was actively
-          // misleading for configuration errors (e.g. pi-ai reporting the
-          // selected model isn't in its catalog) — that's neither a network
-          // nor a credential issue and the toast misdirected debugging.
-          const detail = formatProviderErrorDetail(err.cause, err.status);
-          throw new Error(
-            detail ? `LLM 调用失败：${detail}` : 'LLM 调用失败，请检查网络与 API key。',
-          );
+        // AiClient-shaped errors share one translation seam with the
+        // other IPC handlers (`aiErrToast` in @main/llm/error-copy.ts) —
+        // a new `AiErr` member fails typecheck there until it gets copy.
+        // `AiCanceled` translates to null (user asked for it): silence.
+        default: {
+          const copy = aiErrToast(err);
+          if (copy === null) throw new Error('已取消');
+          throw new Error(copy);
         }
-        default:
-          throw new Error(`生成答案失败：${err?._tag ?? '未知错误'}`);
       }
     },
     'answer:save': async (input) => {

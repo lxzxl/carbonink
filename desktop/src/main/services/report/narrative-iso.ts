@@ -146,6 +146,10 @@ export async function generateReportNarrative(args: {
     if (err instanceof LlmNarrativeCanceled) throw err;
     if (abortSignal.aborted) throw new LlmNarrativeCanceled();
     if ((err as Error)?.name === 'AbortError') throw new LlmNarrativeCanceled();
+    // Caller-driven cancel now threads the signal into runAiObject, so the
+    // in-flight request aborts as AiCanceled rather than running to
+    // completion. Translate it here so the handler's canceled branch fires.
+    if ((err as { _tag?: string })?._tag === 'AiCanceled') throw new LlmNarrativeCanceled();
     // pi-ai's tool-call envelope failed schema validation. Re-throw as
     // `LlmNarrativeRefused` so the IPC handler's existing `_tag` switch
     // ("Refused" branch) keeps working unchanged.

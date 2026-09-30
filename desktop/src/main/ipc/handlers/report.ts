@@ -80,7 +80,8 @@ export function reportHandlers(ctx: IpcContext): {
         if (
           controller.signal.aborted ||
           e.name === 'AbortError' ||
-          e._tag === 'LlmNarrativeCanceled'
+          e._tag === 'LlmNarrativeCanceled' ||
+          e._tag === 'AiCanceled'
         ) {
           return { canceled: true as const };
         }
@@ -90,6 +91,11 @@ export function reportHandlers(ctx: IpcContext): {
             error: { _tag: 'Refused' as const, message: e.message },
           };
         }
+        // Only schema refusal maps to Refused; any other AiErr (auth,
+        // rate-limit, provider) keeps its own message under the same tag
+        // so the renderer doesn't misread a credential failure as a
+        // content refusal. (Narratives translate AiSchemaMismatch to
+        // LlmNarrativeRefused before we get here.)
         return {
           canceled: false as const,
           error: { _tag: 'Refused' as const, message: e.message ?? String(err) },
@@ -184,7 +190,8 @@ export function reportHandlers(ctx: IpcContext): {
         if (
           controller.signal.aborted ||
           e.name === 'AbortError' ||
-          e._tag === 'LlmNarrativeCanceled'
+          e._tag === 'LlmNarrativeCanceled' ||
+          e._tag === 'AiCanceled'
         ) {
           return { canceled: true as const };
         }

@@ -1,6 +1,7 @@
 import * as fs from 'node:fs/promises';
 import { writeAnswers } from '@main/excel/answer-writer';
 import { answerHandlers } from '@main/ipc/handlers/answer';
+import { AiCanceled, AiRateLimited, AiTimeout } from '@main/llm/errors';
 import * as answerSvc from '@main/services/answer-generation/index';
 import { Effect, Either, Layer } from 'effect';
 import { dialog } from 'electron';
@@ -49,7 +50,7 @@ const fakeAnswer = {
 function makeCtx() {
   return {
     answerLayer: Layer.empty,
-      answerDbLayer: Layer.empty,
+    answerDbLayer: Layer.empty,
     providerConfig: { provider: 'openai' as const, model: 'gpt-4o', apiKey: 'test-key' },
     // Minimum stub of questionnaireService — the inbound-guard in
     // answer:generate calls `getQuestionDirection`. Returning null
@@ -101,6 +102,19 @@ describe('answer:* handlers', () => {
     await expect(handlers['answer:generate']!({ question_id: 'q-1' })).rejects.toThrow(
       'AI provider not configured',
     );
+  });
+
+  it('answer:generate maps AiErr tags through the shared copy (incl. silent AiCanceled)', async () => {
+    const handlers = answerHandlers(makeCtx());
+    for (const [err, copy] of [
+      [new AiRateLimited({}), 'AI provider 限流，请稍后重试。'],
+      [new AiTimeout({ timeoutMs: 1000 }), 'LLM 调用超时，请重试或检查网络。'],
+    ] as const) {
+      vi.mocked(answerSvc.generate).mockReturnValue(Effect.fail(err) as never);
+      await expect(handlers['answer:generate']!({ question_id: 'q-1' })).rejects.toThrow(copy);
+    }
+    vi.mocked(answerSvc.generate).mockReturnValue(Effect.fail(new AiCanceled({})) as never);
+    await expect(handlers['answer:generate']!({ question_id: 'q-1' })).rejects.toThrow('已取消');
   });
 
   it('answer:generate-all-unanswered returns serialized results', async () => {

@@ -90,6 +90,10 @@ export async function generateTcfdNarrative(args: {
     if (err instanceof LlmNarrativeCanceled) throw err;
     if (abortSignal.aborted) throw new LlmNarrativeCanceled();
     if ((err as Error)?.name === 'AbortError') throw new LlmNarrativeCanceled();
+    // Caller-driven cancel now threads the signal into runAiObject, so the
+    // in-flight request aborts as AiCanceled rather than running to
+    // completion. Translate it here so the handler's canceled branch fires.
+    if ((err as { _tag?: string })?._tag === 'AiCanceled') throw new LlmNarrativeCanceled();
     const tag = (err as { _tag?: string })?._tag;
     if (tag === 'AiSchemaMismatch') {
       throw new LlmNarrativeRefused(
