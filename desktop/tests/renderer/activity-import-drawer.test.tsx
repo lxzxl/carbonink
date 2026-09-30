@@ -2,9 +2,11 @@ vi.mock('@renderer/lib/api/activity-import', () => ({
   activityImportApi: {
     pickFile: vi.fn(),
     revalidate: vi.fn(),
+    configure: vi.fn(),
     listSources: vi.fn(),
     resolveSource: vi.fn(),
     listGroups: vi.fn(),
+    decide: vi.fn(),
     confirmGroup: vi.fn(),
     skipGroup: vi.fn(),
     import: vi.fn(),
@@ -177,41 +179,36 @@ describe('<ActivityImportDrawer>', () => {
     await choosePeriod();
     expect(nextButton().hasAttribute('disabled')).toBe(false);
 
-    vi.mocked(activityImportApi.listSources).mockResolvedValue([
-      {
-        name: 'Grid meter',
-        row_count: 2,
-        matched_source_id: 'src-1',
-        resolved_source_id: 'src-1',
-      },
-    ]);
+    vi.mocked(activityImportApi.configure).mockResolvedValue({
+      ok: true,
+      validation: VALIDATION,
+      sources: [
+        {
+          name: 'Grid meter',
+          row_count: 2,
+          matched_source_id: 'src-1',
+          resolved_source_id: 'src-1',
+        },
+      ],
+    });
     fireEvent.click(nextButton());
+    await waitFor(() => expect(activityImportApi.configure).toHaveBeenCalled());
     await waitFor(() => expect(screen.getByText(/matched existing|已匹配现有源/i)).toBeTruthy());
 
     vi.mocked(activityImportApi.listGroups).mockResolvedValue([GROUP]);
     fireEvent.click(nextButton());
     await waitFor(() => expect(screen.getByText('电网电力')).toBeTruthy());
 
-    // Pick the EF in the embedded picker, then confirm the group.
+    // Pick the EF in the embedded picker (local staging), then import —
+    // the batch `decide` carries the choice server-side.
     await waitFor(() => expect(screen.getByText(/全国电网平均/)).toBeTruthy());
     fireEvent.click(screen.getByRole('radio'));
-    vi.mocked(activityImportApi.confirmGroup).mockResolvedValue({ ok: true });
     fireEvent.click(screen.getByRole('button', { name: /confirm ef|确认因子/i }));
-    await waitFor(() =>
-      expect(activityImportApi.confirmGroup).toHaveBeenCalledWith({
-        token: 'tok-1',
-        group_key: 'g1',
-        ef: {
-          factor_code: GRID_EF.factor_code,
-          year: GRID_EF.year,
-          source: GRID_EF.source,
-          geography: GRID_EF.geography,
-          dataset_version: GRID_EF.dataset_version,
-        },
-        fuel_code: null,
-      }),
-    );
 
+    vi.mocked(activityImportApi.decide).mockResolvedValue({
+      ok: true,
+      results: [{ group_key: 'g1', ok: true }],
+    });
     vi.mocked(activityImportApi.import).mockResolvedValue({
       ok: true,
       imported_count: 2,
@@ -221,24 +218,47 @@ describe('<ActivityImportDrawer>', () => {
       document_id: 'doc-1',
     });
     fireEvent.click(screen.getByRole('button', { name: /^import$|^导入$/i }));
+    await waitFor(() =>
+      expect(activityImportApi.decide).toHaveBeenCalledWith({
+        token: 'tok-1',
+        decisions: [
+          {
+            group_key: 'g1',
+            action: 'confirm',
+            ef: {
+              factor_code: GRID_EF.factor_code,
+              year: GRID_EF.year,
+              source: GRID_EF.source,
+              geography: GRID_EF.geography,
+              dataset_version: GRID_EF.dataset_version,
+            },
+            fuel_code: null,
+          },
+        ],
+      }),
+    );
     await waitFor(() => expect(screen.getByText(/import complete|导入完成/i)).toBeTruthy());
     expect(activityImportApi.import).toHaveBeenCalledWith({ token: 'tok-1' });
     expect(screen.getByText(/2 rows imported|已导入 2 行/i)).toBeTruthy();
   });
 
-  it('shows the dimension-mismatch hint and keeps the group pending', async () => {
+  it('surfaces decide failures and keeps the wizard on groups', async () => {
     mountDrawer();
     await pickAndReachMapping();
     await choosePeriod();
 
-    vi.mocked(activityImportApi.listSources).mockResolvedValue([
-      {
-        name: 'Grid meter',
-        row_count: 2,
-        matched_source_id: 'src-1',
-        resolved_source_id: 'src-1',
-      },
-    ]);
+    vi.mocked(activityImportApi.configure).mockResolvedValue({
+      ok: true,
+      validation: VALIDATION,
+      sources: [
+        {
+          name: 'Grid meter',
+          row_count: 2,
+          matched_source_id: 'src-1',
+          resolved_source_id: 'src-1',
+        },
+      ],
+    });
     fireEvent.click(screen.getByRole('button', { name: /next|下一步/i }));
     await waitFor(() => expect(screen.getByText(/matched existing|已匹配现有源/i)).toBeTruthy());
 
@@ -248,16 +268,20 @@ describe('<ActivityImportDrawer>', () => {
 
     await waitFor(() => expect(screen.getByText(/全国电网平均/)).toBeTruthy());
     fireEvent.click(screen.getByRole('radio'));
-    vi.mocked(activityImportApi.confirmGroup).mockResolvedValue({
-      ok: false,
-      error: 'DimensionMismatch',
-    });
     fireEvent.click(screen.getByRole('button', { name: /confirm ef|确认因子/i }));
-    await waitFor(() => expect(screen.getByText(/unit family differs|不同族/i)).toBeTruthy());
-    // Import stays disabled: the lone group is still pending.
-    expect(screen.getByRole('button', { name: /^import$|^导入$/i }).hasAttribute('disabled')).toBe(
-      true,
-    );
+
+    // decide refuses the choice server-side; import surfaces the blocker.
+    vi.mocked(activityImportApi.decide).mockResolvedValue({
+      ok: true,
+      results: [{ group_key: 'g1', ok: false, error: 'DimensionMismatch' }],
+    });
+    vi.mocked(activityImportApi.import).mockResolvedValue({
+      ok: false,
+      error: { _tag: 'UnconfirmedGroups' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /^import$|^导入$/i }));
+    await waitFor(() => expect(activityImportApi.decide).toHaveBeenCalled());
+    await waitFor(() => expect(screen.getByText(/DimensionMismatch/)).toBeTruthy());
   });
 
   it('discards the staged token when closed before importing', async () => {

@@ -117,44 +117,49 @@ describe('activity-import:pick-file', () => {
 });
 
 describe('full wizard round-trip through handler glue', () => {
-  it('pick → revalidate → sources → groups → confirm → import', async () => {
+  it('pick → configure → groups → decide → import', async () => {
     const picked = await pickCsv();
     if (!picked || picked.canceled !== false || !('preview' in picked)) {
       throw new Error('expected a preview');
     }
     const { token, mapping } = picked.preview;
 
-    const validation = handlers['activity-import:revalidate']?.({
+    const configured = handlers['activity-import:configure']?.({
       token,
       mapping,
       period_id: periodId,
-    });
-    expect(validation?.valid_count).toBe(2);
-
-    const sources = handlers['activity-import:list-sources']?.({
-      token,
       organization_id: orgId,
     });
-    expect(sources?.[0]?.resolved_source_id).not.toBeNull();
+    expect(configured?.ok).toBe(true);
+    if (!configured?.ok) throw new Error('expected configure ok');
+    expect(configured.validation.valid_count).toBe(2);
+    expect(configured.sources[0]?.resolved_source_id).not.toBeNull();
 
     const groups = handlers['activity-import:list-groups']?.({ token }) ?? [];
     expect(groups).toHaveLength(1);
     const groupKey = (groups[0] as { key: string }).key;
 
     expect(
-      handlers['activity-import:confirm-group']?.({
+      handlers['activity-import:decide']?.({
         token,
-        group_key: groupKey,
-        ef: GRID_EF,
-        fuel_code: null,
+        decisions: [{ group_key: groupKey, action: 'confirm', ef: GRID_EF, fuel_code: null }],
       }),
-    ).toEqual({ ok: true });
+    ).toEqual({ ok: true, results: [{ group_key: groupKey, ok: true }] });
 
     const result = handlers['activity-import:import']?.({ token });
     expect(result).toMatchObject({ ok: true, imported_count: 2 });
 
     const rows = db.prepare('SELECT COUNT(*) AS n FROM activity_data').get() as { n: number };
     expect(rows.n).toBe(2);
+  });
+
+  it('decide on an unknown token expires', () => {
+    expect(
+      handlers['activity-import:decide']?.({
+        token: 'missing',
+        decisions: [{ group_key: 'g', action: 'skip' }],
+      }),
+    ).toEqual({ ok: false, error: 'TokenExpired' });
   });
 
   it('discard expires the token', async () => {

@@ -32,9 +32,11 @@ export const allowedChannels: ReadonlyArray<keyof IpcTypeMap> = [
   // activity-import domain (ROADMAP §8.1-① — batch ledger import wizard)
   'activity-import:pick-file',
   'activity-import:revalidate',
+  'activity-import:configure',
   'activity-import:list-sources',
   'activity-import:resolve-source',
   'activity-import:list-groups',
+  'activity-import:decide',
   'activity-import:confirm-group',
   'activity-import:skip-group',
   'activity-import:import',

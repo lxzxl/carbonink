@@ -57,6 +57,7 @@
   "activity_import_issue_period_mismatch": "日期落在所选报告期之外",
   "activity_import_issue_source_name_missing": "缺排放源名称",
   "activity_import_issue_unit_dimension_mismatch": "单位与所选因子量纲不符",
+  "activity_import_issue_create_failed": "该行保存失败——见详情",
   "activity_import_issue_unit_missing": "缺单位",
   "activity_import_mapping_body": "已按表头自动识别，可手动调整。",
   "activity_import_mapping_heading": "列映射",

@@ -1,7 +1,11 @@
 import type {
+  ActivityImportConfigureResult,
   ActivityImportConfirmResult,
+  ActivityImportDecideItemResult,
+  ActivityImportDecideResult,
   ActivityImportEfChoice,
   ActivityImportGroup,
+  ActivityImportGroupDecision,
   ActivityImportMapping,
   ActivityImportPreview,
   ActivityImportResult,
@@ -30,9 +34,13 @@ import type { DocumentService } from './document-service.js';
 import { type EfImportGrid, parseEfImportFile } from './ef-import/parser.js';
 import type { EfService } from './ef-service.js';
 import type { UnitConversionService } from './unit-conversion-service.js';
+import { DimensionMismatchError, UnknownUnitError } from './unit-conversion-service.js';
 
 /** Issues of any kind that ride the final IPC result (full count preserved). */
 const MAX_RESULT_ISSUES = 200;
+
+/** Sliding session expiry — each access refreshes the deadline. */
+const SESSION_TTL_MS = 30 * 60 * 1000;
 
 interface EmissionSourceLookup {
   listByOrganization(orgId: string): EmissionSource[];
@@ -50,13 +58,16 @@ type PendingImport = {
   bytes: Buffer;
   grid: EfImportGrid;
   mapping: ActivityImportMapping;
+  organizationId: string | null;
   period: { id: string; start: string; end: string } | null;
   validation: ActivityImportValidation;
   validRows: ActivityImportValidRow[];
-  /** Keyed by normalized source_name. Built by listSources, edited by resolveSource. */
+  /** Keyed by normalized source_name. Built by configure, edited by resolveSource. */
   sources: Map<string, ActivityImportSourceStatus> | null;
-  /** Keyed by group key. Built by listGroups after sources settle. */
+  /** Keyed by group key. Built lazily after sources settle. */
   groups: Map<string, ActivityImportGroup> | null;
+  /** Sliding expiry, refreshed on every access. */
+  expiresAt: number;
 };
 
 function mimeForFilename(filename: string): string {
@@ -72,10 +83,14 @@ function dateOnly(iso: string): string {
 
 /**
  * Batch activity-data import (spec 2026-07-21-batch-activity-import,
- * ROADMAP §8.1-①). Staged-token flow mirroring UserEfLibraryService:
+ * ROADMAP §8.1-①). Four-step staged flow, one session per token:
  *
- *   stageImport → revalidate(mapping, period) → listSources / resolveSource
- *   → listGroups / confirmGroup / skipGroup → import → (discard)
+ *   stageImport → configure(mapping, period, org) → resolveSource* → decide → import
+ *
+ * `configure` collapses the old revalidate+listSources round-trip into one
+ * call; `decide` collapses per-group confirm/skip into one batch. Sessions
+ * live in a token-keyed map (30-minute sliding expiry) so concurrent
+ * wizards no longer overwrite each other.
  *
  * The audit posture is inherited rather than re-invented: every row goes
  * through `ActivityDataService.create` (pin + compute + insert + per-row
@@ -94,7 +109,8 @@ export class ActivityImportService {
   private readonly unitConversionService: UnitConversionService;
   private readonly emissionSourceService: EmissionSourceLookup;
   private readonly settingsService: SettingsLookup;
-  private pending: PendingImport | null = null;
+  private readonly sessions = new Map<string, PendingImport>();
+  private readonly clock: () => number;
 
   constructor(
     ctx: ServiceContext & {
@@ -105,6 +121,8 @@ export class ActivityImportService {
       emissionSourceService: EmissionSourceLookup;
       /** Per-workspace outlier multiplier (spec 2026-07-23). */
       settingsService: SettingsLookup;
+      /** Session clock override (tests pin expiry). Defaults to Date.now. */
+      clock?: () => number;
     },
   ) {
     this.db = ctx.db;
@@ -115,31 +133,34 @@ export class ActivityImportService {
     this.unitConversionService = ctx.unitConversionService;
     this.emissionSourceService = ctx.emissionSourceService;
     this.settingsService = ctx.settingsService;
+    this.clock = ctx.clock ?? Date.now;
   }
 
   /**
    * Parse an uploaded ledger and stage it. Throws `EfImportParseError`
    * (shared parser, code-carrying) on structural problems. Validation here
    * runs without period bounds — the period is chosen in the next wizard
-   * step and `revalidate` re-runs with them.
+   * step and `configure` re-runs with them.
    */
   async stageImport(bytes: Buffer, filename: string): Promise<ActivityImportPreview> {
     const grid = await parseEfImportFile(bytes, filename);
     const token = newId();
     const mapping = autoDetectActivityMapping(grid.headers);
     const { validation, validRows } = validateActivityRows(grid.rows, mapping);
-    this.pending = {
+    this.sessions.set(token, {
       token,
       filename,
       bytes,
       grid,
       mapping,
+      organizationId: null,
       period: null,
       validation,
       validRows,
       sources: null,
       groups: null,
-    };
+      expiresAt: this.clock() + SESSION_TTL_MS,
+    });
     return {
       token,
       filename,
@@ -151,9 +172,48 @@ export class ActivityImportService {
   }
 
   /**
-   * Re-validate under an edited mapping + chosen reporting period. Resets
-   * downstream state (source resolutions, groups) because both derive from
-   * the valid-row set.
+   * Configure the staged import: re-validate under an edited mapping +
+   * chosen reporting period, then auto-match sources — one round-trip.
+   * Resets downstream state (source resolutions, groups) because both
+   * derive from the valid-row set.
+   */
+  configure(
+    token: string,
+    mapping: ActivityImportMapping,
+    periodId: string,
+    organizationId: string,
+  ): ActivityImportConfigureResult {
+    const pending = this.requirePending(token);
+    if (!pending) return { ok: false, error: 'TokenExpired' };
+
+    const periodRow = this.db
+      .prepare('SELECT id, starts_at, ends_at FROM reporting_period WHERE id = ?')
+      .get(periodId) as { id: string; starts_at: string; ends_at: string } | undefined;
+
+    const period = periodRow
+      ? { id: periodRow.id, start: dateOnly(periodRow.starts_at), end: dateOnly(periodRow.ends_at) }
+      : null;
+
+    const { validation, validRows } = validateActivityRows(
+      pending.grid.rows,
+      mapping,
+      period ? { period: { start: period.start, end: period.end } } : {},
+    );
+    pending.mapping = mapping;
+    pending.organizationId = organizationId;
+    pending.period = period;
+    pending.validation = validation;
+    pending.validRows = validRows;
+    pending.sources = null;
+    pending.groups = null;
+    const sources = this.buildSources(pending, organizationId);
+    return { ok: true, validation, sources };
+  }
+
+  /**
+   * Re-validate under an edited mapping + chosen reporting period.
+   * Preserved for the mapping-step live preview while the user is still
+   * editing (no org context yet); `configure` is the step-commit path.
    */
   revalidate(
     token: string,
@@ -189,13 +249,20 @@ export class ActivityImportService {
    * Distinct source_name values (file order) with their auto-match against
    * the organization's existing sources (normalized exact name match).
    * Idempotent: once built, returns the cached statuses so user resolutions
-   * survive re-reads.
+   * survive re-reads. Kept for the sources-step refresh path; the
+   * step-commit path is `configure`, which returns the same list.
    */
   listSources(token: string, organizationId: string): ActivityImportSourceStatus[] | null {
     const pending = this.requirePending(token);
     if (!pending) return null;
     if (pending.sources) return [...pending.sources.values()];
+    return this.buildSources(pending, organizationId);
+  }
 
+  private buildSources(
+    pending: PendingImport,
+    organizationId: string,
+  ): ActivityImportSourceStatus[] {
     const byNormalizedName = new Map<string, string>();
     for (const source of this.emissionSourceService.listByOrganization(organizationId)) {
       if (!source.is_active) continue;
@@ -252,10 +319,13 @@ export class ActivityImportService {
     const pending = this.requirePending(token);
     if (!pending?.sources) return null;
     if (pending.groups) return [...pending.groups.values()];
+    return this.buildGroups(pending);
+  }
 
+  private buildGroups(pending: PendingImport): ActivityImportGroup[] {
     const resolved = this.resolvedRows(pending);
     const nameOf = new Map<string, string>();
-    for (const status of pending.sources.values()) {
+    for (const status of pending.sources?.values() ?? []) {
       if (status.resolved_source_id) {
         const source = this.emissionSourceService.getById(status.resolved_source_id);
         nameOf.set(status.resolved_source_id, source?.name ?? status.name);
@@ -266,11 +336,62 @@ export class ActivityImportService {
     return groups;
   }
 
+  private applyDecision(
+    pending: PendingImport,
+    d: ActivityImportGroupDecision,
+  ): ActivityImportDecideItemResult {
+    const group = pending.groups?.get(d.group_key);
+    if (!group) return { group_key: d.group_key, ok: false, error: 'GroupNotFound' };
+    if (d.action === 'skip') {
+      group.status = 'skipped';
+      group.ef = null;
+      group.fuel_code = null;
+      return { group_key: d.group_key, ok: true };
+    }
+    if (!d.ef) return { group_key: d.group_key, ok: false, error: 'EfNotFound' };
+    const efRow = this.efService.get(d.ef);
+    if (!efRow) return { group_key: d.group_key, ok: false, error: 'EfNotFound' };
+    const inputUnit = efRow.input_unit ?? '';
+    if (inputUnit !== '' && group.unit !== inputUnit) {
+      try {
+        if (d.fuel_code) {
+          this.unitConversionService.convertWithFuel(1, group.unit, inputUnit, d.fuel_code);
+        } else {
+          this.unitConversionService.convert(1, group.unit, inputUnit);
+        }
+      } catch {
+        return { group_key: d.group_key, ok: false, error: 'DimensionMismatch' };
+      }
+    }
+    group.status = 'confirmed';
+    group.ef = d.ef;
+    group.fuel_code = d.fuel_code ?? null;
+    return { group_key: d.group_key, ok: true };
+  }
+
+  /**
+   * Batch EF decisions for every group: one call applies all confirms +
+   * skips, running the same per-group checks as the per-group path
+   * (EfNotFound / DimensionMismatch / GroupNotFound per item). Not atomic:
+   * valid items apply even when siblings fail — the renderer shows per-row
+   * errors and lets the user fix + re-decide.
+   */
+  decide(token: string, decisions: ActivityImportGroupDecision[]): ActivityImportDecideResult {
+    const pending = this.requirePending(token);
+    if (!pending) return { ok: false, error: 'TokenExpired' };
+    if (!pending.groups && pending.sources) this.buildGroups(pending);
+    const results: ActivityImportDecideItemResult[] = decisions.map((d) =>
+      this.applyDecision(pending, d),
+    );
+    return { ok: true, results };
+  }
+
   /**
    * Human EF decision for one group. Refuses (`DimensionMismatch`) when the
    * group's unit cannot reach the EF's input_unit — same family, direct
    * conversion, or fuel-bound cross-family are the three passable roads; a
    * refused confirm would otherwise blow up row-by-row at import time.
+   * Preserved for single-group patch-ups; the step-commit path is `decide`.
    */
   confirmGroup(
     token: string,
@@ -422,9 +543,13 @@ export class ActivityImportService {
           importedCount += 1;
         } catch (err) {
           createFailures += 1;
+          const code =
+            err instanceof DimensionMismatchError || err instanceof UnknownUnitError
+              ? 'unit_dimension_mismatch'
+              : 'create_failed';
           pushWarning({
             row: row.row,
-            code: 'unit_dimension_mismatch',
+            code,
             ...(err instanceof Error ? { detail: err.message.slice(0, 120) } : {}),
           });
         }
@@ -468,7 +593,7 @@ export class ActivityImportService {
       return { ok: false, error: { _tag: 'NothingToImport' } };
     }
 
-    this.pending = null;
+    this.sessions.delete(token);
     return {
       ok: true,
       imported_count: committed.importedCount,
@@ -485,12 +610,18 @@ export class ActivityImportService {
 
   /** Drop the staged import (drawer closed without importing). */
   discardPending(token: string): void {
-    if (this.pending?.token === token) this.pending = null;
+    this.sessions.delete(token);
   }
 
   private requirePending(token: string): PendingImport | null {
-    if (!this.pending || this.pending.token !== token) return null;
-    return this.pending;
+    const pending = this.sessions.get(token);
+    if (!pending) return null;
+    if (pending.expiresAt <= this.clock()) {
+      this.sessions.delete(token);
+      return null;
+    }
+    pending.expiresAt = this.clock() + SESSION_TTL_MS;
+    return pending;
   }
 
   private resolvedRows(pending: PendingImport): ResolvedImportRow[] {

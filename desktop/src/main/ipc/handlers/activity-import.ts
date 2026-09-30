@@ -29,6 +29,12 @@ const revalidateInput = z.object({
   period_id: z.string().min(1),
 });
 
+const configureInput = z.object({
+  token: z.string().min(1),
+  mapping: mappingInput,
+  period_id: z.string().min(1),
+  organization_id: z.string().min(1),
+});
 const listSourcesInput = z.object({
   token: z.string().min(1),
   organization_id: z.string().min(1),
@@ -58,6 +64,20 @@ const confirmGroupInput = z.object({
 const skipGroupInput = z.object({
   token: z.string().min(1),
   group_key: z.string().min(1),
+});
+
+const decideInput = z.object({
+  token: z.string().min(1),
+  decisions: z
+    .array(
+      z.object({
+        group_key: z.string().min(1),
+        action: z.union([z.literal('confirm'), z.literal('skip')]),
+        ef: efChoiceInput.optional(),
+        fuel_code: z.string().min(1).max(100).nullable().optional(),
+      }),
+    )
+    .max(10000),
 });
 
 /**
@@ -113,6 +133,16 @@ export function activityImportHandlers(ctx: IpcContext): HandlerMap {
       );
     },
 
+    'activity-import:configure': (input) => {
+      const parsed = configureInput.parse(input);
+      return ctx.activityImportService.configure(
+        parsed.token,
+        toMapping(parsed.mapping),
+        parsed.period_id,
+        parsed.organization_id,
+      );
+    },
+
     'activity-import:list-sources': (input) => {
       const parsed = listSourcesInput.parse(input);
       return ctx.activityImportService.listSources(parsed.token, parsed.organization_id);
@@ -127,6 +157,19 @@ export function activityImportHandlers(ctx: IpcContext): HandlerMap {
 
     'activity-import:list-groups': (input) =>
       ctx.activityImportService.listGroups(tokenInput.parse(input).token),
+
+    'activity-import:decide': (input) => {
+      const parsed = decideInput.parse(input);
+      return ctx.activityImportService.decide(
+        parsed.token,
+        parsed.decisions.map((d) => ({
+          group_key: d.group_key,
+          action: d.action,
+          ...(d.ef !== undefined ? { ef: d.ef } : {}),
+          ...(d.fuel_code !== undefined ? { fuel_code: d.fuel_code } : {}),
+        })),
+      );
+    },
 
     'activity-import:confirm-group': (input) => {
       const parsed = confirmGroupInput.parse(input);

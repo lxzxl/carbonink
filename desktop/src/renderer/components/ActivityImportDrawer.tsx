@@ -60,6 +60,7 @@ const ISSUE_LABELS: Record<ActivityImportRowIssue['code'], () => string> = {
   duplicate_in_file: m.activity_import_issue_duplicate_in_file,
   duplicate_in_db: m.activity_import_issue_duplicate_in_db,
   unit_dimension_mismatch: m.activity_import_issue_unit_dimension_mismatch,
+  create_failed: m.activity_import_issue_create_failed,
   amount_outlier: m.activity_import_issue_amount_outlier,
 };
 
@@ -222,16 +223,20 @@ export function ActivityImportDrawer({ open, onClose, organizationId }: Activity
   };
 
   const goSources = async () => {
-    if (!preview) return;
-    const list = await activityImportApi.listSources({
+    if (!preview || periodId === '') return;
+    const res = await activityImportApi.configure({
       token: preview.token,
+      mapping,
+      period_id: periodId,
       organization_id: organizationId,
     });
-    if (list === null) {
+    if (!res.ok) {
       onTokenExpired();
       return;
     }
-    setSources(list);
+    setValidation(res.validation);
+    setSources(res.sources);
+    setGroups([]);
     setStep('sources');
   };
 
@@ -259,10 +264,46 @@ export function ActivityImportDrawer({ open, onClose, organizationId }: Activity
     setGroups((prev) => prev.map((g) => (g.key === key ? { ...g, ...patch } : g)));
   };
 
+  const [decideErrors, setDecideErrors] = useState<Array<{ group_key: string; error: string }>>([]);
+
   const importMutation = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       if (!preview) throw new Error('no staged import');
-      return Promise.resolve(activityImportApi.import({ token: preview.token }));
+      const decisions = groups.map((g) =>
+        g.status === 'skipped'
+          ? { group_key: g.key, action: 'skip' as const }
+          : g.ef
+            ? {
+                group_key: g.key,
+                action: 'confirm' as const,
+                ef: {
+                  factor_code: g.ef.factor_code,
+                  year: g.ef.year,
+                  source: g.ef.source,
+                  geography: g.ef.geography,
+                  dataset_version: g.ef.dataset_version,
+                },
+                fuel_code: g.fuel_code,
+              }
+            : { group_key: g.key, action: 'skip' as const },
+      );
+      const decided = await activityImportApi.decide({ token: preview.token, decisions });
+      if (!decided.ok) {
+        onTokenExpired();
+        throw new Error('token expired');
+      }
+      const failed = decided.results.filter((r) => !r.ok);
+      if (failed.length > 0) {
+        setDecideErrors(
+          failed.map((r) => ({
+            group_key: r.group_key,
+            error: r.ok ? '' : r.error,
+          })),
+        );
+        return { ok: false as const, error: { _tag: 'UnconfirmedGroups' as const } };
+      }
+      setDecideErrors([]);
+      return activityImportApi.import({ token: preview.token });
     },
     onSuccess: (res) => {
       if (res.ok) {
@@ -475,14 +516,21 @@ export function ActivityImportDrawer({ open, onClose, organizationId }: Activity
               <section className="space-y-2">
                 <h3 className="text-sm font-semibold">{m.activity_import_groups_heading()}</h3>
                 <p className="text-xs text-muted-foreground">{m.activity_import_groups_body()}</p>
+                {decideErrors.length > 0 && (
+                  <div className="space-y-1 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2">
+                    {decideErrors.map((e) => (
+                      <p key={e.group_key} className="text-xs text-destructive">
+                        {e.group_key}: {e.error}
+                      </p>
+                    ))}
+                  </div>
+                )}
                 <div className="space-y-3">
                   {groups.map((g) => (
                     <GroupCard
                       key={g.key}
                       group={g}
-                      token={preview?.token ?? ''}
                       onPatched={(patch) => patchGroup(g.key, patch)}
-                      onTokenExpired={onTokenExpired}
                     />
                   ))}
                 </div>
@@ -803,55 +851,30 @@ function SourceRow({
 
 function GroupCard({
   group,
-  token,
   onPatched,
-  onTokenExpired,
 }: {
   group: ActivityImportGroup;
-  token: string;
   onPatched: (patch: Partial<ActivityImportGroup>) => void;
-  onTokenExpired: () => void;
 }) {
   const [open, setOpen] = useState(group.status === 'pending');
   const [efPk, setEfPk] = useState<EfCompositePk | null>(group.ef);
   const [fuelCode, setFuelCode] = useState<string>(group.fuel_code ?? '');
   const [dimensionError, setDimensionError] = useState(false);
 
-  const confirm = async () => {
+  const confirm = () => {
     if (!efPk) return;
-    const res = await activityImportApi.confirmGroup({
-      token,
-      group_key: group.key,
+    // Local-only: the batch `decide` at import time runs the real
+    // DimensionMismatch check server-side. This just stages the choice.
+    setDimensionError(false);
+    setOpen(false);
+    onPatched({
+      status: 'confirmed',
       ef: efPk,
       fuel_code: fuelCode === '' ? null : fuelCode,
     });
-    if (res.ok) {
-      setDimensionError(false);
-      setOpen(false);
-      onPatched({
-        status: 'confirmed',
-        ef: efPk,
-        fuel_code: fuelCode === '' ? null : fuelCode,
-      });
-      return;
-    }
-    if (res.error === 'DimensionMismatch') {
-      setDimensionError(true);
-      return;
-    }
-    if (res.error === 'TokenExpired') {
-      onTokenExpired();
-      return;
-    }
-    toast.error(m.activity_import_failed(), { description: res.error });
   };
 
-  const skip = async () => {
-    const res = await activityImportApi.skipGroup({ token, group_key: group.key });
-    if (!res.ok) {
-      onTokenExpired();
-      return;
-    }
+  const skip = () => {
     setOpen(false);
     onPatched({ status: 'skipped', ef: null, fuel_code: null });
   };

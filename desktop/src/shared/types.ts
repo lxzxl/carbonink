@@ -548,10 +548,12 @@ export const ACTIVITY_IMPORT_REQUIRED_FIELDS: readonly ActivityImportField[] = [
  * Locale-neutral issue codes (renderer maps each to a paraglide message
  * `activity_import_issue_<code>` — same structural i18n approach as the EF
  * import). The first six are errors (row skipped at import); the rest are
- * warnings and never block. `unit_dimension_mismatch` is special: it is
- * raised at the group-confirm step, where an EF whose unit family differs
- * from the group's without a fuel binding cannot produce a number at all,
- * so that confirm is refused rather than warned.
+ * warnings and never block. `unit_dimension_mismatch` is raised at the
+ * group-confirm step, where an EF whose unit family differs from the
+ * group's without a fuel binding cannot produce a number at all, so that
+ * confirm is refused rather than warned. `create_failed` is the commit-time
+ * counterpart: the row passed confirm but `ActivityDataService.create`
+ * threw for a non-conversion reason (fuel code, constraint, precision).
  */
 export type ActivityImportIssueCode =
   | 'source_name_missing'
@@ -565,8 +567,8 @@ export type ActivityImportIssueCode =
   | 'duplicate_in_file'
   | 'duplicate_in_db'
   | 'unit_dimension_mismatch'
+  | 'create_failed'
   | 'amount_outlier';
-
 /** One per-row problem, keyed by the 1-based row number in the user's file. */
 export type ActivityImportRowIssue = {
   row: number;
@@ -660,6 +662,32 @@ export type ActivityImportConfirmResult =
       ok: false;
       error: 'TokenExpired' | 'GroupNotFound' | 'EfNotFound' | 'DimensionMismatch';
     };
+
+/** One group decision in a batch `decide` call. */
+export type ActivityImportGroupDecision = {
+  group_key: string;
+  action: 'confirm' | 'skip';
+  ef?: ActivityImportEfChoice;
+  fuel_code?: string | null;
+};
+
+/** Per-group outcome of a batch `decide` call. */
+export type ActivityImportDecideItemResult =
+  | { group_key: string; ok: true }
+  | { group_key: string; ok: false; error: 'GroupNotFound' | 'EfNotFound' | 'DimensionMismatch' };
+
+export type ActivityImportDecideResult =
+  | { ok: true; results: ActivityImportDecideItemResult[] }
+  | { ok: false; error: 'TokenExpired' };
+
+/** `configure` returns validation + sources in one round-trip. */
+export type ActivityImportConfigureResult =
+  | {
+      ok: true;
+      validation: ActivityImportValidation;
+      sources: ActivityImportSourceStatus[];
+    }
+  | { ok: false; error: 'TokenExpired' };
 
 /** Rows excluded from the final import, bucketed by why. */
 export type ActivityImportSkippedSummary = {

@@ -3,9 +3,12 @@ import type {
   ActivityDataCreateInput,
   ActivityDataWithDocument,
   ActivityDataWithEf,
+  ActivityImportConfigureResult,
   ActivityImportConfirmResult,
+  ActivityImportDecideResult,
   ActivityImportEfChoice,
   ActivityImportGroup,
+  ActivityImportGroupDecision,
   ActivityImportMapping,
   ActivityImportPreview,
   ActivityImportResult,
@@ -147,7 +150,10 @@ export type IpcTypeMap = {
 
   // activity-import domain (ROADMAP §8.1-① — batch ledger import wizard).
   // pick-file opens the native dialog in the main process (same boundary
-  // split as user-ef-library); everything else drives the staged token.
+  // split as user-ef-library). Four steps drive the staged token:
+  // configure (mapping + period + org → validation + sources),
+  // resolve-source*, decide (batch group EF decisions), import.
+  // revalidate stays for the mapping-step live preview while editing.
   'activity-import:pick-file': () => Promise<
     | { canceled: true }
     | { canceled: false; preview: ActivityImportPreview }
@@ -158,6 +164,12 @@ export type IpcTypeMap = {
     mapping: ActivityImportMapping;
     period_id: string;
   }) => ActivityImportValidation | null;
+  'activity-import:configure': (input: {
+    token: string;
+    mapping: ActivityImportMapping;
+    period_id: string;
+    organization_id: string;
+  }) => ActivityImportConfigureResult;
   'activity-import:list-sources': (input: {
     token: string;
     organization_id: string;
@@ -168,6 +180,10 @@ export type IpcTypeMap = {
     source_id: string | null;
   }) => { ok: boolean };
   'activity-import:list-groups': (input: { token: string }) => ActivityImportGroup[] | null;
+  'activity-import:decide': (input: {
+    token: string;
+    decisions: ActivityImportGroupDecision[];
+  }) => ActivityImportDecideResult;
   'activity-import:confirm-group': (input: {
     token: string;
     group_key: string;

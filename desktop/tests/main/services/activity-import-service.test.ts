@@ -119,11 +119,11 @@ afterEach(() => {
   rmSync(uploadsDir, { recursive: true, force: true });
 });
 
-/** stage → revalidate → resolve 新锅炉 → return {token, groups}. */
+/** stage → configure → resolve 新锅炉 → return {token, groups}. */
 async function stageAndResolve(csv = CSV) {
   const preview = await svc.stageImport(Buffer.from(csv, 'utf-8'), 'ledger.csv');
-  svc.revalidate(preview.token, preview.mapping, period.id);
-  const sources = svc.listSources(preview.token, org.id);
+  const configured = svc.configure(preview.token, preview.mapping, period.id, org.id);
+  if (!configured.ok) throw new Error('expected configure ok');
   const boiler = sourceService.create({
     site_id: site.id,
     name: '新锅炉',
@@ -132,7 +132,13 @@ async function stageAndResolve(csv = CSV) {
   });
   svc.resolveSource(preview.token, '新锅炉', boiler.id);
   const groups = svc.listGroups(preview.token);
-  return { token: preview.token, preview, sources, groups: groups ?? [], boiler };
+  return {
+    token: preview.token,
+    preview,
+    sources: configured.sources,
+    groups: groups ?? [],
+    boiler,
+  };
 }
 
 describe('stage + revalidate + sources', () => {
@@ -188,22 +194,34 @@ describe('groups + confirm', () => {
   it('refuses a cross-family EF without fuel binding', async () => {
     const { token, groups } = await stageAndResolve();
     const grid = groups[0] as { key: string };
-    const refused = svc.confirmGroup(token, grid.key, GASOLINE_EF, null);
-    expect(refused).toEqual({ ok: false, error: 'DimensionMismatch' });
-    const accepted = svc.confirmGroup(token, grid.key, GRID_EF, null);
-    expect(accepted).toEqual({ ok: true });
+    expect(
+      svc.decide(token, [{ group_key: grid.key, action: 'confirm', ef: GASOLINE_EF }]),
+    ).toEqual({
+      ok: true,
+      results: [{ group_key: grid.key, ok: false, error: 'DimensionMismatch' }],
+    });
+    expect(svc.decide(token, [{ group_key: grid.key, action: 'confirm', ef: GRID_EF }])).toEqual({
+      ok: true,
+      results: [{ group_key: grid.key, ok: true }],
+    });
   });
 
   it('rejects unknown EF PKs and unknown groups', async () => {
     const { token, groups } = await stageAndResolve();
     const grid = groups[0] as { key: string };
-    expect(svc.confirmGroup(token, grid.key, { ...GRID_EF, factor_code: 'nope' }, null)).toEqual({
-      ok: false,
-      error: 'EfNotFound',
+    expect(
+      svc.decide(token, [
+        { group_key: grid.key, action: 'confirm', ef: { ...GRID_EF, factor_code: 'nope' } },
+      ]),
+    ).toEqual({
+      ok: true,
+      results: [{ group_key: grid.key, ok: false, error: 'EfNotFound' }],
     });
-    expect(svc.confirmGroup(token, 'missing-key', GRID_EF, null)).toEqual({
-      ok: false,
-      error: 'GroupNotFound',
+    expect(
+      svc.decide(token, [{ group_key: 'missing-key', action: 'confirm', ef: GRID_EF }]),
+    ).toEqual({
+      ok: true,
+      results: [{ group_key: 'missing-key', ok: false, error: 'GroupNotFound' }],
     });
   });
 });
@@ -211,14 +229,20 @@ describe('groups + confirm', () => {
 describe('import', () => {
   it('blocks while any group is still pending', async () => {
     const { token, groups } = await stageAndResolve();
-    svc.confirmGroup(token, (groups[0] as { key: string }).key, GRID_EF, null);
+    svc.decide(token, [
+      { group_key: (groups[0] as { key: string }).key, action: 'confirm', ef: GRID_EF },
+    ]);
     expect(svc.import(token)).toEqual({ ok: false, error: { _tag: 'UnconfirmedGroups' } });
   });
 
   it('creates rows, archives the ledger, links evidence, writes the bulk audit event', async () => {
     const { token, groups } = await stageAndResolve();
-    svc.confirmGroup(token, (groups[0] as { key: string }).key, GRID_EF, null);
-    svc.confirmGroup(token, (groups[1] as { key: string }).key, GASOLINE_EF, null);
+    svc.decide(token, [
+      { group_key: (groups[0] as { key: string }).key, action: 'confirm', ef: GRID_EF },
+    ]);
+    svc.decide(token, [
+      { group_key: (groups[1] as { key: string }).key, action: 'confirm', ef: GASOLINE_EF },
+    ]);
 
     const result = svc.import(token);
     expect(result).toMatchObject({
@@ -273,8 +297,10 @@ describe('import', () => {
 
   it('skipping a group excludes its rows and counts them', async () => {
     const { token, groups } = await stageAndResolve();
-    svc.confirmGroup(token, (groups[0] as { key: string }).key, GRID_EF, null);
-    svc.skipGroup(token, (groups[1] as { key: string }).key);
+    svc.decide(token, [
+      { group_key: (groups[0] as { key: string }).key, action: 'confirm', ef: GRID_EF },
+    ]);
+    svc.decide(token, [{ group_key: (groups[1] as { key: string }).key, action: 'skip' }]);
     const result = svc.import(token);
     expect(result).toMatchObject({
       ok: true,
@@ -289,7 +315,9 @@ describe('import', () => {
     svc.listSources(preview.token, org.id);
     const groups = svc.listGroups(preview.token) ?? [];
     expect(groups).toHaveLength(1); // only the auto-matched Grid meter group
-    svc.confirmGroup(preview.token, (groups[0] as { key: string }).key, GRID_EF, null);
+    svc.decide(preview.token, [
+      { group_key: (groups[0] as { key: string }).key, action: 'confirm', ef: GRID_EF },
+    ]);
     const result = svc.import(preview.token);
     expect(result).toMatchObject({
       ok: true,
@@ -300,8 +328,12 @@ describe('import', () => {
 
   it('warns duplicate_in_db on a re-import of the same ledger', async () => {
     const first = await stageAndResolve();
-    svc.confirmGroup(first.token, (first.groups[0] as { key: string }).key, GRID_EF, null);
-    svc.confirmGroup(first.token, (first.groups[1] as { key: string }).key, GASOLINE_EF, null);
+    svc.decide(first.token, [
+      { group_key: (first.groups[0] as { key: string }).key, action: 'confirm', ef: GRID_EF },
+    ]);
+    svc.decide(first.token, [
+      { group_key: (first.groups[1] as { key: string }).key, action: 'confirm', ef: GASOLINE_EF },
+    ]);
     expect(svc.import(first.token)).toMatchObject({ ok: true });
 
     const second = await svc.stageImport(Buffer.from(CSV, 'utf-8'), 'ledger.csv');
@@ -314,14 +346,14 @@ describe('import', () => {
         .id,
     );
     const groups = svc.listGroups(second.token) ?? [];
-    for (const g of groups) {
-      svc.confirmGroup(
-        second.token,
-        (g as { key: string }).key,
-        (g as { unit: string }).unit === 'kWh' ? GRID_EF : GASOLINE_EF,
-        null,
-      );
-    }
+    svc.decide(
+      second.token,
+      groups.map((g) => ({
+        group_key: (g as { key: string }).key,
+        action: 'confirm' as const,
+        ef: (g as { unit: string }).unit === 'kWh' ? GRID_EF : GASOLINE_EF,
+      })),
+    );
     const result = svc.import(second.token);
     expect(result).toMatchObject({ ok: true, imported_count: 3 });
     if (!result.ok) throw new Error('unreachable');
@@ -339,7 +371,9 @@ describe('import', () => {
     svc.revalidate(preview.token, preview.mapping, period.id);
     svc.listSources(preview.token, org.id);
     const groups = svc.listGroups(preview.token) ?? [];
-    svc.confirmGroup(preview.token, (groups[0] as { key: string }).key, GRID_EF, null);
+    svc.decide(preview.token, [
+      { group_key: (groups[0] as { key: string }).key, action: 'confirm', ef: GRID_EF },
+    ]);
     const result = svc.import(preview.token);
     expect(result).toMatchObject({ ok: true, imported_count: 6 });
     if (!result.ok) throw new Error('unreachable');
@@ -361,7 +395,9 @@ describe('import', () => {
     svc.revalidate(preview.token, preview.mapping, period.id);
     svc.listSources(preview.token, org.id);
     const groups = svc.listGroups(preview.token) ?? [];
-    svc.confirmGroup(preview.token, (groups[0] as { key: string }).key, GRID_EF, null);
+    svc.decide(preview.token, [
+      { group_key: (groups[0] as { key: string }).key, action: 'confirm', ef: GRID_EF },
+    ]);
     const result = svc.import(preview.token);
     expect(result).toMatchObject({ ok: true, imported_count: 6 });
     if (!result.ok) throw new Error('unreachable');
@@ -373,14 +409,59 @@ describe('import', () => {
   it('expires the token after a successful import', async () => {
     const { token, groups } = await stageAndResolve();
     for (const g of groups) {
-      svc.confirmGroup(
-        token,
-        (g as { key: string }).key,
-        (g as { unit: string }).unit === 'kWh' ? GRID_EF : GASOLINE_EF,
-        null,
-      );
+      svc.decide(token, [
+        {
+          group_key: (g as { key: string }).key,
+          action: 'confirm' as const,
+          ef: (g as { unit: string }).unit === 'kWh' ? GRID_EF : GASOLINE_EF,
+        },
+      ]);
     }
     expect(svc.import(token)).toMatchObject({ ok: true });
     expect(svc.import(token)).toEqual({ ok: false, error: { _tag: 'TokenExpired' } });
+  });
+
+  it('keeps concurrent sessions isolated (no overwrite)', async () => {
+    const first = await svc.stageImport(Buffer.from(CSV, 'utf-8'), 'a.csv');
+    const second = await svc.stageImport(Buffer.from(CSV, 'utf-8'), 'b.csv');
+    expect(first.token).not.toBe(second.token);
+    expect(svc.configure(first.token, first.mapping, period.id, org.id).ok).toBe(true);
+    // Second session is untouched by the first's configure.
+    expect(svc.listGroups(second.token)).toBeNull();
+    expect(svc.configure(second.token, second.mapping, period.id, org.id).ok).toBe(true);
+    expect(svc.listGroups(first.token)).not.toBeNull();
+  });
+
+  it('expires idle sessions after the TTL', async () => {
+    let now = Date.now();
+    const timed = new ActivityImportService({
+      db,
+      now: () => FIXED_NOW,
+      documentService: new DocumentService({
+        db,
+        now: () => FIXED_NOW,
+        uploadsDir,
+      }),
+      activityDataService: new ActivityDataService({
+        db,
+        now: () => FIXED_NOW,
+        efService: new EfService({ db, now: () => FIXED_NOW }),
+        calculationService: new CalculationService({
+          unitConversion: new UnitConversionService({ db }),
+        }),
+        unitConversionService: new UnitConversionService({ db }),
+      }),
+      efService: new EfService({ db, now: () => FIXED_NOW }),
+      unitConversionService: new UnitConversionService({ db }),
+      emissionSourceService: sourceService,
+      settingsService: { getImportOutlierRatio: () => 10 },
+      clock: () => now,
+    });
+    const preview = await timed.stageImport(Buffer.from(CSV, 'utf-8'), 'ledger.csv');
+    now += 31 * 60 * 1000;
+    expect(timed.configure(preview.token, preview.mapping, period.id, org.id)).toEqual({
+      ok: false,
+      error: 'TokenExpired',
+    });
   });
 });

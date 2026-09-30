@@ -57,6 +57,7 @@
   "activity_import_issue_period_mismatch": "dates outside the selected period",
   "activity_import_issue_source_name_missing": "source name missing",
   "activity_import_issue_unit_dimension_mismatch": "unit incompatible with the chosen EF",
+  "activity_import_issue_create_failed": "row failed to save — see detail",
   "activity_import_issue_unit_missing": "unit missing",
   "activity_import_mapping_body": "Auto-detected from your headers — adjust if needed.",
   "activity_import_mapping_heading": "Column mapping",
