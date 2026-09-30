@@ -1,5 +1,5 @@
 import * as fs from 'node:fs/promises';
-import { renderQuestionnairePdf } from '@main/services/report-export-service';
+import { renderQuestionnairePdf } from '@main/services/report/export-service.js';
 import { dialog } from 'electron';
 import { z } from 'zod';
 import type { IpcContext } from '../context.js';

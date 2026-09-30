@@ -1,6 +1,6 @@
-import type { ReportNarrative } from '@main/llm/report-narrative';
-import type { InventoryReportData } from '@main/services/report-data-service';
-import { writeAppendixXlsx } from '@main/services/report-export-service';
+import type { InventoryReportData } from '@main/services/report/data-service.js';
+import { writeAppendixXlsx } from '@main/services/report/export-service.js';
+import type { ReportNarrative } from '@main/services/report/narrative-iso.js';
 import ExcelJS from 'exceljs';
 import { describe, expect, it } from 'vitest';
 

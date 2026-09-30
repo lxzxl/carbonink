@@ -551,8 +551,8 @@ export type IpcTypeMap = {
     | { canceled: true }
     | {
         canceled: false;
-        data: import('@main/services/report-data-service').InventoryReportData;
-        narrative: import('@main/llm/report-narrative').ReportNarrative;
+        data: import('@main/services/report/data-service.js').InventoryReportData;
+        narrative: import('@main/services/report/narrative-iso.js').ReportNarrative;
         error?: never;
       }
     | {
@@ -577,8 +577,8 @@ export type IpcTypeMap = {
     | { canceled: true }
     | {
         canceled: false;
-        data: import('@main/services/report-data-service').InventoryReportData;
-        narrative: import('@main/llm/tcfd-narrative').TcfdNarrative;
+        data: import('@main/services/report/data-service.js').InventoryReportData;
+        narrative: import('@main/services/report/narrative-tcfd.js').TcfdNarrative;
         error?: never;
       }
     | {
@@ -592,23 +592,23 @@ export type IpcTypeMap = {
       }
   >;
   'report:export-tcfd-pdf': (input: {
-    data: import('@main/services/report-data-service').InventoryReportData;
-    narrative: import('@main/llm/tcfd-narrative').TcfdNarrative;
+    data: import('@main/services/report/data-service.js').InventoryReportData;
+    narrative: import('@main/services/report/narrative-tcfd.js').TcfdNarrative;
     language: 'zh-CN' | 'en';
   }) => Promise<{ canceled: true } | { ok: true; path: string } | { ok: false; error: string }>;
   'report:export-tcfd-xlsx': (input: {
-    data: import('@main/services/report-data-service').InventoryReportData;
-    narrative: import('@main/llm/tcfd-narrative').TcfdNarrative;
+    data: import('@main/services/report/data-service.js').InventoryReportData;
+    narrative: import('@main/services/report/narrative-tcfd.js').TcfdNarrative;
     language: 'zh-CN' | 'en';
   }) => Promise<{ canceled: true } | { ok: true; path: string } | { ok: false; error: string }>;
   'report:export-pdf': (input: {
-    data: import('@main/services/report-data-service').InventoryReportData;
-    narrative: import('@main/llm/report-narrative').ReportNarrative;
+    data: import('@main/services/report/data-service.js').InventoryReportData;
+    narrative: import('@main/services/report/narrative-iso.js').ReportNarrative;
     language: 'zh-CN' | 'en';
   }) => Promise<{ canceled: true } | { ok: true; path: string } | { ok: false; error: string }>;
   'report:export-xlsx': (input: {
-    data: import('@main/services/report-data-service').InventoryReportData;
-    narrative: import('@main/llm/report-narrative').ReportNarrative;
+    data: import('@main/services/report/data-service.js').InventoryReportData;
+    narrative: import('@main/services/report/narrative-iso.js').ReportNarrative;
     language: 'zh-CN' | 'en';
   }) => Promise<{ canceled: true } | { ok: true; path: string } | { ok: false; error: string }>;
   // Client deliverable bundle (spec 2026-07-23-client-deliverable-bundle):
@@ -616,10 +616,10 @@ export type IpcTypeMap = {
   // (sha256 checksums) in one zip. `kind` selects which report/narrative
   // shape renders; evidence scope is the report's period, activity side.
   'report:export-deliverable': (input: {
-    data: import('@main/services/report-data-service').InventoryReportData;
+    data: import('@main/services/report/data-service.js').InventoryReportData;
     narrative:
-      | import('@main/llm/report-narrative').ReportNarrative
-      | import('@main/llm/tcfd-narrative').TcfdNarrative;
+      | import('@main/services/report/narrative-iso.js').ReportNarrative
+      | import('@main/services/report/narrative-tcfd.js').TcfdNarrative;
     language: 'zh-CN' | 'en';
     kind: 'iso' | 'tcfd';
     /**
@@ -627,7 +627,7 @@ export type IpcTypeMap = {
      * the copy lives in paraglide; the bundle omits `readiness.csv` when it
      * is absent rather than inventing an empty one.
      */
-    readiness?: import('@main/services/deliverable-export-service').DeliverableReadiness;
+    readiness?: import('@main/services/report/deliverable.js').DeliverableReadiness;
   }) => Promise<
     | { canceled: true }
     | { ok: true; path: string; evidence_count: number; missing_count: number }

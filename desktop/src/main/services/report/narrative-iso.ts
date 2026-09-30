@@ -1,8 +1,8 @@
 import { runAiObject } from '@main/llm/run-ai.js';
 import type { CredentialService } from '@main/services/credential-service.js';
-import type { InventoryReportData } from '@main/services/report-data-service';
 import type { ProviderConfigV2 } from '@shared/types.js';
 import { z } from 'zod';
+import type { InventoryReportData } from './data-service.js';
 
 export const ReportNarrativeSchema = z.object({
   boundary_description: z.string().min(50).max(800),

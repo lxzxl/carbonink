@@ -1,6 +1,6 @@
-import type { ReportNarrative } from '@main/llm/report-narrative';
-import type { TcfdNarrative } from '@main/llm/tcfd-narrative';
-import type { InventoryReportData } from '@main/services/report-data-service';
+import type { ReportNarrative } from '@main/services/report/narrative-iso.js';
+import type { TcfdNarrative } from '@main/services/report/narrative-tcfd.js';
+import type { InventoryReportData } from '@main/services/report/data-service.js';
 import {
   detail,
   READINESS_CHECK_COUNT,

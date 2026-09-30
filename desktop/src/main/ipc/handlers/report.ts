@@ -1,14 +1,14 @@
 import * as fs from 'node:fs/promises';
-import { generateReportNarrative } from '@main/llm/report-narrative.js';
-import { generateTcfdNarrative } from '@main/llm/tcfd-narrative.js';
-import { buildDeliverableBundle } from '@main/services/deliverable-export-service.js';
+import { buildDeliverableBundle } from '@main/services/report/deliverable.js';
 import {
   defaultExportFilename,
   deliverableExportFilename,
   renderReportPdf,
   tcfdExportFilename,
   writeAppendixXlsx,
-} from '@main/services/report-export-service.js';
+} from '@main/services/report/export-service.js';
+import { generateReportNarrative } from '@main/services/report/narrative-iso.js';
+import { generateTcfdNarrative } from '@main/services/report/narrative-tcfd.js';
 import { dialog } from 'electron';
 import { z } from 'zod';
 import type { IpcContext } from '../context.js';

@@ -1,6 +1,6 @@
 import '@renderer/styles/report-preview.css';
-import type { ReportNarrative } from '@main/llm/report-narrative';
-import type { InventoryReportData } from '@main/services/report-data-service';
+import type { InventoryReportData } from '@main/services/report/data-service.js';
+import type { ReportNarrative } from '@main/services/report/narrative-iso.js';
 import { boundaryKindLabel, formatCo2e, granularityLabel } from '@renderer/lib/format';
 
 export interface ReportPreviewProps {

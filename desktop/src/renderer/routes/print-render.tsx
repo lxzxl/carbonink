@@ -1,6 +1,6 @@
-import type { ReportNarrative } from '@main/llm/report-narrative';
-import type { TcfdNarrative } from '@main/llm/tcfd-narrative';
-import type { InventoryReportData } from '@main/services/report-data-service';
+import type { InventoryReportData } from '@main/services/report/data-service.js';
+import type { ReportNarrative } from '@main/services/report/narrative-iso.js';
+import type { TcfdNarrative } from '@main/services/report/narrative-tcfd.js';
 import { QuestionnairePdfPreview } from '@renderer/components/questionnaire-pdf/QuestionnairePdfPreview';
 import { ReportPreview } from '@renderer/components/report/ReportPreview';
 import { TcfdReportPreview } from '@renderer/components/report/TcfdReportPreview';

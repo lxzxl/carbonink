@@ -1,5 +1,5 @@
-import type { ReportNarrative } from '@main/llm/report-narrative';
-import type { InventoryReportData } from '@main/services/report-data-service';
+import type { InventoryReportData } from '@main/services/report/data-service.js';
+import type { ReportNarrative } from '@main/services/report/narrative-iso.js';
 import { ReportPreview } from '@renderer/components/report/ReportPreview';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';

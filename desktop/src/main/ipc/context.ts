@@ -45,7 +45,7 @@ import { QuestionnairePdfDataService } from '@main/services/questionnaire-pdf-da
 import { QuestionnaireService } from '@main/services/questionnaire-service.js';
 import { ReadinessAgentService } from '@main/services/readiness/agent.js';
 import { ReadinessService } from '@main/services/readiness/index.js';
-import { ReportDataService } from '@main/services/report-data-service.js';
+import { ReportDataService } from '@main/services/report/data-service.js';
 import { buildRoutingLayer, type RoutingR } from '@main/services/routing/tags.js';
 import { SettingsService } from '@main/services/settings-service.js';
 import { UndoManager } from '@main/services/undo-manager.js';
@@ -118,7 +118,7 @@ export interface IpcContext {
   // Routing API — distance lookup via AMap or haversine.
   routingLayer: Layer.Layer<RoutingR>;
   // Phase 3 — report generation pipeline.
-  reportDataService: import('@main/services/report-data-service').ReportDataService;
+  reportDataService: import('@main/services/report/data-service.js').ReportDataService;
   // Phase 3 sub-project 3 — audit event log viewer.
   auditEventService: AuditEventService;
   // Phase 3 sub-project 4 — questionnaire PDF export.

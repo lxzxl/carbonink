@@ -1,5 +1,5 @@
-import type { TcfdNarrative } from '@main/llm/tcfd-narrative';
-import type { InventoryReportData } from '@main/services/report-data-service';
+import type { InventoryReportData } from '@main/services/report/data-service.js';
+import type { TcfdNarrative } from '@main/services/report/narrative-tcfd.js';
 import { TcfdReportPreview } from '@renderer/components/report/TcfdReportPreview';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';

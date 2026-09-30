@@ -1,12 +1,12 @@
+import { runAiObject } from '@main/llm/run-ai';
+import type { CredentialService } from '@main/services/credential-service';
+import type { InventoryReportData } from '@main/services/report/data-service.js';
 import {
   generateReportNarrative,
   LlmNarrativeCanceled,
   LlmNarrativeRefused,
   ReportNarrativeSchema,
-} from '@main/llm/report-narrative';
-import { runAiObject } from '@main/llm/run-ai';
-import type { CredentialService } from '@main/services/credential-service';
-import type { InventoryReportData } from '@main/services/report-data-service';
+} from '@main/services/report/narrative-iso.js';
 import type { ProviderConfigV2 } from '@shared/types';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 

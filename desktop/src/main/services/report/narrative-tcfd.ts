@@ -1,13 +1,13 @@
+import { runAiObject } from '@main/llm/run-ai.js';
+import type { CredentialService } from '@main/services/credential-service.js';
+import type { ProviderConfigV2 } from '@shared/types.js';
+import { z } from 'zod';
+import type { InventoryReportData } from './data-service.js';
 import {
   LlmNarrativeCanceled,
   LlmNarrativeRefused,
   type ReportNarrativeProgressEvent,
-} from '@main/llm/report-narrative.js';
-import { runAiObject } from '@main/llm/run-ai.js';
-import type { CredentialService } from '@main/services/credential-service.js';
-import type { InventoryReportData } from '@main/services/report-data-service';
-import type { ProviderConfigV2 } from '@shared/types.js';
-import { z } from 'zod';
+} from './narrative-iso.js';
 
 /**
  * TCFD four-pillar narrative (spec 2026-07-22-tcfd-report, ROADMAP

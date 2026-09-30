@@ -1,14 +1,14 @@
 /**
  * Wiring tests for `report:export-deliverable`
  * (spec 2026-07-23-client-deliverable-bundle). The bundle internals are
- * covered in `tests/main/services/deliverable-export-service.test.ts`;
+ * covered in `tests/main/services/report/deliverable.test.ts`;
  * here the render + bundle seams are mocked and only the handler's glue
  * is asserted: dialog default filename, per-kind render arguments, entry
  * names, pass-through of period/activities, and the 3-arm result shape.
  */
 import { reportHandlers } from '@main/ipc/handlers/report';
-import { buildDeliverableBundle } from '@main/services/deliverable-export-service';
-import { renderReportPdf, writeAppendixXlsx } from '@main/services/report-export-service';
+import { buildDeliverableBundle } from '@main/services/report/deliverable.js';
+import { renderReportPdf, writeAppendixXlsx } from '@main/services/report/export-service.js';
 import { dialog } from 'electron';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -18,8 +18,8 @@ vi.mock('electron', () => ({
 
 // Keep the pure filename helpers real; mock only the Electron-dependent
 // PDF render and the xlsx writer.
-vi.mock('@main/services/report-export-service', async (importOriginal) => {
-  const real = await importOriginal<typeof import('@main/services/report-export-service')>();
+vi.mock('@main/services/report/export-service.js', async (importOriginal) => {
+  const real = await importOriginal<typeof import('@main/services/report/export-service.js')>();
   return {
     ...real,
     renderReportPdf: vi.fn(),
@@ -27,7 +27,7 @@ vi.mock('@main/services/report-export-service', async (importOriginal) => {
   };
 });
 
-vi.mock('@main/services/deliverable-export-service', () => ({
+vi.mock('@main/services/report/deliverable.js', () => ({
   buildDeliverableBundle: vi.fn(),
 }));
 

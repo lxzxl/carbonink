@@ -8,7 +8,7 @@ vi.mock('electron', () => ({
 vi.mock('node:fs/promises', () => ({
   writeFile: vi.fn(),
 }));
-vi.mock('@main/services/report-export-service', () => ({
+vi.mock('@main/services/report/export-service.js', () => ({
   renderQuestionnairePdf: vi.fn(),
   // Keep other exports too if the file is shared by sub-project 1 — at minimum:
   renderReportPdf: vi.fn(),
@@ -18,7 +18,7 @@ vi.mock('@main/services/report-export-service', () => ({
 }));
 
 import * as fs from 'node:fs/promises';
-import { renderQuestionnairePdf } from '@main/services/report-export-service';
+import { renderQuestionnairePdf } from '@main/services/report/export-service.js';
 import { dialog } from 'electron';
 
 function makeCtx() {

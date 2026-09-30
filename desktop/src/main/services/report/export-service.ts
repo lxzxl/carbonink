@@ -1,8 +1,8 @@
-import type { ReportNarrative } from '@main/llm/report-narrative';
-import type { TcfdNarrative } from '@main/llm/tcfd-narrative';
 import { BrowserWindow, type WebContents } from 'electron';
 import ExcelJS from 'exceljs';
-import type { InventoryReportData } from './report-data-service.js';
+import type { InventoryReportData } from './data-service.js';
+import type { ReportNarrative } from './narrative-iso.js';
+import type { TcfdNarrative } from './narrative-tcfd.js';
 
 const SHEET_NAMES = {
   'zh-CN': {
