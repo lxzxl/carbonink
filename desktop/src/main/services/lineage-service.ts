@@ -1,3 +1,4 @@
+import { getAnswerById } from '@shared/read-models.js';
 import type {
   ActivityData,
   ActivityLineage,
@@ -144,9 +145,7 @@ export class LineageService {
   }
 
   private answerLineage(id: string): AnswerLineage {
-    const answer = this.db.prepare('SELECT * FROM answer WHERE id = ?').get(id) as
-      | Answer
-      | undefined;
+    const answer = getAnswerById<Answer>(this.db, id);
     if (!answer) throw new Error(`answer not found: ${id}`);
 
     const meta = this.db

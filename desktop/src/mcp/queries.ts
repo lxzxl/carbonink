@@ -1,5 +1,13 @@
 /**
- * MCP read/write query functions — plain TS, no Effect.
+ * MCP read query functions — plain TS, no Effect.
+ *
+ * Process split: this module runs in the standalone MCP server and reads
+ * the workspace SQLite file directly (reads stay available with the app
+ * closed; writes go over the agent bridge). The verbatim-shared fragments
+ * (single-row selects, question ordering, org source join) live in
+ * `@shared/read-models` alongside their in-process twins — change one
+ * seam, change both. The trimmed list projections stay here: they are
+ * agent-context-window shapes, not shared seams.
  *
  * Uses a minimal DbLike interface so the same functions can run under:
  *   - `node:sqlite` DatabaseSync  (production MCP binary)
@@ -7,6 +15,14 @@
  *
  * Both expose: `.prepare(sql)` → Statement with `.get(...args)` / `.all(...args)` / `.run(...args)`.
  */
+import {
+  getAnswerByQuestion,
+  getCustomerRow,
+  getDocumentRow,
+  getQuestionnaireRow,
+  listQuestionRows,
+  listSourceRows,
+} from '@shared/read-models.js';
 
 type Statement = {
   get: (...args: unknown[]) => unknown;
@@ -63,14 +79,11 @@ export function listQuestionnaires(db: DbLike): QuestionnaireSummary[] {
 // ---------------------------------------------------------------------------
 
 export function getQuestionnaire(db: DbLike, id: string): QuestionnaireDetail | null {
-  const questionnaire = db.prepare('SELECT * FROM questionnaire WHERE id = ?').get(id);
+  const questionnaire = getQuestionnaireRow<Record<string, unknown>>(db, id);
   if (!questionnaire) return null;
-  const row = questionnaire as Record<string, unknown>;
-  const customer = db.prepare('SELECT * FROM customer WHERE id = ?').get(row['customer_id']);
-  const document = db.prepare('SELECT * FROM document WHERE id = ?').get(row['document_id']);
-  const questions = db
-    .prepare('SELECT * FROM question WHERE questionnaire_id = ? ORDER BY position')
-    .all(id);
+  const customer = getCustomerRow(db, String(questionnaire.customer_id));
+  const document = getDocumentRow(db, String(questionnaire.document_id));
+  const questions = listQuestionRows(db, id);
   return { questionnaire, customer, document, questions };
 }
 
@@ -79,9 +92,7 @@ export function getQuestionnaire(db: DbLike, id: string): QuestionnaireDetail | 
 // ---------------------------------------------------------------------------
 
 export function listQuestions(db: DbLike, questionnaireId: string): unknown[] {
-  return db
-    .prepare('SELECT * FROM question WHERE questionnaire_id = ? ORDER BY position')
-    .all(questionnaireId);
+  return listQuestionRows(db, questionnaireId);
 }
 
 // ---------------------------------------------------------------------------
@@ -89,7 +100,7 @@ export function listQuestions(db: DbLike, questionnaireId: string): unknown[] {
 // ---------------------------------------------------------------------------
 
 export function getAnswer(db: DbLike, questionId: string): unknown | null {
-  return db.prepare('SELECT * FROM answer WHERE question_id = ?').get(questionId) ?? null;
+  return getAnswerByQuestion(db, questionId);
 }
 
 // ---------------------------------------------------------------------------
@@ -132,16 +143,7 @@ export interface ListEmissionSourcesOpts {
 
 export function listEmissionSources(db: DbLike, opts: ListEmissionSourcesOpts = {}): unknown[] {
   if (opts.organization_id) {
-    return db
-      .prepare(
-        `
-        SELECT es.*
-          FROM emission_source es
-          JOIN site s ON s.id = es.site_id
-         WHERE s.organization_id = ?
-      `,
-      )
-      .all(opts.organization_id);
+    return listSourceRows(db, opts.organization_id);
   }
   return db.prepare('SELECT * FROM emission_source').all();
 }

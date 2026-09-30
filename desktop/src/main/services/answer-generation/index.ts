@@ -3,6 +3,7 @@ import type { AiClientTag } from '@main/llm/ai-client.js';
 import type { AiErr } from '@main/llm/errors.js';
 import type { ActivityDataService } from '@main/services/activity-data-service';
 import type { OrganizationService } from '@main/services/organization-service';
+import { getAnswerByQuestion, getQuestionnaireRow, getQuestionRow } from '@shared/read-models.js';
 import type { Answer, ProviderConfigV2, Question, Questionnaire } from '@shared/types';
 import { newId } from '@shared/ulid.js';
 import type { Database } from 'better-sqlite3';
@@ -257,10 +258,7 @@ export function save(input: SaveInput): Effect.Effect<Answer, SaveErr, DbTag | N
       });
     }
 
-    return yield* Effect.sync(
-      () =>
-        db.prepare(`SELECT * FROM answer WHERE question_id = ?`).get(input.question_id) as Answer,
-    );
+    return yield* Effect.sync(() => getAnswerByQuestion<Answer>(db, input.question_id) as Answer);
   });
 }
 
@@ -272,9 +270,7 @@ export function unfinalize(questionId: string): Effect.Effect<Answer, SaveErr, D
     yield* Effect.sync(() => {
       db.prepare(`UPDATE answer SET finalized_at = NULL WHERE question_id = ?`).run(questionId);
     });
-    return yield* Effect.sync(
-      () => db.prepare(`SELECT * FROM answer WHERE question_id = ?`).get(questionId) as Answer,
-    );
+    return yield* Effect.sync(() => getAnswerByQuestion<Answer>(db, questionId) as Answer);
   });
 }
 
@@ -295,9 +291,7 @@ export function listByQuestionnaire(
 }
 
 function readQuestion(db: Database, id: string): Effect.Effect<Question, QuestionNotFound, never> {
-  return Effect.sync(
-    () => db.prepare('SELECT * FROM question WHERE id = ?').get(id) as Question | undefined,
-  ).pipe(
+  return Effect.sync(() => getQuestionRow<Question>(db, id)).pipe(
     Effect.flatMap((q) => (q ? Effect.succeed(q) : Effect.fail(new QuestionNotFound({ id })))),
   );
 }
@@ -306,21 +300,14 @@ function readAnswerByQuestion(
   db: Database,
   qid: string,
 ): Effect.Effect<Answer | null, never, never> {
-  return Effect.sync(
-    () =>
-      (db.prepare('SELECT * FROM answer WHERE question_id = ?').get(qid) as Answer | undefined) ??
-      null,
-  );
+  return Effect.sync(() => getAnswerByQuestion<Answer>(db, qid));
 }
 
 function readQuestionnaire(
   db: Database,
   id: string,
 ): Effect.Effect<Questionnaire, QuestionnaireNotFound, never> {
-  return Effect.sync(
-    () =>
-      db.prepare('SELECT * FROM questionnaire WHERE id = ?').get(id) as Questionnaire | undefined,
-  ).pipe(
+  return Effect.sync(() => getQuestionnaireRow<Questionnaire>(db, id)).pipe(
     Effect.flatMap((q) => (q ? Effect.succeed(q) : Effect.fail(new QuestionnaireNotFound({ id })))),
   );
 }

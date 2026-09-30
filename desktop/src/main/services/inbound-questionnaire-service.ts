@@ -9,6 +9,7 @@ import {
   CAT1_SUPPLIER_DISCLOSURE,
   getInboundTemplate,
 } from '@main/services/inbound-templates/index.js';
+import { getQuestionnaireRow } from '@shared/read-models.js';
 import type {
   ImportPreview,
   ImportPreviewAnswer,
@@ -946,10 +947,7 @@ export class InboundQuestionnaireService {
   }
 
   private findQuestionnaire(id: string): Questionnaire | null {
-    const row = this.deps.db.prepare(`SELECT * FROM questionnaire WHERE id = ?`).get(id) as
-      | Questionnaire
-      | undefined;
-    return row ?? null;
+    return getQuestionnaireRow<Questionnaire>(this.deps.db, id) ?? null;
   }
 
   private findIncludedPositions(questionnaireId: string): string[] {

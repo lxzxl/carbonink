@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { runAiObject } from '@main/llm/run-ai.js';
+import { getDocumentRow, getQuestionnaireRow, listQuestionRows } from '@shared/read-models.js';
 import type { Customer, Document, ProviderConfigV2, Question, Questionnaire } from '@shared/types';
 import type { Database } from 'better-sqlite3';
 import { z } from 'zod';
@@ -339,9 +340,7 @@ export class QuestionnaireService {
   }
 
   listQuestions(questionnaireId: string): Question[] {
-    return this.deps.db
-      .prepare(`SELECT * FROM question WHERE questionnaire_id = ? ORDER BY position, id`)
-      .all(questionnaireId) as Question[];
+    return listQuestionRows<Question>(this.deps.db, questionnaireId);
   }
 
   /**
@@ -398,22 +397,24 @@ export class QuestionnaireService {
     document: Document;
     questions: Question[];
   } | null {
-    const questionnaire = this.deps.db
-      .prepare(`SELECT * FROM questionnaire WHERE id = ?`)
-      .get(id) as Questionnaire | undefined;
+    const questionnaire = getQuestionnaireRow<Questionnaire>(this.deps.db, id);
     if (!questionnaire) return null;
 
     const customer = this.deps.db
       .prepare(`SELECT id, name, notes, role, email FROM customer WHERE id = ?`)
       .get(questionnaire.customer_id) as Customer;
 
-    const document = this.deps.db
-      .prepare(`SELECT * FROM document WHERE id = ?`)
-      .get(questionnaire.document_id) as Document;
+    // document_id nullable since migration 017 (inbound drafts); the old
+    // code passed null straight into the query (no match → undefined cast
+    // to Document). Preserve the shape: only null-out on missing row.
+    const document = (
+      questionnaire.document_id
+        ? getDocumentRow<Document>(this.deps.db, questionnaire.document_id)
+        : undefined
+    ) as Document | undefined;
+    if (!document) return null;
 
-    const questions = this.deps.db
-      .prepare(`SELECT * FROM question WHERE questionnaire_id = ? ORDER BY position, id`)
-      .all(id) as Question[];
+    const questions = listQuestionRows<Question>(this.deps.db, id);
 
     return { questionnaire, customer, document, questions };
   }
