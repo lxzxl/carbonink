@@ -42,6 +42,16 @@ export class AiSchemaMismatch extends Data.TaggedError('AiSchemaMismatch')<{
 export class AiTimeout extends Data.TaggedError('AiTimeout')<{ timeoutMs: number }> {}
 
 /**
+ * Caller-driven cancellation (AbortSignal, e.g. batch-extraction cancel).
+ * Distinct from `AiTimeout` (our timer) and `AiProviderError(cause: aborted)`
+ * (provider-side abort): retry policies must NOT retry this, and callers
+ * that own the signal (batch queue) translate it into silent discard rather
+ * than a user-facing error. Never produced spontaneously — only when the
+ * caller passes an already-aborted or aborting signal.
+ */
+export class AiCanceled extends Data.TaggedError('AiCanceled')<Record<string, never>> {}
+
+/**
  * Provider returned a 2xx response, but the assistant message contained no
  * tool-call / no parsable content. Distinct from `AiSchemaMismatch` (which
  * means content was present but malformed) so the caller can decide whether
@@ -65,6 +75,7 @@ export type AiErr =
   | AiRateLimited
   | AiSchemaMismatch
   | AiTimeout
+  | AiCanceled
   | AiNoData
   | AiProviderError;
 

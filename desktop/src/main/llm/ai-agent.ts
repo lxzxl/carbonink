@@ -24,6 +24,7 @@ import {
   AgentMaxTurns,
   AgentStalled,
   AiAuthError,
+  AiCanceled,
   type AiErr,
   AiNoData,
   AiProviderError,
@@ -152,6 +153,8 @@ export interface AiAgent {
     tools: AgentTool[];
     maxTurns?: number;
     timeoutMs?: number;
+    /** Caller-driven cancellation → {@link AiCanceled}, never retried. */
+    signal?: AbortSignal;
   }): Effect.Effect<{ result: T; trace: AgentTrace }, AiErr | AgentMaxTurns | AgentStalled, never>;
 }
 
@@ -265,6 +268,8 @@ export function buildAiAgentLayer(deps: BuildAiAgentDeps): Layer.Layer<AiAgentTa
           tools: AgentTool[];
           maxTurns?: number;
           timeoutMs?: number;
+          /** Caller-driven cancellation → {@link AiCanceled}, never retried. */
+          signal?: AbortSignal;
         }): Effect.Effect<
           { result: T; trace: AgentTrace },
           AiErr | AgentMaxTurns | AgentStalled,
@@ -304,7 +309,12 @@ export function buildAiAgentLayer(deps: BuildAiAgentDeps): Layer.Layer<AiAgentTa
             let turnCount = 0;
             let httpStatus: number | undefined;
             let timedOut = false;
+            let canceled = false;
             let settled = false;
+            if (args.signal?.aborted) {
+              resume(Effect.fail(new AiCanceled({})));
+              return;
+            }
             // The submit_response tool stashes either a parsed answer or a
             // schema-mismatch error so the post-loop code can pick the
             // appropriate Effect to resume with. Captures across the loop's
@@ -320,6 +330,12 @@ export function buildAiAgentLayer(deps: BuildAiAgentDeps): Layer.Layer<AiAgentTa
               controller.abort();
             }, timeoutMs);
 
+            const onExternalAbort = () => {
+              canceled = true;
+              controller.abort();
+            };
+            args.signal?.addEventListener('abort', onExternalAbort, { once: true });
+
             const settleWith = (
               effect: Effect.Effect<
                 { result: T; trace: AgentTrace },
@@ -329,6 +345,7 @@ export function buildAiAgentLayer(deps: BuildAiAgentDeps): Layer.Layer<AiAgentTa
               if (settled) return;
               settled = true;
               clearTimeout(timer);
+              args.signal?.removeEventListener('abort', onExternalAbort);
               resume(effect);
             };
 
@@ -584,6 +601,10 @@ export function buildAiAgentLayer(deps: BuildAiAgentDeps): Layer.Layer<AiAgentTa
                   stopReason,
                 });
 
+                if (canceled) {
+                  settleWith(Effect.fail(new AiCanceled({})));
+                  return;
+                }
                 if (timedOut) {
                   settleWith(Effect.fail(new AiTimeout({ timeoutMs })));
                   return;
@@ -600,6 +621,10 @@ export function buildAiAgentLayer(deps: BuildAiAgentDeps): Layer.Layer<AiAgentTa
                   lastAssistant &&
                   (lastAssistant.stopReason === 'error' || lastAssistant.stopReason === 'aborted')
                 ) {
+                  if (canceled) {
+                    settleWith(Effect.fail(new AiCanceled({})));
+                    return;
+                  }
                   if (lastAssistant.stopReason === 'aborted') {
                     settleWith(Effect.fail(new AiProviderError({ cause: 'aborted' })));
                     return;
@@ -688,6 +713,11 @@ export function buildAiAgentLayer(deps: BuildAiAgentDeps): Layer.Layer<AiAgentTa
               .catch((err: unknown) => {
                 if (settled) return;
                 clearTimeout(timer);
+                args.signal?.removeEventListener('abort', onExternalAbort);
+                if (canceled) {
+                  settleWith(Effect.fail(new AiCanceled({})));
+                  return;
+                }
                 if (timedOut) {
                   settleWith(Effect.fail(new AiTimeout({ timeoutMs })));
                   return;
@@ -706,6 +736,7 @@ export function buildAiAgentLayer(deps: BuildAiAgentDeps): Layer.Layer<AiAgentTa
             // the modal). Mirrors ai-client.ts's pattern.
             return Effect.sync(() => {
               clearTimeout(timer);
+              args.signal?.removeEventListener('abort', onExternalAbort);
               controller.abort();
             });
           });

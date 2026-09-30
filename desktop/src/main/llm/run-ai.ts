@@ -47,6 +47,8 @@ export async function runAiObject<T>(
     images?: Buffer[];
     timeoutMs?: number;
     cache?: AiCacheRequest;
+    /** Caller-driven cancellation → AiCanceled rethrown, never cached. */
+    signal?: AbortSignal;
     /**
      * Test-only, forwarded to {@link buildAiClientLayer}'s existing hook: a
      * faux-backed `Models` collection so a suite can drive the real call path
@@ -67,7 +69,14 @@ export async function runAiObject<T>(
   });
   const program = Effect.gen(function* () {
     const ai = yield* AiClientTag;
-    return yield* ai.generateObject(args);
+    return yield* ai.generateObject({
+      schema: args.schema,
+      prompt: args.prompt,
+      ...(args.system !== undefined ? { system: args.system } : {}),
+      ...(args.images !== undefined ? { images: args.images } : {}),
+      ...(args.timeoutMs !== undefined ? { timeoutMs: args.timeoutMs } : {}),
+      ...(args.signal !== undefined ? { signal: args.signal } : {}),
+    });
   });
   // `runPromiseExit` (not `runPromise`) lets us unwrap the cause and
   // rethrow the original tagged AiErr instead of Effect's
@@ -110,6 +119,8 @@ export async function runAiAgent<T>(
     maxTurns?: number;
     timeoutMs?: number;
     cache?: AiCacheRequest;
+    /** Caller-driven cancellation → AiCanceled rethrown, never cached. */
+    signal?: AbortSignal;
     /**
      * Test-only, forwarded to {@link buildAiAgentLayer}'s existing hook: a
      * faux-backed `Models` collection so a suite can drive the real turn loop
@@ -142,7 +153,15 @@ export async function runAiAgent<T>(
   });
   const program = Effect.gen(function* () {
     const agent = yield* AiAgentTag;
-    return yield* agent.run(args);
+    return yield* agent.run({
+      systemPrompt: args.systemPrompt,
+      userPrompt: args.userPrompt,
+      schema: args.schema,
+      tools: args.tools,
+      ...(args.maxTurns !== undefined ? { maxTurns: args.maxTurns } : {}),
+      ...(args.timeoutMs !== undefined ? { timeoutMs: args.timeoutMs } : {}),
+      ...(args.signal !== undefined ? { signal: args.signal } : {}),
+    });
   });
   const exit = await Effect.runPromiseExit(program.pipe(Effect.provide(layer)));
   if (Exit.isSuccess(exit)) {

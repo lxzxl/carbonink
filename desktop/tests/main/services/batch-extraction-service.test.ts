@@ -1,3 +1,4 @@
+import { AiCanceled } from '@main/llm/errors';
 import { BatchExtractionService } from '@main/services/batch-extraction-service';
 import type { BatchExtractionProgress, ClassifyAndRunResult } from '@shared/types';
 import { describe, expect, it } from 'vitest';
@@ -33,11 +34,14 @@ function makeHarness() {
 
   const svc = new BatchExtractionService({
     classificationService: {
-      classifyAndRun: (id: string) => {
+      classifyAndRun: (id: string, opts?: { signal?: AbortSignal }) => {
         inFlight += 1;
         maxInFlight = Math.max(maxInFlight, inFlight);
         const d = deferred();
         deferredById.set(id, d);
+        // Real adapters abort on the signal; the harness mirrors that by
+        // rejecting with AiCanceled so the worker takes the discard path.
+        opts?.signal?.addEventListener('abort', () => d.reject(new AiCanceled({})), { once: true });
         return d.promise.finally(() => {
           inFlight -= 1;
         });
@@ -105,20 +109,23 @@ describe('BatchExtractionService', () => {
     ]);
   });
 
-  it('cancel drops the queue, lets in-flight docs finish, marks canceled', async () => {
+  it('cancel aborts in-flight docs: no counts, no rows, marks canceled', async () => {
     const h = makeHarness();
     h.svc.start(['a', 'b', 'c', 'd', 'e']);
     await Promise.resolve();
     expect(h.svc.cancel()).toBe(true);
-    await h.settle('a', 'ok');
-    await h.settle('b', 'ok');
+    // In-flight deferreds reject on abort (the harness wires the signal);
+    // even resolving them afterwards must not count.
+    await h.settle('a', 'throw');
+    await h.settle('b', 'throw');
     await h.svc.waitForIdle();
 
     const final = h.events.at(-1);
     expect(final).toMatchObject({
       total: 5,
-      done: 2,
-      ok_count: 2,
+      done: 0,
+      ok_count: 0,
+      failed_count: 0,
       running: false,
       canceled: true,
     });

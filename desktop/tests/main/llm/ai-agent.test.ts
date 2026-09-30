@@ -534,6 +534,48 @@ describe('AiAgent.run — timeout', () => {
 // AiAgent.run — provider errors
 // ---------------------------------------------------------------------------
 
+describe('AiAgent.run — caller cancellation', () => {
+  it('fails AiCanceled on an already-aborted signal without a request', async () => {
+    const answerSchema = z.object({ answer: z.string() });
+
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-chat' }] });
+    faux.setResponses([
+      async () =>
+        fauxAssistantMessage([fauxToolCall('submit_response', { answer: 'x' })], {
+          stopReason: 'toolUse',
+        }),
+    ]);
+
+    const controller = new AbortController();
+    controller.abort();
+    const layer = buildAiAgentLayer({
+      config: fakeConfig(),
+      credentials: fakeCredentials(),
+      modelsInstance: fauxModels(),
+    });
+
+    const program = Effect.gen(function* () {
+      const agent = yield* AiAgentTag;
+      return yield* agent.run({
+        systemPrompt: 's',
+        userPrompt: 'u',
+        schema: answerSchema,
+        tools: [],
+        signal: controller.signal,
+      });
+    });
+
+    const result = await Effect.runPromise(
+      program.pipe(
+        Effect.provide(layer),
+        Effect.catchTag('AiCanceled', () => Effect.succeed({ caught: true })),
+      ),
+    );
+    expect(result).toEqual({ caught: true });
+    expect(faux.state.callCount).toBe(0);
+  });
+});
+
 describe('AiAgent.run — provider error mapping', () => {
   it('maps 401 → AiAuthError', async () => {
     const answerSchema = z.object({ answer: z.string() });

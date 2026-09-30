@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import type { IpcPushTypeMap } from '@main/ipc/types.js';
+import { AiCanceled } from '@main/llm/errors.js';
 import type { ModelResolver } from '@main/llm/model-catalog.js';
 import { pdfToImages as pdfToImagesDefault } from '@main/llm/pdf-to-images.js';
 import { runAiObject } from '@main/llm/run-ai.js';
@@ -168,7 +169,11 @@ export class ExtractionService {
     if (ctx.emitProgress) this.emitProgress = ctx.emitProgress;
   }
 
-  async run(input: { document_id: string; stage_id: string }): Promise<Extraction> {
+  async run(input: {
+    document_id: string;
+    stage_id: string;
+    signal?: AbortSignal;
+  }): Promise<Extraction> {
     const doc = this.ctx.documentService.getById(input.document_id);
     if (!doc) throw new Error(`Document not found: ${input.document_id}`);
 
@@ -227,12 +232,14 @@ export class ExtractionService {
     // boundary helper). AiClient builds the same tool-call envelope
     // and retry policy across both text + vision paths — extraction
     // doesn't need to know about pi-ai at all.
+    if (input.signal?.aborted) throw new AiCanceled({});
     let result: unknown;
     if (pdfText.trim().length >= 10) {
       const prompt = stage.buildPrompt(pdfText);
       result = await runAiObject(providerConfig.config, this.ctx.credentials, {
         schema: stage.schema,
         prompt,
+        ...(input.signal !== undefined ? { signal: input.signal } : {}),
       });
     } else {
       // Vision path. Validate prerequisites first so we don't burn
@@ -257,9 +264,13 @@ export class ExtractionService {
         prompt: vision.userText,
         ...(vision.system ? { system: vision.system } : {}),
         images,
+        ...(input.signal !== undefined ? { signal: input.signal } : {}),
       });
     }
 
+    // Canceled while the LLM ran: never write the row. The batch worker
+    // treats AiCanceled as silent discard; single-run callers surface it.
+    if (input.signal?.aborted) throw new AiCanceled({});
     // Migration 003's CHECK constraint requires raw_response + parsed_json
     // both NOT NULL when status is `review_needed`. We don't get a separate
     // "raw text" out of AI SDK's `generateObject` (it already parsed),

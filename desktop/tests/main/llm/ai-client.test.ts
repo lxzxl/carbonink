@@ -574,6 +574,34 @@ describe('AiClient.generateText', () => {
     expect(faux.state.callCount).toBe(3);
   });
 
+  it('aborted signal → AiCanceled without a request', async () => {
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-chat' }] });
+    faux.setResponses([fauxAssistantMessage([fauxText('hello world')])]);
+
+    const controller = new AbortController();
+    controller.abort();
+    const layer = buildAiClientLayer({
+      config: fakeConfig(),
+      credentials: fakeCredentials(),
+      modelsInstance: fauxModels(),
+    });
+
+    const program = Effect.gen(function* () {
+      const ai = yield* AiClientTag;
+      return yield* ai.generateText({ prompt: 'hi', signal: controller.signal });
+    });
+
+    const result = await Effect.runPromise(
+      program.pipe(
+        Effect.provide(layer),
+        Effect.catchTag('AiCanceled', () => Effect.succeed({ caught: true })),
+      ),
+    );
+    expect(result).toEqual({ caught: true });
+    // Fail-fast: no pi-ai request was issued.
+    expect(faux.state.callCount).toBe(0);
+  });
+
   it('empty content → AiNoData', async () => {
     faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-chat' }] });
     // Empty content array — no text to return.

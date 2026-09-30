@@ -1,3 +1,4 @@
+import { AiCanceled } from '@main/llm/errors.js';
 import type {
   BatchExtractionFailure,
   BatchExtractionProgress,
@@ -11,7 +12,10 @@ const CONCURRENCY = 2;
 const MAX_REPORTED_FAILURES = 50;
 
 interface ClassificationRunner {
-  classifyAndRun(documentId: string): Promise<ClassifyAndRunResult>;
+  classifyAndRun(
+    documentId: string,
+    opts?: { signal?: AbortSignal },
+  ): Promise<ClassifyAndRunResult>;
 }
 
 interface DocumentLookup {
@@ -22,6 +26,7 @@ type BatchState = {
   progress: BatchExtractionProgress;
   queue: string[];
   canceled: boolean;
+  controller: AbortController;
 };
 
 /**
@@ -53,13 +58,16 @@ export class BatchExtractionService {
   }
 
   /**
-   * Stop dequeuing; in-flight documents finish and are counted. Returns
-   * false when nothing is running (idempotent, safe to double-cancel).
+   * Cancel the batch: stop dequeuing, abort in-flight LLM calls, and drop
+   * their results (no extraction rows, no ok/failed counts — the docs stay
+   * unextracted so a re-run picks them up). Returns false when nothing is
+   * running (idempotent, safe to double-cancel).
    */
   cancel(): boolean {
     if (!this.state?.progress.running) return false;
     this.state.canceled = true;
     this.state.queue.length = 0;
+    this.state.controller.abort();
     return true;
   }
 
@@ -81,6 +89,7 @@ export class BatchExtractionService {
     this.state = {
       queue: [...ids],
       canceled: false,
+      controller: new AbortController(),
       progress: {
         total: ids.length,
         done: 0,
@@ -122,22 +131,33 @@ export class BatchExtractionService {
       this.emit(state);
 
       let failure: Omit<BatchExtractionFailure, 'filename'> | null = null;
+      let canceled = false;
       try {
-        const result = await this.deps.classificationService.classifyAndRun(id);
+        const result = await this.deps.classificationService.classifyAndRun(id, {
+          signal: state.controller.signal,
+        });
         if (result.status !== 'classified') {
           failure = { document_id: id, reason: 'classify_failed' };
         }
       } catch (err) {
-        failure = {
-          document_id: id,
-          reason: 'error',
-          ...(err instanceof Error ? { detail: err.message.slice(0, 200) } : {}),
-        };
+        if (err instanceof AiCanceled || state.controller.signal.aborted) {
+          canceled = true;
+        } else {
+          failure = {
+            document_id: id,
+            reason: 'error',
+            ...(err instanceof Error ? { detail: err.message.slice(0, 200) } : {}),
+          };
+        }
       }
 
       state.progress.current_document_ids = state.progress.current_document_ids.filter(
         (current) => current !== id,
       );
+      // Canceled in-flight work leaves no trace: no counts, no rows (the
+      // classification/extraction seams guarantee no-write-after-cancel),
+      // no failure entries. The docs stay unextracted for the next run.
+      if (canceled || state.canceled) return;
       state.progress.done += 1;
       if (failure) {
         state.progress.failed_count += 1;

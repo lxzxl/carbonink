@@ -503,8 +503,22 @@ describe('ExtractionService', () => {
     });
   });
 
+  it('aborted signal throws AiCanceled without writing a row', async () => {
+    const doc = uploadFakePdf(h.documentService);
+    const controller = new AbortController();
+    controller.abort();
+    await expect(
+      h.extractionService.run({
+        document_id: doc.id,
+        stage_id: 'china_utility.v1',
+        signal: controller.signal,
+      }),
+    ).rejects.toMatchObject({ _tag: 'AiCanceled' });
+    const count = h.db.prepare('SELECT COUNT(*) AS c FROM extraction').get() as { c: number };
+    expect(count.c).toBe(0);
+  });
+
   it("throws VisionUnsupportedError when vision is needed but the model can't take images", async () => {
-    h.cleanup();
     h = setupHarness();
 
     h.settingsService = {

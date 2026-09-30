@@ -239,6 +239,7 @@ function stopReasonForError(err: unknown): { stopReason: string; turnCount: numb
   if (tag === 'AgentMaxTurns') return { stopReason: 'max_turns', turnCount };
   if (tag === 'AgentStalled') return { stopReason: 'stalled', turnCount };
   if (tag === 'AiTimeout') return { stopReason: 'aborted', turnCount };
+  if (tag === 'AiCanceled') return { stopReason: 'canceled', turnCount };
   return { stopReason: 'error', turnCount };
 }
 

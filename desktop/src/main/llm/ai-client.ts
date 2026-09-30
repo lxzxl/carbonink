@@ -5,6 +5,7 @@ import { Context, Effect, Layer, Schedule } from 'effect';
 import { type ZodSchema, z } from 'zod';
 import {
   AiAuthError,
+  AiCanceled,
   type AiErr,
   AiNoData,
   AiProviderError,
@@ -49,6 +50,11 @@ export interface AiClient {
     system?: string;
     images?: Buffer[];
     timeoutMs?: number;
+    /**
+     * Caller-driven cancellation. When aborted, the in-flight pi-ai request
+     * aborts and the Effect fails with {@link AiCanceled} (never retried).
+     */
+    signal?: AbortSignal;
   }): Effect.Effect<T, AiErr, never>;
 
   /**
@@ -61,6 +67,8 @@ export interface AiClient {
     prompt: string;
     system?: string;
     timeoutMs?: number;
+    /** Caller-driven cancellation → {@link AiCanceled}, never retried. */
+    signal?: AbortSignal;
   }): Effect.Effect<string, AiErr, never>;
 
   /**
@@ -212,6 +220,7 @@ export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClien
         system?: string;
         images?: Buffer[];
         timeoutMs: number;
+        signal?: AbortSignal;
       }): Effect.Effect<{ msg: AssistantMessage; httpStatus: number | undefined }, AiErr, never> =>
         Effect.async<{ msg: AssistantMessage; httpStatus: number | undefined }, AiErr, never>(
           (resume) => {
@@ -231,13 +240,24 @@ export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClien
               );
               return;
             }
+            // Already canceled before we started — fail fast, no request.
+            if (args.signal?.aborted) {
+              resume(Effect.fail(new AiCanceled({})));
+              return;
+            }
             const controller = new AbortController();
             let timedOut = false;
+            let canceled = false;
             let httpStatus: number | undefined;
             const timer = setTimeout(() => {
               timedOut = true;
               controller.abort();
             }, args.timeoutMs);
+            const onExternalAbort = () => {
+              canceled = true;
+              controller.abort();
+            };
+            args.signal?.addEventListener('abort', onExternalAbort, { once: true });
 
             // When images are present, the user message becomes a parts array
             // (text + image blocks). All our image input is PNG from the
@@ -278,11 +298,16 @@ export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClien
               )
               .then((msg) => {
                 clearTimeout(timer);
+                args.signal?.removeEventListener('abort', onExternalAbort);
                 // pi-ai catches AbortSignal-driven rejections and returns a
                 // `stopReason: 'aborted'` message rather than throwing. Without
-                // this guard the `.then()` path would route through
+                // these guards the `.then()` path would route through
                 // `mapPiToAiErr` and surface AiProviderError instead of the
-                // typed AiTimeout the caller asked for.
+                // typed AiTimeout / AiCanceled the caller asked for.
+                if (canceled) {
+                  resume(Effect.fail(new AiCanceled({})));
+                  return;
+                }
                 if (timedOut) {
                   resume(Effect.fail(new AiTimeout({ timeoutMs: args.timeoutMs })));
                   return;
@@ -291,6 +316,11 @@ export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClien
               })
               .catch((e: unknown) => {
                 clearTimeout(timer);
+                args.signal?.removeEventListener('abort', onExternalAbort);
+                if (canceled) {
+                  resume(Effect.fail(new AiCanceled({})));
+                  return;
+                }
                 if (timedOut) {
                   resume(Effect.fail(new AiTimeout({ timeoutMs: args.timeoutMs })));
                   return;
@@ -307,6 +337,7 @@ export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClien
 
             return Effect.sync(() => {
               clearTimeout(timer);
+              args.signal?.removeEventListener('abort', onExternalAbort);
               controller.abort();
             });
           },
@@ -365,6 +396,7 @@ export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClien
           system?: string;
           images?: Buffer[];
           timeoutMs?: number;
+          signal?: AbortSignal;
         }): Effect.Effect<T, AiErr, never> => {
           const timeoutMs = args.timeoutMs ?? 60_000;
           // Force the model to emit its answer through a single tool whose
@@ -384,6 +416,7 @@ export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClien
             prompt: args.prompt,
             ...(args.system !== undefined ? { system: args.system } : {}),
             ...(args.images !== undefined ? { images: args.images } : {}),
+            ...(args.signal !== undefined ? { signal: args.signal } : {}),
             timeoutMs,
           }).pipe(
             Effect.flatMap(({ msg, httpStatus }) => {
@@ -422,11 +455,13 @@ export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClien
           prompt: string;
           system?: string;
           timeoutMs?: number;
+          signal?: AbortSignal;
         }): Effect.Effect<string, AiErr, never> => {
           const timeoutMs = args.timeoutMs ?? 60_000;
           const program = callPi({
             prompt: args.prompt,
             ...(args.system !== undefined ? { system: args.system } : {}),
+            ...(args.signal !== undefined ? { signal: args.signal } : {}),
             timeoutMs,
           }).pipe(
             Effect.flatMap(({ msg, httpStatus }) => {

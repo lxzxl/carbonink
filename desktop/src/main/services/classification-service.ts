@@ -1,6 +1,7 @@
 import { AiClientTag } from '@main/llm/ai-client.js';
 import { buildCacheKey, sha256Hex } from '@main/llm/cache-key.js';
 import type { AiErr } from '@main/llm/errors.js';
+import { AiCanceled } from '@main/llm/errors.js';
 import type { LlmCache } from '@main/llm/llm-cache.js';
 import type { ClassifyAndRunResult } from '@shared/types.js';
 import type { Database } from 'better-sqlite3';
@@ -82,6 +83,7 @@ ${text || '(no parsed text — see attached images)'}
 export function classify(args: {
   parsedText: string | null;
   images: Buffer[];
+  signal?: AbortSignal;
 }): Effect.Effect<{ doc_type: string | null; confidence: number }, AiErr, AiClientTag> {
   return Effect.gen(function* () {
     const text = (args.parsedText ?? '').trim();
@@ -98,6 +100,7 @@ export function classify(args: {
       schema: classifySchema,
       prompt,
       ...(args.images.length > 0 ? { images: args.images } : {}),
+      ...(args.signal !== undefined ? { signal: args.signal } : {}),
     });
     return {
       doc_type: result.doc_type === 'unknown' ? null : result.doc_type,
@@ -160,7 +163,11 @@ export class ClassificationService {
     });
   }
 
-  async classifyAndRun(documentId: string): Promise<ClassifyAndRunResult> {
+  async classifyAndRun(
+    documentId: string,
+    opts: { signal?: AbortSignal } = {},
+  ): Promise<ClassifyAndRunResult> {
+    if (opts.signal?.aborted) throw new AiCanceled({});
     const doc = this.deps.documentService.getById(documentId);
     if (!doc) {
       return { status: 'classify_failed' };
@@ -202,7 +209,11 @@ export class ClassificationService {
         };
       } else {
         const exit = await Effect.runPromiseExit(
-          classify({ parsedText, images }).pipe(Effect.provide(this.deps.aiLayer)),
+          classify({
+            parsedText,
+            images,
+            ...(opts.signal !== undefined ? { signal: opts.signal } : {}),
+          }).pipe(Effect.provide(this.deps.aiLayer)),
         );
         if (Exit.isFailure(exit)) {
           // eslint-disable-next-line no-console
@@ -230,9 +241,12 @@ export class ClassificationService {
     }
 
     // doc_type is now set (cached on the row OR freshly classified).
+    // The signal travels into extraction too — a cancel mid-LLM-call must
+    // not leave a stray extraction row behind.
     const extraction = await this.deps.extractionService.run({
       document_id: documentId,
       stage_id: docType,
+      ...(opts.signal !== undefined ? { signal: opts.signal } : {}),
     });
 
     return { status: 'classified', extraction, doc_type: docType };
