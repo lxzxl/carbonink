@@ -54,9 +54,8 @@ import { useEffect, useMemo, useState } from 'react';
  *   (models launch on openrouter daily), so the model picker carries a
  *   custom-id escape hatch: when the search matches no catalog id
  *   exactly, a trailing row offers the typed text verbatim. The main
- *   side mirrors this — `resolveModel` in pi-catalog.ts synthesizes a
- *   runnable model for uncatalogued ids, and "Test connection" is the
- *   real validation.
+ *   side mirrors this — the model catalog synthesizes a runnable model
+ *   for uncatalogued ids, and "Test connection" is the real validation.
  *
  *   The Azure-specific `resourceName` input + the openai-compat-specific
  *   `baseUrl` input have collapsed into one universally-visible

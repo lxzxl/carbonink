@@ -1,15 +1,6 @@
-import { readdirSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { extname } from 'node:path';
 import { AiClientTag, buildAiClientLayer } from '@main/llm/ai-client.js';
-import { fetchModelsForProvider } from '@main/llm/model-fetcher.js';
-import { getModelsCollection } from '@main/llm/models.js';
-import { FileModelsStore } from '@main/llm/models-store.js';
-import {
-  dynamicModelMirror,
-  listModelsForProvider,
-  listProviderIds,
-} from '@main/llm/pi-catalog.js';
 import { getProviderGuidance } from '@main/llm/provider-guidance.js';
 import {
   IMPORT_OUTLIER_RATIO_MAX,
@@ -62,40 +53,6 @@ const fetchModelsInput = z.object({
 });
 
 /**
- * Boot-seed helper: read every `<provider>.json` under the dynamic-models
- * dir into the in-memory mirror + freshness map. Corrupt files read as a
- * miss (FileModelsStore contract); a missing dir means first run.
- */
-async function seedDynamicMirror(userDataDir: string): Promise<void> {
-  const store = new FileModelsStore(userDataDir);
-  let files: string[];
-  try {
-    files = readdirSync(store.dir);
-  } catch {
-    return;
-  }
-  await Promise.all(
-    files
-      .filter((f) => f.endsWith('.json'))
-      .map(async (f) => {
-        const providerId = f.slice(0, -'.json'.length);
-        const entry = await store.read(providerId);
-        if (entry && entry.models.length > 0) {
-          dynamicModelMirror.set(providerId, [...entry.models]);
-          if (entry.checkedAt !== undefined) dynamicCheckedAt.set(providerId, entry.checkedAt);
-        }
-      }),
-  );
-}
-/**
- * Freshness of the dynamic catalog mirror, keyed by provider id. Updated by
- * `settings:fetch-models` (and seeded at boot from `FileModelsStore`;
- * entries are inserted/deleted at runtime, hence `Map`). `list-models`
- * reports it so the renderer shows a stale badge without a new channel.
- */
-export const dynamicCheckedAt = new Map<string, number>();
-
-/**
  * Phase 1b settings handlers — provider config CRUD + the "Test connection"
  * action used by the Settings drawer.
  *
@@ -106,14 +63,6 @@ export const dynamicCheckedAt = new Map<string, number>();
 export function settingsHandlers(ctx: IpcContext): {
   [K in keyof IpcTypeMap]?: IpcTypeMap[K];
 } {
-  // Boot-seed the dynamic catalog mirror from `FileModelsStore` so fetched
-  // rows survive restarts. Fire-and-forget: a missing dir/file is the
-  // common first-run case and reads as a miss. Only providers with a
-  // cache file populate the mirror; everything else stays bundled-only.
-  void seedDynamicMirror(ctx.userDataDir).catch(() => {
-    // Disk errors must never break Settings — the bundled catalog alone
-    // is a complete fallback.
-  });
   return {
     'settings:available': () => ctx.credentialService.isAvailable(),
     'settings:get-provider': () => ctx.settingsService.getProviderConfig(),
@@ -137,6 +86,7 @@ export function settingsHandlers(ctx: IpcContext): {
       const layer = buildAiClientLayer({
         config: parsed.config,
         credentials: ctx.credentialService,
+        modelResolver: ctx.modelCatalog,
         ...(parsed.apiKey !== undefined ? { overrideKey: parsed.apiKey } : {}),
       });
       // ping() only fails with AiAuthError | AiProviderError; map both onto
@@ -218,43 +168,29 @@ export function settingsHandlers(ctx: IpcContext): {
       return { ok: true as const };
     },
     // Item 3 Task 10c — runtime catalog channels. The renderer's Settings
-    // form populates its Provider + Model dropdowns from pi-ai's catalog
+    // form populates its Provider + Model dropdowns from the model catalog
     // via these channels rather than hardcoded lists, so the UI never
-    // drifts from pi-ai's actual catalog.
-    'settings:list-providers': () => listProviderIds(),
+    // drifts from pi-ai's actual catalog. Fetch orchestration (endpoint →
+    // disk → mirror → freshness) lives inside the catalog; the handler
+    // only resolves the key (typed-but-not-saved `apiKey?` or the saved
+    // keychain key — same contract as `ping-provider`) and forwards it.
+    'settings:list-providers': () => ctx.modelCatalog.listProviders(),
     'settings:list-models': (input) => {
       const parsed = listModelsInput.parse(input);
-      return {
-        models: listModelsForProvider(parsed.provider),
-        checkedAt: dynamicCheckedAt.get(parsed.provider) ?? null,
-      };
+      return ctx.modelCatalog.listModels(parsed.provider);
     },
-    // Live model discovery (pi-0.85 plan Phase C). Fetches the provider's
-    // own list endpoint, persists to FileModelsStore, seeds the in-memory
-    // mirror, and returns the merged catalog. The key is typed-but-not-
-    // saved (`apiKey?`) or the saved keychain key — same contract as
-    // `ping-provider`; never persisted by this handler.
+    // Live model discovery (pi-0.85 plan Phase C). Never throws — fetch
+    // failures surface as `{ok: false, error}` with a renderer-safe string.
     'settings:fetch-models': async (input) => {
       const parsed = fetchModelsInput.parse(input);
       const key =
         parsed.apiKey ?? ctx.credentialService.get(apiKeyKeyrefForProvider(parsed.provider));
       if (!key) return { ok: false as const, error: 'missing_api_key' };
-      const result = await fetchModelsForProvider(getModelsCollection(), {
+      return ctx.modelCatalog.refresh({
         provider: parsed.provider,
         ...(parsed.baseUrl !== undefined ? { baseUrl: parsed.baseUrl } : {}),
         apiKey: key,
       });
-      if (!result.ok) return { ok: false as const, error: result.error };
-      const store = new FileModelsStore(ctx.userDataDir);
-      const checkedAt = Date.now();
-      await store.write(parsed.provider, { models: result.models, checkedAt });
-      dynamicModelMirror.set(parsed.provider, result.models);
-      dynamicCheckedAt.set(parsed.provider, checkedAt);
-      return {
-        ok: true as const,
-        models: listModelsForProvider(parsed.provider),
-        checkedAt,
-      };
     },
     // LLM provider guidance + deterministic cache (spec 2026-09-02).
     // Guidance merges the static table with the maintainer's runtime

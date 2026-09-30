@@ -1,7 +1,11 @@
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { runMigrations } from '@main/db/migrate';
 import { createIpcContext } from '@main/ipc/context';
 import { settingsHandlers } from '@main/ipc/handlers/settings';
 import { AiAuthError, AiProviderError } from '@main/llm/errors';
+import { createModelCatalog } from '@main/llm/model-catalog';
 import type { CredentialService } from '@main/services/credential-service';
 import type { ProviderConfigV2 } from '@shared/types';
 import Database from 'better-sqlite3';
@@ -73,21 +77,24 @@ describe('settings IPC handlers', () => {
   let db: Database.Database;
   let credentials: CredentialService;
   let handlers: ReturnType<typeof settingsHandlers>;
+  let userDataDir: string;
 
   beforeEach(() => {
     db = new Database(':memory:');
     db.pragma('foreign_keys = ON');
     runMigrations(db);
     credentials = makeFakeCredentials();
+    userDataDir = mkdtempSync(join(tmpdir(), 'settings-handlers-'));
     const ctx = createIpcContext(
       { db, now: () => '2026-05-11T00:00:00.000Z' },
-      { credentialService: credentials },
+      { credentialService: credentials, userDataDir },
     );
     handlers = settingsHandlers(ctx);
   });
 
   afterEach(() => {
     db.close();
+    rmSync(userDataDir, { recursive: true, force: true });
     pingSpy.mockReset();
     buildLayerSpy.mockReset();
   });
@@ -306,11 +313,11 @@ describe('settings IPC handlers', () => {
   });
 
   // Item 3 Task 10c — runtime catalog channels. The handlers delegate to
-  // pi-catalog.ts which wraps pi-ai's `getProviders` / `getModels`. We
-  // exercise the real catalog here (rather than mocking it) because the
-  // pi-ai dependency is bundled at build time — the catalog is a constant
-  // and the test asserts on stable invariants (deepseek + openai are
-  // always present; deepseek has at least one model).
+  // the model catalog (ctx.modelCatalog) over pi-ai's `getProviders` /
+  // `getModels`. We exercise the real catalog here (rather than mocking
+  // it) because the pi-ai dependency is bundled at build time — the
+  // catalog is a constant and the test asserts on stable invariants
+  // (deepseek + openai are always present; deepseek has at least one model).
   it('settings:list-providers returns pi-ai providers including deepseek and openai', () => {
     const providers = handlers['settings:list-providers']?.() ?? [];
     expect(Array.isArray(providers)).toBe(true);
@@ -359,7 +366,7 @@ describe('settings IPC handlers', () => {
     });
     // Input modalities are constrained to the union the UI knows how to
     // render — anything else from a future pi-ai version is filtered out
-    // by `listModelsForProvider`, not blindly forwarded.
+    // by the catalog projection, not blindly forwarded.
     for (const modality of first.input) {
       expect(['text', 'image']).toContain(modality);
     }
@@ -382,5 +389,30 @@ describe('settings IPC handlers', () => {
         provider: '' as any,
       }),
     ).toThrow(z.ZodError);
+  });
+
+  it('settings:fetch-models without a key returns missing_api_key', async () => {
+    const result = await handlers['settings:fetch-models']?.({ provider: 'deepseek' });
+    expect(result).toEqual({ ok: false, error: 'missing_api_key' });
+  });
+
+  it('settings:fetch-models refreshes through the catalog (stubbed fetch)', async () => {
+    const ctx2 = createIpcContext(
+      { db, now: () => '2026-05-11T00:00:00.000Z' },
+      {
+        credentialService: credentials,
+        userDataDir,
+        modelCatalog: createModelCatalog({
+          userDataDir,
+          fetchFn: async () => ({ ok: true, models: [] }),
+          now: () => 999,
+        }),
+      },
+    );
+    const handlers2 = settingsHandlers(ctx2);
+    credentials.set('llm.deepseek.apikey', 'sk-test');
+    const result = await handlers2['settings:fetch-models']?.({ provider: 'deepseek' });
+    expect(result).toEqual({ ok: true, models: expect.any(Array), checkedAt: 999 });
+    expect(handlers2['settings:list-models']?.({ provider: 'deepseek' })?.checkedAt).toBe(999);
   });
 });

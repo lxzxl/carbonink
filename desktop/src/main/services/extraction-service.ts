@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import type { IpcPushTypeMap } from '@main/ipc/types.js';
+import type { ModelResolver } from '@main/llm/model-catalog.js';
 import { pdfToImages as pdfToImagesDefault } from '@main/llm/pdf-to-images.js';
 import { runAiObject } from '@main/llm/run-ai.js';
 import { getStage } from '@main/llm/stages/registry.js';
@@ -138,6 +139,12 @@ export class ExtractionService {
        * call — provider config can change mid-session via Settings.
        */
       credentials: CredentialService;
+      /**
+       * Optional model catalog for the vision gate (dynamic rows resolve
+       * as capability-unknown → permissive). Production wires the process
+       * catalog; tests omit it and the bundled collection decides alone.
+       */
+      modelCatalog?: Pick<ModelResolver, 'resolve' | 'isDynamic'>;
       /** DI override for `node:fs.readFileSync`. Defaults to readFileSync. */
       readFile?: (path: string) => Buffer;
       /** DI override for PDF parsing. Defaults to `pdf-parse`. */
@@ -230,8 +237,7 @@ export class ExtractionService {
     } else {
       // Vision path. Validate prerequisites first so we don't burn
       // 5-10s rendering PDF pages only to find out the model can't
-      // accept them.
-      assertVisionCapable(providerConfig.config);
+      assertVisionCapable(providerConfig.config, this.ctx.modelCatalog);
       if (!stage.buildVisionMessages) {
         throw new StageDoesNotSupportVisionError(stage.id);
       }

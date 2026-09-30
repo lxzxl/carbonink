@@ -9,6 +9,7 @@ import { ExcelParser } from '@main/excel/parser.js';
 import { buildAiAgentLayer } from '@main/llm/ai-agent.js';
 import { buildAiClientLayer } from '@main/llm/ai-client.js';
 import { LlmCache } from '@main/llm/llm-cache.js';
+import { createModelCatalog, type ModelCatalog } from '@main/llm/model-catalog.js';
 import { ActivityDataService } from '@main/services/activity-data-service.js';
 import { ActivityImportService } from '@main/services/activity-import-service.js';
 import { AgentSkillService, type SkillResolver } from '@main/services/agent-skill-service.js';
@@ -149,6 +150,10 @@ export interface IpcContext {
   undoManager: UndoManager;
   // URL for the print-render route (used by PDF export for hidden BrowserWindow).
   printRenderUrl: string;
+  // Model catalog (deep module): bundled + dynamic model rows behind
+  // listModels / refresh / resolve. Held here so settings handlers,
+  // vision gate, and layer builders share one mirror + freshness map.
+  modelCatalog: ModelCatalog;
   // Deterministic LLM result cache (spec 2026-09-02) — file-backed under
   // `<userData>/llm-cache`, shared by ef-matcher / readiness / classification
   // via run-ai. Exposed for the Settings "Clear AI cache" channel.
@@ -184,6 +189,8 @@ export interface IpcContextOverrides {
   customerService?: CustomerService;
   questionnaireService?: QuestionnaireService;
   inboundQuestionnaireService?: InboundQuestionnaireService;
+  /** Tests: inject a fake ModelCatalog (in-memory store, stubbed fetch). */
+  modelCatalog?: ModelCatalog;
   /**
    * Optional main→renderer push channel emitter. Production wires
    * `createProgressEmitter(getMainWindow)`; tests typically supply a
@@ -270,6 +277,7 @@ export function createIpcContext(
   let workspaceServiceInstance: WorkspaceService | undefined;
 
   const userDataDir = overrides.userDataDir ?? app.getPath('userData');
+  const modelCatalog = overrides.modelCatalog ?? createModelCatalog({ userDataDir });
   let llmCacheInstance: LlmCache | null = null;
   const getLlmCache = (): LlmCache => {
     if (!llmCacheInstance) {
@@ -373,6 +381,7 @@ export function createIpcContext(
     get llmCache() {
       return getLlmCache();
     },
+    modelCatalog,
     get userDataDir() {
       return userDataDir;
     },
@@ -392,6 +401,7 @@ export function createIpcContext(
           documentService: getDocument(),
           settingsService: getSettings(),
           credentials: getCredential(),
+          modelCatalog,
           ...(overrides.progressEmitter && { emitProgress: overrides.progressEmitter }),
         });
       }
@@ -433,6 +443,7 @@ export function createIpcContext(
         const aiLayer = buildAiClientLayer({
           config: providerCfg.config,
           credentials: getCredential(),
+          modelResolver: modelCatalog,
         });
         classificationServiceInstance = new ClassificationService({
           db: svc.db,
@@ -536,12 +547,14 @@ export function createIpcContext(
           ? buildAiClientLayer({
               config: providerCfg.config,
               credentials: getCredential(),
+              modelResolver: modelCatalog,
             })
           : (Layer.empty as unknown as Layer.Layer<import('@main/llm/ai-client.js').AiClientTag>);
         const aiAgentLayer = providerCfg
           ? buildAiAgentLayer({
               config: providerCfg.config,
               credentials: getCredential(),
+              modelResolver: modelCatalog,
             })
           : (Layer.empty as unknown as Layer.Layer<import('@main/llm/ai-agent.js').AiAgentTag>);
         // Build the read-only inventory toolbox closed over the active

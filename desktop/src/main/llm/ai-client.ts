@@ -12,8 +12,8 @@ import {
   AiSchemaMismatch,
   AiTimeout,
 } from './errors.js';
+import { type ModelResolver, resolveModelWith } from './model-catalog.js';
 import { getModelsCollection } from './models.js';
-import { resolveModelWith } from './pi-catalog.js';
 
 /**
  * Effect-wrapped wrapper around `@earendil-works/pi-ai`.
@@ -100,6 +100,12 @@ export interface BuildAiClientDeps {
    */
   overrideKey?: string;
   /**
+   * Optional catalog resolver. Production passes the process `ModelCatalog`
+   * (via the IPC context) so fetched dynamic rows resolve; when omitted
+   * (most unit tests) resolution falls back to bundled + synthetic clone.
+   */
+  modelResolver?: ModelResolver;
+  /**
    * Test-only injection. Production callers leave this undefined — the layer
    * resolves the model from the shared collection. Tests pass a faux-backed
    * collection (`createModels()` + `setProvider` of a `fauxProvider()`) so
@@ -130,11 +136,11 @@ function looksLikeAuthError(message: string | undefined): boolean {
  * - Reads the API key up front (overrideKey ?? credentials.get(keyref)).
  *   This is cheap enough to do at layer build time, and lets methods short-
  *   circuit synchronously with `AiAuthError` when the key is missing.
- * - Resolves the pi-ai `Model` via `resolveModel(provider, modelId)` unless
- *   the caller provides one (tests). That helper falls back to a synthetic
- *   same-provider model for ids the bundled catalog doesn't know (the
- *   Settings custom-model escape hatch) and returns `undefined` only for
- *   unknown providers; we fail loudly with `AiProviderError` then.
+ * - Resolves the pi-ai `Model` via the injected catalog (`modelResolver`)
+ *   when present, else bundled + synthetic fallback (`resolveModelWith`).
+ *   Synthetic covers ids the bundled catalog doesn't know (the Settings
+ *   custom-model escape hatch); `undefined` only for unknown providers,
+ *   where we fail loudly with `AiProviderError`.
  */
 export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClientTag> {
   return Layer.effect(
@@ -145,13 +151,13 @@ export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClien
       // Request routing target: production uses the shared singleton;
       // tests inject a faux-backed collection (see `modelsInstance`).
       const models = deps.modelsInstance ?? getModelsCollection();
-      // The pi-ai model object, resolved from the collection — with a
-      // synthetic fallback for custom ids newer than the bundled catalog
-      // (see resolveModelWith). Only an unknown provider leaves this
-      // undefined; every method then fails with `AiProviderError`. We don't
-      // pre-validate at Layer construction so a build with a stale config
-      // still loads and surfaces a recognizable error at call time.
+      // The pi-ai model object. With an injected catalog the dynamic mirror
+      // participates (bundled → fetched → synthetic); without one, bundled
+      // + synthetic only. Only an unknown provider leaves this undefined.
+      // We don't pre-validate at Layer construction so a build with a stale
+      // config still loads and surfaces a recognizable error at call time.
       const resolvedModel: Model<Api> | undefined =
+        deps.modelResolver?.resolve(config.provider, config.model) ??
         models.getModel(config.provider, config.model) ??
         resolveModelWith(models, config.provider, config.model);
       // The Settings "Override base URL" field (self-hosted gateways, Azure

@@ -31,8 +31,8 @@ import {
   AiSchemaMismatch,
   AiTimeout,
 } from './errors.js';
+import { type ModelResolver, resolveModelWith } from './model-catalog.js';
 import { getModelsCollection } from './models.js';
-import { resolveModelWith } from './pi-catalog.js';
 
 /**
  * Effect-wrapped wrapper around `@earendil-works/pi-agent-core`.
@@ -176,6 +176,12 @@ export interface BuildAiAgentDeps {
    */
   overrideKey?: string;
   /**
+   * Optional catalog resolver. Production passes the process `ModelCatalog`
+   * (via the IPC context) so fetched dynamic rows resolve; when omitted
+   * (most unit tests) resolution falls back to bundled + synthetic clone.
+   */
+  modelResolver?: ModelResolver;
+  /**
    * Test-only injection. Production callers leave this undefined — the
    * layer resolves the model from the shared collection. Tests pass a
    * faux-backed collection (`createModels()` + `setProvider` of a
@@ -240,11 +246,10 @@ export function buildAiAgentLayer(deps: BuildAiAgentDeps): Layer.Layer<AiAgentTa
       // Request routing target: production uses the shared singleton;
       // tests inject a faux-backed collection (see `modelsInstance`).
       const models = deps.modelsInstance ?? getModelsCollection();
-      const resolvedModel: Model<Api> | undefined = resolveModelWith(
-        models,
-        config.provider,
-        config.model,
-      );
+      const resolvedModel: Model<Api> | undefined =
+        deps.modelResolver?.resolve(config.provider, config.model) ??
+        models.getModel(config.provider, config.model) ??
+        resolveModelWith(models, config.provider, config.model);
       // Settings "Override base URL" — same per-request clone as ai-client
       // (never mutate the shared catalog entry).
       const effectiveModel: Model<Api> | undefined =

@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type {
   ModelsStore,
@@ -24,6 +24,16 @@ export class FileModelsStore implements ModelsStore {
 
   constructor(userDataDir: string) {
     this.dir = join(userDataDir, 'dynamic-models');
+  }
+  /** Provider ids with a persisted file. Missing dir means first run → []. */
+  listProviders(): string[] {
+    let files: string[];
+    try {
+      files = readdirSync(this.dir);
+    } catch {
+      return [];
+    }
+    return files.filter((f) => f.endsWith('.json')).map((f) => f.slice(0, -'.json'.length));
   }
 
   private pathFor(providerId: string): string {

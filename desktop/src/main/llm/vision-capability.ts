@@ -1,5 +1,5 @@
+import { type ModelResolver, resolveModelWith } from '@main/llm/model-catalog.js';
 import { getModelsCollection } from '@main/llm/models.js';
-import { dynamicModelMirror, resolveModel } from '@main/llm/pi-catalog.js';
 import type { ProviderConfigV2 } from '@shared/types.js';
 
 /**
@@ -51,16 +51,29 @@ export class VisionUnsupportedError extends Error {
  * Validate that a `ProviderConfigV2` resolves to a vision-capable model.
  * Throws `VisionUnsupportedError` on a catalog-confirmed text-only model;
  * passes through on image-capable or capability-unknown configurations.
+ *
+ * The optional `catalog` lets callers route through the process
+ * `ModelCatalog` (dynamic mirror included); without it the bundled
+ * collection decides alone and any non-bundled id is capability-unknown
+ * (permissive) rather than checked.
  */
-export function assertVisionCapable(config: ProviderConfigV2): void {
-  const resolved = resolveModel(config.provider, config.model);
+export function assertVisionCapable(config: ProviderConfigV2, catalog?: ModelResolver): void {
+  const collection = getModelsCollection();
+  const resolved = catalog
+    ? catalog.resolve(config.provider, config.model)
+    : resolveModelWith(collection, config.provider, config.model);
   // Unknown provider (nothing to clone) — let the API call decide.
   if (!resolved) return;
   // Capability-unknown rows are permissive: dynamic-fetched entries (list
   // endpoints expose no modality flags) and synthetic custom ids
   // (user-typed, newer than any catalog).
-  if (dynamicModelMirror.get(config.provider)?.some((m) => m.id === config.model)) return;
-  const bundled = getModelsCollection().getModel(config.provider, config.model);
+  const dynamic = catalog
+    ? catalog.isDynamic(config.provider, config.model)
+    : // No catalog: dynamic rows are unknown ids, and unknown ids resolve to
+      // the synthetic fallback — which `getModel` misses — so permissive.
+      !collection.getModel(config.provider, config.model);
+  if (dynamic) return;
+  const bundled = collection.getModel(config.provider, config.model);
   if (!bundled) return;
   // Authoritative bundled entry: text-only (no `image` in `input`) is a
   // confirmed mismatch — throw with a concrete suggestion.

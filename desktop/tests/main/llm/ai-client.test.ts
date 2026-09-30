@@ -66,8 +66,8 @@ function fauxErrorWithStatus(status: number, errorMessage: string): FauxResponse
 // provider with the same id the fake config points at (`deepseek`), scripts
 // its response queue, and hands a dedicated `Models` collection carrying
 // that provider to `buildAiClientLayer` via `modelsInstance`. Request
-// routing keys off `model.provider`, so `resolveModel` hits the faux
-// catalog and `complete()` answers from the queue instead of the network.
+// routing keys off `model.provider`, so the faux collection resolves and
+// `complete()` answers from the queue instead of the network.
 //
 // One collection per test (fresh `createModels()`): the `Models` instance
 // holds provider state, and sharing it across queued-response tests would
