@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import {
   type AgentEvent,
   type AgentLoopConfig,
@@ -34,6 +35,7 @@ import {
 } from './errors.js';
 import { type ModelResolver, resolveModelWith } from './model-catalog.js';
 import { getModelsCollection } from './models.js';
+import { opencodeSessionHeaders } from './opencode-session.js';
 
 /**
  * Effect-wrapped wrapper around `@earendil-works/pi-agent-core`.
@@ -408,10 +410,17 @@ export function buildAiAgentLayer(deps: BuildAiAgentDeps): Layer.Layer<AiAgentTa
             }));
 
             // ---- agentLoop config --------------------------------------
+            // One stable session id per run: pi-ai ≥0.86 maps it to
+            // `x-opencode-session` for opencode/opencode-go; the fallback in
+            // `streamFn` covers generic ids pointed at the same gateway
+            // (upstream `earendil-works/pi#9326`). Retries reuse it — the id
+            // is minted once here, never per attempt.
+            const sessionId = randomUUID();
             const config_: AgentLoopConfig = {
               model: effectiveModel,
               apiKey,
               maxRetries: 0,
+              sessionId,
               // Pass-through filter: pi-agent-core's `AgentMessage` is a
               // superset of pi-ai's `Message` (it also covers harness-only
               // custom message types like bashExecution). We only push
@@ -422,19 +431,26 @@ export function buildAiAgentLayer(deps: BuildAiAgentDeps): Layer.Layer<AiAgentTa
                   (m): m is Message =>
                     m.role === 'user' || m.role === 'assistant' || m.role === 'toolResult',
                 ),
-              shouldStopAfterTurn: () => {
+              finishTurn: ({ message }) => {
+                // Error turns exit the loop regardless; don't consume the
+                // turn budget or disturb stalled accounting for them.
+                if (message.stopReason === 'error' || message.stopReason === 'aborted') {
+                  return undefined;
+                }
                 turnCount += 1;
                 // The submit_response tool sets `finalResponse`; once set,
-                // we're done — agentLoop will emit agent_end and the
-                // promise resolves. We don't need to actively stop here,
-                // but doing so lets us avoid wasting another LLM call if
-                // the model produced text alongside the tool call.
+                // we're done — the loop ends without another LLM call,
+                // which also avoids wasting a request when the model
+                // produced text alongside the tool call.
                 if (finalResponse !== null || finalResponseError !== null) {
-                  return true;
+                  return { action: 'end' as const };
                 }
-                // Max turns: signal stop. Post-loop check converts to
+                // Max turns: end the loop. Post-loop check converts to
                 // AgentMaxTurns since no finalResponse is set.
-                return turnCount >= maxTurns;
+                if (turnCount >= maxTurns) {
+                  return { action: 'end' as const };
+                }
+                return undefined;
               },
               // When the model calls submit_response with args that pass
               // pi-agent-core's parameter validation but fail our zod
@@ -481,12 +497,17 @@ export function buildAiAgentLayer(deps: BuildAiAgentDeps): Layer.Layer<AiAgentTa
             // ---- Stream function: collection `streamSimple` + our onResponse
             // We wrap streamSimple so onResponse captures HTTP status (for
             // 401/429/5xx mapping) and our timeout's AbortController wins
-            // over pi-ai's own (per-provider, inconsistent) timeout.
+            // over pi-ai's own (per-provider, inconsistent) timeout. The
+            // header fallback covers generic provider ids pointed at the
+            // OpenCode gateway, where pi-ai's native wrapper doesn't fire.
             const streamFn: StreamFn = (model, context, opts) => {
+              const headers = opencodeSessionHeaders(model, sessionId, opts?.headers);
               return models.streamSimple(model, context, {
                 ...opts,
                 apiKey,
                 signal: controller.signal,
+                sessionId,
+                ...(headers !== undefined ? { headers } : {}),
                 onResponse: (r) => {
                   httpStatus = r.status;
                 },
@@ -496,12 +517,12 @@ export function buildAiAgentLayer(deps: BuildAiAgentDeps): Layer.Layer<AiAgentTa
             // ---- Kick off the loop -------------------------------------
             const promptMessages: AgentMessage[] = [
               { role: 'user', content: args.userPrompt, timestamp: Date.now() },
+              { role: 'system', content: args.systemPrompt, timestamp: Date.now() },
             ];
 
             const stream = agentLoop(
               promptMessages,
               {
-                systemPrompt: args.systemPrompt,
                 messages: [],
                 tools: piTools,
               },
@@ -509,7 +530,6 @@ export function buildAiAgentLayer(deps: BuildAiAgentDeps): Layer.Layer<AiAgentTa
               controller.signal,
               streamFn,
             );
-
             // Drain events for trace-side telemetry; result() resolves on
             // agent_end. Tool execution start/end events let us record per-
             // tool duration without touching the dispatcher.

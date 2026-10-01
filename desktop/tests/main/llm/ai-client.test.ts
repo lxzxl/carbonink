@@ -10,6 +10,7 @@ import {
   type MutableModels,
 } from '@earendil-works/pi-ai';
 import { AiClientTag, buildAiClientLayer } from '@main/llm/ai-client';
+import { needsOpenCodeSessionHeader, opencodeSessionHeaders } from '@main/llm/opencode-session';
 import type { CredentialService } from '@main/services/credential-service';
 import type { ProviderConfigV2 } from '@shared/types';
 import { Effect } from 'effect';
@@ -625,5 +626,100 @@ describe('AiClient.generateText', () => {
       ),
     );
     expect(result).toEqual({ caught: true });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// OpenCode session header (upstream `earendil-works/pi#9326`)
+// ---------------------------------------------------------------------------
+
+describe('opencode session routing', () => {
+  it('targets the OpenCode gateway by provider id or base URL', () => {
+    expect(
+      needsOpenCodeSessionHeader({
+        provider: 'opencode-go',
+        baseUrl: 'https://opencode.ai/zen/go',
+      }),
+    ).toBe(true);
+    expect(
+      needsOpenCodeSessionHeader({ provider: 'openai', baseUrl: 'https://opencode.ai/zen/v1' }),
+    ).toBe(true);
+    expect(
+      needsOpenCodeSessionHeader({ provider: 'openai', baseUrl: 'https://api.openai.com/v1' }),
+    ).toBe(false);
+  });
+
+  it('injects x-opencode-session for gateway models, preserving caller headers', () => {
+    const model = { provider: 'opencode-go', baseUrl: 'https://opencode.ai/zen/go' };
+    expect(opencodeSessionHeaders(model, 's-1', undefined)).toEqual({
+      'x-opencode-session': 's-1',
+    });
+    // Caller override wins (case-insensitive).
+    const existing = { 'X-OpenCode-Session': 'caller-value' };
+    expect(opencodeSessionHeaders(model, 'generated', existing)).toBe(existing);
+    // Non-gateway providers get no injection.
+    expect(
+      opencodeSessionHeaders(
+        { provider: 'deepseek', baseUrl: 'https://api.deepseek.com/v1' },
+        's-1',
+        undefined,
+      ),
+    ).toBeUndefined();
+  });
+
+  it('ping always passes a sessionId to pi-ai (native header mapping)', async () => {
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-chat' }] });
+    let captured: StreamOptions | undefined;
+    faux.setResponses([
+      async (_ctx, opts) => {
+        captured = opts;
+        return fauxAssistantMessage([fauxText('ok')]);
+      },
+    ]);
+
+    const layer = buildAiClientLayer({
+      config: fakeConfig(),
+      credentials: fakeCredentials(),
+      modelsInstance: fauxModels(),
+    });
+    const program = Effect.gen(function* () {
+      const ai = yield* AiClientTag;
+      return yield* ai.ping();
+    });
+    expect(await Effect.runPromise(program.pipe(Effect.provide(layer)))).toEqual({ ok: true });
+    expect(typeof captured?.sessionId).toBe('string');
+    expect(captured?.sessionId).not.toHaveLength(0);
+  });
+
+  it('generateObject reuses one sessionId across retries', async () => {
+    const schema = z.object({ scope: z.number() });
+    faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-chat' }] });
+    const seen: Array<string | undefined> = [];
+    const fail500 = fauxErrorWithStatus(500, 'server error');
+    const captureAndFail: FauxResponseFactory = async (ctx, opts, state, model) => {
+      seen.push(opts?.sessionId);
+      return fail500(ctx, opts, state, model);
+    };
+    faux.setResponses([captureAndFail, captureAndFail, captureAndFail]);
+
+    const layer = buildAiClientLayer({
+      config: fakeConfig(),
+      credentials: fakeCredentials(),
+      modelsInstance: fauxModels(),
+    });
+    const program = Effect.gen(function* () {
+      const ai = yield* AiClientTag;
+      return yield* ai.generateObject({ schema, prompt: 'classify' });
+    });
+    await Effect.runPromise(
+      program.pipe(
+        Effect.provide(layer),
+        Effect.catchTag('AiProviderError', () => Effect.succeed(null)),
+      ),
+    );
+    expect(seen).toHaveLength(3);
+    expect(seen[0]).toBeTruthy();
+    expect(seen[0]).toBe(seen[1]);
+    expect(seen[1]).toBe(seen[2]);
   });
 });

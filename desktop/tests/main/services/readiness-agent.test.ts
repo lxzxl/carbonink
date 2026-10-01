@@ -4,6 +4,7 @@ import {
   fauxAssistantMessage,
   fauxProvider,
   fauxToolCall,
+  type JsonObject,
   type MutableModels,
 } from '@earendil-works/pi-ai';
 import { runMigrations } from '@main/db/migrate';
@@ -69,7 +70,7 @@ function traces(): Array<Record<string, unknown>> {
 }
 
 /** One turn of tool use, then a submit_response carrying the findings. */
-function scriptFindings(findings: unknown[]): void {
+function scriptFindings(findings: JsonObject[]): void {
   faux = fauxProvider({ provider: 'deepseek', models: [{ id: 'deepseek-v4-flash' }] });
   faux.setResponses([
     fauxAssistantMessage([fauxToolCall('list_emission_sources', {})], {

@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { Api, AssistantMessage, Model, Models, Tool } from '@earendil-works/pi-ai';
 import type { CredentialService } from '@main/services/credential-service.js';
 import { apiKeyKeyrefForProvider, type ProviderConfigV2 } from '@shared/types.js';
@@ -15,6 +16,7 @@ import {
 } from './errors.js';
 import { type ModelResolver, resolveModelWith } from './model-catalog.js';
 import { getModelsCollection } from './models.js';
+import { opencodeSessionHeaders } from './opencode-session.js';
 
 /**
  * Effect-wrapped wrapper around `@earendil-works/pi-ai`.
@@ -221,6 +223,11 @@ export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClien
         images?: Buffer[];
         timeoutMs: number;
         signal?: AbortSignal;
+        // Stable id for one logical call (retries reuse it). pi-ai ≥0.86
+        // maps it to `x-opencode-session` for opencode/opencode-go; the
+        // explicit-headers fallback below covers generic ids on the same
+        // gateway (upstream `earendil-works/pi#9326`).
+        sessionId: string;
       }): Effect.Effect<{ msg: AssistantMessage; httpStatus: number | undefined }, AiErr, never> =>
         Effect.async<{ msg: AssistantMessage; httpStatus: number | undefined }, AiErr, never>(
           (resume) => {
@@ -279,6 +286,7 @@ export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClien
                   ]
                 : args.prompt;
 
+            const headers = opencodeSessionHeaders(effectiveModel, args.sessionId, undefined);
             models
               .complete(
                 effectiveModel,
@@ -291,6 +299,8 @@ export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClien
                   apiKey,
                   signal: controller.signal,
                   maxRetries: 0, // Effect.retry is the single retry authority
+                  sessionId: args.sessionId,
+                  ...(headers !== undefined ? { headers } : {}),
                   onResponse: (r) => {
                     httpStatus = r.status;
                   },
@@ -418,6 +428,7 @@ export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClien
             ...(args.images !== undefined ? { images: args.images } : {}),
             ...(args.signal !== undefined ? { signal: args.signal } : {}),
             timeoutMs,
+            sessionId: randomUUID(),
           }).pipe(
             Effect.flatMap(({ msg, httpStatus }) => {
               if (msg.stopReason === 'error' || msg.stopReason === 'aborted') {
@@ -463,6 +474,7 @@ export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClien
             ...(args.system !== undefined ? { system: args.system } : {}),
             ...(args.signal !== undefined ? { signal: args.signal } : {}),
             timeoutMs,
+            sessionId: randomUUID(),
           }).pipe(
             Effect.flatMap(({ msg, httpStatus }) => {
               if (msg.stopReason === 'error' || msg.stopReason === 'aborted') {
@@ -497,12 +509,19 @@ export function buildAiClientLayer(deps: BuildAiClientDeps): Layer.Layer<AiClien
             // with a one-token answer budget. We don't care about the content
             // of the response — only that the provider returns a 2xx and
             // pi-ai's stopReason isn't 'error'.
+            const sessionId = randomUUID();
+            const headers = opencodeSessionHeaders(model, sessionId, undefined);
             const message = yield* Effect.tryPromise({
               try: () =>
                 models.complete(
                   model,
                   { messages: [{ role: 'user', content: 'ok', timestamp: Date.now() }] },
-                  { apiKey, maxTokens: 4 },
+                  {
+                    apiKey,
+                    maxTokens: 4,
+                    sessionId,
+                    ...(headers !== undefined ? { headers } : {}),
+                  },
                 ),
               catch: (e): AiAuthError | AiProviderError => {
                 // pi-ai's `complete()` only rejects on unexpected throws (the

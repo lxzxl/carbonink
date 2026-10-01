@@ -340,7 +340,7 @@ describe('settings IPC handlers', () => {
     const models = result?.models ?? [];
     const ids = models.map((m: { id: string }) => m.id);
     expect(ids).toContain('deepseek-v4-pro');
-    expect(ids).toContain('deepseek-v4-flash');
+    expect(ids).toContain('deepseek-flash');
     // The legacy default surfaced by the V1 UI was `deepseek-chat`. pi-ai
     // does not expose that id; the bug we just fixed depended on this fact.
     expect(ids).not.toContain('deepseek-chat');
