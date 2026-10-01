@@ -13,7 +13,8 @@ const recommendQuery = z.object({
 
 /** Text-hint variant (batch activity import, one call per confirm-group). */
 const textRecommendQuery = z.object({
-  hint_text: z.string().min(1).max(500),
+  description: z.string().max(500),
+  unit: z.string().max(50),
   emission_source_id: z.string().min(1),
 });
 

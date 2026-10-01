@@ -170,7 +170,11 @@ describe('recommendForText — agent path', () => {
       cached: false,
     });
 
-    const r = await svc.recommendForText({ hint_text: '柴油 叉车', emission_source_id: 's1' });
+    const r = await svc.recommendForText({
+      description: '柴油 叉车',
+      unit: 'L',
+      emission_source_id: 's1',
+    });
 
     expect(r.recommended.map((x) => x.ef.factor_code)).toEqual([
       'fuel.diesel.combustion',
@@ -220,7 +224,11 @@ describe('recommendForText — agent path', () => {
       cached: false,
     });
 
-    const r = await svc.recommendForText({ hint_text: '能耗', emission_source_id: 's1' });
+    const r = await svc.recommendForText({
+      description: '能耗',
+      unit: '',
+      emission_source_id: 's1',
+    });
 
     expect(r.ranked_full).toHaveLength(20);
     expect(r.ranked_full.some((ef) => ef.factor_code === last.factor_code)).toBe(false);
@@ -241,7 +249,11 @@ describe('recommendForText — agent path', () => {
       ],
     });
 
-    const r = await svc.recommendForText({ hint_text: '柴油', emission_source_id: 's1' });
+    const r = await svc.recommendForText({
+      description: '柴油',
+      unit: '',
+      emission_source_id: 's1',
+    });
 
     expect(runAiObject).toHaveBeenCalledTimes(1);
     expect(r.recommended.map((x) => x.ef.factor_code)).toEqual(['fuel.diesel.combustion']);
@@ -265,7 +277,11 @@ describe('recommendForText — agent path', () => {
     vi.mocked(runAiAgent).mockRejectedValue(taggedError('AiAuthError', { provider: 'openai' }));
     vi.mocked(runAiObject).mockRejectedValue(taggedError('AiAuthError', { provider: 'openai' }));
 
-    const r = await svc.recommendForText({ hint_text: '柴油', emission_source_id: 's1' });
+    const r = await svc.recommendForText({
+      description: '柴油',
+      unit: '',
+      emission_source_id: 's1',
+    });
 
     expect(r.recommended).toEqual([]);
     expect(r.ranked_full).toHaveLength(2);
@@ -284,7 +300,7 @@ describe('recommendForText — agent path', () => {
       vi.mocked(runAiAgent).mockRejectedValue(taggedError(tag, { turnCount: 1 }));
       vi.mocked(runAiObject).mockResolvedValue({ recommendations: [] });
 
-      await svc.recommendForText({ hint_text: '柴油', emission_source_id: 's1' });
+      await svc.recommendForText({ description: '柴油', unit: '', emission_source_id: 's1' });
 
       expect(events0(db)).toMatchObject({ is_fallback: true, stop_reason: stopReason });
     }
@@ -304,8 +320,8 @@ describe('recommendForText — agent path', () => {
         cached: false,
       });
 
-      await svc.recommendForText({ hint_text: '柴油 L', emission_source_id: 's1' });
-      await svc.recommendForText({ hint_text: '柴油 L', emission_source_id: 's1' });
+      await svc.recommendForText({ description: '柴油', unit: 'L', emission_source_id: 's1' });
+      await svc.recommendForText({ description: '柴油', unit: 'L', emission_source_id: 's1' });
       // No in-service result memo (the v1 Map is gone): the seam re-runs
       // and the file-backed LlmCache inside the real runAiAgent dedupes.
       expect(runAiAgent).toHaveBeenCalledTimes(2);
@@ -313,7 +329,7 @@ describe('recommendForText — agent path', () => {
       expect(keys[0]).toBeDefined();
       expect(keys[0]).toBe(keys[1]);
 
-      await svc.recommendForText({ hint_text: '汽油 L', emission_source_id: 's1' });
+      await svc.recommendForText({ description: '汽油', unit: 'L', emission_source_id: 's1' });
       expect(runAiAgent).toHaveBeenCalledTimes(3);
       expect(vi.mocked(runAiAgent).mock.calls[2]?.[2].cache?.key).not.toBe(keys[0]);
     } finally {
@@ -344,7 +360,7 @@ describe('recommendForText — agent toolbox over the real seeded catalog', () =
       return { result: { recommendations: [] }, trace: TRACE, cached: false };
     });
 
-    await svc.recommendForText({ hint_text: '柴油 叉车', emission_source_id: 's1' });
+    await svc.recommendForText({ description: '柴油 叉车', unit: 'L', emission_source_id: 's1' });
 
     expect(captured?.maxTurns).toBe(4);
     expect(captured?.timeoutMs).toBe(60_000);

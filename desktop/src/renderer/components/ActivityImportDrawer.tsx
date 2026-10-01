@@ -926,7 +926,7 @@ function GroupCard({
           <EfPicker
             selectedSourceId={group.source_id}
             currentEfPk={efPk}
-            textHint={`${group.description} ${group.unit}`}
+            groupHint={{ description: group.description, unit: group.unit }}
             onChange={(pk) => {
               setEfPk(pk);
               setDimensionError(false);

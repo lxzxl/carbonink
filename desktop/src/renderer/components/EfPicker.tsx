@@ -13,11 +13,13 @@ export interface EfPickerProps {
   /** Drives the Recommended pane. Omit to hide that pane entirely. */
   matcherHint?: { extraction_id: string; stage_id?: string } | undefined;
   /**
-   * Free-text alternative to matcherHint (batch activity import): the
-   * Recommended pane queries `ef:recommend-text` with this hint instead of
-   * an extraction. Ignored when matcherHint is present.
+   * Structured alternative to matcherHint (batch activity import): the
+   * Recommended pane queries `ef:recommend-text` with the group's
+   * description + unit. Hint formulation lives in the matcher module —
+   * pass structure, never a pre-joined string. Ignored when matcherHint
+   * is present.
    */
-  textHint?: string | undefined;
+  groupHint?: { description: string; unit: string } | undefined;
   /** Optional scope filter to narrow the Browse pane. */
   scopeFilter?: 1 | 2 | 3 | undefined;
   /** Fires when user picks an EF. Passes both the composite PK and the full row metadata. */
@@ -49,15 +51,16 @@ export function EfPicker({
   selectedSourceId,
   currentEfPk,
   matcherHint,
-  textHint,
+  groupHint,
   scopeFilter,
   onChange,
 }: EfPickerProps) {
-  const hasHint = !!matcherHint || (textHint !== undefined && textHint.trim() !== '');
+  const groupText = groupHint ? `${groupHint.description} ${groupHint.unit}`.trim() : '';
+  const hasHint = !!matcherHint || groupText !== '';
   const recommendQuery = useQuery<MatcherResult>({
     queryKey: [
       'ef:recommend',
-      matcherHint?.extraction_id ?? `text:${textHint ?? ''}`,
+      matcherHint?.extraction_id ?? `group:${groupText}`,
       selectedSourceId ?? '',
     ],
     queryFn: (): Promise<MatcherResult> => {
@@ -68,7 +71,8 @@ export function EfPicker({
             emission_source_id: selectedSourceId,
           })
         : efMatcherApi.recommendText({
-            hint_text: (textHint ?? '').trim(),
+            description: groupHint?.description ?? '',
+            unit: groupHint?.unit ?? '',
             emission_source_id: selectedSourceId,
           });
       return call as unknown as Promise<MatcherResult>;

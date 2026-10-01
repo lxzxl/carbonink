@@ -1156,12 +1156,15 @@ export type RecommendQuery = {
 };
 
 /**
- * Input to EfMatcherService.recommendForText(): free text instead of an
- * extraction — the batch-import path, where the hint is a ledger group's
- * description + unit rather than a parsed document.
+ * Input to EfMatcherService.recommendForText(): a ledger group's identity
+ * instead of an extraction — the batch-import path, where the match key is
+ * the group's description + unit rather than a parsed document. The service
+ * owns hint formulation (join + normalize); callers pass structure, never
+ * pre-joined strings.
  */
 export type TextRecommendQuery = {
-  hint_text: string;
+  description: string;
+  unit: string;
   emission_source_id: string;
 };
 

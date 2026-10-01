@@ -5,7 +5,7 @@ import { runMigrations } from '@main/db/migrate';
 import { LlmCache } from '@main/llm/llm-cache';
 import { runAiObject } from '@main/llm/run-ai';
 import type { CredentialService } from '@main/services/credential-service';
-import { EfMatcherService } from '@main/services/ef-matcher-service';
+import { EfMatcherService, GroupHint } from '@main/services/ef-matcher-service';
 import type { EmissionFactor, Extraction } from '@shared/types';
 import Database from 'better-sqlite3';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -256,6 +256,37 @@ describe('EfMatcherService.recommend', () => {
   });
 });
 
+describe('GroupHint formulation', () => {
+  it('joins description + unit with single spaces', () => {
+    expect(GroupHint.of('柴油 叉车', 'L')).toBe('柴油 叉车 L');
+    expect(GroupHint.of('  柴油   叉车  ', ' L ')).toBe('柴油 叉车 L');
+    expect(GroupHint.of('', '')).toBe('');
+    expect(GroupHint.of('   ', '  ')).toBe('');
+  });
+
+  it('blank groups short-circuit without ranking or LLM', async () => {
+    const efList = vi.fn().mockReturnValue([]);
+    const svc = new EfMatcherService({
+      db: makeDb(),
+      efService: { list: efList } as never,
+      extractionService: { get: vi.fn().mockReturnValue(null) } as never,
+      emissionSourceService: {
+        get: vi.fn().mockReturnValue({ scope: 1, category: null }),
+      } as never,
+      credentials: fakeCredentials(),
+      config: FAKE_CONFIG,
+    });
+    const r = await svc.recommendForText({
+      description: '   ',
+      unit: '  ',
+      emission_source_id: 's1',
+    });
+    expect(r).toEqual({ recommended: [], ranked_full: [] });
+    // Short-circuits before candidate listing: no FTS, no LLM.
+    expect(efList).not.toHaveBeenCalled();
+  });
+});
+
 describe('EfMatcherService.recommendForText', () => {
   beforeEach(() => {
     vi.mocked(runAiObject).mockReset();
@@ -268,7 +299,11 @@ describe('EfMatcherService.recommendForText', () => {
       candidates: [CANDIDATE_GASOLINE, CANDIDATE_DIESEL],
       llmError: new Error('LLM down'),
     });
-    const r = await svc.recommendForText({ hint_text: '柴油 叉车 L', emission_source_id: 's1' });
+    const r = await svc.recommendForText({
+      description: '柴油 叉车',
+      unit: 'L',
+      emission_source_id: 's1',
+    });
     expect(r.recommended).toEqual([]);
     expect(r.ranked_full).toHaveLength(2);
   });
@@ -307,7 +342,11 @@ describe('EfMatcherService.recommendForText', () => {
         ],
       },
     });
-    const r = await svc.recommendForText({ hint_text: '柴油', emission_source_id: 's1' });
+    const r = await svc.recommendForText({
+      description: '柴油',
+      unit: '',
+      emission_source_id: 's1',
+    });
     expect(r.recommended).toHaveLength(1);
     expect(r.recommended[0]?.ef.factor_code).toBe('fuel.diesel.combustion');
     expect(r.recommended[0]?.reasoning_zh).toBe('台账描述为柴油');
@@ -319,7 +358,7 @@ describe('EfMatcherService.recommendForText', () => {
       source: { scope: 1, category: 'fuel.combustion' },
       candidates: [CANDIDATE_DIESEL],
     });
-    const r = await svc.recommendForText({ hint_text: '   ', emission_source_id: 's1' });
+    const r = await svc.recommendForText({ description: '  ', unit: '', emission_source_id: 's1' });
     expect(r).toEqual({ recommended: [], ranked_full: [] });
     expect(recommend).not.toHaveBeenCalled();
   });
@@ -334,9 +373,9 @@ describe('EfMatcherService.recommendForText', () => {
         candidates: [CANDIDATE_DIESEL],
         cache,
       });
-      await svc.recommendForText({ hint_text: '柴油 L', emission_source_id: 's1' });
-      await svc.recommendForText({ hint_text: '柴油 L', emission_source_id: 's1' });
-      await svc.recommendForText({ hint_text: '汽油 L', emission_source_id: 's1' });
+      await svc.recommendForText({ description: '柴油', unit: 'L', emission_source_id: 's1' });
+      await svc.recommendForText({ description: '柴油', unit: 'L', emission_source_id: 's1' });
+      await svc.recommendForText({ description: '汽油', unit: 'L', emission_source_id: 's1' });
       const keys = recommend.mock.calls.map((c) => c[2].cache?.key);
       expect(keys).toHaveLength(3);
       expect(keys[1]).toBe(keys[0]);

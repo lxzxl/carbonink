@@ -9,7 +9,7 @@ import { invoke } from '../ipc.js';
  */
 export const efMatcherApi = {
   recommend: (input: Parameters<typeof invoke<'ef:recommend'>>[1]) => invoke('ef:recommend', input),
-  /** Text-hint variant (batch activity import): hint = group description + unit. */
+  /** Structured variant (batch activity import): group description + unit; hint formulation lives server-side. */
   recommendText: (input: Parameters<typeof invoke<'ef:recommend-text'>>[1]) =>
     invoke('ef:recommend-text', input),
 };

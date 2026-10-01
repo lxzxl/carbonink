@@ -16,6 +16,19 @@ import type { CredentialService } from './credential-service.js';
 import { extractHint } from './ef-matcher/hint.js';
 import type { EfService } from './ef-service.js';
 
+/**
+ * Ledger-group hint formulation, owned by the matcher module. Joins the
+ * group's description + unit into the single text the FTS backbone and the
+ * LLM prompts rank on. One spelling here — the renderer passes structure
+ * and never pre-joins. Empty (blank description and blank unit) means
+ * "no hint": recommendForText short-circuits to empty.
+ */
+export const GroupHint = {
+  of(description: string, unit: string): string {
+    return `${description} ${unit}`.trim().replace(/\s+/gu, ' ');
+  },
+};
+
 const CANDIDATE_LIMIT = 20;
 
 /** Rows returned per `search_ef` tool call — keeps agent context compact. */
@@ -359,13 +372,15 @@ export class EfMatcherService {
   /**
    * Text-hint variant for the batch activity import: same candidate pool
    * (the source's scope/category), same FTS backbone, same LLM top-3 layer —
-   * but the hint is a ledger group's free text instead of an extraction's
-   * parsed_json. Called once per confirm-group, not per row, which is what
-   * keeps the LLM cost proportional to decisions rather than file size.
+   * but the hint is formulated here from the ledger group's description +
+   * unit instead of arriving pre-joined. Called once per confirm-group, not
+   * per row, which is what keeps the LLM cost proportional to decisions
+   * rather than file size.
    */
   async recommendForText(q: TextRecommendQuery): Promise<MatcherResult> {
     const src = this.deps.emissionSourceService.get(q.emission_source_id);
-    if (!src || q.hint_text.trim() === '') return { recommended: [], ranked_full: [] };
+    const hintText = GroupHint.of(q.description, q.unit);
+    if (!src || hintText === '') return { recommended: [], ranked_full: [] };
 
     const filter: { scope: 1 | 2 | 3; category?: string } = {
       scope: src.scope as 1 | 2 | 3,
@@ -375,13 +390,14 @@ export class EfMatcherService {
 
     if (candidates.length === 0) return { recommended: [], ranked_full: [] };
 
-    const rankedFull = this.rankByFts(candidates, q.hint_text).slice(0, CANDIDATE_LIMIT);
+    const rankedFull = this.rankByFts(candidates, hintText).slice(0, CANDIDATE_LIMIT);
     const recommended = await this.agentRecommendWithFallback(
-      q,
+      hintText,
+      q.emission_source_id,
       candidates,
       rankedFull,
       this.cacheRequest('ef-text', EF_AGENT_PROMPT_VERSION, {
-        hint_text: q.hint_text,
+        hint_text: hintText,
         scope: src.scope,
         category: src.category,
       }),
@@ -400,7 +416,8 @@ export class EfMatcherService {
    * (cache hits never reach here).
    */
   private async agentRecommendWithFallback(
-    q: TextRecommendQuery,
+    hintText: string,
+    emissionSourceId: string,
     candidates: readonly EmissionFactor[],
     rankedFull: readonly EmissionFactor[],
     cache: AiCacheRequest | undefined,
@@ -409,7 +426,7 @@ export class EfMatcherService {
     try {
       const { result, trace, cached } = await runAiAgent(this.deps.config, this.deps.credentials, {
         systemPrompt: MATCH_AGENT_SYSTEM_PROMPT,
-        userPrompt: buildAgentMatchUserPrompt(q.hint_text, rankedFull),
+        userPrompt: buildAgentMatchUserPrompt(hintText, rankedFull),
         schema: recommendSchema,
         tools: this.buildMatchTools(candidates),
         maxTurns: EF_MATCH_AGENT_MAX_TURNS,
@@ -421,7 +438,7 @@ export class EfMatcherService {
       // contract below.
       if (!cached) {
         this.writeAgentTrace({
-          emissionSourceId: q.emission_source_id,
+          emissionSourceId,
           isFallback: false,
           stopReason: trace.stopReason,
           turnCount: trace.turnCount,
@@ -434,7 +451,7 @@ export class EfMatcherService {
     } catch (err) {
       const { stopReason, turnCount } = stopReasonForError(err);
       this.writeAgentTrace({
-        emissionSourceId: q.emission_source_id,
+        emissionSourceId,
         isFallback: true,
         stopReason,
         turnCount,
@@ -442,7 +459,7 @@ export class EfMatcherService {
         tokens: { input: 0, output: 0 },
         durationMs: Date.now() - startedAt,
       });
-      return this.llmRerank(buildTextRecommendPrompt(q.hint_text, rankedFull), rankedFull, cache);
+      return this.llmRerank(buildTextRecommendPrompt(hintText, rankedFull), rankedFull, cache);
     }
   }
 

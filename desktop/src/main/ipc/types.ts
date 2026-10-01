@@ -145,7 +145,7 @@ export type IpcTypeMap = {
   // ef-matcher domain (Phase 1c — LLM-assisted emission factor recommendation)
   'ef:recommend': (input: RecommendQuery) => Promise<MatcherResult>;
   // Text-hint variant for the batch activity import (ROADMAP §8.1-①):
-  // one call per confirm-group, hint = ledger description + unit.
+  // one call per confirm-group; the service formulates the hint from description + unit.
   'ef:recommend-text': (input: TextRecommendQuery) => Promise<MatcherResult>;
 
   // activity-import domain (ROADMAP §8.1-① — batch ledger import wizard).
