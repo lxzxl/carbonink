@@ -8,7 +8,7 @@ describe('main entry — CARBONINK_TEST_USER_DATA_DIR hook', () => {
     const hookIdx = src.indexOf('CARBONINK_TEST_USER_DATA_DIR');
     // The first real userData consumer is the workspace registry (which
     // resolves the active DB path) — spec 2026-07-22-client-workspaces.
-    const consumerIdx = src.indexOf("new WorkspaceService(app.getPath('userData'))");
+    const consumerIdx = src.indexOf("new WorkspaceService(app.getPath('userData'), {");
     expect(hookIdx, 'hook not found').toBeGreaterThan(-1);
     expect(consumerIdx, 'userData consumer not found').toBeGreaterThan(-1);
     expect(hookIdx, 'hook must appear before userData consumer').toBeLessThan(consumerIdx);

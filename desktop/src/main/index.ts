@@ -7,7 +7,6 @@ import { installLogger } from '@main/services/logger-service.js';
 import { notifyOverdueDisclosures } from '@main/services/overdue-notify-service.js';
 import { WorkspaceService } from '@main/services/workspace-service.js';
 import { initAutoUpdater } from '@main/updater/auto-updater.js';
-import { configureWorkspaceSwitch } from '@main/workspace-switch.js';
 import { agentBridgeAddress } from '@shared/agent-bridge/socket-path.js';
 import { app, BrowserWindow, Menu, nativeImage } from 'electron';
 import { buildAppMenu } from './menu.js';
@@ -43,7 +42,15 @@ app.whenReady().then(() => {
   // Client workspaces (spec 2026-07-22): the registry decides which
   // SQLite file is active; first run bootstraps app.sqlite as the default
   // workspace.
-  const workspaceService = new WorkspaceService(app.getPath('userData'));
+  const workspaceService = new WorkspaceService(app.getPath('userData'), {
+    cleanupIpc,
+    closeAppDb,
+    openAppDb,
+    runMigrations,
+    setupIpc,
+    reloadWindow: () => getMainWindow()?.webContents.reload(),
+    schedule: (fn) => setTimeout(fn, 50),
+  });
   const db = openAppDb(workspaceService.activeDbPath());
   runMigrations(db);
 
@@ -61,19 +68,9 @@ app.whenReady().then(() => {
   });
   app.on('will-quit', () => stopAgentBridge(agentBridge, bridgeAddress));
 
-  // Wire the workspace-switch orchestration (reply → teardown → reopen →
-  // rebuild IPC → reload renderer). Lives outside the IPC layer because
-  // the switch disposes the very listener that dispatched it.
-  configureWorkspaceSwitch({
-    workspaceService,
-    cleanupIpc,
-    closeAppDb,
-    openAppDb,
-    runMigrations,
-    setupIpc,
-    reloadWindow: () => getMainWindow()?.webContents.reload(),
-    schedule: (fn) => setTimeout(fn, 50),
-  });
+  // Workspace-switch hooks ride on the service (see WorkspaceSwitchHooks):
+  // the switch disposes the very IPC listener that dispatches it, so the
+  // teardown/reopen/reload callbacks arrive injected, never imported.
 
   // Post-launch (spec 2026-05-25): install the application menu so
   // ⌘Z / Ctrl+Z reach the renderer's undo handler. Skipped in E2E so

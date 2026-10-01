@@ -2,7 +2,23 @@ import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from '
 import { basename, join } from 'node:path';
 import type { Workspace, WorkspaceRegistry } from '@shared/types.js';
 import { newId } from '@shared/ulid.js';
+import type { Database } from 'better-sqlite3';
 
+/**
+ * App-lifecycle hooks for a workspace switch. Injected (not imported) so
+ * the service stays decoupled from the IPC listener lifecycle: production
+ * wires the real teardown/reopen/reload from index.ts, tests inject spies.
+ */
+export interface WorkspaceSwitchHooks {
+  cleanupIpc: () => void;
+  closeAppDb: () => void;
+  openAppDb: (path: string) => Database;
+  runMigrations: (db: Database) => void;
+  setupIpc: () => void;
+  reloadWindow: () => void;
+  /** Defers the teardown so the IPC reply leaves first. Injectable for tests. */
+  schedule: (fn: () => void) => void;
+}
 /** Registry filename inside userData — deliberately outside every workspace DB. */
 const REGISTRY_FILENAME = 'workspaces.json';
 /** The pre-workspace database file every existing install already has. */
@@ -14,16 +30,27 @@ const MAX_NAME_LENGTH = 60;
  * Client workspaces (账套) — spec 2026-07-22-client-workspaces, ROADMAP
  * §8.1-③ v1. One workspace = one standalone SQLite file; the single-org
  * invariant lives on INSIDE each file, so multi-client needs no schema or
- * query changes at all. This service owns only the registry JSON: which
- * files exist, their display names, and which one is active. It never
- * opens a database — switching is orchestrated in workspace-switch.ts.
+ * query changes at all. This service owns the registry JSON (which files
+ * exist, their display names, which one is active) plus the switch
+ * orchestration: mark active, then reply-first teardown → reopen + migrate
+ * → rebuild IPC → reload the renderer. A brand-new workspace file is
+ * created by openAppDb + runMigrations; its empty org table then routes
+ * the renderer straight into onboarding — exactly the flow for taking on
+ * a new client.
+ *
+ * The switch tears down the very IPC listener that dispatches it, so the
+ * lifecycle hooks arrive injected (production: index.ts; tests: spies) —
+ * never imported. Without hooks, switchTo() marks active only.
  *
  * Bootstrap contract: the first load() on an existing install registers
  * `app.sqlite` as the「默认账套」and marks it active, so upgrades are
  * invisible until the user creates a second workspace.
  */
 export class WorkspaceService {
-  constructor(private readonly userDataDir: string) {}
+  constructor(
+    private readonly userDataDir: string,
+    private readonly hooks?: WorkspaceSwitchHooks,
+  ) {}
 
   private registryPath(): string {
     return join(this.userDataDir, REGISTRY_FILENAME);
@@ -142,13 +169,38 @@ export class WorkspaceService {
     return { ok: true, archived_file: archivedFile };
   }
 
-  /** Mark a workspace active (the orchestrator does the actual DB swap). */
+  /** Mark a workspace active (switchTo does the actual DB swap). */
   setActive(id: string): boolean {
     const registry = this.load();
     if (!registry.workspaces.some((w) => w.id === id)) return false;
     registry.active_id = id;
     this.save(registry);
     return true;
+  }
+
+  /**
+   * Mark the workspace active and schedule the swap: reply first, then
+   * cleanupIpc → closeAppDb → openAppDb(new) + migrate → setupIpc (fresh
+   * IpcContext over the new db) → reload the renderer. Unknown ids reply
+   * `{ok:false}` with nothing scheduled; the already-active id is an ok
+   * no-op. Without injected hooks (bare registry use), marks active only.
+   */
+  switchTo(id: string): { ok: boolean } {
+    const path = this.dbPathOf(id);
+    if (path === null) return { ok: false };
+    if (this.activeWorkspace().id === id) return { ok: true };
+    this.setActive(id);
+    const hooks = this.hooks;
+    if (!hooks) return { ok: true };
+    hooks.schedule(() => {
+      hooks.cleanupIpc();
+      hooks.closeAppDb();
+      const db = hooks.openAppDb(path);
+      hooks.runMigrations(db);
+      hooks.setupIpc();
+      hooks.reloadWindow();
+    });
+    return { ok: true };
   }
 
   /**

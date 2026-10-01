@@ -95,8 +95,8 @@ export interface IpcContext {
   classificationService: ClassificationService;
   // Batch extraction queue (spec 2026-07-22) — manual N-doc run, concurrency 2.
   batchExtractionService: BatchExtractionService;
-  // Client workspaces / 账套 (spec 2026-07-22) — registry CRUD only; the
-  // DB swap lives in workspace-switch.ts.
+  // Client workspaces / 账套 (spec 2026-07-22) — registry CRUD plus the
+  // DB swap orchestration (switchTo, hooks injected at construction).
   workspaceService: WorkspaceService;
   // Phase 2.2a — questionnaire upload + extract pipeline.
   customerService: CustomerService;
@@ -189,7 +189,8 @@ export interface IpcContextOverrides {
   customerService?: CustomerService;
   questionnaireService?: QuestionnaireService;
   inboundQuestionnaireService?: InboundQuestionnaireService;
-  /** Tests: inject a fake ModelCatalog (in-memory store, stubbed fetch). */
+  /** Tests: inject a WorkspaceService with switch hooks (or a bare registry). */
+  workspaceService?: WorkspaceService;
   modelCatalog?: ModelCatalog;
   /**
    * Optional main→renderer push channel emitter. Production wires
@@ -274,7 +275,7 @@ export function createIpcContext(
   let userEfLibraryServiceInstance: UserEfLibraryService | undefined;
   let activityImportServiceInstance: ActivityImportService | undefined;
   let batchExtractionServiceInstance: BatchExtractionService | undefined;
-  let workspaceServiceInstance: WorkspaceService | undefined;
+  let workspaceServiceInstance: WorkspaceService | undefined = overrides.workspaceService;
 
   const userDataDir = overrides.userDataDir ?? app.getPath('userData');
   const modelCatalog = overrides.modelCatalog ?? createModelCatalog({ userDataDir });

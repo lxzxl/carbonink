@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { runMigrations } from '@main/db/migrate';
 import { createIpcContext } from '@main/ipc/context';
 import { workspaceHandlers } from '@main/ipc/handlers/workspace';
-import { configureWorkspaceSwitch } from '@main/workspace-switch';
+import { WorkspaceService } from '@main/services/workspace-service';
 import type { Database as DatabaseType } from 'better-sqlite3';
 import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -21,21 +21,21 @@ beforeEach(() => {
   db.pragma('foreign_keys = ON');
   runMigrations(db);
   tmp = mkdtempSync(join(tmpdir(), 'carbonink-workspace-ipc-'));
-  const ctx = createIpcContext(
-    { db, now: () => '2026-07-22T00:00:00.000Z' },
-    { userDataDir: tmp, uploadsDir: join(tmp, 'uploads') },
-  );
   scheduled = [];
-  configureWorkspaceSwitch({
-    workspaceService: ctx.workspaceService,
+  const hooks = {
     cleanupIpc: vi.fn(),
     closeAppDb: vi.fn(),
     openAppDb: vi.fn().mockReturnValue({} as DatabaseType),
     runMigrations: vi.fn(),
     setupIpc: vi.fn(),
     reloadWindow: vi.fn(),
-    schedule: (fn) => scheduled.push(fn),
-  });
+    schedule: (fn: () => void) => scheduled.push(fn),
+  };
+  const workspaceService = new WorkspaceService(tmp, hooks);
+  const ctx = createIpcContext(
+    { db, now: () => '2026-07-22T00:00:00.000Z' },
+    { userDataDir: tmp, uploadsDir: join(tmp, 'uploads'), workspaceService },
+  );
   handlers = workspaceHandlers(ctx);
 });
 
