@@ -27,3 +27,4 @@ Disallow: /download/mac
 Disallow: /download/win
 
 Sitemap: https://carbonink.xyz/sitemap-index.xml
+Sitemap: https://carbonink.xyz/sitemap-0.xml

@@ -24,6 +24,7 @@ export default defineConfig({
   // into a broken `/en/*/index.html` target for the Cloudflare
   // adapter, so we hand-write the rule instead.
   output: 'server',
+  trailingSlash: 'always',
   adapter: cloudflare(),
   // Pin an inert session driver. Without one, the Cloudflare adapter
   // auto-enables sessions backed by a `SESSION` KV binding and injects

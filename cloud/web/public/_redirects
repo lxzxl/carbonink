@@ -1,10 +1,24 @@
-# Legacy locale redirects — English moved from /en/* to the apex when
-# English became the default locale. 301 any old /en/* URL (stale index
-# entries, external backlinks) to its unprefixed equivalent so they keep
-# their link equity instead of 404ing.
-#
-# `:splat` is the part matched by `*`, so /en/download/ → /download/ and
-# /en/ → / (empty splat). The bare /en (no trailing slash) needs its own
-# rule since /en/* only matches paths under /en/.
-/en/*  /:splat  301
-/en    /        301
+# Canonical trailing-slash enforcement (301 instead of Cloudflare default 307)
+/download     /download/  301
+/guides       /guides/    301
+/privacy      /privacy/   301
+/zh           /zh/        301
+/zh/download  /zh/download/ 301
+/zh/guides    /zh/guides/ 301
+/zh/privacy   /zh/privacy/ 301
+
+# Retired surfaces — CarbonInk is 100% free & open-source, redirect to home
+/pricing      /           301
+/pricing/     /           301
+
+# Legacy /en/* redirects — exact paths first, then wildcard
+/en           /           301
+/en/          /           301
+/en/download  /download/  301
+/en/download/ /download/  301
+/en/guides    /guides/    301
+/en/guides/   /guides/    301
+/en/privacy   /privacy/   301
+/en/privacy/  /privacy/   301
+/en/*         /:splat     301
+
