@@ -14,6 +14,70 @@ files:
   - "!out/main/**/*.map"
   - "!out/preload/**/*.map"
   - "!out/renderer/**/*.map"
+  # --- Installer slimming (audit 2026-10-08, docs/todo/2026-10-08-slimming-checklist.md) ---
+  # The packer ships every production dependency, but most of node_modules is
+  # never required at runtime: renderer code is bundled into out/renderer by
+  # vite, the AI SDKs are inlined into out/main (ESM-only, see
+  # electron.vite.config.ts), and build tools sit in `dependencies`. Every
+  # entry below was verified unreachable from out/{main,preload,mcp} via a
+  # require-closure walk (see checklist Phase 0). If you add a main-process
+  # dependency under an excluded scope/name, REMOVE its exclusion here or the
+  # packed app will crash at require() time.
+  # Dev-only artifacts inside shipped packages (never loaded by Node):
+  - "!node_modules/**/*.map"
+  - "!node_modules/**/*.d.ts"
+  - "!node_modules/**/*.d.mts"
+  - "!node_modules/**/*.d.cts"
+  # Closed-world: only out/** + package.json ship from the project dir.
+  # Background: the packer falls back to include-all file matching when its
+  # `pnpm list` production-graph lookup fails (observed locally with pnpm 12:
+  # scripts/, tests/, src/ and 140MB of script caches landed in app.asar).
+  # These negations keep the package clean in both collector modes. After any
+  # change here, re-pack and confirm no APP: junk via an asar listing.
+  - "!scripts{,/**/*}"
+  - "!tests{,/**/*}"
+  - "!src{,/**/*}"
+  - "!messages{,/**/*}"
+  - "!samples{,/**/*}"
+  - "!test-results{,/**/*}"
+  - "!project.inlang{,/**/*}"
+  - "!agent-skill{,/**/*}"
+  - "!*.md"
+  - "!*.xlsx"
+  - "!*.{ts,mts,cts,mjs,json}"
+  - "!.*"
+  # Entire scopes, verified 100% unreachable (every member checked):
+  - "!node_modules/{@radix-ui,@tanstack,@babel,@aws-sdk,@smithy,@aws-crypto,@jridgewell,@protobufjs,@floating-ui,@types,@esbuild,@rollup,@anthropic-ai,@google,@mistralai,@earendil-works}/**"
+  # Build tools misplaced in `dependencies` (used by scripts, not the app):
+  - "!node_modules/{electron-vite,vite,esbuild,rollup}/**"
+  # Renderer-only (bundled into out/renderer by vite, never required):
+  - "!node_modules/{react,react-dom,lucide-react,radix-ui,react-resizable-panels,react-top-loading-bar,cmdk,sonner,vaul,driver.js,tailwind-merge,class-variance-authority,clsx,scheduler}/**"
+  # AI SDKs inlined into out/main (never required from node_modules):
+  - "!node_modules/{openai,protobufjs,typebox,seroval,seroval-plugins,gaxios,ws,node-fetch}/**"
+  - "!node_modules/{web-streams-polyfill,fast-xml-parser,fast-xml-builder,caniuse-lite,browserslist,baseline-browser-mapping,electron-to-chromium,node-releases,update-browserslist-db}/**"
+  - "!node_modules/{csstype,bignumber.js,bowser,json5,magic-string,source-map-js,long,path-expression-matcher,postcss,picomatch,cac,tslib,ignore,tinyglobby,fdir}/**"
+  - "!node_modules/{google-auth-library,google-logging-utils,gcp-metadata,fsevents,yaml,json-schema-to-ts}/**"
+  # NOTE: zod-to-json-schema is NOT excluded — @modelcontextprotocol/sdk
+  # requires it at runtime (its package root has no index, so naive
+  # require-closure walks miss it; caught by packed-app probe 2026-10-08).
+  # Per-package dead weight (entry point + runtime imports verified):
+  - "!node_modules/exceljs/dist/**"
+  - "!node_modules/pdfjs-dist/{build,web,types,image_decoders,cmaps,standard_fonts,wasm}/**"
+  - "!node_modules/pdfjs-dist/legacy/{web,image_decoders}/**"
+  - "!node_modules/pdfjs-dist/legacy/build/{pdf.worker.mjs,pdf.worker.min.mjs,pdf.min.mjs,pdf.sandbox.mjs,pdf.sandbox.min.mjs}"
+  - "!node_modules/pdf-parse/dist/{node,worker}/**"
+  - "!node_modules/pdf-parse/dist/pdf-parse/{esm,web}/**"
+  - "!node_modules/pdf-parse/node_modules/pdfjs-dist/**"
+  # pdf-parse pins canvas 0.1.80 whose prebuild materializes as a duplicate
+  # 23MB binary at pack time. Dev already resolves pdf-parse's canvas require
+  # to the top-level 0.1.100 prebuild (verified: real getText + pdfToImages
+  # render pass); dropping the nested copy forces the same resolution packed.
+  - "!node_modules/pdf-parse/node_modules/@napi-rs/**"
+  - "!node_modules/effect/dist/{esm,dts}/**"
+  - "!node_modules/effect/src/**"
+  - "!node_modules/better-sqlite3/{deps,src}/**"
+  - "!node_modules/better-sqlite3/build/Release/{obj,obj.target}/**"
+  - "!node_modules/better-sqlite3/build/Release/{sqlite3.a,test_extension.node}"
 
 # Unpack the MCP server script so external MCP clients can spawn it
 # at <Resources>/app.asar.unpacked/out/mcp/index.js. Files inside
@@ -61,6 +125,12 @@ mac:
   # "unidentified developer" → users right-click → Open on first launch.
   # With no `identity` set, electron-builder ad-hoc signs the .app.
   notarize: false
+  # NOTE (slimming): do NOT add a `files:` block here. In electron-builder
+  # v26 a platform-level `files` REPLACES the top-level `files` (no merge),
+  # which reverts the main matcher to include-all `**/*` and ships scripts/,
+  # tests/, src/ and caches into app.asar (observed 2026-10-08: +160MB).
+  # Per-OS canvas filtering is unnecessary anyway: CI installs only the
+  # building OS's optional deps, so foreign prebuilds are never packed.
 
 dmg:
   sign: false
@@ -89,6 +159,7 @@ win:
   #
   # electron-builder v26: sign + signingHashAlgorithms moved under
   # signtoolOptions (was at win.* root in v25 and earlier).
+  # NOTE (slimming): no `files:` block here either — see the mac note above.
   signtoolOptions:
     sign: ./build/sign-windows.js
     signingHashAlgorithms:

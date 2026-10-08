@@ -34,6 +34,6 @@ export default defineConfig({
       ],
       output: { format: 'cjs', exports: 'auto' },
     },
-    minify: false,
+    minify: true,
   },
 });
