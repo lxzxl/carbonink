@@ -9,6 +9,11 @@ directories:
   output: release
   buildResources: build
 
+# Prune foreign-arch canvas prebuilds per target (Intel-mac fix) — see
+# build/after-pack-prune-canvas.cjs. Top-level key: safe (unlike platform
+# `files`, hooks merge normally).
+afterPack: ./build/after-pack-prune-canvas.cjs
+
 files:
   - out/**/*
   - "!out/main/**/*.map"

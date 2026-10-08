@@ -16,6 +16,9 @@
     "lint": "pnpm -r run lint",
     "typecheck": "pnpm -r run typecheck"
   },
+  "pnpm": {
+    "supportedArchitectures": { "os": ["darwin", "win32"], "cpu": ["arm64", "x64"] }
+  },
   "devDependencies": {
     "@biomejs/biome": "^2.4.15"
   }
