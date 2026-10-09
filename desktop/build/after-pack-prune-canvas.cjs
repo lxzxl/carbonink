@@ -1,12 +1,13 @@
 // electron-builder afterPack hook — prune foreign @napi-rs/canvas prebuilds.
 //
 // Background: the mac CI runner builds BOTH arm64 and x64 dmgs from a single
-// install, but pnpm fetches only the host arch's optional deps by default —
-// so the Intel dmg shipped the ARM64 .node and PDF→image rendering was
-// broken on every Intel Mac (v1.0.0–v1.1.0). Root package.json now sets
-// `pnpm.supportedArchitectures` so all needed prebuilds are installed; this
-// hook deletes every prebuild except the current target's from the staged
-// app, once per arch.
+// install. pnpm installs every platform prebuild (root
+// `pnpm.supportedArchitectures`), but electron-builder's dep collector only
+// stages the HOST arch's optional dep into each target — so the Intel dmg
+// missed its .node and PDF→image rendering was broken on every Intel Mac
+// (v1.0.0–v1.1.0). canvas-darwin-x64 is a DIRECT dependency so it is always
+// staged; this hook deletes every prebuild except the current target's from
+// the staged app, once per arch.
 //
 // Why a hook and not `files`: in electron-builder v26 a platform-level
 // `files` block REPLACES the top-level `files` list instead of merging with

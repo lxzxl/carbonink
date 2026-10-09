@@ -134,8 +134,11 @@ mac:
   # v26 a platform-level `files` REPLACES the top-level `files` (no merge),
   # which reverts the main matcher to include-all `**/*` and ships scripts/,
   # tests/, src/ and caches into app.asar (observed 2026-10-08: +160MB).
-  # Per-OS canvas filtering is unnecessary anyway: CI installs only the
-  # building OS's optional deps, so foreign prebuilds are never packed.
+  # NOTE (canvas): the dep collector only stages the HOST arch's
+  # @napi-rs/canvas optional prebuild, so canvas-darwin-x64 is a DIRECT
+  # dependency in package.json to force it into every pack; the afterPack
+  # hook prunes the foreign arch per target. (win32-x64-msvc needs no pin:
+  # the win runner IS win32-x64, so host-match covers it.)
 
 dmg:
   sign: false
