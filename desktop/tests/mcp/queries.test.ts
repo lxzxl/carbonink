@@ -195,9 +195,9 @@ describe('mcp queries — read', () => {
     const result = q.getAnswer(db as never, 'q-1') as Record<string, unknown>;
 
     expect(result).not.toBeNull();
-    expect(result['value']).toBe('14820');
-    expect(result['unit']).toBe('kWh');
-    expect(result['source_kind']).toBe('manual');
+    expect(result.value).toBe('14820');
+    expect(result.unit).toBe('kWh');
+    expect(result.source_kind).toBe('manual');
   });
 
   it('getAnswer returns null when no answer exists', () => {
