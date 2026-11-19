@@ -1,0 +1,6 @@
+# Build output and the dev cache.
+/dist/
+/.nsgo/
+
+# 17 MB CJK font, fetched by scripts/fetch-fonts.sh.
+/internal/spike/fixtures/fonts/*.ttf

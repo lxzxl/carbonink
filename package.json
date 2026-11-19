@@ -12,6 +12,9 @@
     "desktop:lint": "pnpm --filter carbonink lint",
     "cloud:lint": "pnpm exec biome check cloud",
     "cloud:build:web": "pnpm --filter @carbonink-cloud/web build",
+    "spike:dev": "cd app && go tool nsgo dev .",
+    "spike:test": "cd app && go tool nsgo test .",
+    "spike:build": "cd app && go tool nsgo build -target macos_arm64",
     "test": "pnpm -r --workspace-concurrency=1 run test",
     "lint": "pnpm -r run lint",
     "typecheck": "pnpm -r run typecheck"

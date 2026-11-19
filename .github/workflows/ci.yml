@@ -93,3 +93,28 @@ jobs:
         # build refuses to emit if any TS/import error blocks
         # prerender of the marketing pages.
         run: pnpm cloud:build:web
+
+  go-spike:
+    # Phase 0 harness only. Compiles the NSGo module and runs the pure-Go
+    # packages (PDFium-WASM, SQLite, LLM adapter); the native UI tests need a
+    # window and stay on macOS/Windows.
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: app/go.mod
+          cache-dependency-path: app/go.sum
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test pure-Go packages
+        run: go test ./internal/...
+
+      - name: Cross-compile the Linux backend
+        run: go build ./...
