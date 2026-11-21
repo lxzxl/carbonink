@@ -359,6 +359,7 @@ func (s *Session) dashboardBody(cx *core.Scope, dataRev *core.Signal[int],
 				}},
 		),
 		s.gettingStartedCard(cx, active),
+		s.dashboardWidgets(cx, active),
 		dataCard(cx,
 			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 12}, Children: []core.Node{
 				core.View{Style: core.Style{Gap: 3, FlexGrow: 1}, Children: []core.Node{

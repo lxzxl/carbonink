@@ -1,0 +1,125 @@
+package app
+
+import (
+	"context"
+	"testing"
+	"time"
+
+	"app.carbonink.desktop/internal/store"
+
+	"github.com/nsgo-dev/nsgo/core"
+	"github.com/nsgo-dev/nsgo/nsgotest"
+)
+
+func TestBuildMonthBucketsWindowAndSums(t *testing.T) {
+	now := time.Date(2026, 11, 21, 12, 0, 0, 0, time.UTC)
+	activities := []store.Activity{
+		{OccurredAtEnd: "2026-11-03", CO2eKg: 10.5},
+		{OccurredAtEnd: "2026-10-31", CO2eKg: 4},
+		{OccurredAtEnd: "2025-10-31", CO2eKg: 99},
+		{OccurredAtEnd: "not-a-date", CO2eKg: 1},
+	}
+	buckets := buildMonthBuckets(activities, now)
+	if len(buckets) != 12 {
+		t.Fatalf("buckets = %d, want 12", len(buckets))
+	}
+	if first, last := buckets[0].label, buckets[11].label; first != "2025-12" || last != "2026-11" {
+		t.Errorf("window = %s..%s, want 2025-12..2026-11", first, last)
+	}
+	if got := buckets[11].total; got != 10.5 {
+		t.Errorf("November total = %v, want 10.5", got)
+	}
+	if got := buckets[10].total; got != 4 {
+		t.Errorf("October total = %v, want 4", got)
+	}
+	sum := 0.0
+	for _, bucket := range buckets {
+		sum += bucket.total
+	}
+	if sum != 14.5 {
+		t.Errorf("window sum = %v, want only in-window rows (14.5)", sum)
+	}
+}
+
+func TestRecentActivitiesNewestFive(t *testing.T) {
+	activities := []store.Activity{
+		{ID: "a", OccurredAtEnd: "2026-01-01"},
+		{ID: "b", OccurredAtEnd: "2026-05-01"},
+		{ID: "c", OccurredAtEnd: "2026-03-01"},
+		{ID: "d", OccurredAtEnd: "2026-02-01"},
+		{ID: "e", OccurredAtEnd: "2026-04-01"},
+		{ID: "f", OccurredAtEnd: "2026-06-01"},
+	}
+	got := recentActivities(activities)
+	if len(got) != 5 {
+		t.Fatalf("recent = %d rows, want 5", len(got))
+	}
+	want := []string{"f", "b", "e", "c", "d"}
+	for i := range want {
+		if got[i].ID != want[i] {
+			t.Errorf("recent[%d] = %s, want %s", i, got[i].ID, want[i])
+		}
+	}
+}
+
+func TestDashboardShowsTrendAndRecentActivities(t *testing.T) {
+	dbPath := fixtureDB(t)
+	ctx := context.Background()
+	db, err := store.Open(ctx, dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	today := time.Now().Format("2006-01-02")
+	if _, err := db.DB().ExecContext(ctx,
+		`UPDATE activity_data SET occurred_at_start = ?, occurred_at_end = ?`, today, today); err != nil {
+		db.Close()
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Setenv("CARBONINK_TEST_DB", dbPath)
+	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
+		nsgotest.Environment(core.Environment{Locale: "en-US"}))
+	ui.WaitFor("id:activities-table", 5*time.Second)
+	ui.Press("id:nav:dashboard")
+
+	ui.WaitFor("id:dashboard-monthly-trend", 5*time.Second)
+	ui.WaitFor("id:dashboard-trend-"+time.Now().Format("2006-01"), 5*time.Second)
+	ui.WaitFor("id:dashboard-recent", 5*time.Second)
+	ui.WaitFor("text:外购电力", 3*time.Second)
+	ui.WaitFor("text:120.00 kg CO2e", 3*time.Second)
+
+	ui.Press("id:dashboard-recent-view-all")
+	ui.WaitFor("id:activities-table", 3*time.Second)
+}
+
+func TestDashboardWidgetsHideWithoutEmissions(t *testing.T) {
+	dbPath := fixtureDB(t)
+	ctx := context.Background()
+	db, err := store.Open(ctx, dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.DB().ExecContext(ctx, `DELETE FROM activity_data`); err != nil {
+		db.Close()
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Setenv("CARBONINK_TEST_DB", dbPath)
+	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
+		nsgotest.Environment(core.Environment{Locale: "en-US"}))
+	ui.WaitFor("id:activities-table", 5*time.Second)
+	ui.Press("id:nav:dashboard")
+	ui.WaitFor("text:Start here", 3*time.Second)
+	if rows := ui.Query("id:dashboard-monthly-trend"); len(rows) != 0 {
+		t.Errorf("monthly trend showed without data: %d views", len(rows))
+	}
+	if rows := ui.Query("id:dashboard-recent"); len(rows) != 0 {
+		t.Errorf("recent activities showed without data: %d views", len(rows))
+	}
+}
