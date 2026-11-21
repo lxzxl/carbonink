@@ -3,7 +3,11 @@ package report
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
+	"image"
+	"image/color"
+	"image/png"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -229,6 +233,83 @@ func TestBoundaryLabelFollowsDocumentLanguage(t *testing.T) {
 	} {
 		if got := boundaryLabel(kind, zh); got != want {
 			t.Fatalf("boundaryLabel(%q) = %q, want %q", kind, got, want)
+		}
+	}
+}
+
+// TestReportCoverEmbedsTheWorkspaceLogo proves the per-workspace data URL
+// reaches the PDF cover instead of being dropped by the exporter.
+func TestReportCoverEmbedsTheWorkspaceLogo(t *testing.T) {
+	s, ctx, periodID := reportFixture(t)
+	src := image.NewRGBA(image.Rect(0, 0, 40, 20))
+	for y := 0; y < 20; y++ {
+		for x := 0; x < 40; x++ {
+			src.Set(x, y, color.RGBA{R: 220, G: 20, B: 20, A: 255})
+		}
+	}
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, src); err != nil {
+		t.Fatal(err)
+	}
+	dataURL := "data:image/png;base64," + base64.StdEncoding.EncodeToString(buf.Bytes())
+	if err := s.SetSetting(ctx, LogoSetting, dataURL); err != nil {
+		t.Fatal(err)
+	}
+
+	service := &Service{Store: s, Provider: Provider{Model: "test", BaseURL: "http://example.invalid"},
+		NewClient: func(Provider) llm.Extractor {
+			return &fakeExtractor{reply: `{
+				"boundary_description":"Boundary.",
+				"reporting_boundary_description":"Reporting boundary.",
+				"methodology_description":"Method.",
+				"emissions_summary":"Summary.",
+				"significant_changes":"None.",
+				"observations":"Observation."
+			}`}
+		}}
+	generated, err := service.Generate(ctx, periodID, "en", KindISO)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(generated.Logo) == 0 || generated.LogoFormat != "PNG" {
+		t.Fatalf("logo = %d bytes, format %q", len(generated.Logo), generated.LogoFormat)
+	}
+	pdf, err := generated.PDF(testLabels())
+	if err != nil {
+		t.Fatal(err)
+	}
+	page, err := docview.RenderPDFPage(pdf, 0, 72)
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for y := 20; y < 140 && !found; y++ {
+		for x := 400; x < 590; x++ {
+			if x >= page.Bounds().Dx() || y >= page.Bounds().Dy() {
+				break
+			}
+			r, g, b, _ := page.At(x, y).RGBA()
+			if r>>8 > 150 && g>>8 < 100 && b>>8 < 100 {
+				found = true
+				break
+			}
+		}
+	}
+	if !found {
+		t.Fatal("cover has no red logo pixels in the header's top-right")
+	}
+}
+
+func TestDecodeLogoRejectsUnsupportedValues(t *testing.T) {
+	for _, raw := range []string{
+		"",
+		"https://example.com/logo.png",
+		"data:image/gif;base64,R0lGODlhAQABAAAAACw=",
+		"data:image/png;base64,not base64!",
+		"data:image/png;base64,",
+	} {
+		if data, format := DecodeLogo(raw); data != nil || format != "" {
+			t.Fatalf("DecodeLogo(%q) = %q, %q", raw, data, format)
 		}
 	}
 }

@@ -287,6 +287,7 @@ func (s *Session) reportsScreen(cx *core.Scope, dataRev *core.Signal[int]) core.
 			dataCard(cx,
 				core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 12},
 					Children: []core.Node{
+						core.View{Children: logoPreview(generated)},
 						core.View{Style: core.Style{Gap: 2, FlexGrow: 1}, Children: []core.Node{
 							core.Text{Content: locales.ReportsPreviewHeading(cx),
 								Style: core.Style{FontSize: 14, FontWeight: ui.Semibold}},
@@ -402,4 +403,17 @@ func reportLabels(language string) report.Labels {
 		BoundaryEquity: "Equity share", BoundaryFinancial: "Financial control",
 		BoundaryOperational: "Operational control",
 	}
+}
+
+// logoPreview is the generated report's cover image, when the workspace set
+// one. It reads the same bytes the PDF embeds.
+func logoPreview(rep *report.Report) []core.Node {
+	if rep == nil || len(rep.Logo) == 0 {
+		return nil
+	}
+	return []core.Node{ui.Image{
+		Source: core.ImageSource{Data: rep.Logo}, TestID: "reports-logo",
+		ResizeMode: core.Contain,
+		Style:      core.Style{Width: core.Pt(90), Height: core.Pt(36)},
+	}}
 }

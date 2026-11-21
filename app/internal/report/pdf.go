@@ -111,10 +111,20 @@ func (w *pdfWriter) cover(title string, r *Report, l Labels) {
 	w.AddPage()
 	w.SetFillColor(22, 62, 47)
 	w.Rect(0, 0, 210, 70, "F")
+	if len(r.Logo) > 0 {
+		options := fpdf.ImageOptions{ImageType: r.LogoFormat, ReadDpi: true}
+		if info := w.RegisterImageOptionsReader("report-logo", options, bytes.NewReader(r.Logo)); info != nil {
+			w.ImageOptions("report-logo", 155, 18, 38, 0, false, options, 0, "")
+		}
+	}
 	w.SetTextColor(255, 255, 255)
 	w.SetXY(20, 26)
 	w.SetFont("noto", "", 22)
-	w.MultiCell(170, 12, w.safe(title), "", "L", false)
+	width := 170.0
+	if len(r.Logo) > 0 {
+		width = 125
+	}
+	w.MultiCell(width, 12, w.safe(title), "", "L", false)
 	w.SetXY(20, 50)
 	w.SetFont("noto", "", 12)
 	w.CellFormat(0, 8, w.safe(organizationName(d)), "", 1, "L", false, 0, "")

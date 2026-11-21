@@ -542,6 +542,13 @@ func (s *Store) SetSetting(ctx context.Context, key, value string) error {
 	return err
 }
 
+// DeleteSetting removes one app-level key/value row. A missing key is not an
+// error.
+func (s *Store) DeleteSetting(ctx context.Context, key string) error {
+	_, err := s.db.ExecContext(ctx, `DELETE FROM setting WHERE key = ?`, key)
+	return err
+}
+
 // QuestionByPosition reads one question by its template position.
 func (s *Store) QuestionByPosition(ctx context.Context, questionnaireID, position string) (*Question, error) {
 	row := s.db.QueryRowContext(ctx, questionSelect+` WHERE q.questionnaire_id = ? AND q.position = ?`,

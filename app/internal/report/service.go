@@ -55,6 +55,9 @@ type Report struct {
 	ISO         *Narrative
 	TCFD        *TCFDNarrative
 	GeneratedAt string
+	// Logo is the workspace's cover image, nil when unset or unreadable.
+	Logo       []byte
+	LogoFormat string
 }
 
 // Generate assembles the inventory and asks the model for the narrative.
@@ -81,6 +84,7 @@ func (s *Service) Generate(ctx context.Context, periodID, language, kind string)
 	}
 	client := s.client()
 	out := &Report{Kind: kind, Data: data, GeneratedAt: time.Now().Format("2006-01-02")}
+	out.Logo, out.LogoFormat = LoadLogo(ctx, s.Store)
 	switch kind {
 	case KindISO:
 		raw, err := client.Extract(ctx, isoSystemPrompt(language),

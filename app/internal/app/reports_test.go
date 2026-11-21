@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -12,6 +13,8 @@ import (
 	"time"
 
 	"app.carbonink.desktop/internal/docview"
+	"app.carbonink.desktop/internal/report"
+	"app.carbonink.desktop/internal/store"
 
 	"github.com/nsgo-dev/nsgo/core"
 	"github.com/nsgo-dev/nsgo/nsgotest"
@@ -22,7 +25,19 @@ import (
 // endpoint, generates an ISO narrative from the fixture inventory, previews
 // it, and exports both the PDF and the Excel appendix.
 func TestGenerateAndExportReportThroughUI(t *testing.T) {
-	t.Setenv("CARBONINK_TEST_DB", fixtureDB(t))
+	dbPath := fixtureDB(t)
+	t.Setenv("CARBONINK_TEST_DB", dbPath)
+	db, err := store.Open(context.Background(), dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := db.SetSetting(context.Background(), report.LogoSetting, testLogoDataURL(t)); err != nil {
+		db.Close()
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
 
 	const boundary = "Boundary narrative from the model."
 	reply, err := json.Marshal(map[string]string{
@@ -79,6 +94,7 @@ func TestGenerateAndExportReportThroughUI(t *testing.T) {
 	ui.Press("id:reports-generate")
 	ui.WaitFor("text:"+boundary, 15*time.Second)
 	ui.WaitFor("text:Total CO2e", 3*time.Second)
+	ui.WaitFor("id:reports-logo", 3*time.Second)
 	ui.WaitFor("id:guidance-report-export", 3*time.Second)
 	ui.Press("id:guidance-report-export-next")
 	ui.WaitFor("text:Export PDF and Excel", 2*time.Second)
