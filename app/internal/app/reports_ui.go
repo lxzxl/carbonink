@@ -3,9 +3,13 @@ package app
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
+	"app.carbonink.desktop/internal/deliverable"
+	"app.carbonink.desktop/internal/readiness"
 	"app.carbonink.desktop/internal/report"
 	"app.carbonink.desktop/locales"
 
@@ -181,6 +185,109 @@ func (s *Session) reportsScreen(cx *core.Scope, dataRev *core.Signal[int],
 		}()
 	}
 
+	exportDeliverable := func() {
+		generated := state.generated.Get()
+		if generated == nil || state.exportBusy.Get() {
+			return
+		}
+		periodID := generated.Data.Period.ID
+		sweep, err := readiness.Run(context.Background(), s.db, periodID, readiness.Options{
+			ImportOutlierRatio: importOutlierRatio(context.Background(), s.db),
+		})
+		if err != nil {
+			state.failed.Set(true)
+			state.status.Set(locales.ReportsExportFailed(cx, err.Error()))
+			return
+		}
+		rows := make([]deliverable.ReadinessRow, 0, len(sweep.Findings))
+		for _, finding := range sweep.Findings {
+			rows = append(rows, deliverable.ReadinessRow{
+				Severity: readinessSeverityLabel(cx, finding.Severity),
+				CheckID:  finding.CheckID, Title: readinessTitle(cx, finding),
+				Detail:     readinessDetail(cx, finding),
+				EntityType: finding.Entity.Type, EntityID: finding.Entity.ID,
+			})
+		}
+		readinessSheet := &deliverable.Readiness{
+			CheckedAt: sweep.CheckedAt, CheckCount: readiness.CheckCount,
+			Blockers: sweep.Counts.Blocker, Warnings: sweep.Counts.Warning,
+			Notes: sweep.Counts.Info, Rows: rows,
+		}
+		labels := reportLabels(state.language.Get())
+		year := strconv.Itoa(generated.Data.Period.Year)
+		base := "carbonink-" + map[string]string{
+			report.KindISO: "iso", report.KindTCFD: "tcfd",
+		}[generated.Kind] + "-" + year
+		activities := make([]deliverable.ActivityRef, 0, len(generated.Data.Activities))
+		for _, activity := range generated.Data.Activities {
+			activities = append(activities, deliverable.ActivityRef{
+				ID: activity.ID, SourceName: activity.Source,
+			})
+		}
+
+		state.exportBusy.Set(true)
+		state.failed.Set(false)
+		state.status.Set(locales.ReportsProgressFinalizing(cx))
+		go func() {
+			pdfBytes, err := generated.PDF(labels)
+			var xlsxBytes []byte
+			if err == nil {
+				xlsxBytes, err = generated.XLSX(labels)
+			}
+			var dir, path string
+			var built deliverable.Result
+			if err == nil {
+				dir, err = os.MkdirTemp("", "carbonink-deliverable-")
+			}
+			if err == nil {
+				path = filepath.Join(dir, "deliverable.zip")
+				built, err = deliverable.Build(context.Background(), s.db, deliverable.Input{
+					PeriodID: periodID, Activities: activities,
+					ReportPDF: deliverable.NamedBytes{Name: base + ".pdf", Bytes: pdfBytes},
+					Appendix: deliverable.NamedBytes{
+						Name: base + ".xlsx", Bytes: xlsxBytes,
+					},
+					Readiness: readinessSheet, OutPath: path,
+				})
+			}
+			s.scope.Post(func() {
+				if err != nil {
+					if dir != "" {
+						os.RemoveAll(dir)
+					}
+					state.exportBusy.Set(false)
+					state.failed.Set(true)
+					state.status.Set(locales.ReportsExportFailed(cx, err.Error()))
+					return
+				}
+				cx.SaveFile(core.SaveOptions{
+					Name: base + "-deliverable.zip", MIME: "application/zip", Path: path,
+				}, func(saved bool, savedPath string, saveErr error) {
+					os.RemoveAll(dir)
+					state.exportBusy.Set(false)
+					if saveErr != nil {
+						state.failed.Set(true)
+						state.status.Set(locales.ReportsExportFailed(cx, saveErr.Error()))
+						return
+					}
+					if !saved {
+						state.status.Set("")
+						return
+					}
+					state.failed.Set(false)
+					if built.EvidenceMissing > 0 {
+						state.status.Set(locales.ReportsDeliverableSuccessMissing(cx,
+							savedPath, strconv.Itoa(built.EvidenceMissing),
+							strconv.Itoa(built.EvidenceTotal)))
+						return
+					}
+					state.status.Set(locales.ReportsDeliverableSuccess(cx, savedPath,
+						strconv.Itoa(built.EvidenceTotal)))
+				})
+			})
+		}()
+	}
+
 	periodOptions := make([]ui.Option[string], 0, len(s.periods))
 	for _, period := range s.periods {
 		periodOptions = append(periodOptions, ui.Option[string]{
@@ -307,6 +414,10 @@ func (s *Session) reportsScreen(cx *core.Scope, dataRev *core.Signal[int],
 						ui.Button{Text: locales.ReportsExportBothButton(cx),
 							OnPress: func() { export("both") }, Busy: state.exportBusy.Get,
 							TestID: "reports-export-both"},
+						ui.Button{Text: locales.ReportsExportDeliverableButton(cx),
+							Variant: ui.ButtonSecondary,
+							OnPress: func() { exportDeliverable() }, Busy: state.exportBusy.Get,
+							TestID: "reports-export-deliverable"},
 					}},
 				core.View{Style: core.Style{Direction: core.Row, Gap: 16}, Children: []core.Node{
 					stat(locales.DashboardScope1(cx), data.Totals.Scope1Kg),

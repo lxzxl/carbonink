@@ -1,9 +1,11 @@
 package app
 
 import (
+	"archive/zip"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -76,6 +78,7 @@ func TestGenerateAndExportReportThroughUI(t *testing.T) {
 	dir := t.TempDir()
 	xlsxPath := filepath.Join(dir, "report.xlsx")
 	pdfPath := filepath.Join(dir, "report.pdf")
+	zipPath := filepath.Join(dir, "deliverable.zip")
 	var saved []string
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}),
@@ -84,6 +87,9 @@ func TestGenerateAndExportReportThroughUI(t *testing.T) {
 		saved = append(saved, req.Name)
 		if strings.HasSuffix(req.Name, ".xlsx") {
 			return xlsxPath
+		}
+		if strings.HasSuffix(req.Name, ".zip") {
+			return zipPath
 		}
 		return pdfPath
 	}
@@ -107,6 +113,42 @@ func TestGenerateAndExportReportThroughUI(t *testing.T) {
 	if len(saved) != 2 || !strings.HasSuffix(saved[0], ".pdf") ||
 		!strings.HasSuffix(saved[1], ".xlsx") {
 		t.Fatalf("saved = %v", saved)
+	}
+
+	// Client deliverable: report + appendix + readiness sheet + sha256
+	// manifest, with a fresh sweep inside the bundle.
+	ui.Press("id:reports-export-deliverable")
+	ui.WaitFor("text:Deliverable bundle saved to "+zipPath, 15*time.Second)
+	if len(saved) != 3 || !strings.HasSuffix(saved[2], ".zip") {
+		t.Fatalf("saved after deliverable = %v", saved)
+	}
+	bundle, err := zip.OpenReader(zipPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	names := map[string]bool{}
+	var manifest, readinessCSV string
+	for _, file := range bundle.File {
+		names[file.Name] = true
+		switch file.Name {
+		case "manifest.csv":
+			manifest = readZipEntry(t, file)
+		case "readiness.csv":
+			readinessCSV = readZipEntry(t, file)
+		}
+	}
+	bundle.Close()
+	for _, want := range []string{"carbonink-iso-2025.pdf", "carbonink-iso-2025.xlsx",
+		"readiness.csv", "manifest.csv"} {
+		if !names[want] {
+			t.Fatalf("bundle entries = %v", names)
+		}
+	}
+	if !strings.Contains(manifest, `"report"`) || !strings.Contains(manifest, `"included"`) {
+		t.Fatalf("manifest:\n%s", manifest)
+	}
+	if !strings.Contains(readinessCSV, `"No base year set"`) {
+		t.Fatalf("readiness csv:\n%s", readinessCSV)
 	}
 
 	pdf, err := os.ReadFile(pdfPath)
@@ -151,4 +193,18 @@ func TestGenerateAndExportReportThroughUI(t *testing.T) {
 	if len(activities) != 2 || activities[1][2] != "2" {
 		t.Fatalf("activity rows = %v", activities)
 	}
+}
+
+func readZipEntry(t *testing.T, file *zip.File) string {
+	t.Helper()
+	reader, err := file.Open()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reader.Close()
+	data, err := io.ReadAll(reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(data)
 }
