@@ -1466,6 +1466,7 @@ const (
 	textSettingsMigrationBackups
 	textSettingsMigrationImported
 	textSettingsMigrationNone
+	textSettingsMigrationProviderImported
 	textSettingsMigrationRevealCurrent
 	textSettingsMigrationRevealLegacy
 	textSettingsMigrationTitle
@@ -2779,6 +2780,7 @@ var keyOfText = [numTexts]string{
 	"settingsMigrationBackups",
 	"settingsMigrationImported",
 	"settingsMigrationNone",
+	"settingsMigrationProviderImported",
 	"settingsMigrationRevealCurrent",
 	"settingsMigrationRevealLegacy",
 	"settingsMigrationTitle",
@@ -4090,6 +4092,7 @@ var textsEn = i18n.NewTexts(""+
 	"The 1.x files are copied, never moved. Backups and attachments are copied too, and the originals stay where they are."+
 	"Imported from CarbonInk 1.x — this workspace now lives in the new data folder."+
 	"No CarbonInk 1.x data folder was found on this computer."+
+	"The AI provider setting was imported from 1.x. Re-enter the API key in AI provider above to keep using document extraction."+
 	"Reveal current folder"+
 	"Reveal 1.x folder"+
 	"Migration from CarbonInk 1.x"+
@@ -5398,6 +5401,7 @@ var textsEn = i18n.NewTexts(""+
 		117,
 		80,
 		56,
+		123,
 		21,
 		17,
 		28,
@@ -6709,6 +6713,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"1.x 的文件是复制而不是移动，自动备份和附件一并复制，原文件仍保留在原处。"+
 	"已从 CarbonInk 1.x 导入——这个账套现在存放在新的数据目录中。"+
 	"这台电脑上没有找到 CarbonInk 1.x 数据目录。"+
+	"已从 1.x 导入 AI 提供商设置。请在上方 AI 提供商中重新输入 API 密钥，以便继续使用文档提取。"+
 	"打开当前目录"+
 	"打开 1.x 目录"+
 	"从 CarbonInk 1.x 迁移"+
@@ -8017,6 +8022,7 @@ var textsZhCN = i18n.NewTexts(""+
 		106,
 		84,
 		57,
+		126,
 		18,
 		17,
 		24,
@@ -20805,6 +20811,17 @@ func SettingsMigrationNone(cx *core.Scope) string { return For(cx).SettingsMigra
 
 // SettingsMigrationNone is the package's SettingsMigrationNone in the language of msgs.
 func (msgs Messages) SettingsMigrationNone() string { return msgs.text(textSettingsMigrationNone) }
+
+// SettingsMigrationProviderImported says "The AI provider setting was imported from 1.x. Re-enter the API key in AI provider above to keep using document extraction."
+// in the language the app shows under cx.
+func SettingsMigrationProviderImported(cx *core.Scope) string {
+	return For(cx).SettingsMigrationProviderImported()
+}
+
+// SettingsMigrationProviderImported is the package's SettingsMigrationProviderImported in the language of msgs.
+func (msgs Messages) SettingsMigrationProviderImported() string {
+	return msgs.text(textSettingsMigrationProviderImported)
+}
 
 // SettingsMigrationRevealCurrent says "Reveal current folder"
 // in the language the app shows under cx.

@@ -65,6 +65,7 @@ type Session struct {
 	extractionStatus map[string]store.ExtractionDocumentStatus
 	batch            *batchExtraction
 	imported         bool
+	adoptedProvider  bool
 	dataDir          string
 	dataRev          *core.Signal[int]
 	bridge           *agentbridge.Server
@@ -145,6 +146,17 @@ func open(cx *core.Scope, log *platform.Logger) (*Session, error) {
 	if err := s.reload(ctx); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("read workspace data: %w", err)
+	}
+	if s.imported {
+		if adoptLegacyProvider(ctx, db, &s.settings) {
+			if err := prefs.Save(s.prefsPath, s.settings); err != nil {
+				log.Warn("save imported provider settings failed", "err", err)
+			} else {
+				s.adoptedProvider = true
+				log.Info("adopted legacy provider", "provider", s.settings.LLMProvider,
+					"model", s.settings.LLMModel)
+			}
+		}
 	}
 	log.Info("workspace loaded", "organization", s.organization != nil, "sites", len(s.sites),
 		"periods", len(s.periods), "sources", len(s.sources), "activities", len(s.activities))

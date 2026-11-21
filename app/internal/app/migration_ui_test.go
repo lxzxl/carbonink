@@ -1,11 +1,14 @@
 package app
 
 import (
+	"context"
 	"io"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"app.carbonink.desktop/internal/store"
 
 	"github.com/nsgo-dev/nsgo/core"
 	"github.com/nsgo-dev/nsgo/nsgotest"
@@ -20,6 +23,17 @@ func TestMigrationCardFromLegacyWorkspace(t *testing.T) {
 		t.Fatal(err)
 	}
 	fixture := fixtureDB(t)
+	db, err := store.Open(context.Background(), fixture)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := db.SetSetting(context.Background(), "llm.provider",
+		`{"provider":"deepseek","model":"deepseek-chat"}`); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
 	for _, suffix := range []string{"", "-wal", "-shm"} {
 		copyFile(t, fixture+suffix, filepath.Join(legacy, "app.sqlite"+suffix))
 	}
@@ -48,7 +62,20 @@ func TestMigrationCardFromLegacyWorkspace(t *testing.T) {
 	// The sidebar already says "Imported from CarbonInk 1.x", so match on the
 	// card's longer sentence.
 	ui.WaitFor("text:this workspace now lives in the new data folder", 3*time.Second)
+	if got := ui.Find("id:settings-llm-model").Text; got != "deepseek-chat" {
+		t.Fatalf("model field = %q, want the imported deepseek-chat", got)
+	}
+	if got := ui.Find("id:settings-llm-base-url").Text; got != "https://api.deepseek.com/v1" {
+		t.Fatalf("base URL field = %q, want the DeepSeek preset", got)
+	}
+	ui.WaitFor("text:The AI provider setting was imported from 1.x", 3*time.Second)
 	ui.WaitFor("text:CarbonInk 1.x data folder:", 3*time.Second)
+
+	// Entering the key is the one manual step; the reminder goes away with it.
+	ui.Type("id:settings-llm-key", "sk-test-12345")
+	ui.Press("id:settings-llm-save")
+	ui.WaitFor("text:Settings saved", 3*time.Second)
+	ui.WaitForGone("text:The AI provider setting was imported from 1.x", 3*time.Second)
 }
 
 func copyFile(t *testing.T, src, dst string) {

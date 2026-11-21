@@ -324,6 +324,12 @@ func (s *Session) aiProviderCard(cx *core.Scope) core.Node {
 			}},
 		field(locales.SettingsProviderBaseUrlLabelAdvanced,
 			ui.Input{Value: baseURL.Get, OnChange: baseURL.Set, TestID: "settings-llm-base-url"}),
+		core.Show{When: func() bool { return s.adoptedProvider && !keySaved.Get() },
+			Then: func(cx *core.Scope) core.Node {
+				return core.Text{Content: locales.SettingsMigrationProviderImported(cx),
+					Style:     core.Style{FontSize: 12},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Accent)}
+			}},
 		field(locales.SettingsApikeyLabel,
 			ui.Input{Value: key.Get, OnChange: key.Set, Masked: true,
 				Placeholder: locales.SettingsApikeyPlaceholder(cx), TestID: "settings-llm-key"}),

@@ -1197,6 +1197,7 @@ settingsMigrationCurrentPath: 'Current data folder: {path}'
 settingsMigrationImported: Imported from CarbonInk 1.x — this workspace now lives in the new data folder.
 settingsMigrationLegacyPath: 'CarbonInk 1.x data folder: {path}'
 settingsMigrationNone: No CarbonInk 1.x data folder was found on this computer.
+settingsMigrationProviderImported: The AI provider setting was imported from 1.x. Re-enter the API key in AI provider above to keep using document extraction.
 settingsMigrationRevealCurrent: Reveal current folder
 settingsMigrationRevealLegacy: Reveal 1.x folder
 settingsMigrationTitle: Migration from CarbonInk 1.x

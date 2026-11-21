@@ -1196,6 +1196,7 @@ settingsMigrationCurrentPath: 当前数据目录：{path}
 settingsMigrationImported: 已从 CarbonInk 1.x 导入——这个账套现在存放在新的数据目录中。
 settingsMigrationLegacyPath: CarbonInk 1.x 数据目录：{path}
 settingsMigrationNone: 这台电脑上没有找到 CarbonInk 1.x 数据目录。
+settingsMigrationProviderImported: 已从 1.x 导入 AI 提供商设置。请在上方 AI 提供商中重新输入 API 密钥，以便继续使用文档提取。
 settingsMigrationRevealCurrent: 打开当前目录
 settingsMigrationRevealLegacy: 打开 1.x 目录
 settingsMigrationTitle: 从 CarbonInk 1.x 迁移
