@@ -1737,7 +1737,8 @@ func dataEFLabel(ef store.EmissionFactor) string {
 // auditScreen lists the append-only audit trail. Payloads are formatted for
 // reading but never interpreted as instructions; the store already keeps
 // free-text notes out of them.
-func (s *Session) auditScreen(cx *core.Scope, dataRev *core.Signal[int]) core.Node {
+func (s *Session) auditScreen(cx *core.Scope, dataRev *core.Signal[int],
+	openActivity func(string)) core.Node {
 	if s.organization == nil {
 		return s.onboardingScreen(cx, dataRev)
 	}
@@ -1746,20 +1747,24 @@ func (s *Session) auditScreen(cx *core.Scope, dataRev *core.Signal[int]) core.No
 	until := core.NewSignal(cx, "")
 	limit := core.NewSignal(cx, 100)
 	status := core.NewSignal(cx, "")
+	rawRev := core.NewSignal(cx, 0)
+	rawOpen := map[string]bool{}
 	return core.Scroll{
 		Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
 		Children: []core.Node{core.View{
 			Style: core.Style{Padding: core.All(16), Gap: 12, MaxWidth: core.Pt(980), AlignSelf: core.AlignStretch},
 			Children: []core.Node{core.Dynamic(func(cx *core.Scope) core.Node {
 				_ = dataRev.Get()
-				return s.auditBody(cx, kind, since, until, limit, status)
+				_ = rawRev.Get()
+				return s.auditBody(cx, kind, since, until, limit, status, rawOpen, rawRev, openActivity)
 			})},
 		}},
 	}
 }
 
 func (s *Session) auditBody(cx *core.Scope, kind *core.Signal[string], since *core.Signal[string],
-	until *core.Signal[string], limit *core.Signal[int], status *core.Signal[string]) core.Node {
+	until *core.Signal[string], limit *core.Signal[int], status *core.Signal[string],
+	rawOpen map[string]bool, rawRev *core.Signal[int], openActivity func(string)) core.Node {
 	page := limit.Get()
 	datesOK := auditDatesOK(since.Get(), until.Get())
 	var events []store.AuditEvent
@@ -1775,19 +1780,7 @@ func (s *Session) auditBody(cx *core.Scope, kind *core.Signal[string], since *co
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)})
 	}
 	for _, event := range events {
-		payload := dataAuditPayload(event.Payload)
-		children := []core.Node{
-			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8}, Children: []core.Node{
-				ui.Badge{Text: dataAuditKind(cx, event.Kind), Variant: ui.BadgeNeutral},
-				core.Text{Content: event.OccurredAt, Style: core.Style{FontSize: 11},
-					StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
-			}},
-		}
-		if payload != "" {
-			children = append(children, core.Text{Content: payload,
-				Style:     core.Style{FontSize: 11, FontFamily: core.FontMonospace},
-				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 12})
-		}
+		children := []core.Node{s.auditEventBody(cx, event, rawOpen, rawRev, openActivity)}
 		rows = append(rows, core.View{
 			Style: core.Style{Gap: 4, Padding: core.Symmetric(9, 0),
 				Borders: core.Edges{Bottom: 1}},
@@ -1900,6 +1893,144 @@ func auditDatesOK(since, until string) bool {
 		}
 	}
 	return true
+}
+
+// auditEventBody renders one audit row. Rebind events get a structured card;
+// every other kind keeps the pretty-printed payload visible.
+func (s *Session) auditEventBody(cx *core.Scope, event store.AuditEvent,
+	rawOpen map[string]bool, rawRev *core.Signal[int], openActivity func(string)) core.Node {
+	header := core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8},
+		Children: []core.Node{
+			ui.Badge{Text: dataAuditKind(cx, event.Kind), Variant: ui.BadgeNeutral},
+			core.Text{Content: event.OccurredAt, Style: core.Style{FontSize: 11},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
+		}}
+	payload := dataAuditPayload(event.Payload)
+	if event.Kind != "activity_rebind_ef" {
+		children := []core.Node{header}
+		if payload != "" {
+			children = append(children, core.Text{Content: payload,
+				Style:     core.Style{FontSize: 11, FontFamily: core.FontMonospace},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 12})
+		}
+		return core.View{Style: core.Style{Gap: 4}, Children: children}
+	}
+
+	var rebind auditRebindPayload
+	if err := json.Unmarshal([]byte(event.Payload), &rebind); err != nil || rebind.ActivityID == "" {
+		return core.View{Style: core.Style{Gap: 4}, Children: []core.Node{
+			header,
+			core.Text{Content: locales.AuditMalformedPayload(cx), Style: core.Style{FontSize: 12},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)},
+			core.Text{Content: payload, Style: core.Style{FontSize: 11, FontFamily: core.FontMonospace},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 12},
+		}}
+	}
+
+	short := rebind.ActivityID
+	if len(short) > 8 {
+		short = short[:8]
+	}
+	delta := rebind.NewCO2e - rebind.OldCO2e
+	percent := 0.0
+	if rebind.OldCO2e != 0 {
+		percent = delta / rebind.OldCO2e * 100
+	}
+	toggle := func() {
+		rawOpen[event.ID] = !rawOpen[event.ID]
+		rawRev.Set(rawRev.Get() + 1)
+	}
+	details := []core.Node{
+		header,
+		ui.Button{Text: locales.AuditRebindActivityLabel(cx) + " #" + short,
+			Variant: ui.ButtonSecondary, TestID: "audit-rebind-activity-" + event.ID,
+			OnPress: func() { openActivity(rebind.ActivityID) }},
+		core.Text{Content: s.auditEFName(rebind.OldEF) + " → " +
+			s.auditEFName(rebind.NewEF), Style: core.Style{FontSize: 12, FontWeight: ui.Semibold}},
+		core.Text{Content: locales.AuditRebindDelta(cx, auditNumber(rebind.OldCO2e),
+			auditNumber(rebind.NewCO2e), auditSigned(delta), auditSigned(percent)),
+			Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+		core.Show{When: func() bool { return rawOpen[event.ID] },
+			Then: func(cx *core.Scope) core.Node {
+				return ui.Button{Text: locales.AuditHideRaw(cx), Variant: ui.ButtonSecondary,
+					TestID: "audit-raw-" + event.ID, OnPress: toggle}
+			},
+			Else: func(cx *core.Scope) core.Node {
+				return ui.Button{Text: locales.AuditShowRaw(cx), Variant: ui.ButtonSecondary,
+					TestID: "audit-raw-" + event.ID, OnPress: toggle}
+			}},
+	}
+	if rawOpen[event.ID] {
+		details = append(details, core.Text{Content: payload,
+			Style:     core.Style{FontSize: 11, FontFamily: core.FontMonospace},
+			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 12})
+	}
+	return core.View{
+		TestID: "audit-rebind-" + event.ID,
+		Style:  core.Style{Gap: 6, Padding: core.All(10), CornerRadius: 8, BorderWidth: 1},
+		StyleFunc: func() core.Style {
+			return core.Style{Background: ui.ColorsOf(cx).Inset(), BorderColor: ui.ColorsOf(cx).Line()}
+		},
+		Children: details,
+	}
+}
+
+// auditRebindPayload mirrors the JSON written by the activity update path.
+type auditRebindPayload struct {
+	ActivityID string     `json:"activity_id"`
+	OldEF      auditEFRef `json:"old_ef"`
+	NewEF      auditEFRef `json:"new_ef"`
+	OldCO2e    float64    `json:"old_computed_co2e_kg"`
+	NewCO2e    float64    `json:"new_computed_co2e_kg"`
+}
+
+type auditEFRef struct {
+	FactorCode     string `json:"factor_code"`
+	Year           int    `json:"year"`
+	Source         string `json:"source"`
+	Geography      string `json:"geography"`
+	DatasetVersion string `json:"dataset_version"`
+}
+
+func (r auditEFRef) key() store.EmissionFactorKey {
+	return store.EmissionFactorKey{
+		FactorCode: r.FactorCode, Year: r.Year, Source: r.Source,
+		Geography: r.Geography, DatasetVersion: r.DatasetVersion,
+	}
+}
+
+// auditEFName resolves a composite key to the user-facing factor name.
+func (s *Session) auditEFName(ref auditEFRef) string {
+	name := ref.FactorCode
+	if ef, err := s.db.EmissionFactorByKey(context.Background(), ref.key()); err == nil && ef != nil {
+		switch {
+		case ef.NameZH != "":
+			name = ef.NameZH
+		case ef.NameEN != "":
+			name = ef.NameEN
+		case ef.FactorCode != "":
+			name = ef.FactorCode
+		}
+	}
+	return fmt.Sprintf("%s (%d)", name, ref.Year)
+}
+
+// auditNumber formats a CO2e value with at most one decimal, grouped.
+func auditNumber(v float64) string {
+	s := commaFloat(v)
+	s = strings.TrimSuffix(s, "0")
+	s = strings.TrimSuffix(s, "0")
+	return strings.TrimSuffix(s, ".")
+}
+
+// auditSigned formats a delta with an explicit sign, grouped.
+func auditSigned(v float64) string {
+	sign := "+"
+	if v < 0 {
+		sign = "-"
+		v = -v
+	}
+	return sign + auditNumber(v)
 }
 
 func auditCSV(events []store.AuditEvent) ([]byte, error) {

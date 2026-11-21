@@ -77,6 +77,9 @@ type Session struct {
 	log              *platform.Logger
 	undo             *undo.Manager
 	undoStatus       *core.Signal[string]
+	// pendingActivity is a cross-screen jump target; the activities table
+	// consumes it on its next build and clears it.
+	pendingActivity string
 }
 
 // Root opens the active workspace and returns the shell. It is the app's
@@ -371,7 +374,12 @@ func (s *Session) view(cx *core.Scope) core.Node {
 		core.Show{When: func() bool { return active.Get() == ScreenReports },
 			Then: func(cx *core.Scope) core.Node { return s.reportsScreen(cx, dataRev, active) }},
 		core.Show{When: func() bool { return active.Get() == ScreenAudit },
-			Then: func(cx *core.Scope) core.Node { return s.auditScreen(cx, dataRev) }},
+			Then: func(cx *core.Scope) core.Node {
+				return s.auditScreen(cx, dataRev, func(id string) {
+					s.pendingActivity = id
+					active.Set(ScreenActivities)
+				})
+			}},
 		core.Show{When: func() bool { return active.Get() == ScreenSettings },
 			Then: func(cx *core.Scope) core.Node { return s.settingsScreen(cx) }},
 		core.Show{When: func() bool {
@@ -479,8 +487,22 @@ func errorView(cx *core.Scope, err error) core.Node {
 
 func (s *Session) activitiesScreen(cx *core.Scope, dataRev *core.Signal[int]) core.Node {
 	sortBy := core.NewSignal(cx, datatable.Sort{Key: "date", Descending: true})
-	selected := core.NewSignal(cx, datatable.NoTableSelection)
-	selectedID := core.NewSignal(cx, "")
+	initialSelection := datatable.NoTableSelection
+	initialID := ""
+	if jump := s.pendingActivity; jump != "" {
+		s.pendingActivity = ""
+		all := s.activities
+		sortRows(all, sortBy.Get())
+		for i := range all {
+			if all[i].ID == jump {
+				initialSelection = datatable.Selection{Row: i, Column: -1}
+				initialID = jump
+				break
+			}
+		}
+	}
+	selected := core.NewSignal(cx, initialSelection)
+	selectedID := core.NewSignal(cx, initialID)
 	lineagePanel := newLineagePanel(cx)
 	rows := func() []store.Activity {
 		_ = dataRev.Get()
@@ -561,6 +583,7 @@ func (s *Session) activitiesScreen(cx *core.Scope, dataRev *core.Signal[int]) co
 							selectedID.Set("")
 						}
 					},
+					Selection: selected.Get,
 					Empty: core.View{Style: core.Style{FlexGrow: 1, AlignItems: core.AlignCenter, JustifyContent: core.JustifyCenter},
 						Children: []core.Node{
 							core.Text{ContentFunc: func() string { return locales.ActivitiesEmpty(cx) },
