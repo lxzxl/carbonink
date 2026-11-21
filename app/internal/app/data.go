@@ -528,7 +528,7 @@ func (s *Session) sourcesScreen(cx *core.Scope, dataRev *core.Signal[int]) core.
 			Children: []core.Node{core.Dynamic(func(cx *core.Scope) core.Node {
 				_ = dataRev.Get()
 				return s.sourcesBody(cx, dataRev)
-			})},
+			}), s.efLibraryBody(cx, dataRev)},
 		}},
 	}
 }

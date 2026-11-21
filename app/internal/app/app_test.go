@@ -12,6 +12,7 @@ import (
 
 	"github.com/nsgo-dev/nsgo/core"
 	"github.com/nsgo-dev/nsgo/nsgotest"
+	"github.com/xuri/excelize/v2"
 )
 
 func TestMain(m *testing.M) {
@@ -125,6 +126,95 @@ func TestImportActivitiesThroughUI(t *testing.T) {
 	ui.Press("id:activity-import-done")
 	ui.WaitFor("text:5.59", 3*time.Second)
 	ui.WaitFor("text:11.17", 3*time.Second)
+}
+
+// TestImportEFLibraryThroughUI downloads the template, imports a factor
+// library from CSV, and proves the new factor reaches the activity picker.
+func TestImportEFLibraryThroughUI(t *testing.T) {
+	dbPath := fixtureDB(t)
+	t.Setenv("CARBONINK_TEST_DB", dbPath)
+	dir := t.TempDir()
+	csvPath := filepath.Join(dir, "factors.csv")
+	const library = "name_en,scope,year,input_unit,co2e_kg_per_unit,category,geography,gwp_basis\n" +
+		"Test factor,2,2024,kWh,0.42,electricity.grid,CN,AR6\n"
+	if err := os.WriteFile(csvPath, []byte(library), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	templatePath := filepath.Join(dir, "template.xlsx")
+	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
+		nsgotest.Environment(core.Environment{Locale: "en-US"}))
+	ui.PickFiles = func(core.FilesRequest) []core.File {
+		return []core.File{{Name: "factors.csv", Path: csvPath}}
+	}
+	ui.SaveFile = func(core.SaveRequest) string { return templatePath }
+
+	ui.Press("id:nav:sources")
+	ui.WaitFor("id:ef-library-import", 3*time.Second)
+	ui.Press("id:ef-library-import")
+	ui.WaitFor("id:ef-import-dialog", 2*time.Second)
+	ui.Press("id:ef-template")
+	ui.WaitFor("text:Template saved", 3*time.Second)
+	workbook, err := excelize.OpenFile(templatePath)
+	if err != nil {
+		t.Fatalf("template: %v", err)
+	}
+	headers, err := workbook.GetRows(workbook.GetSheetName(0))
+	if err != nil {
+		t.Fatalf("template rows: %v", err)
+	}
+	if index, err := workbook.GetSheetIndex("说明 notes"); err != nil || index < 0 {
+		t.Errorf("template is missing the notes sheet")
+	}
+	workbook.Close()
+	if len(headers) == 0 || !strings.Contains(strings.Join(headers[0], ","), "co2e_kg_per_unit") {
+		t.Fatalf("template headers = %v", headers)
+	}
+
+	ui.Press("id:ef-import-pick")
+	ui.WaitFor("text:1 rows", 3*time.Second)
+	ui.Type("id:ef-import-name", "Test library")
+	ui.Press("id:ef-import-run")
+	ui.WaitFor("text:Imported 1 factors", 3*time.Second)
+	ui.Press("id:ef-import-cancel")
+	ui.WaitFor("text:Test library", 3*time.Second)
+
+	ctx := context.Background()
+	check, err := store.Open(ctx, dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer check.Close()
+	var count int
+	if err := check.DB().QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM emission_factor WHERE source = 'user:Test library'`).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 1 {
+		t.Errorf("imported factors = %d, want 1", count)
+	}
+
+	ui.Press("id:nav:activities")
+	ui.WaitFor("id:activities-table", 3*time.Second)
+	ui.Press("id:activity-add")
+	ui.WaitFor("id:activity-dialog", 2*time.Second)
+	ui.Press("id:activity-ef")
+	ui.WaitFor("id:activity-ef >> text:EF-00001", 3*time.Second)
+	ui.Press("id:activity-ef-0")
+	ui.Press("id:activity-cancel")
+
+	ui.Press("id:nav:sources")
+	ui.WaitFor("text:Delete library", 3*time.Second)
+	ui.Press("text:Delete library")
+	ui.WaitFor("id:ef-library-delete-dialog", 2*time.Second)
+	ui.Press("id:ef-library-delete-confirm")
+	ui.WaitForGone("text:Test library", 3*time.Second)
+	if err := check.DB().QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM emission_factor WHERE source = 'user:Test library'`).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 0 {
+		t.Errorf("factors after delete = %d, want 0", count)
+	}
 }
 
 // TestAuditExportThroughUI writes the filtered audit log to CSV through the
