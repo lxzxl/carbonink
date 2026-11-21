@@ -176,6 +176,7 @@ var Parameters = map[string][]string{
 	"SettingsSkillWillInstallTo":              {"hosts"},
 	"SourcesCatalogBatchAdd":                  {"count"},
 	"SourcesCatalogBatchAddSuccess":           {"count"},
+	"SourcesCatalogCount":                     {"shown", "total"},
 	"SourcesCatalogSelectAll":                 {"count"},
 	"SourcesCatalogSelectedCount":             {"count"},
 	"SourcesFormCategoryCustom":               {"query"},
@@ -333,6 +334,7 @@ type Translation struct {
 	SettingsSkillWillInstallTo              func(hosts string) string
 	SourcesCatalogBatchAdd                  func(count string) string
 	SourcesCatalogBatchAddSuccess           func(count string) string
+	SourcesCatalogCount                     func(shown string, total string) string
 	SourcesCatalogSelectAll                 func(count string) string
 	SourcesCatalogSelectedCount             func(count string) string
 	SourcesFormCategoryCustom               func(query string) string
@@ -1463,6 +1465,7 @@ const (
 	textSourcesCatalogCategoryAll
 	textSourcesCatalogDeselectAll
 	textSourcesCatalogEmpty
+	textSourcesCatalogLoadMore
 	textSourcesCatalogNoResults
 	textSourcesCatalogNoSite
 	textSourcesCatalogScope1
@@ -2652,6 +2655,7 @@ var keyOfText = [numTexts]string{
 	"sourcesCatalogCategoryAll",
 	"sourcesCatalogDeselectAll",
 	"sourcesCatalogEmpty",
+	"sourcesCatalogLoadMore",
 	"sourcesCatalogNoResults",
 	"sourcesCatalogNoSite",
 	"sourcesCatalogScope1",
@@ -3839,6 +3843,7 @@ var textsEn = i18n.NewTexts(""+
 	"All categories"+
 	"Clear selection"+
 	"Catalog is empty."+
+	"Load more"+
 	"No matching emission sources"+
 	"Create a site first."+
 	"Scope 1 — Direct emissions"+
@@ -5023,6 +5028,7 @@ var textsEn = i18n.NewTexts(""+
 		14,
 		15,
 		17,
+		9,
 		28,
 		20,
 		28,
@@ -6210,6 +6216,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"全部类别"+
 	"取消全选"+
 	"目录暂无内容。"+
+	"加载更多"+
 	"未找到匹配的排放源"+
 	"请先创建一个 Site。"+
 	"范围 1 — 直接排放"+
@@ -7394,6 +7401,7 @@ var textsZhCN = i18n.NewTexts(""+
 		12,
 		12,
 		21,
+		12,
 		27,
 		26,
 		25,
@@ -7923,6 +7931,9 @@ func Supply(lang string, t Translation) {
 	}
 	if t.SourcesCatalogBatchAddSuccess != nil {
 		s.SourcesCatalogBatchAddSuccess = t.SourcesCatalogBatchAddSuccess
+	}
+	if t.SourcesCatalogCount != nil {
+		s.SourcesCatalogCount = t.SourcesCatalogCount
 	}
 	if t.SourcesCatalogSelectAll != nil {
 		s.SourcesCatalogSelectAll = t.SourcesCatalogSelectAll
@@ -20357,6 +20368,30 @@ func (msgs Messages) SourcesCatalogCategoryAll() string {
 	return msgs.text(textSourcesCatalogCategoryAll)
 }
 
+// SourcesCatalogCount says "{shown} of {total}"
+// in the language the app shows under cx.
+func SourcesCatalogCount(cx *core.Scope, shown string, total string) string {
+	return For(cx).SourcesCatalogCount(shown, total)
+}
+
+// SourcesCatalogCount is the package's SourcesCatalogCount in the language of msgs.
+func (msgs Messages) SourcesCatalogCount(shown string, total string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SourcesCatalogCount(shown, total))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SourcesCatalogCount; f != nil {
+			return f(shown, total)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(shown) + " of " + msgs.arg(total)
+		case "zh-CN":
+			return shown + " / " + total
+		}
+	}
+}
+
 // SourcesCatalogDeselectAll says "Clear selection"
 // in the language the app shows under cx.
 func SourcesCatalogDeselectAll(cx *core.Scope) string { return For(cx).SourcesCatalogDeselectAll() }
@@ -20372,6 +20407,13 @@ func SourcesCatalogEmpty(cx *core.Scope) string { return For(cx).SourcesCatalogE
 
 // SourcesCatalogEmpty is the package's SourcesCatalogEmpty in the language of msgs.
 func (msgs Messages) SourcesCatalogEmpty() string { return msgs.text(textSourcesCatalogEmpty) }
+
+// SourcesCatalogLoadMore says "Load more"
+// in the language the app shows under cx.
+func SourcesCatalogLoadMore(cx *core.Scope) string { return For(cx).SourcesCatalogLoadMore() }
+
+// SourcesCatalogLoadMore is the package's SourcesCatalogLoadMore in the language of msgs.
+func (msgs Messages) SourcesCatalogLoadMore() string { return msgs.text(textSourcesCatalogLoadMore) }
 
 // SourcesCatalogNoResults says "No matching emission sources"
 // in the language the app shows under cx.

@@ -476,6 +476,81 @@ func TestCreateSourceWithCustomCategory(t *testing.T) {
 	}
 }
 
+// TestAddSourcesFromCatalog proves the bundled preset catalog writes the
+// taxonomy code and EF prefix rather than the Climatiq category, keeps the
+// preset id as provenance, and hides what is already in the organization.
+func TestAddSourcesFromCatalog(t *testing.T) {
+	dbPath := fixtureDB(t)
+	t.Setenv("CARBONINK_TEST_DB", dbPath)
+	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
+		nsgotest.Environment(core.Environment{Locale: "en-US"}))
+	ui.Press("id:nav:sources")
+	ui.WaitFor("id:source-catalog", 2*time.Second)
+	ui.Press("id:source-catalog")
+	ui.WaitFor("id:source-catalog-dialog", 2*time.Second)
+
+	const gridID = "electricity-supply_grid-source_supplier_mix"
+	ui.Type("id:source-catalog-search", "Electricity supplied from grid")
+	ui.WaitFor("id:source-catalog-item-"+gridID, 2*time.Second)
+	ui.Press("id:source-catalog-item-" + gridID)
+	ui.WaitFor("text:1 selected", 2*time.Second)
+
+	ui.Clear("id:source-catalog-search")
+	ui.Type("id:source-catalog-search", "Flight outside UK economy class - without RF effect")
+	const flightID = "passenger_flight-route_type_outside_uk-aircraft_type_na-distance_na-class_economy-rf_excluded-distance_uplift_included"
+	ui.WaitFor("id:source-catalog-item-"+flightID, 2*time.Second)
+	ui.Press("id:source-catalog-item-" + flightID)
+	ui.Press("id:source-catalog-add")
+	ui.WaitFor("text:Electricity supplied from grid", 3*time.Second)
+	ui.WaitFor("text:From BEIS · GB · 2025", 2*time.Second)
+
+	ctx := context.Background()
+	check, err := store.Open(ctx, dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer check.Close()
+	type row struct{ name, category, path, origin string }
+	rows := map[string]row{}
+	result, err := check.DB().QueryContext(ctx,
+		`SELECT name, coalesce(category, ''), coalesce(ghg_protocol_path, ''),
+			coalesce(template_origin, '') FROM emission_source
+		 WHERE template_origin IN (?, ?)`, gridID, flightID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer result.Close()
+	for result.Next() {
+		var r row
+		if err := result.Scan(&r.name, &r.category, &r.path, &r.origin); err != nil {
+			t.Fatal(err)
+		}
+		rows[r.origin] = r
+	}
+	if err := result.Err(); err != nil {
+		t.Fatal(err)
+	}
+	grid := rows[gridID]
+	if grid.name != "Electricity supplied from grid" || grid.category != "electricity" ||
+		grid.path != "scope2.purchased_electricity" {
+		t.Errorf("grid source = %+v", grid)
+	}
+	flight := rows[flightID]
+	if flight.category != "travel" || flight.path != "scope3.cat6_business_travel" {
+		t.Errorf("flight source = %+v", flight)
+	}
+	if !strings.Contains(flight.name, "Flight outside UK") {
+		t.Errorf("flight name = %q", flight.name)
+	}
+
+	// Reopening the catalog marks both as added instead of offering them.
+	ui.Press("id:source-catalog")
+	ui.WaitFor("id:source-catalog-dialog", 2*time.Second)
+	ui.Type("id:source-catalog-search", "Electricity supplied from grid")
+	ui.WaitFor("id:source-catalog-item-"+gridID, 2*time.Second)
+	ui.WaitFor("text:Added", 2*time.Second)
+}
+
 // TestUploadDocumentsThroughUI picks the same PDF twice and proves the
 // Documents screen lists it once while the store keeps a content-addressed
 // copy under the app's data directory.

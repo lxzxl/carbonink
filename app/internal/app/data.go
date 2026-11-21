@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"app.carbonink.desktop/internal/categories"
+	"app.carbonink.desktop/internal/presets"
 	"app.carbonink.desktop/internal/store"
 	"app.carbonink.desktop/locales"
 
@@ -651,22 +652,29 @@ func (s *Session) sourcesBody(cx *core.Scope, dataRev *core.Signal[int]) core.No
 				meta += " · " + part
 			}
 		}
+		texts := []core.Node{
+			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 6}, Children: []core.Node{
+				core.Text{Content: src.Name, Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}, MaxLines: 1},
+				ui.Badge{Text: dataScopeLabel(cx, src.Scope), Variant: ui.BadgeNeutral},
+				core.Text{Content: active, Style: core.Style{FontSize: 11},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
+			}},
+			core.Text{Content: meta,
+				Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
+		}
+		if preset, ok := presets.ByID(src.TemplateOrigin); ok {
+			origin := strings.Join([]string{preset.Source, preset.Region, strconv.Itoa(preset.Year)}, " · ")
+			texts = append(texts, core.Text{Content: locales.SourcesFromCatalog(cx, origin),
+				Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint), MaxLines: 1})
+		}
 		rows = append(rows, core.View{
 			Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 10,
 				Padding: core.Symmetric(9, 0), Borders: core.Edges{Bottom: 1}},
 			StyleFunc: func() core.Style { return core.Style{BorderColor: ui.ColorsOf(cx).Line()} },
 			Children: []core.Node{
 				ui.Icon(lucide.Factory, 15, ui.ColorsOf(cx).Muted),
-				core.View{Style: core.Style{Gap: 2, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)}, Children: []core.Node{
-					core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 6}, Children: []core.Node{
-						core.Text{Content: src.Name, Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}, MaxLines: 1},
-						ui.Badge{Text: dataScopeLabel(cx, src.Scope), Variant: ui.BadgeNeutral},
-						core.Text{Content: active, Style: core.Style{FontSize: 11},
-							StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
-					}},
-					core.Text{Content: meta,
-						Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
-				}},
+				core.View{Style: core.Style{Gap: 2, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
+					Children: texts},
 				s.sourceDialog(cx, &s.sources[i], dataRev, "source-edit-"+src.ID),
 			},
 		})
@@ -686,6 +694,7 @@ func (s *Session) sourcesBody(cx *core.Scope, dataRev *core.Signal[int]) core.No
 		header = append(header, core.Text{Content: locales.SourcesCatalogNoSite(cx), Style: core.Style{FontSize: 12},
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)})
 	} else {
+		header = append(header, s.sourceCatalogDialog(cx, dataRev))
 		header = append(header, s.sourceDialog(cx, nil, dataRev, "source-add"))
 	}
 	return dataCard(cx,

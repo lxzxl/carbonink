@@ -446,6 +446,51 @@ func (s *Store) CreateSource(ctx context.Context, in SourceInput) (*EmissionSour
 	return s.sourceByID(ctx, id)
 }
 
+// CreateSources inserts a batch atomically, so adding from the preset catalog
+// either lands every selected source or none. Returns rows in input order.
+func (s *Store) CreateSources(ctx context.Context, inputs []SourceInput) ([]*EmissionSource, error) {
+	if len(inputs) == 0 {
+		return nil, nil
+	}
+	normalized := make([]SourceInput, len(inputs))
+	for i, in := range inputs {
+		src, err := normalizeSource(in)
+		if err != nil {
+			return nil, fmt.Errorf("source %d: %w", i+1, err)
+		}
+		normalized[i] = src
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	ids := make([]string, len(normalized))
+	for i, src := range normalized {
+		id := newID()
+		ids[i] = id
+		if _, err := tx.ExecContext(ctx, `INSERT INTO emission_source
+			(id, site_id, name, scope, category, ghg_protocol_path, default_ef_query, template_origin, is_active)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`, id, src.SiteID, src.Name, src.Scope,
+			nullIfEmpty(src.Category), nullIfEmpty(src.GHGProtocolPath), nullIfEmpty(src.DefaultEFQuery),
+			nullIfEmpty(src.TemplateOrigin)); err != nil {
+			return nil, err
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	out := make([]*EmissionSource, 0, len(ids))
+	for _, id := range ids {
+		src, err := s.sourceByID(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, src)
+	}
+	return out, nil
+}
+
 // UpdateSource replaces the editable source fields.
 func (s *Store) UpdateSource(ctx context.Context, id string, in SourcePatch) error {
 	name := strings.TrimSpace(in.Name)

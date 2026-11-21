@@ -1250,8 +1250,10 @@ sourcesCatalogBatchAddPending: Adding…
 sourcesCatalogBatchAddSuccess: Added {count} emission sources
 sourcesCatalogButton: Add from catalog
 sourcesCatalogCategoryAll: All categories
+sourcesCatalogCount: '{shown} of {total}'
 sourcesCatalogDeselectAll: Clear selection
 sourcesCatalogEmpty: Catalog is empty.
+sourcesCatalogLoadMore: Load more
 sourcesCatalogNoResults: No matching emission sources
 sourcesCatalogNoSite: Create a site first.
 sourcesCatalogScope1: Scope 1 — Direct emissions

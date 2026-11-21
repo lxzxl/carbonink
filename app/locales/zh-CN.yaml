@@ -1249,8 +1249,10 @@ sourcesCatalogBatchAddPending: 添加中…
 sourcesCatalogBatchAddSuccess: 已加入 {count} 个排放源
 sourcesCatalogButton: 从目录添加
 sourcesCatalogCategoryAll: 全部类别
+sourcesCatalogCount: '{shown} / {total}'
 sourcesCatalogDeselectAll: 取消全选
 sourcesCatalogEmpty: 目录暂无内容。
+sourcesCatalogLoadMore: 加载更多
 sourcesCatalogNoResults: 未找到匹配的排放源
 sourcesCatalogNoSite: 请先创建一个 Site。
 sourcesCatalogScope1: 范围 1 — 直接排放

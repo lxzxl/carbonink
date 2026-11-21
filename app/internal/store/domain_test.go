@@ -470,3 +470,46 @@ func keyOf(ef EmissionFactor) EmissionFactorKey {
 		Geography: ef.Geography, DatasetVersion: ef.DatasetVersion,
 	}
 }
+
+func TestCreateSourcesInsertsBatchAtomically(t *testing.T) {
+	s, ctx := openFixture(t)
+	_, site, _ := onboard(t, s, ctx)
+	rows, err := s.CreateSources(ctx, []SourceInput{
+		{SiteID: site.ID, Name: "Grid electricity", Scope: 2, Category: "electricity",
+			GHGProtocolPath: "scope2.purchased_electricity", TemplateOrigin: "preset-grid"},
+		{SiteID: site.ID, Name: "Business travel", Scope: 3, Category: "travel",
+			GHGProtocolPath: "scope3.cat6_business_travel", TemplateOrigin: "preset-travel"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 2 || rows[0].Name != "Grid electricity" || rows[1].Name != "Business travel" {
+		t.Fatalf("rows = %+v", rows)
+	}
+	if rows[0].Category != "electricity" || rows[1].Category != "travel" {
+		t.Errorf("EF categories = %q, %q", rows[0].Category, rows[1].Category)
+	}
+	if rows[0].GHGProtocolPath != "scope2.purchased_electricity" ||
+		rows[1].GHGProtocolPath != "scope3.cat6_business_travel" {
+		t.Errorf("paths = %q, %q", rows[0].GHGProtocolPath, rows[1].GHGProtocolPath)
+	}
+	if rows[0].TemplateOrigin != "preset-grid" || rows[1].TemplateOrigin != "preset-travel" {
+		t.Errorf("origins = %q, %q", rows[0].TemplateOrigin, rows[1].TemplateOrigin)
+	}
+
+	_, err = s.CreateSources(ctx, []SourceInput{
+		{SiteID: site.ID, Name: "Rolled back", Scope: 1, Category: "fuel.mobile"},
+		{SiteID: "missing-site", Name: "Broken", Scope: 1, Category: "fuel.mobile"},
+	})
+	if err == nil {
+		t.Fatal("batch with an unknown site succeeded")
+	}
+	var count int
+	if err := s.DB().QueryRowContext(ctx,
+		`SELECT count(*) FROM emission_source WHERE name = 'Rolled back'`).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 0 {
+		t.Errorf("partial batch survived: %d rows", count)
+	}
+}
