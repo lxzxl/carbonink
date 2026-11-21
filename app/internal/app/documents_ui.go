@@ -38,6 +38,7 @@ type documentPreview struct {
 
 type documentDetail struct {
 	scope         *core.Scope
+	dataRev       *core.Signal[int]
 	open          *core.Signal[bool]
 	doc           *core.Signal[store.Document]
 	rev           *core.Signal[int]
@@ -56,9 +57,10 @@ type documentDetail struct {
 	pages         int
 }
 
-func newDocumentDetail(cx *core.Scope) *documentDetail {
+func newDocumentDetail(cx *core.Scope, dataRev *core.Signal[int]) *documentDetail {
 	return &documentDetail{
 		scope:      cx,
+		dataRev:    dataRev,
 		open:       core.NewSignal(cx, false),
 		doc:        core.NewSignal(cx, store.Document{}),
 		rev:        core.NewSignal(cx, 0),
@@ -89,7 +91,7 @@ func (s *Session) documentsScreen(cx *core.Scope, dataRev *core.Signal[int]) cor
 	status := core.NewSignal(cx, "")
 	statusFailed := core.NewSignal(cx, false)
 	preview := newDocumentPreview(cx)
-	detail := newDocumentDetail(cx)
+	detail := newDocumentDetail(cx, dataRev)
 	extractionForm := s.newActivityForm(cx, dataRev,
 		func() *store.Activity { return nil },
 		func() *activityPrefill { return detail.prefill },
@@ -191,12 +193,17 @@ func (s *Session) documentRow(cx *core.Scope, document store.Document,
 	actions = append(actions, ui.Button{Text: locales.DocumentsOpenRow(cx), Variant: ui.ButtonGhost,
 		OnPress: func() { s.openDocument(cx, document, status, statusFailed) },
 		TestID:  "documents-open-" + document.ID})
+	chipText, chipVariant := s.documentStatusChip(cx, document.ID)
 	children := []core.Node{
 		ui.Icon(documentIcon(document.MIMEType), 15, ui.ColorsOf(cx).Muted),
 		core.View{Style: core.Style{Gap: 2, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
 			Children: []core.Node{
-				core.Text{Content: document.Filename,
-					Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}, MaxLines: 1},
+				core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 6},
+					Children: []core.Node{
+						core.Text{Content: document.Filename,
+							Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}, MaxLines: 1},
+						ui.Badge{Text: chipText, Variant: chipVariant},
+					}},
 				core.Text{Content: meta, Style: core.Style{FontSize: 11},
 					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
 			}},
@@ -209,6 +216,26 @@ func (s *Session) documentRow(cx *core.Scope, document store.Document,
 		StyleFunc: func() core.Style { return core.Style{BorderColor: ui.ColorsOf(cx).Line()} },
 		Children:  children,
 	}
+}
+
+// documentStatusChip summarizes the document's newest extraction for the
+// list, mirroring 1.x: pending/review_needed read as "Needs review", a
+// confirmed row as "Confirmed", and a fully discarded history as "Discarded".
+func (s *Session) documentStatusChip(cx *core.Scope, documentID string) (string, ui.BadgeVariant) {
+	status, ok := s.extractionStatus[documentID]
+	if !ok {
+		return locales.DocumentsStatusNone(cx), ui.BadgeNeutral
+	}
+	switch status.ActiveStatus {
+	case store.ExtractionParsed:
+		return locales.DocumentsStatusParsed(cx), ui.BadgeAccent
+	case store.ExtractionReviewNeeded, store.ExtractionPending:
+		return locales.DocumentsStatusReviewNeeded(cx), ui.BadgeWarn
+	}
+	if status.HasRejected {
+		return locales.DocumentsStatusRejected(cx), ui.BadgeDanger
+	}
+	return locales.DocumentsStatusNone(cx), ui.BadgeNeutral
 }
 
 func (s *Session) openDocumentPreview(cx *core.Scope, preview *documentPreview, document store.Document) {
@@ -475,6 +502,7 @@ func (s *Session) runDocumentExtraction(cx *core.Scope, detail *documentDetail) 
 				detail.extraction.Set(row)
 				detail.status.Set(locales.DocumentsExtractionDone(detail.scope))
 				detail.failed.Set(false)
+				_ = dataRefresh(s, detail.dataRev)
 			}
 			detail.rev.Set(detail.rev.Get() + 1)
 		})
@@ -508,6 +536,7 @@ func (s *Session) discardDocumentExtraction(cx *core.Scope, detail *documentDeta
 	detail.status.Set(locales.DocumentsReviewDiscardSuccess(cx))
 	detail.failed.Set(false)
 	s.loadLatestExtraction(context.Background(), detail, detail.doc.Get().ID)
+	_ = dataRefresh(s, detail.dataRev)
 	detail.rev.Set(detail.rev.Get() + 1)
 }
 
@@ -517,7 +546,7 @@ func (s *Session) discardDocumentExtraction(cx *core.Scope, detail *documentDeta
 // document stays open.
 func (s *Session) afterExtractionActivity(cx *core.Scope, detail *documentDetail) {
 	ctx := context.Background()
-	if err := s.reload(ctx); err != nil {
+	if err := dataRefresh(s, detail.dataRev); err != nil {
 		detail.status.Set(err.Error())
 		detail.failed.Set(true)
 		detail.rev.Set(detail.rev.Get() + 1)

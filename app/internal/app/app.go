@@ -52,11 +52,14 @@ type Session struct {
 	activities    []store.Activity
 	documents     []store.Document
 	documentTotal int
-	imported      bool
-	dataDir       string
-	prefsPath     string
-	settings      prefs.Settings
-	log           *platform.Logger
+	// extractionStatus is keyed by document id; documents without a row
+	// have no extraction yet.
+	extractionStatus map[string]store.ExtractionDocumentStatus
+	imported         bool
+	dataDir          string
+	prefsPath        string
+	settings         prefs.Settings
+	log              *platform.Logger
 }
 
 // Root opens the active workspace and returns the shell. It is the app's
@@ -146,6 +149,14 @@ func (s *Session) reload(ctx context.Context) error {
 		return err
 	}
 	s.documents, s.documentTotal = documents, documentTotal
+	statuses, err := s.db.ExtractionStatusByDocument(ctx)
+	if err != nil {
+		return err
+	}
+	s.extractionStatus = make(map[string]store.ExtractionDocumentStatus, len(statuses))
+	for _, status := range statuses {
+		s.extractionStatus[status.DocumentID] = status
+	}
 	org, err := s.db.CurrentOrganization(ctx)
 	if err != nil {
 		return err
