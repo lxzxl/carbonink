@@ -213,6 +213,11 @@ colScope: Scope
 colSite: Site
 colSource: Source
 colUnit: Unit
+commandFiles: Files
+commandGoTo: Go to
+commandRevealData: Reveal data directory
+commandRevealWorkspace: Reveal workspace database
+commandSearch: Search commands
 dashboardInventoryBody: No emission data yet.
 dashboardInventoryTitle: Inventory Dashboard
 dashboardMonthlyTrend: Monthly emissions
@@ -238,6 +243,46 @@ dashboardTotalCo2e: Total CO2e
 dashboardWelcomeBody: You haven't set up your organization yet. The onboarding wizard will guide you next.
 dashboardWelcomeTitle: Welcome to CarbonInk
 dashboardWidgetViewAll: View all
+dataActivities: Activity rows
+dataActivitiesCount: '{count} activities'
+dataActivityDeleted: Activity deleted
+dataAddActivity: Add activity
+dataAddPeriod: Add period
+dataAddSite: Add site
+dataAddSource: Add source
+dataCancel: Cancel
+dataCreate: Create
+dataCreateFailed: Could not create.
+dataCreating: Creating…
+dataDeleteActivity: Delete activity
+dataDeleteActivityBody: The ledger row will be removed. The audit log keeps its append-only record.
+dataDeleteActivityTitle: Delete this activity?
+dataDeleteFailed: Could not delete.
+dataEditProfile: Edit profile
+dataEditSource: Edit emission source
+dataNewActivity: New activity
+dataNewPeriod: New reporting period
+dataNewSite: New site
+dataNewSource: New emission source
+dataNoPeriods: No reporting periods yet.
+dataNoSites: No sites yet.
+dataOnboardingBody: CarbonInk needs an organization, one site, and a reporting year before it can record emissions.
+dataOnboardingTitle: Set up your workspace
+dataOpenActivities: Open activities
+dataOrgCard: Organization
+dataOrgProfile: Organization profile
+dataOrgReady: Workspace ready
+dataPeriods: Reporting periods
+dataPeriodsCount: '{count} periods'
+dataRequired: This field is required.
+dataSave: Save
+dataSaveFailed: Could not save.
+dataSaving: Saving…
+dataSiteName: Site name
+dataSites: Sites
+dataSitesCount: '{count} sites'
+dataSources: Emission sources
+dataSourcesCount: '{count} sources'
 documentsAiRequiredBody: Carbonink needs an AI provider to read documents. Set one up in Settings — you'll need an API key from your provider (OpenAI / Anthropic / Azure / DeepSeek, or any OpenAI-compatible endpoint).
 documentsAiRequiredCta: Open Settings
 documentsAiRequiredTitle: AI provider not configured
@@ -1132,12 +1177,6 @@ settingsThemeLight: Light
 settingsThemeSystem: System
 settingsTitle: Settings
 settingsWindowNote: The window frame is saved when you quit.
-
-commandSearch: Search commands
-commandGoTo: Go to
-commandFiles: Files
-commandRevealData: Reveal data directory
-commandRevealWorkspace: Reveal workspace database
 settingsWorkspace: Workspace
 sidebarMcpLabelAvailable: MCP
 sidebarMcpLabelNotBuilt: MCP · Not built

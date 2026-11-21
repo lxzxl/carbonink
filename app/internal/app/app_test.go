@@ -58,6 +58,37 @@ func TestCommandPalette(t *testing.T) {
 	ui.WaitFor("text:Appearance", 2*time.Second)
 }
 
+// TestCreateActivityThroughUI proves the add-activity dialog pins an EF and
+// writes a row the ledger immediately renders.
+func TestCreateActivityThroughUI(t *testing.T) {
+	t.Setenv("CARBONINK_TEST_DB", fixtureDB(t))
+	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
+		nsgotest.Environment(core.Environment{Locale: "en-US"}))
+	ui.WaitFor("id:activities-table", 5*time.Second)
+	ui.Press("id:activity-add")
+	ui.WaitFor("id:activity-dialog", 2*time.Second)
+	ui.Type("id:activity-amount", "100")
+	ui.Type("id:activity-unit", "kWh")
+	ui.Press("id:activity-save")
+	ui.WaitFor("text:100.00", 3*time.Second)
+}
+
+// TestCreateSourceThroughUI proves the Sources page can create a source and
+// then show it in the list.
+func TestCreateSourceThroughUI(t *testing.T) {
+	t.Setenv("CARBONINK_TEST_DB", fixtureDB(t))
+	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
+		nsgotest.Environment(core.Environment{Locale: "en-US"}))
+	ui.Press("id:nav:sources")
+	ui.WaitFor("id:source-add", 2*time.Second)
+	ui.Press("id:source-add")
+	ui.WaitFor("id:source-add-dialog", 2*time.Second)
+	ui.Type("id:source-add-name", "Diesel fleet")
+	ui.Type("id:source-add-category", "fuel.mobile")
+	ui.Press("id:source-add-save")
+	ui.WaitFor("text:Diesel fleet", 3*time.Second)
+}
+
 func fixtureDB(t *testing.T) string {
 	t.Helper()
 	ctx := context.Background()
@@ -91,7 +122,8 @@ func fixtureDB(t *testing.T) string {
 		VALUES ('site', 'org', '上海工厂', 'CN', ?, ?)`, ts, ts)
 	exec(`INSERT INTO reporting_period (id, organization_id, year, granularity, starts_at, ends_at, created_at)
 		VALUES ('period', 'org', 2025, 'annual', '2025-01-01', '2025-12-31', ?)`, ts)
-	exec(`INSERT INTO emission_source (id, site_id, name, scope) VALUES ('src', 'site', '外购电力', 2)`)
+	exec(`INSERT INTO emission_source (id, site_id, name, scope, category)
+		VALUES ('src', 'site', '外购电力', 2, 'electricity.grid')`)
 	exec(`INSERT INTO pinned_emission_factor (factor_code, year, source, geography, dataset_version,
 		scope, input_unit, co2e_kg_per_unit, gwp_basis, pinned_at, pinned_from)
 		VALUES ('ef', 2024, 'MEE', 'CN', '2024', 2, 'kWh', 0.5, 'AR6', ?, 'seed')`, ts)

@@ -15,14 +15,17 @@ func TestMain(m *testing.M) {
 	nsgotest.Main(m)
 }
 
-// TestShellMounts proves the real shell opens a fresh workspace, shows the
-// activity table, and reaches a Phase 2 placeholder.
+// TestShellMounts proves a fresh workspace runs onboarding and then opens the
+// real inventory shell.
 func TestShellMounts(t *testing.T) {
 	app := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}))
 	app.WaitFor("id:shell", 5*time.Second)
-	app.WaitFor("id:activities-table", 5*time.Second)
-	app.WaitFor("text:No activity data yet.", 2*time.Second)
+	app.WaitFor("id:onboarding-org-zh", 5*time.Second)
+	app.Type("id:onboarding-org-zh", "测试组织")
+	app.Type("id:onboarding-site-zh", "上海工厂")
+	app.Press("id:onboarding-submit")
+	app.WaitFor("text:测试组织", 5*time.Second)
 	app.Press("text:Sources")
-	app.WaitFor("text:This screen lands in Phase 2.", 2*time.Second)
+	app.WaitFor("text:No emission sources yet", 2*time.Second)
 }

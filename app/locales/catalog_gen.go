@@ -64,6 +64,10 @@ var Parameters = map[string][]string{
 	"AuditRebindDelta":                        {"old_co2e", "new_co2e", "delta_signed", "pct_signed"},
 	"AuditRebindSummary":                      {"activity_id_short", "old_ef", "new_ef"},
 	"AuditUnknownEventKind":                   {"kind"},
+	"DataActivitiesCount":                     {"count"},
+	"DataPeriodsCount":                        {"count"},
+	"DataSitesCount":                          {"count"},
+	"DataSourcesCount":                        {"count"},
 	"DocumentsBatchButton":                    {"count"},
 	"DocumentsBatchCanceledToast":             {"done", "total"},
 	"DocumentsBatchHint":                      {"count"},
@@ -211,6 +215,10 @@ type Translation struct {
 	AuditRebindDelta                        func(old_co2e string, new_co2e string, delta_signed string, pct_signed string) string
 	AuditRebindSummary                      func(activity_id_short string, old_ef string, new_ef string) string
 	AuditUnknownEventKind                   func(kind string) string
+	DataActivitiesCount                     func(count string) string
+	DataPeriodsCount                        func(count string) string
+	DataSitesCount                          func(count string) string
+	DataSourcesCount                        func(count string) string
 	DocumentsBatchButton                    func(count string) string
 	DocumentsBatchCanceledToast             func(done string, total string) string
 	DocumentsBatchHint                      func(count string) string
@@ -522,6 +530,11 @@ const (
 	textColSite
 	textColSource
 	textColUnit
+	textCommandFiles
+	textCommandGoTo
+	textCommandRevealData
+	textCommandRevealWorkspace
+	textCommandSearch
 	textDashboardInventoryBody
 	textDashboardInventoryTitle
 	textDashboardMonthlyTrend
@@ -547,6 +560,42 @@ const (
 	textDashboardWelcomeBody
 	textDashboardWelcomeTitle
 	textDashboardWidgetViewAll
+	textDataActivities
+	textDataActivityDeleted
+	textDataAddActivity
+	textDataAddPeriod
+	textDataAddSite
+	textDataAddSource
+	textDataCancel
+	textDataCreate
+	textDataCreateFailed
+	textDataCreating
+	textDataDeleteActivity
+	textDataDeleteActivityBody
+	textDataDeleteActivityTitle
+	textDataDeleteFailed
+	textDataEditProfile
+	textDataEditSource
+	textDataNewActivity
+	textDataNewPeriod
+	textDataNewSite
+	textDataNewSource
+	textDataNoPeriods
+	textDataNoSites
+	textDataOnboardingBody
+	textDataOnboardingTitle
+	textDataOpenActivities
+	textDataOrgCard
+	textDataOrgProfile
+	textDataOrgReady
+	textDataPeriods
+	textDataRequired
+	textDataSave
+	textDataSaveFailed
+	textDataSaving
+	textDataSiteName
+	textDataSites
+	textDataSources
 	textDocumentsAiRequiredBody
 	textDocumentsAiRequiredCta
 	textDocumentsAiRequiredTitle
@@ -1335,11 +1384,6 @@ const (
 	textSettingsThemeSystem
 	textSettingsTitle
 	textSettingsWindowNote
-	textCommandSearch
-	textCommandGoTo
-	textCommandFiles
-	textCommandRevealData
-	textCommandRevealWorkspace
 	textSettingsWorkspace
 	textSidebarMcpLabelAvailable
 	textSidebarMcpLabelNotBuilt
@@ -1632,6 +1676,11 @@ var keyOfText = [numTexts]string{
 	"colSite",
 	"colSource",
 	"colUnit",
+	"commandFiles",
+	"commandGoTo",
+	"commandRevealData",
+	"commandRevealWorkspace",
+	"commandSearch",
 	"dashboardInventoryBody",
 	"dashboardInventoryTitle",
 	"dashboardMonthlyTrend",
@@ -1657,6 +1706,42 @@ var keyOfText = [numTexts]string{
 	"dashboardWelcomeBody",
 	"dashboardWelcomeTitle",
 	"dashboardWidgetViewAll",
+	"dataActivities",
+	"dataActivityDeleted",
+	"dataAddActivity",
+	"dataAddPeriod",
+	"dataAddSite",
+	"dataAddSource",
+	"dataCancel",
+	"dataCreate",
+	"dataCreateFailed",
+	"dataCreating",
+	"dataDeleteActivity",
+	"dataDeleteActivityBody",
+	"dataDeleteActivityTitle",
+	"dataDeleteFailed",
+	"dataEditProfile",
+	"dataEditSource",
+	"dataNewActivity",
+	"dataNewPeriod",
+	"dataNewSite",
+	"dataNewSource",
+	"dataNoPeriods",
+	"dataNoSites",
+	"dataOnboardingBody",
+	"dataOnboardingTitle",
+	"dataOpenActivities",
+	"dataOrgCard",
+	"dataOrgProfile",
+	"dataOrgReady",
+	"dataPeriods",
+	"dataRequired",
+	"dataSave",
+	"dataSaveFailed",
+	"dataSaving",
+	"dataSiteName",
+	"dataSites",
+	"dataSources",
 	"documentsAiRequiredBody",
 	"documentsAiRequiredCta",
 	"documentsAiRequiredTitle",
@@ -2445,11 +2530,6 @@ var keyOfText = [numTexts]string{
 	"settingsThemeSystem",
 	"settingsTitle",
 	"settingsWindowNote",
-	"commandSearch",
-	"commandGoTo",
-	"commandFiles",
-	"commandRevealData",
-	"commandRevealWorkspace",
 	"settingsWorkspace",
 	"sidebarMcpLabelAvailable",
 	"sidebarMcpLabelNotBuilt",
@@ -2740,6 +2820,11 @@ var textsEn = i18n.NewTexts(""+
 	"Site"+
 	"Source"+
 	"Unit"+
+	"Files"+
+	"Go to"+
+	"Reveal data directory"+
+	"Reveal workspace database"+
+	"Search commands"+
 	"No emission data yet."+
 	"Inventory Dashboard"+
 	"Monthly emissions"+
@@ -2765,6 +2850,42 @@ var textsEn = i18n.NewTexts(""+
 	"You haven't set up your organization yet. The onboarding wizard will guide you next."+
 	"Welcome to CarbonInk"+
 	"View all"+
+	"Activity rows"+
+	"Activity deleted"+
+	"Add activity"+
+	"Add period"+
+	"Add site"+
+	"Add source"+
+	"Cancel"+
+	"Create"+
+	"Could not create."+
+	"Creating…"+
+	"Delete activity"+
+	"The ledger row will be removed. The audit log keeps its append-only record."+
+	"Delete this activity?"+
+	"Could not delete."+
+	"Edit profile"+
+	"Edit emission source"+
+	"New activity"+
+	"New reporting period"+
+	"New site"+
+	"New emission source"+
+	"No reporting periods yet."+
+	"No sites yet."+
+	"CarbonInk needs an organization, one site, and a reporting year before it can record emissions."+
+	"Set up your workspace"+
+	"Open activities"+
+	"Organization"+
+	"Organization profile"+
+	"Workspace ready"+
+	"Reporting periods"+
+	"This field is required."+
+	"Save"+
+	"Could not save."+
+	"Saving…"+
+	"Site name"+
+	"Sites"+
+	"Emission sources"+
 	"Carbonink needs an AI provider to read documents. Set one up in Settings — you'll need an API key from your provider (OpenAI / Anthropic / Azure / DeepSeek, or any OpenAI-compatible endpoint)."+
 	"Open Settings"+
 	"AI provider not configured"+
@@ -3553,11 +3674,6 @@ var textsEn = i18n.NewTexts(""+
 	"System"+
 	"Settings"+
 	"The window frame is saved when you quit."+
-	"Search commands"+
-	"Go to"+
-	"Files"+
-	"Reveal data directory"+
-	"Reveal workspace database"+
 	"Workspace"+
 	"MCP"+
 	"MCP · Not built"+
@@ -3845,6 +3961,11 @@ var textsEn = i18n.NewTexts(""+
 		4,
 		6,
 		4,
+		5,
+		5,
+		21,
+		25,
+		15,
 		21,
 		19,
 		17,
@@ -3870,6 +3991,42 @@ var textsEn = i18n.NewTexts(""+
 		84,
 		20,
 		8,
+		13,
+		16,
+		12,
+		10,
+		8,
+		10,
+		6,
+		6,
+		17,
+		11,
+		15,
+		75,
+		21,
+		17,
+		12,
+		20,
+		12,
+		20,
+		8,
+		19,
+		25,
+		13,
+		95,
+		21,
+		15,
+		12,
+		20,
+		15,
+		17,
+		23,
+		4,
+		15,
+		9,
+		9,
+		5,
+		16,
 		194,
 		13,
 		26,
@@ -4658,11 +4815,6 @@ var textsEn = i18n.NewTexts(""+
 		6,
 		8,
 		40,
-		15,
-		5,
-		5,
-		21,
-		25,
 		9,
 		3,
 		16,
@@ -4953,6 +5105,11 @@ var textsZhCN = i18n.NewTexts(""+
 	"场所"+
 	"排放源"+
 	"单位"+
+	"文件"+
+	"前往"+
+	"打开数据目录"+
+	"打开账套数据库"+
+	"搜索命令"+
 	"目前没有排放数据。"+
 	"排放清单仪表盘"+
 	"月度排放趋势"+
@@ -4978,6 +5135,42 @@ var textsZhCN = i18n.NewTexts(""+
 	"你还没有设置组织。下一步引导向导会带你完成。"+
 	"欢迎使用 碳墨"+
 	"查看全部"+
+	"活动数据"+
+	"活动数据已删除"+
+	"新增活动数据"+
+	"新增报告期"+
+	"新增场址"+
+	"新增排放源"+
+	"取消"+
+	"创建"+
+	"创建失败。"+
+	"创建中…"+
+	"删除活动数据"+
+	"该台账行将被删除；审计日志会保留其只追加记录。"+
+	"删除这条活动数据？"+
+	"删除失败。"+
+	"编辑资料"+
+	"编辑排放源"+
+	"新增活动数据"+
+	"新增报告期"+
+	"新增场址"+
+	"新增排放源"+
+	"尚未添加报告期。"+
+	"尚未添加场址。"+
+	"CarbonInk 需要先建立组织、第一个场址和报告年度，才能记录排放。"+
+	"设置工作区"+
+	"打开活动数据"+
+	"组织"+
+	"组织资料"+
+	"工作区已就绪"+
+	"报告期"+
+	"此字段为必填项。"+
+	"保存"+
+	"保存失败。"+
+	"保存中…"+
+	"场址名称"+
+	"场址"+
+	"排放源"+
 	"碳墨 需要一个 AI 服务来读取文档内容。请在 Settings 中配置——你需要一个 provider 的 API key（OpenAI / Anthropic / Azure / DeepSeek 或任何 OpenAI 兼容端点）。"+
 	"打开 Settings"+
 	"尚未配置 AI 服务"+
@@ -5766,11 +5959,6 @@ var textsZhCN = i18n.NewTexts(""+
 	"跟随系统"+
 	"设置"+
 	"退出时会保存窗口位置与大小。"+
-	"搜索命令"+
-	"前往"+
-	"文件"+
-	"打开数据目录"+
-	"打开账套数据库"+
 	"账套"+
 	"MCP"+
 	"MCP·未构建"+
@@ -6058,6 +6246,11 @@ var textsZhCN = i18n.NewTexts(""+
 		6,
 		9,
 		6,
+		6,
+		6,
+		18,
+		21,
+		12,
 		27,
 		21,
 		18,
@@ -6083,6 +6276,42 @@ var textsZhCN = i18n.NewTexts(""+
 		66,
 		19,
 		12,
+		12,
+		21,
+		18,
+		15,
+		12,
+		15,
+		6,
+		6,
+		15,
+		12,
+		18,
+		69,
+		27,
+		15,
+		12,
+		15,
+		18,
+		15,
+		12,
+		15,
+		24,
+		21,
+		88,
+		15,
+		18,
+		6,
+		12,
+		18,
+		9,
+		24,
+		6,
+		15,
+		12,
+		12,
+		6,
+		9,
 		196,
 		15,
 		22,
@@ -6871,11 +7100,6 @@ var textsZhCN = i18n.NewTexts(""+
 		12,
 		6,
 		42,
-		12,
-		6,
-		6,
-		18,
-		21,
 		6,
 		3,
 		14,
@@ -7093,6 +7317,18 @@ func Supply(lang string, t Translation) {
 	}
 	if t.AuditUnknownEventKind != nil {
 		s.AuditUnknownEventKind = t.AuditUnknownEventKind
+	}
+	if t.DataActivitiesCount != nil {
+		s.DataActivitiesCount = t.DataActivitiesCount
+	}
+	if t.DataPeriodsCount != nil {
+		s.DataPeriodsCount = t.DataPeriodsCount
+	}
+	if t.DataSitesCount != nil {
+		s.DataSitesCount = t.DataSitesCount
+	}
+	if t.DataSourcesCount != nil {
+		s.DataSourcesCount = t.DataSourcesCount
 	}
 	if t.DocumentsBatchButton != nil {
 		s.DocumentsBatchButton = t.DocumentsBatchButton
@@ -9566,6 +9802,41 @@ func ColUnit(cx *core.Scope) string { return For(cx).ColUnit() }
 // ColUnit is the package's ColUnit in the language of msgs.
 func (msgs Messages) ColUnit() string { return msgs.text(textColUnit) }
 
+// CommandFiles says "Files"
+// in the language the app shows under cx.
+func CommandFiles(cx *core.Scope) string { return For(cx).CommandFiles() }
+
+// CommandFiles is the package's CommandFiles in the language of msgs.
+func (msgs Messages) CommandFiles() string { return msgs.text(textCommandFiles) }
+
+// CommandGoTo says "Go to"
+// in the language the app shows under cx.
+func CommandGoTo(cx *core.Scope) string { return For(cx).CommandGoTo() }
+
+// CommandGoTo is the package's CommandGoTo in the language of msgs.
+func (msgs Messages) CommandGoTo() string { return msgs.text(textCommandGoTo) }
+
+// CommandRevealData says "Reveal data directory"
+// in the language the app shows under cx.
+func CommandRevealData(cx *core.Scope) string { return For(cx).CommandRevealData() }
+
+// CommandRevealData is the package's CommandRevealData in the language of msgs.
+func (msgs Messages) CommandRevealData() string { return msgs.text(textCommandRevealData) }
+
+// CommandRevealWorkspace says "Reveal workspace database"
+// in the language the app shows under cx.
+func CommandRevealWorkspace(cx *core.Scope) string { return For(cx).CommandRevealWorkspace() }
+
+// CommandRevealWorkspace is the package's CommandRevealWorkspace in the language of msgs.
+func (msgs Messages) CommandRevealWorkspace() string { return msgs.text(textCommandRevealWorkspace) }
+
+// CommandSearch says "Search commands"
+// in the language the app shows under cx.
+func CommandSearch(cx *core.Scope) string { return For(cx).CommandSearch() }
+
+// CommandSearch is the package's CommandSearch in the language of msgs.
+func (msgs Messages) CommandSearch() string { return msgs.text(textCommandSearch) }
+
 // DashboardInventoryBody says "No emission data yet."
 // in the language the app shows under cx.
 func DashboardInventoryBody(cx *core.Scope) string { return For(cx).DashboardInventoryBody() }
@@ -9762,6 +10033,348 @@ func DashboardWidgetViewAll(cx *core.Scope) string { return For(cx).DashboardWid
 
 // DashboardWidgetViewAll is the package's DashboardWidgetViewAll in the language of msgs.
 func (msgs Messages) DashboardWidgetViewAll() string { return msgs.text(textDashboardWidgetViewAll) }
+
+// DataActivities says "Activity rows"
+// in the language the app shows under cx.
+func DataActivities(cx *core.Scope) string { return For(cx).DataActivities() }
+
+// DataActivities is the package's DataActivities in the language of msgs.
+func (msgs Messages) DataActivities() string { return msgs.text(textDataActivities) }
+
+// DataActivitiesCount says "{count} activities"
+// in the language the app shows under cx.
+func DataActivitiesCount(cx *core.Scope, count string) string {
+	return For(cx).DataActivitiesCount(count)
+}
+
+// DataActivitiesCount is the package's DataActivitiesCount in the language of msgs.
+func (msgs Messages) DataActivitiesCount(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.DataActivitiesCount(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].DataActivitiesCount; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " activities"
+		case "zh-CN":
+			return count + " 条活动数据"
+		}
+	}
+}
+
+// DataActivityDeleted says "Activity deleted"
+// in the language the app shows under cx.
+func DataActivityDeleted(cx *core.Scope) string { return For(cx).DataActivityDeleted() }
+
+// DataActivityDeleted is the package's DataActivityDeleted in the language of msgs.
+func (msgs Messages) DataActivityDeleted() string { return msgs.text(textDataActivityDeleted) }
+
+// DataAddActivity says "Add activity"
+// in the language the app shows under cx.
+func DataAddActivity(cx *core.Scope) string { return For(cx).DataAddActivity() }
+
+// DataAddActivity is the package's DataAddActivity in the language of msgs.
+func (msgs Messages) DataAddActivity() string { return msgs.text(textDataAddActivity) }
+
+// DataAddPeriod says "Add period"
+// in the language the app shows under cx.
+func DataAddPeriod(cx *core.Scope) string { return For(cx).DataAddPeriod() }
+
+// DataAddPeriod is the package's DataAddPeriod in the language of msgs.
+func (msgs Messages) DataAddPeriod() string { return msgs.text(textDataAddPeriod) }
+
+// DataAddSite says "Add site"
+// in the language the app shows under cx.
+func DataAddSite(cx *core.Scope) string { return For(cx).DataAddSite() }
+
+// DataAddSite is the package's DataAddSite in the language of msgs.
+func (msgs Messages) DataAddSite() string { return msgs.text(textDataAddSite) }
+
+// DataAddSource says "Add source"
+// in the language the app shows under cx.
+func DataAddSource(cx *core.Scope) string { return For(cx).DataAddSource() }
+
+// DataAddSource is the package's DataAddSource in the language of msgs.
+func (msgs Messages) DataAddSource() string { return msgs.text(textDataAddSource) }
+
+// DataCancel says "Cancel"
+// in the language the app shows under cx.
+func DataCancel(cx *core.Scope) string { return For(cx).DataCancel() }
+
+// DataCancel is the package's DataCancel in the language of msgs.
+func (msgs Messages) DataCancel() string { return msgs.text(textDataCancel) }
+
+// DataCreate says "Create"
+// in the language the app shows under cx.
+func DataCreate(cx *core.Scope) string { return For(cx).DataCreate() }
+
+// DataCreate is the package's DataCreate in the language of msgs.
+func (msgs Messages) DataCreate() string { return msgs.text(textDataCreate) }
+
+// DataCreateFailed says "Could not create."
+// in the language the app shows under cx.
+func DataCreateFailed(cx *core.Scope) string { return For(cx).DataCreateFailed() }
+
+// DataCreateFailed is the package's DataCreateFailed in the language of msgs.
+func (msgs Messages) DataCreateFailed() string { return msgs.text(textDataCreateFailed) }
+
+// DataCreating says "Creating…"
+// in the language the app shows under cx.
+func DataCreating(cx *core.Scope) string { return For(cx).DataCreating() }
+
+// DataCreating is the package's DataCreating in the language of msgs.
+func (msgs Messages) DataCreating() string { return msgs.text(textDataCreating) }
+
+// DataDeleteActivity says "Delete activity"
+// in the language the app shows under cx.
+func DataDeleteActivity(cx *core.Scope) string { return For(cx).DataDeleteActivity() }
+
+// DataDeleteActivity is the package's DataDeleteActivity in the language of msgs.
+func (msgs Messages) DataDeleteActivity() string { return msgs.text(textDataDeleteActivity) }
+
+// DataDeleteActivityBody says "The ledger row will be removed. The audit log keeps its append-only record."
+// in the language the app shows under cx.
+func DataDeleteActivityBody(cx *core.Scope) string { return For(cx).DataDeleteActivityBody() }
+
+// DataDeleteActivityBody is the package's DataDeleteActivityBody in the language of msgs.
+func (msgs Messages) DataDeleteActivityBody() string { return msgs.text(textDataDeleteActivityBody) }
+
+// DataDeleteActivityTitle says "Delete this activity?"
+// in the language the app shows under cx.
+func DataDeleteActivityTitle(cx *core.Scope) string { return For(cx).DataDeleteActivityTitle() }
+
+// DataDeleteActivityTitle is the package's DataDeleteActivityTitle in the language of msgs.
+func (msgs Messages) DataDeleteActivityTitle() string { return msgs.text(textDataDeleteActivityTitle) }
+
+// DataDeleteFailed says "Could not delete."
+// in the language the app shows under cx.
+func DataDeleteFailed(cx *core.Scope) string { return For(cx).DataDeleteFailed() }
+
+// DataDeleteFailed is the package's DataDeleteFailed in the language of msgs.
+func (msgs Messages) DataDeleteFailed() string { return msgs.text(textDataDeleteFailed) }
+
+// DataEditProfile says "Edit profile"
+// in the language the app shows under cx.
+func DataEditProfile(cx *core.Scope) string { return For(cx).DataEditProfile() }
+
+// DataEditProfile is the package's DataEditProfile in the language of msgs.
+func (msgs Messages) DataEditProfile() string { return msgs.text(textDataEditProfile) }
+
+// DataEditSource says "Edit emission source"
+// in the language the app shows under cx.
+func DataEditSource(cx *core.Scope) string { return For(cx).DataEditSource() }
+
+// DataEditSource is the package's DataEditSource in the language of msgs.
+func (msgs Messages) DataEditSource() string { return msgs.text(textDataEditSource) }
+
+// DataNewActivity says "New activity"
+// in the language the app shows under cx.
+func DataNewActivity(cx *core.Scope) string { return For(cx).DataNewActivity() }
+
+// DataNewActivity is the package's DataNewActivity in the language of msgs.
+func (msgs Messages) DataNewActivity() string { return msgs.text(textDataNewActivity) }
+
+// DataNewPeriod says "New reporting period"
+// in the language the app shows under cx.
+func DataNewPeriod(cx *core.Scope) string { return For(cx).DataNewPeriod() }
+
+// DataNewPeriod is the package's DataNewPeriod in the language of msgs.
+func (msgs Messages) DataNewPeriod() string { return msgs.text(textDataNewPeriod) }
+
+// DataNewSite says "New site"
+// in the language the app shows under cx.
+func DataNewSite(cx *core.Scope) string { return For(cx).DataNewSite() }
+
+// DataNewSite is the package's DataNewSite in the language of msgs.
+func (msgs Messages) DataNewSite() string { return msgs.text(textDataNewSite) }
+
+// DataNewSource says "New emission source"
+// in the language the app shows under cx.
+func DataNewSource(cx *core.Scope) string { return For(cx).DataNewSource() }
+
+// DataNewSource is the package's DataNewSource in the language of msgs.
+func (msgs Messages) DataNewSource() string { return msgs.text(textDataNewSource) }
+
+// DataNoPeriods says "No reporting periods yet."
+// in the language the app shows under cx.
+func DataNoPeriods(cx *core.Scope) string { return For(cx).DataNoPeriods() }
+
+// DataNoPeriods is the package's DataNoPeriods in the language of msgs.
+func (msgs Messages) DataNoPeriods() string { return msgs.text(textDataNoPeriods) }
+
+// DataNoSites says "No sites yet."
+// in the language the app shows under cx.
+func DataNoSites(cx *core.Scope) string { return For(cx).DataNoSites() }
+
+// DataNoSites is the package's DataNoSites in the language of msgs.
+func (msgs Messages) DataNoSites() string { return msgs.text(textDataNoSites) }
+
+// DataOnboardingBody says "CarbonInk needs an organization, one site, and a reporting year before it can record emissions."
+// in the language the app shows under cx.
+func DataOnboardingBody(cx *core.Scope) string { return For(cx).DataOnboardingBody() }
+
+// DataOnboardingBody is the package's DataOnboardingBody in the language of msgs.
+func (msgs Messages) DataOnboardingBody() string { return msgs.text(textDataOnboardingBody) }
+
+// DataOnboardingTitle says "Set up your workspace"
+// in the language the app shows under cx.
+func DataOnboardingTitle(cx *core.Scope) string { return For(cx).DataOnboardingTitle() }
+
+// DataOnboardingTitle is the package's DataOnboardingTitle in the language of msgs.
+func (msgs Messages) DataOnboardingTitle() string { return msgs.text(textDataOnboardingTitle) }
+
+// DataOpenActivities says "Open activities"
+// in the language the app shows under cx.
+func DataOpenActivities(cx *core.Scope) string { return For(cx).DataOpenActivities() }
+
+// DataOpenActivities is the package's DataOpenActivities in the language of msgs.
+func (msgs Messages) DataOpenActivities() string { return msgs.text(textDataOpenActivities) }
+
+// DataOrgCard says "Organization"
+// in the language the app shows under cx.
+func DataOrgCard(cx *core.Scope) string { return For(cx).DataOrgCard() }
+
+// DataOrgCard is the package's DataOrgCard in the language of msgs.
+func (msgs Messages) DataOrgCard() string { return msgs.text(textDataOrgCard) }
+
+// DataOrgProfile says "Organization profile"
+// in the language the app shows under cx.
+func DataOrgProfile(cx *core.Scope) string { return For(cx).DataOrgProfile() }
+
+// DataOrgProfile is the package's DataOrgProfile in the language of msgs.
+func (msgs Messages) DataOrgProfile() string { return msgs.text(textDataOrgProfile) }
+
+// DataOrgReady says "Workspace ready"
+// in the language the app shows under cx.
+func DataOrgReady(cx *core.Scope) string { return For(cx).DataOrgReady() }
+
+// DataOrgReady is the package's DataOrgReady in the language of msgs.
+func (msgs Messages) DataOrgReady() string { return msgs.text(textDataOrgReady) }
+
+// DataPeriods says "Reporting periods"
+// in the language the app shows under cx.
+func DataPeriods(cx *core.Scope) string { return For(cx).DataPeriods() }
+
+// DataPeriods is the package's DataPeriods in the language of msgs.
+func (msgs Messages) DataPeriods() string { return msgs.text(textDataPeriods) }
+
+// DataPeriodsCount says "{count} periods"
+// in the language the app shows under cx.
+func DataPeriodsCount(cx *core.Scope, count string) string { return For(cx).DataPeriodsCount(count) }
+
+// DataPeriodsCount is the package's DataPeriodsCount in the language of msgs.
+func (msgs Messages) DataPeriodsCount(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.DataPeriodsCount(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].DataPeriodsCount; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " periods"
+		case "zh-CN":
+			return count + " 个报告期"
+		}
+	}
+}
+
+// DataRequired says "This field is required."
+// in the language the app shows under cx.
+func DataRequired(cx *core.Scope) string { return For(cx).DataRequired() }
+
+// DataRequired is the package's DataRequired in the language of msgs.
+func (msgs Messages) DataRequired() string { return msgs.text(textDataRequired) }
+
+// DataSave says "Save"
+// in the language the app shows under cx.
+func DataSave(cx *core.Scope) string { return For(cx).DataSave() }
+
+// DataSave is the package's DataSave in the language of msgs.
+func (msgs Messages) DataSave() string { return msgs.text(textDataSave) }
+
+// DataSaveFailed says "Could not save."
+// in the language the app shows under cx.
+func DataSaveFailed(cx *core.Scope) string { return For(cx).DataSaveFailed() }
+
+// DataSaveFailed is the package's DataSaveFailed in the language of msgs.
+func (msgs Messages) DataSaveFailed() string { return msgs.text(textDataSaveFailed) }
+
+// DataSaving says "Saving…"
+// in the language the app shows under cx.
+func DataSaving(cx *core.Scope) string { return For(cx).DataSaving() }
+
+// DataSaving is the package's DataSaving in the language of msgs.
+func (msgs Messages) DataSaving() string { return msgs.text(textDataSaving) }
+
+// DataSiteName says "Site name"
+// in the language the app shows under cx.
+func DataSiteName(cx *core.Scope) string { return For(cx).DataSiteName() }
+
+// DataSiteName is the package's DataSiteName in the language of msgs.
+func (msgs Messages) DataSiteName() string { return msgs.text(textDataSiteName) }
+
+// DataSites says "Sites"
+// in the language the app shows under cx.
+func DataSites(cx *core.Scope) string { return For(cx).DataSites() }
+
+// DataSites is the package's DataSites in the language of msgs.
+func (msgs Messages) DataSites() string { return msgs.text(textDataSites) }
+
+// DataSitesCount says "{count} sites"
+// in the language the app shows under cx.
+func DataSitesCount(cx *core.Scope, count string) string { return For(cx).DataSitesCount(count) }
+
+// DataSitesCount is the package's DataSitesCount in the language of msgs.
+func (msgs Messages) DataSitesCount(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.DataSitesCount(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].DataSitesCount; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " sites"
+		case "zh-CN":
+			return count + " 个场址"
+		}
+	}
+}
+
+// DataSources says "Emission sources"
+// in the language the app shows under cx.
+func DataSources(cx *core.Scope) string { return For(cx).DataSources() }
+
+// DataSources is the package's DataSources in the language of msgs.
+func (msgs Messages) DataSources() string { return msgs.text(textDataSources) }
+
+// DataSourcesCount says "{count} sources"
+// in the language the app shows under cx.
+func DataSourcesCount(cx *core.Scope, count string) string { return For(cx).DataSourcesCount(count) }
+
+// DataSourcesCount is the package's DataSourcesCount in the language of msgs.
+func (msgs Messages) DataSourcesCount(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.DataSourcesCount(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].DataSourcesCount; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " sources"
+		case "zh-CN":
+			return count + " 个排放源"
+		}
+	}
+}
 
 // DocumentsAiRequiredBody says "Carbonink needs an AI provider to read documents. Set one up in Settings — you'll need an API key from your provider (OpenAI / Anthropic / Azure / DeepSeek, or any OpenAI-compatible endpoint)."
 // in the language the app shows under cx.
@@ -18744,41 +19357,6 @@ func SettingsWindowNote(cx *core.Scope) string { return For(cx).SettingsWindowNo
 
 // SettingsWindowNote is the package's SettingsWindowNote in the language of msgs.
 func (msgs Messages) SettingsWindowNote() string { return msgs.text(textSettingsWindowNote) }
-
-// CommandSearch says "Search commands"
-// in the language the app shows under cx.
-func CommandSearch(cx *core.Scope) string { return For(cx).CommandSearch() }
-
-// CommandSearch is the package's CommandSearch in the language of msgs.
-func (msgs Messages) CommandSearch() string { return msgs.text(textCommandSearch) }
-
-// CommandGoTo says "Go to"
-// in the language the app shows under cx.
-func CommandGoTo(cx *core.Scope) string { return For(cx).CommandGoTo() }
-
-// CommandGoTo is the package's CommandGoTo in the language of msgs.
-func (msgs Messages) CommandGoTo() string { return msgs.text(textCommandGoTo) }
-
-// CommandFiles says "Files"
-// in the language the app shows under cx.
-func CommandFiles(cx *core.Scope) string { return For(cx).CommandFiles() }
-
-// CommandFiles is the package's CommandFiles in the language of msgs.
-func (msgs Messages) CommandFiles() string { return msgs.text(textCommandFiles) }
-
-// CommandRevealData says "Reveal data directory"
-// in the language the app shows under cx.
-func CommandRevealData(cx *core.Scope) string { return For(cx).CommandRevealData() }
-
-// CommandRevealData is the package's CommandRevealData in the language of msgs.
-func (msgs Messages) CommandRevealData() string { return msgs.text(textCommandRevealData) }
-
-// CommandRevealWorkspace says "Reveal workspace database"
-// in the language the app shows under cx.
-func CommandRevealWorkspace(cx *core.Scope) string { return For(cx).CommandRevealWorkspace() }
-
-// CommandRevealWorkspace is the package's CommandRevealWorkspace in the language of msgs.
-func (msgs Messages) CommandRevealWorkspace() string { return msgs.text(textCommandRevealWorkspace) }
 
 // SettingsWorkspace says "Workspace"
 // in the language the app shows under cx.

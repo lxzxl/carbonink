@@ -1,0 +1,909 @@
+package app
+
+import (
+	"context"
+	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
+	"app.carbonink.desktop/internal/store"
+	"app.carbonink.desktop/locales"
+
+	"github.com/nsgo-dev/nsgo/base"
+	"github.com/nsgo-dev/nsgo/core"
+	"github.com/nsgo-dev/nsgo/icons/lucide"
+	"github.com/nsgo-dev/nsgo/ui"
+)
+
+func dataCard(cx *core.Scope, children ...core.Node) core.Node {
+	style := ui.CardStyle(cx)
+	style.Gap = 12
+	style.Padding = core.All(16)
+	style.AlignSelf = core.AlignStretch
+	return core.View{Style: style, Children: children}
+}
+
+func dataHeading(cx *core.Scope, title string, detail string) core.Node {
+	children := []core.Node{core.Text{Content: title, Style: core.Style{FontSize: 14, FontWeight: ui.Semibold}}}
+	if detail != "" {
+		children = append(children, core.Text{Content: detail, Style: core.Style{FontSize: 12},
+			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
+	}
+	return core.View{Style: core.Style{Gap: 2}, Children: children}
+}
+
+func dataField(cx *core.Scope, label string, input core.Node) core.Node {
+	return core.View{Style: core.Style{Gap: 4}, Children: []core.Node{
+		core.Text{Content: label, Style: core.Style{FontSize: 12, FontWeight: ui.Semibold},
+			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+		input,
+	}}
+}
+
+func dataError(cx *core.Scope, message *core.Signal[string]) core.Node {
+	return core.Show{When: func() bool { return message.Get() != "" },
+		Then: func(cx *core.Scope) core.Node {
+			return core.Text{ContentFunc: func() string { return message.Get() },
+				Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)}
+		}}
+}
+
+func dataDialog(cx *core.Scope, open *core.Signal[bool], title string, children []core.Node,
+	footer []core.Node, testID string) core.Node {
+	return ui.Dialog{
+		Open: open.Get,
+		OnOpenChange: func(v bool, _ base.Reason) {
+			open.Set(v)
+		},
+		Title:    title,
+		Children: children,
+		Footer:   footer,
+		TestID:   testID,
+		Style:    core.Style{Width: core.Pt(520)},
+	}
+}
+
+func dataRefresh(s *Session, rev *core.Signal[int]) error {
+	if err := s.reload(context.Background()); err != nil {
+		s.log.Error("reload data failed", "err", err)
+		return err
+	}
+	rev.Set(rev.Get() + 1)
+	return nil
+}
+
+func dataCancelButton(cx *core.Scope, open *core.Signal[bool], testID string) core.Node {
+	return ui.Button{Text: locales.DataCancel(cx), Variant: ui.ButtonSecondary,
+		OnPress: func() { open.Set(false) }, TestID: testID}
+}
+
+func dataBoundaryOptions(cx *core.Scope) []ui.Option[string] {
+	return []ui.Option[string]{
+		{Value: "operational_control", Label: locales.OnboardingStepBoundaryOperationalControl(cx)},
+		{Value: "equity_share", Label: locales.OnboardingStepBoundaryEquityShare(cx)},
+	}
+}
+
+func dataBoundaryLabel(cx *core.Scope, value string) string {
+	if value == "equity_share" {
+		return locales.OnboardingStepBoundaryEquityShare(cx)
+	}
+	return locales.OnboardingStepBoundaryOperationalControl(cx)
+}
+
+func dataScopeLabel(cx *core.Scope, scope int) string {
+	switch scope {
+	case 1:
+		return locales.SourcesFormScope1(cx)
+	case 2:
+		return locales.SourcesFormScope2(cx)
+	default:
+		return locales.SourcesFormScope3(cx)
+	}
+}
+
+func dataScopeOptions(cx *core.Scope) []ui.Option[int] {
+	return []ui.Option[int]{
+		{Value: 1, Label: locales.SourcesFormScope1(cx)},
+		{Value: 2, Label: locales.SourcesFormScope2(cx)},
+		{Value: 3, Label: locales.SourcesFormScope3(cx)},
+	}
+}
+
+func dataSiteName(site store.Site) string {
+	if site.NameZH != "" {
+		return site.NameZH
+	}
+	if site.NameEN != "" {
+		return site.NameEN
+	}
+	return site.ID
+}
+
+func dataOrgName(org *store.Organization) string {
+	if org == nil {
+		return ""
+	}
+	if org.NameZH != "" {
+		return org.NameZH
+	}
+	if org.NameEN != "" {
+		return org.NameEN
+	}
+	return org.ID
+}
+
+func dataYearPeriod(periods []store.ReportingPeriod) *store.ReportingPeriod {
+	for i := range periods {
+		if periods[i].IsActive {
+			return &periods[i]
+		}
+	}
+	if len(periods) > 0 {
+		return &periods[0]
+	}
+	return nil
+}
+
+// dashboardScreen is the workspace overview and the entry point for the
+// organization, site, period, source, and activity setup flows.
+func (s *Session) dashboardScreen(cx *core.Scope, dataRev *core.Signal[int]) core.Node {
+	if s.organization == nil {
+		return s.onboardingScreen(cx, dataRev)
+	}
+	return core.Scroll{
+		Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
+		Children: []core.Node{core.View{
+			Style: core.Style{Padding: core.All(16), Gap: 12, MaxWidth: core.Pt(980), AlignSelf: core.AlignStretch},
+			Children: []core.Node{
+				core.Dynamic(func(cx *core.Scope) core.Node {
+					_ = dataRev.Get()
+					return s.dashboardBody(cx, dataRev)
+				}),
+			},
+		}},
+	}
+}
+
+func (s *Session) dashboardBody(cx *core.Scope, dataRev *core.Signal[int]) core.Node {
+	org := s.organization
+	summary := s.summary
+	orgName := dataOrgName(org)
+	orgDetail := ""
+	if org != nil {
+		orgDetail = org.CountryCode + " · " + dataBoundaryLabel(cx, org.BoundaryKind)
+		if org.Industry != "" {
+			orgDetail = org.Industry + " · " + orgDetail
+		}
+	}
+	stat := func(label string, value int) core.Node {
+		return core.View{Style: core.Style{FlexGrow: 1, FlexBasis: core.Pt(0), Gap: 2}, Children: []core.Node{
+			core.Text{Content: strconv.Itoa(value), Style: core.Style{FontSize: 22, FontWeight: ui.Bold}},
+			core.Text{Content: label, Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+		}}
+	}
+
+	siteRows := []core.Node{}
+	for _, site := range s.sites {
+		siteRows = append(siteRows, core.View{
+			Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8,
+				Padding: core.Symmetric(6, 0), Borders: core.Edges{Bottom: 1}},
+			StyleFunc: func() core.Style { return core.Style{BorderColor: ui.ColorsOf(cx).Line()} },
+			Children: []core.Node{
+				ui.Icon(lucide.Building, 14, ui.ColorsOf(cx).Muted),
+				core.Text{Content: dataSiteName(site), Style: core.Style{FontSize: 13}, MaxLines: 1},
+				core.Text{Content: site.CountryCode, Style: core.Style{FontSize: 12},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+				core.View{Style: core.Style{FlexGrow: 1}},
+				core.Text{Content: dataActiveLabel(cx, site.IsActive), Style: core.Style{FontSize: 11},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
+			},
+		})
+	}
+	if len(siteRows) == 0 {
+		siteRows = append(siteRows, core.Text{Content: locales.DataNoSites(cx), Style: core.Style{FontSize: 12},
+			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
+	}
+	periodRows := []core.Node{}
+	for _, period := range s.periods {
+		periodRows = append(periodRows, core.View{
+			Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8,
+				Padding: core.Symmetric(6, 0), Borders: core.Edges{Bottom: 1}},
+			StyleFunc: func() core.Style { return core.Style{BorderColor: ui.ColorsOf(cx).Line()} },
+			Children: []core.Node{
+				ui.Icon(lucide.Calendar, 14, ui.ColorsOf(cx).Muted),
+				core.Text{Content: strconv.Itoa(period.Year), Style: core.Style{FontSize: 13}},
+				core.Text{Content: period.Granularity, Style: core.Style{FontSize: 12},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+				core.View{Style: core.Style{FlexGrow: 1}},
+				core.Text{Content: dataActiveLabel(cx, period.IsActive), Style: core.Style{FontSize: 11},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
+			},
+		})
+	}
+	if len(periodRows) == 0 {
+		periodRows = append(periodRows, core.Text{Content: locales.DataNoPeriods(cx), Style: core.Style{FontSize: 12},
+			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
+	}
+
+	return core.View{Style: core.Style{Gap: 12}, Children: []core.Node{
+		dataCard(cx,
+			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 12}, Children: []core.Node{
+				core.View{Style: core.Style{Gap: 3, FlexGrow: 1}, Children: []core.Node{
+					core.Text{Content: locales.DataOrgCard(cx), Style: core.Style{FontSize: 12, FontWeight: ui.Semibold},
+						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+					core.Text{Content: orgName, Style: core.Style{FontSize: 20, FontWeight: ui.Bold}},
+					core.Text{Content: orgDetail, Style: core.Style{FontSize: 12},
+						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+				}},
+				s.organizationDialog(cx, dataRev),
+			}},
+		),
+		dataCard(cx,
+			core.View{Style: core.Style{Direction: core.Row, Gap: 16}, Children: []core.Node{
+				stat(locales.DataSites(cx), summary.Sites),
+				stat(locales.DataPeriods(cx), summary.Periods),
+				stat(locales.DataSources(cx), summary.Sources),
+				stat(locales.DataActivities(cx), summary.Activities),
+			}},
+		),
+		dataCard(cx,
+			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8}, Children: []core.Node{
+				dataHeading(cx, locales.DataSites(cx), ""),
+				core.View{Style: core.Style{FlexGrow: 1}},
+				s.siteDialog(cx, dataRev),
+			}},
+			core.View{Style: core.Style{Gap: 0}, Children: siteRows},
+		),
+		dataCard(cx,
+			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8}, Children: []core.Node{
+				dataHeading(cx, locales.DataPeriods(cx), ""),
+				core.View{Style: core.Style{FlexGrow: 1}},
+				s.periodDialog(cx, dataRev),
+			}},
+			core.View{Style: core.Style{Gap: 0}, Children: periodRows},
+		),
+		dataCard(cx,
+			dataHeading(cx, locales.DataOrgReady(cx), ""),
+			core.View{Style: core.Style{Direction: core.Row, Wrap: core.Wrap, Gap: 8}, Children: []core.Node{
+				s.sourceDialog(cx, nil, dataRev, "dashboard-add-source"),
+				s.activityDialog(cx, dataRev),
+			}},
+		),
+	}}
+}
+
+func dataActiveLabel(cx *core.Scope, active bool) string {
+	if active {
+		return locales.SourcesActiveYes(cx)
+	}
+	return locales.SourcesActiveNo(cx)
+}
+
+// onboardingScreen creates the organization, first site, and first reporting
+// period when the workspace is empty.
+func (s *Session) onboardingScreen(cx *core.Scope, dataRev *core.Signal[int]) core.Node {
+	nameZH := core.NewSignal(cx, "")
+	nameEN := core.NewSignal(cx, "")
+	country := core.NewSignal(cx, "CN")
+	boundary := core.NewSignal(cx, "operational_control")
+	siteZH := core.NewSignal(cx, "")
+	siteEN := core.NewSignal(cx, "")
+	siteCountry := core.NewSignal(cx, "CN")
+	year := core.NewSignal(cx, strconv.Itoa(time.Now().Year()))
+	status := core.NewSignal(cx, "")
+	busy := core.NewSignal(cx, false)
+
+	submit := func() {
+		y, err := strconv.Atoi(strings.TrimSpace(year.Get()))
+		if err != nil {
+			status.Set(locales.OnboardingCompleteFailed(cx))
+			return
+		}
+		busy.Set(true)
+		_, _, _, err = s.db.CompleteOnboarding(context.Background(), store.OnboardingInput{
+			Organization: store.OrganizationInput{
+				NameZH: nameZH.Get(), NameEN: nameEN.Get(), CountryCode: country.Get(), BoundaryKind: boundary.Get(),
+			},
+			Site: store.SiteInput{NameZH: siteZH.Get(), NameEN: siteEN.Get(), CountryCode: siteCountry.Get()},
+			Year: y,
+		})
+		busy.Set(false)
+		if err != nil {
+			status.Set(err.Error())
+			return
+		}
+		if err := dataRefresh(s, dataRev); err != nil {
+			status.Set(err.Error())
+		}
+	}
+
+	return core.Scroll{
+		Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
+		Children: []core.Node{core.View{
+			Style: core.Style{Padding: core.All(16), Gap: 12, MaxWidth: core.Pt(680), AlignSelf: core.AlignStretch},
+			Children: []core.Node{dataCard(cx,
+				core.Text{Content: locales.DataOnboardingTitle(cx), Style: core.Style{FontSize: 20, FontWeight: ui.Bold}},
+				core.Text{Content: locales.DataOnboardingBody(cx), Style: core.Style{FontSize: 13},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+				dataField(cx, locales.OnboardingStepCompanyNameZh(cx),
+					ui.Input{Value: nameZH.Get, OnChange: nameZH.Set, TestID: "onboarding-org-zh"}),
+				dataField(cx, locales.OnboardingStepCompanyNameEn(cx),
+					ui.Input{Value: nameEN.Get, OnChange: nameEN.Set, TestID: "onboarding-org-en"}),
+				dataField(cx, locales.OnboardingStepCompanyCountry(cx),
+					ui.Input{Value: country.Get, OnChange: country.Set, TestID: "onboarding-org-country"}),
+				dataField(cx, locales.OnboardingStepBoundaryTitle(cx),
+					ui.Select[string]{Options: dataBoundaryOptions(cx), Value: boundary.Get, OnChange: boundary.Set,
+						Label: locales.OnboardingStepBoundaryTitle(cx), TestID: "onboarding-boundary"}),
+				dataField(cx, locales.OnboardingStepSiteNameZh(cx),
+					ui.Input{Value: siteZH.Get, OnChange: siteZH.Set, TestID: "onboarding-site-zh"}),
+				dataField(cx, locales.OnboardingStepSiteNameEn(cx),
+					ui.Input{Value: siteEN.Get, OnChange: siteEN.Set, TestID: "onboarding-site-en"}),
+				dataField(cx, locales.OnboardingStepSiteCountry(cx),
+					ui.Input{Value: siteCountry.Get, OnChange: siteCountry.Set, TestID: "onboarding-site-country"}),
+				dataField(cx, locales.OnboardingStepYearTitle(cx),
+					ui.Input{Value: year.Get, OnChange: year.Set, TestID: "onboarding-year"}),
+				dataError(cx, status),
+				core.View{Style: core.Style{Direction: core.Row, JustifyContent: core.JustifyEnd}, Children: []core.Node{
+					ui.Button{Text: locales.OnboardingFinish(cx), Busy: busy.Get, OnPress: submit, TestID: "onboarding-submit"},
+				}},
+			)},
+		}},
+	}
+}
+
+func (s *Session) organizationDialog(cx *core.Scope, dataRev *core.Signal[int]) core.Node {
+	open := core.NewSignal(cx, false)
+	zh := core.NewSignal(cx, "")
+	en := core.NewSignal(cx, "")
+	industry := core.NewSignal(cx, "")
+	country := core.NewSignal(cx, "")
+	boundary := core.NewSignal(cx, "operational_control")
+	status := core.NewSignal(cx, "")
+	busy := core.NewSignal(cx, false)
+	show := func() {
+		if s.organization != nil {
+			zh.Set(s.organization.NameZH)
+			en.Set(s.organization.NameEN)
+			industry.Set(s.organization.Industry)
+			country.Set(s.organization.CountryCode)
+			boundary.Set(s.organization.BoundaryKind)
+		}
+		status.Set("")
+		open.Set(true)
+	}
+	save := func() {
+		if s.organization == nil {
+			return
+		}
+		busy.Set(true)
+		err := s.db.UpdateOrganization(context.Background(), s.organization.ID, store.OrganizationInput{
+			NameZH: zh.Get(), NameEN: en.Get(), Industry: industry.Get(), CountryCode: country.Get(),
+			BoundaryKind: boundary.Get(),
+		})
+		busy.Set(false)
+		if err != nil {
+			status.Set(err.Error())
+			return
+		}
+		open.Set(false)
+		_ = dataRefresh(s, dataRev)
+	}
+	return core.View{Children: []core.Node{
+		ui.Button{Text: locales.DataEditProfile(cx), Variant: ui.ButtonSecondary, OnPress: show, TestID: "organization-edit"},
+		dataDialog(cx, open, locales.DataOrgProfile(cx), []core.Node{
+			dataField(cx, locales.OnboardingStepCompanyNameZh(cx),
+				ui.Input{Value: zh.Get, OnChange: zh.Set, TestID: "organization-zh"}),
+			dataField(cx, locales.OnboardingStepCompanyNameEn(cx),
+				ui.Input{Value: en.Get, OnChange: en.Set, TestID: "organization-en"}),
+			dataField(cx, locales.OnboardingStepCompanyIndustry(cx),
+				ui.Input{Value: industry.Get, OnChange: industry.Set, TestID: "organization-industry"}),
+			dataField(cx, locales.OnboardingStepCompanyCountry(cx),
+				ui.Input{Value: country.Get, OnChange: country.Set, TestID: "organization-country"}),
+			dataField(cx, locales.OnboardingStepBoundaryTitle(cx),
+				ui.Select[string]{Options: dataBoundaryOptions(cx), Value: boundary.Get, OnChange: boundary.Set,
+					Label: locales.OnboardingStepBoundaryTitle(cx), TestID: "organization-boundary"}),
+			dataError(cx, status),
+		}, []core.Node{
+			dataCancelButton(cx, open, "organization-cancel"),
+			ui.Button{Text: locales.DataSave(cx), Busy: busy.Get, OnPress: save, TestID: "organization-save"},
+		}, "organization-dialog"),
+	}}
+}
+
+func (s *Session) siteDialog(cx *core.Scope, dataRev *core.Signal[int]) core.Node {
+	open := core.NewSignal(cx, false)
+	zh := core.NewSignal(cx, "")
+	en := core.NewSignal(cx, "")
+	address := core.NewSignal(cx, "")
+	country := core.NewSignal(cx, "CN")
+	status := core.NewSignal(cx, "")
+	busy := core.NewSignal(cx, false)
+	show := func() {
+		zh.Set("")
+		en.Set("")
+		address.Set("")
+		country.Set("CN")
+		status.Set("")
+		open.Set(true)
+	}
+	save := func() {
+		if s.organization == nil {
+			return
+		}
+		busy.Set(true)
+		_, err := s.db.CreateSite(context.Background(), store.SiteInput{
+			OrganizationID: s.organization.ID, NameZH: zh.Get(), NameEN: en.Get(),
+			Address: address.Get(), CountryCode: country.Get(),
+		})
+		busy.Set(false)
+		if err != nil {
+			status.Set(err.Error())
+			return
+		}
+		open.Set(false)
+		_ = dataRefresh(s, dataRev)
+	}
+	return core.View{Children: []core.Node{
+		ui.Button{Text: locales.DataAddSite(cx), Variant: ui.ButtonSecondary, OnPress: show, TestID: "site-add"},
+		dataDialog(cx, open, locales.DataNewSite(cx), []core.Node{
+			dataField(cx, locales.OnboardingStepSiteNameZh(cx),
+				ui.Input{Value: zh.Get, OnChange: zh.Set, TestID: "site-zh"}),
+			dataField(cx, locales.OnboardingStepSiteNameEn(cx),
+				ui.Input{Value: en.Get, OnChange: en.Set, TestID: "site-en"}),
+			dataField(cx, locales.OnboardingStepSiteAddress(cx),
+				ui.Input{Value: address.Get, OnChange: address.Set, TestID: "site-address"}),
+			dataField(cx, locales.OnboardingStepSiteCountry(cx),
+				ui.Input{Value: country.Get, OnChange: country.Set, TestID: "site-country"}),
+			dataError(cx, status),
+		}, []core.Node{
+			dataCancelButton(cx, open, "site-cancel"),
+			ui.Button{Text: locales.DataCreate(cx), Busy: busy.Get, OnPress: save, TestID: "site-save"},
+		}, "site-dialog"),
+	}}
+}
+
+func (s *Session) periodDialog(cx *core.Scope, dataRev *core.Signal[int]) core.Node {
+	open := core.NewSignal(cx, false)
+	year := core.NewSignal(cx, strconv.Itoa(time.Now().Year()))
+	status := core.NewSignal(cx, "")
+	busy := core.NewSignal(cx, false)
+	show := func() {
+		year.Set(strconv.Itoa(time.Now().Year()))
+		status.Set("")
+		open.Set(true)
+	}
+	save := func() {
+		if s.organization == nil {
+			return
+		}
+		y, err := strconv.Atoi(strings.TrimSpace(year.Get()))
+		if err != nil {
+			status.Set(locales.DataRequired(cx))
+			return
+		}
+		busy.Set(true)
+		_, err = s.db.CreatePeriod(context.Background(), store.PeriodInput{
+			OrganizationID: s.organization.ID, Year: y,
+		})
+		busy.Set(false)
+		if err != nil {
+			status.Set(err.Error())
+			return
+		}
+		open.Set(false)
+		_ = dataRefresh(s, dataRev)
+	}
+	return core.View{Children: []core.Node{
+		ui.Button{Text: locales.DataAddPeriod(cx), Variant: ui.ButtonSecondary, OnPress: show, TestID: "period-add"},
+		dataDialog(cx, open, locales.DataNewPeriod(cx), []core.Node{
+			dataField(cx, locales.OnboardingStepYearTitle(cx),
+				ui.Input{Value: year.Get, OnChange: year.Set, TestID: "period-year"}),
+			dataError(cx, status),
+		}, []core.Node{
+			dataCancelButton(cx, open, "period-cancel"),
+			ui.Button{Text: locales.DataCreate(cx), Busy: busy.Get, OnPress: save, TestID: "period-save"},
+		}, "period-dialog"),
+	}}
+}
+
+// sourcesScreen lists emission sources and opens the source editor.
+func (s *Session) sourcesScreen(cx *core.Scope, dataRev *core.Signal[int]) core.Node {
+	if s.organization == nil {
+		return s.onboardingScreen(cx, dataRev)
+	}
+	return core.Scroll{
+		Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
+		Children: []core.Node{core.View{
+			Style: core.Style{Padding: core.All(16), Gap: 12, MaxWidth: core.Pt(980), AlignSelf: core.AlignStretch},
+			Children: []core.Node{core.Dynamic(func(cx *core.Scope) core.Node {
+				_ = dataRev.Get()
+				return s.sourcesBody(cx, dataRev)
+			})},
+		}},
+	}
+}
+
+func (s *Session) sourcesBody(cx *core.Scope, dataRev *core.Signal[int]) core.Node {
+	var rows []core.Node
+	for i := range s.sources {
+		src := s.sources[i]
+		active := dataActiveLabel(cx, src.IsActive)
+		stats := locales.SourcesStatsUnused(cx)
+		if src.ActivityCount > 0 {
+			stats = locales.SourcesStatsActivityCount(cx, strconv.Itoa(src.ActivityCount)) + " · " +
+				locales.SourcesStatsTotal(cx, commaFloat(src.TotalCO2eKg))
+		}
+		rows = append(rows, core.View{
+			Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 10,
+				Padding: core.Symmetric(9, 0), Borders: core.Edges{Bottom: 1}},
+			StyleFunc: func() core.Style { return core.Style{BorderColor: ui.ColorsOf(cx).Line()} },
+			Children: []core.Node{
+				ui.Icon(lucide.Factory, 15, ui.ColorsOf(cx).Muted),
+				core.View{Style: core.Style{Gap: 2, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)}, Children: []core.Node{
+					core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 6}, Children: []core.Node{
+						core.Text{Content: src.Name, Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}, MaxLines: 1},
+						ui.Badge{Text: dataScopeLabel(cx, src.Scope), Variant: ui.BadgeNeutral},
+						core.Text{Content: active, Style: core.Style{FontSize: 11},
+							StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
+					}},
+					core.Text{Content: src.SiteName + " · " + src.Category + " · " + stats,
+						Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
+				}},
+				s.sourceDialog(cx, &s.sources[i], dataRev, "source-edit-"+src.ID),
+			},
+		})
+	}
+	if len(rows) == 0 {
+		rows = append(rows, core.View{Style: core.Style{Padding: core.All(24), Gap: 6, AlignItems: core.AlignCenter}, Children: []core.Node{
+			core.Text{Content: locales.SourcesEmptyTitle(cx), Style: core.Style{FontSize: 15, FontWeight: ui.Semibold}},
+			core.Text{Content: locales.SourcesEmptyBody(cx), Style: core.Style{FontSize: 12},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
+		}})
+	}
+	header := []core.Node{
+		dataHeading(cx, locales.DataSources(cx), locales.DataSourcesCount(cx, strconv.Itoa(len(s.sources)))),
+		core.View{Style: core.Style{FlexGrow: 1}},
+	}
+	if len(s.sites) == 0 {
+		header = append(header, core.Text{Content: locales.SourcesCatalogNoSite(cx), Style: core.Style{FontSize: 12},
+			StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)})
+	} else {
+		header = append(header, s.sourceDialog(cx, nil, dataRev, "source-add"))
+	}
+	return dataCard(cx,
+		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8}, Children: header},
+		core.View{Style: core.Style{Gap: 0}, Children: rows},
+	)
+}
+
+// sourceDialog returns an add/edit trigger and its dialog. A nil src creates a
+// source; a non-nil src edits it in place.
+func (s *Session) sourceDialog(cx *core.Scope, src *store.EmissionSource, dataRev *core.Signal[int], testID string) core.Node {
+	open := core.NewSignal(cx, false)
+	name := core.NewSignal(cx, "")
+	siteID := core.NewSignal(cx, "")
+	scope := core.NewSignal(cx, 1)
+	category := core.NewSignal(cx, "")
+	path := core.NewSignal(cx, "")
+	active := core.NewSignal(cx, true)
+	status := core.NewSignal(cx, "")
+	busy := core.NewSignal(cx, false)
+	editingID := core.NewSignal(cx, "")
+	show := func() {
+		editingID.Set("")
+		name.Set("")
+		scope.Set(1)
+		category.Set("")
+		path.Set("")
+		active.Set(true)
+		if len(s.sites) > 0 {
+			siteID.Set(s.sites[0].ID)
+		} else {
+			siteID.Set("")
+		}
+		if src != nil {
+			editingID.Set(src.ID)
+			name.Set(src.Name)
+			siteID.Set(src.SiteID)
+			scope.Set(src.Scope)
+			category.Set(src.Category)
+			path.Set(src.GHGProtocolPath)
+			active.Set(src.IsActive)
+		}
+		status.Set("")
+		open.Set(true)
+	}
+	save := func() {
+		if siteID.Get() == "" {
+			status.Set(locales.SourcesCatalogNoSite(cx))
+			return
+		}
+		busy.Set(true)
+		var err error
+		if editingID.Get() == "" {
+			_, err = s.db.CreateSource(context.Background(), store.SourceInput{
+				SiteID: siteID.Get(), Name: name.Get(), Scope: scope.Get(), Category: category.Get(),
+				GHGProtocolPath: path.Get(),
+			})
+		} else {
+			err = s.db.UpdateSource(context.Background(), editingID.Get(), store.SourcePatch{
+				Name: name.Get(), Scope: scope.Get(), Category: category.Get(),
+				GHGProtocolPath: path.Get(), IsActive: active.Get(),
+			})
+		}
+		busy.Set(false)
+		if err != nil {
+			status.Set(err.Error())
+			return
+		}
+		open.Set(false)
+		_ = dataRefresh(s, dataRev)
+	}
+	siteOptions := make([]ui.Option[string], 0, len(s.sites))
+	for _, site := range s.sites {
+		siteOptions = append(siteOptions, ui.Option[string]{Value: site.ID, Label: dataSiteName(site)})
+	}
+	label := locales.DataAddSource
+	title := locales.DataNewSource
+	if src != nil {
+		label = locales.DataEditSource
+		title = locales.DataEditSource
+	}
+	return core.View{Children: []core.Node{
+		ui.Button{Text: label(cx), Variant: ui.ButtonSecondary, OnPress: show, TestID: testID},
+		dataDialog(cx, open, title(cx), []core.Node{
+			dataField(cx, locales.SourcesFormName(cx),
+				ui.Input{Value: name.Get, OnChange: name.Set, TestID: testID + "-name"}),
+			dataField(cx, locales.SourcesFormSite(cx),
+				ui.Select[string]{Options: siteOptions, Value: siteID.Get, OnChange: siteID.Set,
+					Label: locales.SourcesFormSite(cx), TestID: testID + "-site"}),
+			dataField(cx, locales.SourcesFormScope(cx),
+				ui.Select[int]{Options: dataScopeOptions(cx), Value: scope.Get, OnChange: scope.Set,
+					Label: locales.SourcesFormScope(cx), TestID: testID + "-scope"}),
+			dataField(cx, locales.SourcesFormCategory(cx),
+				ui.Input{Value: category.Get, OnChange: category.Set, TestID: testID + "-category"}),
+			dataField(cx, locales.SourcesFormCategoryHint(cx),
+				ui.Input{Value: path.Get, OnChange: path.Set, TestID: testID + "-path"}),
+			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8}, Children: []core.Node{
+				ui.Switch{Checked: active.Get, OnChange: active.Set, Label: locales.SourceEditActiveLabel(cx),
+					TestID: testID + "-active"},
+				core.Text{Content: locales.SourceEditActiveLabel(cx), Style: core.Style{FontSize: 13}},
+			}},
+			dataError(cx, status),
+		}, []core.Node{
+			dataCancelButton(cx, open, testID+"-cancel"),
+			ui.Button{Text: locales.DataSave(cx), Busy: busy.Get, OnPress: save, TestID: testID + "-save"},
+		}, testID+"-dialog"),
+	}}
+}
+
+// activityDialog returns the activity form trigger and dialog. It loads EF
+// candidates from the selected source's scope and category.
+func (s *Session) activityDialog(cx *core.Scope, dataRev *core.Signal[int]) core.Node {
+	open := core.NewSignal(cx, false)
+	sourceID := core.NewSignal(cx, "")
+	periodID := core.NewSignal(cx, "")
+	start := core.NewSignal(cx, "")
+	end := core.NewSignal(cx, "")
+	amount := core.NewSignal(cx, "")
+	unit := core.NewSignal(cx, "")
+	fuel := core.NewSignal(cx, "")
+	notes := core.NewSignal(cx, "")
+	efKey := core.NewSignal(cx, "")
+	status := core.NewSignal(cx, "")
+	busy := core.NewSignal(cx, false)
+	efOptions := core.NewSignalFunc(cx, []store.EmissionFactor(nil), nil)
+
+	loadEFs := func(source string) {
+		efOptions.Set(nil)
+		efKey.Set("")
+		for _, src := range s.sources {
+			if src.ID != source {
+				continue
+			}
+			factors, err := s.db.ListEmissionFactors(context.Background(), store.EFFilter{
+				Scope: src.Scope, Category: src.Category, Limit: 100,
+			})
+			if err != nil {
+				status.Set(err.Error())
+				return
+			}
+			efOptions.Set(factors)
+			if len(factors) > 0 {
+				efKey.Set(dataEFKey(factors[0]))
+			}
+			return
+		}
+	}
+	show := func() {
+		status.Set("")
+		sourceID.Set("")
+		for _, src := range s.sources {
+			if src.IsActive {
+				sourceID.Set(src.ID)
+				break
+			}
+		}
+		period := dataYearPeriod(s.periods)
+		periodID.Set("")
+		start.Set("")
+		end.Set("")
+		if period != nil {
+			periodID.Set(period.ID)
+			start.Set(fmt.Sprintf("%04d-01-01", period.Year))
+			end.Set(fmt.Sprintf("%04d-12-31", period.Year))
+		}
+		amount.Set("")
+		unit.Set("")
+		fuel.Set("")
+		notes.Set("")
+		loadEFs(sourceID.Get())
+		open.Set(true)
+	}
+	save := func() {
+		if sourceID.Get() == "" || periodID.Get() == "" {
+			status.Set(locales.DataRequired(cx))
+			return
+		}
+		value, err := strconv.ParseFloat(strings.TrimSpace(amount.Get()), 64)
+		if err != nil || value <= 0 {
+			status.Set(locales.DataRequired(cx))
+			return
+		}
+		var selected *store.EmissionFactor
+		for i := range efOptions.Get() {
+			if dataEFKey(efOptions.Get()[i]) == efKey.Get() {
+				selected = &efOptions.Get()[i]
+				break
+			}
+		}
+		if selected == nil {
+			status.Set(locales.ActivitiesFormEfNone(cx))
+			return
+		}
+		busy.Set(true)
+		_, err = s.db.CreateActivity(context.Background(), store.ActivityInput{
+			EmissionSourceID: sourceID.Get(), ReportingPeriodID: periodID.Get(),
+			OccurredAtStart: start.Get(), OccurredAtEnd: end.Get(), Amount: value, Unit: unit.Get(),
+			EF: store.EmissionFactorKey{
+				FactorCode: selected.FactorCode, Year: selected.Year, Source: selected.Source,
+				Geography: selected.Geography, DatasetVersion: selected.DatasetVersion,
+			},
+			FuelCode: fuel.Get(), Notes: notes.Get(),
+		})
+		busy.Set(false)
+		if err != nil {
+			status.Set(err.Error())
+			return
+		}
+		open.Set(false)
+		_ = dataRefresh(s, dataRev)
+	}
+
+	sourceOptions := make([]ui.Option[string], 0, len(s.sources))
+	for _, src := range s.sources {
+		if src.IsActive {
+			sourceOptions = append(sourceOptions, ui.Option[string]{Value: src.ID,
+				Label: src.Name + " · " + dataScopeLabel(cx, src.Scope)})
+		}
+	}
+	periodOptions := make([]ui.Option[string], 0, len(s.periods))
+	for _, period := range s.periods {
+		if period.IsActive {
+			periodOptions = append(periodOptions, ui.Option[string]{Value: period.ID,
+				Label: strconv.Itoa(period.Year)})
+		}
+	}
+	efSelect := func(cx *core.Scope) core.Node {
+		options := make([]ui.Option[string], 0, len(efOptions.Get()))
+		for _, ef := range efOptions.Get() {
+			options = append(options, ui.Option[string]{Value: dataEFKey(ef),
+				Label: dataEFLabel(ef)})
+		}
+		if len(options) == 0 {
+			return core.Text{Content: locales.ActivitiesFormEfNone(cx), Style: core.Style{FontSize: 12},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)}
+		}
+		return ui.Select[string]{Options: options, Value: efKey.Get, OnChange: efKey.Set,
+			Label: locales.ActivitiesFormEf(cx), TestID: "activity-ef", Searchable: true,
+			SearchPlaceholder: locales.ActivitiesSearchPlaceholder(cx)}
+	}
+
+	return core.View{Children: []core.Node{
+		ui.Button{Text: locales.DataAddActivity(cx), Variant: ui.ButtonSecondary, OnPress: show, TestID: "activity-add"},
+		dataDialog(cx, open, locales.DataNewActivity(cx), []core.Node{
+			dataField(cx, locales.ActivitiesFormSource(cx),
+				ui.Select[string]{Options: sourceOptions, Value: sourceID.Get,
+					OnChange:    func(v string) { sourceID.Set(v); loadEFs(v) },
+					Placeholder: locales.ActivitiesFormSourcePlaceholder(cx),
+					Label:       locales.ActivitiesFormSource(cx), TestID: "activity-source"}),
+			dataField(cx, locales.ActivitiesFormPeriod(cx),
+				ui.Select[string]{Options: periodOptions, Value: periodID.Get, OnChange: periodID.Set,
+					Placeholder: locales.ActivitiesFormPeriodPlaceholder(cx),
+					Label:       locales.ActivitiesFormPeriod(cx), TestID: "activity-period"}),
+			core.View{Style: core.Style{Direction: core.Row, Gap: 8}, Children: []core.Node{
+				core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{dataField(cx,
+					locales.ActivitiesFormOccurredStart(cx),
+					ui.Input{Value: start.Get, OnChange: start.Set, TestID: "activity-start"})}},
+				core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{dataField(cx,
+					locales.ActivitiesFormOccurredEnd(cx),
+					ui.Input{Value: end.Get, OnChange: end.Set, TestID: "activity-end"})}},
+			}},
+			core.View{Style: core.Style{Direction: core.Row, Gap: 8}, Children: []core.Node{
+				core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{dataField(cx,
+					locales.ActivitiesFormAmount(cx),
+					ui.Input{Value: amount.Get, OnChange: amount.Set, TestID: "activity-amount"})}},
+				core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{dataField(cx,
+					locales.ActivitiesFormUnit(cx),
+					ui.Input{Value: unit.Get, OnChange: unit.Set,
+						Placeholder: locales.ActivitiesFormUnitPlaceholder(cx), TestID: "activity-unit"})}},
+			}},
+			core.Dynamic(efSelect),
+			core.View{Style: core.Style{Direction: core.Row, Gap: 8}, Children: []core.Node{
+				core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{dataField(cx,
+					locales.ActivitiesFormFuel(cx),
+					ui.Input{Value: fuel.Get, OnChange: fuel.Set,
+						Placeholder: locales.ActivitiesFormFuelNone(cx), TestID: "activity-fuel"})}},
+				core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{dataField(cx,
+					locales.ActivitiesFormNotes(cx),
+					ui.Input{Value: notes.Get, OnChange: notes.Set, TestID: "activity-notes"})}},
+			}},
+			core.Text{Content: locales.ActivitiesFormFuelHint(cx), Style: core.Style{FontSize: 11},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+			dataError(cx, status),
+		}, []core.Node{
+			dataCancelButton(cx, open, "activity-cancel"),
+			ui.Button{Text: locales.DataCreate(cx), Busy: busy.Get, OnPress: save, TestID: "activity-save"},
+		}, "activity-dialog"),
+	}}
+}
+
+func (s *Session) deleteActivityButton(cx *core.Scope, selectedID *core.Signal[string],
+	dataRev *core.Signal[int]) core.Node {
+	open := core.NewSignal(cx, false)
+	status := core.NewSignal(cx, "")
+	busy := core.NewSignal(cx, false)
+	confirm := func() {
+		if selectedID.Get() == "" {
+			return
+		}
+		busy.Set(true)
+		err := s.db.DeleteActivity(context.Background(), selectedID.Get())
+		busy.Set(false)
+		if err != nil {
+			status.Set(err.Error())
+			return
+		}
+		open.Set(false)
+		selectedID.Set("")
+		_ = dataRefresh(s, dataRev)
+	}
+	return core.View{Children: []core.Node{
+		ui.Button{Text: locales.DataDeleteActivity(cx), Variant: ui.ButtonSecondary,
+			Disabled: func() bool { return selectedID.Get() == "" },
+			OnPress:  func() { status.Set(""); open.Set(true) }, TestID: "activity-delete"},
+		dataDialog(cx, open, locales.DataDeleteActivityTitle(cx), []core.Node{
+			core.Text{Content: locales.DataDeleteActivityBody(cx), Style: core.Style{FontSize: 13},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+			dataError(cx, status),
+		}, []core.Node{
+			dataCancelButton(cx, open, "activity-delete-cancel"),
+			ui.Button{Text: locales.DataDeleteActivity(cx), Busy: busy.Get, OnPress: confirm,
+				TestID: "activity-delete-confirm"},
+		}, "activity-delete-dialog"),
+	}}
+}
+
+func dataEFKey(ef store.EmissionFactor) string {
+	return fmt.Sprintf("%s\x1f%d\x1f%s\x1f%s\x1f%s", ef.FactorCode, ef.Year, ef.Source, ef.Geography, ef.DatasetVersion)
+}
+
+func dataEFLabel(ef store.EmissionFactor) string {
+	name := ef.NameEN
+	if name == "" {
+		name = ef.NameZH
+	}
+	return fmt.Sprintf("%s · %s · %s", name, ef.InputUnit, ef.FactorCode)
+}

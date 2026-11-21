@@ -212,6 +212,11 @@ colScope: 范围
 colSite: 场所
 colSource: 排放源
 colUnit: 单位
+commandFiles: 文件
+commandGoTo: 前往
+commandRevealData: 打开数据目录
+commandRevealWorkspace: 打开账套数据库
+commandSearch: 搜索命令
 dashboardInventoryBody: 目前没有排放数据。
 dashboardInventoryTitle: 排放清单仪表盘
 dashboardMonthlyTrend: 月度排放趋势
@@ -237,6 +242,46 @@ dashboardTotalCo2e: 总 CO2e
 dashboardWelcomeBody: 你还没有设置组织。下一步引导向导会带你完成。
 dashboardWelcomeTitle: 欢迎使用 碳墨
 dashboardWidgetViewAll: 查看全部
+dataActivities: 活动数据
+dataActivitiesCount: '{count} 条活动数据'
+dataActivityDeleted: 活动数据已删除
+dataAddActivity: 新增活动数据
+dataAddPeriod: 新增报告期
+dataAddSite: 新增场址
+dataAddSource: 新增排放源
+dataCancel: 取消
+dataCreate: 创建
+dataCreateFailed: 创建失败。
+dataCreating: 创建中…
+dataDeleteActivity: 删除活动数据
+dataDeleteActivityBody: 该台账行将被删除；审计日志会保留其只追加记录。
+dataDeleteActivityTitle: 删除这条活动数据？
+dataDeleteFailed: 删除失败。
+dataEditProfile: 编辑资料
+dataEditSource: 编辑排放源
+dataNewActivity: 新增活动数据
+dataNewPeriod: 新增报告期
+dataNewSite: 新增场址
+dataNewSource: 新增排放源
+dataNoPeriods: 尚未添加报告期。
+dataNoSites: 尚未添加场址。
+dataOnboardingBody: CarbonInk 需要先建立组织、第一个场址和报告年度，才能记录排放。
+dataOnboardingTitle: 设置工作区
+dataOpenActivities: 打开活动数据
+dataOrgCard: 组织
+dataOrgProfile: 组织资料
+dataOrgReady: 工作区已就绪
+dataPeriods: 报告期
+dataPeriodsCount: '{count} 个报告期'
+dataRequired: 此字段为必填项。
+dataSave: 保存
+dataSaveFailed: 保存失败。
+dataSaving: 保存中…
+dataSiteName: 场址名称
+dataSites: 场址
+dataSitesCount: '{count} 个场址'
+dataSources: 排放源
+dataSourcesCount: '{count} 个排放源'
 documentsAiRequiredBody: 碳墨 需要一个 AI 服务来读取文档内容。请在 Settings 中配置——你需要一个 provider 的 API key（OpenAI / Anthropic / Azure / DeepSeek 或任何 OpenAI 兼容端点）。
 documentsAiRequiredCta: 打开 Settings
 documentsAiRequiredTitle: 尚未配置 AI 服务
@@ -1131,12 +1176,6 @@ settingsThemeLight: 浅色
 settingsThemeSystem: 跟随系统
 settingsTitle: 设置
 settingsWindowNote: 退出时会保存窗口位置与大小。
-
-commandSearch: 搜索命令
-commandGoTo: 前往
-commandFiles: 文件
-commandRevealData: 打开数据目录
-commandRevealWorkspace: 打开账套数据库
 settingsWorkspace: 账套
 sidebarMcpLabelAvailable: MCP
 sidebarMcpLabelNotBuilt: MCP·未构建

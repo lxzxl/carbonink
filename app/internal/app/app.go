@@ -41,13 +41,18 @@ const (
 // Session is one open workspace: the registry entry, the database, and the
 // rows the first screen shows.
 type Session struct {
-	workspace  workspace.Workspace
-	db         *store.Store
-	activities []store.Activity
-	imported   bool
-	prefsPath  string
-	settings   prefs.Settings
-	log        *platform.Logger
+	workspace    workspace.Workspace
+	db           *store.Store
+	organization *store.Organization
+	sites        []store.Site
+	periods      []store.ReportingPeriod
+	sources      []store.EmissionSource
+	summary      store.Summary
+	activities   []store.Activity
+	imported     bool
+	prefsPath    string
+	settings     prefs.Settings
+	log          *platform.Logger
 }
 
 // Root opens the active workspace and returns the shell. It is the app's
@@ -115,18 +120,48 @@ func open(cx *core.Scope, log *platform.Logger) (*Session, error) {
 		return nil, fmt.Errorf("migrate %s: %w", path, err)
 	}
 	log.Info("migrations applied", "count", applied)
-	s.activities, err = db.Activities(ctx, 5000)
-	if err != nil {
+	if err := s.reload(ctx); err != nil {
 		db.Close()
-		return nil, fmt.Errorf("read activities: %w", err)
+		return nil, fmt.Errorf("read workspace data: %w", err)
 	}
-	log.Info("activities loaded", "count", len(s.activities))
+	log.Info("workspace loaded", "organization", s.organization != nil, "sites", len(s.sites),
+		"periods", len(s.periods), "sources", len(s.sources), "activities", len(s.activities))
 	if dest, err := backup.Run(ctx, db, cx.DataDir(), s.workspace.ID, time.Now()); err != nil {
 		log.Warn("auto backup failed", "err", err)
 	} else if dest != "" {
 		log.Info("auto backup", "path", dest)
 	}
 	return s, nil
+}
+
+// reload refreshes the records every Phase 2 screen reads. It is called at
+// startup and after each write, so the views never need their own caches.
+func (s *Session) reload(ctx context.Context) error {
+	org, err := s.db.CurrentOrganization(ctx)
+	if err != nil {
+		return err
+	}
+	s.organization = org
+	s.sites = nil
+	s.periods = nil
+	s.sources = nil
+	s.summary = store.Summary{}
+	if org != nil {
+		if s.sites, err = s.db.ListSites(ctx, org.ID); err != nil {
+			return err
+		}
+		if s.periods, err = s.db.ListPeriods(ctx, org.ID); err != nil {
+			return err
+		}
+		if s.sources, err = s.db.ListSources(ctx, org.ID); err != nil {
+			return err
+		}
+		if s.summary, err = s.db.Summary(ctx, org.ID); err != nil {
+			return err
+		}
+	}
+	s.activities, err = s.db.Activities(ctx, 5000)
+	return err
 }
 
 type screenInfo struct {
@@ -145,9 +180,14 @@ var screens = []screenInfo{
 }
 
 func (s *Session) view(cx *core.Scope) core.Node {
-	active := core.NewSignal(cx, ScreenActivities)
+	start := ScreenActivities
+	if s.organization == nil {
+		start = ScreenDashboard
+	}
+	active := core.NewSignal(cx, start)
 	open := core.NewSignal(cx, true)
 	paletteOpen := core.NewSignal(cx, false)
+	dataRev := core.NewSignal(cx, 0)
 	cx.OnKey("mod+k", func() { paletteOpen.Set(true) })
 
 	byID := func(id Screen) screenInfo {
@@ -191,12 +231,17 @@ func (s *Session) view(cx *core.Scope) core.Node {
 
 	content := []core.Node{
 		core.Show{When: func() bool { return active.Get() == ScreenActivities },
-			Then: func(cx *core.Scope) core.Node { return s.activitiesScreen(cx) }},
+			Then: func(cx *core.Scope) core.Node { return s.activitiesScreen(cx, dataRev) }},
+		core.Show{When: func() bool { return active.Get() == ScreenDashboard },
+			Then: func(cx *core.Scope) core.Node { return s.dashboardScreen(cx, dataRev) }},
+		core.Show{When: func() bool { return active.Get() == ScreenSources },
+			Then: func(cx *core.Scope) core.Node { return s.sourcesScreen(cx, dataRev) }},
 		core.Show{When: func() bool { return active.Get() == ScreenSettings },
 			Then: func(cx *core.Scope) core.Node { return s.settingsScreen(cx) }},
 		core.Show{When: func() bool {
 			id := active.Get()
-			return id != ScreenActivities && id != ScreenSettings
+			return id != ScreenActivities && id != ScreenDashboard &&
+				id != ScreenSources && id != ScreenSettings
 		},
 			Then: func(cx *core.Scope) core.Node { return placeholder(cx) }},
 		s.commandDialog(cx, paletteOpen, active),
@@ -213,8 +258,14 @@ func (s *Session) view(cx *core.Scope) core.Node {
 				core.Text{ContentFunc: func() string { return byID(active.Get()).Title(cx) },
 					Style: core.Style{FontSize: 15, FontWeight: ui.Semibold}},
 				core.Text{ContentFunc: func() string {
-					if active.Get() == ScreenActivities {
+					_ = dataRev.Get()
+					switch active.Get() {
+					case ScreenActivities:
 						return locales.ActivitiesSubtitle(cx) + " · " + locales.ActivitiesCount(cx, len(s.activities))
+					case ScreenDashboard:
+						return locales.WorkspaceActive(cx) + " · " + s.workspace.Name
+					case ScreenSources:
+						return locales.DataSourcesCount(cx, strconv.Itoa(len(s.sources)))
 					}
 					return ""
 				}, Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
@@ -277,11 +328,15 @@ func errorView(cx *core.Scope, err error) core.Node {
 		}}
 }
 
-func (s *Session) activitiesScreen(cx *core.Scope) core.Node {
+func (s *Session) activitiesScreen(cx *core.Scope, dataRev *core.Signal[int]) core.Node {
 	sortBy := core.NewSignal(cx, datatable.Sort{Key: "date", Descending: true})
-	revision := core.NewSignal(cx, 0)
-	rows := s.activities
-	sortRows(rows, sortBy.Get())
+	selected := core.NewSignal(cx, datatable.NoTableSelection)
+	selectedID := core.NewSignal(cx, "")
+	rows := func() []store.Activity {
+		_ = dataRev.Get()
+		sortRows(s.activities, sortBy.Get())
+		return s.activities
+	}
 
 	columns := func() []datatable.Column {
 		return []datatable.Column{
@@ -298,7 +353,7 @@ func (s *Session) activitiesScreen(cx *core.Scope) core.Node {
 	return core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0), Padding: core.All(16), Gap: 10},
 		Children: []core.Node{
 			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8}, Children: []core.Node{
-				core.Text{ContentFunc: func() string { return locales.ActivitiesCount(cx, len(rows)) },
+				core.Text{ContentFunc: func() string { return locales.ActivitiesCount(cx, len(rows())) },
 					Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}},
 				core.Text{ContentFunc: func() string {
 					sp := sortBy.Get()
@@ -311,14 +366,17 @@ func (s *Session) activitiesScreen(cx *core.Scope) core.Node {
 					}
 					return "· " + sp.Key + " " + dir
 				}, Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+				core.View{Style: core.Style{FlexGrow: 1}},
+				s.activityDialog(cx, dataRev),
+				s.deleteActivityButton(cx, selectedID, dataRev),
 			}},
 			core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)}, Children: []core.Node{
 				datatable.DataTable{
 					TestID: "activities-table", Label: locales.ActivitiesTitle(cx),
 					Columns:  columns,
-					RowCount: func() int { _ = revision.Get(); return len(rows) },
+					RowCount: func() int { return len(rows()) },
 					Text: func(row, col int) string {
-						_ = revision.Get()
+						rows := rows()
 						if row < 0 || row >= len(rows) {
 							return ""
 						}
@@ -333,8 +391,17 @@ func (s *Session) activitiesScreen(cx *core.Scope) core.Node {
 					},
 					OnSortChange: func(next datatable.Sort) {
 						sortBy.Set(next)
-						sortRows(rows, next)
-						revision.Set(revision.Get() + 1)
+						sortRows(s.activities, next)
+						dataRev.Set(dataRev.Get() + 1)
+					},
+					OnSelectionChange: func(sel datatable.Selection) {
+						selected.Set(sel)
+						all := rows()
+						if sel.Row >= 0 && sel.Row < len(all) {
+							selectedID.Set(all[sel.Row].ID)
+						} else {
+							selectedID.Set("")
+						}
 					},
 					Empty: core.View{Style: core.Style{FlexGrow: 1, AlignItems: core.AlignCenter, JustifyContent: core.JustifyCenter},
 						Children: []core.Node{
