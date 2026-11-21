@@ -807,6 +807,213 @@ func TestRunDocumentExtractionVisionThroughUI(t *testing.T) {
 	}
 }
 
+// TestBatchExtractionThroughUI uploads a text PDF and a scanned one, presses
+// "Recognize all", and proves both were classified, extracted, and chipped in
+// place without opening either detail dialog.
+func TestBatchExtractionThroughUI(t *testing.T) {
+	dbPath := fixtureDB(t)
+	t.Setenv("CARBONINK_TEST_DB", dbPath)
+	fixture, err := os.ReadFile(filepath.Join("..", "..", "internal", "spike", "fixtures", "pdf",
+		"two-page-text.pdf"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	textPath := filepath.Join(dir, "bill.pdf")
+	if err := os.WriteFile(textPath, fixture, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	scanPath := filepath.Join(dir, "scan.pdf")
+	if err := os.WriteFile(scanPath, imageOnlyPDF(t), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	const classifyReply = `{"doc_type":"china_utility.v1","confidence":0.91}`
+	const extractionReply = `{"doc_type":"china_utility","supplier_name":"国网北京市电力公司",` +
+		`"account_no":"1234567890","amount_kwh":100,"amount_yuan":60,` +
+		`"period_start":"2025-09-01","period_end":"2025-09-30","confidence":"high"}`
+	var classifyCalls, extractCalls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		tool, reply := "save_extraction", extractionReply
+		if bytes.Contains(body, []byte(`"save_classification"`)) {
+			classifyCalls.Add(1)
+			tool, reply = "save_classification", classifyReply
+		} else {
+			extractCalls.Add(1)
+		}
+		arguments, err := json.Marshal(reply)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		w.Header().Set("Content-Type", "text/event-stream")
+		fmt.Fprintf(w, "data: %s\n\n", fmt.Sprintf(
+			`{"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","type":"function","function":{"name":"%s","arguments":%s}}]}}]}`,
+			tool, arguments))
+		fmt.Fprint(w, "data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"tool_calls\"}]}\n\n")
+		fmt.Fprint(w, "data: [DONE]\n\n")
+	}))
+	defer srv.Close()
+
+	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
+		nsgotest.Environment(core.Environment{Locale: "en-US"}),
+		nsgotest.Secrets(map[string]string{llmSecretAccount: "test-key"}))
+	ui.PickFiles = func(core.FilesRequest) []core.File {
+		return []core.File{
+			{Name: "bill.pdf", Path: textPath},
+			{Name: "scan.pdf", Path: scanPath},
+		}
+	}
+	configureLLMEndpoint(t, ui, srv.URL)
+	ui.Press("id:nav:documents")
+	ui.WaitFor("id:documents-upload", 3*time.Second)
+	ui.Press("id:documents-upload")
+	ui.WaitFor("text:bill.pdf", 5*time.Second)
+	ui.WaitFor("text:scan.pdf", 5*time.Second)
+
+	ctx := context.Background()
+	check, err := store.Open(ctx, dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ids := map[string]string{}
+	rows, err := check.DB().QueryContext(ctx, `SELECT id, filename FROM document`)
+	if err != nil {
+		check.Close()
+		t.Fatal(err)
+	}
+	for rows.Next() {
+		var id, name string
+		if err := rows.Scan(&id, &name); err != nil {
+			rows.Close()
+			check.Close()
+			t.Fatal(err)
+		}
+		ids[name] = id
+	}
+	rows.Close()
+	check.Close()
+	if len(ids) != 2 {
+		t.Fatalf("documents = %v", ids)
+	}
+
+	ui.WaitFor("id:documents-batch", 3*time.Second)
+	ui.Press("id:documents-batch")
+	ui.WaitFor("text:Batch recognition done: 2 ok · 0 failed", 60*time.Second)
+	for _, id := range ids {
+		ui.WaitFor("id:documents-status-"+id+" >> text:Needs review", 5*time.Second)
+	}
+	ui.Type("id:documents-search", "bill")
+	ui.WaitForGone("text:scan.pdf", 3*time.Second)
+	ui.WaitFor("text:bill.pdf", 2*time.Second)
+	ui.Press("id:documents-filter-clear")
+	ui.WaitFor("text:scan.pdf", 3*time.Second)
+
+	ui.Press("id:documents-filter-status")
+	ui.WaitFor("id:documents-filter-status-3", 2*time.Second)
+	ui.Press("id:documents-filter-status-3")
+	ui.WaitFor("text:No matching documents", 3*time.Second)
+	ui.Press("id:documents-filter-status")
+	ui.WaitFor("id:documents-filter-status-2", 2*time.Second)
+	ui.Press("id:documents-filter-status-2")
+	for _, id := range ids {
+		ui.WaitFor("id:documents-status-"+id+" >> text:Needs review", 3*time.Second)
+	}
+	if classifyCalls.Load() != 2 || extractCalls.Load() != 2 {
+		t.Errorf("calls = classify %d, extract %d", classifyCalls.Load(), extractCalls.Load())
+	}
+
+	check, err = store.Open(ctx, dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer check.Close()
+	var extractions, classified int
+	var docType string
+	if err := check.DB().QueryRowContext(ctx,
+		`SELECT (SELECT count(*) FROM extraction),
+			(SELECT count(*) FROM document WHERE doc_type IS NOT NULL),
+			coalesce((SELECT min(doc_type) FROM document), '')`).
+		Scan(&extractions, &classified, &docType); err != nil {
+		t.Fatal(err)
+	}
+	if extractions != 2 || classified != 2 || docType != "china_utility.v1" {
+		t.Errorf("extractions = %d, classified = %d, doc_type = %q",
+			extractions, classified, docType)
+	}
+}
+
+// TestBatchExtractionCancelThroughUI cancels while the classifier's request is
+// in flight and proves the document keeps no extraction and no doc_type.
+func TestBatchExtractionCancelThroughUI(t *testing.T) {
+	dbPath := fixtureDB(t)
+	t.Setenv("CARBONINK_TEST_DB", dbPath)
+	fixture, err := os.ReadFile(filepath.Join("..", "..", "internal", "spike", "fixtures", "pdf",
+		"two-page-text.pdf"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pdfPath := filepath.Join(t.TempDir(), "bill.pdf")
+	if err := os.WriteFile(pdfPath, fixture, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	started := make(chan struct{}, 1)
+	release := make(chan struct{})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case started <- struct{}{}:
+		default:
+		}
+		select {
+		case <-r.Context().Done():
+		case <-release:
+		}
+	}))
+	defer srv.Close()
+	defer close(release)
+
+	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
+		nsgotest.Environment(core.Environment{Locale: "en-US"}),
+		nsgotest.Secrets(map[string]string{llmSecretAccount: "test-key"}))
+	ui.PickFiles = func(core.FilesRequest) []core.File {
+		return []core.File{{Name: "bill.pdf", Path: pdfPath}}
+	}
+	configureLLMEndpoint(t, ui, srv.URL)
+	ui.Press("id:nav:documents")
+	ui.WaitFor("id:documents-upload", 3*time.Second)
+	ui.Press("id:documents-upload")
+	ui.WaitFor("text:bill.pdf", 5*time.Second)
+	ui.WaitFor("id:documents-batch", 3*time.Second)
+	ui.Press("id:documents-batch")
+	select {
+	case <-started:
+	case <-time.After(10 * time.Second):
+		t.Fatal("the classifier request never started")
+	}
+	ui.WaitFor("id:documents-batch-cancel", 3*time.Second)
+	ui.Press("id:documents-batch-cancel")
+	ui.WaitFor("text:Batch canceled (0/1 done)", 10*time.Second)
+
+	ctx := context.Background()
+	check, err := store.Open(ctx, dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer check.Close()
+	var extractions, classified int
+	if err := check.DB().QueryRowContext(ctx,
+		`SELECT (SELECT count(*) FROM extraction),
+			(SELECT count(*) FROM document WHERE doc_type IS NOT NULL)`).
+		Scan(&extractions, &classified); err != nil {
+		t.Fatal(err)
+	}
+	if extractions != 0 || classified != 0 {
+		t.Errorf("extractions = %d, classified = %d", extractions, classified)
+	}
+}
+
 func configureLLMEndpoint(t *testing.T, ui *nsgotest.App, baseURL string) {
 	t.Helper()
 	ui.Press("id:nav:settings")

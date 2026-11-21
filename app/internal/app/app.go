@@ -42,6 +42,9 @@ const (
 // Session is one open workspace: the registry entry, the database, and the
 // rows the first screen shows.
 type Session struct {
+	// scope is the app root scope; background work posts UI updates here so
+	// they survive the screen that started them.
+	scope         *core.Scope
 	workspace     workspace.Workspace
 	db            *store.Store
 	organization  *store.Organization
@@ -55,6 +58,7 @@ type Session struct {
 	// extractionStatus is keyed by document id; documents without a row
 	// have no extraction yet.
 	extractionStatus map[string]store.ExtractionDocumentStatus
+	batch            *batchExtraction
 	imported         bool
 	dataDir          string
 	prefsPath        string
@@ -92,7 +96,7 @@ func Root(cx *core.Scope) core.Node {
 
 func open(cx *core.Scope, log *platform.Logger) (*Session, error) {
 	ctx := context.Background()
-	s := &Session{log: log, dataDir: cx.DataDir()}
+	s := &Session{log: log, dataDir: cx.DataDir(), scope: cx, batch: newBatchExtraction(cx)}
 	s.prefsPath = prefs.Path(cx.DataDir())
 	if settings, err := prefs.Load(s.prefsPath); err == nil {
 		s.settings = settings

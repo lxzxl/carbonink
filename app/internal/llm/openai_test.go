@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 )
 
@@ -154,7 +155,9 @@ func TestExtractVisionSendsImageParts(t *testing.T) {
 }
 
 func TestHTTPError(t *testing.T) {
+	var calls atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
 		http.Error(w, `{"error":{"message":"bad key"}}`, http.StatusUnauthorized)
 	}))
 	defer srv.Close()
@@ -162,6 +165,51 @@ func TestHTTPError(t *testing.T) {
 	if _, err := c.Stream(context.Background(), "sys", "user", nil); err == nil ||
 		!strings.Contains(err.Error(), "401") {
 		t.Fatalf("err = %v", err)
+	}
+	if calls.Load() != 1 {
+		t.Errorf("401 calls = %d, want 1 (no retry)", calls.Load())
+	}
+}
+
+func TestExtractRetriesTransientFailures(t *testing.T) {
+	var calls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if calls.Add(1) < 3 {
+			http.Error(w, "busy", http.StatusServiceUnavailable)
+			return
+		}
+		w.Header().Set("Content-Type", "text/event-stream")
+		fmt.Fprintf(w, "data: %s\n\n", `{"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","type":"function","function":{"name":"save","arguments":"{\"a\":1}"}}]}}]}`)
+		fmt.Fprint(w, "data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"tool_calls\"}]}\n\n")
+		fmt.Fprint(w, "data: [DONE]\n\n")
+	}))
+	defer srv.Close()
+	c := &Client{BaseURL: srv.URL, APIKey: "test-key", Model: "test"}
+	schema := []byte(`{"type":"object","required":["a"],"properties":{"a":{"type":"integer"}}}`)
+	raw, err := c.Extract(context.Background(), "sys", "user", Tool{Name: "save", Schema: schema})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(raw) != `{"a":1}` || calls.Load() != 3 {
+		t.Fatalf("raw = %s, calls = %d", raw, calls.Load())
+	}
+}
+
+func TestExtractGivesUpAfterThreeAttempts(t *testing.T) {
+	var calls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		http.Error(w, "down", http.StatusBadGateway)
+	}))
+	defer srv.Close()
+	c := &Client{BaseURL: srv.URL, APIKey: "test-key", Model: "test"}
+	schema := []byte(`{"type":"object"}`)
+	_, err := c.Extract(context.Background(), "sys", "user", Tool{Name: "save", Schema: schema})
+	if err == nil || !strings.Contains(err.Error(), "502") {
+		t.Fatalf("err = %v", err)
+	}
+	if calls.Load() != 3 {
+		t.Errorf("calls = %d, want 3", calls.Load())
 	}
 }
 

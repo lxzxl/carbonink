@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -123,22 +122,28 @@ func (c *AnthropicClient) messages(ctx context.Context, system, user string,
 		base = "https://api.anthropic.com"
 	}
 	url := base + "/v1/messages"
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payload))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("x-api-key", c.APIKey)
-	req.Header.Set("anthropic-version", "2023-06-01")
-	resp, err := c.httpClient().Do(req)
+	var resp *http.Response
+	err = withRetry(ctx, func() error {
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payload))
+		if err != nil {
+			return err
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("x-api-key", c.APIKey)
+		req.Header.Set("anthropic-version", "2023-06-01")
+		resp, err = c.httpClient().Do(req)
+		if err != nil {
+			return err
+		}
+		if resp.StatusCode != http.StatusOK {
+			return httpError(resp)
+		}
+		return nil
+	})
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		msg, _ := io.ReadAll(io.LimitReader(resp.Body, 8<<10))
-		return nil, fmt.Errorf("llm: %s: %s", resp.Status, strings.TrimSpace(string(msg)))
-	}
 	var reply anthropicResponse
 	if err := json.NewDecoder(resp.Body).Decode(&reply); err != nil {
 		return nil, fmt.Errorf("llm: bad reply: %w", err)

@@ -57,6 +57,22 @@ type documentDetail struct {
 	pages         int
 }
 
+// documentFilters is the 1.x list filter state: filename search, status chip,
+// and sort order. All three apply client-side to the newest 200 rows.
+type documentFilters struct {
+	search *core.Signal[string]
+	status *core.Signal[string]
+	order  *core.Signal[string]
+}
+
+func newDocumentFilters(cx *core.Scope) *documentFilters {
+	return &documentFilters{
+		search: core.NewSignal(cx, ""),
+		status: core.NewSignal(cx, ""),
+		order:  core.NewSignal(cx, "recent"),
+	}
+}
+
 func newDocumentDetail(cx *core.Scope, dataRev *core.Signal[int]) *documentDetail {
 	return &documentDetail{
 		scope:      cx,
@@ -91,6 +107,7 @@ func (s *Session) documentsScreen(cx *core.Scope, dataRev *core.Signal[int]) cor
 	status := core.NewSignal(cx, "")
 	statusFailed := core.NewSignal(cx, false)
 	preview := newDocumentPreview(cx)
+	filters := newDocumentFilters(cx)
 	detail := newDocumentDetail(cx, dataRev)
 	extractionForm := s.newActivityForm(cx, dataRev,
 		func() *store.Activity { return nil },
@@ -108,7 +125,7 @@ func (s *Session) documentsScreen(cx *core.Scope, dataRev *core.Signal[int]) cor
 					Style: core.Style{Padding: core.All(16), Gap: 12, MaxWidth: core.Pt(980), AlignSelf: core.AlignStretch},
 					Children: []core.Node{core.Dynamic(func(cx *core.Scope) core.Node {
 						_ = dataRev.Get()
-						return s.documentsBody(cx, dataRev, status, statusFailed, preview, detail)
+						return s.documentsBody(cx, dataRev, filters, status, statusFailed, preview, detail)
 					})},
 				}},
 			},
@@ -120,11 +137,27 @@ func (s *Session) documentsScreen(cx *core.Scope, dataRev *core.Signal[int]) cor
 }
 
 func (s *Session) documentsBody(cx *core.Scope, dataRev *core.Signal[int],
-	status *core.Signal[string], statusFailed *core.Signal[bool], preview *documentPreview,
-	detail *documentDetail) core.Node {
-	rows := make([]core.Node, 0, len(s.documents))
-	for i := range s.documents {
-		rows = append(rows, s.documentRow(cx, s.documents[i], status, statusFailed, preview, detail))
+	filters *documentFilters, status *core.Signal[string], statusFailed *core.Signal[bool],
+	preview *documentPreview, detail *documentDetail) core.Node {
+	if s.batch != nil {
+		_ = s.batch.rev.Get()
+	}
+	visible := s.filteredDocuments(filters)
+	rows := make([]core.Node, 0, len(visible))
+	for i := range visible {
+		rows = append(rows, s.documentRow(cx, visible[i], status, statusFailed, preview, detail))
+	}
+	if len(rows) == 0 {
+		if len(s.documents) > 0 {
+			rows = append(rows, core.View{
+				Style: core.Style{Padding: core.All(24), AlignItems: core.AlignCenter},
+				Children: []core.Node{
+					core.Text{Content: locales.DocumentsFilterEmpty(cx),
+						Style:     core.Style{FontSize: 12},
+						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+				},
+			})
+		}
 	}
 	if len(rows) == 0 {
 		rows = append(rows, core.View{
@@ -138,10 +171,14 @@ func (s *Session) documentsBody(cx *core.Scope, dataRev *core.Signal[int],
 		})
 	}
 
+	count := s.documentTotal
+	if filters.search.Get() != "" || filters.status.Get() != "" {
+		count = len(visible)
+	}
 	children := []core.Node{
 		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8}, Children: []core.Node{
 			dataHeading(cx, locales.NavDocuments(cx),
-				locales.DocumentsCount(cx, strconv.Itoa(s.documentTotal))),
+				locales.DocumentsCount(cx, strconv.Itoa(count))),
 			core.View{Style: core.Style{FlexGrow: 1}},
 			ui.Button{Text: locales.DocumentsUploadButton(cx), Variant: ui.ButtonPrimary,
 				OnPress: func() { s.uploadDocuments(cx, dataRev, status, statusFailed) },
@@ -149,6 +186,7 @@ func (s *Session) documentsBody(cx *core.Scope, dataRev *core.Signal[int],
 		}},
 		core.Text{ContentFunc: func() string { return locales.DocumentsUploadTypesHint(cx) },
 			Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2},
+		s.documentFilterRow(cx, filters),
 		core.Show{When: func() bool { return status.Get() != "" },
 			Then: func(cx *core.Scope) core.Node {
 				return core.Text{ContentFunc: func() string { return status.Get() },
@@ -160,8 +198,11 @@ func (s *Session) documentsBody(cx *core.Scope, dataRev *core.Signal[int],
 						return ui.Colored(ui.ColorsOf(cx).Muted)()
 					}}
 			}},
-		core.View{Style: core.Style{Gap: 0}, Children: rows},
 	}
+	if card := s.batchCard(cx); card != nil {
+		children = append(children, card)
+	}
+	children = append(children, core.View{Style: core.Style{Gap: 0}, Children: rows})
 	if s.documentTotal > len(s.documents) {
 		children = append(children, core.Text{
 			ContentFunc: func() string {
@@ -172,6 +213,73 @@ func (s *Session) documentsBody(cx *core.Scope, dataRev *core.Signal[int],
 		})
 	}
 	return dataCard(cx, children...)
+}
+
+// filteredDocuments applies filename search, status chip, and sort to the
+// loaded page. The store already returns newest first, so "recent" is a
+// no-op.
+func (s *Session) filteredDocuments(filters *documentFilters) []store.Document {
+	query := strings.ToLower(strings.TrimSpace(filters.search.Get()))
+	status := filters.status.Get()
+	visible := make([]store.Document, 0, len(s.documents))
+	for _, document := range s.documents {
+		if query != "" && !strings.Contains(strings.ToLower(document.Filename), query) {
+			continue
+		}
+		if status != "" && s.documentStatusKey(document.ID) != status {
+			continue
+		}
+		visible = append(visible, document)
+	}
+	switch filters.order.Get() {
+	case "oldest":
+		sort.SliceStable(visible, func(i, j int) bool {
+			return visible[i].UploadedAt < visible[j].UploadedAt
+		})
+	case "filename":
+		sort.SliceStable(visible, func(i, j int) bool {
+			return strings.ToLower(visible[i].Filename) < strings.ToLower(visible[j].Filename)
+		})
+	}
+	return visible
+}
+
+func (s *Session) documentFilterRow(cx *core.Scope, filters *documentFilters) core.Node {
+	statusOptions := []ui.Option[string]{
+		{Value: "", Label: locales.DocumentsFilterStatusAll(cx)},
+		{Value: "none", Label: locales.DocumentsStatusNone(cx)},
+		{Value: "review_needed", Label: locales.DocumentsStatusReviewNeeded(cx)},
+		{Value: "parsed", Label: locales.DocumentsStatusParsed(cx)},
+		{Value: "rejected", Label: locales.DocumentsStatusRejected(cx)},
+	}
+	orderOptions := []ui.Option[string]{
+		{Value: "recent", Label: locales.DocumentsSortRecent(cx)},
+		{Value: "oldest", Label: locales.DocumentsSortOldest(cx)},
+		{Value: "filename", Label: locales.DocumentsSortFilename(cx)},
+	}
+	children := []core.Node{
+		core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(180)},
+			Children: []core.Node{
+				ui.Input{Value: filters.search.Get, Placeholder: locales.DocumentsSearchPlaceholder(cx),
+					OnChange: filters.search.Set, TestID: "documents-search"},
+			}},
+		ui.Select[string]{Options: statusOptions, Value: filters.status.Get,
+			OnChange: filters.status.Set, Label: locales.DocumentsFilterStatusAll(cx),
+			TestID: "documents-filter-status"},
+		ui.Select[string]{Options: orderOptions, Value: filters.order.Get,
+			OnChange: filters.order.Set, Label: locales.DocumentsSortRecent(cx),
+			TestID: "documents-sort"},
+	}
+	if filters.search.Get() != "" || filters.status.Get() != "" {
+		children = append(children, ui.Button{Text: locales.DocumentsFilterClear(cx),
+			Variant: ui.ButtonGhost, TestID: "documents-filter-clear",
+			OnPress: func() {
+				filters.search.Set("")
+				filters.status.Set("")
+			}})
+	}
+	return core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+		Wrap: core.Wrap, Gap: 8}, Children: children}
 }
 
 func (s *Session) documentRow(cx *core.Scope, document store.Document,
@@ -194,6 +302,9 @@ func (s *Session) documentRow(cx *core.Scope, document store.Document,
 		OnPress: func() { s.openDocument(cx, document, status, statusFailed) },
 		TestID:  "documents-open-" + document.ID})
 	chipText, chipVariant := s.documentStatusChip(cx, document.ID)
+	if running, ok := s.batchRowBadge(cx, document.ID); ok {
+		chipText, chipVariant = running, ui.BadgeInfo
+	}
 	children := []core.Node{
 		ui.Icon(documentIcon(document.MIMEType), 15, ui.ColorsOf(cx).Muted),
 		core.View{Style: core.Style{Gap: 2, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
@@ -202,7 +313,8 @@ func (s *Session) documentRow(cx *core.Scope, document store.Document,
 					Children: []core.Node{
 						core.Text{Content: document.Filename,
 							Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}, MaxLines: 1},
-						ui.Badge{Text: chipText, Variant: chipVariant},
+						core.View{TestID: "documents-status-" + document.ID,
+							Children: []core.Node{ui.Badge{Text: chipText, Variant: chipVariant}}},
 					}},
 				core.Text{Content: meta, Style: core.Style{FontSize: 11},
 					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
@@ -222,20 +334,34 @@ func (s *Session) documentRow(cx *core.Scope, document store.Document,
 // list, mirroring 1.x: pending/review_needed read as "Needs review", a
 // confirmed row as "Confirmed", and a fully discarded history as "Discarded".
 func (s *Session) documentStatusChip(cx *core.Scope, documentID string) (string, ui.BadgeVariant) {
+	switch s.documentStatusKey(documentID) {
+	case "parsed":
+		return locales.DocumentsStatusParsed(cx), ui.BadgeAccent
+	case "review_needed":
+		return locales.DocumentsStatusReviewNeeded(cx), ui.BadgeWarn
+	case "rejected":
+		return locales.DocumentsStatusRejected(cx), ui.BadgeDanger
+	default:
+		return locales.DocumentsStatusNone(cx), ui.BadgeNeutral
+	}
+}
+
+// documentStatusKey is the filter vocabulary, independent of the locale.
+func (s *Session) documentStatusKey(documentID string) string {
 	status, ok := s.extractionStatus[documentID]
 	if !ok {
-		return locales.DocumentsStatusNone(cx), ui.BadgeNeutral
+		return "none"
 	}
 	switch status.ActiveStatus {
 	case store.ExtractionParsed:
-		return locales.DocumentsStatusParsed(cx), ui.BadgeAccent
+		return "parsed"
 	case store.ExtractionReviewNeeded, store.ExtractionPending:
-		return locales.DocumentsStatusReviewNeeded(cx), ui.BadgeWarn
+		return "review_needed"
 	}
 	if status.HasRejected {
-		return locales.DocumentsStatusRejected(cx), ui.BadgeDanger
+		return "rejected"
 	}
-	return locales.DocumentsStatusNone(cx), ui.BadgeNeutral
+	return "none"
 }
 
 func (s *Session) openDocumentPreview(cx *core.Scope, preview *documentPreview, document store.Document) {

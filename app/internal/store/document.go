@@ -35,6 +35,9 @@ type Document struct {
 	StoragePath string
 	UploadedAt  string
 	UploadedBy  string
+	// DocType is the extraction stage id chosen by classification, empty
+	// until a document has been classified successfully.
+	DocType string
 }
 
 // DocumentInput is one file staged for storage.
@@ -113,7 +116,7 @@ func (s *Store) SaveDocument(ctx context.Context, in DocumentInput, dataDir stri
 // DocumentByID reads one document row.
 func (s *Store) DocumentByID(ctx context.Context, id string) (*Document, error) {
 	row := s.db.QueryRowContext(ctx, `SELECT id, sha256, filename, mime_type, size_bytes,
-			storage_path, uploaded_at, coalesce(uploaded_by, '')
+			storage_path, uploaded_at, coalesce(uploaded_by, ''), coalesce(doc_type, '')
 		FROM document WHERE id = ?`, id)
 	document, err := scanDocument(row)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -138,7 +141,7 @@ func (s *Store) ListDocuments(ctx context.Context, limit, offset int) ([]Documen
 		return nil, 0, err
 	}
 	rows, err := s.db.QueryContext(ctx, `SELECT id, sha256, filename, mime_type, size_bytes,
-			storage_path, uploaded_at, coalesce(uploaded_by, '')
+			storage_path, uploaded_at, coalesce(uploaded_by, ''), coalesce(doc_type, '')
 		FROM document ORDER BY uploaded_at DESC, id DESC LIMIT ? OFFSET ?`, limit, offset)
 	if err != nil {
 		return nil, 0, err
@@ -205,7 +208,7 @@ func ResolveDocumentPath(storagePath, dataDir string) string {
 
 func documentBySHA(ctx context.Context, q queryer, digest string) (*Document, error) {
 	row := q.QueryRowContext(ctx, `SELECT id, sha256, filename, mime_type, size_bytes,
-			storage_path, uploaded_at, coalesce(uploaded_by, '')
+			storage_path, uploaded_at, coalesce(uploaded_by, ''), coalesce(doc_type, '')
 		FROM document WHERE sha256 = ?`, digest)
 	document, err := scanDocument(row)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -220,8 +223,23 @@ func documentBySHA(ctx context.Context, q queryer, digest string) (*Document, er
 func scanDocument(row rowScanner) (Document, error) {
 	var document Document
 	err := row.Scan(&document.ID, &document.SHA256, &document.Filename, &document.MIMEType,
-		&document.SizeBytes, &document.StoragePath, &document.UploadedAt, &document.UploadedBy)
+		&document.SizeBytes, &document.StoragePath, &document.UploadedAt, &document.UploadedBy,
+		&document.DocType)
 	return document, err
+}
+
+// SetDocumentType records the classifier's stage choice. An empty docType
+// clears the column, which puts the document back in the classify pool.
+func (s *Store) SetDocumentType(ctx context.Context, id, docType string) error {
+	result, err := s.db.ExecContext(ctx,
+		`UPDATE document SET doc_type = ? WHERE id = ?`, nullIfEmpty(docType), id)
+	if err != nil {
+		return err
+	}
+	if n, _ := result.RowsAffected(); n == 0 {
+		return fmt.Errorf("document not found: %s", id)
+	}
+	return nil
 }
 
 func writeDocumentFile(full string, data []byte) error {
