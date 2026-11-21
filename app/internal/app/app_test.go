@@ -94,6 +94,38 @@ func TestEditActivityThroughUI(t *testing.T) {
 	ui.WaitFor("text:Rebind emission factor", 3*time.Second)
 }
 
+// TestImportActivitiesThroughUI picks a CSV ledger, auto-maps it, confirms one
+// EF for the group, and proves both rows land in the ledger.
+func TestImportActivitiesThroughUI(t *testing.T) {
+	t.Setenv("CARBONINK_TEST_DB", fixtureDB(t))
+	csvPath := filepath.Join(t.TempDir(), "ledger.csv")
+	const ledger = "Source,Description,Amount,Unit,Date\n" +
+		"外购电力,Office power,10,kWh,2025-03-01\n" +
+		"外购电力,Office power,20,kWh,2025-03-01\n"
+	if err := os.WriteFile(csvPath, []byte(ledger), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
+		nsgotest.Environment(core.Environment{Locale: "en-US"}))
+	ui.PickFiles = func(core.FilesRequest) []core.File {
+		return []core.File{{Name: "ledger.csv", Path: csvPath}}
+	}
+	ui.WaitFor("id:activities-table", 5*time.Second)
+	ui.Press("id:activity-import")
+	ui.WaitFor("id:activity-import-dialog", 2*time.Second)
+	ui.Press("id:activity-import-pick")
+	ui.WaitFor("text:2 data rows", 3*time.Second)
+	ui.Press("id:activity-import-next")
+	ui.WaitFor("text:Confirm emission factors by group", 3*time.Second)
+	ui.Press("id:activity-import-ef-0")
+	ui.Press("id:activity-import-ef-0-0")
+	ui.Press("id:activity-import-run")
+	ui.WaitFor("text:2 rows imported", 3*time.Second)
+	ui.Press("id:activity-import-done")
+	ui.WaitFor("text:5.59", 3*time.Second)
+	ui.WaitFor("text:11.17", 3*time.Second)
+}
+
 // TestCreateSourceThroughUI proves the Sources page can create a source and
 // then show it in the list.
 func TestCreateSourceThroughUI(t *testing.T) {

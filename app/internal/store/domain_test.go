@@ -280,6 +280,55 @@ func TestUpdateActivityRecomputesAndAuditsRebind(t *testing.T) {
 	}
 }
 
+func TestImportActivitiesSkipsBadRowsAndKeepsAudits(t *testing.T) {
+	s, ctx := openFixture(t)
+	org, site, period := onboard(t, s, ctx)
+	src, err := s.CreateSource(ctx, SourceInput{
+		SiteID: site.ID, Name: "Purchased electricity", Scope: 2, Category: "electricity.grid",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ef := EmissionFactorKey{
+		FactorCode: "electricity.grid.cn.national.2024", Year: 2024,
+		Source: "MEE_China", Geography: "CN", DatasetVersion: "2024.q4",
+	}
+	base := ActivityInput{
+		EmissionSourceID: src.ID, ReportingPeriodID: period.ID,
+		OccurredAtStart: "2025-03-01", OccurredAtEnd: "2025-03-01",
+		Amount: 100, Unit: "kWh", EF: ef,
+	}
+	bad := base
+	bad.EmissionSourceID = "missing"
+	result, err := s.ImportActivities(ctx, []ActivityInput{base, bad, base})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Imported != 2 || result.Failed != 1 || len(result.Failures) != 1 {
+		t.Fatalf("result = %+v", result)
+	}
+	if result.Failures[0].Index != 1 || !strings.Contains(result.Failures[0].Error, "not found") {
+		t.Errorf("failure = %+v", result.Failures[0])
+	}
+	summary, err := s.Summary(ctx, org.ID)
+	if err != nil || summary.Activities != 2 {
+		t.Fatalf("summary = %+v, %v", summary, err)
+	}
+	events, err := s.AuditEvents(ctx, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	created := 0
+	for _, event := range events {
+		if event.Kind == "activity_data.created" {
+			created++
+		}
+	}
+	if created != 2 {
+		t.Errorf("created audit events = %d, want 2", created)
+	}
+}
+
 func TestCreateActivityRejectsBadInputWithoutPartialWrites(t *testing.T) {
 	s, ctx := openFixture(t)
 	_, site, period := onboard(t, s, ctx)

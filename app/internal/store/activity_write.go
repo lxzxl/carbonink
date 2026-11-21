@@ -53,6 +53,28 @@ const activitySelect = `SELECT a.id, a.site_id,
 
 // CreateActivity writes a validated ledger row and its audit event.
 func (s *Store) CreateActivity(ctx context.Context, in ActivityInput) (*Activity, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	id, err := insertActivity(ctx, tx, in)
+	if err != nil {
+		return nil, err
+	}
+	created, err := activityByID(ctx, tx, id)
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return created, nil
+}
+
+// insertActivity validates, pins, computes, inserts, and audits one row in the
+// caller's transaction.
+func insertActivity(ctx context.Context, q queryer, in ActivityInput) (string, error) {
 	sourceID := strings.TrimSpace(in.EmissionSourceID)
 	periodID := strings.TrimSpace(in.ReportingPeriodID)
 	unit := strings.TrimSpace(in.Unit)
@@ -63,83 +85,77 @@ func (s *Store) CreateActivity(ctx context.Context, in ActivityInput) (*Activity
 	extractionID := strings.TrimSpace(in.ExtractionID)
 
 	if sourceID == "" {
-		return nil, errors.New("emission source is required")
+		return "", errors.New("emission source is required")
 	}
 	if periodID == "" {
-		return nil, errors.New("reporting period is required")
+		return "", errors.New("reporting period is required")
 	}
 	if !validFinite(in.Amount) || in.Amount <= 0 {
-		return nil, errors.New("amount must be a positive number")
+		return "", errors.New("amount must be a positive number")
 	}
 	if unit == "" {
-		return nil, errors.New("unit is required")
+		return "", errors.New("unit is required")
 	}
 	if len([]rune(unit)) > 50 {
-		return nil, errors.New("unit is too long")
+		return "", errors.New("unit is too long")
 	}
 	if len([]rune(fuelCode)) > 100 || len([]rune(extractionID)) > 100 {
-		return nil, errors.New("fuel or extraction reference is too long")
+		return "", errors.New("fuel or extraction reference is too long")
 	}
 	if len([]rune(notes)) > 2000 {
-		return nil, errors.New("notes are too long")
+		return "", errors.New("notes are too long")
 	}
 	start, err := parseActivityTime(startText)
 	if err != nil {
-		return nil, fmt.Errorf("start date: %w", err)
+		return "", fmt.Errorf("start date: %w", err)
 	}
 	end, err := parseActivityTime(endText)
 	if err != nil {
-		return nil, fmt.Errorf("end date: %w", err)
+		return "", fmt.Errorf("end date: %w", err)
 	}
 	if end.Before(start) {
-		return nil, errors.New("end date cannot be before start date")
+		return "", errors.New("end date cannot be before start date")
 	}
 	if err := validateEFKey(in.EF); err != nil {
-		return nil, err
+		return "", err
 	}
-
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback()
 
 	var siteID string
 	var active int
-	err = tx.QueryRowContext(ctx, `SELECT site_id, is_active FROM emission_source WHERE id = ?`, sourceID).
+	err = q.QueryRowContext(ctx, `SELECT site_id, is_active FROM emission_source WHERE id = ?`, sourceID).
 		Scan(&siteID, &active)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, fmt.Errorf("emission source not found: %s", sourceID)
+		return "", fmt.Errorf("emission source not found: %s", sourceID)
 	}
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	if active != 1 {
-		return nil, fmt.Errorf("emission source is inactive: %s", sourceID)
+		return "", fmt.Errorf("emission source is inactive: %s", sourceID)
 	}
 	var periodExists int
-	if err := tx.QueryRowContext(ctx, `SELECT count(*) FROM reporting_period WHERE id = ?`, periodID).
+	if err := q.QueryRowContext(ctx, `SELECT count(*) FROM reporting_period WHERE id = ?`, periodID).
 		Scan(&periodExists); err != nil {
-		return nil, err
+		return "", err
 	}
 	if periodExists == 0 {
-		return nil, fmt.Errorf("reporting period not found: %s", periodID)
+		return "", fmt.Errorf("reporting period not found: %s", periodID)
 	}
 
-	ef, err := emissionFactorByKey(ctx, tx, in.EF)
+	ef, err := emissionFactorByKey(ctx, q, in.EF)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	if ef == nil {
-		return nil, fmt.Errorf("emission factor not found: %s/%d/%s/%s/%s",
+		return "", fmt.Errorf("emission factor not found: %s/%d/%s/%s/%s",
 			in.EF.FactorCode, in.EF.Year, in.EF.Source, in.EF.Geography, in.EF.DatasetVersion)
 	}
-	if err := pinEmissionFactor(ctx, tx, ef); err != nil {
-		return nil, err
+	if err := pinEmissionFactor(ctx, q, ef); err != nil {
+		return "", err
 	}
-	amountInEFUnit, err := convertAmount(ctx, tx, in.Amount, unit, ef.InputUnit, fuelCode)
+	amountInEFUnit, err := convertAmount(ctx, q, in.Amount, unit, ef.InputUnit, fuelCode)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	computed := amountInEFUnit * ef.CO2eKgPerUnit
 	if ef.CH4KgPerUnit != nil {
@@ -151,7 +167,7 @@ func (s *Store) CreateActivity(ctx context.Context, in ActivityInput) (*Activity
 
 	id := newID()
 	ts := now()
-	_, err = tx.ExecContext(ctx, `INSERT INTO activity_data (
+	_, err = q.ExecContext(ctx, `INSERT INTO activity_data (
 			id, site_id, emission_source_id, reporting_period_id,
 			occurred_at_start, occurred_at_end, amount, unit,
 			ef_factor_code, ef_year, ef_source, ef_geography, ef_dataset_version,
@@ -161,9 +177,9 @@ func (s *Store) CreateActivity(ctx context.Context, in ActivityInput) (*Activity
 		ef.FactorCode, ef.Year, ef.Source, ef.Geography, ef.DatasetVersion,
 		computed, ts, nullIfEmpty(fuelCode), nullIfEmpty(extractionID), nullIfEmpty(notes), ts, ts)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	if err := writeAudit(ctx, tx, "activity_data.created", ts, map[string]any{
+	if err := writeAudit(ctx, q, "activity_data.created", ts, map[string]any{
 		"activity_id":         id,
 		"site_id":             siteID,
 		"emission_source_id":  sourceID,
@@ -176,16 +192,61 @@ func (s *Store) CreateActivity(ctx context.Context, in ActivityInput) (*Activity
 		"provenance":          provenance(extractionID),
 		"extraction_id":       emptyToNil(extractionID),
 	}); err != nil {
-		return nil, err
+		return "", err
 	}
-	created, err := activityByID(ctx, tx, id)
+	return id, nil
+}
+
+// ImportFailure is one skipped row in a batch import.
+type ImportFailure struct {
+	Index int
+	Error string
+}
+
+// ImportResult counts a batch import and reports the first failures.
+type ImportResult struct {
+	Imported int
+	Failed   int
+	Failures []ImportFailure
+}
+
+// ImportActivities inserts many rows in one transaction. Each row gets its own
+// savepoint, so a bad row is skipped without discarding the rest; every
+// imported row keeps its own audit event.
+func (s *Store) ImportActivities(ctx context.Context, inputs []ActivityInput) (ImportResult, error) {
+	var result ImportResult
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, err
+		return result, err
+	}
+	defer tx.Rollback()
+	for i, in := range inputs {
+		savepoint := fmt.Sprintf("import_row_%d", i)
+		if _, err := tx.ExecContext(ctx, "SAVEPOINT "+savepoint); err != nil {
+			return result, err
+		}
+		if _, err := insertActivity(ctx, tx, in); err != nil {
+			if _, rbErr := tx.ExecContext(ctx, "ROLLBACK TO "+savepoint); rbErr != nil {
+				return result, rbErr
+			}
+			if _, rbErr := tx.ExecContext(ctx, "RELEASE "+savepoint); rbErr != nil {
+				return result, rbErr
+			}
+			result.Failed++
+			if len(result.Failures) < 200 {
+				result.Failures = append(result.Failures, ImportFailure{Index: i, Error: err.Error()})
+			}
+			continue
+		}
+		if _, err := tx.ExecContext(ctx, "RELEASE "+savepoint); err != nil {
+			return result, err
+		}
+		result.Imported++
 	}
 	if err := tx.Commit(); err != nil {
-		return nil, err
+		return result, err
 	}
-	return created, nil
+	return result, nil
 }
 
 // UpdateActivity replaces a ledger row's editable fields, pins the selected

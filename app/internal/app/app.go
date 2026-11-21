@@ -374,6 +374,7 @@ func (s *Session) activitiesScreen(cx *core.Scope, dataRev *core.Signal[int]) co
 				}, Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 				core.View{Style: core.Style{FlexGrow: 1}},
 				s.activityDialog(cx, dataRev),
+				s.activityImportDialog(cx, dataRev),
 				s.editActivityDialog(cx, selectedID, dataRev),
 				s.deleteActivityButton(cx, selectedID, dataRev),
 			}},

@@ -52,6 +52,11 @@ func dataError(cx *core.Scope, message *core.Signal[string]) core.Node {
 
 func dataDialog(cx *core.Scope, open *core.Signal[bool], title string, children []core.Node,
 	footer []core.Node, testID string) core.Node {
+	return dataDialogSized(cx, open, title, children, footer, testID, 520)
+}
+
+func dataDialogSized(cx *core.Scope, open *core.Signal[bool], title string, children []core.Node,
+	footer []core.Node, testID string, width core.Points) core.Node {
 	return ui.Dialog{
 		Open: open.Get,
 		OnOpenChange: func(v bool, _ base.Reason) {
@@ -61,7 +66,7 @@ func dataDialog(cx *core.Scope, open *core.Signal[bool], title string, children 
 		Children: children,
 		Footer:   footer,
 		TestID:   testID,
-		Style:    core.Style{Width: core.Pt(520)},
+		Style:    core.Style{Width: core.Pt(width)},
 	}
 }
 
