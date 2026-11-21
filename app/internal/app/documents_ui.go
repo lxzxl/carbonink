@@ -460,7 +460,8 @@ func (s *Session) runDocumentExtraction(cx *core.Scope, detail *documentDetail) 
 	detail.failed.Set(false)
 	detail.rev.Set(detail.rev.Get() + 1)
 	go func() {
-		service := &extraction.Service{Store: s.db, DataDir: s.dataDir, Provider: provider}
+		service := &extraction.Service{Store: s.db, DataDir: s.dataDir, Provider: provider,
+			NewClient: newExtractor}
 		row, err := service.Run(context.Background(), document.ID, stage)
 		detail.scope.Post(func() {
 			if !detail.open.Get() || detail.doc.Get().ID != document.ID {
@@ -482,6 +483,8 @@ func (s *Session) runDocumentExtraction(cx *core.Scope, detail *documentDetail) 
 
 func extractionErrorText(cx *core.Scope, err error) string {
 	switch {
+	case errors.Is(err, extraction.ErrVisionUnsupported):
+		return locales.DocumentsStageNoVision(cx)
 	case errors.Is(err, extraction.ErrNoTextLayer):
 		return locales.DocumentsExtractionNoText(cx)
 	case errors.Is(err, extraction.ErrNotConfigured):

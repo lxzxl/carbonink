@@ -3025,7 +3025,7 @@ var textsEn = i18n.NewTexts(""+
 	"Extraction failed"+
 	"Extracted fields"+
 	"Reads the PDF text with the selected stage and stages the result for review."+
-	"This PDF has no text layer. Image recognition is not available yet."+
+	"This PDF has no readable pages."+
 	"Set up an AI provider in Settings first."+
 	"Check the fields below before adding them to your activity data."+
 	"Run again"+
@@ -4209,7 +4209,7 @@ var textsEn = i18n.NewTexts(""+
 		17,
 		16,
 		76,
-		67,
+		31,
 		40,
 		64,
 		9,
@@ -5396,7 +5396,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"抽取失败"+
 	"抽取字段"+
 	"用所选阶段读取 PDF 文本，并把结果暂存为待审核记录。"+
-	"这个 PDF 没有文本层。图像识别尚未接入。"+
+	"这个 PDF 没有可读取的页面。"+
 	"请先在设置中配置 AI 服务商。"+
 	"把结果加入活动数据前，请先核对下面的字段。"+
 	"重新抽取"+
@@ -6580,7 +6580,7 @@ var textsZhCN = i18n.NewTexts(""+
 		12,
 		12,
 		74,
-		56,
+		38,
 		40,
 		63,
 		12,
@@ -11195,7 +11195,7 @@ func DocumentsExtractionHint(cx *core.Scope) string { return For(cx).DocumentsEx
 // DocumentsExtractionHint is the package's DocumentsExtractionHint in the language of msgs.
 func (msgs Messages) DocumentsExtractionHint() string { return msgs.text(textDocumentsExtractionHint) }
 
-// DocumentsExtractionNoText says "This PDF has no text layer. Image recognition is not available yet."
+// DocumentsExtractionNoText says "This PDF has no readable pages."
 // in the language the app shows under cx.
 func DocumentsExtractionNoText(cx *core.Scope) string { return For(cx).DocumentsExtractionNoText() }
 

@@ -332,7 +332,7 @@ documentsExtractionDone: Extraction ready for review
 documentsExtractionFailed: Extraction failed
 documentsExtractionFields: Extracted fields
 documentsExtractionHint: Reads the PDF text with the selected stage and stages the result for review.
-documentsExtractionNoText: This PDF has no text layer. Image recognition is not available yet.
+documentsExtractionNoText: This PDF has no readable pages.
 documentsExtractionNotConfigured: Set up an AI provider in Settings first.
 documentsExtractionReviewHint: Check the fields below before adding them to your activity data.
 documentsExtractionRunAgain: Run again

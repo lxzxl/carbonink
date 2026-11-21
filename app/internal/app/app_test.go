@@ -1,12 +1,14 @@
 package app
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"image"
 	"image/color"
 	"image/png"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -19,6 +21,7 @@ import (
 
 	"app.carbonink.desktop/internal/store"
 
+	"github.com/go-pdf/fpdf"
 	"github.com/nsgo-dev/nsgo/core"
 	"github.com/nsgo-dev/nsgo/nsgotest"
 	"github.com/xuri/excelize/v2"
@@ -616,14 +619,7 @@ func TestRunDocumentExtractionThroughUI(t *testing.T) {
 	ui.PickFiles = func(core.FilesRequest) []core.File {
 		return []core.File{{Name: "bill.pdf", Path: pdfPath}}
 	}
-	ui.Press("id:nav:settings")
-	ui.WaitFor("id:settings-llm-base-url", 3*time.Second)
-	ui.Clear("id:settings-llm-base-url")
-	ui.Type("id:settings-llm-base-url", srv.URL)
-	ui.Clear("id:settings-llm-model")
-	ui.Type("id:settings-llm-model", "test-model")
-	ui.Press("id:settings-llm-save")
-	ui.WaitFor("text:Settings saved", 3*time.Second)
+	configureLLMEndpoint(t, ui, srv.URL)
 
 	ui.Press("id:nav:documents")
 	ui.WaitFor("id:documents-upload", 3*time.Second)
@@ -670,6 +666,99 @@ func TestRunDocumentExtractionThroughUI(t *testing.T) {
 	if activities != 2 || links != 1 {
 		t.Fatalf("activities = %d, evidence links = %d", activities, links)
 	}
+}
+
+// TestRunDocumentExtractionVisionThroughUI uses an image-only PDF (no text
+// operators) and proves the rendered page reaches the model as an image part.
+func TestRunDocumentExtractionVisionThroughUI(t *testing.T) {
+	dbPath := fixtureDB(t)
+	t.Setenv("CARBONINK_TEST_DB", dbPath)
+	pdfPath := filepath.Join(t.TempDir(), "scan.pdf")
+	if err := os.WriteFile(pdfPath, imageOnlyPDF(t), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	const reply = `{"doc_type":"china_utility","supplier_name":"国网北京市电力公司",` +
+		`"account_no":null,"amount_kwh":100,"amount_yuan":null,` +
+		`"period_start":"2025-09-01","period_end":"2025-09-30","confidence":"medium"}`
+	arguments, err := json.Marshal(reply)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var calls atomic.Int32
+	var sawImage atomic.Bool
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		body, _ := io.ReadAll(r.Body)
+		if bytes.Contains(body, []byte(`"image_url"`)) {
+			sawImage.Store(true)
+		}
+		w.Header().Set("Content-Type", "text/event-stream")
+		fmt.Fprintf(w, "data: %s\n\n", fmt.Sprintf(
+			`{"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","type":"function","function":{"name":"save_extraction","arguments":%s}}]}}]}`,
+			arguments))
+		fmt.Fprint(w, "data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"tool_calls\"}]}\n\n")
+		fmt.Fprint(w, "data: [DONE]\n\n")
+	}))
+	defer srv.Close()
+
+	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
+		nsgotest.Environment(core.Environment{Locale: "en-US"}),
+		nsgotest.Secrets(map[string]string{llmSecretAccount: "test-key"}))
+	ui.PickFiles = func(core.FilesRequest) []core.File {
+		return []core.File{{Name: "scan.pdf", Path: pdfPath}}
+	}
+	configureLLMEndpoint(t, ui, srv.URL)
+	ui.Press("id:nav:documents")
+	ui.WaitFor("id:documents-upload", 3*time.Second)
+	ui.Press("id:documents-upload")
+	ui.WaitFor("text:scan.pdf", 5*time.Second)
+	ui.Press("text:Details")
+	ui.WaitFor("id:documents-detail-dialog", 3*time.Second)
+	ui.Press("id:documents-extraction-run")
+	ui.WaitFor("text:Extraction ready for review", 20*time.Second)
+	ui.WaitFor("text:国网北京市电力公司", 5*time.Second)
+	if calls.Load() != 1 || !sawImage.Load() {
+		t.Fatalf("calls = %d, image parts = %v", calls.Load(), sawImage.Load())
+	}
+}
+
+func configureLLMEndpoint(t *testing.T, ui *nsgotest.App, baseURL string) {
+	t.Helper()
+	ui.Press("id:nav:settings")
+	ui.WaitFor("id:settings-llm-base-url", 3*time.Second)
+	ui.Clear("id:settings-llm-base-url")
+	ui.Type("id:settings-llm-base-url", baseURL)
+	ui.Clear("id:settings-llm-model")
+	ui.Type("id:settings-llm-model", "test-model")
+	ui.Press("id:settings-llm-save")
+	ui.WaitFor("text:Settings saved", 3*time.Second)
+}
+
+// imageOnlyPDF draws a PNG on one page and adds no text, so its text layer is
+// empty and extraction must use the vision branch.
+func imageOnlyPDF(t *testing.T) []byte {
+	t.Helper()
+	img := image.NewRGBA(image.Rect(0, 0, 32, 24))
+	for y := 0; y < 24; y++ {
+		for x := 0; x < 32; x++ {
+			img.Set(x, y, color.RGBA{R: uint8(x * 7), G: uint8(y * 9), B: 80, A: 255})
+		}
+	}
+	var pngData bytes.Buffer
+	if err := png.Encode(&pngData, img); err != nil {
+		t.Fatal(err)
+	}
+	pdf := fpdf.New("P", "mm", "A4", "")
+	pdf.AddPage()
+	pdf.RegisterImageOptionsReader("scan.png", fpdf.ImageOptions{ImageType: "PNG"},
+		bytes.NewReader(pngData.Bytes()))
+	pdf.ImageOptions("scan.png", 20, 20, 100, 0, false, fpdf.ImageOptions{}, 0, "")
+	var out bytes.Buffer
+	if err := pdf.Output(&out); err != nil {
+		t.Fatal(err)
+	}
+	return out.Bytes()
 }
 
 func fixtureDB(t *testing.T) string {

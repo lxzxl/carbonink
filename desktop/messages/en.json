@@ -217,7 +217,7 @@
   "documents_extraction_failed": "Extraction failed",
   "documents_extraction_fields": "Extracted fields",
   "documents_extraction_hint": "Reads the PDF text with the selected stage and stages the result for review.",
-  "documents_extraction_no_text": "This PDF has no text layer. Image recognition is not available yet.",
+  "documents_extraction_no_text": "This PDF has no readable pages.",
   "documents_extraction_not_configured": "Set up an AI provider in Settings first.",
   "documents_extraction_review_hint": "Check the fields below before adding them to your activity data.",
   "documents_extraction_run_again": "Run again",

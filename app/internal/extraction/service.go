@@ -2,6 +2,7 @@ package extraction
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -16,9 +17,19 @@ import (
 // image-only scan. Below it the vision path is required.
 const MinTextRunes = 10
 
+// VisionDPI and MaxVisionPages bound the image path's cost. Receipts and bills
+// are short; a 20-page cap avoids sending an entire scanned binder.
+const (
+	VisionDPI      = 120
+	MaxVisionPages = 20
+)
+
 // ErrNoTextLayer means the PDF has no usable text and the stage's vision path
-// has not been wired yet.
+// could not be used.
 var ErrNoTextLayer = errors.New("extraction: the PDF has no readable text layer")
+
+// ErrVisionUnsupported means the stage has no image prompt.
+var ErrVisionUnsupported = errors.New("extraction: the stage does not support image input")
 
 // ErrNotConfigured means no LLM provider settings are available.
 var ErrNotConfigured = errors.New("extraction: no LLM provider is configured")
@@ -45,7 +56,9 @@ type Service struct {
 	// The fields below are test seams; nil uses the production defaults.
 	ReadFile  func(string) ([]byte, error)
 	PDFText   func([]byte) (string, int, error)
-	NewClient func(Provider) *llm.Client
+	PDFPages  func([]byte) ([][]byte, error)
+	Stage     func(string) (Stage, bool)
+	NewClient func(Provider) llm.Extractor
 }
 
 // Run executes the text path and persists a review_needed extraction. A
@@ -58,7 +71,11 @@ func (s *Service) Run(ctx context.Context, documentID, stageID string) (*store.E
 	if !s.Provider.Configured() {
 		return nil, ErrNotConfigured
 	}
-	stage, ok := Get(stageID)
+	stageFn := s.Stage
+	if stageFn == nil {
+		stageFn = Get
+	}
+	stage, ok := stageFn(stageID)
 	if !ok {
 		return nil, fmt.Errorf("extraction: stage not found: %s", stageID)
 	}
@@ -103,21 +120,48 @@ func (s *Service) Run(ctx context.Context, documentID, stageID string) (*store.E
 	if err != nil {
 		return nil, err
 	}
-	if len([]rune(strings.TrimSpace(text))) < MinTextRunes {
-		return nil, ErrNoTextLayer
-	}
-
 	client := s.NewClient
 	if client == nil {
-		client = func(p Provider) *llm.Client {
+		client = func(p Provider) llm.Extractor {
 			return &llm.Client{BaseURL: p.BaseURL, APIKey: p.APIKey, Model: p.Model}
 		}
 	}
-	raw, err := client(s.Provider).Extract(ctx, extractionSystemPrompt, stage.BuildPrompt(text), llm.Tool{
+	tool := llm.Tool{
 		Name:        "save_extraction",
 		Description: stage.Description,
 		Schema:      stage.Schema,
-	})
+	}
+	var raw json.RawMessage
+	if len([]rune(strings.TrimSpace(text))) >= MinTextRunes {
+		raw, err = client(s.Provider).Extract(ctx, extractionSystemPrompt, stage.BuildPrompt(text), tool)
+	} else {
+		if !stage.Vision() {
+			return nil, ErrVisionUnsupported
+		}
+		pagesFn := s.PDFPages
+		if pagesFn == nil {
+			pagesFn = func(data []byte) ([][]byte, error) {
+				return docview.RenderPDFPages(data, VisionDPI, MaxVisionPages)
+			}
+		}
+		pages, err := pagesFn(data)
+		if err != nil {
+			return nil, err
+		}
+		if len(pages) == 0 {
+			return nil, ErrNoTextLayer
+		}
+		images := make([]llm.ImagePart, len(pages))
+		for i, page := range pages {
+			images[i] = llm.ImagePart{MIMEType: "image/png", Data: page}
+		}
+		vision := stage.BuildVisionMessages()
+		system := vision.System
+		if strings.TrimSpace(system) == "" {
+			system = extractionSystemPrompt
+		}
+		raw, err = client(s.Provider).ExtractVision(ctx, system, vision.UserText, images, tool)
+	}
 	if err != nil {
 		return nil, err
 	}

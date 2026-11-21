@@ -1,8 +1,10 @@
 package docview
 
 import (
+	"bytes"
 	"fmt"
 	"image"
+	"image/png"
 	"strings"
 	"sync"
 	"time"
@@ -91,6 +93,31 @@ func RenderPDFPage(data []byte, page int, dpi int) (*image.RGBA, error) {
 	}
 	defer render.Cleanup()
 	return copyRGBA(render.Result.Image), nil
+}
+
+// RenderPDFPages rasterizes pages as PNGs for a vision model. limit <= 0
+// renders every page.
+func RenderPDFPages(data []byte, dpi, limit int) ([][]byte, error) {
+	count, err := PDFPageCount(data)
+	if err != nil {
+		return nil, err
+	}
+	if limit > 0 && count > limit {
+		count = limit
+	}
+	out := make([][]byte, 0, count)
+	for page := 0; page < count; page++ {
+		frame, err := RenderPDFPage(data, page, dpi)
+		if err != nil {
+			return nil, fmt.Errorf("render page %d: %w", page+1, err)
+		}
+		var buf bytes.Buffer
+		if err := png.Encode(&buf, frame); err != nil {
+			return nil, fmt.Errorf("encode page %d: %w", page+1, err)
+		}
+		out = append(out, buf.Bytes())
+	}
+	return out, nil
 }
 
 // PDFText returns every page's text layer, joined with newlines.

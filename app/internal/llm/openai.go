@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -25,6 +26,20 @@ type Client struct {
 	APIKey  string
 	Model   string
 	HTTP    *http.Client
+}
+
+// ImagePart is one image handed to a vision model. MIMEType defaults to
+// image/png.
+type ImagePart struct {
+	MIMEType string
+	Data     []byte
+}
+
+// Extractor is the one-turn structured-extraction surface both the
+// OpenAI-compatible and Anthropic adapters implement.
+type Extractor interface {
+	Extract(ctx context.Context, system, user string, tool Tool) (json.RawMessage, error)
+	ExtractVision(ctx context.Context, system, user string, images []ImagePart, tool Tool) (json.RawMessage, error)
 }
 
 // Tool is a function the model may call. Schema is a JSON Schema object.
@@ -51,7 +66,7 @@ type Event struct {
 
 type chatMessage struct {
 	Role    string `json:"role"`
-	Content string `json:"content"`
+	Content any    `json:"content"`
 }
 
 type chatTool struct {
@@ -106,10 +121,39 @@ func (c *Client) httpClient() *http.Client {
 // turn ends; the final event is Done or Err. Callers must read it to release
 // the response body.
 func (c *Client) Stream(ctx context.Context, system, user string, tools []Tool) (<-chan Event, error) {
-	body := chatRequest{Model: c.Model, Stream: true, Messages: []chatMessage{
-		{Role: "system", Content: system},
-		{Role: "user", Content: user},
-	}}
+	return c.stream(ctx, system, user, nil, tools)
+}
+
+// StreamVision sends one user turn with images followed by text, for
+// providers that accept the OpenAI content-parts shape.
+func (c *Client) StreamVision(ctx context.Context, system, user string, images []ImagePart,
+	tools []Tool) (<-chan Event, error) {
+	return c.stream(ctx, system, user, images, tools)
+}
+
+func (c *Client) stream(ctx context.Context, system, user string, images []ImagePart,
+	tools []Tool) (<-chan Event, error) {
+	messages := []chatMessage{{Role: "system", Content: system}}
+	if len(images) == 0 {
+		messages = append(messages, chatMessage{Role: "user", Content: user})
+	} else {
+		parts := make([]any, 0, len(images)+1)
+		parts = append(parts, map[string]any{"type": "text", "text": user})
+		for _, image := range images {
+			mimeType := image.MIMEType
+			if mimeType == "" {
+				mimeType = "image/png"
+			}
+			parts = append(parts, map[string]any{
+				"type": "image_url",
+				"image_url": map[string]any{
+					"url": "data:" + mimeType + ";base64," + base64.StdEncoding.EncodeToString(image.Data),
+				},
+			})
+		}
+		messages = append(messages, chatMessage{Role: "user", Content: parts})
+	}
+	body := chatRequest{Model: c.Model, Stream: true, Messages: messages}
 	for _, t := range tools {
 		body.Tools = append(body.Tools, chatTool{Type: "function",
 			Function: chatFunction{Name: t.Name, Description: t.Description, Parameters: t.Schema}})
@@ -211,7 +255,18 @@ func (c *Client) Stream(ctx context.Context, system, user string, tools []Tool) 
 // calling tool, whose arguments are validated against its schema. A plain JSON
 // answer in the text is accepted too, because some providers ignore tools.
 func (c *Client) Extract(ctx context.Context, system, user string, tool Tool) (json.RawMessage, error) {
-	events, err := c.Stream(ctx, system, user, []Tool{tool})
+	return c.extract(ctx, system, user, nil, tool)
+}
+
+// ExtractVision runs a one-turn structured extraction over images.
+func (c *Client) ExtractVision(ctx context.Context, system, user string, images []ImagePart,
+	tool Tool) (json.RawMessage, error) {
+	return c.extract(ctx, system, user, images, tool)
+}
+
+func (c *Client) extract(ctx context.Context, system, user string, images []ImagePart,
+	tool Tool) (json.RawMessage, error) {
+	events, err := c.stream(ctx, system, user, images, []Tool{tool})
 	if err != nil {
 		return nil, err
 	}

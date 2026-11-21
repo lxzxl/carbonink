@@ -1,10 +1,14 @@
 package extraction
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"image"
+	"image/color"
+	"image/png"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -183,16 +187,87 @@ func TestDiscardAllowsRetry(t *testing.T) {
 	}
 }
 
-func TestRunRequiresTextLayer(t *testing.T) {
+func TestRunRejectsEmptyDocument(t *testing.T) {
 	s, ctx := testStore(t)
 	dataDir := t.TempDir()
 	document := storedPDF(t, s, ctx, dataDir)
 	srv, calls := extractionServer(t, validChinaUtility)
 	service := testService(t, srv.URL, dataDir, s)
 	service.PDFText = func([]byte) (string, int, error) { return "  \n ", 2, nil }
+	service.PDFPages = func([]byte) ([][]byte, error) { return nil, nil }
 
 	if _, err := service.Run(ctx, document.ID, "china_utility.v1"); !errors.Is(err, ErrNoTextLayer) {
 		t.Fatalf("err = %v", err)
+	}
+	if calls.Load() != 0 {
+		t.Errorf("model calls = %d, want 0", calls.Load())
+	}
+}
+
+func testPNG(t *testing.T) []byte {
+	t.Helper()
+	img := image.NewRGBA(image.Rect(0, 0, 4, 3))
+	for y := 0; y < 3; y++ {
+		for x := 0; x < 4; x++ {
+			img.Set(x, y, color.RGBA{R: uint8(x * 40), G: uint8(y * 50), B: 90, A: 255})
+		}
+	}
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, img); err != nil {
+		t.Fatal(err)
+	}
+	return buf.Bytes()
+}
+
+func TestRunExtractionVisionPath(t *testing.T) {
+	s, ctx := testStore(t)
+	dataDir := t.TempDir()
+	document := storedPDF(t, s, ctx, dataDir)
+	srv, calls := extractionServer(t, validChinaUtility)
+	service := testService(t, srv.URL, dataDir, s)
+	service.PDFText = func([]byte) (string, int, error) { return "", 2, nil }
+	pages := [][]byte{testPNG(t), testPNG(t)}
+	service.PDFPages = func([]byte) ([][]byte, error) { return pages, nil }
+
+	row, err := service.Run(ctx, document.ID, "china_utility.v1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if row.Status != store.ExtractionReviewNeeded || calls.Load() != 1 {
+		t.Fatalf("row = %+v, calls = %d", row, calls.Load())
+	}
+}
+
+func TestRunRejectsStageWithoutVision(t *testing.T) {
+	s, ctx := testStore(t)
+	dataDir := t.TempDir()
+	document := storedPDF(t, s, ctx, dataDir)
+	srv, calls := extractionServer(t, validChinaUtility)
+	service := testService(t, srv.URL, dataDir, s)
+	service.PDFText = func([]byte) (string, int, error) { return "", 1, nil }
+	service.Stage = func(id string) (Stage, bool) {
+		stage, ok := Get(id)
+		stage.BuildVisionMessages = nil
+		return stage, ok
+	}
+	if _, err := service.Run(ctx, document.ID, "china_utility.v1"); !errors.Is(err, ErrVisionUnsupported) {
+		t.Fatalf("err = %v", err)
+	}
+	if calls.Load() != 0 {
+		t.Errorf("model calls = %d, want 0", calls.Load())
+	}
+}
+
+func TestRunStopsWhenRenderingFails(t *testing.T) {
+	s, ctx := testStore(t)
+	dataDir := t.TempDir()
+	document := storedPDF(t, s, ctx, dataDir)
+	srv, calls := extractionServer(t, validChinaUtility)
+	service := testService(t, srv.URL, dataDir, s)
+	service.PDFText = func([]byte) (string, int, error) { return "", 2, nil }
+	service.PDFPages = func([]byte) ([][]byte, error) { return nil, errors.New("render failed") }
+	if _, err := service.Run(ctx, document.ID, "china_utility.v1"); err == nil {
+		t.Fatal("render failure was ignored")
 	}
 	if calls.Load() != 0 {
 		t.Errorf("model calls = %d, want 0", calls.Load())

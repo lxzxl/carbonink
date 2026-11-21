@@ -56,6 +56,29 @@ func TestPDFText(t *testing.T) {
 	}
 }
 
+func TestRenderPDFPages(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "spike", "fixtures", "pdf", "two-page-text.pdf"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pages, err := RenderPDFPages(data, 72, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(pages) != 2 {
+		t.Fatalf("pages = %d, want 2", len(pages))
+	}
+	for i, page := range pages {
+		if _, err := DecodeImage(page); err != nil {
+			t.Fatalf("page %d: %v", i+1, err)
+		}
+	}
+	limited, err := RenderPDFPages(data, 72, 1)
+	if err != nil || len(limited) != 1 {
+		t.Fatalf("limited = %d, %v", len(limited), err)
+	}
+}
+
 func TestDecodeImage(t *testing.T) {
 	src := image.NewRGBA(image.Rect(0, 0, 3, 2))
 	for y := 0; y < 2; y++ {

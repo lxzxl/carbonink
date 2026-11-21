@@ -331,7 +331,7 @@ documentsExtractionDone: 抽取完成，待审核
 documentsExtractionFailed: 抽取失败
 documentsExtractionFields: 抽取字段
 documentsExtractionHint: 用所选阶段读取 PDF 文本，并把结果暂存为待审核记录。
-documentsExtractionNoText: 这个 PDF 没有文本层。图像识别尚未接入。
+documentsExtractionNoText: 这个 PDF 没有可读取的页面。
 documentsExtractionNotConfigured: 请先在设置中配置 AI 服务商。
 documentsExtractionReviewHint: 把结果加入活动数据前，请先核对下面的字段。
 documentsExtractionRunAgain: 重新抽取

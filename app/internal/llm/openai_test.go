@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -95,6 +96,60 @@ func TestExtractRejectsBadSchema(t *testing.T) {
 	c := &Client{BaseURL: srv.URL, APIKey: "test-key", Model: "test"}
 	if _, err := c.Extract(context.Background(), "sys", "user", tool); err == nil {
 		t.Fatal("expected a schema error")
+	}
+}
+
+func TestExtractVisionSendsImageParts(t *testing.T) {
+	var content json.RawMessage
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		var request struct {
+			Messages []struct {
+				Role    string          `json:"role"`
+				Content json.RawMessage `json:"content"`
+			} `json:"messages"`
+		}
+		if err := json.Unmarshal(body, &request); err != nil {
+			t.Error(err)
+			return
+		}
+		if len(request.Messages) != 2 {
+			t.Errorf("messages = %d", len(request.Messages))
+			return
+		}
+		content = request.Messages[1].Content
+		w.Header().Set("Content-Type", "text/event-stream")
+		fmt.Fprint(w, "data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"c1\",\"type\":\"function\",\"function\":{\"name\":\"save\",\"arguments\":\"{\\\"ok\\\":true}\"}}]}}]}\n\n")
+		fmt.Fprint(w, "data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"tool_calls\"}]}\n\n")
+		fmt.Fprint(w, "data: [DONE]\n\n")
+	}))
+	defer srv.Close()
+	c := &Client{BaseURL: srv.URL, APIKey: "test-key", Model: "test"}
+	tool := Tool{Name: "save", Schema: json.RawMessage(`{"type":"object","required":["ok"],"properties":{"ok":{"type":"boolean"}}}`)}
+	if _, err := c.ExtractVision(context.Background(), "sys", "read this", []ImagePart{
+		{MIMEType: "image/png", Data: []byte{1, 2, 3}},
+	}, tool); err != nil {
+		t.Fatal(err)
+	}
+	var parts []struct {
+		Type     string `json:"type"`
+		Text     string `json:"text"`
+		ImageURL struct {
+			URL string `json:"url"`
+		} `json:"image_url"`
+	}
+	if err := json.Unmarshal(content, &parts); err != nil {
+		t.Fatalf("content = %s: %v", content, err)
+	}
+	if len(parts) != 2 || parts[0].Type != "text" || parts[0].Text != "read this" {
+		t.Fatalf("parts = %+v", parts)
+	}
+	if parts[1].Type != "image_url" || !strings.HasPrefix(parts[1].ImageURL.URL, "data:image/png;base64,") {
+		t.Fatalf("image part = %+v", parts[1])
 	}
 }
 
