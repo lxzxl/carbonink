@@ -423,6 +423,8 @@ const (
 	textActivityImportErrorTokenExpired
 	textActivityImportErrorUnconfirmed
 	textActivityImportErrorsHeading
+	textActivityImportEvidenceFailed
+	textActivityImportEvidenceHint
 	textActivityImportFailed
 	textActivityImportFieldAmount
 	textActivityImportFieldDescription
@@ -465,6 +467,7 @@ const (
 	textActivityImportPickHint
 	textActivityImportRepickButton
 	textActivityImportRequired
+	textActivityImportResultEvidence
 	textActivityImportResultHeading
 	textActivityImportResultWarningsHeading
 	textActivityImportSourceCreateButton
@@ -1579,6 +1582,8 @@ var keyOfText = [numTexts]string{
 	"activityImportErrorTokenExpired",
 	"activityImportErrorUnconfirmed",
 	"activityImportErrorsHeading",
+	"activityImportEvidenceFailed",
+	"activityImportEvidenceHint",
 	"activityImportFailed",
 	"activityImportFieldAmount",
 	"activityImportFieldDescription",
@@ -1621,6 +1626,7 @@ var keyOfText = [numTexts]string{
 	"activityImportPickHint",
 	"activityImportRepickButton",
 	"activityImportRequired",
+	"activityImportResultEvidence",
 	"activityImportResultHeading",
 	"activityImportResultWarningsHeading",
 	"activityImportSourceCreateButton",
@@ -2733,6 +2739,8 @@ var textsEn = i18n.NewTexts(""+
 	"The staged import expired — pick the file again."+
 	"Every group must be confirmed or skipped first."+
 	"Rows that will be skipped"+
+	"Could not archive the source file"+
+	"The source file is archived and attached to every imported row."+
 	"Import failed"+
 	"Amount"+
 	"Description"+
@@ -2775,6 +2783,7 @@ var textsEn = i18n.NewTexts(""+
 	"xlsx / csv ledger, one activity row per line"+
 	"Re-pick"+
 	"Required"+
+	"source file archived"+
 	"Import complete"+
 	"Review warnings"+
 	"Create source"+
@@ -3884,6 +3893,8 @@ var textsEn = i18n.NewTexts(""+
 		50,
 		47,
 		25,
+		33,
+		63,
 		13,
 		6,
 		11,
@@ -3926,6 +3937,7 @@ var textsEn = i18n.NewTexts(""+
 		44,
 		7,
 		8,
+		20,
 		15,
 		15,
 		13,
@@ -5038,6 +5050,8 @@ var textsZhCN = i18n.NewTexts(""+
 	"导入会话已失效，请重新选择文件。"+
 	"还有分组未确认或未跳过。"+
 	"将被跳过的行"+
+	"无法归档源文件"+
+	"源文件会归档，并附加到每一条导入的活动数据。"+
 	"导入失败"+
 	"数量"+
 	"描述"+
@@ -5080,6 +5094,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"xlsx / csv 台账，一行一条活动数据"+
 	"重新选择"+
 	"必填"+
+	"源文件已归档"+
 	"导入完成"+
 	"复核警告"+
 	"新建排放源"+
@@ -6189,6 +6204,8 @@ var textsZhCN = i18n.NewTexts(""+
 		48,
 		36,
 		18,
+		21,
+		66,
 		12,
 		6,
 		6,
@@ -6231,6 +6248,7 @@ var textsZhCN = i18n.NewTexts(""+
 		44,
 		12,
 		6,
+		18,
 		12,
 		12,
 		15,
@@ -8450,6 +8468,26 @@ func (msgs Messages) ActivityImportErrorsHeading() string {
 	return msgs.text(textActivityImportErrorsHeading)
 }
 
+// ActivityImportEvidenceFailed says "Could not archive the source file"
+// in the language the app shows under cx.
+func ActivityImportEvidenceFailed(cx *core.Scope) string {
+	return For(cx).ActivityImportEvidenceFailed()
+}
+
+// ActivityImportEvidenceFailed is the package's ActivityImportEvidenceFailed in the language of msgs.
+func (msgs Messages) ActivityImportEvidenceFailed() string {
+	return msgs.text(textActivityImportEvidenceFailed)
+}
+
+// ActivityImportEvidenceHint says "The source file is archived and attached to every imported row."
+// in the language the app shows under cx.
+func ActivityImportEvidenceHint(cx *core.Scope) string { return For(cx).ActivityImportEvidenceHint() }
+
+// ActivityImportEvidenceHint is the package's ActivityImportEvidenceHint in the language of msgs.
+func (msgs Messages) ActivityImportEvidenceHint() string {
+	return msgs.text(textActivityImportEvidenceHint)
+}
+
 // ActivityImportFailed says "Import failed"
 // in the language the app shows under cx.
 func ActivityImportFailed(cx *core.Scope) string { return For(cx).ActivityImportFailed() }
@@ -8919,6 +8957,17 @@ func ActivityImportRequired(cx *core.Scope) string { return For(cx).ActivityImpo
 
 // ActivityImportRequired is the package's ActivityImportRequired in the language of msgs.
 func (msgs Messages) ActivityImportRequired() string { return msgs.text(textActivityImportRequired) }
+
+// ActivityImportResultEvidence says "source file archived"
+// in the language the app shows under cx.
+func ActivityImportResultEvidence(cx *core.Scope) string {
+	return For(cx).ActivityImportResultEvidence()
+}
+
+// ActivityImportResultEvidence is the package's ActivityImportResultEvidence in the language of msgs.
+func (msgs Messages) ActivityImportResultEvidence() string {
+	return msgs.text(textActivityImportResultEvidence)
+}
 
 // ActivityImportResultHeading says "Import complete"
 // in the language the app shows under cx.

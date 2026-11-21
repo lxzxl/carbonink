@@ -70,6 +70,11 @@ func TestSaveDocumentRejectsBadInput(t *testing.T) {
 			t.Errorf("%q accepted", input.Filename)
 		}
 	}
+	if _, _, err := s.SaveDocument(ctx, DocumentInput{
+		Filename: "ledger.csv", MIMEType: "text/csv", Data: []byte("source,amount\npower,1\n"),
+	}, dir); err != nil {
+		t.Errorf("csv rejected: %v", err)
+	}
 	if _, err := s.DocumentByID(ctx, "missing"); err != nil {
 		t.Errorf("missing document error = %v", err)
 	}

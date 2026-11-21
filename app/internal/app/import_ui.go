@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"io"
 	"strconv"
 	"strings"
 
@@ -26,6 +27,7 @@ type importWizard struct {
 	periodID *core.Signal[string]
 	dataRev  *core.Signal[int]
 	grid     *activityimport.Grid
+	data     []byte
 	filename string
 	mapping  activityimport.Mapping
 	valid    activityimport.Validation
@@ -72,6 +74,7 @@ func (s *Session) activityImportDialog(cx *core.Scope, dataRev *core.Signal[int]
 	}
 	reset := func() {
 		w.grid = nil
+		w.data = nil
 		w.filename = ""
 		w.mapping = nil
 		w.valid = activityimport.Validation{}
@@ -116,13 +119,20 @@ func (s *Session) activityImportDialog(cx *core.Scope, dataRev *core.Signal[int]
 				return
 			}
 			defer reader.Close()
-			grid, err := activityimport.ReadFile(reader, file.Name)
+			data, err := io.ReadAll(io.LimitReader(reader, activityimport.MaxFileBytes+1))
+			if err != nil || len(data) > activityimport.MaxFileBytes {
+				w.status.Set(locales.ActivityImportPickFailed(cx))
+				w.rev.Set(w.rev.Get() + 1)
+				return
+			}
+			grid, err := activityimport.ParseFile(data, file.Name)
 			if err != nil {
 				w.status.Set(locales.ActivityImportPickFailed(cx) + ": " + err.Error())
 				w.rev.Set(w.rev.Get() + 1)
 				return
 			}
 			w.grid = &grid
+			w.data = data
 			w.filename = file.Name
 			w.mapping = activityimport.AutoMap(grid.Headers)
 			w.valid = activityimport.Validate(grid.Rows, w.mapping, s.importPeriodBounds(w.periodID.Get()))
@@ -174,6 +184,8 @@ func (s *Session) importPickBody(cx *core.Scope, w *importWizard, pick func()) c
 			core.Text{Content: locales.ActivityImportPickHint(cx), Style: core.Style{FontSize: 12},
 				StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
 		}},
+		core.Text{Content: locales.ActivityImportEvidenceHint(cx), Style: core.Style{FontSize: 11},
+			StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
 	}
 	if w.grid == nil {
 		if w.status.Get() != "" {
@@ -718,6 +730,22 @@ func (s *Session) importRun(cx *core.Scope, w *importWizard, dataRev *core.Signa
 		return
 	}
 	w.busy.Set(true)
+	evidenceID := ""
+	if len(w.data) > 0 {
+		document, _, err := s.db.SaveDocument(context.Background(), store.DocumentInput{
+			Filename: w.filename, MIMEType: documentMIMEForFilename(w.filename), Data: w.data,
+		}, s.dataDir)
+		if err != nil {
+			w.busy.Set(false)
+			w.status.Set(locales.ActivityImportEvidenceFailed(cx) + ": " + err.Error())
+			w.rev.Set(w.rev.Get() + 1)
+			return
+		}
+		evidenceID = document.ID
+		for i := range inputs {
+			inputs[i].EvidenceDocumentID = evidenceID
+		}
+	}
 	result, err := s.db.ImportActivities(context.Background(), inputs)
 	w.busy.Set(false)
 	if err != nil {
@@ -738,6 +766,9 @@ func (s *Session) importRun(cx *core.Scope, w *importWizard, dataRev *core.Signa
 	}
 	if result.Failed > 0 {
 		parts = append(parts, locales.ActivityImportFailed(cx)+": "+strconv.Itoa(result.Failed))
+	}
+	if evidenceID != "" {
+		parts = append(parts, locales.ActivityImportResultEvidence(cx))
 	}
 	w.failures = result.Failures
 	w.result.Set(strings.Join(parts, " · "))

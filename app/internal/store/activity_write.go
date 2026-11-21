@@ -20,16 +20,17 @@ const (
 // pins the factor, converts units, computes CO2e, and writes the audit event
 // in one transaction.
 type ActivityInput struct {
-	EmissionSourceID  string
-	ReportingPeriodID string
-	OccurredAtStart   string
-	OccurredAtEnd     string
-	Amount            float64
-	Unit              string
-	EF                EmissionFactorKey
-	FuelCode          string
-	Notes             string
-	ExtractionID      string
+	EmissionSourceID   string
+	ReportingPeriodID  string
+	OccurredAtStart    string
+	OccurredAtEnd      string
+	Amount             float64
+	Unit               string
+	EF                 EmissionFactorKey
+	FuelCode           string
+	Notes              string
+	ExtractionID       string
+	EvidenceDocumentID string
 }
 
 // AuditEvent is one append-only audit row.
@@ -83,6 +84,7 @@ func insertActivity(ctx context.Context, q queryer, in ActivityInput) (string, e
 	fuelCode := strings.TrimSpace(in.FuelCode)
 	notes := strings.TrimSpace(in.Notes)
 	extractionID := strings.TrimSpace(in.ExtractionID)
+	evidenceID := strings.TrimSpace(in.EvidenceDocumentID)
 
 	if sourceID == "" {
 		return "", errors.New("emission source is required")
@@ -99,8 +101,8 @@ func insertActivity(ctx context.Context, q queryer, in ActivityInput) (string, e
 	if len([]rune(unit)) > 50 {
 		return "", errors.New("unit is too long")
 	}
-	if len([]rune(fuelCode)) > 100 || len([]rune(extractionID)) > 100 {
-		return "", errors.New("fuel or extraction reference is too long")
+	if len([]rune(fuelCode)) > 100 || len([]rune(extractionID)) > 100 || len([]rune(evidenceID)) > 100 {
+		return "", errors.New("reference is too long")
 	}
 	if len([]rune(notes)) > 2000 {
 		return "", errors.New("notes are too long")
@@ -141,6 +143,16 @@ func insertActivity(ctx context.Context, q queryer, in ActivityInput) (string, e
 	if periodExists == 0 {
 		return "", fmt.Errorf("reporting period not found: %s", periodID)
 	}
+	if evidenceID != "" {
+		var documentExists int
+		if err := q.QueryRowContext(ctx, `SELECT count(*) FROM document WHERE id = ?`, evidenceID).
+			Scan(&documentExists); err != nil {
+			return "", err
+		}
+		if documentExists == 0 {
+			return "", fmt.Errorf("evidence document not found: %s", evidenceID)
+		}
+	}
 
 	ef, err := emissionFactorByKey(ctx, q, in.EF)
 	if err != nil {
@@ -179,18 +191,26 @@ func insertActivity(ctx context.Context, q queryer, in ActivityInput) (string, e
 	if err != nil {
 		return "", err
 	}
+	if evidenceID != "" {
+		if _, err := q.ExecContext(ctx, `INSERT INTO evidence_attachment
+				(id, activity_data_id, document_id, created_at) VALUES (?, ?, ?, ?)`,
+			newID(), id, evidenceID, ts); err != nil {
+			return "", fmt.Errorf("attach evidence: %w", err)
+		}
+	}
 	if err := writeAudit(ctx, q, "activity_data.created", ts, map[string]any{
-		"activity_id":         id,
-		"site_id":             siteID,
-		"emission_source_id":  sourceID,
-		"reporting_period_id": periodID,
-		"amount":              in.Amount,
-		"unit":                unit,
-		"ef":                  auditEF(in.EF),
-		"computed_co2e_kg":    computed,
-		"fuel_code":           emptyToNil(fuelCode),
-		"provenance":          provenance(extractionID),
-		"extraction_id":       emptyToNil(extractionID),
+		"activity_id":          id,
+		"site_id":              siteID,
+		"emission_source_id":   sourceID,
+		"reporting_period_id":  periodID,
+		"amount":               in.Amount,
+		"unit":                 unit,
+		"ef":                   auditEF(in.EF),
+		"computed_co2e_kg":     computed,
+		"fuel_code":            emptyToNil(fuelCode),
+		"provenance":           provenance(extractionID),
+		"extraction_id":        emptyToNil(extractionID),
+		"evidence_document_id": emptyToNil(evidenceID),
 	}); err != nil {
 		return "", err
 	}

@@ -100,7 +100,8 @@ func TestEditActivityThroughUI(t *testing.T) {
 // TestImportActivitiesThroughUI picks a CSV ledger, auto-maps it, confirms one
 // EF for the group, and proves both rows land in the ledger.
 func TestImportActivitiesThroughUI(t *testing.T) {
-	t.Setenv("CARBONINK_TEST_DB", fixtureDB(t))
+	dbPath := fixtureDB(t)
+	t.Setenv("CARBONINK_TEST_DB", dbPath)
 	csvPath := filepath.Join(t.TempDir(), "ledger.csv")
 	const ledger = "Source,Description,Amount,Unit,Date\n" +
 		"外购电力,Office power,10,kWh,2025-03-01\n" +
@@ -127,6 +128,28 @@ func TestImportActivitiesThroughUI(t *testing.T) {
 	ui.Press("id:activity-import-done")
 	ui.WaitFor("text:5.59", 3*time.Second)
 	ui.WaitFor("text:11.17", 3*time.Second)
+
+	ctx := context.Background()
+	check, err := store.Open(ctx, dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer check.Close()
+	var documents, links, distinctDocuments int
+	if err := check.DB().QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM document WHERE filename = 'ledger.csv' AND mime_type = 'text/csv'`).
+		Scan(&documents); err != nil {
+		t.Fatal(err)
+	}
+	if err := check.DB().QueryRowContext(ctx,
+		`SELECT COUNT(*), COUNT(DISTINCT document_id) FROM evidence_attachment`).
+		Scan(&links, &distinctDocuments); err != nil {
+		t.Fatal(err)
+	}
+	if documents != 1 || links != 2 || distinctDocuments != 1 {
+		t.Errorf("archived ledger = %d, evidence links = %d across %d documents",
+			documents, links, distinctDocuments)
+	}
 }
 
 // TestImportActivitiesWithManualMapping starts from a ledger whose headers

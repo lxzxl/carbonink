@@ -19,6 +19,7 @@ const MaxDocumentBytes = 50 << 20
 var documentMIME = map[string]bool{
 	"application/pdf": true,
 	"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": true,
+	"text/csv":   true,
 	"image/png":  true,
 	"image/jpeg": true,
 	"image/webp": true,

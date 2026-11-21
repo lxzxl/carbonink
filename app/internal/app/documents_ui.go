@@ -118,7 +118,7 @@ func (s *Session) uploadDocuments(cx *core.Scope, dataRev *core.Signal[int],
 	statusFailed.Set(false)
 	cx.PickFiles(core.PickFilesOptions{
 		Multiple: true,
-		Types:    []string{".pdf", ".xlsx", ".png", ".jpg", ".jpeg", ".webp"},
+		Types:    []string{".pdf", ".xlsx", ".csv", ".png", ".jpg", ".jpeg", ".webp"},
 		Title:    locales.NavDocuments(cx),
 		Button:   locales.DocumentsUploadButton(cx),
 	}, func(files []core.File, err error) {
@@ -197,17 +197,8 @@ func (s *Session) openDocument(cx *core.Scope, document store.Document,
 }
 
 func uploadedDocumentMIME(file core.File) string {
-	switch strings.ToLower(filepath.Ext(file.Name)) {
-	case ".pdf":
-		return "application/pdf"
-	case ".xlsx":
-		return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-	case ".png":
-		return "image/png"
-	case ".jpg", ".jpeg":
-		return "image/jpeg"
-	case ".webp":
-		return "image/webp"
+	if mimeType := documentMIMEForFilename(file.Name); mimeType != "" {
+		return mimeType
 	}
 	mimeType := strings.ToLower(strings.TrimSpace(file.MIME))
 	if mimeType == "" || mimeType == "application/octet-stream" {
@@ -216,12 +207,32 @@ func uploadedDocumentMIME(file core.File) string {
 	return mimeType
 }
 
+func documentMIMEForFilename(filename string) string {
+	switch strings.ToLower(filepath.Ext(filename)) {
+	case ".pdf":
+		return "application/pdf"
+	case ".xlsx":
+		return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+	case ".csv":
+		return "text/csv"
+	case ".png":
+		return "image/png"
+	case ".jpg", ".jpeg":
+		return "image/jpeg"
+	case ".webp":
+		return "image/webp"
+	}
+	return ""
+}
+
 func documentKind(mimeType string) string {
 	switch mimeType {
 	case "application/pdf":
 		return "PDF"
 	case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
 		return "XLSX"
+	case "text/csv":
+		return "CSV"
 	case "image/png":
 		return "PNG"
 	case "image/jpeg":
@@ -238,6 +249,8 @@ func documentIcon(mimeType string) func() *core.SVG {
 	case "application/pdf":
 		return lucide.FileText
 	case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+		return lucide.FileSpreadsheet
+	case "text/csv":
 		return lucide.FileSpreadsheet
 	default:
 		return lucide.FileImage

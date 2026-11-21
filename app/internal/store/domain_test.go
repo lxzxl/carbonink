@@ -152,10 +152,17 @@ func TestCreateActivityPinsComputesAuditsAndDeletes(t *testing.T) {
 		t.Fatal(err)
 	}
 	ef := findFactor(t, s, ctx, EFFilter{Scope: 2, Category: "electricity.grid", Search: "national"})
+	document, _, err := s.SaveDocument(ctx, DocumentInput{
+		Filename: "ledger.csv", MIMEType: "text/csv", Data: []byte("source,amount\npower,100\n"),
+	}, t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
 	activity, err := s.CreateActivity(ctx, ActivityInput{
 		EmissionSourceID: src.ID, ReportingPeriodID: period.ID,
 		OccurredAtStart: "2025-01-01", OccurredAtEnd: "2025-01-31",
 		Amount: 100, Unit: "度", EF: keyOf(ef), Notes: "sensitive free text",
+		EvidenceDocumentID: document.ID,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -183,6 +190,18 @@ func TestCreateActivityPinsComputesAuditsAndDeletes(t *testing.T) {
 	if events[0].Kind != "activity_data.created" || strings.Contains(events[0].Payload, "sensitive free text") {
 		t.Fatalf("audit event = %+v", events[0])
 	}
+	if !strings.Contains(events[0].Payload, document.ID) {
+		t.Fatalf("audit event is missing the evidence document: %+v", events[0])
+	}
+	var evidence int
+	if err := s.DB().QueryRowContext(ctx,
+		`SELECT count(*) FROM evidence_attachment WHERE activity_data_id = ? AND document_id = ?`,
+		activity.ID, document.ID).Scan(&evidence); err != nil {
+		t.Fatal(err)
+	}
+	if evidence != 1 {
+		t.Fatalf("evidence attachments = %d, want 1", evidence)
+	}
 	summary, err := s.Summary(ctx, org.ID)
 	if err != nil || summary.Activities != 1 {
 		t.Fatalf("summary = %+v, %v", summary, err)
@@ -193,6 +212,14 @@ func TestCreateActivityPinsComputesAuditsAndDeletes(t *testing.T) {
 	}
 	if got, err := s.ActivityByID(ctx, activity.ID); err != nil || got != nil {
 		t.Fatalf("deleted activity = %+v, %v", got, err)
+	}
+	if err := s.DB().QueryRowContext(ctx,
+		`SELECT count(*) FROM evidence_attachment WHERE activity_data_id = ?`, activity.ID).
+		Scan(&evidence); err != nil {
+		t.Fatal(err)
+	}
+	if evidence != 0 {
+		t.Fatalf("evidence after delete = %d, want 0", evidence)
 	}
 	events, err = s.AuditEvents(ctx, 10)
 	if err != nil || len(events) != 2 || events[0].Kind != "activity_data.deleted" {

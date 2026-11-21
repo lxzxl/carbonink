@@ -82,6 +82,8 @@ activityImportErrorPeriodMissing: Choose a reporting period first.
 activityImportErrorTokenExpired: The staged import expired — pick the file again.
 activityImportErrorUnconfirmed: Every group must be confirmed or skipped first.
 activityImportErrorsHeading: Rows that will be skipped
+activityImportEvidenceFailed: Could not archive the source file
+activityImportEvidenceHint: The source file is archived and attached to every imported row.
 activityImportFailed: Import failed
 activityImportFieldAmount: Amount
 activityImportFieldDescription: Description
@@ -126,6 +128,7 @@ activityImportPickFailed: Could not read the file
 activityImportPickHint: xlsx / csv ledger, one activity row per line
 activityImportRepickButton: Re-pick
 activityImportRequired: Required
+activityImportResultEvidence: source file archived
 activityImportResultHeading: Import complete
 activityImportResultImported: '{count} rows imported'
 activityImportResultSkippedGroups: '{count} skipped (skipped groups)'

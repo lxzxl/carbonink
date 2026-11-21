@@ -81,6 +81,8 @@ activityImportErrorPeriodMissing: 请先选择报告期。
 activityImportErrorTokenExpired: 导入会话已失效，请重新选择文件。
 activityImportErrorUnconfirmed: 还有分组未确认或未跳过。
 activityImportErrorsHeading: 将被跳过的行
+activityImportEvidenceFailed: 无法归档源文件
+activityImportEvidenceHint: 源文件会归档，并附加到每一条导入的活动数据。
 activityImportFailed: 导入失败
 activityImportFieldAmount: 数量
 activityImportFieldDescription: 描述
@@ -125,6 +127,7 @@ activityImportPickFailed: 文件读取失败
 activityImportPickHint: xlsx / csv 台账，一行一条活动数据
 activityImportRepickButton: 重新选择
 activityImportRequired: 必填
+activityImportResultEvidence: 源文件已归档
 activityImportResultHeading: 导入完成
 activityImportResultImported: 已导入 {count} 行
 activityImportResultSkippedGroups: '{count} 行跳过（组被跳过）'
