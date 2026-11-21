@@ -1,7 +1,9 @@
 package app
 
 import (
+	"bytes"
 	"context"
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -1000,20 +1002,34 @@ func (s *Session) auditScreen(cx *core.Scope, dataRev *core.Signal[int]) core.No
 	if s.organization == nil {
 		return s.onboardingScreen(cx, dataRev)
 	}
+	kind := core.NewSignal(cx, "")
+	since := core.NewSignal(cx, "")
+	until := core.NewSignal(cx, "")
+	limit := core.NewSignal(cx, 100)
+	status := core.NewSignal(cx, "")
 	return core.Scroll{
 		Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
 		Children: []core.Node{core.View{
 			Style: core.Style{Padding: core.All(16), Gap: 12, MaxWidth: core.Pt(980), AlignSelf: core.AlignStretch},
 			Children: []core.Node{core.Dynamic(func(cx *core.Scope) core.Node {
 				_ = dataRev.Get()
-				return s.auditBody(cx)
+				return s.auditBody(cx, kind, since, until, limit, status)
 			})},
 		}},
 	}
 }
 
-func (s *Session) auditBody(cx *core.Scope) core.Node {
-	events, err := s.db.AuditEvents(context.Background(), 500)
+func (s *Session) auditBody(cx *core.Scope, kind *core.Signal[string], since *core.Signal[string],
+	until *core.Signal[string], limit *core.Signal[int], status *core.Signal[string]) core.Node {
+	page := limit.Get()
+	datesOK := auditDatesOK(since.Get(), until.Get())
+	var events []store.AuditEvent
+	var err error
+	if datesOK {
+		events, err = s.db.QueryAuditEvents(context.Background(), store.AuditQuery{
+			Kind: kind.Get(), Since: since.Get(), Until: until.Get(), Limit: page,
+		})
+	}
 	rows := make([]core.Node, 0, len(events)+1)
 	if err != nil {
 		rows = append(rows, core.Text{Content: err.Error(), Style: core.Style{FontSize: 12},
@@ -1040,7 +1056,7 @@ func (s *Session) auditBody(cx *core.Scope) core.Node {
 			Children:  children,
 		})
 	}
-	if len(events) == 0 && err == nil {
+	if len(events) == 0 && err == nil && datesOK {
 		rows = append(rows, core.View{Style: core.Style{Padding: core.All(24), Gap: 6, AlignItems: core.AlignCenter},
 			Children: []core.Node{
 				core.Text{Content: locales.AuditEmptyStateHeading(cx),
@@ -1049,10 +1065,117 @@ func (s *Session) auditBody(cx *core.Scope) core.Node {
 					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
 			}})
 	}
-	return dataCard(cx,
+	kindOptions := []ui.Option[string]{{Value: "", Label: locales.AuditFilterAllKinds(cx)}}
+	for _, value := range []string{"activity_data.created", "activity_data.updated",
+		"activity_rebind_ef", "activity_data.deleted", "evidence.attached", "evidence.removed"} {
+		kindOptions = append(kindOptions, ui.Option[string]{Value: value, Label: dataAuditKind(cx, value)})
+	}
+	resetFilters := func() {
+		kind.Set("")
+		since.Set("")
+		until.Set("")
+		limit.Set(100)
+		status.Set("")
+	}
+	export := func() {
+		if !auditDatesOK(since.Get(), until.Get()) {
+			status.Set(locales.AuditFilterInvalidDate(cx))
+			return
+		}
+		exported, err := s.db.QueryAuditEvents(context.Background(), store.AuditQuery{
+			Kind: kind.Get(), Since: since.Get(), Until: until.Get(), Limit: 10_000,
+		})
+		if err != nil {
+			status.Set(locales.AuditExportCsvFailed(cx))
+			return
+		}
+		data, err := auditCSV(exported)
+		if err != nil {
+			status.Set(locales.AuditExportCsvFailed(cx))
+			return
+		}
+		cx.SaveFile(core.SaveOptions{Name: "carbonink-audit.csv", MIME: "text/csv", Data: data},
+			func(saved bool, _ string, err error) {
+				if err != nil {
+					status.Set(locales.AuditExportCsvFailed(cx))
+					return
+				}
+				if saved {
+					status.Set(locales.AuditExportCsvSuccess(cx, strconv.Itoa(len(exported))))
+				}
+			})
+	}
+	filters := core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignEnd, Gap: 8,
+		Wrap: core.Wrap}, Children: []core.Node{
+		core.View{Style: core.Style{Width: core.Pt(200)}, Children: []core.Node{
+			dataField(cx, locales.AuditFilterEventKindLabel(cx),
+				ui.Select[string]{Options: kindOptions, Value: kind.Get,
+					OnChange: func(v string) { kind.Set(v); limit.Set(100) },
+					Label:    locales.AuditFilterEventKindLabel(cx), TestID: "audit-kind"}),
+		}},
+		core.View{Style: core.Style{Width: core.Pt(130)}, Children: []core.Node{
+			dataField(cx, locales.AuditFilterSinceLabel(cx),
+				ui.Input{Value: since.Get, OnChange: func(v string) { since.Set(v); limit.Set(100) },
+					Placeholder: "YYYY-MM-DD", TestID: "audit-since"}),
+		}},
+		core.View{Style: core.Style{Width: core.Pt(130)}, Children: []core.Node{
+			dataField(cx, locales.AuditFilterUntilLabel(cx),
+				ui.Input{Value: until.Get, OnChange: func(v string) { until.Set(v); limit.Set(100) },
+					Placeholder: "YYYY-MM-DD", TestID: "audit-until"}),
+		}},
+		ui.Button{Text: locales.AuditFilterResetButton(cx), Variant: ui.ButtonSecondary,
+			OnPress: resetFilters, TestID: "audit-reset"},
+		ui.Button{Text: locales.AuditExportCsvButton(cx), Variant: ui.ButtonSecondary,
+			OnPress: export, TestID: "audit-export"},
+	}}
+	children := []core.Node{
 		dataHeading(cx, locales.AuditHeading(cx), locales.AuditSubheading(cx)),
-		core.View{Style: core.Style{Gap: 0}, Children: rows},
+		filters,
+	}
+	if !datesOK {
+		children = append(children, core.Text{Content: locales.AuditFilterInvalidDate(cx),
+			Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)})
+	} else if status.Get() != "" {
+		children = append(children, core.Text{Content: status.Get(), Style: core.Style{FontSize: 12},
+			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
+	}
+	children = append(children, core.View{Style: core.Style{Gap: 0}, Children: rows})
+	if datesOK && len(events) == page && page < 10_000 {
+		children = append(children, ui.Button{Text: locales.AuditLoadOlderButton(cx),
+			Variant: ui.ButtonSecondary, TestID: "audit-older",
+			OnPress: func() { limit.Set(page + 100) }})
+	}
+	return dataCard(cx,
+		children...,
 	)
+}
+
+func auditDatesOK(since, until string) bool {
+	for _, value := range []string{since, until} {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		if _, err := time.Parse("2006-01-02", value); err != nil {
+			return false
+		}
+	}
+	return true
+}
+
+func auditCSV(events []store.AuditEvent) ([]byte, error) {
+	var buf bytes.Buffer
+	writer := csv.NewWriter(&buf)
+	if err := writer.Write([]string{"occurred_at", "event_kind", "payload"}); err != nil {
+		return nil, err
+	}
+	for _, event := range events {
+		if err := writer.Write([]string{event.OccurredAt, event.Kind, event.Payload}); err != nil {
+			return nil, err
+		}
+	}
+	writer.Flush()
+	return buf.Bytes(), writer.Error()
 }
 
 func dataAuditKind(cx *core.Scope, kind string) string {

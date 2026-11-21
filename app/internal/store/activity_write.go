@@ -460,12 +460,52 @@ func (s *Store) DeleteActivity(ctx context.Context, id string) error {
 
 // AuditEvents returns the newest audit rows.
 func (s *Store) AuditEvents(ctx context.Context, limit int) ([]AuditEvent, error) {
-	if limit <= 0 || limit > 1000 {
+	return s.QueryAuditEvents(ctx, AuditQuery{Limit: limit})
+}
+
+// AuditQuery filters the append-only log. Since and Until are date-only
+// (YYYY-MM-DD); BeforeTime/BeforeID form a keyset cursor for older pages.
+type AuditQuery struct {
+	Kind       string
+	Since      string
+	Until      string
+	BeforeTime string
+	BeforeID   string
+	Limit      int
+}
+
+// QueryAuditEvents returns matching rows newest first.
+func (s *Store) QueryAuditEvents(ctx context.Context, q AuditQuery) ([]AuditEvent, error) {
+	limit := q.Limit
+	if limit <= 0 {
 		limit = 100
 	}
+	if limit > 10_000 {
+		limit = 10_000
+	}
+	clauses := []string{"1 = 1"}
+	var args []any
+	if kind := strings.TrimSpace(q.Kind); kind != "" {
+		clauses = append(clauses, "event_kind = ?")
+		args = append(args, kind)
+	}
+	if since := strings.TrimSpace(q.Since); since != "" {
+		clauses = append(clauses, "substr(occurred_at, 1, 10) >= ?")
+		args = append(args, since)
+	}
+	if until := strings.TrimSpace(q.Until); until != "" {
+		clauses = append(clauses, "substr(occurred_at, 1, 10) <= ?")
+		args = append(args, until)
+	}
+	if q.BeforeTime != "" {
+		clauses = append(clauses, "(occurred_at < ? OR (occurred_at = ? AND id < ?))")
+		args = append(args, q.BeforeTime, q.BeforeTime, q.BeforeID)
+	}
+	args = append(args, limit)
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, event_kind, payload, occurred_at FROM audit_event
-		 ORDER BY occurred_at DESC, id DESC LIMIT ?`, limit)
+		`SELECT id, event_kind, payload, occurred_at FROM audit_event WHERE `+
+			strings.Join(clauses, " AND ")+
+			` ORDER BY occurred_at DESC, id DESC LIMIT ?`, args...)
 	if err != nil {
 		return nil, err
 	}

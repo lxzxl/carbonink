@@ -186,7 +186,9 @@ auditEventKindEvidenceRemoved: 移除证据
 auditExportCsvButton: 导出 CSV
 auditExportCsvFailed: 审计导出失败
 auditExportCsvSuccess: 已导出 {rows} 行
+auditFilterAllKinds: 全部类型
 auditFilterEventKindLabel: 事件类型
+auditFilterInvalidDate: 请使用 YYYY-MM-DD
 auditFilterResetButton: 重置筛选
 auditFilterSinceLabel: 起始日期
 auditFilterUntilLabel: 截止日期

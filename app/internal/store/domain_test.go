@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func openFixture(t *testing.T) (*Store, context.Context) {
@@ -326,6 +327,53 @@ func TestImportActivitiesSkipsBadRowsAndKeepsAudits(t *testing.T) {
 	}
 	if created != 2 {
 		t.Errorf("created audit events = %d, want 2", created)
+	}
+}
+
+func TestAuditQueryFiltersAndPages(t *testing.T) {
+	s, ctx := openFixture(t)
+	_, site, period := onboard(t, s, ctx)
+	src, err := s.CreateSource(ctx, SourceInput{
+		SiteID: site.ID, Name: "Purchased electricity", Scope: 2, Category: "electricity.grid",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ef := EmissionFactorKey{
+		FactorCode: "electricity.grid.cn.national.2024", Year: 2024,
+		Source: "MEE_China", Geography: "CN", DatasetVersion: "2024.q4",
+	}
+	for i := 0; i < 3; i++ {
+		if _, err := s.CreateActivity(ctx, ActivityInput{
+			EmissionSourceID: src.ID, ReportingPeriodID: period.ID,
+			OccurredAtStart: "2025-04-01", OccurredAtEnd: "2025-04-01",
+			Amount: float64(10 + i), Unit: "kWh", EF: ef,
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	created, err := s.QueryAuditEvents(ctx, AuditQuery{Kind: "activity_data.created", Limit: 10})
+	if err != nil || len(created) != 3 {
+		t.Fatalf("created events = %d, %v", len(created), err)
+	}
+	today := time.Now().UTC().Format("2006-01-02")
+	since, err := s.QueryAuditEvents(ctx, AuditQuery{Since: today, Until: today, Limit: 10})
+	if err != nil || len(since) != 3 {
+		t.Fatalf("today events = %d, %v", len(since), err)
+	}
+	page1, err := s.QueryAuditEvents(ctx, AuditQuery{Limit: 2})
+	if err != nil || len(page1) != 2 {
+		t.Fatalf("page1 = %d, %v", len(page1), err)
+	}
+	page2, err := s.QueryAuditEvents(ctx, AuditQuery{
+		BeforeTime: page1[1].OccurredAt, BeforeID: page1[1].ID, Limit: 2,
+	})
+	if err != nil || len(page2) != 1 || page2[0].ID == page1[0].ID || page2[0].ID == page1[1].ID {
+		t.Fatalf("page2 = %+v, %v", page2, err)
+	}
+	future, err := s.QueryAuditEvents(ctx, AuditQuery{Since: "2999-01-01", Limit: 10})
+	if err != nil || len(future) != 0 {
+		t.Fatalf("future events = %d, %v", len(future), err)
 	}
 }
 

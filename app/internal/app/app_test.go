@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -124,6 +125,36 @@ func TestImportActivitiesThroughUI(t *testing.T) {
 	ui.Press("id:activity-import-done")
 	ui.WaitFor("text:5.59", 3*time.Second)
 	ui.WaitFor("text:11.17", 3*time.Second)
+}
+
+// TestAuditExportThroughUI writes the filtered audit log to CSV through the
+// real save path.
+func TestAuditExportThroughUI(t *testing.T) {
+	t.Setenv("CARBONINK_TEST_DB", fixtureDB(t))
+	savePath := filepath.Join(t.TempDir(), "audit.csv")
+	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
+		nsgotest.Environment(core.Environment{Locale: "en-US"}))
+	ui.SaveFile = func(core.SaveRequest) string { return savePath }
+	ui.WaitFor("id:activities-table", 5*time.Second)
+	ui.Press("id:activity-add")
+	ui.WaitFor("id:activity-dialog", 2*time.Second)
+	ui.Type("id:activity-amount", "100")
+	ui.Type("id:activity-unit", "kWh")
+	ui.Press("id:activity-save")
+	ui.WaitFor("text:100.00", 3*time.Second)
+	ui.Press("id:nav:audit")
+	ui.WaitFor("text:Activity data created", 3*time.Second)
+	ui.Press("id:audit-export")
+	ui.WaitFor("text:Exported 1 rows", 3*time.Second)
+	data, err := os.ReadFile(savePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(data)
+	if !strings.Contains(text, "occurred_at,event_kind,payload") ||
+		!strings.Contains(text, "activity_data.created") {
+		t.Errorf("csv = %s", text)
+	}
 }
 
 // TestCreateSourceThroughUI proves the Sources page can create a source and

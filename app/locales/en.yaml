@@ -187,7 +187,9 @@ auditEventKindEvidenceRemoved: Evidence removed
 auditExportCsvButton: Export CSV
 auditExportCsvFailed: Audit export failed
 auditExportCsvSuccess: Exported {rows} rows
+auditFilterAllKinds: All kinds
 auditFilterEventKindLabel: Event kind
+auditFilterInvalidDate: Use YYYY-MM-DD
 auditFilterResetButton: Reset filters
 auditFilterSinceLabel: Since
 auditFilterUntilLabel: Until

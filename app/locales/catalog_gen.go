@@ -507,7 +507,9 @@ const (
 	textAuditEventKindEvidenceRemoved
 	textAuditExportCsvButton
 	textAuditExportCsvFailed
+	textAuditFilterAllKinds
 	textAuditFilterEventKindLabel
+	textAuditFilterInvalidDate
 	textAuditFilterResetButton
 	textAuditFilterSinceLabel
 	textAuditFilterUntilLabel
@@ -1655,7 +1657,9 @@ var keyOfText = [numTexts]string{
 	"auditEventKindEvidenceRemoved",
 	"auditExportCsvButton",
 	"auditExportCsvFailed",
+	"auditFilterAllKinds",
 	"auditFilterEventKindLabel",
+	"auditFilterInvalidDate",
 	"auditFilterResetButton",
 	"auditFilterSinceLabel",
 	"auditFilterUntilLabel",
@@ -2801,7 +2805,9 @@ var textsEn = i18n.NewTexts(""+
 	"Evidence removed"+
 	"Export CSV"+
 	"Audit export failed"+
+	"All kinds"+
 	"Event kind"+
+	"Use YYYY-MM-DD"+
 	"Reset filters"+
 	"Since"+
 	"Until"+
@@ -3944,7 +3950,9 @@ var textsEn = i18n.NewTexts(""+
 		16,
 		10,
 		19,
+		9,
 		10,
+		14,
 		13,
 		5,
 		5,
@@ -5090,7 +5098,9 @@ var textsZhCN = i18n.NewTexts(""+
 	"移除证据"+
 	"导出 CSV"+
 	"审计导出失败"+
+	"全部类型"+
 	"事件类型"+
+	"请使用 YYYY-MM-DD"+
 	"重置筛选"+
 	"起始日期"+
 	"截止日期"+
@@ -6234,6 +6244,8 @@ var textsZhCN = i18n.NewTexts(""+
 		10,
 		18,
 		12,
+		12,
+		20,
 		12,
 		12,
 		12,
@@ -9581,6 +9593,13 @@ func (msgs Messages) AuditExportCsvSuccess(rows string) string {
 	}
 }
 
+// AuditFilterAllKinds says "All kinds"
+// in the language the app shows under cx.
+func AuditFilterAllKinds(cx *core.Scope) string { return For(cx).AuditFilterAllKinds() }
+
+// AuditFilterAllKinds is the package's AuditFilterAllKinds in the language of msgs.
+func (msgs Messages) AuditFilterAllKinds() string { return msgs.text(textAuditFilterAllKinds) }
+
 // AuditFilterEventKindLabel says "Event kind"
 // in the language the app shows under cx.
 func AuditFilterEventKindLabel(cx *core.Scope) string { return For(cx).AuditFilterEventKindLabel() }
@@ -9589,6 +9608,13 @@ func AuditFilterEventKindLabel(cx *core.Scope) string { return For(cx).AuditFilt
 func (msgs Messages) AuditFilterEventKindLabel() string {
 	return msgs.text(textAuditFilterEventKindLabel)
 }
+
+// AuditFilterInvalidDate says "Use YYYY-MM-DD"
+// in the language the app shows under cx.
+func AuditFilterInvalidDate(cx *core.Scope) string { return For(cx).AuditFilterInvalidDate() }
+
+// AuditFilterInvalidDate is the package's AuditFilterInvalidDate in the language of msgs.
+func (msgs Messages) AuditFilterInvalidDate() string { return msgs.text(textAuditFilterInvalidDate) }
 
 // AuditFilterResetButton says "Reset filters"
 // in the language the app shows under cx.
