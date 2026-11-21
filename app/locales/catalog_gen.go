@@ -187,6 +187,25 @@ var Parameters = map[string][]string{
 	"SourcesStatsActivityCount":               {"count"},
 	"SourcesStatsLast":                        {"date"},
 	"SourcesStatsTotal":                       {"value"},
+	"SupplierDisclosuresCount":                {"count"},
+	"SupplierDisclosuresDetailExportFailed":   {"message"},
+	"SupplierDisclosuresDetailExportSuccess":  {"path"},
+	"SupplierDisclosuresDetailImportFailed":   {"message"},
+	"SupplierDisclosuresDetailImportSuccess":  {"count"},
+	"SupplierDisclosuresDetailIngestFailed":   {"message"},
+	"SupplierDisclosuresDetailIngestSuccess":  {"total"},
+	"SupplierDisclosuresDetailTier":           {"tier"},
+	"SupplierDisclosuresDue":                  {"date"},
+	"SupplierDisclosuresNotifyMany":           {"count"},
+	"SupplierDisclosuresNotifyOne":            {"name"},
+	"SupplierDisclosuresRemindBody":           {"year"},
+	"SupplierDisclosuresRemindGreeting":       {"supplier"},
+	"SupplierDisclosuresRemindOverdue":        {"due"},
+	"SupplierDisclosuresRemindSignoff":        {"org"},
+	"SupplierDisclosuresRemindSubject":        {"year"},
+	"SupplierDisclosuresReviewPlan":           {"rows", "total"},
+	"SupplierDisclosuresReviewWarnings":       {"count"},
+	"SupplierDisclosuresWizardCreated":        {"count"},
 	"UpdaterCurrentVersion":                   {"version"},
 	"UpdaterStatusAvailable":                  {"version"},
 	"UpdaterStatusAvailableManual":            {"version"},
@@ -348,6 +367,25 @@ type Translation struct {
 	SourcesStatsActivityCount               func(count string) string
 	SourcesStatsLast                        func(date string) string
 	SourcesStatsTotal                       func(value string) string
+	SupplierDisclosuresCount                func(count string) string
+	SupplierDisclosuresDetailExportFailed   func(message string) string
+	SupplierDisclosuresDetailExportSuccess  func(path string) string
+	SupplierDisclosuresDetailImportFailed   func(message string) string
+	SupplierDisclosuresDetailImportSuccess  func(count string) string
+	SupplierDisclosuresDetailIngestFailed   func(message string) string
+	SupplierDisclosuresDetailIngestSuccess  func(total string) string
+	SupplierDisclosuresDetailTier           func(tier string) string
+	SupplierDisclosuresDue                  func(date string) string
+	SupplierDisclosuresNotifyMany           func(count string) string
+	SupplierDisclosuresNotifyOne            func(name string) string
+	SupplierDisclosuresRemindBody           func(year string) string
+	SupplierDisclosuresRemindGreeting       func(supplier string) string
+	SupplierDisclosuresRemindOverdue        func(due string) string
+	SupplierDisclosuresRemindSignoff        func(org string) string
+	SupplierDisclosuresRemindSubject        func(year string) string
+	SupplierDisclosuresReviewPlan           func(rows string, total string) string
+	SupplierDisclosuresReviewWarnings       func(count string) string
+	SupplierDisclosuresWizardCreated        func(count string) string
 	UpdaterCurrentVersion                   func(version string) string
 	UpdaterStatusAvailable                  func(version string) string
 	UpdaterStatusAvailableManual            func(version string) string
@@ -1058,6 +1096,7 @@ const (
 	textNavActivities
 	textNavDashboard
 	textNavDisclosureFilings
+	textNavDisclosures
 	textNavDocuments
 	textNavDocumentsAll
 	textNavInputs
@@ -1526,6 +1565,69 @@ const (
 	textSourcesTableCategory
 	textSourcesTableName
 	textSourcesTableScope
+	textSupplierDisclosuresDetailClose
+	textSupplierDisclosuresDetailDelete
+	textSupplierDisclosuresDetailDeleteBody
+	textSupplierDisclosuresDetailDeleteCancel
+	textSupplierDisclosuresDetailDeleteConfirm
+	textSupplierDisclosuresDetailEmail
+	textSupplierDisclosuresDetailEmailMissing
+	textSupplierDisclosuresDetailEmailSave
+	textSupplierDisclosuresDetailEmailSaveFailed
+	textSupplierDisclosuresDetailEmailSaved
+	textSupplierDisclosuresDetailExport
+	textSupplierDisclosuresDetailExporting
+	textSupplierDisclosuresDetailFinalized
+	textSupplierDisclosuresDetailImport
+	textSupplierDisclosuresDetailImportChoose
+	textSupplierDisclosuresDetailImporting
+	textSupplierDisclosuresDetailIngestNoData
+	textSupplierDisclosuresDetailOpenMail
+	textSupplierDisclosuresDetailRemind
+	textSupplierDisclosuresDetailRemindBody
+	textSupplierDisclosuresDetailReview
+	textSupplierDisclosuresDetailTitle
+	textSupplierDisclosuresDetailUnanswered
+	textSupplierDisclosuresEmpty
+	textSupplierDisclosuresFileTooLarge
+	textSupplierDisclosuresImportNotTemplate
+	textSupplierDisclosuresImportWrongPeriod
+	textSupplierDisclosuresImportWrongQuestionnaire
+	textSupplierDisclosuresNewButton
+	textSupplierDisclosuresNotifyTitle
+	textSupplierDisclosuresOverdue
+	textSupplierDisclosuresReviewAcceptAll
+	textSupplierDisclosuresReviewCancel
+	textSupplierDisclosuresReviewHint
+	textSupplierDisclosuresReviewIngest
+	textSupplierDisclosuresReviewIngesting
+	textSupplierDisclosuresReviewQuantity
+	textSupplierDisclosuresReviewQuantityHint
+	textSupplierDisclosuresReviewQuantityInvalid
+	textSupplierDisclosuresReviewQuantityRequired
+	textSupplierDisclosuresReviewTier
+	textSupplierDisclosuresReviewTierAuto
+	textSupplierDisclosuresReviewTierOne
+	textSupplierDisclosuresReviewTierTwo
+	textSupplierDisclosuresReviewTitle
+	textSupplierDisclosuresSearchPlaceholder
+	textSupplierDisclosuresStatusAll
+	textSupplierDisclosuresStatusDraft
+	textSupplierDisclosuresStatusFilter
+	textSupplierDisclosuresStatusIngested
+	textSupplierDisclosuresStatusReceived
+	textSupplierDisclosuresStatusSent
+	textSupplierDisclosuresWizardEmail
+	textSupplierDisclosuresWizardFailed
+	textSupplierDisclosuresWizardNewSupplier
+	textSupplierDisclosuresWizardNewSupplierPlaceholder
+	textSupplierDisclosuresWizardQuestions
+	textSupplierDisclosuresWizardRequired
+	textSupplierDisclosuresWizardSubmit
+	textSupplierDisclosuresWizardSupplier
+	textSupplierDisclosuresWizardSupplierNone
+	textSupplierDisclosuresWizardTitle
+	textSupplierDisclosuresWizardYear
 	textSupplierEmailOptionalLabel
 	textTopbarBack
 	textTopbarDetail
@@ -2259,6 +2361,7 @@ var keyOfText = [numTexts]string{
 	"navActivities",
 	"navDashboard",
 	"navDisclosureFilings",
+	"navDisclosures",
 	"navDocuments",
 	"navDocumentsAll",
 	"navInputs",
@@ -2727,6 +2830,69 @@ var keyOfText = [numTexts]string{
 	"sourcesTableCategory",
 	"sourcesTableName",
 	"sourcesTableScope",
+	"supplierDisclosuresDetailClose",
+	"supplierDisclosuresDetailDelete",
+	"supplierDisclosuresDetailDeleteBody",
+	"supplierDisclosuresDetailDeleteCancel",
+	"supplierDisclosuresDetailDeleteConfirm",
+	"supplierDisclosuresDetailEmail",
+	"supplierDisclosuresDetailEmailMissing",
+	"supplierDisclosuresDetailEmailSave",
+	"supplierDisclosuresDetailEmailSaveFailed",
+	"supplierDisclosuresDetailEmailSaved",
+	"supplierDisclosuresDetailExport",
+	"supplierDisclosuresDetailExporting",
+	"supplierDisclosuresDetailFinalized",
+	"supplierDisclosuresDetailImport",
+	"supplierDisclosuresDetailImportChoose",
+	"supplierDisclosuresDetailImporting",
+	"supplierDisclosuresDetailIngestNoData",
+	"supplierDisclosuresDetailOpenMail",
+	"supplierDisclosuresDetailRemind",
+	"supplierDisclosuresDetailRemindBody",
+	"supplierDisclosuresDetailReview",
+	"supplierDisclosuresDetailTitle",
+	"supplierDisclosuresDetailUnanswered",
+	"supplierDisclosuresEmpty",
+	"supplierDisclosuresFileTooLarge",
+	"supplierDisclosuresImportNotTemplate",
+	"supplierDisclosuresImportWrongPeriod",
+	"supplierDisclosuresImportWrongQuestionnaire",
+	"supplierDisclosuresNewButton",
+	"supplierDisclosuresNotifyTitle",
+	"supplierDisclosuresOverdue",
+	"supplierDisclosuresReviewAcceptAll",
+	"supplierDisclosuresReviewCancel",
+	"supplierDisclosuresReviewHint",
+	"supplierDisclosuresReviewIngest",
+	"supplierDisclosuresReviewIngesting",
+	"supplierDisclosuresReviewQuantity",
+	"supplierDisclosuresReviewQuantityHint",
+	"supplierDisclosuresReviewQuantityInvalid",
+	"supplierDisclosuresReviewQuantityRequired",
+	"supplierDisclosuresReviewTier",
+	"supplierDisclosuresReviewTierAuto",
+	"supplierDisclosuresReviewTierOne",
+	"supplierDisclosuresReviewTierTwo",
+	"supplierDisclosuresReviewTitle",
+	"supplierDisclosuresSearchPlaceholder",
+	"supplierDisclosuresStatusAll",
+	"supplierDisclosuresStatusDraft",
+	"supplierDisclosuresStatusFilter",
+	"supplierDisclosuresStatusIngested",
+	"supplierDisclosuresStatusReceived",
+	"supplierDisclosuresStatusSent",
+	"supplierDisclosuresWizardEmail",
+	"supplierDisclosuresWizardFailed",
+	"supplierDisclosuresWizardNewSupplier",
+	"supplierDisclosuresWizardNewSupplierPlaceholder",
+	"supplierDisclosuresWizardQuestions",
+	"supplierDisclosuresWizardRequired",
+	"supplierDisclosuresWizardSubmit",
+	"supplierDisclosuresWizardSupplier",
+	"supplierDisclosuresWizardSupplierNone",
+	"supplierDisclosuresWizardTitle",
+	"supplierDisclosuresWizardYear",
 	"supplierEmailOptionalLabel",
 	"topbarBack",
 	"topbarDetail",
@@ -3458,6 +3624,7 @@ var textsEn = i18n.NewTexts(""+
 	"Activities"+
 	"Dashboard"+
 	"Disclosure filings"+
+	"Disclosures"+
 	"Documents"+
 	"All documents"+
 	"Inputs"+
@@ -3926,6 +4093,69 @@ var textsEn = i18n.NewTexts(""+
 	"Category"+
 	"Name"+
 	"Scope"+
+	"Close"+
+	"Delete disclosure"+
+	"Delete this disclosure? Inventory rows ingested from it are removed too."+
+	"Cancel"+
+	"Delete"+
+	"Contact email"+
+	"Add an email before sending a reminder."+
+	"Save email"+
+	"Could not save the email"+
+	"Email saved"+
+	"Export blank XLSX"+
+	"Generating workbook..."+
+	"Finalized"+
+	"Import filled XLSX"+
+	"Choose file"+
+	"Reading the supplier file..."+
+	"No usable tier in this reply — nothing was ingested."+
+	"Open mail client"+
+	"Remind supplier"+
+	"The reminder opens your default mail client with a pre-filled message."+
+	"Review import"+
+	"Supplier disclosure"+
+	"(Unanswered)"+
+	"No supplier disclosures yet."+
+	"File is too large."+
+	"This workbook is not a CarbonInk disclosure template."+
+	"This workbook was issued for a different reporting year."+
+	"This workbook belongs to a different disclosure."+
+	"New disclosure"+
+	"Supplier disclosures overdue"+
+	"Overdue"+
+	"Accept filled"+
+	"Cancel"+
+	"Check the values, then ingest the accepted rows. Unchecked rows stay in the disclosure only."+
+	"Ingest into inventory"+
+	"Writing inventory rows..."+
+	"Purchased quantity (kg)"+
+	"Required for Tier 1"+
+	"Enter a valid quantity."+
+	"Tier 1 needs the purchased quantity in kg."+
+	"Tier to ingest"+
+	"Auto (Tier 1 first)"+
+	"Tier 1 — product PCF"+
+	"Tier 2 — allocated emissions"+
+	"Review supplier reply"+
+	"Search suppliers"+
+	"All statuses"+
+	"Draft"+
+	"Status"+
+	"Ingested"+
+	"Received"+
+	"Sent"+
+	"Contact email"+
+	"Could not create the disclosure"+
+	"Or add a supplier"+
+	"Supplier name"+
+	"Questions to include"+
+	"Choose a supplier or enter a name, and include at least one question."+
+	"Create draft"+
+	"Supplier"+
+	"Select a supplier"+
+	"New supplier disclosure"+
+	"Reporting year"+
 	"Supplier email (optional, used for reminders)"+
 	"Go back"+
 	"Detail"+
@@ -4654,6 +4884,7 @@ var textsEn = i18n.NewTexts(""+
 		10,
 		9,
 		18,
+		11,
 		9,
 		13,
 		6,
@@ -5122,6 +5353,69 @@ var textsEn = i18n.NewTexts(""+
 		8,
 		4,
 		5,
+		5,
+		17,
+		72,
+		6,
+		6,
+		13,
+		39,
+		10,
+		24,
+		11,
+		17,
+		22,
+		9,
+		18,
+		11,
+		28,
+		54,
+		16,
+		15,
+		70,
+		13,
+		19,
+		12,
+		28,
+		18,
+		53,
+		56,
+		48,
+		14,
+		28,
+		7,
+		13,
+		6,
+		92,
+		21,
+		25,
+		23,
+		19,
+		23,
+		42,
+		14,
+		19,
+		22,
+		30,
+		21,
+		16,
+		12,
+		5,
+		6,
+		8,
+		8,
+		4,
+		13,
+		31,
+		17,
+		13,
+		20,
+		69,
+		12,
+		8,
+		17,
+		23,
+		14,
 		45,
 		7,
 		6,
@@ -5853,6 +6147,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"活动数据"+
 	"仪表盘"+
 	"披露填报"+
+	"披露"+
 	"文档"+
 	"全部文档"+
 	"输入"+
@@ -6321,6 +6616,69 @@ var textsZhCN = i18n.NewTexts(""+
 	"分类"+
 	"名称"+
 	"范围"+
+	"关闭"+
+	"删除披露"+
+	"删除该披露？由其入库的清单行也会一并删除。"+
+	"取消"+
+	"删除"+
+	"联系邮箱"+
+	"请先填写邮箱再发送催办。"+
+	"保存邮箱"+
+	"无法保存邮箱"+
+	"邮箱已保存"+
+	"导出空白 Excel"+
+	"正在生成工作簿…"+
+	"已定稿"+
+	"导入已填 Excel"+
+	"选择文件"+
+	"正在读取供应商文件…"+
+	"该填报没有可入库的层级，未写入清单。"+
+	"打开邮件客户端"+
+	"催办供应商"+
+	"催办将在系统默认邮件客户端中打开一封预填好的邮件。"+
+	"审核导入"+
+	"供应商披露"+
+	"（未答）"+
+	"尚无供应商披露。"+
+	"文件过大。"+
+	"该工作簿不是 CarbonInk 披露模板。"+
+	"该工作簿对应其他报告年度。"+
+	"该工作簿属于另一份披露。"+
+	"新建披露"+
+	"供应商披露逾期"+
+	"已逾期"+
+	"接受已填项"+
+	"取消"+
+	"请核对数值后入库。未勾选的行只保留在披露中。"+
+	"入库"+
+	"正在写入清单…"+
+	"采购数量（kg）"+
+	"Tier 1 必填"+
+	"请输入有效数量。"+
+	"Tier 1 需要填写采购数量（kg）。"+
+	"入库层级"+
+	"自动（优先 Tier 1）"+
+	"Tier 1 — 产品碳足迹"+
+	"Tier 2 — 分配排放"+
+	"审核供应商填报"+
+	"搜索供应商"+
+	"全部状态"+
+	"草稿"+
+	"状态"+
+	"已入库"+
+	"已收回"+
+	"已发送"+
+	"联系邮箱"+
+	"无法创建披露"+
+	"或新增供应商"+
+	"供应商名称"+
+	"包含的问题"+
+	"请选择供应商或填写名称，并至少包含一个问题。"+
+	"创建草稿"+
+	"供应商"+
+	"选择供应商"+
+	"新建供应商披露"+
+	"报告年度"+
 	"供应商邮箱（可选，用于催办）"+
 	"后退"+
 	"详情"+
@@ -7050,6 +7408,7 @@ var textsZhCN = i18n.NewTexts(""+
 		9,
 		12,
 		6,
+		6,
 		12,
 		6,
 		6,
@@ -7517,6 +7876,69 @@ var textsZhCN = i18n.NewTexts(""+
 		6,
 		6,
 		6,
+		6,
+		12,
+		63,
+		6,
+		6,
+		12,
+		36,
+		12,
+		18,
+		15,
+		18,
+		24,
+		9,
+		18,
+		12,
+		30,
+		54,
+		21,
+		15,
+		75,
+		12,
+		15,
+		12,
+		24,
+		15,
+		44,
+		39,
+		36,
+		12,
+		21,
+		9,
+		15,
+		6,
+		66,
+		6,
+		21,
+		20,
+		13,
+		24,
+		42,
+		12,
+		25,
+		26,
+		23,
+		21,
+		15,
+		12,
+		6,
+		6,
+		9,
+		9,
+		9,
+		12,
+		18,
+		18,
+		15,
+		15,
+		66,
+		12,
+		9,
+		15,
+		21,
+		12,
 		42,
 		6,
 		6,
@@ -8036,6 +8458,63 @@ func Supply(lang string, t Translation) {
 	}
 	if t.SourcesStatsTotal != nil {
 		s.SourcesStatsTotal = t.SourcesStatsTotal
+	}
+	if t.SupplierDisclosuresCount != nil {
+		s.SupplierDisclosuresCount = t.SupplierDisclosuresCount
+	}
+	if t.SupplierDisclosuresDetailExportFailed != nil {
+		s.SupplierDisclosuresDetailExportFailed = t.SupplierDisclosuresDetailExportFailed
+	}
+	if t.SupplierDisclosuresDetailExportSuccess != nil {
+		s.SupplierDisclosuresDetailExportSuccess = t.SupplierDisclosuresDetailExportSuccess
+	}
+	if t.SupplierDisclosuresDetailImportFailed != nil {
+		s.SupplierDisclosuresDetailImportFailed = t.SupplierDisclosuresDetailImportFailed
+	}
+	if t.SupplierDisclosuresDetailImportSuccess != nil {
+		s.SupplierDisclosuresDetailImportSuccess = t.SupplierDisclosuresDetailImportSuccess
+	}
+	if t.SupplierDisclosuresDetailIngestFailed != nil {
+		s.SupplierDisclosuresDetailIngestFailed = t.SupplierDisclosuresDetailIngestFailed
+	}
+	if t.SupplierDisclosuresDetailIngestSuccess != nil {
+		s.SupplierDisclosuresDetailIngestSuccess = t.SupplierDisclosuresDetailIngestSuccess
+	}
+	if t.SupplierDisclosuresDetailTier != nil {
+		s.SupplierDisclosuresDetailTier = t.SupplierDisclosuresDetailTier
+	}
+	if t.SupplierDisclosuresDue != nil {
+		s.SupplierDisclosuresDue = t.SupplierDisclosuresDue
+	}
+	if t.SupplierDisclosuresNotifyMany != nil {
+		s.SupplierDisclosuresNotifyMany = t.SupplierDisclosuresNotifyMany
+	}
+	if t.SupplierDisclosuresNotifyOne != nil {
+		s.SupplierDisclosuresNotifyOne = t.SupplierDisclosuresNotifyOne
+	}
+	if t.SupplierDisclosuresRemindBody != nil {
+		s.SupplierDisclosuresRemindBody = t.SupplierDisclosuresRemindBody
+	}
+	if t.SupplierDisclosuresRemindGreeting != nil {
+		s.SupplierDisclosuresRemindGreeting = t.SupplierDisclosuresRemindGreeting
+	}
+	if t.SupplierDisclosuresRemindOverdue != nil {
+		s.SupplierDisclosuresRemindOverdue = t.SupplierDisclosuresRemindOverdue
+	}
+	if t.SupplierDisclosuresRemindSignoff != nil {
+		s.SupplierDisclosuresRemindSignoff = t.SupplierDisclosuresRemindSignoff
+	}
+	if t.SupplierDisclosuresRemindSubject != nil {
+		s.SupplierDisclosuresRemindSubject = t.SupplierDisclosuresRemindSubject
+	}
+	if t.SupplierDisclosuresReviewPlan != nil {
+		s.SupplierDisclosuresReviewPlan = t.SupplierDisclosuresReviewPlan
+	}
+	if t.SupplierDisclosuresReviewWarnings != nil {
+		s.SupplierDisclosuresReviewWarnings = t.SupplierDisclosuresReviewWarnings
+	}
+	if t.SupplierDisclosuresWizardCreated != nil {
+		s.SupplierDisclosuresWizardCreated = t.SupplierDisclosuresWizardCreated
 	}
 	if t.UpdaterCurrentVersion != nil {
 		s.UpdaterCurrentVersion = t.UpdaterCurrentVersion
@@ -15668,6 +16147,13 @@ func NavDisclosureFilings(cx *core.Scope) string { return For(cx).NavDisclosureF
 // NavDisclosureFilings is the package's NavDisclosureFilings in the language of msgs.
 func (msgs Messages) NavDisclosureFilings() string { return msgs.text(textNavDisclosureFilings) }
 
+// NavDisclosures says "Disclosures"
+// in the language the app shows under cx.
+func NavDisclosures(cx *core.Scope) string { return For(cx).NavDisclosures() }
+
+// NavDisclosures is the package's NavDisclosures in the language of msgs.
+func (msgs Messages) NavDisclosures() string { return msgs.text(textNavDisclosures) }
+
 // NavDocuments says "Documents"
 // in the language the app shows under cx.
 func NavDocuments(cx *core.Scope) string { return For(cx).NavDocuments() }
@@ -21173,6 +21659,1151 @@ func SourcesTableScope(cx *core.Scope) string { return For(cx).SourcesTableScope
 
 // SourcesTableScope is the package's SourcesTableScope in the language of msgs.
 func (msgs Messages) SourcesTableScope() string { return msgs.text(textSourcesTableScope) }
+
+// SupplierDisclosuresCount says "{count} supplier disclosures"
+// in the language the app shows under cx.
+func SupplierDisclosuresCount(cx *core.Scope, count string) string {
+	return For(cx).SupplierDisclosuresCount(count)
+}
+
+// SupplierDisclosuresCount is the package's SupplierDisclosuresCount in the language of msgs.
+func (msgs Messages) SupplierDisclosuresCount(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SupplierDisclosuresCount(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SupplierDisclosuresCount; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " supplier disclosures"
+		case "zh-CN":
+			return count + " 份供应商披露"
+		}
+	}
+}
+
+// SupplierDisclosuresDetailClose says "Close"
+// in the language the app shows under cx.
+func SupplierDisclosuresDetailClose(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresDetailClose()
+}
+
+// SupplierDisclosuresDetailClose is the package's SupplierDisclosuresDetailClose in the language of msgs.
+func (msgs Messages) SupplierDisclosuresDetailClose() string {
+	return msgs.text(textSupplierDisclosuresDetailClose)
+}
+
+// SupplierDisclosuresDetailDelete says "Delete disclosure"
+// in the language the app shows under cx.
+func SupplierDisclosuresDetailDelete(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresDetailDelete()
+}
+
+// SupplierDisclosuresDetailDelete is the package's SupplierDisclosuresDetailDelete in the language of msgs.
+func (msgs Messages) SupplierDisclosuresDetailDelete() string {
+	return msgs.text(textSupplierDisclosuresDetailDelete)
+}
+
+// SupplierDisclosuresDetailDeleteBody says "Delete this disclosure? Inventory rows ingested from it are removed too."
+// in the language the app shows under cx.
+func SupplierDisclosuresDetailDeleteBody(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresDetailDeleteBody()
+}
+
+// SupplierDisclosuresDetailDeleteBody is the package's SupplierDisclosuresDetailDeleteBody in the language of msgs.
+func (msgs Messages) SupplierDisclosuresDetailDeleteBody() string {
+	return msgs.text(textSupplierDisclosuresDetailDeleteBody)
+}
+
+// SupplierDisclosuresDetailDeleteCancel says "Cancel"
+// in the language the app shows under cx.
+func SupplierDisclosuresDetailDeleteCancel(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresDetailDeleteCancel()
+}
+
+// SupplierDisclosuresDetailDeleteCancel is the package's SupplierDisclosuresDetailDeleteCancel in the language of msgs.
+func (msgs Messages) SupplierDisclosuresDetailDeleteCancel() string {
+	return msgs.text(textSupplierDisclosuresDetailDeleteCancel)
+}
+
+// SupplierDisclosuresDetailDeleteConfirm says "Delete"
+// in the language the app shows under cx.
+func SupplierDisclosuresDetailDeleteConfirm(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresDetailDeleteConfirm()
+}
+
+// SupplierDisclosuresDetailDeleteConfirm is the package's SupplierDisclosuresDetailDeleteConfirm in the language of msgs.
+func (msgs Messages) SupplierDisclosuresDetailDeleteConfirm() string {
+	return msgs.text(textSupplierDisclosuresDetailDeleteConfirm)
+}
+
+// SupplierDisclosuresDetailEmail says "Contact email"
+// in the language the app shows under cx.
+func SupplierDisclosuresDetailEmail(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresDetailEmail()
+}
+
+// SupplierDisclosuresDetailEmail is the package's SupplierDisclosuresDetailEmail in the language of msgs.
+func (msgs Messages) SupplierDisclosuresDetailEmail() string {
+	return msgs.text(textSupplierDisclosuresDetailEmail)
+}
+
+// SupplierDisclosuresDetailEmailMissing says "Add an email before sending a reminder."
+// in the language the app shows under cx.
+func SupplierDisclosuresDetailEmailMissing(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresDetailEmailMissing()
+}
+
+// SupplierDisclosuresDetailEmailMissing is the package's SupplierDisclosuresDetailEmailMissing in the language of msgs.
+func (msgs Messages) SupplierDisclosuresDetailEmailMissing() string {
+	return msgs.text(textSupplierDisclosuresDetailEmailMissing)
+}
+
+// SupplierDisclosuresDetailEmailSave says "Save email"
+// in the language the app shows under cx.
+func SupplierDisclosuresDetailEmailSave(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresDetailEmailSave()
+}
+
+// SupplierDisclosuresDetailEmailSave is the package's SupplierDisclosuresDetailEmailSave in the language of msgs.
+func (msgs Messages) SupplierDisclosuresDetailEmailSave() string {
+	return msgs.text(textSupplierDisclosuresDetailEmailSave)
+}
+
+// SupplierDisclosuresDetailEmailSaveFailed says "Could not save the email"
+// in the language the app shows under cx.
+func SupplierDisclosuresDetailEmailSaveFailed(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresDetailEmailSaveFailed()
+}
+
+// SupplierDisclosuresDetailEmailSaveFailed is the package's SupplierDisclosuresDetailEmailSaveFailed in the language of msgs.
+func (msgs Messages) SupplierDisclosuresDetailEmailSaveFailed() string {
+	return msgs.text(textSupplierDisclosuresDetailEmailSaveFailed)
+}
+
+// SupplierDisclosuresDetailEmailSaved says "Email saved"
+// in the language the app shows under cx.
+func SupplierDisclosuresDetailEmailSaved(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresDetailEmailSaved()
+}
+
+// SupplierDisclosuresDetailEmailSaved is the package's SupplierDisclosuresDetailEmailSaved in the language of msgs.
+func (msgs Messages) SupplierDisclosuresDetailEmailSaved() string {
+	return msgs.text(textSupplierDisclosuresDetailEmailSaved)
+}
+
+// SupplierDisclosuresDetailExport says "Export blank XLSX"
+// in the language the app shows under cx.
+func SupplierDisclosuresDetailExport(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresDetailExport()
+}
+
+// SupplierDisclosuresDetailExport is the package's SupplierDisclosuresDetailExport in the language of msgs.
+func (msgs Messages) SupplierDisclosuresDetailExport() string {
+	return msgs.text(textSupplierDisclosuresDetailExport)
+}
+
+// SupplierDisclosuresDetailExportFailed says "Export failed: {message}"
+// in the language the app shows under cx.
+func SupplierDisclosuresDetailExportFailed(cx *core.Scope, message string) string {
+	return For(cx).SupplierDisclosuresDetailExportFailed(message)
+}
+
+// SupplierDisclosuresDetailExportFailed is the package's SupplierDisclosuresDetailExportFailed in the language of msgs.
+func (msgs Messages) SupplierDisclosuresDetailExportFailed(message string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SupplierDisclosuresDetailExportFailed(message))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SupplierDisclosuresDetailExportFailed; f != nil {
+			return f(message)
+		}
+		switch lang {
+		case "", "en":
+			return "Export failed: " + msgs.arg(message)
+		case "zh-CN":
+			return "导出失败：" + message
+		}
+	}
+}
+
+// SupplierDisclosuresDetailExportSuccess says "Exported workbook → {path}"
+// in the language the app shows under cx.
+func SupplierDisclosuresDetailExportSuccess(cx *core.Scope, path string) string {
+	return For(cx).SupplierDisclosuresDetailExportSuccess(path)
+}
+
+// SupplierDisclosuresDetailExportSuccess is the package's SupplierDisclosuresDetailExportSuccess in the language of msgs.
+func (msgs Messages) SupplierDisclosuresDetailExportSuccess(path string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SupplierDisclosuresDetailExportSuccess(path))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SupplierDisclosuresDetailExportSuccess; f != nil {
+			return f(path)
+		}
+		switch lang {
+		case "", "en":
+			return "Exported workbook → " + msgs.arg(path)
+		case "zh-CN":
+			return "已导出工作簿 → " + path
+		}
+	}
+}
+
+// SupplierDisclosuresDetailExporting says "Generating workbook..."
+// in the language the app shows under cx.
+func SupplierDisclosuresDetailExporting(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresDetailExporting()
+}
+
+// SupplierDisclosuresDetailExporting is the package's SupplierDisclosuresDetailExporting in the language of msgs.
+func (msgs Messages) SupplierDisclosuresDetailExporting() string {
+	return msgs.text(textSupplierDisclosuresDetailExporting)
+}
+
+// SupplierDisclosuresDetailFinalized says "Finalized"
+// in the language the app shows under cx.
+func SupplierDisclosuresDetailFinalized(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresDetailFinalized()
+}
+
+// SupplierDisclosuresDetailFinalized is the package's SupplierDisclosuresDetailFinalized in the language of msgs.
+func (msgs Messages) SupplierDisclosuresDetailFinalized() string {
+	return msgs.text(textSupplierDisclosuresDetailFinalized)
+}
+
+// SupplierDisclosuresDetailImport says "Import filled XLSX"
+// in the language the app shows under cx.
+func SupplierDisclosuresDetailImport(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresDetailImport()
+}
+
+// SupplierDisclosuresDetailImport is the package's SupplierDisclosuresDetailImport in the language of msgs.
+func (msgs Messages) SupplierDisclosuresDetailImport() string {
+	return msgs.text(textSupplierDisclosuresDetailImport)
+}
+
+// SupplierDisclosuresDetailImportChoose says "Choose file"
+// in the language the app shows under cx.
+func SupplierDisclosuresDetailImportChoose(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresDetailImportChoose()
+}
+
+// SupplierDisclosuresDetailImportChoose is the package's SupplierDisclosuresDetailImportChoose in the language of msgs.
+func (msgs Messages) SupplierDisclosuresDetailImportChoose() string {
+	return msgs.text(textSupplierDisclosuresDetailImportChoose)
+}
+
+// SupplierDisclosuresDetailImportFailed says "Import failed: {message}"
+// in the language the app shows under cx.
+func SupplierDisclosuresDetailImportFailed(cx *core.Scope, message string) string {
+	return For(cx).SupplierDisclosuresDetailImportFailed(message)
+}
+
+// SupplierDisclosuresDetailImportFailed is the package's SupplierDisclosuresDetailImportFailed in the language of msgs.
+func (msgs Messages) SupplierDisclosuresDetailImportFailed(message string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SupplierDisclosuresDetailImportFailed(message))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SupplierDisclosuresDetailImportFailed; f != nil {
+			return f(message)
+		}
+		switch lang {
+		case "", "en":
+			return "Import failed: " + msgs.arg(message)
+		case "zh-CN":
+			return "导入失败：" + message
+		}
+	}
+}
+
+// SupplierDisclosuresDetailImportSuccess says "Imported {count} answers — review before ingesting."
+// in the language the app shows under cx.
+func SupplierDisclosuresDetailImportSuccess(cx *core.Scope, count string) string {
+	return For(cx).SupplierDisclosuresDetailImportSuccess(count)
+}
+
+// SupplierDisclosuresDetailImportSuccess is the package's SupplierDisclosuresDetailImportSuccess in the language of msgs.
+func (msgs Messages) SupplierDisclosuresDetailImportSuccess(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SupplierDisclosuresDetailImportSuccess(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SupplierDisclosuresDetailImportSuccess; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return "Imported " + msgs.arg(count) + " answers — review before ingesting."
+		case "zh-CN":
+			return "已导入 " + count + " 个答案，入库前请核对。"
+		}
+	}
+}
+
+// SupplierDisclosuresDetailImporting says "Reading the supplier file..."
+// in the language the app shows under cx.
+func SupplierDisclosuresDetailImporting(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresDetailImporting()
+}
+
+// SupplierDisclosuresDetailImporting is the package's SupplierDisclosuresDetailImporting in the language of msgs.
+func (msgs Messages) SupplierDisclosuresDetailImporting() string {
+	return msgs.text(textSupplierDisclosuresDetailImporting)
+}
+
+// SupplierDisclosuresDetailIngestFailed says "Ingest failed: {message}"
+// in the language the app shows under cx.
+func SupplierDisclosuresDetailIngestFailed(cx *core.Scope, message string) string {
+	return For(cx).SupplierDisclosuresDetailIngestFailed(message)
+}
+
+// SupplierDisclosuresDetailIngestFailed is the package's SupplierDisclosuresDetailIngestFailed in the language of msgs.
+func (msgs Messages) SupplierDisclosuresDetailIngestFailed(message string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SupplierDisclosuresDetailIngestFailed(message))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SupplierDisclosuresDetailIngestFailed; f != nil {
+			return f(message)
+		}
+		switch lang {
+		case "", "en":
+			return "Ingest failed: " + msgs.arg(message)
+		case "zh-CN":
+			return "入库失败：" + message
+		}
+	}
+}
+
+// SupplierDisclosuresDetailIngestNoData says "No usable tier in this reply — nothing was ingested."
+// in the language the app shows under cx.
+func SupplierDisclosuresDetailIngestNoData(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresDetailIngestNoData()
+}
+
+// SupplierDisclosuresDetailIngestNoData is the package's SupplierDisclosuresDetailIngestNoData in the language of msgs.
+func (msgs Messages) SupplierDisclosuresDetailIngestNoData() string {
+	return msgs.text(textSupplierDisclosuresDetailIngestNoData)
+}
+
+// SupplierDisclosuresDetailIngestSuccess says "Ingested {total} into the inventory."
+// in the language the app shows under cx.
+func SupplierDisclosuresDetailIngestSuccess(cx *core.Scope, total string) string {
+	return For(cx).SupplierDisclosuresDetailIngestSuccess(total)
+}
+
+// SupplierDisclosuresDetailIngestSuccess is the package's SupplierDisclosuresDetailIngestSuccess in the language of msgs.
+func (msgs Messages) SupplierDisclosuresDetailIngestSuccess(total string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SupplierDisclosuresDetailIngestSuccess(total))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SupplierDisclosuresDetailIngestSuccess; f != nil {
+			return f(total)
+		}
+		switch lang {
+		case "", "en":
+			return "Ingested " + msgs.arg(total) + " into the inventory."
+		case "zh-CN":
+			return "已将 " + total + " 入库。"
+		}
+	}
+}
+
+// SupplierDisclosuresDetailOpenMail says "Open mail client"
+// in the language the app shows under cx.
+func SupplierDisclosuresDetailOpenMail(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresDetailOpenMail()
+}
+
+// SupplierDisclosuresDetailOpenMail is the package's SupplierDisclosuresDetailOpenMail in the language of msgs.
+func (msgs Messages) SupplierDisclosuresDetailOpenMail() string {
+	return msgs.text(textSupplierDisclosuresDetailOpenMail)
+}
+
+// SupplierDisclosuresDetailRemind says "Remind supplier"
+// in the language the app shows under cx.
+func SupplierDisclosuresDetailRemind(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresDetailRemind()
+}
+
+// SupplierDisclosuresDetailRemind is the package's SupplierDisclosuresDetailRemind in the language of msgs.
+func (msgs Messages) SupplierDisclosuresDetailRemind() string {
+	return msgs.text(textSupplierDisclosuresDetailRemind)
+}
+
+// SupplierDisclosuresDetailRemindBody says "The reminder opens your default mail client with a pre-filled message."
+// in the language the app shows under cx.
+func SupplierDisclosuresDetailRemindBody(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresDetailRemindBody()
+}
+
+// SupplierDisclosuresDetailRemindBody is the package's SupplierDisclosuresDetailRemindBody in the language of msgs.
+func (msgs Messages) SupplierDisclosuresDetailRemindBody() string {
+	return msgs.text(textSupplierDisclosuresDetailRemindBody)
+}
+
+// SupplierDisclosuresDetailReview says "Review import"
+// in the language the app shows under cx.
+func SupplierDisclosuresDetailReview(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresDetailReview()
+}
+
+// SupplierDisclosuresDetailReview is the package's SupplierDisclosuresDetailReview in the language of msgs.
+func (msgs Messages) SupplierDisclosuresDetailReview() string {
+	return msgs.text(textSupplierDisclosuresDetailReview)
+}
+
+// SupplierDisclosuresDetailTier says "Tier {tier}"
+// in the language the app shows under cx.
+func SupplierDisclosuresDetailTier(cx *core.Scope, tier string) string {
+	return For(cx).SupplierDisclosuresDetailTier(tier)
+}
+
+// SupplierDisclosuresDetailTier is the package's SupplierDisclosuresDetailTier in the language of msgs.
+func (msgs Messages) SupplierDisclosuresDetailTier(tier string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SupplierDisclosuresDetailTier(tier))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SupplierDisclosuresDetailTier; f != nil {
+			return f(tier)
+		}
+		switch lang {
+		case "", "en":
+			return "Tier " + msgs.arg(tier)
+		case "zh-CN":
+			return "Tier " + tier
+		}
+	}
+}
+
+// SupplierDisclosuresDetailTitle says "Supplier disclosure"
+// in the language the app shows under cx.
+func SupplierDisclosuresDetailTitle(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresDetailTitle()
+}
+
+// SupplierDisclosuresDetailTitle is the package's SupplierDisclosuresDetailTitle in the language of msgs.
+func (msgs Messages) SupplierDisclosuresDetailTitle() string {
+	return msgs.text(textSupplierDisclosuresDetailTitle)
+}
+
+// SupplierDisclosuresDetailUnanswered says "(Unanswered)"
+// in the language the app shows under cx.
+func SupplierDisclosuresDetailUnanswered(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresDetailUnanswered()
+}
+
+// SupplierDisclosuresDetailUnanswered is the package's SupplierDisclosuresDetailUnanswered in the language of msgs.
+func (msgs Messages) SupplierDisclosuresDetailUnanswered() string {
+	return msgs.text(textSupplierDisclosuresDetailUnanswered)
+}
+
+// SupplierDisclosuresDue says "Due {date}"
+// in the language the app shows under cx.
+func SupplierDisclosuresDue(cx *core.Scope, date string) string {
+	return For(cx).SupplierDisclosuresDue(date)
+}
+
+// SupplierDisclosuresDue is the package's SupplierDisclosuresDue in the language of msgs.
+func (msgs Messages) SupplierDisclosuresDue(date string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SupplierDisclosuresDue(date))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SupplierDisclosuresDue; f != nil {
+			return f(date)
+		}
+		switch lang {
+		case "", "en":
+			return "Due " + msgs.arg(date)
+		case "zh-CN":
+			return "截止 " + date
+		}
+	}
+}
+
+// SupplierDisclosuresEmpty says "No supplier disclosures yet."
+// in the language the app shows under cx.
+func SupplierDisclosuresEmpty(cx *core.Scope) string { return For(cx).SupplierDisclosuresEmpty() }
+
+// SupplierDisclosuresEmpty is the package's SupplierDisclosuresEmpty in the language of msgs.
+func (msgs Messages) SupplierDisclosuresEmpty() string {
+	return msgs.text(textSupplierDisclosuresEmpty)
+}
+
+// SupplierDisclosuresFileTooLarge says "File is too large."
+// in the language the app shows under cx.
+func SupplierDisclosuresFileTooLarge(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresFileTooLarge()
+}
+
+// SupplierDisclosuresFileTooLarge is the package's SupplierDisclosuresFileTooLarge in the language of msgs.
+func (msgs Messages) SupplierDisclosuresFileTooLarge() string {
+	return msgs.text(textSupplierDisclosuresFileTooLarge)
+}
+
+// SupplierDisclosuresImportNotTemplate says "This workbook is not a CarbonInk disclosure template."
+// in the language the app shows under cx.
+func SupplierDisclosuresImportNotTemplate(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresImportNotTemplate()
+}
+
+// SupplierDisclosuresImportNotTemplate is the package's SupplierDisclosuresImportNotTemplate in the language of msgs.
+func (msgs Messages) SupplierDisclosuresImportNotTemplate() string {
+	return msgs.text(textSupplierDisclosuresImportNotTemplate)
+}
+
+// SupplierDisclosuresImportWrongPeriod says "This workbook was issued for a different reporting year."
+// in the language the app shows under cx.
+func SupplierDisclosuresImportWrongPeriod(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresImportWrongPeriod()
+}
+
+// SupplierDisclosuresImportWrongPeriod is the package's SupplierDisclosuresImportWrongPeriod in the language of msgs.
+func (msgs Messages) SupplierDisclosuresImportWrongPeriod() string {
+	return msgs.text(textSupplierDisclosuresImportWrongPeriod)
+}
+
+// SupplierDisclosuresImportWrongQuestionnaire says "This workbook belongs to a different disclosure."
+// in the language the app shows under cx.
+func SupplierDisclosuresImportWrongQuestionnaire(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresImportWrongQuestionnaire()
+}
+
+// SupplierDisclosuresImportWrongQuestionnaire is the package's SupplierDisclosuresImportWrongQuestionnaire in the language of msgs.
+func (msgs Messages) SupplierDisclosuresImportWrongQuestionnaire() string {
+	return msgs.text(textSupplierDisclosuresImportWrongQuestionnaire)
+}
+
+// SupplierDisclosuresNewButton says "New disclosure"
+// in the language the app shows under cx.
+func SupplierDisclosuresNewButton(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresNewButton()
+}
+
+// SupplierDisclosuresNewButton is the package's SupplierDisclosuresNewButton in the language of msgs.
+func (msgs Messages) SupplierDisclosuresNewButton() string {
+	return msgs.text(textSupplierDisclosuresNewButton)
+}
+
+// SupplierDisclosuresNotifyMany says "{count} supplier disclosures are past their due date."
+// in the language the app shows under cx.
+func SupplierDisclosuresNotifyMany(cx *core.Scope, count string) string {
+	return For(cx).SupplierDisclosuresNotifyMany(count)
+}
+
+// SupplierDisclosuresNotifyMany is the package's SupplierDisclosuresNotifyMany in the language of msgs.
+func (msgs Messages) SupplierDisclosuresNotifyMany(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SupplierDisclosuresNotifyMany(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SupplierDisclosuresNotifyMany; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " supplier disclosures are past their due date."
+		case "zh-CN":
+			return count + " 份供应商披露已过截止日期。"
+		}
+	}
+}
+
+// SupplierDisclosuresNotifyOne says "The disclosure from {name} is past its due date."
+// in the language the app shows under cx.
+func SupplierDisclosuresNotifyOne(cx *core.Scope, name string) string {
+	return For(cx).SupplierDisclosuresNotifyOne(name)
+}
+
+// SupplierDisclosuresNotifyOne is the package's SupplierDisclosuresNotifyOne in the language of msgs.
+func (msgs Messages) SupplierDisclosuresNotifyOne(name string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SupplierDisclosuresNotifyOne(name))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SupplierDisclosuresNotifyOne; f != nil {
+			return f(name)
+		}
+		switch lang {
+		case "", "en":
+			return "The disclosure from " + msgs.arg(name) + " is past its due date."
+		case "zh-CN":
+			return "「" + name + "」的披露已过截止日期。"
+		}
+	}
+}
+
+// SupplierDisclosuresNotifyTitle says "Supplier disclosures overdue"
+// in the language the app shows under cx.
+func SupplierDisclosuresNotifyTitle(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresNotifyTitle()
+}
+
+// SupplierDisclosuresNotifyTitle is the package's SupplierDisclosuresNotifyTitle in the language of msgs.
+func (msgs Messages) SupplierDisclosuresNotifyTitle() string {
+	return msgs.text(textSupplierDisclosuresNotifyTitle)
+}
+
+// SupplierDisclosuresOverdue says "Overdue"
+// in the language the app shows under cx.
+func SupplierDisclosuresOverdue(cx *core.Scope) string { return For(cx).SupplierDisclosuresOverdue() }
+
+// SupplierDisclosuresOverdue is the package's SupplierDisclosuresOverdue in the language of msgs.
+func (msgs Messages) SupplierDisclosuresOverdue() string {
+	return msgs.text(textSupplierDisclosuresOverdue)
+}
+
+// SupplierDisclosuresRemindBody says "We are collecting your greenhouse-gas disclosure for {year}. Please fill in the questionnaire and return it at your earliest convenience."
+// in the language the app shows under cx.
+func SupplierDisclosuresRemindBody(cx *core.Scope, year string) string {
+	return For(cx).SupplierDisclosuresRemindBody(year)
+}
+
+// SupplierDisclosuresRemindBody is the package's SupplierDisclosuresRemindBody in the language of msgs.
+func (msgs Messages) SupplierDisclosuresRemindBody(year string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SupplierDisclosuresRemindBody(year))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SupplierDisclosuresRemindBody; f != nil {
+			return f(year)
+		}
+		switch lang {
+		case "", "en":
+			return "We are collecting your greenhouse-gas disclosure for " + msgs.arg(year) + ". Please fill in the questionnaire and return it at your earliest convenience."
+		case "zh-CN":
+			return "我们正在收集贵公司 " + year + " 年的温室气体披露数据，请填写问卷并尽快回传。"
+		}
+	}
+}
+
+// SupplierDisclosuresRemindGreeting says "Hello {supplier},"
+// in the language the app shows under cx.
+func SupplierDisclosuresRemindGreeting(cx *core.Scope, supplier string) string {
+	return For(cx).SupplierDisclosuresRemindGreeting(supplier)
+}
+
+// SupplierDisclosuresRemindGreeting is the package's SupplierDisclosuresRemindGreeting in the language of msgs.
+func (msgs Messages) SupplierDisclosuresRemindGreeting(supplier string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SupplierDisclosuresRemindGreeting(supplier))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SupplierDisclosuresRemindGreeting; f != nil {
+			return f(supplier)
+		}
+		switch lang {
+		case "", "en":
+			return "Hello " + msgs.arg(supplier) + ","
+		case "zh-CN":
+			return "您好，" + supplier + "："
+		}
+	}
+}
+
+// SupplierDisclosuresRemindOverdue says "The due date was {due}."
+// in the language the app shows under cx.
+func SupplierDisclosuresRemindOverdue(cx *core.Scope, due string) string {
+	return For(cx).SupplierDisclosuresRemindOverdue(due)
+}
+
+// SupplierDisclosuresRemindOverdue is the package's SupplierDisclosuresRemindOverdue in the language of msgs.
+func (msgs Messages) SupplierDisclosuresRemindOverdue(due string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SupplierDisclosuresRemindOverdue(due))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SupplierDisclosuresRemindOverdue; f != nil {
+			return f(due)
+		}
+		switch lang {
+		case "", "en":
+			return "The due date was " + msgs.arg(due) + "."
+		case "zh-CN":
+			return "截止日期为 " + due + "，目前已逾期。"
+		}
+	}
+}
+
+// SupplierDisclosuresRemindSignoff says "— {org}"
+// in the language the app shows under cx.
+func SupplierDisclosuresRemindSignoff(cx *core.Scope, org string) string {
+	return For(cx).SupplierDisclosuresRemindSignoff(org)
+}
+
+// SupplierDisclosuresRemindSignoff is the package's SupplierDisclosuresRemindSignoff in the language of msgs.
+func (msgs Messages) SupplierDisclosuresRemindSignoff(org string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SupplierDisclosuresRemindSignoff(org))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SupplierDisclosuresRemindSignoff; f != nil {
+			return f(org)
+		}
+		switch lang {
+		case "", "en":
+			return "— " + msgs.arg(org)
+		case "zh-CN":
+			return "— " + org
+		}
+	}
+}
+
+// SupplierDisclosuresRemindSubject says "Supplier disclosure reminder — {year}"
+// in the language the app shows under cx.
+func SupplierDisclosuresRemindSubject(cx *core.Scope, year string) string {
+	return For(cx).SupplierDisclosuresRemindSubject(year)
+}
+
+// SupplierDisclosuresRemindSubject is the package's SupplierDisclosuresRemindSubject in the language of msgs.
+func (msgs Messages) SupplierDisclosuresRemindSubject(year string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SupplierDisclosuresRemindSubject(year))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SupplierDisclosuresRemindSubject; f != nil {
+			return f(year)
+		}
+		switch lang {
+		case "", "en":
+			return "Supplier disclosure reminder — " + msgs.arg(year)
+		case "zh-CN":
+			return "供应商披露催办 — " + year
+		}
+	}
+}
+
+// SupplierDisclosuresReviewAcceptAll says "Accept filled"
+// in the language the app shows under cx.
+func SupplierDisclosuresReviewAcceptAll(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresReviewAcceptAll()
+}
+
+// SupplierDisclosuresReviewAcceptAll is the package's SupplierDisclosuresReviewAcceptAll in the language of msgs.
+func (msgs Messages) SupplierDisclosuresReviewAcceptAll() string {
+	return msgs.text(textSupplierDisclosuresReviewAcceptAll)
+}
+
+// SupplierDisclosuresReviewCancel says "Cancel"
+// in the language the app shows under cx.
+func SupplierDisclosuresReviewCancel(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresReviewCancel()
+}
+
+// SupplierDisclosuresReviewCancel is the package's SupplierDisclosuresReviewCancel in the language of msgs.
+func (msgs Messages) SupplierDisclosuresReviewCancel() string {
+	return msgs.text(textSupplierDisclosuresReviewCancel)
+}
+
+// SupplierDisclosuresReviewHint says "Check the values, then ingest the accepted rows. Unchecked rows stay in the disclosure only."
+// in the language the app shows under cx.
+func SupplierDisclosuresReviewHint(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresReviewHint()
+}
+
+// SupplierDisclosuresReviewHint is the package's SupplierDisclosuresReviewHint in the language of msgs.
+func (msgs Messages) SupplierDisclosuresReviewHint() string {
+	return msgs.text(textSupplierDisclosuresReviewHint)
+}
+
+// SupplierDisclosuresReviewIngest says "Ingest into inventory"
+// in the language the app shows under cx.
+func SupplierDisclosuresReviewIngest(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresReviewIngest()
+}
+
+// SupplierDisclosuresReviewIngest is the package's SupplierDisclosuresReviewIngest in the language of msgs.
+func (msgs Messages) SupplierDisclosuresReviewIngest() string {
+	return msgs.text(textSupplierDisclosuresReviewIngest)
+}
+
+// SupplierDisclosuresReviewIngesting says "Writing inventory rows..."
+// in the language the app shows under cx.
+func SupplierDisclosuresReviewIngesting(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresReviewIngesting()
+}
+
+// SupplierDisclosuresReviewIngesting is the package's SupplierDisclosuresReviewIngesting in the language of msgs.
+func (msgs Messages) SupplierDisclosuresReviewIngesting() string {
+	return msgs.text(textSupplierDisclosuresReviewIngesting)
+}
+
+// SupplierDisclosuresReviewPlan says "{rows} inventory row(s) · {total}"
+// in the language the app shows under cx.
+func SupplierDisclosuresReviewPlan(cx *core.Scope, rows string, total string) string {
+	return For(cx).SupplierDisclosuresReviewPlan(rows, total)
+}
+
+// SupplierDisclosuresReviewPlan is the package's SupplierDisclosuresReviewPlan in the language of msgs.
+func (msgs Messages) SupplierDisclosuresReviewPlan(rows string, total string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SupplierDisclosuresReviewPlan(rows, total))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SupplierDisclosuresReviewPlan; f != nil {
+			return f(rows, total)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(rows) + " inventory row(s) · " + msgs.arg(total)
+		case "zh-CN":
+			return rows + " 行清单 · " + total
+		}
+	}
+}
+
+// SupplierDisclosuresReviewQuantity says "Purchased quantity (kg)"
+// in the language the app shows under cx.
+func SupplierDisclosuresReviewQuantity(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresReviewQuantity()
+}
+
+// SupplierDisclosuresReviewQuantity is the package's SupplierDisclosuresReviewQuantity in the language of msgs.
+func (msgs Messages) SupplierDisclosuresReviewQuantity() string {
+	return msgs.text(textSupplierDisclosuresReviewQuantity)
+}
+
+// SupplierDisclosuresReviewQuantityHint says "Required for Tier 1"
+// in the language the app shows under cx.
+func SupplierDisclosuresReviewQuantityHint(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresReviewQuantityHint()
+}
+
+// SupplierDisclosuresReviewQuantityHint is the package's SupplierDisclosuresReviewQuantityHint in the language of msgs.
+func (msgs Messages) SupplierDisclosuresReviewQuantityHint() string {
+	return msgs.text(textSupplierDisclosuresReviewQuantityHint)
+}
+
+// SupplierDisclosuresReviewQuantityInvalid says "Enter a valid quantity."
+// in the language the app shows under cx.
+func SupplierDisclosuresReviewQuantityInvalid(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresReviewQuantityInvalid()
+}
+
+// SupplierDisclosuresReviewQuantityInvalid is the package's SupplierDisclosuresReviewQuantityInvalid in the language of msgs.
+func (msgs Messages) SupplierDisclosuresReviewQuantityInvalid() string {
+	return msgs.text(textSupplierDisclosuresReviewQuantityInvalid)
+}
+
+// SupplierDisclosuresReviewQuantityRequired says "Tier 1 needs the purchased quantity in kg."
+// in the language the app shows under cx.
+func SupplierDisclosuresReviewQuantityRequired(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresReviewQuantityRequired()
+}
+
+// SupplierDisclosuresReviewQuantityRequired is the package's SupplierDisclosuresReviewQuantityRequired in the language of msgs.
+func (msgs Messages) SupplierDisclosuresReviewQuantityRequired() string {
+	return msgs.text(textSupplierDisclosuresReviewQuantityRequired)
+}
+
+// SupplierDisclosuresReviewTier says "Tier to ingest"
+// in the language the app shows under cx.
+func SupplierDisclosuresReviewTier(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresReviewTier()
+}
+
+// SupplierDisclosuresReviewTier is the package's SupplierDisclosuresReviewTier in the language of msgs.
+func (msgs Messages) SupplierDisclosuresReviewTier() string {
+	return msgs.text(textSupplierDisclosuresReviewTier)
+}
+
+// SupplierDisclosuresReviewTierAuto says "Auto (Tier 1 first)"
+// in the language the app shows under cx.
+func SupplierDisclosuresReviewTierAuto(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresReviewTierAuto()
+}
+
+// SupplierDisclosuresReviewTierAuto is the package's SupplierDisclosuresReviewTierAuto in the language of msgs.
+func (msgs Messages) SupplierDisclosuresReviewTierAuto() string {
+	return msgs.text(textSupplierDisclosuresReviewTierAuto)
+}
+
+// SupplierDisclosuresReviewTierOne says "Tier 1 — product PCF"
+// in the language the app shows under cx.
+func SupplierDisclosuresReviewTierOne(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresReviewTierOne()
+}
+
+// SupplierDisclosuresReviewTierOne is the package's SupplierDisclosuresReviewTierOne in the language of msgs.
+func (msgs Messages) SupplierDisclosuresReviewTierOne() string {
+	return msgs.text(textSupplierDisclosuresReviewTierOne)
+}
+
+// SupplierDisclosuresReviewTierTwo says "Tier 2 — allocated emissions"
+// in the language the app shows under cx.
+func SupplierDisclosuresReviewTierTwo(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresReviewTierTwo()
+}
+
+// SupplierDisclosuresReviewTierTwo is the package's SupplierDisclosuresReviewTierTwo in the language of msgs.
+func (msgs Messages) SupplierDisclosuresReviewTierTwo() string {
+	return msgs.text(textSupplierDisclosuresReviewTierTwo)
+}
+
+// SupplierDisclosuresReviewTitle says "Review supplier reply"
+// in the language the app shows under cx.
+func SupplierDisclosuresReviewTitle(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresReviewTitle()
+}
+
+// SupplierDisclosuresReviewTitle is the package's SupplierDisclosuresReviewTitle in the language of msgs.
+func (msgs Messages) SupplierDisclosuresReviewTitle() string {
+	return msgs.text(textSupplierDisclosuresReviewTitle)
+}
+
+// SupplierDisclosuresReviewWarnings says "{count} parse warning(s)"
+// in the language the app shows under cx.
+func SupplierDisclosuresReviewWarnings(cx *core.Scope, count string) string {
+	return For(cx).SupplierDisclosuresReviewWarnings(count)
+}
+
+// SupplierDisclosuresReviewWarnings is the package's SupplierDisclosuresReviewWarnings in the language of msgs.
+func (msgs Messages) SupplierDisclosuresReviewWarnings(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SupplierDisclosuresReviewWarnings(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SupplierDisclosuresReviewWarnings; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " parse warning(s)"
+		case "zh-CN":
+			return count + " 条解析提示"
+		}
+	}
+}
+
+// SupplierDisclosuresSearchPlaceholder says "Search suppliers"
+// in the language the app shows under cx.
+func SupplierDisclosuresSearchPlaceholder(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresSearchPlaceholder()
+}
+
+// SupplierDisclosuresSearchPlaceholder is the package's SupplierDisclosuresSearchPlaceholder in the language of msgs.
+func (msgs Messages) SupplierDisclosuresSearchPlaceholder() string {
+	return msgs.text(textSupplierDisclosuresSearchPlaceholder)
+}
+
+// SupplierDisclosuresStatusAll says "All statuses"
+// in the language the app shows under cx.
+func SupplierDisclosuresStatusAll(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresStatusAll()
+}
+
+// SupplierDisclosuresStatusAll is the package's SupplierDisclosuresStatusAll in the language of msgs.
+func (msgs Messages) SupplierDisclosuresStatusAll() string {
+	return msgs.text(textSupplierDisclosuresStatusAll)
+}
+
+// SupplierDisclosuresStatusDraft says "Draft"
+// in the language the app shows under cx.
+func SupplierDisclosuresStatusDraft(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresStatusDraft()
+}
+
+// SupplierDisclosuresStatusDraft is the package's SupplierDisclosuresStatusDraft in the language of msgs.
+func (msgs Messages) SupplierDisclosuresStatusDraft() string {
+	return msgs.text(textSupplierDisclosuresStatusDraft)
+}
+
+// SupplierDisclosuresStatusFilter says "Status"
+// in the language the app shows under cx.
+func SupplierDisclosuresStatusFilter(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresStatusFilter()
+}
+
+// SupplierDisclosuresStatusFilter is the package's SupplierDisclosuresStatusFilter in the language of msgs.
+func (msgs Messages) SupplierDisclosuresStatusFilter() string {
+	return msgs.text(textSupplierDisclosuresStatusFilter)
+}
+
+// SupplierDisclosuresStatusIngested says "Ingested"
+// in the language the app shows under cx.
+func SupplierDisclosuresStatusIngested(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresStatusIngested()
+}
+
+// SupplierDisclosuresStatusIngested is the package's SupplierDisclosuresStatusIngested in the language of msgs.
+func (msgs Messages) SupplierDisclosuresStatusIngested() string {
+	return msgs.text(textSupplierDisclosuresStatusIngested)
+}
+
+// SupplierDisclosuresStatusReceived says "Received"
+// in the language the app shows under cx.
+func SupplierDisclosuresStatusReceived(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresStatusReceived()
+}
+
+// SupplierDisclosuresStatusReceived is the package's SupplierDisclosuresStatusReceived in the language of msgs.
+func (msgs Messages) SupplierDisclosuresStatusReceived() string {
+	return msgs.text(textSupplierDisclosuresStatusReceived)
+}
+
+// SupplierDisclosuresStatusSent says "Sent"
+// in the language the app shows under cx.
+func SupplierDisclosuresStatusSent(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresStatusSent()
+}
+
+// SupplierDisclosuresStatusSent is the package's SupplierDisclosuresStatusSent in the language of msgs.
+func (msgs Messages) SupplierDisclosuresStatusSent() string {
+	return msgs.text(textSupplierDisclosuresStatusSent)
+}
+
+// SupplierDisclosuresWizardCreated says "Draft created with {count} questions."
+// in the language the app shows under cx.
+func SupplierDisclosuresWizardCreated(cx *core.Scope, count string) string {
+	return For(cx).SupplierDisclosuresWizardCreated(count)
+}
+
+// SupplierDisclosuresWizardCreated is the package's SupplierDisclosuresWizardCreated in the language of msgs.
+func (msgs Messages) SupplierDisclosuresWizardCreated(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SupplierDisclosuresWizardCreated(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SupplierDisclosuresWizardCreated; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return "Draft created with " + msgs.arg(count) + " questions."
+		case "zh-CN":
+			return "已创建草稿，共 " + count + " 个问题。"
+		}
+	}
+}
+
+// SupplierDisclosuresWizardEmail says "Contact email"
+// in the language the app shows under cx.
+func SupplierDisclosuresWizardEmail(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresWizardEmail()
+}
+
+// SupplierDisclosuresWizardEmail is the package's SupplierDisclosuresWizardEmail in the language of msgs.
+func (msgs Messages) SupplierDisclosuresWizardEmail() string {
+	return msgs.text(textSupplierDisclosuresWizardEmail)
+}
+
+// SupplierDisclosuresWizardFailed says "Could not create the disclosure"
+// in the language the app shows under cx.
+func SupplierDisclosuresWizardFailed(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresWizardFailed()
+}
+
+// SupplierDisclosuresWizardFailed is the package's SupplierDisclosuresWizardFailed in the language of msgs.
+func (msgs Messages) SupplierDisclosuresWizardFailed() string {
+	return msgs.text(textSupplierDisclosuresWizardFailed)
+}
+
+// SupplierDisclosuresWizardNewSupplier says "Or add a supplier"
+// in the language the app shows under cx.
+func SupplierDisclosuresWizardNewSupplier(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresWizardNewSupplier()
+}
+
+// SupplierDisclosuresWizardNewSupplier is the package's SupplierDisclosuresWizardNewSupplier in the language of msgs.
+func (msgs Messages) SupplierDisclosuresWizardNewSupplier() string {
+	return msgs.text(textSupplierDisclosuresWizardNewSupplier)
+}
+
+// SupplierDisclosuresWizardNewSupplierPlaceholder says "Supplier name"
+// in the language the app shows under cx.
+func SupplierDisclosuresWizardNewSupplierPlaceholder(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresWizardNewSupplierPlaceholder()
+}
+
+// SupplierDisclosuresWizardNewSupplierPlaceholder is the package's SupplierDisclosuresWizardNewSupplierPlaceholder in the language of msgs.
+func (msgs Messages) SupplierDisclosuresWizardNewSupplierPlaceholder() string {
+	return msgs.text(textSupplierDisclosuresWizardNewSupplierPlaceholder)
+}
+
+// SupplierDisclosuresWizardQuestions says "Questions to include"
+// in the language the app shows under cx.
+func SupplierDisclosuresWizardQuestions(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresWizardQuestions()
+}
+
+// SupplierDisclosuresWizardQuestions is the package's SupplierDisclosuresWizardQuestions in the language of msgs.
+func (msgs Messages) SupplierDisclosuresWizardQuestions() string {
+	return msgs.text(textSupplierDisclosuresWizardQuestions)
+}
+
+// SupplierDisclosuresWizardRequired says "Choose a supplier or enter a name, and include at least one question."
+// in the language the app shows under cx.
+func SupplierDisclosuresWizardRequired(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresWizardRequired()
+}
+
+// SupplierDisclosuresWizardRequired is the package's SupplierDisclosuresWizardRequired in the language of msgs.
+func (msgs Messages) SupplierDisclosuresWizardRequired() string {
+	return msgs.text(textSupplierDisclosuresWizardRequired)
+}
+
+// SupplierDisclosuresWizardSubmit says "Create draft"
+// in the language the app shows under cx.
+func SupplierDisclosuresWizardSubmit(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresWizardSubmit()
+}
+
+// SupplierDisclosuresWizardSubmit is the package's SupplierDisclosuresWizardSubmit in the language of msgs.
+func (msgs Messages) SupplierDisclosuresWizardSubmit() string {
+	return msgs.text(textSupplierDisclosuresWizardSubmit)
+}
+
+// SupplierDisclosuresWizardSupplier says "Supplier"
+// in the language the app shows under cx.
+func SupplierDisclosuresWizardSupplier(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresWizardSupplier()
+}
+
+// SupplierDisclosuresWizardSupplier is the package's SupplierDisclosuresWizardSupplier in the language of msgs.
+func (msgs Messages) SupplierDisclosuresWizardSupplier() string {
+	return msgs.text(textSupplierDisclosuresWizardSupplier)
+}
+
+// SupplierDisclosuresWizardSupplierNone says "Select a supplier"
+// in the language the app shows under cx.
+func SupplierDisclosuresWizardSupplierNone(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresWizardSupplierNone()
+}
+
+// SupplierDisclosuresWizardSupplierNone is the package's SupplierDisclosuresWizardSupplierNone in the language of msgs.
+func (msgs Messages) SupplierDisclosuresWizardSupplierNone() string {
+	return msgs.text(textSupplierDisclosuresWizardSupplierNone)
+}
+
+// SupplierDisclosuresWizardTitle says "New supplier disclosure"
+// in the language the app shows under cx.
+func SupplierDisclosuresWizardTitle(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresWizardTitle()
+}
+
+// SupplierDisclosuresWizardTitle is the package's SupplierDisclosuresWizardTitle in the language of msgs.
+func (msgs Messages) SupplierDisclosuresWizardTitle() string {
+	return msgs.text(textSupplierDisclosuresWizardTitle)
+}
+
+// SupplierDisclosuresWizardYear says "Reporting year"
+// in the language the app shows under cx.
+func SupplierDisclosuresWizardYear(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresWizardYear()
+}
+
+// SupplierDisclosuresWizardYear is the package's SupplierDisclosuresWizardYear in the language of msgs.
+func (msgs Messages) SupplierDisclosuresWizardYear() string {
+	return msgs.text(textSupplierDisclosuresWizardYear)
+}
 
 // SupplierEmailOptionalLabel says "Supplier email (optional, used for reminders)"
 // in the language the app shows under cx.

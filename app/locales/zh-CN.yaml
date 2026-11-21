@@ -780,6 +780,7 @@ loading: 加载中…
 navActivities: 活动数据
 navDashboard: 仪表盘
 navDisclosureFilings: 披露填报
+navDisclosures: 披露
 navDocuments: 文档
 navDocumentsAll: 全部文档
 navInputs: 输入
@@ -1317,6 +1318,88 @@ sourcesTableActive: 启用
 sourcesTableCategory: 分类
 sourcesTableName: 名称
 sourcesTableScope: 范围
+supplierDisclosuresCount: '{count} 份供应商披露'
+supplierDisclosuresDetailClose: 关闭
+supplierDisclosuresDetailDelete: 删除披露
+supplierDisclosuresDetailDeleteBody: 删除该披露？由其入库的清单行也会一并删除。
+supplierDisclosuresDetailDeleteCancel: 取消
+supplierDisclosuresDetailDeleteConfirm: 删除
+supplierDisclosuresDetailEmail: 联系邮箱
+supplierDisclosuresDetailEmailMissing: 请先填写邮箱再发送催办。
+supplierDisclosuresDetailEmailSave: 保存邮箱
+supplierDisclosuresDetailEmailSaveFailed: 无法保存邮箱
+supplierDisclosuresDetailEmailSaved: 邮箱已保存
+supplierDisclosuresDetailExport: 导出空白 Excel
+supplierDisclosuresDetailExportFailed: 导出失败：{message}
+supplierDisclosuresDetailExportSuccess: 已导出工作簿 → {path}
+supplierDisclosuresDetailExporting: 正在生成工作簿…
+supplierDisclosuresDetailFinalized: 已定稿
+supplierDisclosuresDetailImport: 导入已填 Excel
+supplierDisclosuresDetailImportChoose: 选择文件
+supplierDisclosuresDetailImportFailed: 导入失败：{message}
+supplierDisclosuresDetailImportSuccess: 已导入 {count} 个答案，入库前请核对。
+supplierDisclosuresDetailImporting: 正在读取供应商文件…
+supplierDisclosuresDetailIngestFailed: 入库失败：{message}
+supplierDisclosuresDetailIngestNoData: 该填报没有可入库的层级，未写入清单。
+supplierDisclosuresDetailIngestSuccess: 已将 {total} 入库。
+supplierDisclosuresDetailOpenMail: 打开邮件客户端
+supplierDisclosuresDetailRemind: 催办供应商
+supplierDisclosuresDetailRemindBody: 催办将在系统默认邮件客户端中打开一封预填好的邮件。
+supplierDisclosuresDetailReview: 审核导入
+supplierDisclosuresDetailTier: Tier {tier}
+supplierDisclosuresDetailTitle: 供应商披露
+supplierDisclosuresDetailUnanswered: （未答）
+supplierDisclosuresDue: 截止 {date}
+supplierDisclosuresEmpty: 尚无供应商披露。
+supplierDisclosuresFileTooLarge: 文件过大。
+supplierDisclosuresImportNotTemplate: 该工作簿不是 CarbonInk 披露模板。
+supplierDisclosuresImportWrongPeriod: 该工作簿对应其他报告年度。
+supplierDisclosuresImportWrongQuestionnaire: 该工作簿属于另一份披露。
+supplierDisclosuresNewButton: 新建披露
+supplierDisclosuresNotifyMany: '{count} 份供应商披露已过截止日期。'
+supplierDisclosuresNotifyOne: 「{name}」的披露已过截止日期。
+supplierDisclosuresNotifyTitle: 供应商披露逾期
+supplierDisclosuresOverdue: 已逾期
+supplierDisclosuresRemindBody: 我们正在收集贵公司 {year} 年的温室气体披露数据，请填写问卷并尽快回传。
+supplierDisclosuresRemindGreeting: 您好，{supplier}：
+supplierDisclosuresRemindOverdue: 截止日期为 {due}，目前已逾期。
+supplierDisclosuresRemindSignoff: — {org}
+supplierDisclosuresRemindSubject: 供应商披露催办 — {year}
+supplierDisclosuresReviewAcceptAll: 接受已填项
+supplierDisclosuresReviewCancel: 取消
+supplierDisclosuresReviewHint: 请核对数值后入库。未勾选的行只保留在披露中。
+supplierDisclosuresReviewIngest: 入库
+supplierDisclosuresReviewIngesting: 正在写入清单…
+supplierDisclosuresReviewPlan: '{rows} 行清单 · {total}'
+supplierDisclosuresReviewQuantity: 采购数量（kg）
+supplierDisclosuresReviewQuantityHint: Tier 1 必填
+supplierDisclosuresReviewQuantityInvalid: 请输入有效数量。
+supplierDisclosuresReviewQuantityRequired: Tier 1 需要填写采购数量（kg）。
+supplierDisclosuresReviewTier: 入库层级
+supplierDisclosuresReviewTierAuto: 自动（优先 Tier 1）
+supplierDisclosuresReviewTierOne: Tier 1 — 产品碳足迹
+supplierDisclosuresReviewTierTwo: Tier 2 — 分配排放
+supplierDisclosuresReviewTitle: 审核供应商填报
+supplierDisclosuresReviewWarnings: '{count} 条解析提示'
+supplierDisclosuresSearchPlaceholder: 搜索供应商
+supplierDisclosuresStatusAll: 全部状态
+supplierDisclosuresStatusDraft: 草稿
+supplierDisclosuresStatusFilter: 状态
+supplierDisclosuresStatusIngested: 已入库
+supplierDisclosuresStatusReceived: 已收回
+supplierDisclosuresStatusSent: 已发送
+supplierDisclosuresWizardCreated: 已创建草稿，共 {count} 个问题。
+supplierDisclosuresWizardEmail: 联系邮箱
+supplierDisclosuresWizardFailed: 无法创建披露
+supplierDisclosuresWizardNewSupplier: 或新增供应商
+supplierDisclosuresWizardNewSupplierPlaceholder: 供应商名称
+supplierDisclosuresWizardQuestions: 包含的问题
+supplierDisclosuresWizardRequired: 请选择供应商或填写名称，并至少包含一个问题。
+supplierDisclosuresWizardSubmit: 创建草稿
+supplierDisclosuresWizardSupplier: 供应商
+supplierDisclosuresWizardSupplierNone: 选择供应商
+supplierDisclosuresWizardTitle: 新建供应商披露
+supplierDisclosuresWizardYear: 报告年度
 supplierEmailOptionalLabel: 供应商邮箱（可选，用于催办）
 topbarBack: 后退
 topbarDetail: 详情

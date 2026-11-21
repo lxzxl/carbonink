@@ -30,14 +30,15 @@ import (
 type Screen string
 
 const (
-	ScreenDashboard      Screen = "dashboard"
-	ScreenActivities     Screen = "activities"
-	ScreenSources        Screen = "sources"
-	ScreenDocuments      Screen = "documents"
-	ScreenQuestionnaires Screen = "questionnaires"
-	ScreenReports        Screen = "reports"
-	ScreenAudit          Screen = "audit"
-	ScreenSettings       Screen = "settings"
+	ScreenDashboard           Screen = "dashboard"
+	ScreenActivities          Screen = "activities"
+	ScreenSources             Screen = "sources"
+	ScreenDocuments           Screen = "documents"
+	ScreenQuestionnaires      Screen = "questionnaires"
+	ScreenSupplierDisclosures Screen = "supplier-disclosures"
+	ScreenReports             Screen = "reports"
+	ScreenAudit               Screen = "audit"
+	ScreenSettings            Screen = "settings"
 )
 
 // Session is one open workspace: the registry entry, the database, and the
@@ -57,6 +58,7 @@ type Session struct {
 	documents      []store.Document
 	documentTotal  int
 	questionnaires []store.Questionnaire
+	suppliers      []store.Customer
 	// extractionStatus is keyed by document id; documents without a row
 	// have no extraction yet.
 	extractionStatus map[string]store.ExtractionDocumentStatus
@@ -83,6 +85,7 @@ func Root(cx *core.Scope) core.Node {
 		cx.SetLocale(s.settings.Locale)
 	}
 	applyAppearance(cx, s.settings.Theme)
+	notifyOverdueInbound(cx, s)
 	cx.OnQuit(func(context.Context) {
 		f := desktop.Frame(cx)
 		s.settings.Window = &prefs.Window{
@@ -160,6 +163,11 @@ func (s *Session) reload(ctx context.Context) error {
 		return err
 	}
 	s.questionnaires = questionnaires
+	suppliers, err := s.db.ListSuppliers(ctx)
+	if err != nil {
+		return err
+	}
+	s.suppliers = suppliers
 	statuses, err := s.db.ExtractionStatusByDocument(ctx)
 	if err != nil {
 		return err
@@ -207,6 +215,7 @@ var screens = []screenInfo{
 	{ScreenSources, locales.NavSources, lucide.Building},
 	{ScreenDocuments, locales.NavDocuments, lucide.Files},
 	{ScreenQuestionnaires, locales.NavDisclosureFilings, lucide.ClipboardList},
+	{ScreenSupplierDisclosures, locales.NavSupplierDisclosures, lucide.ClipboardCheck},
 	{ScreenReports, locales.NavReports, lucide.ChartColumn},
 	{ScreenAudit, locales.AuditNav, lucide.ScrollText},
 	{ScreenSettings, locales.NavSettings, lucide.Settings},
@@ -222,6 +231,11 @@ func (s *Session) view(cx *core.Scope) core.Node {
 	paletteOpen := core.NewSignal(cx, false)
 	dataRev := core.NewSignal(cx, 0)
 	cx.OnKey("mod+k", func() { paletteOpen.Set(true) })
+	cx.OnNotificationPress(func(id string) {
+		if id == overdueNotificationID {
+			active.Set(ScreenSupplierDisclosures)
+		}
+	})
 
 	byID := func(id Screen) screenInfo {
 		for _, sc := range screens {
@@ -251,6 +265,8 @@ func (s *Session) view(cx *core.Scope) core.Node {
 			nav = append(nav, navSection(cx, locales.NavInventory))
 		case ScreenDocuments:
 			nav = append(nav, navSection(cx, locales.NavInputs))
+		case ScreenQuestionnaires:
+			nav = append(nav, navSection(cx, locales.NavDisclosures))
 		case ScreenSettings:
 			nav = append(nav, navSection(cx, locales.NavSystem))
 		}
@@ -273,6 +289,8 @@ func (s *Session) view(cx *core.Scope) core.Node {
 			Then: func(cx *core.Scope) core.Node { return s.documentsScreen(cx, dataRev) }},
 		core.Show{When: func() bool { return active.Get() == ScreenQuestionnaires },
 			Then: func(cx *core.Scope) core.Node { return s.questionnairesScreen(cx, dataRev) }},
+		core.Show{When: func() bool { return active.Get() == ScreenSupplierDisclosures },
+			Then: func(cx *core.Scope) core.Node { return s.supplierDisclosuresScreen(cx, dataRev) }},
 		core.Show{When: func() bool { return active.Get() == ScreenAudit },
 			Then: func(cx *core.Scope) core.Node { return s.auditScreen(cx, dataRev) }},
 		core.Show{When: func() bool { return active.Get() == ScreenSettings },
@@ -281,6 +299,7 @@ func (s *Session) view(cx *core.Scope) core.Node {
 			id := active.Get()
 			return id != ScreenActivities && id != ScreenDashboard &&
 				id != ScreenSources && id != ScreenDocuments && id != ScreenQuestionnaires &&
+				id != ScreenSupplierDisclosures &&
 				id != ScreenAudit && id != ScreenSettings
 		},
 			Then: func(cx *core.Scope) core.Node { return placeholder(cx) }},
@@ -310,6 +329,9 @@ func (s *Session) view(cx *core.Scope) core.Node {
 						return locales.DocumentsCount(cx, strconv.Itoa(s.documentTotal))
 					case ScreenQuestionnaires:
 						return locales.QuestionnairesListCount(cx, strconv.Itoa(s.outboundQuestionnaires()))
+					case ScreenSupplierDisclosures:
+						return locales.SupplierDisclosuresCount(cx,
+							strconv.Itoa(s.inboundQuestionnaires()))
 					case ScreenAudit:
 						return locales.AuditSubheading(cx)
 					}

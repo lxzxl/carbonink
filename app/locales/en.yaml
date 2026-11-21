@@ -781,6 +781,7 @@ loading: Loading…
 navActivities: Activities
 navDashboard: Dashboard
 navDisclosureFilings: Disclosure filings
+navDisclosures: Disclosures
 navDocuments: Documents
 navDocumentsAll: All documents
 navInputs: Inputs
@@ -1318,6 +1319,88 @@ sourcesTableActive: Active
 sourcesTableCategory: Category
 sourcesTableName: Name
 sourcesTableScope: Scope
+supplierDisclosuresCount: '{count} supplier disclosures'
+supplierDisclosuresDetailClose: Close
+supplierDisclosuresDetailDelete: Delete disclosure
+supplierDisclosuresDetailDeleteBody: Delete this disclosure? Inventory rows ingested from it are removed too.
+supplierDisclosuresDetailDeleteCancel: Cancel
+supplierDisclosuresDetailDeleteConfirm: Delete
+supplierDisclosuresDetailEmail: Contact email
+supplierDisclosuresDetailEmailMissing: Add an email before sending a reminder.
+supplierDisclosuresDetailEmailSave: Save email
+supplierDisclosuresDetailEmailSaveFailed: Could not save the email
+supplierDisclosuresDetailEmailSaved: Email saved
+supplierDisclosuresDetailExport: Export blank XLSX
+supplierDisclosuresDetailExportFailed: 'Export failed: {message}'
+supplierDisclosuresDetailExportSuccess: Exported workbook → {path}
+supplierDisclosuresDetailExporting: Generating workbook...
+supplierDisclosuresDetailFinalized: Finalized
+supplierDisclosuresDetailImport: Import filled XLSX
+supplierDisclosuresDetailImportChoose: Choose file
+supplierDisclosuresDetailImportFailed: 'Import failed: {message}'
+supplierDisclosuresDetailImportSuccess: Imported {count} answers — review before ingesting.
+supplierDisclosuresDetailImporting: Reading the supplier file...
+supplierDisclosuresDetailIngestFailed: 'Ingest failed: {message}'
+supplierDisclosuresDetailIngestNoData: No usable tier in this reply — nothing was ingested.
+supplierDisclosuresDetailIngestSuccess: Ingested {total} into the inventory.
+supplierDisclosuresDetailOpenMail: Open mail client
+supplierDisclosuresDetailRemind: Remind supplier
+supplierDisclosuresDetailRemindBody: The reminder opens your default mail client with a pre-filled message.
+supplierDisclosuresDetailReview: Review import
+supplierDisclosuresDetailTier: Tier {tier}
+supplierDisclosuresDetailTitle: Supplier disclosure
+supplierDisclosuresDetailUnanswered: (Unanswered)
+supplierDisclosuresDue: Due {date}
+supplierDisclosuresEmpty: No supplier disclosures yet.
+supplierDisclosuresFileTooLarge: File is too large.
+supplierDisclosuresImportNotTemplate: This workbook is not a CarbonInk disclosure template.
+supplierDisclosuresImportWrongPeriod: This workbook was issued for a different reporting year.
+supplierDisclosuresImportWrongQuestionnaire: This workbook belongs to a different disclosure.
+supplierDisclosuresNewButton: New disclosure
+supplierDisclosuresNotifyMany: '{count} supplier disclosures are past their due date.'
+supplierDisclosuresNotifyOne: The disclosure from {name} is past its due date.
+supplierDisclosuresNotifyTitle: Supplier disclosures overdue
+supplierDisclosuresOverdue: Overdue
+supplierDisclosuresRemindBody: We are collecting your greenhouse-gas disclosure for {year}. Please fill in the questionnaire and return it at your earliest convenience.
+supplierDisclosuresRemindGreeting: Hello {supplier},
+supplierDisclosuresRemindOverdue: The due date was {due}.
+supplierDisclosuresRemindSignoff: — {org}
+supplierDisclosuresRemindSubject: Supplier disclosure reminder — {year}
+supplierDisclosuresReviewAcceptAll: Accept filled
+supplierDisclosuresReviewCancel: Cancel
+supplierDisclosuresReviewHint: Check the values, then ingest the accepted rows. Unchecked rows stay in the disclosure only.
+supplierDisclosuresReviewIngest: Ingest into inventory
+supplierDisclosuresReviewIngesting: Writing inventory rows...
+supplierDisclosuresReviewPlan: '{rows} inventory row(s) · {total}'
+supplierDisclosuresReviewQuantity: Purchased quantity (kg)
+supplierDisclosuresReviewQuantityHint: Required for Tier 1
+supplierDisclosuresReviewQuantityInvalid: Enter a valid quantity.
+supplierDisclosuresReviewQuantityRequired: Tier 1 needs the purchased quantity in kg.
+supplierDisclosuresReviewTier: Tier to ingest
+supplierDisclosuresReviewTierAuto: Auto (Tier 1 first)
+supplierDisclosuresReviewTierOne: Tier 1 — product PCF
+supplierDisclosuresReviewTierTwo: Tier 2 — allocated emissions
+supplierDisclosuresReviewTitle: Review supplier reply
+supplierDisclosuresReviewWarnings: '{count} parse warning(s)'
+supplierDisclosuresSearchPlaceholder: Search suppliers
+supplierDisclosuresStatusAll: All statuses
+supplierDisclosuresStatusDraft: Draft
+supplierDisclosuresStatusFilter: Status
+supplierDisclosuresStatusIngested: Ingested
+supplierDisclosuresStatusReceived: Received
+supplierDisclosuresStatusSent: Sent
+supplierDisclosuresWizardCreated: Draft created with {count} questions.
+supplierDisclosuresWizardEmail: Contact email
+supplierDisclosuresWizardFailed: Could not create the disclosure
+supplierDisclosuresWizardNewSupplier: Or add a supplier
+supplierDisclosuresWizardNewSupplierPlaceholder: Supplier name
+supplierDisclosuresWizardQuestions: Questions to include
+supplierDisclosuresWizardRequired: Choose a supplier or enter a name, and include at least one question.
+supplierDisclosuresWizardSubmit: Create draft
+supplierDisclosuresWizardSupplier: Supplier
+supplierDisclosuresWizardSupplierNone: Select a supplier
+supplierDisclosuresWizardTitle: New supplier disclosure
+supplierDisclosuresWizardYear: Reporting year
 supplierEmailOptionalLabel: Supplier email (optional, used for reminders)
 topbarBack: Go back
 topbarDetail: Detail
