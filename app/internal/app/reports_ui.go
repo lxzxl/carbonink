@@ -28,7 +28,8 @@ type reportsState struct {
 	rev        *core.Signal[int]
 }
 
-func (s *Session) reportsScreen(cx *core.Scope, dataRev *core.Signal[int]) core.Node {
+func (s *Session) reportsScreen(cx *core.Scope, dataRev *core.Signal[int],
+	active *core.Signal[Screen]) core.Node {
 	if s.organization == nil {
 		return s.onboardingScreen(cx, dataRev)
 	}
@@ -47,10 +48,12 @@ func (s *Session) reportsScreen(cx *core.Scope, dataRev *core.Signal[int]) core.
 		state.period.Set(s.periods[len(s.periods)-1].ID)
 	}
 	guide := newGuidance(cx, s, "report-export")
+	readinessCard, resetReadiness := s.readinessSection(cx, state.period, active)
 
 	// Switching the period or kind retires the preview: it belonged to the
 	// previous selection, and exporting it under the new one would mislead.
 	invalidate := func() {
+		resetReadiness()
 		if state.generated.Get() == nil {
 			return
 		}
@@ -322,6 +325,8 @@ func (s *Session) reportsScreen(cx *core.Scope, dataRev *core.Signal[int]) core.
 			Style: core.Style{Padding: core.All(16), Gap: 12, MaxWidth: core.Pt(980), AlignSelf: core.AlignStretch},
 			Children: []core.Node{
 				controls,
+				core.Show{When: func() bool { return state.generated.Get() == nil },
+					Then: func(cx *core.Scope) core.Node { return readinessCard }},
 				preview,
 			},
 		}},

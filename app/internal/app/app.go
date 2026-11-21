@@ -354,7 +354,7 @@ func (s *Session) view(cx *core.Scope) core.Node {
 		core.Show{When: func() bool { return active.Get() == ScreenSupplierDisclosures },
 			Then: func(cx *core.Scope) core.Node { return s.supplierDisclosuresScreen(cx, dataRev) }},
 		core.Show{When: func() bool { return active.Get() == ScreenReports },
-			Then: func(cx *core.Scope) core.Node { return s.reportsScreen(cx, dataRev) }},
+			Then: func(cx *core.Scope) core.Node { return s.reportsScreen(cx, dataRev, active) }},
 		core.Show{When: func() bool { return active.Get() == ScreenAudit },
 			Then: func(cx *core.Scope) core.Node { return s.auditScreen(cx, dataRev) }},
 		core.Show{When: func() bool { return active.Get() == ScreenSettings },
