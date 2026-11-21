@@ -63,6 +63,11 @@ func TestAuditRebindCardStructuresPayload(t *testing.T) {
 	ui.WaitFor("text:new_computed_co2e_kg", 3*time.Second)
 	ui.Press("id:audit-raw-evt")
 	ui.WaitFor("text:Show raw payload", 3*time.Second)
+	ui.WaitFor("text:Most recent", 3*time.Second)
+	ui.Press("id:audit-sort")
+	ui.WaitFor("text:Oldest first", 3*time.Second)
+	ui.Press("id:audit-sort")
+	ui.WaitFor("text:Most recent", 3*time.Second)
 
 	ui.Press("id:audit-rebind-activity-evt")
 	ui.WaitFor("id:activities-table", 3*time.Second)

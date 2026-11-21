@@ -49,12 +49,14 @@ pnpm workspace; two apps share `docs/` + tooling:
 | Path | What |
 |---|---|
 | `desktop/` | Electron app (`carbonink`) — `src/{main,preload,renderer,shared}`, `tests/` (vitest) |
+| `app/` | NSGo desktop app (the v2 line) — Go UI in `internal/app`, business logic in `internal/*`, `locales/{en,zh-CN}.yaml` |
 | `cloud/web/` | Astro **static marketing site** (`/`, `/download`, `/privacy`, `/guides/*` + `/zh/` mirrors; guides ship as en+zh pairs), Workers + Static Assets |
 
 ```bash
 pnpm test                 # all packages          pnpm desktop:test / desktop:typecheck
 pnpm --filter carbonink dev                       # electron-vite dev --watch (renderer HMR + main/preload hot-restart)
 pnpm --filter @carbonink-cloud/web build
+cd app && go test ./... && go tool nsgo test .    # NSGo app tests
 ```
 
 ## Detailed conventions → `docs/conventions/`

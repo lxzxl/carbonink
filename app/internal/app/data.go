@@ -1747,6 +1747,7 @@ func (s *Session) auditScreen(cx *core.Scope, dataRev *core.Signal[int],
 	until := core.NewSignal(cx, "")
 	limit := core.NewSignal(cx, 100)
 	status := core.NewSignal(cx, "")
+	oldestFirst := core.NewSignal(cx, false)
 	rawRev := core.NewSignal(cx, 0)
 	rawOpen := map[string]bool{}
 	return core.Scroll{
@@ -1756,7 +1757,8 @@ func (s *Session) auditScreen(cx *core.Scope, dataRev *core.Signal[int],
 			Children: []core.Node{core.Dynamic(func(cx *core.Scope) core.Node {
 				_ = dataRev.Get()
 				_ = rawRev.Get()
-				return s.auditBody(cx, kind, since, until, limit, status, rawOpen, rawRev, openActivity)
+				return s.auditBody(cx, kind, since, until, limit, status, oldestFirst,
+					rawOpen, rawRev, openActivity)
 			})},
 		}},
 	}
@@ -1764,7 +1766,8 @@ func (s *Session) auditScreen(cx *core.Scope, dataRev *core.Signal[int],
 
 func (s *Session) auditBody(cx *core.Scope, kind *core.Signal[string], since *core.Signal[string],
 	until *core.Signal[string], limit *core.Signal[int], status *core.Signal[string],
-	rawOpen map[string]bool, rawRev *core.Signal[int], openActivity func(string)) core.Node {
+	oldestFirst *core.Signal[bool], rawOpen map[string]bool, rawRev *core.Signal[int],
+	openActivity func(string)) core.Node {
 	page := limit.Get()
 	datesOK := auditDatesOK(since.Get(), until.Get())
 	var events []store.AuditEvent
@@ -1773,6 +1776,11 @@ func (s *Session) auditBody(cx *core.Scope, kind *core.Signal[string], since *co
 		events, err = s.db.QueryAuditEvents(context.Background(), store.AuditQuery{
 			Kind: kind.Get(), Since: since.Get(), Until: until.Get(), Limit: page,
 		})
+	}
+	if oldestFirst.Get() {
+		for i, j := 0, len(events)-1; i < j; i, j = i+1, j-1 {
+			events[i], events[j] = events[j], events[i]
+		}
 	}
 	rows := make([]core.Node, 0, len(events)+1)
 	if err != nil {
@@ -1807,6 +1815,7 @@ func (s *Session) auditBody(cx *core.Scope, kind *core.Signal[string], since *co
 		since.Set("")
 		until.Set("")
 		limit.Set(100)
+		oldestFirst.Set(false)
 		status.Set("")
 	}
 	export := func() {
@@ -1855,6 +1864,15 @@ func (s *Session) auditBody(cx *core.Scope, kind *core.Signal[string], since *co
 				ui.Input{Value: until.Get, OnChange: func(v string) { until.Set(v); limit.Set(100) },
 					Placeholder: "YYYY-MM-DD", TestID: "audit-until"}),
 		}},
+		core.Show{When: func() bool { return !oldestFirst.Get() },
+			Then: func(cx *core.Scope) core.Node {
+				return ui.Button{Text: locales.AuditSortRecent(cx), Variant: ui.ButtonSecondary,
+					OnPress: func() { oldestFirst.Set(true) }, TestID: "audit-sort"}
+			},
+			Else: func(cx *core.Scope) core.Node {
+				return ui.Button{Text: locales.AuditSortOldest(cx), Variant: ui.ButtonSecondary,
+					OnPress: func() { oldestFirst.Set(false) }, TestID: "audit-sort"}
+			}},
 		ui.Button{Text: locales.AuditFilterResetButton(cx), Variant: ui.ButtonSecondary,
 			OnPress: resetFilters, TestID: "audit-reset"},
 		ui.Button{Text: locales.AuditExportCsvButton(cx), Variant: ui.ButtonSecondary,

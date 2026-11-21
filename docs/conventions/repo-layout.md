@@ -3,7 +3,8 @@
 > Detailed reference for `AGENTS.md` → "Where things live". This file is linked,
 > not auto-loaded; read it when you need the full monorepo picture.
 
-This is a pnpm workspace. Two top-level apps share tooling + docs:
+This is a pnpm workspace. Two JS/TS apps plus the NSGo desktop app share
+tooling + docs:
 
 ```
 carbonink/
@@ -16,6 +17,11 @@ carbonink/
 │   ├── src/                  ← main, preload, renderer, shared
 │   ├── tests/                ← vitest (932 passing as of 2026-05-29)
 │   └── …                     ← electron-vite, electron-builder, paraglide
+├── app/                      ← NSGo desktop app (the v2 line, feature parity with v1)
+│   ├── go.mod                ← module app.carbonink.desktop
+│   ├── internal/             ← app UI, store, extraction, report, readiness, …
+│   ├── locales/              ← en + zh-CN catalogs, generated catalog_gen.go
+│   └── main.go               ← NSGo entry
 └── cloud/                    ← Cloudflare static marketing site
     └── web/                  ← @carbonink-cloud/web (Astro → Static Assets)
 ```
@@ -26,6 +32,9 @@ carbonink/
 pnpm desktop:test         # vitest tests in desktop/
 pnpm desktop:typecheck    # tsc --noEmit on desktop/
 pnpm test                 # all packages (workspace-concurrency=1)
+
+cd app && go test ./...   # NSGo unit + integration tests
+cd app && go tool nsgo test .   # NSGo UI suite
 ```
 
 **Per-package scripts** still work via filter:
