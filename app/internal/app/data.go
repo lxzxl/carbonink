@@ -43,7 +43,7 @@ func dataField(cx *core.Scope, label string, input core.Node) core.Node {
 	return core.View{Style: core.Style{Gap: 4}, Children: []core.Node{
 		core.Text{Content: label, Style: core.Style{FontSize: 12, FontWeight: ui.Semibold},
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-		input,
+		namedNode(input, func() string { return label }),
 	}}
 }
 

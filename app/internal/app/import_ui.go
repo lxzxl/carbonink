@@ -554,7 +554,10 @@ func (s *Session) importGroupsBody(cx *core.Scope, w *importWizard) core.Node {
 					core.View{Style: core.Style{Width: core.Pt(160)}, Children: []core.Node{
 						ui.Input{Value: fuelSig.Get, OnChange: fuelSig.Set,
 							Placeholder: locales.ActivitiesFormFuelNone(cx),
-							TestID:      "activity-import-fuel-" + strconv.Itoa(i)},
+							TestID:      "activity-import-fuel-" + strconv.Itoa(i),
+							LabelFunc: func() string {
+								return locales.ActivitiesFormFuel(cx)
+							}},
 					}},
 				}},
 			}})

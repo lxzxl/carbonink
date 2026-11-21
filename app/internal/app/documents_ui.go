@@ -261,7 +261,11 @@ func (s *Session) documentFilterRow(cx *core.Scope, filters *documentFilters) co
 		core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(180)},
 			Children: []core.Node{
 				ui.Input{Value: filters.search.Get, Placeholder: locales.DocumentsSearchPlaceholder(cx),
-					OnChange: filters.search.Set, TestID: "documents-search"},
+					OnChange: filters.search.Set, TestID: "documents-search",
+					Role: core.RoleSearchField,
+					LabelFunc: func() string {
+						return locales.DocumentsSearchPlaceholder(cx)
+					}},
 			}},
 		ui.Select[string]{Options: statusOptions, Value: filters.status.Get,
 			OnChange: filters.status.Set, Label: locales.DocumentsFilterStatusAll(cx),

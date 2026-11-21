@@ -141,7 +141,11 @@ func (s *Session) questionnairesScreen(cx *core.Scope, dataRev *core.Signal[int]
 				core.View{Style: core.Style{FlexGrow: 1}},
 				ui.Input{Value: filters.search.Get, Placeholder: locales.QuestionnairesSearchPlaceholder(cx),
 					OnChange: func(v string) { filters.search.Set(v) },
-					TestID:   "questionnaires-search", Style: core.Style{Width: core.Pt(220)}},
+					TestID:   "questionnaires-search", Style: core.Style{Width: core.Pt(220)},
+					Role: core.RoleSearchField,
+					LabelFunc: func() string {
+						return locales.QuestionnairesSearchPlaceholder(cx)
+					}},
 				ui.Select[string]{Options: statusOptions, Value: filters.status.Get,
 					OnChange: func(v string) { filters.status.Set(v) },
 					Label:    locales.QuestionnairesTableStatus(cx),

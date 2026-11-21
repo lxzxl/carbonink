@@ -266,7 +266,7 @@ func (s *Session) aiProviderCard(cx *core.Scope) core.Node {
 			core.Text{ContentFunc: func() string { return label(cx) },
 				Style:     core.Style{FontSize: 12, FontWeight: ui.Semibold},
 				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-			input,
+			namedNode(input, func() string { return label(cx) }),
 		}}
 	}
 
