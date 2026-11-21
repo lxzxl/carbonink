@@ -74,6 +74,7 @@ var Parameters = map[string][]string{
 	"DocumentsBatchProgress":                  {"done", "total"},
 	"DocumentsBatchSummaryToast":              {"ok", "failed"},
 	"DocumentsCount":                          {"count"},
+	"DocumentsPreviewPage":                    {"page", "total"},
 	"DocumentsReviewUploadedOn":               {"date"},
 	"DocumentsShowingLatest":                  {"shown", "total"},
 	"DocumentsUploadSummary":                  {"ok", "failed"},
@@ -228,6 +229,7 @@ type Translation struct {
 	DocumentsBatchProgress                  func(done string, total string) string
 	DocumentsBatchSummaryToast              func(ok string, failed string) string
 	DocumentsCount                          func(count string) string
+	DocumentsPreviewPage                    func(page string, total string) string
 	DocumentsReviewUploadedOn               func(date string) string
 	DocumentsShowingLatest                  func(shown string, total string) string
 	DocumentsUploadSummary                  func(ok string, failed string) string
@@ -638,7 +640,11 @@ const (
 	textDocumentsOpenRow
 	textDocumentsPlaceholder
 	textDocumentsPrev
+	textDocumentsPreviewButton
+	textDocumentsPreviewClose
 	textDocumentsPreviewDrawerTitle
+	textDocumentsPreviewFailed
+	textDocumentsPreviewLoading
 	textDocumentsPreviewOpenDetail
 	textDocumentsReviewAlreadyConfirmedBody
 	textDocumentsReviewAlreadyConfirmedTitle
@@ -1797,7 +1803,11 @@ var keyOfText = [numTexts]string{
 	"documentsOpenRow",
 	"documentsPlaceholder",
 	"documentsPrev",
+	"documentsPreviewButton",
+	"documentsPreviewClose",
 	"documentsPreviewDrawerTitle",
+	"documentsPreviewFailed",
+	"documentsPreviewLoading",
 	"documentsPreviewOpenDetail",
 	"documentsReviewAlreadyConfirmedBody",
 	"documentsReviewAlreadyConfirmedTitle",
@@ -2954,7 +2964,11 @@ var textsEn = i18n.NewTexts(""+
 	"Open"+
 	"Document upload + extraction lands in Phase 1b Task 14."+
 	"Previous"+
+	"Preview"+
+	"Close"+
 	"Document preview"+
+	"Could not render the preview"+
+	"Rendering…"+
 	"Open in document detail"+
 	"This extraction has been added to your activity data. To edit or delete it, go to the Activities page."+
 	"Already confirmed"+
@@ -4108,7 +4122,11 @@ var textsEn = i18n.NewTexts(""+
 		4,
 		55,
 		8,
+		7,
+		5,
 		16,
+		28,
+		12,
 		23,
 		102,
 		17,
@@ -5265,7 +5283,11 @@ var textsZhCN = i18n.NewTexts(""+
 	"打开"+
 	"文档上传和抽取功能在 Phase 1b Task 14 落地。"+
 	"上一份"+
+	"预览"+
+	"关闭"+
 	"文档预览"+
+	"无法渲染预览"+
+	"正在渲染…"+
 	"打开文档详情页"+
 	"这条抽取已经记入活动数据。如需修改或删除，请到「活动数据」页面操作。"+
 	"已确认"+
@@ -6419,7 +6441,11 @@ var textsZhCN = i18n.NewTexts(""+
 		6,
 		57,
 		9,
+		6,
+		6,
 		12,
+		18,
+		15,
 		21,
 		102,
 		9,
@@ -7431,6 +7457,9 @@ func Supply(lang string, t Translation) {
 	}
 	if t.DocumentsCount != nil {
 		s.DocumentsCount = t.DocumentsCount
+	}
+	if t.DocumentsPreviewPage != nil {
+		s.DocumentsPreviewPage = t.DocumentsPreviewPage
 	}
 	if t.DocumentsReviewUploadedOn != nil {
 		s.DocumentsReviewUploadedOn = t.DocumentsReviewUploadedOn
@@ -10907,6 +10936,20 @@ func DocumentsPrev(cx *core.Scope) string { return For(cx).DocumentsPrev() }
 // DocumentsPrev is the package's DocumentsPrev in the language of msgs.
 func (msgs Messages) DocumentsPrev() string { return msgs.text(textDocumentsPrev) }
 
+// DocumentsPreviewButton says "Preview"
+// in the language the app shows under cx.
+func DocumentsPreviewButton(cx *core.Scope) string { return For(cx).DocumentsPreviewButton() }
+
+// DocumentsPreviewButton is the package's DocumentsPreviewButton in the language of msgs.
+func (msgs Messages) DocumentsPreviewButton() string { return msgs.text(textDocumentsPreviewButton) }
+
+// DocumentsPreviewClose says "Close"
+// in the language the app shows under cx.
+func DocumentsPreviewClose(cx *core.Scope) string { return For(cx).DocumentsPreviewClose() }
+
+// DocumentsPreviewClose is the package's DocumentsPreviewClose in the language of msgs.
+func (msgs Messages) DocumentsPreviewClose() string { return msgs.text(textDocumentsPreviewClose) }
+
 // DocumentsPreviewDrawerTitle says "Document preview"
 // in the language the app shows under cx.
 func DocumentsPreviewDrawerTitle(cx *core.Scope) string { return For(cx).DocumentsPreviewDrawerTitle() }
@@ -10916,6 +10959,20 @@ func (msgs Messages) DocumentsPreviewDrawerTitle() string {
 	return msgs.text(textDocumentsPreviewDrawerTitle)
 }
 
+// DocumentsPreviewFailed says "Could not render the preview"
+// in the language the app shows under cx.
+func DocumentsPreviewFailed(cx *core.Scope) string { return For(cx).DocumentsPreviewFailed() }
+
+// DocumentsPreviewFailed is the package's DocumentsPreviewFailed in the language of msgs.
+func (msgs Messages) DocumentsPreviewFailed() string { return msgs.text(textDocumentsPreviewFailed) }
+
+// DocumentsPreviewLoading says "Rendering…"
+// in the language the app shows under cx.
+func DocumentsPreviewLoading(cx *core.Scope) string { return For(cx).DocumentsPreviewLoading() }
+
+// DocumentsPreviewLoading is the package's DocumentsPreviewLoading in the language of msgs.
+func (msgs Messages) DocumentsPreviewLoading() string { return msgs.text(textDocumentsPreviewLoading) }
+
 // DocumentsPreviewOpenDetail says "Open in document detail"
 // in the language the app shows under cx.
 func DocumentsPreviewOpenDetail(cx *core.Scope) string { return For(cx).DocumentsPreviewOpenDetail() }
@@ -10923,6 +10980,30 @@ func DocumentsPreviewOpenDetail(cx *core.Scope) string { return For(cx).Document
 // DocumentsPreviewOpenDetail is the package's DocumentsPreviewOpenDetail in the language of msgs.
 func (msgs Messages) DocumentsPreviewOpenDetail() string {
 	return msgs.text(textDocumentsPreviewOpenDetail)
+}
+
+// DocumentsPreviewPage says "Page {page} of {total}"
+// in the language the app shows under cx.
+func DocumentsPreviewPage(cx *core.Scope, page string, total string) string {
+	return For(cx).DocumentsPreviewPage(page, total)
+}
+
+// DocumentsPreviewPage is the package's DocumentsPreviewPage in the language of msgs.
+func (msgs Messages) DocumentsPreviewPage(page string, total string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.DocumentsPreviewPage(page, total))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].DocumentsPreviewPage; f != nil {
+			return f(page, total)
+		}
+		switch lang {
+		case "", "en":
+			return "Page " + msgs.arg(page) + " of " + msgs.arg(total)
+		case "zh-CN":
+			return "第 " + page + " / " + total + " 页"
+		}
+	}
 }
 
 // DocumentsReviewAlreadyConfirmedBody says "This extraction has been added to your activity data. To edit or delete it, go to the Activities page."

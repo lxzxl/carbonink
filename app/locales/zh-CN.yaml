@@ -324,8 +324,13 @@ documentsOpenFailed: 无法打开文件
 documentsOpenRow: 打开
 documentsPlaceholder: 文档上传和抽取功能在 Phase 1b Task 14 落地。
 documentsPrev: 上一份
+documentsPreviewButton: 预览
+documentsPreviewClose: 关闭
 documentsPreviewDrawerTitle: 文档预览
+documentsPreviewFailed: 无法渲染预览
+documentsPreviewLoading: 正在渲染…
 documentsPreviewOpenDetail: 打开文档详情页
+documentsPreviewPage: 第 {page} / {total} 页
 documentsReviewAlreadyConfirmedBody: 这条抽取已经记入活动数据。如需修改或删除，请到「活动数据」页面操作。
 documentsReviewAlreadyConfirmedTitle: 已确认
 documentsReviewBack: 返回文档列表

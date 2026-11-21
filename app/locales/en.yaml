@@ -325,8 +325,13 @@ documentsOpenFailed: Could not open the file
 documentsOpenRow: Open
 documentsPlaceholder: Document upload + extraction lands in Phase 1b Task 14.
 documentsPrev: Previous
+documentsPreviewButton: Preview
+documentsPreviewClose: Close
 documentsPreviewDrawerTitle: Document preview
+documentsPreviewFailed: Could not render the preview
+documentsPreviewLoading: Rendering…
 documentsPreviewOpenDetail: Open in document detail
+documentsPreviewPage: Page {page} of {total}
 documentsReviewAlreadyConfirmedBody: This extraction has been added to your activity data. To edit or delete it, go to the Activities page.
 documentsReviewAlreadyConfirmedTitle: Already confirmed
 documentsReviewBack: Back to documents

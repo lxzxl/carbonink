@@ -2,6 +2,9 @@ package app
 
 import (
 	"context"
+	"image"
+	"image/color"
+	"image/png"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -462,8 +465,12 @@ func TestCreateSourceWithCustomCategory(t *testing.T) {
 func TestUploadDocumentsThroughUI(t *testing.T) {
 	dbPath := fixtureDB(t)
 	t.Setenv("CARBONINK_TEST_DB", dbPath)
+	fixture, err := os.ReadFile(filepath.Join("..", "..", "internal", "spike", "fixtures", "pdf", "two-page-text.pdf"))
+	if err != nil {
+		t.Fatal(err)
+	}
 	pdfPath := filepath.Join(t.TempDir(), "bill.pdf")
-	if err := os.WriteFile(pdfPath, []byte("%PDF-1.7\nbill\n"), 0o644); err != nil {
+	if err := os.WriteFile(pdfPath, fixture, 0o644); err != nil {
 		t.Fatal(err)
 	}
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
@@ -480,6 +487,12 @@ func TestUploadDocumentsThroughUI(t *testing.T) {
 	ui.Press("id:documents-upload")
 	ui.WaitFor("text:bill.pdf", 5*time.Second)
 	ui.WaitFor("text:Uploaded 2 · 0 failed", 3*time.Second)
+	ui.Press("text:Preview")
+	ui.WaitFor("id:documents-preview-dialog", 5*time.Second)
+	ui.WaitFor("text:Page 1 of 2", 10*time.Second)
+	ui.Press("id:documents-preview-next")
+	ui.WaitFor("text:Page 2 of 2", 10*time.Second)
+	ui.Press("id:documents-preview-close")
 
 	ctx := context.Background()
 	check, err := store.Open(ctx, dbPath)
@@ -503,6 +516,44 @@ func TestUploadDocumentsThroughUI(t *testing.T) {
 	if len(sha) != 64 {
 		t.Errorf("sha256 = %q", sha)
 	}
+}
+
+// TestPreviewImageThroughUI proves the preview dialog renders an image
+// document's pixels directly, without a PDF round trip.
+func TestPreviewImageThroughUI(t *testing.T) {
+	t.Setenv("CARBONINK_TEST_DB", fixtureDB(t))
+	photoPath := filepath.Join(t.TempDir(), "meter.png")
+	photo := image.NewRGBA(image.Rect(0, 0, 8, 6))
+	for y := 0; y < 6; y++ {
+		for x := 0; x < 8; x++ {
+			photo.Set(x, y, color.RGBA{R: uint8(x * 20), G: uint8(y * 30), B: 90, A: 255})
+		}
+	}
+	file, err := os.Create(photoPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := png.Encode(file, photo); err != nil {
+		file.Close()
+		t.Fatal(err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
+		nsgotest.Environment(core.Environment{Locale: "en-US"}))
+	ui.PickFiles = func(core.FilesRequest) []core.File {
+		return []core.File{{Name: "meter.png", Path: photoPath}}
+	}
+	ui.Press("id:nav:documents")
+	ui.WaitFor("id:documents-upload", 3*time.Second)
+	ui.Press("id:documents-upload")
+	ui.WaitFor("text:meter.png", 5*time.Second)
+	ui.Press("text:Preview")
+	ui.WaitFor("id:documents-preview-dialog", 5*time.Second)
+	ui.WaitFor("id:documents-preview-image", 5*time.Second)
+	ui.Press("id:documents-preview-close")
 }
 
 func fixtureDB(t *testing.T) string {
