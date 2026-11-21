@@ -499,10 +499,12 @@ func dataActiveLabel(cx *core.Scope, active bool) string {
 func (s *Session) onboardingScreen(cx *core.Scope, dataRev *core.Signal[int]) core.Node {
 	nameZH := core.NewSignal(cx, "")
 	nameEN := core.NewSignal(cx, "")
+	industry := core.NewSignal(cx, "")
 	country := core.NewSignal(cx, "CN")
 	boundary := core.NewSignal(cx, "operational_control")
 	siteZH := core.NewSignal(cx, "")
 	siteEN := core.NewSignal(cx, "")
+	siteAddress := core.NewSignal(cx, "")
 	siteCountry := core.NewSignal(cx, "CN")
 	year := core.NewSignal(cx, strconv.Itoa(time.Now().Year()))
 	status := core.NewSignal(cx, "")
@@ -517,9 +519,11 @@ func (s *Session) onboardingScreen(cx *core.Scope, dataRev *core.Signal[int]) co
 		busy.Set(true)
 		_, _, _, err = s.db.CompleteOnboarding(context.Background(), store.OnboardingInput{
 			Organization: store.OrganizationInput{
-				NameZH: nameZH.Get(), NameEN: nameEN.Get(), CountryCode: country.Get(), BoundaryKind: boundary.Get(),
+				NameZH: nameZH.Get(), NameEN: nameEN.Get(), Industry: industry.Get(),
+				CountryCode: country.Get(), BoundaryKind: boundary.Get(),
 			},
-			Site: store.SiteInput{NameZH: siteZH.Get(), NameEN: siteEN.Get(), CountryCode: siteCountry.Get()},
+			Site: store.SiteInput{NameZH: siteZH.Get(), NameEN: siteEN.Get(),
+				Address: siteAddress.Get(), CountryCode: siteCountry.Get()},
 			Year: y,
 		})
 		busy.Set(false)
@@ -544,6 +548,10 @@ func (s *Session) onboardingScreen(cx *core.Scope, dataRev *core.Signal[int]) co
 					ui.Input{Value: nameZH.Get, OnChange: nameZH.Set, TestID: "onboarding-org-zh"}),
 				dataField(cx, locales.OnboardingStepCompanyNameEn(cx),
 					ui.Input{Value: nameEN.Get, OnChange: nameEN.Set, TestID: "onboarding-org-en"}),
+				dataField(cx, locales.OnboardingStepCompanyIndustry(cx),
+					ui.Input{Value: industry.Get, OnChange: industry.Set,
+						Placeholder: locales.OnboardingStepCompanyIndustryPlaceholder(cx),
+						TestID:      "onboarding-org-industry"}),
 				dataField(cx, locales.OnboardingStepCompanyCountry(cx),
 					ui.Input{Value: country.Get, OnChange: country.Set, TestID: "onboarding-org-country"}),
 				dataField(cx, locales.OnboardingStepBoundaryTitle(cx),
@@ -553,6 +561,8 @@ func (s *Session) onboardingScreen(cx *core.Scope, dataRev *core.Signal[int]) co
 					ui.Input{Value: siteZH.Get, OnChange: siteZH.Set, TestID: "onboarding-site-zh"}),
 				dataField(cx, locales.OnboardingStepSiteNameEn(cx),
 					ui.Input{Value: siteEN.Get, OnChange: siteEN.Set, TestID: "onboarding-site-en"}),
+				dataField(cx, locales.OnboardingStepSiteAddress(cx),
+					ui.Input{Value: siteAddress.Get, OnChange: siteAddress.Set, TestID: "onboarding-site-address"}),
 				dataField(cx, locales.OnboardingStepSiteCountry(cx),
 					ui.Input{Value: siteCountry.Get, OnChange: siteCountry.Set, TestID: "onboarding-site-country"}),
 				dataField(cx, locales.OnboardingStepYearTitle(cx),
