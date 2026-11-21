@@ -659,6 +659,7 @@
   "sources_create_failed": "Failed to create source",
   "sources_form_category": "Category (optional)",
   "sources_form_category_custom": "Use custom value “{query}”",
+  "sources_form_category_custom_option": "Custom value…",
   "sources_form_category_empty": "No matching category",
   "sources_form_category_group_current": "Current value",
   "sources_form_category_group_downstream": "Downstream (3.9–3.15)",

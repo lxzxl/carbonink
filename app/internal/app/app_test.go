@@ -247,10 +247,11 @@ func TestAuditExportThroughUI(t *testing.T) {
 	}
 }
 
-// TestCreateSourceThroughUI proves the Sources page can create a source and
-// then show it in the list.
+// TestCreateSourceThroughUI proves the Sources page can create a source from
+// the taxonomy and that the derived EF category is stored with it.
 func TestCreateSourceThroughUI(t *testing.T) {
-	t.Setenv("CARBONINK_TEST_DB", fixtureDB(t))
+	dbPath := fixtureDB(t)
+	t.Setenv("CARBONINK_TEST_DB", dbPath)
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}))
 	ui.Press("id:nav:sources")
@@ -258,9 +259,65 @@ func TestCreateSourceThroughUI(t *testing.T) {
 	ui.Press("id:source-add")
 	ui.WaitFor("id:source-add-dialog", 2*time.Second)
 	ui.Type("id:source-add-name", "Diesel fleet")
-	ui.Type("id:source-add-category", "fuel.mobile")
+	ui.Press("id:source-add-category-select")
+	ui.WaitFor("id:source-add-category-select-1", 2*time.Second)
+	ui.Press("id:source-add-category-select-1")
 	ui.Press("id:source-add-save")
 	ui.WaitFor("text:Diesel fleet", 3*time.Second)
+	ui.WaitFor("text:Mobile combustion", 2*time.Second)
+
+	ctx := context.Background()
+	check, err := store.Open(ctx, dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer check.Close()
+	var category, path string
+	if err := check.DB().QueryRowContext(ctx,
+		`SELECT category, ghg_protocol_path FROM emission_source WHERE name = 'Diesel fleet'`).
+		Scan(&category, &path); err != nil {
+		t.Fatal(err)
+	}
+	if category != "fuel.mobile" || path != "scope1.mobile_combustion" {
+		t.Errorf("source category = %q, path = %q", category, path)
+	}
+}
+
+// TestCreateSourceWithCustomCategory keeps the non-standard escape hatch: a
+// value outside the taxonomy still stores both fields verbatim.
+func TestCreateSourceWithCustomCategory(t *testing.T) {
+	dbPath := fixtureDB(t)
+	t.Setenv("CARBONINK_TEST_DB", dbPath)
+	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
+		nsgotest.Environment(core.Environment{Locale: "en-US"}))
+	ui.Press("id:nav:sources")
+	ui.WaitFor("id:source-add", 2*time.Second)
+	ui.Press("id:source-add")
+	ui.WaitFor("id:source-add-dialog", 2*time.Second)
+	ui.Type("id:source-add-name", "Custom source")
+	ui.Press("id:source-add-category-select")
+	ui.WaitFor("id:source-add-category-select-5", 2*time.Second)
+	ui.Press("id:source-add-category-select-5")
+	ui.Type("id:source-add-category", "fuel.custom")
+	ui.Type("id:source-add-path", "scope1.custom")
+	ui.Press("id:source-add-save")
+	ui.WaitFor("text:Custom source", 3*time.Second)
+
+	ctx := context.Background()
+	check, err := store.Open(ctx, dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer check.Close()
+	var category, path string
+	if err := check.DB().QueryRowContext(ctx,
+		`SELECT category, ghg_protocol_path FROM emission_source WHERE name = 'Custom source'`).
+		Scan(&category, &path); err != nil {
+		t.Fatal(err)
+	}
+	if category != "fuel.custom" || path != "scope1.custom" {
+		t.Errorf("custom source category = %q, path = %q", category, path)
+	}
 }
 
 func fixtureDB(t *testing.T) string {

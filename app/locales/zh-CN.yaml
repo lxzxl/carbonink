@@ -1227,6 +1227,7 @@ sourcesFilterClear: 清除筛选
 sourcesFilterEmpty: 未找到匹配的排放源
 sourcesFormCategory: 分类（可选）
 sourcesFormCategoryCustom: 使用自定义值「{query}」
+sourcesFormCategoryCustomOption: 自定义值…
 sourcesFormCategoryEmpty: 未找到匹配的分类
 sourcesFormCategoryGroupCurrent: 当前值
 sourcesFormCategoryGroupDownstream: 下游（3.9–3.15）

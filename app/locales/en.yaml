@@ -1228,6 +1228,7 @@ sourcesFilterClear: Clear filters
 sourcesFilterEmpty: No matching sources
 sourcesFormCategory: Category (optional)
 sourcesFormCategoryCustom: Use custom value “{query}”
+sourcesFormCategoryCustomOption: Custom value…
 sourcesFormCategoryEmpty: No matching category
 sourcesFormCategoryGroupCurrent: Current value
 sourcesFormCategoryGroupDownstream: Downstream (3.9–3.15)

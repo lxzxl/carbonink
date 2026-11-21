@@ -659,6 +659,7 @@
   "sources_create_failed": "创建排放源失败",
   "sources_form_category": "分类（可选）",
   "sources_form_category_custom": "使用自定义值「{query}」",
+  "sources_form_category_custom_option": "自定义值…",
   "sources_form_category_empty": "未找到匹配的分类",
   "sources_form_category_group_current": "当前值",
   "sources_form_category_group_downstream": "下游（3.9–3.15）",

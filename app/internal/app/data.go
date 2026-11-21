@@ -10,11 +10,13 @@ import (
 	"strings"
 	"time"
 
+	"app.carbonink.desktop/internal/categories"
 	"app.carbonink.desktop/internal/store"
 	"app.carbonink.desktop/locales"
 
 	"github.com/nsgo-dev/nsgo/base"
 	"github.com/nsgo-dev/nsgo/core"
+	"github.com/nsgo-dev/nsgo/i18n"
 	"github.com/nsgo-dev/nsgo/icons/lucide"
 	"github.com/nsgo-dev/nsgo/ui"
 )
@@ -117,6 +119,32 @@ func dataScopeOptions(cx *core.Scope) []ui.Option[int] {
 		{Value: 2, Label: locales.SourcesFormScope2(cx)},
 		{Value: 3, Label: locales.SourcesFormScope3(cx)},
 	}
+}
+
+// sourceCategoryCustom is the Select sentinel that reveals the free-text
+// category fields for values outside the taxonomy.
+const sourceCategoryCustom = "\x00custom"
+
+func sourceCategoryOptions(cx *core.Scope, scope int, current string) []ui.Option[string] {
+	locale := i18n.Language(cx)
+	categoriesForScope := categories.ForScope(scope)
+	options := make([]ui.Option[string], 0, len(categoriesForScope)+3)
+	inScope := false
+	for _, category := range categoriesForScope {
+		if category.Code == current {
+			inScope = true
+		}
+		options = append(options, ui.Option[string]{Value: category.Code, Label: category.Label(locale)})
+	}
+	if current != "" && !inScope {
+		options = append([]ui.Option[string]{{Value: current,
+			Label: current + " · " + locales.SourcesFormCategoryNonstandard(cx)}}, options...)
+	}
+	options = append(options,
+		ui.Option[string]{Value: "", Label: locales.SourcesFormCategoryNone(cx)},
+		ui.Option[string]{Value: sourceCategoryCustom, Label: locales.SourcesFormCategoryCustomOption(cx)},
+	)
+	return options
 }
 
 func dataSiteName(site store.Site) string {
@@ -543,6 +571,16 @@ func (s *Session) sourcesBody(cx *core.Scope, dataRev *core.Signal[int]) core.No
 			stats = locales.SourcesStatsActivityCount(cx, strconv.Itoa(src.ActivityCount)) + " · " +
 				locales.SourcesStatsTotal(cx, commaFloat(src.TotalCO2eKg))
 		}
+		categoryLabel := src.Category
+		if category, ok := categories.ByCode(src.GHGProtocolPath); ok {
+			categoryLabel = category.Label(i18n.Language(cx))
+		}
+		meta := src.SiteName
+		for _, part := range []string{categoryLabel, stats} {
+			if part != "" {
+				meta += " · " + part
+			}
+		}
 		rows = append(rows, core.View{
 			Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 10,
 				Padding: core.Symmetric(9, 0), Borders: core.Edges{Bottom: 1}},
@@ -556,7 +594,7 @@ func (s *Session) sourcesBody(cx *core.Scope, dataRev *core.Signal[int]) core.No
 						core.Text{Content: active, Style: core.Style{FontSize: 11},
 							StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
 					}},
-					core.Text{Content: src.SiteName + " · " + src.Category + " · " + stats,
+					core.Text{Content: meta,
 						Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
 				}},
 				s.sourceDialog(cx, &s.sources[i], dataRev, "source-edit-"+src.ID),
@@ -593,6 +631,8 @@ func (s *Session) sourceDialog(cx *core.Scope, src *store.EmissionSource, dataRe
 	name := core.NewSignal(cx, "")
 	siteID := core.NewSignal(cx, "")
 	scope := core.NewSignal(cx, 1)
+	categoryCode := core.NewSignal(cx, "")
+	customCategory := core.NewSignal(cx, false)
 	category := core.NewSignal(cx, "")
 	path := core.NewSignal(cx, "")
 	active := core.NewSignal(cx, true)
@@ -603,6 +643,8 @@ func (s *Session) sourceDialog(cx *core.Scope, src *store.EmissionSource, dataRe
 		editingID.Set("")
 		name.Set("")
 		scope.Set(1)
+		categoryCode.Set("")
+		customCategory.Set(false)
 		category.Set("")
 		path.Set("")
 		active.Set(true)
@@ -618,6 +660,11 @@ func (s *Session) sourceDialog(cx *core.Scope, src *store.EmissionSource, dataRe
 			scope.Set(src.Scope)
 			category.Set(src.Category)
 			path.Set(src.GHGProtocolPath)
+			if _, ok := categories.ByCode(src.GHGProtocolPath); ok {
+				categoryCode.Set(src.GHGProtocolPath)
+			} else if src.GHGProtocolPath != "" || src.Category != "" {
+				customCategory.Set(true)
+			}
 			active.Set(src.IsActive)
 		}
 		status.Set("")
@@ -628,17 +675,26 @@ func (s *Session) sourceDialog(cx *core.Scope, src *store.EmissionSource, dataRe
 			status.Set(locales.SourcesCatalogNoSite(cx))
 			return
 		}
+		sourceCategory := category.Get()
+		sourcePath := path.Get()
+		if code := categoryCode.Get(); code != "" {
+			sourcePath = code
+			sourceCategory = categories.EFCategoryForCode(code)
+		} else if !customCategory.Get() {
+			sourceCategory = ""
+			sourcePath = ""
+		}
 		busy.Set(true)
 		var err error
 		if editingID.Get() == "" {
 			_, err = s.db.CreateSource(context.Background(), store.SourceInput{
-				SiteID: siteID.Get(), Name: name.Get(), Scope: scope.Get(), Category: category.Get(),
-				GHGProtocolPath: path.Get(),
+				SiteID: siteID.Get(), Name: name.Get(), Scope: scope.Get(), Category: sourceCategory,
+				GHGProtocolPath: sourcePath,
 			})
 		} else {
 			err = s.db.UpdateSource(context.Background(), editingID.Get(), store.SourcePatch{
-				Name: name.Get(), Scope: scope.Get(), Category: category.Get(),
-				GHGProtocolPath: path.Get(), IsActive: active.Get(),
+				Name: name.Get(), Scope: scope.Get(), Category: sourceCategory,
+				GHGProtocolPath: sourcePath, IsActive: active.Get(),
 			})
 		}
 		busy.Set(false)
@@ -671,9 +727,54 @@ func (s *Session) sourceDialog(cx *core.Scope, src *store.EmissionSource, dataRe
 				ui.Select[int]{Options: dataScopeOptions(cx), Value: scope.Get, OnChange: scope.Set,
 					Label: locales.SourcesFormScope(cx), TestID: testID + "-scope"}),
 			dataField(cx, locales.SourcesFormCategory(cx),
-				ui.Input{Value: category.Get, OnChange: category.Set, TestID: testID + "-category"}),
-			dataField(cx, locales.SourcesFormCategoryHint(cx),
-				ui.Input{Value: path.Get, OnChange: path.Set, TestID: testID + "-path"}),
+				core.Dynamic(func(cx *core.Scope) core.Node {
+					value := categoryCode.Get()
+					if customCategory.Get() {
+						value = sourceCategoryCustom
+					}
+					return ui.Select[string]{
+						Options:     sourceCategoryOptions(cx, scope.Get(), categoryCode.Get()),
+						Value:       func() string { return value },
+						Placeholder: locales.SourcesFormCategoryPlaceholder(cx),
+						Searchable:  true, SearchPlaceholder: locales.SourcesFormCategorySearch(cx),
+						Empty: locales.SourcesFormCategoryEmpty(cx),
+						OnChange: func(next string) {
+							switch next {
+							case sourceCategoryCustom:
+								customCategory.Set(true)
+							case "":
+								customCategory.Set(false)
+								categoryCode.Set("")
+								category.Set("")
+								path.Set("")
+							default:
+								customCategory.Set(false)
+								categoryCode.Set(next)
+								if picked, ok := categories.ByCode(next); ok {
+									category.Set(picked.EFCategory)
+									path.Set(picked.Code)
+								}
+							}
+						},
+						Label:  locales.SourcesFormCategory(cx),
+						TestID: testID + "-category-select",
+					}
+				})),
+			core.Dynamic(func(cx *core.Scope) core.Node {
+				if !customCategory.Get() {
+					if categoryCode.Get() == "" {
+						return core.View{}
+					}
+					return core.Text{Content: locales.SourcesFormCategoryHint(cx),
+						Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2}
+				}
+				return core.View{Style: core.Style{Gap: 10}, Children: []core.Node{
+					dataField(cx, locales.SourcesFormCategory(cx),
+						ui.Input{Value: category.Get, OnChange: category.Set, TestID: testID + "-category"}),
+					dataField(cx, locales.SourcesFormCategoryHint(cx),
+						ui.Input{Value: path.Get, OnChange: path.Set, TestID: testID + "-path"}),
+				}}
+			}),
 			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8}, Children: []core.Node{
 				ui.Switch{Checked: active.Get, OnChange: active.Set, Label: locales.SourceEditActiveLabel(cx),
 					TestID: testID + "-active"},

@@ -1430,6 +1430,7 @@ const (
 	textSourcesFilterClear
 	textSourcesFilterEmpty
 	textSourcesFormCategory
+	textSourcesFormCategoryCustomOption
 	textSourcesFormCategoryEmpty
 	textSourcesFormCategoryGroupCurrent
 	textSourcesFormCategoryGroupDownstream
@@ -2580,6 +2581,7 @@ var keyOfText = [numTexts]string{
 	"sourcesFilterClear",
 	"sourcesFilterEmpty",
 	"sourcesFormCategory",
+	"sourcesFormCategoryCustomOption",
 	"sourcesFormCategoryEmpty",
 	"sourcesFormCategoryGroupCurrent",
 	"sourcesFormCategoryGroupDownstream",
@@ -3728,6 +3730,7 @@ var textsEn = i18n.NewTexts(""+
 	"Clear filters"+
 	"No matching sources"+
 	"Category (optional)"+
+	"Custom value…"+
 	"No matching category"+
 	"Current value"+
 	"Downstream (3.9–3.15)"+
@@ -4873,6 +4876,7 @@ var textsEn = i18n.NewTexts(""+
 		13,
 		19,
 		19,
+		15,
 		20,
 		13,
 		23,
@@ -6021,6 +6025,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"清除筛选"+
 	"未找到匹配的排放源"+
 	"分类（可选）"+
+	"自定义值…"+
 	"未找到匹配的分类"+
 	"当前值"+
 	"下游（3.9–3.15）"+
@@ -7166,6 +7171,7 @@ var textsZhCN = i18n.NewTexts(""+
 		12,
 		27,
 		18,
+		15,
 		24,
 		9,
 		22,
@@ -19852,6 +19858,17 @@ func (msgs Messages) SourcesFormCategoryCustom(query string) string {
 			return "使用自定义值「" + query + "」"
 		}
 	}
+}
+
+// SourcesFormCategoryCustomOption says "Custom value…"
+// in the language the app shows under cx.
+func SourcesFormCategoryCustomOption(cx *core.Scope) string {
+	return For(cx).SourcesFormCategoryCustomOption()
+}
+
+// SourcesFormCategoryCustomOption is the package's SourcesFormCategoryCustomOption in the language of msgs.
+func (msgs Messages) SourcesFormCategoryCustomOption() string {
+	return msgs.text(textSourcesFormCategoryCustomOption)
 }
 
 // SourcesFormCategoryEmpty says "No matching category"
