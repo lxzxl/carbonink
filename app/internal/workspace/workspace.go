@@ -25,6 +25,14 @@ const (
 	registryName = "workspaces.json"
 	defaultFile  = "app.sqlite"
 	defaultName  = "默认账套"
+	maxNameRunes = 60
+)
+
+var (
+	ErrInvalidName     = errors.New("workspace name must be 1-60 characters")
+	ErrNotFound        = errors.New("workspace not found")
+	ErrActiveWorkspace = errors.New("the active workspace cannot be removed")
+	ErrLastWorkspace   = errors.New("the last workspace cannot be removed")
 )
 
 // Workspace is one client database file.
@@ -166,7 +174,112 @@ func (m *Manager) SetActive(id string) error {
 			return m.Save(reg)
 		}
 	}
-	return fmt.Errorf("workspace %q not found", id)
+	return ErrNotFound
+}
+
+// Create adds a workspace without opening it. The caller switches to it when
+// the user is ready; a new file is created by the next store.Open.
+func (m *Manager) Create(name string) (Workspace, error) {
+	name, err := cleanName(name)
+	if err != nil {
+		return Workspace{}, err
+	}
+	reg, err := m.Load()
+	if err != nil {
+		return Workspace{}, err
+	}
+	id := newID()
+	w := Workspace{
+		ID:        id,
+		Name:      name,
+		File:      "workspace-" + strings.ToLower(id) + ".sqlite",
+		CreatedAt: time.Now().UTC().Format(time.RFC3339Nano),
+	}
+	reg.Workspaces = append(reg.Workspaces, w)
+	if err := m.Save(reg); err != nil {
+		return Workspace{}, err
+	}
+	return w, nil
+}
+
+// Rename changes a workspace's display name; its file never moves.
+func (m *Manager) Rename(id, name string) error {
+	name, err := cleanName(name)
+	if err != nil {
+		return err
+	}
+	reg, err := m.Load()
+	if err != nil {
+		return err
+	}
+	for i := range reg.Workspaces {
+		if reg.Workspaces[i].ID == id {
+			reg.Workspaces[i].Name = name
+			return m.Save(reg)
+		}
+	}
+	return ErrNotFound
+}
+
+// Remove takes a workspace out of the registry and archives its database and
+// WAL siblings with a .deleted-<stamp> suffix. It never deletes user data.
+func (m *Manager) Remove(id string) (string, error) {
+	reg, err := m.Load()
+	if err != nil {
+		return "", err
+	}
+	index := -1
+	for i := range reg.Workspaces {
+		if reg.Workspaces[i].ID == id {
+			index = i
+			break
+		}
+	}
+	if index < 0 {
+		return "", ErrNotFound
+	}
+	if reg.ActiveID == id {
+		return "", ErrActiveWorkspace
+	}
+	if len(reg.Workspaces) <= 1 {
+		return "", ErrLastWorkspace
+	}
+	w := reg.Workspaces[index]
+	reg.Workspaces = append(reg.Workspaces[:index], reg.Workspaces[index+1:]...)
+	if err := m.Save(reg); err != nil {
+		return "", err
+	}
+
+	stamp := time.Now().UTC().Format("20060102-150405.000")
+	archived := ""
+	base := filepath.Join(m.dir, w.File)
+	if _, err := os.Stat(base); err == nil {
+		archived = w.File + ".deleted-" + stamp
+		if err := os.Rename(base, filepath.Join(m.dir, archived)); err != nil {
+			return "", err
+		}
+	} else if !errors.Is(err, fs.ErrNotExist) {
+		return "", err
+	}
+	for _, suffix := range []string{"-wal", "-shm"} {
+		from := base + suffix
+		if _, err := os.Stat(from); err == nil {
+			if err := os.Rename(from, filepath.Join(m.dir, w.File+suffix+".deleted-"+stamp)); err != nil {
+				return "", err
+			}
+		} else if !errors.Is(err, fs.ErrNotExist) {
+			return "", err
+		}
+	}
+	return archived, nil
+}
+
+func cleanName(name string) (string, error) {
+	name = strings.TrimSpace(name)
+	if name == "" || len([]rune(name)) > maxNameRunes {
+		return "", ErrInvalidName
+	}
+	return name, nil
 }
 
 func validate(reg *Registry) error {

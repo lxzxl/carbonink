@@ -2,9 +2,12 @@ package workspace
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 )
 
 func TestEnsureBootstraps(t *testing.T) {
@@ -180,5 +183,192 @@ func TestRegistryRoundTrip(t *testing.T) {
 	b, _ := json.Marshal(got)
 	if string(a) != string(b) {
 		t.Fatalf("round trip mismatch:\n%s\n%s", a, b)
+	}
+}
+
+func TestCreateWorkspace(t *testing.T) {
+	m := New(t.TempDir(), "")
+	reg, _, err := m.Ensure()
+	if err != nil {
+		t.Fatal(err)
+	}
+	before := reg.ActiveID
+
+	w, err := m.Create("  Client B  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if w.Name != "Client B" {
+		t.Fatalf("name = %q, want the trimmed input", w.Name)
+	}
+	if !strings.HasPrefix(w.File, "workspace-") || !strings.HasSuffix(w.File, ".sqlite") ||
+		filepath.Base(w.File) != w.File {
+		t.Fatalf("file = %q, want a generated base name", w.File)
+	}
+	if len(w.ID) != 26 {
+		t.Fatalf("id = %q, want a ULID", w.ID)
+	}
+	if _, err := time.Parse(time.RFC3339Nano, w.CreatedAt); err != nil {
+		t.Fatalf("created_at = %q: %v", w.CreatedAt, err)
+	}
+
+	// Creating must not switch: the new file is opened only when the user
+	// presses Switch.
+	again, err := m.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(again.Workspaces) != 2 || again.ActiveID != before {
+		t.Fatalf("registry after create = %+v", again)
+	}
+	if again.Workspaces[1].ID != w.ID || again.Workspaces[1].Name != "Client B" {
+		t.Fatalf("persisted workspace = %+v", again.Workspaces[1])
+	}
+}
+
+func TestCreateRejectsInvalidNames(t *testing.T) {
+	m := New(t.TempDir(), "")
+	if _, _, err := m.Ensure(); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"", "   ", "\n\t"} {
+		if _, err := m.Create(name); !errors.Is(err, ErrInvalidName) {
+			t.Errorf("Create(%q) = %v, want ErrInvalidName", name, err)
+		}
+	}
+	if _, err := m.Create(strings.Repeat("账", maxNameRunes+1)); !errors.Is(err, ErrInvalidName) {
+		t.Errorf("Create(61 runes) = %v, want ErrInvalidName", err)
+	}
+	if _, err := m.Create(strings.Repeat("账", maxNameRunes)); err != nil {
+		t.Errorf("Create(60 runes) = %v, want success", err)
+	}
+}
+
+func TestRenameWorkspace(t *testing.T) {
+	m := New(t.TempDir(), "")
+	reg, _, err := m.Ensure()
+	if err != nil {
+		t.Fatal(err)
+	}
+	w := reg.Workspaces[0]
+	if err := m.Rename(w.ID, "  SH  "); err != nil {
+		t.Fatal(err)
+	}
+	got, err := m.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Workspaces[0].Name != "SH" {
+		t.Fatalf("name = %q, want SH", got.Workspaces[0].Name)
+	}
+	if got.Workspaces[0].File != w.File {
+		t.Fatalf("rename moved the file: %q -> %q", w.File, got.Workspaces[0].File)
+	}
+	if err := m.Rename(w.ID, "  "); !errors.Is(err, ErrInvalidName) {
+		t.Fatalf("Rename(blank) = %v, want ErrInvalidName", err)
+	}
+	if err := m.Rename("missing", "X"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("Rename(unknown) = %v, want ErrNotFound", err)
+	}
+}
+
+func TestRemoveArchivesWorkspaceFiles(t *testing.T) {
+	dir := t.TempDir()
+	m := New(dir, "")
+	if _, _, err := m.Ensure(); err != nil {
+		t.Fatal(err)
+	}
+	w, err := m.Create("Client B")
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, filepath.Join(dir, w.File), "db")
+	writeFile(t, filepath.Join(dir, w.File+"-wal"), "wal")
+	writeFile(t, filepath.Join(dir, w.File+"-shm"), "shm")
+
+	archived, err := m.Remove(w.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(archived, ".deleted-") {
+		t.Fatalf("archived = %q, want a .deleted- suffix", archived)
+	}
+	stamp := strings.TrimPrefix(archived, w.File+".deleted-")
+	for _, path := range []string{w.File, w.File + "-wal", w.File + "-shm"} {
+		if _, err := os.Stat(filepath.Join(dir, path)); !errors.Is(err, os.ErrNotExist) {
+			t.Fatalf("%s still exists: %v", path, err)
+		}
+	}
+	for _, path := range []string{
+		archived,
+		w.File + "-wal.deleted-" + stamp,
+		w.File + "-shm.deleted-" + stamp,
+	} {
+		if _, err := os.Stat(filepath.Join(dir, path)); err != nil {
+			t.Fatalf("archived %s: %v", path, err)
+		}
+	}
+	reg, err := m.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(reg.Workspaces) != 1 || reg.Workspaces[0].ID == w.ID {
+		t.Fatalf("registry after remove = %+v", reg)
+	}
+}
+
+func TestRemoveWithoutAFileSucceeds(t *testing.T) {
+	dir := t.TempDir()
+	m := New(dir, "")
+	if _, _, err := m.Ensure(); err != nil {
+		t.Fatal(err)
+	}
+	w, err := m.Create("Never opened")
+	if err != nil {
+		t.Fatal(err)
+	}
+	archived, err := m.Remove(w.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if archived != "" {
+		t.Fatalf("archived = %q, want empty for a workspace with no file", archived)
+	}
+}
+
+func TestRemoveRefuses(t *testing.T) {
+	dir := t.TempDir()
+	m := New(dir, "")
+	reg, _, err := m.Ensure()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := m.Remove("missing"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("Remove(unknown) = %v, want ErrNotFound", err)
+	}
+	if _, err := m.Remove(reg.ActiveID); !errors.Is(err, ErrActiveWorkspace) {
+		t.Fatalf("Remove(active) = %v, want ErrActiveWorkspace", err)
+	}
+
+	// A registry with one workspace and no active match is only reachable
+	// through a corrupt active_id; removal must still refuse to empty it.
+	broken := &Registry{Version: 1,
+		Workspaces: []Workspace{{ID: "a", Name: "A", File: "a.sqlite"}},
+		ActiveID:   "missing"}
+	if err := m.Save(broken); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := m.Remove("a"); !errors.Is(err, ErrLastWorkspace) {
+		t.Fatalf("Remove(last) = %v, want ErrLastWorkspace", err)
+	}
+}
+
+func TestSetActiveUnknown(t *testing.T) {
+	m := New(t.TempDir(), "")
+	if _, _, err := m.Ensure(); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.SetActive("missing"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("SetActive(unknown) = %v, want ErrNotFound", err)
 	}
 }

@@ -49,6 +49,7 @@ type Session struct {
 	// they survive the screen that started them.
 	scope          *core.Scope
 	workspace      workspace.Workspace
+	workspaces     *workspace.Manager
 	db             *store.Store
 	organization   *store.Organization
 	sites          []store.Site
@@ -126,6 +127,7 @@ func open(cx *core.Scope, log *platform.Logger) (*Session, error) {
 			return nil, fmt.Errorf("workspace registry: %w", err)
 		}
 		s.imported = imported
+		s.workspaces = m
 		w, dbPath, err := m.Active()
 		if err != nil {
 			return nil, fmt.Errorf("active workspace: %w", err)

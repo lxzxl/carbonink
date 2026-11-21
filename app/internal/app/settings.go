@@ -161,6 +161,7 @@ func (s *Session) settingsScreen(cx *core.Scope) core.Node {
 								StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)}
 						}},
 				),
+				s.workspacesCard(cx),
 				s.aiProviderCard(cx),
 				s.agentIntegrationCard(cx),
 				s.migrationCard(cx),
