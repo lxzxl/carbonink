@@ -163,12 +163,47 @@ func open(cx *core.Scope, log *platform.Logger) (*Session, error) {
 	}
 	log.Info("workspace loaded", "organization", s.organization != nil, "sites", len(s.sites),
 		"periods", len(s.periods), "sources", len(s.sources), "activities", len(s.activities))
-	if dest, err := backup.Run(ctx, db, cx.DataDir(), s.workspace.ID, time.Now()); err != nil {
-		log.Warn("auto backup failed", "err", err)
-	} else if dest != "" {
-		log.Info("auto backup", "path", dest)
+	if autoBackupEnabled(ctx, db) {
+		made, err := runAutoBackup(ctx, s, cx.DataDir())
+		if err != nil {
+			log.Warn("auto backup failed", "err", err)
+		}
+		for _, dest := range made {
+			log.Info("auto backup", "path", dest)
+		}
 	}
 	return s, nil
+}
+
+// autoBackupSettingKey gates the boot snapshot. Absent or any value but
+// "false" means enabled, matching 1.x.
+const autoBackupSettingKey = "auto_backup.enabled"
+
+func autoBackupEnabled(ctx context.Context, db *store.Store) bool {
+	value, ok, err := db.Setting(ctx, autoBackupSettingKey)
+	return err != nil || !ok || value != "false"
+}
+
+// runAutoBackup snapshots every registered workspace when one is due. With
+// CARBONINK_TEST_DB there is no registry, so the single open database is the
+// only target.
+func runAutoBackup(ctx context.Context, s *Session, dataDir string) ([]string, error) {
+	if s.workspaces == nil {
+		dest, err := backup.Run(ctx, s.db, dataDir, s.workspace.ID, time.Now())
+		if dest == "" {
+			return nil, err
+		}
+		return []string{dest}, err
+	}
+	reg, err := s.workspaces.Load()
+	if err != nil {
+		return nil, err
+	}
+	targets := make([]backup.Target, 0, len(reg.Workspaces))
+	for _, w := range reg.Workspaces {
+		targets = append(targets, backup.Target{ID: w.ID, File: w.File})
+	}
+	return backup.RunAll(ctx, s.db, dataDir, targets, s.workspace.ID, time.Now())
 }
 
 // reload refreshes the records every Phase 2 screen reads. It is called at

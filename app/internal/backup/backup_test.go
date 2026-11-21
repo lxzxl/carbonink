@@ -52,7 +52,7 @@ func TestRunAndRetention(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer backup.Close()
-	if version, err := backup.SchemaVersion(ctx); err != nil || version != 22 {
+	if version, err := backup.SchemaVersion(ctx); err != nil || version != 23 {
 		t.Fatalf("backup schema = %d, %v", version, err)
 	}
 	info, err := os.Stat(filepath.Join(dir, names[len(names)-1]))
@@ -68,5 +68,82 @@ func TestRunAndRetention(t *testing.T) {
 	}
 	if _, err := os.Stat(first); !os.IsNotExist(err) {
 		t.Fatalf("oldest snapshot survived pruning: %v", err)
+	}
+}
+
+func TestRunAllCoversEveryWorkspace(t *testing.T) {
+	ctx := context.Background()
+	dataDir := t.TempDir()
+	activePath := filepath.Join(dataDir, "app.sqlite")
+	active, err := store.Open(ctx, activePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer active.Close()
+	if _, err := active.Migrate(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	inactive, err := store.Open(ctx, filepath.Join(dataDir, "client.sqlite"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := inactive.Migrate(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := inactive.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	// A pre-workspace snapshot at the root moves into the default
+	// workspace's directory instead of being stranded.
+	legacy := filepath.Join(dataDir, DirName, "auto-20260101-090000.carbonink-backup")
+	if err := os.MkdirAll(filepath.Dir(legacy), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(legacy, []byte("legacy"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	targets := []Target{
+		{ID: "a", File: "app.sqlite"},
+		{ID: "b", File: "client.sqlite"},
+		{ID: "never-opened", File: "missing.sqlite"},
+	}
+	now := time.Date(2026, 11, 21, 10, 0, 0, 0, time.UTC)
+	made, err := RunAll(ctx, active, dataDir, targets, "a", now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(made) != 2 {
+		t.Fatalf("made %v, want one snapshot for a and b", made)
+	}
+	for _, id := range []string{"a", "b"} {
+		names, err := snapshots(filepath.Join(dataDir, DirName, id))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(names) == 0 {
+			t.Fatalf("workspace %s has no snapshot", id)
+		}
+	}
+	if names, err := snapshots(filepath.Join(dataDir, DirName, "a")); err != nil ||
+		len(names) != 2 {
+		t.Fatalf("workspace a snapshots = %v, %v; want the migrated legacy one and one new",
+			names, err)
+	}
+	if _, err := os.Stat(legacy); !os.IsNotExist(err) {
+		t.Fatalf("legacy flat snapshot still at the root: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dataDir, DirName, "never-opened")); !os.IsNotExist(err) {
+		t.Fatalf("a workspace with no file got a backup directory: %v", err)
+	}
+
+	again, err := RunAll(ctx, active, dataDir, targets, "a", now.Add(time.Hour))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(again) != 0 {
+		t.Fatalf("second pass made %v, want none", again)
 	}
 }

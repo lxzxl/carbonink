@@ -166,6 +166,7 @@ func (s *Session) settingsScreen(cx *core.Scope) core.Node {
 				s.agentIntegrationCard(cx),
 				s.migrationCard(cx),
 				s.reportLogoCard(cx),
+				s.dataCard(cx),
 				card(
 					core.Text{ContentFunc: func() string {
 						return locales.SettingsWorkspace(cx) + ": " + s.workspace.Name + " · " + s.workspace.File
