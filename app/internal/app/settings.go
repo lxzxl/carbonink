@@ -1,8 +1,10 @@
 package app
 
 import (
+	"context"
 	"strings"
 
+	"app.carbonink.desktop/internal/modelcatalog"
 	"app.carbonink.desktop/internal/prefs"
 	"app.carbonink.desktop/locales"
 
@@ -128,6 +130,7 @@ func (s *Session) settingsScreen(cx *core.Scope) core.Node {
 						Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 				),
 				s.aiProviderCard(cx),
+				s.agentIntegrationCard(cx),
 				card(
 					core.Text{ContentFunc: func() string {
 						return locales.SettingsWorkspace(cx) + ": " + s.workspace.Name + " · " + s.workspace.File
@@ -161,6 +164,10 @@ func (s *Session) aiProviderCard(cx *core.Scope) core.Node {
 	key := core.NewSignal(cx, "")
 	status := core.NewSignal(cx, "")
 	failed := core.NewSignal(cx, false)
+	models := core.NewSignal[*[]modelcatalog.Model](cx, nil)
+	fetching := core.NewSignal(cx, false)
+	fetchStatus := core.NewSignal(cx, "")
+	fetchFailed := core.NewSignal(cx, false)
 
 	preset := func(id string) (llmPreset, bool) {
 		for _, item := range llmPresets {
@@ -216,6 +223,43 @@ func (s *Session) aiProviderCard(cx *core.Scope) core.Node {
 		failed.Set(false)
 	}
 
+	fetchModels := func() {
+		if fetching.Get() {
+			return
+		}
+		apiKey := strings.TrimSpace(key.Get())
+		if apiKey == "" {
+			if saved, ok, err := cx.Secrets().Get(llmSecretAccount); err == nil && ok {
+				apiKey = saved
+			}
+		}
+		if apiKey == "" {
+			fetchFailed.Set(true)
+			fetchStatus.Set(locales.SettingsModelFetchNoKey(cx))
+			return
+		}
+		providerID := provider.Get()
+		base := strings.TrimSpace(baseURL.Get())
+		fetching.Set(true)
+		fetchFailed.Set(false)
+		fetchStatus.Set(locales.SettingsModelFetching(cx))
+		successMessage := locales.SettingsModelFetchSuccess(cx)
+		go func() {
+			list, err := modelcatalog.Fetch(context.Background(), providerID, base, apiKey)
+			s.scope.Post(func() {
+				fetching.Set(false)
+				if err != nil {
+					fetchFailed.Set(true)
+					fetchStatus.Set(locales.SettingsModelFetchFailed(cx, err.Error()))
+					return
+				}
+				models.Set(&list)
+				fetchFailed.Set(false)
+				fetchStatus.Set(successMessage)
+			})
+		}()
+	}
+
 	field := func(label func(*core.Scope) string, input core.Node) core.Node {
 		return core.View{Style: core.Style{Gap: 4, FlexGrow: 1}, Children: []core.Node{
 			core.Text{ContentFunc: func() string { return label(cx) },
@@ -235,6 +279,8 @@ func (s *Session) aiProviderCard(cx *core.Scope) core.Node {
 				ui.Select[string]{Options: options, Value: provider.Get,
 					OnChange: func(value string) {
 						provider.Set(value)
+						models.Set(nil)
+						fetchStatus.Set("")
 						if item, ok := preset(value); ok {
 							baseURL.Set(item.BaseURL)
 							model.Set(item.Model)
@@ -244,6 +290,37 @@ func (s *Session) aiProviderCard(cx *core.Scope) core.Node {
 			field(locales.SettingsProviderModelLabel,
 				ui.Input{Value: model.Get, OnChange: model.Set, TestID: "settings-llm-model"}),
 		}},
+		core.Text{ContentFunc: func() string { return providerGuidance(cx, provider.Get()) },
+			Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2},
+		core.View{Style: core.Style{Direction: core.Row, Gap: 8, AlignItems: core.AlignEnd},
+			Children: []core.Node{
+				core.View{Style: core.Style{Gap: 4, FlexGrow: 1}, Children: []core.Node{
+					core.Text{ContentFunc: func() string { return locales.SettingsModelSuggestedLabel(cx) },
+						Style:     core.Style{FontSize: 12, FontWeight: ui.Semibold},
+						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+					core.Dynamic(func(cx *core.Scope) core.Node {
+						var fetched []modelcatalog.Model
+						if stored := models.Get(); stored != nil {
+							fetched = *stored
+						}
+						return modelPicker(cx, provider.Get(), model, fetched)
+					}),
+				}},
+				ui.Button{Text: locales.SettingsModelFetchLatest(cx), Variant: ui.ButtonSecondary,
+					OnPress: fetchModels, Busy: fetching.Get,
+					TestID: "settings-llm-fetch-models"},
+			}},
+		core.Show{When: func() bool { return fetchStatus.Get() != "" },
+			Then: func(cx *core.Scope) core.Node {
+				return core.Text{ContentFunc: func() string { return fetchStatus.Get() },
+					Style: core.Style{FontSize: 11},
+					StyleFunc: func() core.Style {
+						if fetchFailed.Get() {
+							return ui.Colored(ui.ColorsOf(cx).Danger)()
+						}
+						return ui.Colored(ui.ColorsOf(cx).Muted)()
+					}}
+			}},
 		field(locales.SettingsProviderBaseUrlLabelAdvanced,
 			ui.Input{Value: baseURL.Get, OnChange: baseURL.Set, TestID: "settings-llm-base-url"}),
 		field(locales.SettingsApikeyLabel,
@@ -284,5 +361,53 @@ func (s *Session) aiProviderCard(cx *core.Scope) core.Node {
 			return core.Style{Background: ui.ColorsOf(cx).Surface(), BorderColor: ui.ColorsOf(cx).Border()}
 		},
 		Children: children,
+	}
+}
+
+// providerGuidance is the one-line trade-off shown under the provider picker.
+func providerGuidance(cx *core.Scope, provider string) string {
+	switch provider {
+	case "deepseek":
+		return locales.SettingsProviderGuidanceDeepseek(cx)
+	case "moonshot":
+		return locales.SettingsProviderGuidanceMoonshot(cx)
+	case "anthropic":
+		return locales.SettingsProviderGuidanceAnthropic(cx)
+	case "custom":
+		return locales.SettingsProviderGuidanceCustom(cx)
+	default:
+		return locales.SettingsProviderGuidanceOpenai(cx)
+	}
+}
+
+// modelPicker merges bundled suggestions with the provider's last fetched
+// list. Choosing a row fills the free-text model field above, so a custom id
+// never loses the escape hatch.
+func modelPicker(cx *core.Scope, provider string, value *core.Signal[string],
+	fetched []modelcatalog.Model) core.Node {
+	seen := map[string]bool{}
+	merged := make([]modelcatalog.Model, 0, len(fetched)+4)
+	for _, model := range append(modelcatalog.Curated(provider), fetched...) {
+		if model.ID == "" || seen[model.ID] {
+			continue
+		}
+		seen[model.ID] = true
+		merged = append(merged, model)
+	}
+	options := make([]ui.Option[string], 0, len(merged))
+	for _, model := range merged {
+		label := model.Name
+		if label == "" || label == model.ID {
+			label = model.ID
+		} else {
+			label += " — " + model.ID
+		}
+		options = append(options, ui.Option[string]{Value: model.ID, Label: label})
+	}
+	return ui.Select[string]{
+		Options: options, Value: value.Get, OnChange: value.Set,
+		Placeholder: locales.SettingsModelPickerPlaceholder(cx),
+		Searchable:  true, SearchPlaceholder: locales.SettingsModelSearchPlaceholder(cx),
+		Empty: locales.SettingsPickerNoMatch(cx), TestID: "settings-llm-model-suggested",
 	}
 }

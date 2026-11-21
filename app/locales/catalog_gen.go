@@ -167,6 +167,9 @@ var Parameters = map[string][]string{
 	"ReportsGeneratedAt":                      {"date"},
 	"RoutingLookupDoneAmap":                   {"km"},
 	"RoutingLookupDoneHaversine":              {"km"},
+	"SettingsAgentClientConfigured":           {"client"},
+	"SettingsAgentClientRemoved":              {"client"},
+	"SettingsAgentFailed":                     {"message"},
 	"SettingsAiCacheCleared":                  {"count"},
 	"SettingsCurrent":                         {"value"},
 	"SettingsDataCacheClearSuccess":           {"rows", "size"},
@@ -174,6 +177,7 @@ var Parameters = map[string][]string{
 	"SettingsMcpConfigured":                   {"client"},
 	"SettingsMcpRemoved":                      {"client"},
 	"SettingsModelCustomOption":               {"id"},
+	"SettingsModelFetchFailed":                {"message"},
 	"SettingsProviderUnknownWarning":          {"provider"},
 	"SettingsSkillInstalled":                  {"count"},
 	"SettingsSkillStatusInstalled":            {"count"},
@@ -348,6 +352,9 @@ type Translation struct {
 	ReportsGeneratedAt                      func(date string) string
 	RoutingLookupDoneAmap                   func(km string) string
 	RoutingLookupDoneHaversine              func(km string) string
+	SettingsAgentClientConfigured           func(client string) string
+	SettingsAgentClientRemoved              func(client string) string
+	SettingsAgentFailed                     func(message string) string
 	SettingsAiCacheCleared                  func(count string) string
 	SettingsCurrent                         func(value string) string
 	SettingsDataCacheClearSuccess           func(rows string, size string) string
@@ -355,6 +362,7 @@ type Translation struct {
 	SettingsMcpConfigured                   func(client string) string
 	SettingsMcpRemoved                      func(client string) string
 	SettingsModelCustomOption               func(id string) string
+	SettingsModelFetchFailed                func(message string) string
 	SettingsProviderUnknownWarning          func(provider string) string
 	SettingsSkillInstalled                  func(count string) string
 	SettingsSkillStatusInstalled            func(count string) string
@@ -1330,6 +1338,27 @@ const (
 	textSettingsAboutVersion
 	textSettingsAboutWebsiteLabel
 	textSettingsAboutWebsiteUrl
+	textSettingsAgentBusy
+	textSettingsAgentClaudeCode
+	textSettingsAgentClaudeDesktop
+	textSettingsAgentConfigure
+	textSettingsAgentConfigured
+	textSettingsAgentCursor
+	textSettingsAgentHint
+	textSettingsAgentInstall
+	textSettingsAgentNotConfigured
+	textSettingsAgentNotInstalled
+	textSettingsAgentPiHint
+	textSettingsAgentRemove
+	textSettingsAgentRestartHint
+	textSettingsAgentSkill
+	textSettingsAgentSkillDone
+	textSettingsAgentSkillInstalled
+	textSettingsAgentSkillMissing
+	textSettingsAgentSkillRemoved
+	textSettingsAgentSkillUpdate
+	textSettingsAgentTitle
+	textSettingsAgentUpdate
 	textSettingsAiCacheClear
 	textSettingsAiCacheClearFailed
 	textSettingsAiCacheClearing
@@ -1432,7 +1461,6 @@ const (
 	textSettingsModelCapabilityImage
 	textSettingsModelCapabilityReasoning
 	textSettingsModelCustomHint
-	textSettingsModelFetchFailed
 	textSettingsModelFetchLatest
 	textSettingsModelFetchNoKey
 	textSettingsModelFetchSuccess
@@ -1440,6 +1468,7 @@ const (
 	textSettingsModelPickerPlaceholder
 	textSettingsModelSearchPlaceholder
 	textSettingsModelStale
+	textSettingsModelSuggestedLabel
 	textSettingsNavLabel
 	textSettingsOrgBasicHeading
 	textSettingsOrgProfileHeading
@@ -1451,6 +1480,11 @@ const (
 	textSettingsProviderGroupAll
 	textSettingsProviderGroupRecommended
 	textSettingsProviderGuidanceAccount
+	textSettingsProviderGuidanceAnthropic
+	textSettingsProviderGuidanceCustom
+	textSettingsProviderGuidanceDeepseek
+	textSettingsProviderGuidanceMoonshot
+	textSettingsProviderGuidanceOpenai
 	textSettingsProviderModelLabel
 	textSettingsProviderPickerLabel
 	textSettingsProviderPickerPlaceholder
@@ -2610,6 +2644,27 @@ var keyOfText = [numTexts]string{
 	"settingsAboutVersion",
 	"settingsAboutWebsiteLabel",
 	"settingsAboutWebsiteUrl",
+	"settingsAgentBusy",
+	"settingsAgentClaudeCode",
+	"settingsAgentClaudeDesktop",
+	"settingsAgentConfigure",
+	"settingsAgentConfigured",
+	"settingsAgentCursor",
+	"settingsAgentHint",
+	"settingsAgentInstall",
+	"settingsAgentNotConfigured",
+	"settingsAgentNotInstalled",
+	"settingsAgentPiHint",
+	"settingsAgentRemove",
+	"settingsAgentRestartHint",
+	"settingsAgentSkill",
+	"settingsAgentSkillDone",
+	"settingsAgentSkillInstalled",
+	"settingsAgentSkillMissing",
+	"settingsAgentSkillRemoved",
+	"settingsAgentSkillUpdate",
+	"settingsAgentTitle",
+	"settingsAgentUpdate",
 	"settingsAiCacheClear",
 	"settingsAiCacheClearFailed",
 	"settingsAiCacheClearing",
@@ -2712,7 +2767,6 @@ var keyOfText = [numTexts]string{
 	"settingsModelCapabilityImage",
 	"settingsModelCapabilityReasoning",
 	"settingsModelCustomHint",
-	"settingsModelFetchFailed",
 	"settingsModelFetchLatest",
 	"settingsModelFetchNoKey",
 	"settingsModelFetchSuccess",
@@ -2720,6 +2774,7 @@ var keyOfText = [numTexts]string{
 	"settingsModelPickerPlaceholder",
 	"settingsModelSearchPlaceholder",
 	"settingsModelStale",
+	"settingsModelSuggestedLabel",
 	"settingsNavLabel",
 	"settingsOrgBasicHeading",
 	"settingsOrgProfileHeading",
@@ -2731,6 +2786,11 @@ var keyOfText = [numTexts]string{
 	"settingsProviderGroupAll",
 	"settingsProviderGroupRecommended",
 	"settingsProviderGuidanceAccount",
+	"settingsProviderGuidanceAnthropic",
+	"settingsProviderGuidanceCustom",
+	"settingsProviderGuidanceDeepseek",
+	"settingsProviderGuidanceMoonshot",
+	"settingsProviderGuidanceOpenai",
 	"settingsProviderModelLabel",
 	"settingsProviderPickerLabel",
 	"settingsProviderPickerPlaceholder",
@@ -3888,6 +3948,27 @@ var textsEn = i18n.NewTexts(""+
 	"Version"+
 	"Website"+
 	"carbonink.xyz"+
+	"Working…"+
+	"Claude Code"+
+	"Claude Desktop"+
+	"Configure"+
+	"Configured"+
+	"Cursor"+
+	"Give Claude Code, Codex, Cursor, and Claude Desktop access to this workspace through the CarbonInk MCP server. Writes still go through CarbonInk's own store, EF pinning, and audit trail."+
+	"Install skill"+
+	"Not configured"+
+	"Not detected"+
+	"Pi: install pi-mcporter — it discovers the carbonink server from ~/.claude.json."+
+	"Remove"+
+	"Restart the agent host (or start a new session) after changing these."+
+	"Agent skill"+
+	"Agent skill installed."+
+	"Installed"+
+	"Not installed"+
+	"Agent skill removed."+
+	"Update available"+
+	"Agent integration"+
+	"Update"+
 	"Clear AI cache"+
 	"Failed to clear AI cache"+
 	"Clearing…"+
@@ -3990,7 +4071,6 @@ var textsEn = i18n.NewTexts(""+
 	"Image"+
 	"Reasoning"+
 	"Custom id: not in the bundled catalog. Test the connection before saving."+
-	"Fetch failed"+
 	"Fetch latest"+
 	"Enter an API key first (or save one), then fetch."+
 	"Model list updated."+
@@ -3998,6 +4078,7 @@ var textsEn = i18n.NewTexts(""+
 	"Select a model…"+
 	"Search models…"+
 	"List may be outdated."+
+	"Suggested models"+
 	"Settings categories"+
 	"Company identity"+
 	"Organization Profile (ISO 14064-1)"+
@@ -4009,6 +4090,11 @@ var textsEn = i18n.NewTexts(""+
 	"All providers"+
 	"Recommended"+
 	"Get an account"+
+	"Global endpoint; expect higher latency from China. Strong long-form writing."+
+	"Any OpenAI-compatible endpoint. Models are typed by hand."+
+	"Low latency from China. Strong Chinese. Pay-per-token, low cost."+
+	"China-hosted Kimi models with good Chinese support."+
+	"Global endpoint; expect higher latency from China."+
 	"Model"+
 	"Provider"+
 	"Select a provider…"+
@@ -5163,6 +5249,27 @@ var textsEn = i18n.NewTexts(""+
 		7,
 		7,
 		13,
+		10,
+		11,
+		14,
+		9,
+		10,
+		6,
+		186,
+		13,
+		14,
+		12,
+		82,
+		6,
+		69,
+		11,
+		22,
+		9,
+		13,
+		20,
+		16,
+		17,
+		6,
 		14,
 		24,
 		11,
@@ -5266,13 +5373,13 @@ var textsEn = i18n.NewTexts(""+
 		9,
 		73,
 		12,
-		12,
 		49,
 		19,
 		11,
 		17,
 		16,
 		21,
+		16,
 		19,
 		16,
 		34,
@@ -5284,6 +5391,11 @@ var textsEn = i18n.NewTexts(""+
 		13,
 		11,
 		14,
+		76,
+		57,
+		64,
+		51,
+		50,
 		5,
 		8,
 		20,
@@ -6441,6 +6553,27 @@ var textsZhCN = i18n.NewTexts(""+
 	"版本"+
 	"官网"+
 	"carbonink.xyz"+
+	"正在处理…"+
+	"Claude Code"+
+	"Claude Desktop"+
+	"配置"+
+	"已配置"+
+	"Cursor"+
+	"让 Claude Code、Codex、Cursor 和 Claude Desktop 通过 CarbonInk MCP 服务器访问当前账套。写入仍经过 CarbonInk 的存储、排放因子镶嵌与审计记录。"+
+	"安装技能"+
+	"未配置"+
+	"未检测到"+
+	"Pi：请安装 pi-mcporter——它会从 ~/.claude.json 发现 carbonink 服务器。"+
+	"移除"+
+	"修改后请重启 agent 宿主或开启新会话。"+
+	"Agent 技能"+
+	"Agent 技能已安装。"+
+	"已安装"+
+	"未安装"+
+	"Agent 技能已移除。"+
+	"有更新可用"+
+	"Agent 集成"+
+	"更新"+
 	"清空 AI 缓存"+
 	"清空 AI 缓存失败"+
 	"正在清空…"+
@@ -6543,7 +6676,6 @@ var textsZhCN = i18n.NewTexts(""+
 	"图像"+
 	"推理"+
 	"自定义 id：不在内置目录中，保存前请先测试连接。"+
-	"获取失败"+
 	"获取最新"+
 	"请先输入（或保存）API key，再获取。"+
 	"模型列表已更新。"+
@@ -6551,6 +6683,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"请选择模型…"+
 	"搜索模型…"+
 	"列表可能已过时。"+
+	"推荐模型"+
 	"设置分类"+
 	"公司身份"+
 	"组织档案（ISO 14064-1）"+
@@ -6562,6 +6695,11 @@ var textsZhCN = i18n.NewTexts(""+
 	"全部服务商"+
 	"推荐"+
 	"去官网注册"+
+	"全球节点，从中国访问延迟较高；长文写作强。"+
+	"任意 OpenAI 兼容端点，模型 ID 手动填写。"+
+	"国内低延迟，中文强，按 token 计费，成本低。"+
+	"国内托管的 Kimi 模型，中文支持好。"+
+	"全球节点，从中国访问延迟较高。"+
 	"模型"+
 	"服务商"+
 	"请选择服务商…"+
@@ -7716,6 +7854,27 @@ var textsZhCN = i18n.NewTexts(""+
 		6,
 		6,
 		13,
+		15,
+		11,
+		14,
+		6,
+		9,
+		6,
+		177,
+		12,
+		9,
+		12,
+		86,
+		6,
+		52,
+		12,
+		24,
+		9,
+		9,
+		24,
+		15,
+		12,
+		6,
 		16,
 		22,
 		15,
@@ -7819,13 +7978,13 @@ var textsZhCN = i18n.NewTexts(""+
 		6,
 		69,
 		12,
-		12,
 		49,
 		24,
 		12,
 		18,
 		15,
 		24,
+		12,
 		12,
 		12,
 		29,
@@ -7837,6 +7996,11 @@ var textsZhCN = i18n.NewTexts(""+
 		15,
 		6,
 		15,
+		63,
+		54,
+		61,
+		48,
+		45,
 		6,
 		9,
 		21,
@@ -8491,6 +8655,15 @@ func Supply(lang string, t Translation) {
 	if t.RoutingLookupDoneHaversine != nil {
 		s.RoutingLookupDoneHaversine = t.RoutingLookupDoneHaversine
 	}
+	if t.SettingsAgentClientConfigured != nil {
+		s.SettingsAgentClientConfigured = t.SettingsAgentClientConfigured
+	}
+	if t.SettingsAgentClientRemoved != nil {
+		s.SettingsAgentClientRemoved = t.SettingsAgentClientRemoved
+	}
+	if t.SettingsAgentFailed != nil {
+		s.SettingsAgentFailed = t.SettingsAgentFailed
+	}
 	if t.SettingsAiCacheCleared != nil {
 		s.SettingsAiCacheCleared = t.SettingsAiCacheCleared
 	}
@@ -8511,6 +8684,9 @@ func Supply(lang string, t Translation) {
 	}
 	if t.SettingsModelCustomOption != nil {
 		s.SettingsModelCustomOption = t.SettingsModelCustomOption
+	}
+	if t.SettingsModelFetchFailed != nil {
+		s.SettingsModelFetchFailed = t.SettingsModelFetchFailed
 	}
 	if t.SettingsProviderUnknownWarning != nil {
 		s.SettingsProviderUnknownWarning = t.SettingsProviderUnknownWarning
@@ -19260,6 +19436,241 @@ func SettingsAboutWebsiteUrl(cx *core.Scope) string { return For(cx).SettingsAbo
 // SettingsAboutWebsiteUrl is the package's SettingsAboutWebsiteUrl in the language of msgs.
 func (msgs Messages) SettingsAboutWebsiteUrl() string { return msgs.text(textSettingsAboutWebsiteUrl) }
 
+// SettingsAgentBusy says "Working…"
+// in the language the app shows under cx.
+func SettingsAgentBusy(cx *core.Scope) string { return For(cx).SettingsAgentBusy() }
+
+// SettingsAgentBusy is the package's SettingsAgentBusy in the language of msgs.
+func (msgs Messages) SettingsAgentBusy() string { return msgs.text(textSettingsAgentBusy) }
+
+// SettingsAgentClaudeCode says "Claude Code"
+// in the language the app shows under cx.
+func SettingsAgentClaudeCode(cx *core.Scope) string { return For(cx).SettingsAgentClaudeCode() }
+
+// SettingsAgentClaudeCode is the package's SettingsAgentClaudeCode in the language of msgs.
+func (msgs Messages) SettingsAgentClaudeCode() string { return msgs.text(textSettingsAgentClaudeCode) }
+
+// SettingsAgentClaudeDesktop says "Claude Desktop"
+// in the language the app shows under cx.
+func SettingsAgentClaudeDesktop(cx *core.Scope) string { return For(cx).SettingsAgentClaudeDesktop() }
+
+// SettingsAgentClaudeDesktop is the package's SettingsAgentClaudeDesktop in the language of msgs.
+func (msgs Messages) SettingsAgentClaudeDesktop() string {
+	return msgs.text(textSettingsAgentClaudeDesktop)
+}
+
+// SettingsAgentClientConfigured says "{client} MCP entry written."
+// in the language the app shows under cx.
+func SettingsAgentClientConfigured(cx *core.Scope, client string) string {
+	return For(cx).SettingsAgentClientConfigured(client)
+}
+
+// SettingsAgentClientConfigured is the package's SettingsAgentClientConfigured in the language of msgs.
+func (msgs Messages) SettingsAgentClientConfigured(client string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SettingsAgentClientConfigured(client))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SettingsAgentClientConfigured; f != nil {
+			return f(client)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(client) + " MCP entry written."
+		case "zh-CN":
+			return client + " 的 MCP 配置已写入。"
+		}
+	}
+}
+
+// SettingsAgentClientRemoved says "{client} MCP entry removed."
+// in the language the app shows under cx.
+func SettingsAgentClientRemoved(cx *core.Scope, client string) string {
+	return For(cx).SettingsAgentClientRemoved(client)
+}
+
+// SettingsAgentClientRemoved is the package's SettingsAgentClientRemoved in the language of msgs.
+func (msgs Messages) SettingsAgentClientRemoved(client string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SettingsAgentClientRemoved(client))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SettingsAgentClientRemoved; f != nil {
+			return f(client)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(client) + " MCP entry removed."
+		case "zh-CN":
+			return client + " 的 MCP 配置已移除。"
+		}
+	}
+}
+
+// SettingsAgentConfigure says "Configure"
+// in the language the app shows under cx.
+func SettingsAgentConfigure(cx *core.Scope) string { return For(cx).SettingsAgentConfigure() }
+
+// SettingsAgentConfigure is the package's SettingsAgentConfigure in the language of msgs.
+func (msgs Messages) SettingsAgentConfigure() string { return msgs.text(textSettingsAgentConfigure) }
+
+// SettingsAgentConfigured says "Configured"
+// in the language the app shows under cx.
+func SettingsAgentConfigured(cx *core.Scope) string { return For(cx).SettingsAgentConfigured() }
+
+// SettingsAgentConfigured is the package's SettingsAgentConfigured in the language of msgs.
+func (msgs Messages) SettingsAgentConfigured() string { return msgs.text(textSettingsAgentConfigured) }
+
+// SettingsAgentCursor says "Cursor"
+// in the language the app shows under cx.
+func SettingsAgentCursor(cx *core.Scope) string { return For(cx).SettingsAgentCursor() }
+
+// SettingsAgentCursor is the package's SettingsAgentCursor in the language of msgs.
+func (msgs Messages) SettingsAgentCursor() string { return msgs.text(textSettingsAgentCursor) }
+
+// SettingsAgentFailed says "Agent integration failed: {message}"
+// in the language the app shows under cx.
+func SettingsAgentFailed(cx *core.Scope, message string) string {
+	return For(cx).SettingsAgentFailed(message)
+}
+
+// SettingsAgentFailed is the package's SettingsAgentFailed in the language of msgs.
+func (msgs Messages) SettingsAgentFailed(message string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SettingsAgentFailed(message))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SettingsAgentFailed; f != nil {
+			return f(message)
+		}
+		switch lang {
+		case "", "en":
+			return "Agent integration failed: " + msgs.arg(message)
+		case "zh-CN":
+			return "Agent 集成失败: " + message
+		}
+	}
+}
+
+// SettingsAgentHint says "Give Claude Code, Codex, Cursor, and Claude Desktop access to this workspace through the CarbonInk MCP server. Writes still go through CarbonInk's own store, EF pinning, and audit trail."
+// in the language the app shows under cx.
+func SettingsAgentHint(cx *core.Scope) string { return For(cx).SettingsAgentHint() }
+
+// SettingsAgentHint is the package's SettingsAgentHint in the language of msgs.
+func (msgs Messages) SettingsAgentHint() string { return msgs.text(textSettingsAgentHint) }
+
+// SettingsAgentInstall says "Install skill"
+// in the language the app shows under cx.
+func SettingsAgentInstall(cx *core.Scope) string { return For(cx).SettingsAgentInstall() }
+
+// SettingsAgentInstall is the package's SettingsAgentInstall in the language of msgs.
+func (msgs Messages) SettingsAgentInstall() string { return msgs.text(textSettingsAgentInstall) }
+
+// SettingsAgentNotConfigured says "Not configured"
+// in the language the app shows under cx.
+func SettingsAgentNotConfigured(cx *core.Scope) string { return For(cx).SettingsAgentNotConfigured() }
+
+// SettingsAgentNotConfigured is the package's SettingsAgentNotConfigured in the language of msgs.
+func (msgs Messages) SettingsAgentNotConfigured() string {
+	return msgs.text(textSettingsAgentNotConfigured)
+}
+
+// SettingsAgentNotInstalled says "Not detected"
+// in the language the app shows under cx.
+func SettingsAgentNotInstalled(cx *core.Scope) string { return For(cx).SettingsAgentNotInstalled() }
+
+// SettingsAgentNotInstalled is the package's SettingsAgentNotInstalled in the language of msgs.
+func (msgs Messages) SettingsAgentNotInstalled() string {
+	return msgs.text(textSettingsAgentNotInstalled)
+}
+
+// SettingsAgentPiHint says "Pi: install pi-mcporter — it discovers the carbonink server from ~/.claude.json."
+// in the language the app shows under cx.
+func SettingsAgentPiHint(cx *core.Scope) string { return For(cx).SettingsAgentPiHint() }
+
+// SettingsAgentPiHint is the package's SettingsAgentPiHint in the language of msgs.
+func (msgs Messages) SettingsAgentPiHint() string { return msgs.text(textSettingsAgentPiHint) }
+
+// SettingsAgentRemove says "Remove"
+// in the language the app shows under cx.
+func SettingsAgentRemove(cx *core.Scope) string { return For(cx).SettingsAgentRemove() }
+
+// SettingsAgentRemove is the package's SettingsAgentRemove in the language of msgs.
+func (msgs Messages) SettingsAgentRemove() string { return msgs.text(textSettingsAgentRemove) }
+
+// SettingsAgentRestartHint says "Restart the agent host (or start a new session) after changing these."
+// in the language the app shows under cx.
+func SettingsAgentRestartHint(cx *core.Scope) string { return For(cx).SettingsAgentRestartHint() }
+
+// SettingsAgentRestartHint is the package's SettingsAgentRestartHint in the language of msgs.
+func (msgs Messages) SettingsAgentRestartHint() string {
+	return msgs.text(textSettingsAgentRestartHint)
+}
+
+// SettingsAgentSkill says "Agent skill"
+// in the language the app shows under cx.
+func SettingsAgentSkill(cx *core.Scope) string { return For(cx).SettingsAgentSkill() }
+
+// SettingsAgentSkill is the package's SettingsAgentSkill in the language of msgs.
+func (msgs Messages) SettingsAgentSkill() string { return msgs.text(textSettingsAgentSkill) }
+
+// SettingsAgentSkillDone says "Agent skill installed."
+// in the language the app shows under cx.
+func SettingsAgentSkillDone(cx *core.Scope) string { return For(cx).SettingsAgentSkillDone() }
+
+// SettingsAgentSkillDone is the package's SettingsAgentSkillDone in the language of msgs.
+func (msgs Messages) SettingsAgentSkillDone() string { return msgs.text(textSettingsAgentSkillDone) }
+
+// SettingsAgentSkillInstalled says "Installed"
+// in the language the app shows under cx.
+func SettingsAgentSkillInstalled(cx *core.Scope) string { return For(cx).SettingsAgentSkillInstalled() }
+
+// SettingsAgentSkillInstalled is the package's SettingsAgentSkillInstalled in the language of msgs.
+func (msgs Messages) SettingsAgentSkillInstalled() string {
+	return msgs.text(textSettingsAgentSkillInstalled)
+}
+
+// SettingsAgentSkillMissing says "Not installed"
+// in the language the app shows under cx.
+func SettingsAgentSkillMissing(cx *core.Scope) string { return For(cx).SettingsAgentSkillMissing() }
+
+// SettingsAgentSkillMissing is the package's SettingsAgentSkillMissing in the language of msgs.
+func (msgs Messages) SettingsAgentSkillMissing() string {
+	return msgs.text(textSettingsAgentSkillMissing)
+}
+
+// SettingsAgentSkillRemoved says "Agent skill removed."
+// in the language the app shows under cx.
+func SettingsAgentSkillRemoved(cx *core.Scope) string { return For(cx).SettingsAgentSkillRemoved() }
+
+// SettingsAgentSkillRemoved is the package's SettingsAgentSkillRemoved in the language of msgs.
+func (msgs Messages) SettingsAgentSkillRemoved() string {
+	return msgs.text(textSettingsAgentSkillRemoved)
+}
+
+// SettingsAgentSkillUpdate says "Update available"
+// in the language the app shows under cx.
+func SettingsAgentSkillUpdate(cx *core.Scope) string { return For(cx).SettingsAgentSkillUpdate() }
+
+// SettingsAgentSkillUpdate is the package's SettingsAgentSkillUpdate in the language of msgs.
+func (msgs Messages) SettingsAgentSkillUpdate() string {
+	return msgs.text(textSettingsAgentSkillUpdate)
+}
+
+// SettingsAgentTitle says "Agent integration"
+// in the language the app shows under cx.
+func SettingsAgentTitle(cx *core.Scope) string { return For(cx).SettingsAgentTitle() }
+
+// SettingsAgentTitle is the package's SettingsAgentTitle in the language of msgs.
+func (msgs Messages) SettingsAgentTitle() string { return msgs.text(textSettingsAgentTitle) }
+
+// SettingsAgentUpdate says "Update"
+// in the language the app shows under cx.
+func SettingsAgentUpdate(cx *core.Scope) string { return For(cx).SettingsAgentUpdate() }
+
+// SettingsAgentUpdate is the package's SettingsAgentUpdate in the language of msgs.
+func (msgs Messages) SettingsAgentUpdate() string { return msgs.text(textSettingsAgentUpdate) }
+
 // SettingsAiCacheClear says "Clear AI cache"
 // in the language the app shows under cx.
 func SettingsAiCacheClear(cx *core.Scope) string { return For(cx).SettingsAiCacheClear() }
@@ -20314,13 +20725,28 @@ func (msgs Messages) SettingsModelCustomOption(id string) string {
 	}
 }
 
-// SettingsModelFetchFailed says "Fetch failed"
+// SettingsModelFetchFailed says "Fetch failed: {message}"
 // in the language the app shows under cx.
-func SettingsModelFetchFailed(cx *core.Scope) string { return For(cx).SettingsModelFetchFailed() }
+func SettingsModelFetchFailed(cx *core.Scope, message string) string {
+	return For(cx).SettingsModelFetchFailed(message)
+}
 
 // SettingsModelFetchFailed is the package's SettingsModelFetchFailed in the language of msgs.
-func (msgs Messages) SettingsModelFetchFailed() string {
-	return msgs.text(textSettingsModelFetchFailed)
+func (msgs Messages) SettingsModelFetchFailed(message string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SettingsModelFetchFailed(message))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SettingsModelFetchFailed; f != nil {
+			return f(message)
+		}
+		switch lang {
+		case "", "en":
+			return "Fetch failed: " + msgs.arg(message)
+		case "zh-CN":
+			return "获取失败: " + message
+		}
+	}
 }
 
 // SettingsModelFetchLatest says "Fetch latest"
@@ -20383,6 +20809,15 @@ func SettingsModelStale(cx *core.Scope) string { return For(cx).SettingsModelSta
 
 // SettingsModelStale is the package's SettingsModelStale in the language of msgs.
 func (msgs Messages) SettingsModelStale() string { return msgs.text(textSettingsModelStale) }
+
+// SettingsModelSuggestedLabel says "Suggested models"
+// in the language the app shows under cx.
+func SettingsModelSuggestedLabel(cx *core.Scope) string { return For(cx).SettingsModelSuggestedLabel() }
+
+// SettingsModelSuggestedLabel is the package's SettingsModelSuggestedLabel in the language of msgs.
+func (msgs Messages) SettingsModelSuggestedLabel() string {
+	return msgs.text(textSettingsModelSuggestedLabel)
+}
 
 // SettingsNavLabel says "Settings categories"
 // in the language the app shows under cx.
@@ -20481,6 +20916,61 @@ func SettingsProviderGuidanceAccount(cx *core.Scope) string {
 // SettingsProviderGuidanceAccount is the package's SettingsProviderGuidanceAccount in the language of msgs.
 func (msgs Messages) SettingsProviderGuidanceAccount() string {
 	return msgs.text(textSettingsProviderGuidanceAccount)
+}
+
+// SettingsProviderGuidanceAnthropic says "Global endpoint; expect higher latency from China. Strong long-form writing."
+// in the language the app shows under cx.
+func SettingsProviderGuidanceAnthropic(cx *core.Scope) string {
+	return For(cx).SettingsProviderGuidanceAnthropic()
+}
+
+// SettingsProviderGuidanceAnthropic is the package's SettingsProviderGuidanceAnthropic in the language of msgs.
+func (msgs Messages) SettingsProviderGuidanceAnthropic() string {
+	return msgs.text(textSettingsProviderGuidanceAnthropic)
+}
+
+// SettingsProviderGuidanceCustom says "Any OpenAI-compatible endpoint. Models are typed by hand."
+// in the language the app shows under cx.
+func SettingsProviderGuidanceCustom(cx *core.Scope) string {
+	return For(cx).SettingsProviderGuidanceCustom()
+}
+
+// SettingsProviderGuidanceCustom is the package's SettingsProviderGuidanceCustom in the language of msgs.
+func (msgs Messages) SettingsProviderGuidanceCustom() string {
+	return msgs.text(textSettingsProviderGuidanceCustom)
+}
+
+// SettingsProviderGuidanceDeepseek says "Low latency from China. Strong Chinese. Pay-per-token, low cost."
+// in the language the app shows under cx.
+func SettingsProviderGuidanceDeepseek(cx *core.Scope) string {
+	return For(cx).SettingsProviderGuidanceDeepseek()
+}
+
+// SettingsProviderGuidanceDeepseek is the package's SettingsProviderGuidanceDeepseek in the language of msgs.
+func (msgs Messages) SettingsProviderGuidanceDeepseek() string {
+	return msgs.text(textSettingsProviderGuidanceDeepseek)
+}
+
+// SettingsProviderGuidanceMoonshot says "China-hosted Kimi models with good Chinese support."
+// in the language the app shows under cx.
+func SettingsProviderGuidanceMoonshot(cx *core.Scope) string {
+	return For(cx).SettingsProviderGuidanceMoonshot()
+}
+
+// SettingsProviderGuidanceMoonshot is the package's SettingsProviderGuidanceMoonshot in the language of msgs.
+func (msgs Messages) SettingsProviderGuidanceMoonshot() string {
+	return msgs.text(textSettingsProviderGuidanceMoonshot)
+}
+
+// SettingsProviderGuidanceOpenai says "Global endpoint; expect higher latency from China."
+// in the language the app shows under cx.
+func SettingsProviderGuidanceOpenai(cx *core.Scope) string {
+	return For(cx).SettingsProviderGuidanceOpenai()
+}
+
+// SettingsProviderGuidanceOpenai is the package's SettingsProviderGuidanceOpenai in the language of msgs.
+func (msgs Messages) SettingsProviderGuidanceOpenai() string {
+	return msgs.text(textSettingsProviderGuidanceOpenai)
 }
 
 // SettingsProviderModelLabel says "Model"

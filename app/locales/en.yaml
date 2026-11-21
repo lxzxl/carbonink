@@ -1058,6 +1058,30 @@ settingsAboutUserData: Data folder
 settingsAboutVersion: Version
 settingsAboutWebsiteLabel: Website
 settingsAboutWebsiteUrl: carbonink.xyz
+settingsAgentBusy: Working…
+settingsAgentClaudeCode: Claude Code
+settingsAgentClaudeDesktop: Claude Desktop
+settingsAgentClientConfigured: '{client} MCP entry written.'
+settingsAgentClientRemoved: '{client} MCP entry removed.'
+settingsAgentConfigure: Configure
+settingsAgentConfigured: Configured
+settingsAgentCursor: Cursor
+settingsAgentFailed: 'Agent integration failed: {message}'
+settingsAgentHint: Give Claude Code, Codex, Cursor, and Claude Desktop access to this workspace through the CarbonInk MCP server. Writes still go through CarbonInk's own store, EF pinning, and audit trail.
+settingsAgentInstall: Install skill
+settingsAgentNotConfigured: Not configured
+settingsAgentNotInstalled: Not detected
+settingsAgentPiHint: 'Pi: install pi-mcporter — it discovers the carbonink server from ~/.claude.json.'
+settingsAgentRemove: Remove
+settingsAgentRestartHint: Restart the agent host (or start a new session) after changing these.
+settingsAgentSkill: Agent skill
+settingsAgentSkillDone: Agent skill installed.
+settingsAgentSkillInstalled: Installed
+settingsAgentSkillMissing: Not installed
+settingsAgentSkillRemoved: Agent skill removed.
+settingsAgentSkillUpdate: Update available
+settingsAgentTitle: Agent integration
+settingsAgentUpdate: Update
 settingsAiCacheClear: Clear AI cache
 settingsAiCacheClearFailed: Failed to clear AI cache
 settingsAiCacheCleared: Cleared {count} cached result(s).
@@ -1171,7 +1195,7 @@ settingsModelCapabilityImage: Image
 settingsModelCapabilityReasoning: Reasoning
 settingsModelCustomHint: 'Custom id: not in the bundled catalog. Test the connection before saving.'
 settingsModelCustomOption: Use "{id}" as a custom model id
-settingsModelFetchFailed: Fetch failed
+settingsModelFetchFailed: 'Fetch failed: {message}'
 settingsModelFetchLatest: Fetch latest
 settingsModelFetchNoKey: Enter an API key first (or save one), then fetch.
 settingsModelFetchSuccess: Model list updated.
@@ -1179,6 +1203,7 @@ settingsModelFetching: Fetching…
 settingsModelPickerPlaceholder: Select a model…
 settingsModelSearchPlaceholder: Search models…
 settingsModelStale: List may be outdated.
+settingsModelSuggestedLabel: Suggested models
 settingsNavLabel: Settings categories
 settingsOrgBasicHeading: Company identity
 settingsOrgProfileHeading: Organization Profile (ISO 14064-1)
@@ -1190,6 +1215,11 @@ settingsProviderCustom: Custom (OpenAI-compatible)
 settingsProviderGroupAll: All providers
 settingsProviderGroupRecommended: Recommended
 settingsProviderGuidanceAccount: Get an account
+settingsProviderGuidanceAnthropic: Global endpoint; expect higher latency from China. Strong long-form writing.
+settingsProviderGuidanceCustom: Any OpenAI-compatible endpoint. Models are typed by hand.
+settingsProviderGuidanceDeepseek: Low latency from China. Strong Chinese. Pay-per-token, low cost.
+settingsProviderGuidanceMoonshot: China-hosted Kimi models with good Chinese support.
+settingsProviderGuidanceOpenai: Global endpoint; expect higher latency from China.
 settingsProviderModelLabel: Model
 settingsProviderPickerLabel: Provider
 settingsProviderPickerPlaceholder: Select a provider…
