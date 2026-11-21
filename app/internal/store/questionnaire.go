@@ -128,11 +128,12 @@ type QuestionnaireInput struct {
 // SaveAnswerInput upserts one answer. Finalize stamps finalized_at; an
 // already-finalized answer keeps its stamp unless Finalize is set.
 type SaveAnswerInput struct {
-	QuestionID string
-	Value      string
-	Unit       string
-	SourceKind string
-	Finalize   bool
+	QuestionID    string
+	Value         string
+	Unit          string
+	SourceKind    string
+	SourceSummary string
+	Finalize      bool
 }
 
 // QuestionSignature is the v1 reuse key: the hex SHA-256 of the normalized
@@ -348,11 +349,15 @@ func (s *Store) CreateQuestionnaire(ctx context.Context, in QuestionnaireInput) 
 		usedPositions[position] = true
 		signature := QuestionSignature(q.NormalizedText)
 		qid := newID()
+		rawText := q.RawText
+		if strings.TrimSpace(rawText) == "" {
+			rawText = q.NormalizedText
+		}
 		if _, err := tx.ExecContext(ctx, `INSERT INTO question
 			(id, questionnaire_id, question_signature, signature_version, normalized_text, raw_text,
 			 parsed_intent, question_kind, expected_unit, position, required, tier)
 			VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?)`,
-			qid, id, signature, SignatureVersion, q.NormalizedText, nullIfEmpty(q.RawText),
+			qid, id, signature, SignatureVersion, q.NormalizedText, rawText,
 			q.QuestionKind, nullIfEmpty(q.ExpectedUnit), nullIfEmpty(position), boolInt(q.Required),
 			nullIfZero(q.Tier)); err != nil {
 			return "", 0, err
@@ -444,10 +449,7 @@ func scanQuestionnaire(row rowScanner) (Questionnaire, error) {
 	return q, err
 }
 
-// ListQuestions returns a questionnaire's questions in canonical order with
-// their answers folded in.
-func (s *Store) ListQuestions(ctx context.Context, questionnaireID string) ([]Question, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT q.id, q.questionnaire_id, q.question_signature,
+const questionSelect = `SELECT q.id, q.questionnaire_id, q.question_signature,
 			q.signature_version, coalesce(q.normalized_text, ''), coalesce(q.raw_text, ''),
 			coalesce(q.parsed_intent, ''), q.question_kind, coalesce(q.expected_unit, ''),
 			coalesce(q.position, ''), q.required, coalesce(q.tier, 0),
@@ -459,7 +461,25 @@ func (s *Store) ListQuestions(ctx context.Context, questionnaireID string) ([]Qu
 			coalesce(a.source_company_profile_key, ''),
 			coalesce(a.source_narrative_bank_id, '')
 		FROM question q
-		LEFT JOIN answer a ON a.question_id = q.id
+		LEFT JOIN answer a ON a.question_id = q.id`
+
+// QuestionByID reads one question with its answer, when present.
+func (s *Store) QuestionByID(ctx context.Context, id string) (*Question, error) {
+	row := s.db.QueryRowContext(ctx, questionSelect+` WHERE q.id = ?`, id)
+	q, err := scanQuestion(row)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &q, nil
+}
+
+// ListQuestions returns a questionnaire's questions in canonical order with
+// their answers folded in.
+func (s *Store) ListQuestions(ctx context.Context, questionnaireID string) ([]Question, error) {
+	rows, err := s.db.QueryContext(ctx, questionSelect+`
 		WHERE q.questionnaire_id = ?
 		ORDER BY q.position, q.id`, questionnaireID)
 	if err != nil {
@@ -468,21 +488,28 @@ func (s *Store) ListQuestions(ctx context.Context, questionnaireID string) ([]Qu
 	defer rows.Close()
 	var out []Question
 	for rows.Next() {
-		var q Question
-		var required int
-		if err := rows.Scan(&q.ID, &q.QuestionnaireID, &q.QuestionSignature, &q.SignatureVersion,
-			&q.NormalizedText, &q.RawText, &q.ParsedIntent, &q.QuestionKind, &q.ExpectedUnit,
-			&q.Position, &required, &q.Tier,
-			&q.AnswerID, &q.AnswerValue, &q.AnswerUnit, &q.AnswerSourceKind,
-			&q.AnswerSourceSummary, &q.AnswerFinalizedAt,
-			&q.AnswerSourceSnapshotID, &q.AnswerSourceActivityID, &q.AnswerSourceProfileKey,
-			&q.AnswerSourceNarrativeID); err != nil {
+		q, err := scanQuestion(rows)
+		if err != nil {
 			return nil, err
 		}
-		q.Required = required != 0
 		out = append(out, q)
 	}
 	return out, rows.Err()
+}
+
+func scanQuestion(row rowScanner) (Question, error) {
+	var q Question
+	var required int
+	err := row.Scan(&q.ID, &q.QuestionnaireID, &q.QuestionSignature, &q.SignatureVersion,
+		&q.NormalizedText, &q.RawText, &q.ParsedIntent, &q.QuestionKind, &q.ExpectedUnit,
+		&q.Position, &required, &q.Tier,
+		&q.AnswerID, &q.AnswerValue, &q.AnswerUnit, &q.AnswerSourceKind,
+		&q.AnswerSourceSummary, &q.AnswerFinalizedAt,
+		&q.AnswerSourceSnapshotID, &q.AnswerSourceActivityID, &q.AnswerSourceProfileKey,
+		&q.AnswerSourceNarrativeID)
+	q.Required = required != 0
+	q.AnswerSourceSummary = decodeSummary(q.AnswerSourceSummary)
+	return q, err
 }
 
 // FinalizeQuestionnaire stamps every draft answer and moves the status to
@@ -569,6 +596,7 @@ func scanAnswer(row rowScanner) (Answer, error) {
 	err := row.Scan(&a.ID, &a.QuestionID, &a.Value, &a.Unit, &a.SourceKind, &a.SourceSummary,
 		&a.FinalizedAt, &a.SourceCalculationID, &a.SourceActivityDataID,
 		&a.SourceCompanyProfileID, &a.SourceNarrativeBankID)
+	a.SourceSummary = decodeSummary(a.SourceSummary)
 	return a, err
 }
 
@@ -602,10 +630,19 @@ func (s *Store) SaveAnswer(ctx context.Context, in SaveAnswerInput) (*Answer, er
 		if in.Finalize {
 			finalized = now()
 		}
+		summary := any(nil)
+		if strings.TrimSpace(in.SourceSummary) != "" {
+			encoded, err := json.Marshal(in.SourceSummary)
+			if err != nil {
+				return nil, err
+			}
+			summary = string(encoded)
+		}
 		if _, err := s.db.ExecContext(ctx, `INSERT INTO answer
 			(id, question_id, value, unit, source_kind, source_summary, finalized_at)
-			VALUES (?, ?, ?, ?, ?, NULL, ?)`,
-			newID(), questionID, in.Value, nullIfEmpty(in.Unit), sourceKind, finalized); err != nil {
+			VALUES (?, ?, ?, ?, ?, ?, ?)`,
+			newID(), questionID, in.Value, nullIfEmpty(in.Unit), sourceKind, summary,
+			finalized); err != nil {
 			return nil, err
 		}
 	} else {
@@ -679,4 +716,17 @@ func validJSONOrEmpty(s string) any {
 func jsonValid(s string) bool {
 	var v any
 	return json.Unmarshal([]byte(s), &v) == nil
+}
+
+// decodeSummary unwraps the JSON string the answer table stores. Rows written
+// by other tools may carry a JSON object; those stay as-is.
+func decodeSummary(s string) string {
+	if s == "" {
+		return ""
+	}
+	var text string
+	if err := json.Unmarshal([]byte(s), &text); err == nil {
+		return text
+	}
+	return s
 }

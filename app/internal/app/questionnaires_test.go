@@ -41,17 +41,29 @@ func TestImportQuestionnaireAndEditAnswers(t *testing.T) {
 		t.Fatal(err)
 	}
 	var calls atomic.Int32
+	var agentCalls atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := readAll(r)
 		if bytes.Contains(body, []byte("save_questions")) {
 			calls.Add(1)
+			w.Header().Set("Content-Type", "text/event-stream")
+			fmt.Fprintf(w, "data: %s\n\n", fmt.Sprintf(
+				`{"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","type":"function","function":{"name":"save_questions","arguments":%s}}]}}]}`,
+				arguments))
+			fmt.Fprint(w, "data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"tool_calls\"}]}\n\n")
+			fmt.Fprint(w, "data: [DONE]\n\n")
+			return
 		}
-		w.Header().Set("Content-Type", "text/event-stream")
-		fmt.Fprintf(w, "data: %s\n\n", fmt.Sprintf(
-			`{"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","type":"function","function":{"name":"save_questions","arguments":%s}}]}}]}`,
-			arguments))
-		fmt.Fprint(w, "data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"tool_calls\"}]}\n\n")
-		fmt.Fprint(w, "data: [DONE]\n\n")
+		w.Header().Set("Content-Type", "application/json")
+		if agentCalls.Add(1) == 1 {
+			fmt.Fprint(w, `{"choices":[{"message":{"content":"","tool_calls":[`+
+				`{"id":"agent_1","type":"function","function":{"name":"list_activities",`+
+				`"arguments":"{\"year\":2025}"}}]}}]}`)
+			return
+		}
+		fmt.Fprint(w, `{"choices":[{"message":{"content":"","tool_calls":[`+
+			`{"id":"agent_2","type":"function","function":{"name":"submit_response",`+
+			`"arguments":"{\"value\":\"120000\",\"unit\":\"kWh\",\"source_summary\":\"derived from act-1\"}"}}]}}]}`)
 	}))
 	defer srv.Close()
 
@@ -85,7 +97,12 @@ func TestImportQuestionnaireAndEditAnswers(t *testing.T) {
 	ui.WaitFor("text:Describe your transition plan", 3*time.Second)
 	ui.WaitFor("text:0 of 2 answered", 3*time.Second)
 	ui.Press("id:questionnaires-question-0")
-	ui.Type("id:questionnaires-answer-value", "120000")
+	ui.Press("id:questionnaires-answer-generate")
+	ui.WaitFor("text:Answer saved", 10*time.Second)
+	ui.WaitFor("text:1 of 2 answered", 3*time.Second)
+	if agentCalls.Load() != 2 {
+		t.Fatalf("agent calls = %d, want 2", agentCalls.Load())
+	}
 	ui.Press("id:questionnaires-answer-finalize")
 	ui.WaitFor("text:Answer saved", 5*time.Second)
 	ui.WaitFor("text:1 of 2 answered", 3*time.Second)

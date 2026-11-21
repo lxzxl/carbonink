@@ -150,6 +150,7 @@
   "answer_finalized": "已定稿",
   "answer_finalized_hint": "已定稿。如需修改请先撤销定稿。",
   "answer_generate": "生成答案",
+  "answer_generate_no_data": "模型判断现有库存数据无法回答该题",
   "answer_generate_all_button": "批量生成未答",
   "answer_generate_all_done": "已生成 {ok} 条，{failed} 条失败",
   "answer_generate_all_empty": "所有题目均已回答。",

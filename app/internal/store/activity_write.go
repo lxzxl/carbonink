@@ -430,6 +430,12 @@ func activityByID(ctx context.Context, q queryer, id string) (*Activity, error) 
 	return &a, nil
 }
 
+// RecordAuditEvent appends one audit row. Payloads carry ids, names, counts
+// and decision flags only — never prompt or answer content.
+func (s *Store) RecordAuditEvent(ctx context.Context, kind string, payload map[string]any) error {
+	return writeAudit(ctx, s.db, kind, now(), payload)
+}
+
 // DeleteActivity removes a ledger row unless a questionnaire answer still
 // references it. Evidence links are removed with the row; source documents
 // remain. The deletion is audited.

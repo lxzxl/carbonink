@@ -150,6 +150,7 @@
   "answer_finalized": "Finalized",
   "answer_finalized_hint": "Finalized. Unfinalize to edit.",
   "answer_generate": "Generate answer",
+  "answer_generate_no_data": "The model found no inventory data that answers this question",
   "answer_generate_all_button": "Generate all unanswered",
   "answer_generate_all_done": "{ok} answered, {failed} failed",
   "answer_generate_all_empty": "All questions already answered.",

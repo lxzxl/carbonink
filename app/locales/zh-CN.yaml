@@ -167,6 +167,7 @@ answerGenerateAllDone: 已生成 {ok} 条，{failed} 条失败
 answerGenerateAllEmpty: 所有题目均已回答。
 answerGenerateAllRunning: 生成中…
 answerGenerateErrorLabel: 上次生成失败
+answerGenerateNoData: 模型判断现有库存数据无法回答该题
 answerGenerating: 生成中…
 answerInventoryEmpty: 本年度无库存数据，需手动填写。
 answerNotGenerated: 尚未生成

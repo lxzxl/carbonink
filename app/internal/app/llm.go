@@ -49,3 +49,12 @@ func newExtractor(provider extraction.Provider) llm.Extractor {
 	}
 	return &llm.Client{BaseURL: provider.BaseURL, APIKey: provider.APIKey, Model: provider.Model}
 }
+
+// newAgentRunner picks the multi-turn adapter for the configured provider.
+func newAgentRunner(provider extraction.Provider) llm.AgentRunner {
+	if provider.Name == "anthropic" {
+		return &llm.AnthropicClient{BaseURL: provider.BaseURL, APIKey: provider.APIKey,
+			Model: provider.Model}
+	}
+	return &llm.Client{BaseURL: provider.BaseURL, APIKey: provider.APIKey, Model: provider.Model}
+}

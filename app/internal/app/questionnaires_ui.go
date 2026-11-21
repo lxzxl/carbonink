@@ -2,12 +2,14 @@ package app
 
 import (
 	"context"
+	"errors"
 	"io"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
+	"app.carbonink.desktop/internal/answer"
 	"app.carbonink.desktop/internal/questionnaire"
 	"app.carbonink.desktop/internal/store"
 	"app.carbonink.desktop/locales"
@@ -52,6 +54,7 @@ type questionnaireDetail struct {
 	selectedID        *core.Signal[string]
 	selectedTitle     *core.Signal[string]
 	selectedFinalized *core.Signal[bool]
+	selectedAnswered  *core.Signal[bool]
 	value             *core.Signal[string]
 	unit              *core.Signal[string]
 
@@ -195,6 +198,7 @@ func newQuestionnaireDetail(cx *core.Scope, db *store.Store) *questionnaireDetai
 		selectedID:        core.NewSignal(cx, ""),
 		selectedTitle:     core.NewSignal(cx, ""),
 		selectedFinalized: core.NewSignal(cx, false),
+		selectedAnswered:  core.NewSignal(cx, false),
 		value:             core.NewSignal(cx, ""),
 		unit:              core.NewSignal(cx, ""),
 		db:                db,
@@ -440,8 +444,118 @@ func (d *questionnaireDetail) selectQuestion(index int) {
 	d.value.Set(q.AnswerValue)
 	d.unit.Set(firstNonEmpty(q.AnswerUnit, q.ExpectedUnit))
 	d.selectedFinalized.Set(q.AnswerFinalizedAt != "")
+	d.selectedAnswered.Set(q.Answered())
 	d.message.Set("")
 	d.failed.Set(false)
+}
+
+// syncSelected folds a reloaded question row back into the editor.
+func (d *questionnaireDetail) syncSelected() {
+	id := d.selectedID.Get()
+	if id == "" {
+		return
+	}
+	for _, q := range d.questions {
+		if q.ID != id {
+			continue
+		}
+		d.value.Set(q.AnswerValue)
+		d.unit.Set(firstNonEmpty(q.AnswerUnit, q.ExpectedUnit))
+		d.selectedFinalized.Set(q.AnswerFinalizedAt != "")
+		d.selectedAnswered.Set(q.Answered())
+		return
+	}
+}
+
+func (s *Session) answerService(cx *core.Scope) *answer.Service {
+	return &answer.Service{Store: s.db, Provider: s.llmProvider(cx),
+		NewClient: newExtractor, NewRunner: newAgentRunner}
+}
+
+// answerErrorText localizes the generation errors the user can act on.
+func answerErrorText(cx *core.Scope, err error) string {
+	var noData *answer.NoDataError
+	switch {
+	case errors.Is(err, answer.ErrInventoryEmpty):
+		return locales.AnswerInventoryEmpty(cx)
+	case errors.As(err, &noData):
+		if noData.Reason != "" {
+			return locales.AnswerGenerateErrorLabel(cx) + ": " + noData.Reason
+		}
+		return locales.AnswerGenerateNoData(cx)
+	case errors.Is(err, answer.ErrInbound):
+		return locales.AnswerGenerateErrorLabel(cx)
+	default:
+		return locales.AnswerGenerateErrorLabel(cx) + ": " + err.Error()
+	}
+}
+
+func (d *questionnaireDetail) generate(s *Session, cx *core.Scope,
+	dataRev *core.Signal[int]) {
+	id := d.selectedID.Get()
+	if id == "" {
+		return
+	}
+	generating := locales.AnswerGenerating(cx)
+	d.busy.Set(true)
+	d.failed.Set(false)
+	d.message.Set(generating)
+	go func() {
+		answerRow, err := s.answerService(cx).Generate(context.Background(), id)
+		s.scope.Post(func() {
+			d.busy.Set(false)
+			if err != nil {
+				d.failed.Set(true)
+				d.message.Set(answerErrorText(cx, err))
+				return
+			}
+			d.message.Set(locales.QuestionnairesAnswerSaved(cx))
+			d.selectedFinalized.Set(answerRow.FinalizedAt != "")
+			d.selectedAnswered.Set(true)
+			_ = d.load()
+			d.syncSelected()
+			_ = dataRefresh(s, dataRev)
+		})
+	}()
+}
+
+func (d *questionnaireDetail) generateAll(s *Session, cx *core.Scope,
+	dataRev *core.Signal[int]) {
+	if d.id == "" {
+		return
+	}
+	running := locales.AnswerGenerateAllRunning(cx)
+	d.busy.Set(true)
+	d.failed.Set(false)
+	d.message.Set(running)
+	go func() {
+		results, err := s.answerService(cx).GenerateAll(context.Background(), d.id)
+		ok, failed := 0, 0
+		for _, result := range results {
+			if result.Err == nil {
+				ok++
+			} else {
+				failed++
+			}
+		}
+		s.scope.Post(func() {
+			d.busy.Set(false)
+			if err != nil {
+				d.failed.Set(true)
+				d.message.Set(answerErrorText(cx, err))
+				return
+			}
+			if len(results) == 0 {
+				d.message.Set(locales.AnswerGenerateAllEmpty(cx))
+				return
+			}
+			d.failed.Set(failed > 0)
+			d.message.Set(locales.AnswerGenerateAllDone(cx, strconv.Itoa(ok), strconv.Itoa(failed)))
+			_ = d.load()
+			d.syncSelected()
+			_ = dataRefresh(s, dataRev)
+		})
+	}()
 }
 
 func (d *questionnaireDetail) save(s *Session, cx *core.Scope, dataRev *core.Signal[int],
@@ -468,6 +582,7 @@ func (d *questionnaireDetail) save(s *Session, cx *core.Scope, dataRev *core.Sig
 		d.failed.Set(true)
 		d.message.Set(err.Error())
 	}
+	d.syncSelected()
 	if err := dataRefresh(s, dataRev); err != nil {
 		d.failed.Set(true)
 		d.message.Set(err.Error())
@@ -491,6 +606,7 @@ func (d *questionnaireDetail) unfinalize(s *Session, cx *core.Scope) {
 	d.message.Set(locales.QuestionnairesAnswerSaved(cx))
 	d.selectedFinalized.Set(answer.FinalizedAt != "")
 	_ = d.load()
+	d.syncSelected()
 }
 
 func (d *questionnaireDetail) finalizeAll(s *Session, cx *core.Scope,
@@ -512,6 +628,7 @@ func (d *questionnaireDetail) finalizeAll(s *Session, cx *core.Scope,
 		d.status.Set(q.Status)
 	}
 	_ = d.load()
+	d.syncSelected()
 	_ = dataRefresh(s, dataRev)
 }
 
@@ -680,11 +797,16 @@ func (d *questionnaireDetail) dialog(cx *core.Scope, s *Session,
 						ui.Input{Value: d.unit.Get, OnChange: d.unit.Set,
 							TestID: "questionnaires-answer-unit"})}},
 			}})
-			actions := []core.Node{
-				ui.Button{Text: locales.AnswerSave(cx), Variant: ui.ButtonSecondary,
-					OnPress: func() { d.save(s, cx, dataRev, false) }, Busy: d.busy.Get,
-					TestID: "questionnaires-answer-save"},
+			actions := make([]core.Node, 0, 3)
+			if !d.selectedAnswered.Get() {
+				actions = append(actions, ui.Button{Text: locales.AnswerGenerate(cx),
+					OnPress: func() { d.generate(s, cx, dataRev) }, Busy: d.busy.Get,
+					TestID: "questionnaires-answer-generate"})
 			}
+			actions = append(actions, ui.Button{Text: locales.AnswerSave(cx),
+				Variant: ui.ButtonSecondary,
+				OnPress: func() { d.save(s, cx, dataRev, false) }, Busy: d.busy.Get,
+				TestID: "questionnaires-answer-save"})
 			if d.selectedFinalized.Get() {
 				actions = append(actions, ui.Button{Text: locales.AnswerUnfinalize(cx),
 					Variant: ui.ButtonSecondary,
@@ -729,6 +851,9 @@ func (d *questionnaireDetail) dialog(cx *core.Scope, s *Session,
 		footer := []core.Node{
 			ui.Button{Text: locales.QuestionnairesDetailClose(cx), Variant: ui.ButtonSecondary,
 				OnPress: func() { d.open.Set(false) }, TestID: "questionnaires-detail-close"},
+			ui.Button{Text: locales.AnswerGenerateAllButton(cx), Variant: ui.ButtonSecondary,
+				OnPress: func() { d.generateAll(s, cx, dataRev) }, Busy: d.busy.Get,
+				TestID: "questionnaires-generate-all"},
 			ui.Button{Text: locales.AnswerExportButton(cx), Variant: ui.ButtonSecondary,
 				OnPress: func() { d.exportXLSX(s, cx, dataRev) }, Busy: d.busy.Get,
 				TestID: "questionnaires-export-xlsx"},

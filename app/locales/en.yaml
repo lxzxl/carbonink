@@ -168,6 +168,7 @@ answerGenerateAllDone: '{ok} answered, {failed} failed'
 answerGenerateAllEmpty: All questions already answered.
 answerGenerateAllRunning: Generating…
 answerGenerateErrorLabel: Last generation failed
+answerGenerateNoData: The model found no inventory data that answers this question
 answerGenerating: Generating…
 answerInventoryEmpty: No inventory data for this year — manual answer required.
 answerNotGenerated: Not yet generated

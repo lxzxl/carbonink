@@ -173,6 +173,27 @@ func (s *Store) Activities(ctx context.Context, limit int) ([]Activity, error) {
 	return out, rows.Err()
 }
 
+// ActivitiesForYear returns every ledger row whose reporting period is year.
+func (s *Store) ActivitiesForYear(ctx context.Context, year int) ([]Activity, error) {
+	rows, err := s.db.QueryContext(ctx, activitySelect+`
+		JOIN reporting_period rp ON rp.id = a.reporting_period_id
+		WHERE rp.year = ?
+		ORDER BY a.occurred_at_start DESC, a.id`, year)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []Activity
+	for rows.Next() {
+		a, err := scanActivity(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, a)
+	}
+	return out, rows.Err()
+}
+
 // ActivityCount is the number of ledger rows.
 func (s *Store) ActivityCount(ctx context.Context) (int, error) {
 	var n int

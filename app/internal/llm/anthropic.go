@@ -50,6 +50,7 @@ type anthropicRequest struct {
 
 type anthropicResponse struct {
 	Content []struct {
+		ID    string          `json:"id"`
 		Type  string          `json:"type"`
 		Text  string          `json:"text"`
 		Name  string          `json:"name"`

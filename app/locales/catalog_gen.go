@@ -509,6 +509,7 @@ const (
 	textAnswerGenerateAllEmpty
 	textAnswerGenerateAllRunning
 	textAnswerGenerateErrorLabel
+	textAnswerGenerateNoData
 	textAnswerGenerating
 	textAnswerInventoryEmpty
 	textAnswerNotGenerated
@@ -1708,6 +1709,7 @@ var keyOfText = [numTexts]string{
 	"answerGenerateAllEmpty",
 	"answerGenerateAllRunning",
 	"answerGenerateErrorLabel",
+	"answerGenerateNoData",
 	"answerGenerating",
 	"answerInventoryEmpty",
 	"answerNotGenerated",
@@ -2905,6 +2907,7 @@ var textsEn = i18n.NewTexts(""+
 	"All questions already answered."+
 	"Generating…"+
 	"Last generation failed"+
+	"The model found no inventory data that answers this question"+
 	"Generating…"+
 	"No inventory data for this year — manual answer required."+
 	"Not yet generated"+
@@ -4099,6 +4102,7 @@ var textsEn = i18n.NewTexts(""+
 		31,
 		13,
 		22,
+		60,
 		13,
 		59,
 		17,
@@ -5296,6 +5300,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"所有题目均已回答。"+
 	"生成中…"+
 	"上次生成失败"+
+	"模型判断现有库存数据无法回答该题"+
 	"生成中…"+
 	"本年度无库存数据，需手动填写。"+
 	"尚未生成"+
@@ -6490,6 +6495,7 @@ var textsZhCN = i18n.NewTexts(""+
 		27,
 		12,
 		18,
+		48,
 		12,
 		45,
 		12,
@@ -9772,6 +9778,13 @@ func AnswerGenerateErrorLabel(cx *core.Scope) string { return For(cx).AnswerGene
 func (msgs Messages) AnswerGenerateErrorLabel() string {
 	return msgs.text(textAnswerGenerateErrorLabel)
 }
+
+// AnswerGenerateNoData says "The model found no inventory data that answers this question"
+// in the language the app shows under cx.
+func AnswerGenerateNoData(cx *core.Scope) string { return For(cx).AnswerGenerateNoData() }
+
+// AnswerGenerateNoData is the package's AnswerGenerateNoData in the language of msgs.
+func (msgs Messages) AnswerGenerateNoData() string { return msgs.text(textAnswerGenerateNoData) }
 
 // AnswerGenerating says "Generating…"
 // in the language the app shows under cx.
