@@ -55,6 +55,7 @@ type Session struct {
 	periods        []store.ReportingPeriod
 	sources        []store.EmissionSource
 	summary        store.Summary
+	totals         store.ReportTotals
 	activities     []store.Activity
 	documents      []store.Document
 	documentTotal  int
@@ -203,6 +204,7 @@ func (s *Session) reload(ctx context.Context) error {
 	s.periods = nil
 	s.sources = nil
 	s.summary = store.Summary{}
+	s.totals = store.ReportTotals{}
 	if org != nil {
 		if s.sites, err = s.db.ListSites(ctx, org.ID); err != nil {
 			return err
@@ -215,6 +217,11 @@ func (s *Session) reload(ctx context.Context) error {
 		}
 		if s.summary, err = s.db.Summary(ctx, org.ID); err != nil {
 			return err
+		}
+		if len(s.periods) > 0 {
+			if s.totals, err = s.db.ActivityTotals(ctx, s.periods[len(s.periods)-1].ID); err != nil {
+				return err
+			}
 		}
 	}
 	s.activities, err = s.db.Activities(ctx, 5000)
@@ -300,7 +307,7 @@ func (s *Session) view(cx *core.Scope) core.Node {
 		core.Show{When: func() bool { return active.Get() == ScreenActivities },
 			Then: func(cx *core.Scope) core.Node { return s.activitiesScreen(cx, dataRev) }},
 		core.Show{When: func() bool { return active.Get() == ScreenDashboard },
-			Then: func(cx *core.Scope) core.Node { return s.dashboardScreen(cx, dataRev) }},
+			Then: func(cx *core.Scope) core.Node { return s.dashboardScreen(cx, dataRev, active) }},
 		core.Show{When: func() bool { return active.Get() == ScreenSources },
 			Then: func(cx *core.Scope) core.Node { return s.sourcesScreen(cx, dataRev) }},
 		core.Show{When: func() bool { return active.Get() == ScreenDocuments },

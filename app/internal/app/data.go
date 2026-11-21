@@ -255,7 +255,8 @@ func dataYearPeriod(periods []store.ReportingPeriod) *store.ReportingPeriod {
 
 // dashboardScreen is the workspace overview and the entry point for the
 // organization, site, period, source, and activity setup flows.
-func (s *Session) dashboardScreen(cx *core.Scope, dataRev *core.Signal[int]) core.Node {
+func (s *Session) dashboardScreen(cx *core.Scope, dataRev *core.Signal[int],
+	active *core.Signal[Screen]) core.Node {
 	if s.organization == nil {
 		return s.onboardingScreen(cx, dataRev)
 	}
@@ -266,14 +267,15 @@ func (s *Session) dashboardScreen(cx *core.Scope, dataRev *core.Signal[int]) cor
 			Children: []core.Node{
 				core.Dynamic(func(cx *core.Scope) core.Node {
 					_ = dataRev.Get()
-					return s.dashboardBody(cx, dataRev)
+					return s.dashboardBody(cx, dataRev, active)
 				}),
 			},
 		}},
 	}
 }
 
-func (s *Session) dashboardBody(cx *core.Scope, dataRev *core.Signal[int]) core.Node {
+func (s *Session) dashboardBody(cx *core.Scope, dataRev *core.Signal[int],
+	active *core.Signal[Screen]) core.Node {
 	org := s.organization
 	summary := s.summary
 	orgName := dataOrgName(org)
@@ -289,6 +291,17 @@ func (s *Session) dashboardBody(cx *core.Scope, dataRev *core.Signal[int]) core.
 			core.Text{Content: strconv.Itoa(value), Style: core.Style{FontSize: 22, FontWeight: ui.Bold}},
 			core.Text{Content: label, Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 		}}
+	}
+	co2e := func(testID, label string, value float64) core.Node {
+		return core.View{TestID: testID, Style: core.Style{FlexGrow: 1, FlexBasis: core.Pt(0), Gap: 2},
+			Children: []core.Node{
+				core.Text{Content: commaFloat(value), Style: core.Style{FontSize: 22, FontWeight: ui.Bold}},
+				core.Text{Content: label, Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+			}}
+	}
+	totalsPeriod := ""
+	if len(s.periods) > 0 {
+		totalsPeriod = strconv.Itoa(s.periods[len(s.periods)-1].Year) + " · kgCO2e"
 	}
 
 	siteRows := []core.Node{}
@@ -336,6 +349,17 @@ func (s *Session) dashboardBody(cx *core.Scope, dataRev *core.Signal[int]) core.
 
 	return core.View{Style: core.Style{Gap: 12}, Children: []core.Node{
 		dataCard(cx,
+			dataHeading(cx, locales.DashboardInventoryTitle(cx), totalsPeriod),
+			core.View{TestID: "dashboard-totals", Style: core.Style{Direction: core.Row, Gap: 16},
+				Children: []core.Node{
+					co2e("dashboard-total", locales.DashboardTotalCo2e(cx), s.totals.TotalKg),
+					co2e("dashboard-scope1", locales.DashboardScope1(cx), s.totals.Scope1Kg),
+					co2e("dashboard-scope2", locales.DashboardScope2(cx), s.totals.Scope2Kg),
+					co2e("dashboard-scope3", locales.DashboardScope3(cx), s.totals.Scope3Kg),
+				}},
+		),
+		s.gettingStartedCard(cx, active),
+		dataCard(cx,
 			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 12}, Children: []core.Node{
 				core.View{Style: core.Style{Gap: 3, FlexGrow: 1}, Children: []core.Node{
 					core.Text{Content: locales.DataOrgCard(cx), Style: core.Style{FontSize: 12, FontWeight: ui.Semibold},
@@ -379,6 +403,79 @@ func (s *Session) dashboardBody(cx *core.Scope, dataRev *core.Signal[int]) core.
 			}},
 		),
 	}}
+}
+
+// gettingStartedCard is the zero-state path from an empty inventory to a
+// report. It mirrors the dependency chain — source, activity, report — and
+// reads live state, so the only button is the next unfinished step.
+func (s *Session) gettingStartedCard(cx *core.Scope, active *core.Signal[Screen]) core.Node {
+	if s.totals.TotalKg != 0 {
+		return core.View{}
+	}
+	steps := []struct {
+		key    string
+		done   bool
+		screen Screen
+		title  func(*core.Scope) string
+		body   func(*core.Scope) string
+		cta    func(*core.Scope) string
+	}{
+		{"sources", len(s.sources) > 0, ScreenSources,
+			locales.DashboardStartSourcesTitle, locales.DashboardStartSourcesBody,
+			locales.DashboardStartSourcesCta},
+		{"activities", len(s.activities) > 0, ScreenActivities,
+			locales.DashboardStartActivitiesTitle, locales.DashboardStartActivitiesBody,
+			locales.DashboardStartActivitiesCta},
+		{"report", false, ScreenReports,
+			locales.DashboardStartReportTitle, locales.DashboardStartReportBody,
+			locales.DashboardStartReportCta},
+	}
+	current := len(steps) - 1
+	for i := range steps {
+		if !steps[i].done {
+			current = i
+			break
+		}
+	}
+
+	colors := ui.ColorsOf(cx)
+	rows := make([]core.Node, 0, len(steps))
+	for i := range steps {
+		i := i
+		step := steps[i]
+		marker := core.Text{Content: strconv.Itoa(i + 1),
+			Style:     core.Style{FontSize: 12, Width: core.Pt(18), FontWeight: ui.Semibold},
+			StyleFunc: ui.Colored(colors.Muted)}
+		title := core.Text{Content: step.title(cx), Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}}
+		if step.done {
+			marker = core.Text{Content: "✓", Style: core.Style{FontSize: 13, Width: core.Pt(18)},
+				StyleFunc: ui.Colored(colors.Accent)}
+			title = core.Text{Content: step.title(cx), Style: core.Style{FontSize: 13},
+				StyleFunc: ui.Colored(colors.Muted)}
+		}
+		text := []core.Node{title}
+		if i == current {
+			text = append(text,
+				core.Text{Content: step.body(cx), Style: core.Style{FontSize: 12},
+					StyleFunc: ui.Colored(colors.Muted), MaxLines: 3},
+				core.View{Style: core.Style{Direction: core.Row}, Children: []core.Node{
+					ui.Button{Text: step.cta(cx), OnPress: func() { active.Set(step.screen) },
+						TestID: "dashboard-start-" + step.key},
+				}})
+		}
+		rows = append(rows, core.View{
+			Style: core.Style{Direction: core.Row, Gap: 10, Padding: core.Symmetric(9, 0),
+				Borders: core.Edges{Bottom: 1}},
+			StyleFunc: func() core.Style { return core.Style{BorderColor: colors.Line()} },
+			Children: []core.Node{marker, core.View{Style: core.Style{Gap: 4, FlexGrow: 1},
+				Children: text}},
+		})
+	}
+
+	return dataCard(cx,
+		dataHeading(cx, locales.DashboardStartTitle(cx), locales.DashboardStartSubtitle(cx)),
+		core.View{Style: core.Style{Gap: 0}, Children: rows},
+	)
 }
 
 func dataActiveLabel(cx *core.Scope, active bool) string {

@@ -323,6 +323,65 @@ func TestUpdateActivityRecomputesAndAuditsRebind(t *testing.T) {
 	}
 }
 
+// TestActivityTotalsByScope proves the dashboard's light query groups computed
+// CO2e by the source's scope and adds up to the same total.
+func TestActivityTotalsByScope(t *testing.T) {
+	s, ctx := openFixture(t)
+	_, site, period := onboard(t, s, ctx)
+
+	var want ReportTotals
+	for _, spec := range []struct {
+		name, category, path, search string
+		scope                        int
+	}{
+		{"Gasoline", "fuel.mobile", "scope1.mobile_combustion", "gasoline", 1},
+		{"Electricity", "electricity.grid", "scope2.location", "national", 2},
+		{"Business travel", "travel", "scope3", "", 3},
+	} {
+		src, err := s.CreateSource(ctx, SourceInput{SiteID: site.ID, Name: spec.name,
+			Scope: spec.scope, Category: spec.category, GHGProtocolPath: spec.path})
+		if err != nil {
+			t.Fatal(err)
+		}
+		ef := findFactor(t, s, ctx, EFFilter{Scope: spec.scope, Search: spec.search})
+		activity, err := s.CreateActivity(ctx, ActivityInput{
+			EmissionSourceID: src.ID, ReportingPeriodID: period.ID,
+			OccurredAtStart: "2025-01-01", OccurredAtEnd: "2025-01-31",
+			Amount: 100, Unit: ef.InputUnit, EF: keyOf(ef),
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		switch spec.scope {
+		case 1:
+			want.Scope1Kg += activity.CO2eKg
+		case 2:
+			want.Scope2Kg += activity.CO2eKg
+		case 3:
+			want.Scope3Kg += activity.CO2eKg
+		}
+		want.TotalKg += activity.CO2eKg
+	}
+
+	got, err := s.ActivityTotals(ctx, period.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name      string
+		got, want float64
+	}{
+		{"scope1", got.Scope1Kg, want.Scope1Kg},
+		{"scope2", got.Scope2Kg, want.Scope2Kg},
+		{"scope3", got.Scope3Kg, want.Scope3Kg},
+		{"total", got.TotalKg, want.TotalKg},
+	} {
+		if math.Abs(tc.got-tc.want) > 0.0001 {
+			t.Fatalf("%s = %v, want %v (all: %+v)", tc.name, tc.got, tc.want, got)
+		}
+	}
+}
+
 func TestImportActivitiesSkipsBadRowsAndKeepsAudits(t *testing.T) {
 	s, ctx := openFixture(t)
 	org, site, period := onboard(t, s, ctx)

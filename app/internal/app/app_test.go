@@ -75,7 +75,8 @@ func TestCommandPalette(t *testing.T) {
 // TestCreateActivityThroughUI proves the add-activity dialog pins an EF and
 // writes a row the ledger immediately renders.
 func TestCreateActivityThroughUI(t *testing.T) {
-	t.Setenv("CARBONINK_TEST_DB", fixtureDB(t))
+	dbPath := fixtureDB(t)
+	t.Setenv("CARBONINK_TEST_DB", dbPath)
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}))
 	ui.WaitFor("id:activities-table", 5*time.Second)
@@ -85,6 +86,62 @@ func TestCreateActivityThroughUI(t *testing.T) {
 	ui.Type("id:activity-unit", "kWh")
 	ui.Press("id:activity-save")
 	ui.WaitFor("text:100.00", 3*time.Second)
+	ui.Press("id:nav:dashboard")
+	ui.WaitFor("id:dashboard-totals", 3*time.Second)
+	ctx := context.Background()
+	check, err := store.Open(ctx, dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	totals, err := check.ActivityTotals(ctx, "period")
+	check.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if totals.TotalKg <= 0 || totals.Scope2Kg != totals.TotalKg {
+		t.Fatalf("totals = %+v", totals)
+	}
+	ui.WaitFor("id:dashboard-total >> text:"+commaFloat(totals.TotalKg), 3*time.Second)
+	ui.WaitFor("id:dashboard-scope2 >> text:"+commaFloat(totals.Scope2Kg), 3*time.Second)
+	ui.WaitFor("id:dashboard-total >> text:Total CO2e", 3*time.Second)
+}
+
+// TestGettingStartedCardLeadsToSources proves a freshly onboarded workspace
+// with no inventory gets the dependency-ordered checklist, and its one button
+// opens the first unfinished step.
+func TestGettingStartedCardLeadsToSources(t *testing.T) {
+	ctx := context.Background()
+	path := filepath.Join(t.TempDir(), "empty.sqlite")
+	s, err := store.Open(ctx, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Migrate(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, _, err := s.CompleteOnboarding(ctx, store.OnboardingInput{
+		Organization: store.OrganizationInput{NameZH: "新公司", NameEN: "New Co",
+			CountryCode: "CN", BoundaryKind: "operational_control"},
+		Site: store.SiteInput{NameZH: "上海工厂", NameEN: "Shanghai Plant", CountryCode: "CN"},
+		Year: 2025,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Close(); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("CARBONINK_TEST_DB", path)
+
+	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
+		nsgotest.Environment(core.Environment{Locale: "en-US"}))
+	ui.WaitFor("id:activities-table", 5*time.Second)
+	ui.Press("id:nav:dashboard")
+	ui.WaitFor("text:Start here", 3*time.Second)
+	ui.WaitFor("text:Set up emission sources", 2*time.Second)
+	ui.WaitForGone("id:dashboard-start-activities", time.Second)
+
+	ui.Press("id:dashboard-start-sources")
+	ui.WaitFor("id:source-add", 5*time.Second)
 }
 
 // TestEditActivityThroughUI selects a ledger row, edits its amount and

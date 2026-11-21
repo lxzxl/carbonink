@@ -57,6 +57,22 @@ type ReportTotals struct {
 	TotalKg  float64
 }
 
+// ActivityTotals sums computed CO2e by source scope for one reporting period.
+// It is the dashboard's light alternative to loading a whole ReportInventory.
+func (s *Store) ActivityTotals(ctx context.Context, periodID string) (ReportTotals, error) {
+	var totals ReportTotals
+	err := s.db.QueryRowContext(ctx, `SELECT
+			coalesce(sum(CASE WHEN es.scope = 1 THEN a.computed_co2e_kg END), 0),
+			coalesce(sum(CASE WHEN es.scope = 2 THEN a.computed_co2e_kg END), 0),
+			coalesce(sum(CASE WHEN es.scope = 3 THEN a.computed_co2e_kg END), 0),
+			coalesce(sum(a.computed_co2e_kg), 0)
+		FROM activity_data a
+		JOIN emission_source es ON es.id = a.emission_source_id
+		WHERE a.reporting_period_id = ?`, periodID).
+		Scan(&totals.Scope1Kg, &totals.Scope2Kg, &totals.Scope3Kg, &totals.TotalKg)
+	return totals, err
+}
+
 // ReportSource is one emission source's share of the inventory.
 type ReportSource struct {
 	Name     string
