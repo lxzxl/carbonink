@@ -24,12 +24,20 @@ type importWizard struct {
 	busy   *core.Signal[bool]
 
 	periodID *core.Signal[string]
+	dataRev  *core.Signal[int]
 	grid     *activityimport.Grid
 	filename string
 	mapping  activityimport.Mapping
 	valid    activityimport.Validation
 
 	sourceIDs map[string]*core.Signal[string]
+
+	creatorName     *core.Signal[string]
+	creatorScope    *core.Signal[int]
+	creatorSite     *core.Signal[string]
+	creatorCategory *core.Signal[string]
+	creatorStatus   *core.Signal[string]
+	creatorBusy     *core.Signal[bool]
 
 	groups    []activityimport.Group
 	outliers  []activityimport.Issue
@@ -44,16 +52,23 @@ type importWizard struct {
 func (s *Session) activityImportDialog(cx *core.Scope, dataRev *core.Signal[int]) core.Node {
 	open := core.NewSignal(cx, false)
 	w := &importWizard{
-		step:      core.NewSignal(cx, 0),
-		rev:       core.NewSignal(cx, 0),
-		status:    core.NewSignal(cx, ""),
-		result:    core.NewSignal(cx, ""),
-		busy:      core.NewSignal(cx, false),
-		periodID:  core.NewSignal(cx, ""),
-		sourceIDs: map[string]*core.Signal[string]{},
-		efOptions: map[string][]store.EmissionFactor{},
-		efKeys:    map[string]*core.Signal[string]{},
-		fuels:     map[string]*core.Signal[string]{},
+		step:            core.NewSignal(cx, 0),
+		rev:             core.NewSignal(cx, 0),
+		status:          core.NewSignal(cx, ""),
+		result:          core.NewSignal(cx, ""),
+		busy:            core.NewSignal(cx, false),
+		periodID:        core.NewSignal(cx, ""),
+		dataRev:         dataRev,
+		sourceIDs:       map[string]*core.Signal[string]{},
+		creatorName:     core.NewSignal(cx, ""),
+		creatorScope:    core.NewSignal(cx, 1),
+		creatorSite:     core.NewSignal(cx, ""),
+		creatorCategory: core.NewSignal(cx, ""),
+		creatorStatus:   core.NewSignal(cx, ""),
+		creatorBusy:     core.NewSignal(cx, false),
+		efOptions:       map[string][]store.EmissionFactor{},
+		efKeys:          map[string]*core.Signal[string]{},
+		fuels:           map[string]*core.Signal[string]{},
 	}
 	reset := func() {
 		w.grid = nil
@@ -67,6 +82,9 @@ func (s *Session) activityImportDialog(cx *core.Scope, dataRev *core.Signal[int]
 		w.efKeys = map[string]*core.Signal[string]{}
 		w.fuels = map[string]*core.Signal[string]{}
 		w.failures = nil
+		w.creatorName.Set("")
+		w.creatorStatus.Set("")
+		w.creatorCategory.Set("")
 		w.step.Set(0)
 		w.status.Set("")
 		w.result.Set("")
@@ -314,21 +332,34 @@ func importSourcesCard(cx *core.Scope, s *Session, w *importWizard) core.Node {
 		if sig.Get() != "" {
 			status = locales.ActivityImportSourceMatched(cx)
 		}
-		rows = append(rows, core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 10},
+		entry := core.View{Style: core.Style{Gap: 6, Padding: core.Symmetric(9, 0),
+			Borders: core.Edges{Bottom: 1}},
+			StyleFunc: func() core.Style { return core.Style{BorderColor: ui.ColorsOf(cx).Line()} },
 			Children: []core.Node{
-				core.View{Style: core.Style{Gap: 2, FlexGrow: 1}, Children: []core.Node{
-					core.Text{Content: name, Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}},
-					core.Text{Content: locales.ActivityImportSourceRows(cx, strconv.Itoa(counts[name])),
-						Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-				}},
-				core.Text{Content: status, Style: core.Style{FontSize: 11},
-					StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
-				core.View{Style: core.Style{Width: core.Pt(280)}, Children: []core.Node{
-					ui.Select[string]{Options: options, Value: sig.Get, OnChange: sig.Set,
-						Placeholder: locales.ActivityImportSourceSelectPlaceholder(cx),
-						Label:       name, TestID: "activity-import-source-" + name},
-				}},
-			}})
+				core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 10},
+					Children: []core.Node{
+						core.View{Style: core.Style{Gap: 2, FlexGrow: 1}, Children: []core.Node{
+							core.Text{Content: name, Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}},
+							core.Text{Content: locales.ActivityImportSourceRows(cx, strconv.Itoa(counts[name])),
+								Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+						}},
+						core.Text{Content: status, Style: core.Style{FontSize: 11},
+							StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
+						core.View{Style: core.Style{Width: core.Pt(280)}, Children: []core.Node{
+							ui.Select[string]{Options: options, Value: sig.Get, OnChange: func(next string) {
+								sig.Set(next)
+								s.importPrepareGroups(cx, w)
+								w.rev.Set(w.rev.Get() + 1)
+							},
+								Placeholder: locales.ActivityImportSourceSelectPlaceholder(cx),
+								Label:       name, TestID: "activity-import-source-" + name},
+						}},
+					}},
+			}}
+		if sig.Get() == "" {
+			entry.Children = append(entry.Children, s.importSourceCreator(cx, w, name))
+		}
+		rows = append(rows, entry)
 	}
 	if len(rows) == 0 {
 		rows = append(rows, core.Text{Content: locales.ActivityImportErrorNothingToImport(cx),
@@ -338,6 +369,85 @@ func importSourcesCard(cx *core.Scope, s *Session, w *importWizard) core.Node {
 		dataHeading(cx, locales.ActivityImportSourcesHeading(cx), locales.ActivityImportSourcesBody(cx)),
 		core.View{Style: core.Style{Gap: 6}, Children: rows},
 	)
+}
+
+func (s *Session) importSourceCreator(cx *core.Scope, w *importWizard, name string) core.Node {
+	if w.creatorName.Get() != name {
+		return core.View{Children: []core.Node{
+			ui.Button{Text: locales.ActivityImportSourceCreateButton(cx), Variant: ui.ButtonSecondary,
+				OnPress: func() {
+					w.creatorName.Set(name)
+					w.creatorScope.Set(1)
+					if len(s.sites) > 0 {
+						w.creatorSite.Set(s.sites[0].ID)
+					} else {
+						w.creatorSite.Set("")
+					}
+					w.creatorCategory.Set("")
+					w.creatorStatus.Set("")
+					w.rev.Set(w.rev.Get() + 1)
+				}, TestID: "activity-import-source-create-" + name},
+		}}
+	}
+	siteOptions := make([]ui.Option[string], 0, len(s.sites))
+	for _, site := range s.sites {
+		siteOptions = append(siteOptions, ui.Option[string]{Value: site.ID, Label: dataSiteName(site)})
+	}
+	return core.View{Style: core.Style{Gap: 6}, Children: []core.Node{
+		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignEnd, Gap: 8},
+			Children: []core.Node{
+				core.View{Style: core.Style{Width: core.Pt(120)}, Children: []core.Node{
+					dataField(cx, locales.ActivityImportSourceCreateScope(cx),
+						ui.Select[int]{Options: dataScopeOptions(cx), Value: w.creatorScope.Get,
+							OnChange: w.creatorScope.Set, Label: locales.ActivityImportSourceCreateScope(cx),
+							TestID: "activity-import-create-scope"}),
+				}},
+				core.View{Style: core.Style{Width: core.Pt(200)}, Children: []core.Node{
+					dataField(cx, locales.ActivityImportSourceCreateSite(cx),
+						ui.Select[string]{Options: siteOptions, Value: w.creatorSite.Get,
+							OnChange: w.creatorSite.Set, Label: locales.ActivityImportSourceCreateSite(cx),
+							TestID: "activity-import-create-site"}),
+				}},
+				core.View{Style: core.Style{FlexGrow: 1, MinWidth: core.Pt(160)}, Children: []core.Node{
+					dataField(cx, locales.ActivityImportSourceCreateCategory(cx),
+						ui.Input{Value: w.creatorCategory.Get, OnChange: w.creatorCategory.Set,
+							TestID: "activity-import-create-category"}),
+				}},
+				ui.Button{Text: locales.ActivityImportSourceCreateButton(cx), Busy: w.creatorBusy.Get,
+					OnPress: func() { s.importCreateSource(cx, w, name) },
+					TestID:  "activity-import-create-save"},
+			}},
+		dataError(cx, w.creatorStatus),
+	}}
+}
+
+func (s *Session) importCreateSource(cx *core.Scope, w *importWizard, name string) {
+	if w.creatorSite.Get() == "" {
+		w.creatorStatus.Set(locales.SourcesCatalogNoSite(cx))
+		w.rev.Set(w.rev.Get() + 1)
+		return
+	}
+	w.creatorBusy.Set(true)
+	created, err := s.db.CreateSource(context.Background(), store.SourceInput{
+		SiteID: w.creatorSite.Get(), Name: name, Scope: w.creatorScope.Get(),
+		Category: strings.TrimSpace(w.creatorCategory.Get()),
+	})
+	w.creatorBusy.Set(false)
+	if err != nil {
+		w.creatorStatus.Set(err.Error())
+		w.rev.Set(w.rev.Get() + 1)
+		return
+	}
+	if sig := w.sourceIDs[name]; sig != nil {
+		sig.Set(created.ID)
+	}
+	w.creatorName.Set("")
+	w.creatorStatus.Set("")
+	if w.dataRev != nil {
+		_ = dataRefresh(s, w.dataRev)
+	}
+	s.importPrepareGroups(cx, w)
+	w.rev.Set(w.rev.Get() + 1)
 }
 
 func importIssuesCard(cx *core.Scope, w *importWizard) core.Node {

@@ -172,6 +172,65 @@ func TestImportActivitiesWithManualMapping(t *testing.T) {
 	ui.WaitFor("text:5.59", 3*time.Second)
 }
 
+// TestImportActivitiesCreatesMissingSource proves an unresolved ledger name
+// can be turned into a real emission source without leaving the wizard.
+func TestImportActivitiesCreatesMissingSource(t *testing.T) {
+	dbPath := fixtureDB(t)
+	t.Setenv("CARBONINK_TEST_DB", dbPath)
+	csvPath := filepath.Join(t.TempDir(), "ledger.csv")
+	const ledger = "Source,Description,Amount,Unit,Date\n" +
+		"New boiler,Natural gas,10,kWh,2025-03-01\n"
+	if err := os.WriteFile(csvPath, []byte(ledger), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
+		nsgotest.Environment(core.Environment{Locale: "en-US"}))
+	ui.PickFiles = func(core.FilesRequest) []core.File {
+		return []core.File{{Name: "ledger.csv", Path: csvPath}}
+	}
+	ui.WaitFor("id:activities-table", 5*time.Second)
+	ui.Press("id:activity-import")
+	ui.WaitFor("id:activity-import-dialog", 2*time.Second)
+	ui.Press("id:activity-import-pick")
+	ui.WaitFor("text:1 data rows", 3*time.Second)
+	ui.WaitFor("id:activity-import-source-create-New boiler", 3*time.Second)
+
+	ui.Press("id:activity-import-source-create-New boiler")
+	ui.WaitFor("id:activity-import-create-save", 2*time.Second)
+	ui.Press("id:activity-import-create-scope")
+	ui.WaitFor("id:activity-import-create-scope-1", 2*time.Second)
+	ui.Press("id:activity-import-create-scope-1")
+	ui.Type("id:activity-import-create-category", "electricity.grid")
+	ui.Press("id:activity-import-create-save")
+	ui.WaitFor("text:Matched existing", 3*time.Second)
+
+	ctx := context.Background()
+	check, err := store.Open(ctx, dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer check.Close()
+	var scope int
+	var category string
+	if err := check.DB().QueryRowContext(ctx,
+		`SELECT scope, category FROM emission_source WHERE name = 'New boiler'`).
+		Scan(&scope, &category); err != nil {
+		t.Fatal(err)
+	}
+	if scope != 2 || category != "electricity.grid" {
+		t.Errorf("created source scope = %d, category = %q", scope, category)
+	}
+
+	ui.Press("id:activity-import-next")
+	ui.WaitFor("id:activity-import-ef-0", 3*time.Second)
+	ui.Press("id:activity-import-ef-0")
+	ui.Press("id:activity-import-ef-0-0")
+	ui.Press("id:activity-import-run")
+	ui.WaitFor("text:1 rows imported", 3*time.Second)
+	ui.Press("id:activity-import-done")
+	ui.WaitFor("text:5.59", 3*time.Second)
+}
+
 // TestImportEFLibraryThroughUI downloads the template, imports a factor
 // library from CSV, and proves the new factor reaches the activity picker.
 func TestImportEFLibraryThroughUI(t *testing.T) {

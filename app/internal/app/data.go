@@ -147,6 +147,76 @@ func sourceCategoryOptions(cx *core.Scope, scope int, current string) []ui.Optio
 	return options
 }
 
+// sourceCategoryValues resolves the stored category and path from the picker
+// signals: a taxonomy code wins, then a custom pair, else neither.
+func sourceCategoryValues(categoryCode, category, path *core.Signal[string],
+	custom *core.Signal[bool]) (string, string) {
+	if code := categoryCode.Get(); code != "" {
+		return categories.EFCategoryForCode(code), code
+	}
+	if custom.Get() {
+		return category.Get(), path.Get()
+	}
+	return "", ""
+}
+
+// sourceCategoryFields is the category picker plus its custom-value escape
+// hatch, shared by the Sources editor and the import wizard's inline creator.
+func sourceCategoryFields(cx *core.Scope, testID string, scope *core.Signal[int],
+	categoryCode, category, path *core.Signal[string], custom *core.Signal[bool]) core.Node {
+	return core.View{Style: core.Style{Gap: 10}, Children: []core.Node{
+		dataField(cx, locales.SourcesFormCategory(cx),
+			core.Dynamic(func(cx *core.Scope) core.Node {
+				value := categoryCode.Get()
+				if custom.Get() {
+					value = sourceCategoryCustom
+				}
+				return ui.Select[string]{
+					Options:     sourceCategoryOptions(cx, scope.Get(), categoryCode.Get()),
+					Value:       func() string { return value },
+					Placeholder: locales.SourcesFormCategoryPlaceholder(cx),
+					Searchable:  true, SearchPlaceholder: locales.SourcesFormCategorySearch(cx),
+					Empty: locales.SourcesFormCategoryEmpty(cx),
+					OnChange: func(next string) {
+						switch next {
+						case sourceCategoryCustom:
+							custom.Set(true)
+						case "":
+							custom.Set(false)
+							categoryCode.Set("")
+							category.Set("")
+							path.Set("")
+						default:
+							custom.Set(false)
+							categoryCode.Set(next)
+							if picked, ok := categories.ByCode(next); ok {
+								category.Set(picked.EFCategory)
+								path.Set(picked.Code)
+							}
+						}
+					},
+					Label:  locales.SourcesFormCategory(cx),
+					TestID: testID + "-category-select",
+				}
+			})),
+		core.Dynamic(func(cx *core.Scope) core.Node {
+			if !custom.Get() {
+				if categoryCode.Get() == "" {
+					return core.View{}
+				}
+				return core.Text{Content: locales.SourcesFormCategoryHint(cx),
+					Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2}
+			}
+			return core.View{Style: core.Style{Gap: 10}, Children: []core.Node{
+				dataField(cx, locales.SourcesFormCategory(cx),
+					ui.Input{Value: category.Get, OnChange: category.Set, TestID: testID + "-category"}),
+				dataField(cx, locales.SourcesFormCategoryHint(cx),
+					ui.Input{Value: path.Get, OnChange: path.Set, TestID: testID + "-path"}),
+			}}
+		}),
+	}}
+}
+
 func dataSiteName(site store.Site) string {
 	if site.NameZH != "" {
 		return site.NameZH
@@ -675,15 +745,7 @@ func (s *Session) sourceDialog(cx *core.Scope, src *store.EmissionSource, dataRe
 			status.Set(locales.SourcesCatalogNoSite(cx))
 			return
 		}
-		sourceCategory := category.Get()
-		sourcePath := path.Get()
-		if code := categoryCode.Get(); code != "" {
-			sourcePath = code
-			sourceCategory = categories.EFCategoryForCode(code)
-		} else if !customCategory.Get() {
-			sourceCategory = ""
-			sourcePath = ""
-		}
+		sourceCategory, sourcePath := sourceCategoryValues(categoryCode, category, path, customCategory)
 		busy.Set(true)
 		var err error
 		if editingID.Get() == "" {
@@ -726,55 +788,7 @@ func (s *Session) sourceDialog(cx *core.Scope, src *store.EmissionSource, dataRe
 			dataField(cx, locales.SourcesFormScope(cx),
 				ui.Select[int]{Options: dataScopeOptions(cx), Value: scope.Get, OnChange: scope.Set,
 					Label: locales.SourcesFormScope(cx), TestID: testID + "-scope"}),
-			dataField(cx, locales.SourcesFormCategory(cx),
-				core.Dynamic(func(cx *core.Scope) core.Node {
-					value := categoryCode.Get()
-					if customCategory.Get() {
-						value = sourceCategoryCustom
-					}
-					return ui.Select[string]{
-						Options:     sourceCategoryOptions(cx, scope.Get(), categoryCode.Get()),
-						Value:       func() string { return value },
-						Placeholder: locales.SourcesFormCategoryPlaceholder(cx),
-						Searchable:  true, SearchPlaceholder: locales.SourcesFormCategorySearch(cx),
-						Empty: locales.SourcesFormCategoryEmpty(cx),
-						OnChange: func(next string) {
-							switch next {
-							case sourceCategoryCustom:
-								customCategory.Set(true)
-							case "":
-								customCategory.Set(false)
-								categoryCode.Set("")
-								category.Set("")
-								path.Set("")
-							default:
-								customCategory.Set(false)
-								categoryCode.Set(next)
-								if picked, ok := categories.ByCode(next); ok {
-									category.Set(picked.EFCategory)
-									path.Set(picked.Code)
-								}
-							}
-						},
-						Label:  locales.SourcesFormCategory(cx),
-						TestID: testID + "-category-select",
-					}
-				})),
-			core.Dynamic(func(cx *core.Scope) core.Node {
-				if !customCategory.Get() {
-					if categoryCode.Get() == "" {
-						return core.View{}
-					}
-					return core.Text{Content: locales.SourcesFormCategoryHint(cx),
-						Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2}
-				}
-				return core.View{Style: core.Style{Gap: 10}, Children: []core.Node{
-					dataField(cx, locales.SourcesFormCategory(cx),
-						ui.Input{Value: category.Get, OnChange: category.Set, TestID: testID + "-category"}),
-					dataField(cx, locales.SourcesFormCategoryHint(cx),
-						ui.Input{Value: path.Get, OnChange: path.Set, TestID: testID + "-path"}),
-				}}
-			}),
+			sourceCategoryFields(cx, testID, scope, categoryCode, category, path, customCategory),
 			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8}, Children: []core.Node{
 				ui.Switch{Checked: active.Get, OnChange: active.Set, Label: locales.SourceEditActiveLabel(cx),
 					TestID: testID + "-active"},
