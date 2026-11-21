@@ -330,10 +330,16 @@ documentsExtracting: Extracting…
 documentsExtractingVision: Recognizing image (longer wait)…
 documentsExtractionDone: Extraction ready for review
 documentsExtractionFailed: Extraction failed
+documentsExtractionFields: Extracted fields
+documentsExtractionHint: Reads the PDF text with the selected stage and stages the result for review.
+documentsExtractionNoText: This PDF has no text layer. Image recognition is not available yet.
+documentsExtractionNotConfigured: Set up an AI provider in Settings first.
+documentsExtractionReviewHint: Check the fields below before adding them to your activity data.
 documentsExtractionRunAgain: Run again
 documentsExtractionRunNow: Run extraction
 documentsExtractionRunning: Extracting...
 documentsExtractionStarted: Extraction started
+documentsExtractionTitle: AI extraction
 documentsFilterClear: Clear filters
 documentsFilterEmpty: No matching documents
 documentsFilterStatusAll: All statuses
@@ -1027,9 +1033,12 @@ settingsAiCacheCleared: Cleared {count} cached result(s).
 settingsAiCacheClearing: Clearing…
 settingsAiCacheHint: Keeps repeat AI answers (EF matches, readiness) so re-runs don't re-pay. Safe to clear any time.
 settingsAiCacheLabel: AI cache
+settingsAiHint: Used for document extraction. The API key is kept in the system keychain, never in the workspace file.
 settingsApikeyLabel: API key
+settingsApikeyPlaceholder: Leave empty to keep the saved key
 settingsApikeyReplace: Replace
 settingsApikeySaved: Saved
+settingsApikeyUnavailable: This system has no secure store, so the key cannot be saved here.
 settingsAppearance: Appearance
 settingsBaseYearLabel: Base year
 settingsBaseYearNone: (not selected)
@@ -1146,6 +1155,7 @@ settingsOrgProfileSubheading: Used by the inventory report.
 settingsOrgReportingHeading: Reporting profile
 settingsPickerNoMatch: No matches
 settingsProviderBaseUrlLabelAdvanced: Override base URL (advanced)
+settingsProviderCustom: Custom (OpenAI-compatible)
 settingsProviderGroupAll: All providers
 settingsProviderGroupRecommended: Recommended
 settingsProviderGuidanceAccount: Get an account

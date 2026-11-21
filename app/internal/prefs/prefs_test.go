@@ -18,7 +18,10 @@ func TestLoadMissing(t *testing.T) {
 
 func TestRoundTrip(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "nested", "settings.json")
-	want := Settings{Theme: "dark", Locale: "zh-CN", Window: &Window{X: 10, Y: 20, Width: 1280, Height: 820}}
+	want := Settings{Theme: "dark", Locale: "zh-CN",
+		LLMProvider: "deepseek", LLMBaseURL: "https://api.deepseek.com/v1",
+		LLMModel: "deepseek-chat",
+		Window:   &Window{X: 10, Y: 20, Width: 1280, Height: 820}}
 	if err := Save(path, want); err != nil {
 		t.Fatal(err)
 	}
@@ -26,7 +29,9 @@ func TestRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Theme != want.Theme || got.Locale != want.Locale || got.Window == nil || *got.Window != *want.Window {
+	if got.Theme != want.Theme || got.Locale != want.Locale ||
+		got.LLMProvider != want.LLMProvider || got.LLMBaseURL != want.LLMBaseURL ||
+		got.LLMModel != want.LLMModel || got.Window == nil || *got.Window != *want.Window {
 		t.Fatalf("Load = %+v, want %+v", got, want)
 	}
 	info, err := os.Stat(path)

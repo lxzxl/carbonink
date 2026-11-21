@@ -18,6 +18,13 @@ type Settings struct {
 	Theme string `json:"theme,omitempty"`
 	// Locale is a BCP 47 tag, or "" to follow the system.
 	Locale string `json:"locale,omitempty"`
+	// LLMProvider names the chosen OpenAI-compatible preset ("openai",
+	// "deepseek", "moonshot" or "custom").
+	LLMProvider string `json:"llmProvider,omitempty"`
+	// LLMBaseURL is the endpoint root, without /chat/completions.
+	LLMBaseURL string `json:"llmBaseURL,omitempty"`
+	// LLMModel is the model id sent in each request.
+	LLMModel string `json:"llmModel,omitempty"`
 	// Window is the last main-window frame, nil before the first quit.
 	Window *Window `json:"window,omitempty"`
 }

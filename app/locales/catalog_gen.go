@@ -647,10 +647,16 @@ const (
 	textDocumentsExtractingVision
 	textDocumentsExtractionDone
 	textDocumentsExtractionFailed
+	textDocumentsExtractionFields
+	textDocumentsExtractionHint
+	textDocumentsExtractionNoText
+	textDocumentsExtractionNotConfigured
+	textDocumentsExtractionReviewHint
 	textDocumentsExtractionRunAgain
 	textDocumentsExtractionRunNow
 	textDocumentsExtractionRunning
 	textDocumentsExtractionStarted
+	textDocumentsExtractionTitle
 	textDocumentsFilterClear
 	textDocumentsFilterEmpty
 	textDocumentsFilterStatusAll
@@ -1254,9 +1260,12 @@ const (
 	textSettingsAiCacheClearing
 	textSettingsAiCacheHint
 	textSettingsAiCacheLabel
+	textSettingsAiHint
 	textSettingsApikeyLabel
+	textSettingsApikeyPlaceholder
 	textSettingsApikeyReplace
 	textSettingsApikeySaved
+	textSettingsApikeyUnavailable
 	textSettingsAppearance
 	textSettingsBaseYearLabel
 	textSettingsBaseYearNone
@@ -1363,6 +1372,7 @@ const (
 	textSettingsOrgReportingHeading
 	textSettingsPickerNoMatch
 	textSettingsProviderBaseUrlLabelAdvanced
+	textSettingsProviderCustom
 	textSettingsProviderGroupAll
 	textSettingsProviderGroupRecommended
 	textSettingsProviderGuidanceAccount
@@ -1826,10 +1836,16 @@ var keyOfText = [numTexts]string{
 	"documentsExtractingVision",
 	"documentsExtractionDone",
 	"documentsExtractionFailed",
+	"documentsExtractionFields",
+	"documentsExtractionHint",
+	"documentsExtractionNoText",
+	"documentsExtractionNotConfigured",
+	"documentsExtractionReviewHint",
 	"documentsExtractionRunAgain",
 	"documentsExtractionRunNow",
 	"documentsExtractionRunning",
 	"documentsExtractionStarted",
+	"documentsExtractionTitle",
 	"documentsFilterClear",
 	"documentsFilterEmpty",
 	"documentsFilterStatusAll",
@@ -2433,9 +2449,12 @@ var keyOfText = [numTexts]string{
 	"settingsAiCacheClearing",
 	"settingsAiCacheHint",
 	"settingsAiCacheLabel",
+	"settingsAiHint",
 	"settingsApikeyLabel",
+	"settingsApikeyPlaceholder",
 	"settingsApikeyReplace",
 	"settingsApikeySaved",
+	"settingsApikeyUnavailable",
 	"settingsAppearance",
 	"settingsBaseYearLabel",
 	"settingsBaseYearNone",
@@ -2542,6 +2561,7 @@ var keyOfText = [numTexts]string{
 	"settingsOrgReportingHeading",
 	"settingsPickerNoMatch",
 	"settingsProviderBaseUrlLabelAdvanced",
+	"settingsProviderCustom",
 	"settingsProviderGroupAll",
 	"settingsProviderGroupRecommended",
 	"settingsProviderGuidanceAccount",
@@ -3003,10 +3023,16 @@ var textsEn = i18n.NewTexts(""+
 	"Recognizing image (longer wait)…"+
 	"Extraction ready for review"+
 	"Extraction failed"+
+	"Extracted fields"+
+	"Reads the PDF text with the selected stage and stages the result for review."+
+	"This PDF has no text layer. Image recognition is not available yet."+
+	"Set up an AI provider in Settings first."+
+	"Check the fields below before adding them to your activity data."+
 	"Run again"+
 	"Run extraction"+
 	"Extracting..."+
 	"Extraction started"+
+	"AI extraction"+
 	"Clear filters"+
 	"No matching documents"+
 	"All statuses"+
@@ -3610,9 +3636,12 @@ var textsEn = i18n.NewTexts(""+
 	"Clearing…"+
 	"Keeps repeat AI answers (EF matches, readiness) so re-runs don't re-pay. Safe to clear any time."+
 	"AI cache"+
+	"Used for document extraction. The API key is kept in the system keychain, never in the workspace file."+
 	"API key"+
+	"Leave empty to keep the saved key"+
 	"Replace"+
 	"Saved"+
+	"This system has no secure store, so the key cannot be saved here."+
 	"Appearance"+
 	"Base year"+
 	"(not selected)"+
@@ -3719,6 +3748,7 @@ var textsEn = i18n.NewTexts(""+
 	"Reporting profile"+
 	"No matches"+
 	"Override base URL (advanced)"+
+	"Custom (OpenAI-compatible)"+
 	"All providers"+
 	"Recommended"+
 	"Get an account"+
@@ -4177,10 +4207,16 @@ var textsEn = i18n.NewTexts(""+
 		34,
 		27,
 		17,
+		16,
+		76,
+		67,
+		40,
+		64,
 		9,
 		14,
 		13,
 		18,
+		13,
 		13,
 		21,
 		12,
@@ -4784,9 +4820,12 @@ var textsEn = i18n.NewTexts(""+
 		11,
 		96,
 		8,
+		102,
 		7,
+		33,
 		7,
 		5,
+		65,
 		10,
 		9,
 		14,
@@ -4893,6 +4932,7 @@ var textsEn = i18n.NewTexts(""+
 		17,
 		10,
 		28,
+		26,
 		13,
 		11,
 		14,
@@ -5354,10 +5394,16 @@ var textsZhCN = i18n.NewTexts(""+
 	"正在识别图像（需要更长时间）…"+
 	"抽取完成，待审核"+
 	"抽取失败"+
+	"抽取字段"+
+	"用所选阶段读取 PDF 文本，并把结果暂存为待审核记录。"+
+	"这个 PDF 没有文本层。图像识别尚未接入。"+
+	"请先在设置中配置 AI 服务商。"+
+	"把结果加入活动数据前，请先核对下面的字段。"+
 	"重新抽取"+
 	"开始抽取"+
 	"抽取中..."+
 	"已开始抽取"+
+	"AI 抽取"+
 	"清除筛选"+
 	"未找到匹配的文档"+
 	"全部状态"+
@@ -5961,9 +6007,12 @@ var textsZhCN = i18n.NewTexts(""+
 	"正在清空…"+
 	"保存重复的 AI 结果（EF 匹配、readiness），重复运行时不再重复计费，可随时清空。"+
 	"AI 缓存"+
+	"用于文档抽取。API 密钥保存在系统钥匙串中，不会写入工作区文件。"+
 	"API 密钥"+
+	"留空则保留已保存的密钥"+
 	"替换"+
 	"已保存"+
+	"当前系统没有安全存储，无法在此保存密钥。"+
 	"外观"+
 	"基准年"+
 	"（未选）"+
@@ -6070,6 +6119,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"报告档案"+
 	"无匹配结果"+
 	"覆盖 base URL（高级）"+
+	"自定义（OpenAI 兼容）"+
 	"全部服务商"+
 	"推荐"+
 	"去官网注册"+
@@ -6529,9 +6579,15 @@ var textsZhCN = i18n.NewTexts(""+
 		24,
 		12,
 		12,
+		74,
+		56,
+		40,
+		63,
+		12,
 		12,
 		12,
 		15,
+		9,
 		12,
 		24,
 		12,
@@ -7135,9 +7191,12 @@ var textsZhCN = i18n.NewTexts(""+
 		15,
 		109,
 		9,
+		91,
 		10,
+		33,
 		6,
 		9,
+		60,
 		6,
 		9,
 		12,
@@ -7244,6 +7303,7 @@ var textsZhCN = i18n.NewTexts(""+
 		12,
 		15,
 		27,
+		28,
 		15,
 		6,
 		15,
@@ -11119,6 +11179,53 @@ func (msgs Messages) DocumentsExtractionFailed() string {
 	return msgs.text(textDocumentsExtractionFailed)
 }
 
+// DocumentsExtractionFields says "Extracted fields"
+// in the language the app shows under cx.
+func DocumentsExtractionFields(cx *core.Scope) string { return For(cx).DocumentsExtractionFields() }
+
+// DocumentsExtractionFields is the package's DocumentsExtractionFields in the language of msgs.
+func (msgs Messages) DocumentsExtractionFields() string {
+	return msgs.text(textDocumentsExtractionFields)
+}
+
+// DocumentsExtractionHint says "Reads the PDF text with the selected stage and stages the result for review."
+// in the language the app shows under cx.
+func DocumentsExtractionHint(cx *core.Scope) string { return For(cx).DocumentsExtractionHint() }
+
+// DocumentsExtractionHint is the package's DocumentsExtractionHint in the language of msgs.
+func (msgs Messages) DocumentsExtractionHint() string { return msgs.text(textDocumentsExtractionHint) }
+
+// DocumentsExtractionNoText says "This PDF has no text layer. Image recognition is not available yet."
+// in the language the app shows under cx.
+func DocumentsExtractionNoText(cx *core.Scope) string { return For(cx).DocumentsExtractionNoText() }
+
+// DocumentsExtractionNoText is the package's DocumentsExtractionNoText in the language of msgs.
+func (msgs Messages) DocumentsExtractionNoText() string {
+	return msgs.text(textDocumentsExtractionNoText)
+}
+
+// DocumentsExtractionNotConfigured says "Set up an AI provider in Settings first."
+// in the language the app shows under cx.
+func DocumentsExtractionNotConfigured(cx *core.Scope) string {
+	return For(cx).DocumentsExtractionNotConfigured()
+}
+
+// DocumentsExtractionNotConfigured is the package's DocumentsExtractionNotConfigured in the language of msgs.
+func (msgs Messages) DocumentsExtractionNotConfigured() string {
+	return msgs.text(textDocumentsExtractionNotConfigured)
+}
+
+// DocumentsExtractionReviewHint says "Check the fields below before adding them to your activity data."
+// in the language the app shows under cx.
+func DocumentsExtractionReviewHint(cx *core.Scope) string {
+	return For(cx).DocumentsExtractionReviewHint()
+}
+
+// DocumentsExtractionReviewHint is the package's DocumentsExtractionReviewHint in the language of msgs.
+func (msgs Messages) DocumentsExtractionReviewHint() string {
+	return msgs.text(textDocumentsExtractionReviewHint)
+}
+
 // DocumentsExtractionRunAgain says "Run again"
 // in the language the app shows under cx.
 func DocumentsExtractionRunAgain(cx *core.Scope) string { return For(cx).DocumentsExtractionRunAgain() }
@@ -11153,6 +11260,15 @@ func DocumentsExtractionStarted(cx *core.Scope) string { return For(cx).Document
 // DocumentsExtractionStarted is the package's DocumentsExtractionStarted in the language of msgs.
 func (msgs Messages) DocumentsExtractionStarted() string {
 	return msgs.text(textDocumentsExtractionStarted)
+}
+
+// DocumentsExtractionTitle says "AI extraction"
+// in the language the app shows under cx.
+func DocumentsExtractionTitle(cx *core.Scope) string { return For(cx).DocumentsExtractionTitle() }
+
+// DocumentsExtractionTitle is the package's DocumentsExtractionTitle in the language of msgs.
+func (msgs Messages) DocumentsExtractionTitle() string {
+	return msgs.text(textDocumentsExtractionTitle)
 }
 
 // DocumentsFilterClear says "Clear filters"
@@ -18230,12 +18346,28 @@ func SettingsAiCacheLabel(cx *core.Scope) string { return For(cx).SettingsAiCach
 // SettingsAiCacheLabel is the package's SettingsAiCacheLabel in the language of msgs.
 func (msgs Messages) SettingsAiCacheLabel() string { return msgs.text(textSettingsAiCacheLabel) }
 
+// SettingsAiHint says "Used for document extraction. The API key is kept in the system keychain, never in the workspace file."
+// in the language the app shows under cx.
+func SettingsAiHint(cx *core.Scope) string { return For(cx).SettingsAiHint() }
+
+// SettingsAiHint is the package's SettingsAiHint in the language of msgs.
+func (msgs Messages) SettingsAiHint() string { return msgs.text(textSettingsAiHint) }
+
 // SettingsApikeyLabel says "API key"
 // in the language the app shows under cx.
 func SettingsApikeyLabel(cx *core.Scope) string { return For(cx).SettingsApikeyLabel() }
 
 // SettingsApikeyLabel is the package's SettingsApikeyLabel in the language of msgs.
 func (msgs Messages) SettingsApikeyLabel() string { return msgs.text(textSettingsApikeyLabel) }
+
+// SettingsApikeyPlaceholder says "Leave empty to keep the saved key"
+// in the language the app shows under cx.
+func SettingsApikeyPlaceholder(cx *core.Scope) string { return For(cx).SettingsApikeyPlaceholder() }
+
+// SettingsApikeyPlaceholder is the package's SettingsApikeyPlaceholder in the language of msgs.
+func (msgs Messages) SettingsApikeyPlaceholder() string {
+	return msgs.text(textSettingsApikeyPlaceholder)
+}
 
 // SettingsApikeyReplace says "Replace"
 // in the language the app shows under cx.
@@ -18250,6 +18382,15 @@ func SettingsApikeySaved(cx *core.Scope) string { return For(cx).SettingsApikeyS
 
 // SettingsApikeySaved is the package's SettingsApikeySaved in the language of msgs.
 func (msgs Messages) SettingsApikeySaved() string { return msgs.text(textSettingsApikeySaved) }
+
+// SettingsApikeyUnavailable says "This system has no secure store, so the key cannot be saved here."
+// in the language the app shows under cx.
+func SettingsApikeyUnavailable(cx *core.Scope) string { return For(cx).SettingsApikeyUnavailable() }
+
+// SettingsApikeyUnavailable is the package's SettingsApikeyUnavailable in the language of msgs.
+func (msgs Messages) SettingsApikeyUnavailable() string {
+	return msgs.text(textSettingsApikeyUnavailable)
+}
 
 // SettingsAppearance says "Appearance"
 // in the language the app shows under cx.
@@ -19328,6 +19469,13 @@ func SettingsProviderBaseUrlLabelAdvanced(cx *core.Scope) string {
 func (msgs Messages) SettingsProviderBaseUrlLabelAdvanced() string {
 	return msgs.text(textSettingsProviderBaseUrlLabelAdvanced)
 }
+
+// SettingsProviderCustom says "Custom (OpenAI-compatible)"
+// in the language the app shows under cx.
+func SettingsProviderCustom(cx *core.Scope) string { return For(cx).SettingsProviderCustom() }
+
+// SettingsProviderCustom is the package's SettingsProviderCustom in the language of msgs.
+func (msgs Messages) SettingsProviderCustom() string { return msgs.text(textSettingsProviderCustom) }
 
 // SettingsProviderGroupAll says "All providers"
 // in the language the app shows under cx.

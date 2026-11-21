@@ -2,13 +2,18 @@ package app
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"image"
 	"image/color"
 	"image/png"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -569,6 +574,90 @@ func TestPreviewImageThroughUI(t *testing.T) {
 	ui.WaitFor("id:documents-preview-dialog", 5*time.Second)
 	ui.WaitFor("id:documents-preview-image", 5*time.Second)
 	ui.Press("id:documents-preview-close")
+}
+
+// TestRunDocumentExtractionThroughUI configures an OpenAI-compatible endpoint,
+// uploads a text-layer PDF, runs the china_utility stage, and proves the
+// staged fields land in the detail dialog before being discarded.
+func TestRunDocumentExtractionThroughUI(t *testing.T) {
+	dbPath := fixtureDB(t)
+	t.Setenv("CARBONINK_TEST_DB", dbPath)
+	fixture, err := os.ReadFile(filepath.Join("..", "..", "internal", "spike", "fixtures", "pdf", "two-page-text.pdf"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pdfPath := filepath.Join(t.TempDir(), "bill.pdf")
+	if err := os.WriteFile(pdfPath, fixture, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	const reply = `{"doc_type":"china_utility","supplier_name":"国网北京市电力公司",` +
+		`"account_no":"1234567890","amount_kwh":523.5,"amount_yuan":312.7,` +
+		`"period_start":"2025-09-01","period_end":"2025-09-30","confidence":"high"}`
+	arguments, err := json.Marshal(reply)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var calls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		w.Header().Set("Content-Type", "text/event-stream")
+		fmt.Fprintf(w, "data: %s\n\n", fmt.Sprintf(
+			`{"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","type":"function","function":{"name":"save_extraction","arguments":%s}}]}}]}`,
+			arguments))
+		fmt.Fprint(w, "data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"tool_calls\"}]}\n\n")
+		fmt.Fprint(w, "data: [DONE]\n\n")
+	}))
+	defer srv.Close()
+
+	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
+		nsgotest.Environment(core.Environment{Locale: "en-US"}),
+		nsgotest.Secrets(map[string]string{llmSecretAccount: "test-key"}))
+	ui.PickFiles = func(core.FilesRequest) []core.File {
+		return []core.File{{Name: "bill.pdf", Path: pdfPath}}
+	}
+	ui.Press("id:nav:settings")
+	ui.WaitFor("id:settings-llm-base-url", 3*time.Second)
+	ui.Clear("id:settings-llm-base-url")
+	ui.Type("id:settings-llm-base-url", srv.URL)
+	ui.Clear("id:settings-llm-model")
+	ui.Type("id:settings-llm-model", "test-model")
+	ui.Press("id:settings-llm-save")
+	ui.WaitFor("text:Settings saved", 3*time.Second)
+
+	ui.Press("id:nav:documents")
+	ui.WaitFor("id:documents-upload", 3*time.Second)
+	ui.Press("id:documents-upload")
+	ui.WaitFor("text:bill.pdf", 5*time.Second)
+	ui.Press("text:Details")
+	ui.WaitFor("id:documents-detail-dialog", 3*time.Second)
+	ui.WaitFor("text:AI extraction", 3*time.Second)
+	ui.Press("id:documents-extraction-run")
+	ui.WaitFor("text:Extraction ready for review", 15*time.Second)
+	ui.WaitFor("text:国网北京市电力公司", 5*time.Second)
+	ui.WaitFor("text:523.5", 5*time.Second)
+	ui.WaitFor("text:Needs review", 3*time.Second)
+	ui.Press("id:documents-extraction-discard")
+	ui.WaitFor("text:Extraction discarded", 5*time.Second)
+	if calls.Load() != 1 {
+		t.Errorf("model calls = %d, want 1", calls.Load())
+	}
+
+	ctx := context.Background()
+	check, err := store.Open(ctx, dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer check.Close()
+	var status string
+	var parsed any
+	if err := check.DB().QueryRowContext(ctx,
+		`SELECT status, parsed_json FROM extraction`).Scan(&status, &parsed); err != nil {
+		t.Fatal(err)
+	}
+	if status != store.ExtractionRejected || parsed != nil {
+		t.Fatalf("extraction = %s, parsed = %v", status, parsed)
+	}
 }
 
 func fixtureDB(t *testing.T) string {

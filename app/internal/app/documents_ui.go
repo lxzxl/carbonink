@@ -2,15 +2,19 @@ package app
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"image"
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 
 	"app.carbonink.desktop/internal/docview"
+	"app.carbonink.desktop/internal/extraction"
 	"app.carbonink.desktop/internal/store"
 	"app.carbonink.desktop/locales"
 
@@ -33,26 +37,35 @@ type documentPreview struct {
 }
 
 type documentDetail struct {
-	open     *core.Signal[bool]
-	doc      *core.Signal[store.Document]
-	rev      *core.Signal[int]
-	status   *core.Signal[string]
-	failed   *core.Signal[bool]
-	busy     *core.Signal[bool]
-	evidence []store.DocumentEvidence
-	total    int
-	text     string
-	pages    int
+	scope         *core.Scope
+	open          *core.Signal[bool]
+	doc           *core.Signal[store.Document]
+	rev           *core.Signal[int]
+	status        *core.Signal[string]
+	failed        *core.Signal[bool]
+	busy          *core.Signal[bool]
+	stage         *core.Signal[string]
+	extracting    *core.Signal[bool]
+	extraction    *core.Signal[*store.Extraction]
+	providerReady bool
+	evidence      []store.DocumentEvidence
+	total         int
+	text          string
+	pages         int
 }
 
 func newDocumentDetail(cx *core.Scope) *documentDetail {
 	return &documentDetail{
-		open:   core.NewSignal(cx, false),
-		doc:    core.NewSignal(cx, store.Document{}),
-		rev:    core.NewSignal(cx, 0),
-		status: core.NewSignal(cx, ""),
-		failed: core.NewSignal(cx, false),
-		busy:   core.NewSignal(cx, false),
+		scope:      cx,
+		open:       core.NewSignal(cx, false),
+		doc:        core.NewSignal(cx, store.Document{}),
+		rev:        core.NewSignal(cx, 0),
+		status:     core.NewSignal(cx, ""),
+		failed:     core.NewSignal(cx, false),
+		busy:       core.NewSignal(cx, false),
+		stage:      core.NewSignal(cx, ""),
+		extracting: core.NewSignal(cx, false),
+		extraction: core.NewSignal[*store.Extraction](cx, nil),
 	}
 }
 
@@ -343,9 +356,11 @@ func (s *Session) openDocumentDetail(cx *core.Scope, detail *documentDetail, doc
 	detail.total = 0
 	detail.text = ""
 	detail.pages = 0
+	detail.providerReady = s.llmProvider(cx).Configured()
 	detail.status.Set("")
 	detail.failed.Set(false)
 	detail.busy.Set(document.MIMEType == "application/pdf")
+	detail.stage.Set(defaultExtractionStage())
 	detail.open.Set(true)
 
 	evidence, total, err := s.db.DocumentEvidence(context.Background(), document.ID, 50)
@@ -355,6 +370,7 @@ func (s *Session) openDocumentDetail(cx *core.Scope, detail *documentDetail, doc
 	} else {
 		detail.evidence, detail.total = evidence, total
 	}
+	s.loadLatestExtraction(context.Background(), detail, document.ID)
 	detail.rev.Set(detail.rev.Get() + 1)
 	if document.MIMEType == "application/pdf" {
 		s.loadDocumentText(cx, detail)
@@ -386,6 +402,361 @@ func (s *Session) loadDocumentText(cx *core.Scope, detail *documentDetail) {
 			detail.rev.Set(detail.rev.Get() + 1)
 		})
 	}()
+}
+
+func defaultExtractionStage() string {
+	stages := extraction.List()
+	if len(stages) == 0 {
+		return ""
+	}
+	return stages[0].ID
+}
+
+// loadLatestExtraction refreshes the newest extraction for the dialog. It is
+// called on open and after a run or discard.
+func (s *Session) loadLatestExtraction(ctx context.Context, detail *documentDetail, documentID string) {
+	rows, err := s.db.ListExtractions(ctx, documentID)
+	if err != nil {
+		detail.extraction.Set(nil)
+		return
+	}
+	if len(rows) == 0 {
+		detail.extraction.Set(nil)
+		return
+	}
+	latest := rows[0]
+	detail.extraction.Set(&latest)
+}
+
+func (s *Session) runDocumentExtraction(cx *core.Scope, detail *documentDetail) {
+	if detail.extracting.Get() {
+		return
+	}
+	document := detail.doc.Get()
+	stage := detail.stage.Get()
+	provider := s.llmProvider(cx)
+	if !provider.Configured() {
+		detail.status.Set(locales.DocumentsExtractionNotConfigured(cx))
+		detail.failed.Set(true)
+		detail.rev.Set(detail.rev.Get() + 1)
+		return
+	}
+	if stage == "" {
+		return
+	}
+	detail.extracting.Set(true)
+	detail.status.Set("")
+	detail.failed.Set(false)
+	detail.rev.Set(detail.rev.Get() + 1)
+	go func() {
+		service := &extraction.Service{Store: s.db, DataDir: s.dataDir, Provider: provider}
+		row, err := service.Run(context.Background(), document.ID, stage)
+		detail.scope.Post(func() {
+			if !detail.open.Get() || detail.doc.Get().ID != document.ID {
+				return
+			}
+			detail.extracting.Set(false)
+			if err != nil {
+				detail.status.Set(extractionErrorText(detail.scope, err))
+				detail.failed.Set(true)
+			} else {
+				detail.extraction.Set(row)
+				detail.status.Set(locales.DocumentsExtractionDone(detail.scope))
+				detail.failed.Set(false)
+			}
+			detail.rev.Set(detail.rev.Get() + 1)
+		})
+	}()
+}
+
+func extractionErrorText(cx *core.Scope, err error) string {
+	switch {
+	case errors.Is(err, extraction.ErrNoTextLayer):
+		return locales.DocumentsExtractionNoText(cx)
+	case errors.Is(err, extraction.ErrNotConfigured):
+		return locales.DocumentsExtractionNotConfigured(cx)
+	default:
+		return locales.DocumentsExtractionFailed(cx) + ": " + err.Error()
+	}
+}
+
+func (s *Session) discardDocumentExtraction(cx *core.Scope, detail *documentDetail) {
+	row := detail.extraction.Get()
+	if row == nil {
+		return
+	}
+	if err := s.db.DiscardExtraction(context.Background(), row.ID); err != nil {
+		detail.status.Set(err.Error())
+		detail.failed.Set(true)
+		detail.rev.Set(detail.rev.Get() + 1)
+		return
+	}
+	detail.status.Set(locales.DocumentsReviewDiscardSuccess(cx))
+	detail.failed.Set(false)
+	s.loadLatestExtraction(context.Background(), detail, detail.doc.Get().ID)
+	detail.rev.Set(detail.rev.Get() + 1)
+}
+
+func (s *Session) documentExtractionCard(cx *core.Scope, detail *documentDetail) core.Node {
+	stages := extraction.List()
+	options := make([]ui.Option[string], 0, len(stages))
+	for _, stage := range stages {
+		options = append(options, ui.Option[string]{Value: stage.ID, Label: stage.ID})
+	}
+	row := detail.extraction.Get()
+
+	header := []core.Node{
+		dataHeading(cx, locales.DocumentsExtractionTitle(cx), ""),
+		core.View{Style: core.Style{FlexGrow: 1}},
+	}
+	if row != nil {
+		header = append(header, extractionStatusBadge(cx, row.Status))
+	}
+
+	children := []core.Node{
+		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8},
+			Children: header},
+		core.Text{ContentFunc: func() string { return locales.DocumentsExtractionHint(cx) },
+			Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2},
+	}
+	if !detail.providerReady {
+		children = append(children, core.Text{ContentFunc: func() string {
+			return locales.DocumentsExtractionNotConfigured(cx)
+		}, Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)})
+		return dataCard(cx, children...)
+	}
+	runLabel := locales.DocumentsExtractionRunNow(cx)
+	if row != nil {
+		runLabel = locales.DocumentsExtractionRunAgain(cx)
+	}
+	children = append(children,
+		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignEnd, Gap: 8}, Children: []core.Node{
+			core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{dataField(cx,
+				locales.DocumentsReviewStage(cx),
+				ui.Select[string]{Options: options, Value: detail.stage.Get,
+					OnChange: func(value string) {
+						detail.stage.Set(value)
+						detail.rev.Set(detail.rev.Get() + 1)
+					},
+					Label: locales.DocumentsReviewStage(cx), TestID: "documents-extraction-stage"})}},
+			ui.Button{Text: runLabel, Busy: detail.extracting.Get,
+				OnPress: func() { s.runDocumentExtraction(cx, detail) },
+				TestID:  "documents-extraction-run"},
+		}},
+		core.Show{When: func() bool { return detail.extracting.Get() },
+			Then: func(cx *core.Scope) core.Node {
+				return core.Text{ContentFunc: func() string {
+					return locales.DocumentsExtractionRunning(cx)
+				}, Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)}
+			}},
+	)
+	if row != nil {
+		children = append(children, s.documentExtractionResult(cx, detail, row))
+	}
+	return dataCard(cx, children...)
+}
+
+func (s *Session) documentExtractionResult(cx *core.Scope, detail *documentDetail,
+	row *store.Extraction) core.Node {
+	meta := row.PromptVersion + " · " + row.LLMProvider + "/" + row.LLMModel
+	if date := documentDate(row.CreatedAt); date != "" {
+		meta += " · " + date
+	}
+	children := []core.Node{
+		core.Text{Content: meta, Style: core.Style{FontSize: 11},
+			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
+	}
+	if row.Status == store.ExtractionRejected {
+		children = append(children, core.Text{ContentFunc: func() string {
+			return locales.DocumentsReviewPreviousDiscarded(cx)
+		}, Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3})
+		return core.View{Style: core.Style{Gap: 6}, Children: children}
+	}
+	fields, confidence := extractionFieldNodes(cx, row.ParsedJSON)
+	if confidence != "" {
+		children = append(children, core.View{
+			Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 6},
+			Children: []core.Node{
+				core.Text{ContentFunc: func() string { return locales.DocumentsReviewConfidence(cx) },
+					Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+				ui.Badge{Text: extractionConfidenceLabel(cx, confidence), Variant: ui.BadgeNeutral},
+			}})
+	}
+	if len(fields) > 0 {
+		children = append(children,
+			core.Text{ContentFunc: func() string { return locales.DocumentsExtractionFields(cx) },
+				Style: core.Style{FontSize: 12, FontWeight: ui.Semibold}},
+			core.View{Style: core.Style{Gap: 4}, Children: fields})
+	}
+	if row.Status == store.ExtractionReviewNeeded {
+		children = append(children,
+			core.Text{ContentFunc: func() string { return locales.DocumentsExtractionReviewHint(cx) },
+				Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2},
+			core.View{Style: core.Style{Direction: core.Row, JustifyContent: core.JustifyEnd},
+				Children: []core.Node{
+					ui.Button{Text: locales.DocumentsReviewDiscard(cx), Variant: ui.ButtonSecondary,
+						OnPress: func() { s.discardDocumentExtraction(cx, detail) },
+						TestID:  "documents-extraction-discard"},
+				}})
+	}
+	return core.View{Style: core.Style{Gap: 6}, Children: children}
+}
+
+func extractionStatusBadge(cx *core.Scope, status string) core.Node {
+	switch status {
+	case store.ExtractionReviewNeeded:
+		return ui.Badge{Text: locales.DocumentsStatusReviewNeeded(cx), Variant: ui.BadgeWarn}
+	case store.ExtractionParsed:
+		return ui.Badge{Text: locales.DocumentsStatusParsed(cx), Variant: ui.BadgeAccent}
+	case store.ExtractionRejected:
+		return ui.Badge{Text: locales.DocumentsStatusRejected(cx), Variant: ui.BadgeNeutral}
+	default:
+		return ui.Badge{Text: locales.DocumentsStatusUnclassified(cx), Variant: ui.BadgeNeutral}
+	}
+}
+
+func extractionConfidenceLabel(cx *core.Scope, confidence string) string {
+	switch confidence {
+	case "high":
+		return locales.DocumentsReviewConfidenceHigh(cx)
+	case "medium":
+		return locales.DocumentsReviewConfidenceMedium(cx)
+	case "low":
+		return locales.DocumentsReviewConfidenceLow(cx)
+	default:
+		return confidence
+	}
+}
+
+// extractionFieldNodes renders the parsed object in a stable, readable order.
+// Unknown keys follow the known ones alphabetically so a new stage still shows
+// its data without a UI change.
+func extractionFieldNodes(cx *core.Scope, raw string) ([]core.Node, string) {
+	var value map[string]any
+	if err := json.Unmarshal([]byte(raw), &value); err != nil {
+		return nil, ""
+	}
+	order := []string{
+		"supplier_name", "doc_type", "mode", "account_no",
+		"amount_kwh", "amount_yuan", "volume_l", "volume_m3", "quantity_kg", "weight_kg",
+		"unit_price_yuan", "distance_km",
+		"period_start", "period_end", "occurred_at", "departure_at", "arrival_at",
+		"origin", "destination", "passenger_name", "travel_class",
+		"flight_or_train_no", "vehicle_plate", "vehicle_class", "ticket_no",
+		"tracking_no", "invoice_no", "item_description", "fuel_type", "fuel_category",
+		"category",
+	}
+	seen := map[string]bool{}
+	var keys []string
+	for _, key := range order {
+		if _, ok := value[key]; ok {
+			keys = append(keys, key)
+			seen[key] = true
+		}
+	}
+	var rest []string
+	for key := range value {
+		if !seen[key] && key != "confidence" {
+			rest = append(rest, key)
+		}
+	}
+	sort.Strings(rest)
+	keys = append(keys, rest...)
+
+	nodes := make([]core.Node, 0, len(keys))
+	for _, key := range keys {
+		nodes = append(nodes, documentDetailField(cx, extractionFieldLabel(cx, key),
+			extractionFieldValue(value[key]), false))
+	}
+	confidence, _ := value["confidence"].(string)
+	return nodes, confidence
+}
+
+func extractionFieldValue(value any) string {
+	switch v := value.(type) {
+	case nil:
+		return "—"
+	case string:
+		if strings.TrimSpace(v) == "" {
+			return "—"
+		}
+		return v
+	case float64:
+		return strconv.FormatFloat(v, 'f', -1, 64)
+	case bool:
+		return strconv.FormatBool(v)
+	default:
+		return fmt.Sprint(v)
+	}
+}
+
+func extractionFieldLabel(cx *core.Scope, key string) string {
+	switch key {
+	case "supplier_name":
+		return locales.DocumentsReviewFieldSupplier(cx)
+	case "doc_type":
+		return locales.DocumentsReviewStage(cx)
+	case "mode":
+		return locales.DocumentsReviewFieldMode(cx)
+	case "account_no":
+		return locales.DocumentsReviewFieldAccount(cx)
+	case "amount_kwh":
+		return locales.DocumentsReviewFieldAmountKwh(cx)
+	case "amount_yuan":
+		return locales.DocumentsReviewFieldAmountYuan(cx)
+	case "volume_l":
+		return locales.DocumentsReviewFieldVolumeL(cx)
+	case "volume_m3":
+		return locales.DocumentsReviewFieldVolumeM3(cx)
+	case "quantity_kg":
+		return locales.DocumentsReviewFieldQuantityKg(cx)
+	case "weight_kg":
+		return locales.DocumentsReviewFieldWeightKg(cx)
+	case "unit_price_yuan":
+		return locales.DocumentsReviewFieldUnitPriceYuan(cx)
+	case "distance_km":
+		return locales.DocumentsReviewFieldDistanceKm(cx)
+	case "period_start":
+		return locales.DocumentsReviewFieldPeriodStart(cx)
+	case "period_end":
+		return locales.DocumentsReviewFieldPeriodEnd(cx)
+	case "occurred_at":
+		return locales.DocumentsReviewFieldOccurredAt(cx)
+	case "departure_at":
+		return locales.DocumentsReviewFieldDepartureAt(cx)
+	case "arrival_at":
+		return locales.DocumentsReviewFieldArrivalAt(cx)
+	case "origin":
+		return locales.DocumentsReviewFieldOrigin(cx)
+	case "destination":
+		return locales.DocumentsReviewFieldDestination(cx)
+	case "passenger_name":
+		return locales.DocumentsReviewFieldPassengerName(cx)
+	case "travel_class":
+		return locales.DocumentsReviewFieldTravelClass(cx)
+	case "flight_or_train_no":
+		return locales.DocumentsReviewFieldFlightOrTrainNo(cx)
+	case "vehicle_plate":
+		return locales.DocumentsReviewFieldVehiclePlate(cx)
+	case "vehicle_class":
+		return locales.DocumentsReviewFieldVehicleClass(cx)
+	case "ticket_no":
+		return locales.DocumentsReviewFieldTicketNo(cx)
+	case "tracking_no":
+		return locales.DocumentsReviewFieldTrackingNo(cx)
+	case "invoice_no":
+		return locales.DocumentsReviewFieldInvoiceNo(cx)
+	case "item_description":
+		return locales.DocumentsReviewFieldItemDescription(cx)
+	case "fuel_type":
+		return locales.DocumentsReviewFieldFuelType(cx)
+	case "fuel_category":
+		return locales.DocumentsReviewFieldFuelCategory(cx)
+	case "category":
+		return locales.DocumentsReviewFieldCategory(cx)
+	default:
+		return key
+	}
 }
 
 func (s *Session) documentDetailDialog(cx *core.Scope, detail *documentDetail) core.Node {
@@ -517,6 +888,7 @@ func (s *Session) documentDetailBody(cx *core.Scope, detail *documentDetail) cor
 				core.View{Style: core.Style{Gap: 6}, Children: metaRows},
 				status,
 			),
+			s.documentExtractionCard(cx, detail),
 			dataCard(cx,
 				dataHeading(cx, locales.DocumentsDetailEvidence(cx),
 					locales.DocumentsDetailEvidenceCount(cx, strconv.Itoa(detail.total))),

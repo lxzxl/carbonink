@@ -1,6 +1,8 @@
 package app
 
 import (
+	"strings"
+
 	"app.carbonink.desktop/internal/prefs"
 	"app.carbonink.desktop/locales"
 
@@ -125,6 +127,7 @@ func (s *Session) settingsScreen(cx *core.Scope) core.Node {
 					core.Text{ContentFunc: func() string { return locales.SettingsCurrent(cx, currentLocale()) },
 						Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 				),
+				s.aiProviderCard(cx),
 				card(
 					core.Text{ContentFunc: func() string {
 						return locales.SettingsWorkspace(cx) + ": " + s.workspace.Name + " · " + s.workspace.File
@@ -142,5 +145,144 @@ func (s *Session) settingsScreen(cx *core.Scope) core.Node {
 				),
 			},
 		}},
+	}
+}
+
+// aiProviderCard configures the OpenAI-compatible endpoint used by document
+// extraction. The API key goes to the platform's secure store; settings.json
+// keeps only the provider, base URL and model.
+func (s *Session) aiProviderCard(cx *core.Scope) core.Node {
+	provider := core.NewSignal(cx, s.settings.LLMProvider)
+	if provider.Get() == "" {
+		provider.Set(llmPresets[0].ID)
+	}
+	baseURL := core.NewSignal(cx, s.settings.LLMBaseURL)
+	model := core.NewSignal(cx, s.settings.LLMModel)
+	key := core.NewSignal(cx, "")
+	status := core.NewSignal(cx, "")
+	failed := core.NewSignal(cx, false)
+
+	preset := func(id string) (llmPreset, bool) {
+		for _, item := range llmPresets {
+			if item.ID == id {
+				return item, true
+			}
+		}
+		return llmPreset{ID: id}, false
+	}
+	if current, ok := preset(provider.Get()); ok {
+		if baseURL.Get() == "" {
+			baseURL.Set(current.BaseURL)
+		}
+		if model.Get() == "" {
+			model.Set(current.Model)
+		}
+	}
+
+	options := make([]ui.Option[string], 0, len(llmPresets)+1)
+	for _, item := range llmPresets {
+		options = append(options, ui.Option[string]{Value: item.ID, Label: item.Label})
+	}
+	options = append(options, ui.Option[string]{Value: "custom", Label: locales.SettingsProviderCustom(cx)})
+
+	_, hasKey, keyErr := cx.Secrets().Get(llmSecretAccount)
+	keySaved := core.NewSignal(cx, keyErr == nil && hasKey)
+	save := func() {
+		base := strings.TrimSpace(baseURL.Get())
+		name := strings.TrimSpace(model.Get())
+		if base == "" || name == "" {
+			status.Set(locales.SettingsSaveFailed(cx))
+			failed.Set(true)
+			return
+		}
+		s.settings.LLMProvider = provider.Get()
+		s.settings.LLMBaseURL = base
+		s.settings.LLMModel = name
+		if err := prefs.Save(s.prefsPath, s.settings); err != nil {
+			status.Set(locales.SettingsSaveFailed(cx) + ": " + err.Error())
+			failed.Set(true)
+			return
+		}
+		if value := strings.TrimSpace(key.Get()); value != "" {
+			if err := cx.Secrets().Set(llmSecretAccount, value); err != nil {
+				status.Set(locales.SettingsSaveFailed(cx) + ": " + err.Error())
+				failed.Set(true)
+				return
+			}
+			key.Set("")
+			keySaved.Set(true)
+		}
+		status.Set(locales.SettingsSaveSuccess(cx))
+		failed.Set(false)
+	}
+
+	field := func(label func(*core.Scope) string, input core.Node) core.Node {
+		return core.View{Style: core.Style{Gap: 4, FlexGrow: 1}, Children: []core.Node{
+			core.Text{ContentFunc: func() string { return label(cx) },
+				Style:     core.Style{FontSize: 12, FontWeight: ui.Semibold},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+			input,
+		}}
+	}
+
+	children := []core.Node{
+		core.Text{ContentFunc: func() string { return locales.SettingsSectionAi(cx) },
+			Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}},
+		core.Text{ContentFunc: func() string { return locales.SettingsSectionAiDescription(cx) },
+			Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
+		core.View{Style: core.Style{Direction: core.Row, Gap: 8}, Children: []core.Node{
+			field(locales.SettingsProviderPickerLabel,
+				ui.Select[string]{Options: options, Value: provider.Get,
+					OnChange: func(value string) {
+						provider.Set(value)
+						if item, ok := preset(value); ok {
+							baseURL.Set(item.BaseURL)
+							model.Set(item.Model)
+						}
+					},
+					Label: locales.SettingsProviderPickerLabel(cx), TestID: "settings-llm-provider"}),
+			field(locales.SettingsProviderModelLabel,
+				ui.Input{Value: model.Get, OnChange: model.Set, TestID: "settings-llm-model"}),
+		}},
+		field(locales.SettingsProviderBaseUrlLabelAdvanced,
+			ui.Input{Value: baseURL.Get, OnChange: baseURL.Set, TestID: "settings-llm-base-url"}),
+		field(locales.SettingsApikeyLabel,
+			ui.Input{Value: key.Get, OnChange: key.Set, Masked: true,
+				Placeholder: locales.SettingsApikeyPlaceholder(cx), TestID: "settings-llm-key"}),
+	}
+	children = append(children, core.Show{When: keySaved.Get, Then: func(cx *core.Scope) core.Node {
+		return core.Text{ContentFunc: func() string { return locales.SettingsApikeySaved(cx) },
+			Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)}
+	}})
+	if keyErr != nil {
+		children = append(children, core.Text{ContentFunc: func() string {
+			return locales.SettingsApikeyUnavailable(cx)
+		}, Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)})
+	}
+	children = append(children,
+		core.Text{ContentFunc: func() string { return locales.SettingsAiHint(cx) },
+			Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
+		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8}, Children: []core.Node{
+			ui.Button{Text: locales.SettingsSave(cx), OnPress: save, TestID: "settings-llm-save"},
+			core.Show{When: func() bool { return status.Get() != "" },
+				Then: func(cx *core.Scope) core.Node {
+					return core.Text{ContentFunc: func() string { return status.Get() },
+						Style: core.Style{FontSize: 12},
+						StyleFunc: func() core.Style {
+							if failed.Get() {
+								return ui.Colored(ui.ColorsOf(cx).Danger)()
+							}
+							return ui.Colored(ui.ColorsOf(cx).Muted)()
+						}}
+				}},
+		}},
+	)
+
+	return core.View{
+		Style: core.Style{Padding: core.All(16), Gap: 10, CornerRadius: 10, BorderWidth: 1},
+		StyleFunc: func() core.Style {
+			return core.Style{Background: ui.ColorsOf(cx).Surface(), BorderColor: ui.ColorsOf(cx).Border()}
+		},
+		Children: children,
 	}
 }

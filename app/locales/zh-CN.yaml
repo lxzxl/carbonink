@@ -329,10 +329,16 @@ documentsExtracting: 正在抽取…
 documentsExtractingVision: 正在识别图像（需要更长时间）…
 documentsExtractionDone: 抽取完成，待审核
 documentsExtractionFailed: 抽取失败
+documentsExtractionFields: 抽取字段
+documentsExtractionHint: 用所选阶段读取 PDF 文本，并把结果暂存为待审核记录。
+documentsExtractionNoText: 这个 PDF 没有文本层。图像识别尚未接入。
+documentsExtractionNotConfigured: 请先在设置中配置 AI 服务商。
+documentsExtractionReviewHint: 把结果加入活动数据前，请先核对下面的字段。
 documentsExtractionRunAgain: 重新抽取
 documentsExtractionRunNow: 开始抽取
 documentsExtractionRunning: 抽取中...
 documentsExtractionStarted: 已开始抽取
+documentsExtractionTitle: AI 抽取
 documentsFilterClear: 清除筛选
 documentsFilterEmpty: 未找到匹配的文档
 documentsFilterStatusAll: 全部状态
@@ -1026,9 +1032,12 @@ settingsAiCacheCleared: 已清空 {count} 条缓存结果。
 settingsAiCacheClearing: 正在清空…
 settingsAiCacheHint: 保存重复的 AI 结果（EF 匹配、readiness），重复运行时不再重复计费，可随时清空。
 settingsAiCacheLabel: AI 缓存
+settingsAiHint: 用于文档抽取。API 密钥保存在系统钥匙串中，不会写入工作区文件。
 settingsApikeyLabel: API 密钥
+settingsApikeyPlaceholder: 留空则保留已保存的密钥
 settingsApikeyReplace: 替换
 settingsApikeySaved: 已保存
+settingsApikeyUnavailable: 当前系统没有安全存储，无法在此保存密钥。
 settingsAppearance: 外观
 settingsBaseYearLabel: 基准年
 settingsBaseYearNone: （未选）
@@ -1145,6 +1154,7 @@ settingsOrgProfileSubheading: 用于盘查报告。
 settingsOrgReportingHeading: 报告档案
 settingsPickerNoMatch: 无匹配结果
 settingsProviderBaseUrlLabelAdvanced: 覆盖 base URL（高级）
+settingsProviderCustom: 自定义（OpenAI 兼容）
 settingsProviderGroupAll: 全部服务商
 settingsProviderGroupRecommended: 推荐
 settingsProviderGuidanceAccount: 去官网注册
