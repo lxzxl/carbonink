@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -12,6 +13,7 @@ import (
 
 	"app.carbonink.desktop/internal/categories"
 	"app.carbonink.desktop/internal/presets"
+	"app.carbonink.desktop/internal/routing"
 	"app.carbonink.desktop/internal/store"
 	"app.carbonink.desktop/locales"
 
@@ -946,6 +948,13 @@ type activityPrefill struct {
 	Notes              string
 	ExtractionID       string
 	EvidenceDocumentID string
+	// Routing feeds the distance lookup: a freight or travel stage plus the
+	// two endpoints the document stated. Travel mode only affects the lookup
+	// mode (air / rail / road).
+	RoutingStage       string
+	RoutingOrigin      string
+	RoutingDestination string
+	TravelMode         string
 }
 
 // activityForm is a form dialog that the caller can open without a trigger.
@@ -989,6 +998,13 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 	status := core.NewSignal(cx, "")
 	busy := core.NewSignal(cx, false)
 	efOptions := core.NewSignalFunc(cx, []store.EmissionFactor(nil), nil)
+	routingOrigin := core.NewSignal(cx, "")
+	routingDestination := core.NewSignal(cx, "")
+	routingStage := core.NewSignal(cx, "")
+	travelMode := core.NewSignal(cx, "")
+	routingResult := core.NewSignal(cx, "")
+	routingFailed := core.NewSignal(cx, false)
+	routingBusy := core.NewSignal(cx, false)
 
 	loadEFs := func(source string) {
 		efOptions.Set(nil)
@@ -1046,6 +1062,12 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 			unit.Set(current.Unit)
 			fuel.Set(current.FuelCode)
 			notes.Set(current.Notes)
+			routingOrigin.Set("")
+			routingDestination.Set("")
+			routingStage.Set("")
+			travelMode.Set("")
+			routingResult.Set("")
+			routingFailed.Set(false)
 			loadEFs(current.EmissionSourceID)
 			open.Set(true)
 			return
@@ -1060,6 +1082,12 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 				unit.Set(seed.Unit)
 				fuel.Set(seed.FuelCode)
 				notes.Set(seed.Notes)
+				routingOrigin.Set(seed.RoutingOrigin)
+				routingDestination.Set(seed.RoutingDestination)
+				routingStage.Set(seed.RoutingStage)
+				travelMode.Set(seed.TravelMode)
+				routingResult.Set("")
+				routingFailed.Set(false)
 				loadEFs(seed.SourceID)
 				open.Set(true)
 				return
@@ -1085,6 +1113,12 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 		unit.Set("")
 		fuel.Set("")
 		notes.Set("")
+		routingOrigin.Set("")
+		routingDestination.Set("")
+		routingStage.Set("")
+		travelMode.Set("")
+		routingResult.Set("")
+		routingFailed.Set(false)
 		loadEFs(sourceID.Get())
 		open.Set(true)
 	}
@@ -1214,6 +1248,55 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 				ui.Input{Value: unit.Get, OnChange: unit.Set,
 					Placeholder: locales.ActivitiesFormUnitPlaceholder(cx), TestID: prefix + "-unit"})}},
 		}},
+		core.Show{When: func() bool {
+			return routingStage.Get() != "" && routingOrigin.Get() != "" && routingDestination.Get() != ""
+		}, Then: func(cx *core.Scope) core.Node {
+			return core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8},
+				Children: []core.Node{
+					ui.Button{Text: locales.RoutingLookupButton(cx), Variant: ui.ButtonSecondary,
+						Busy: routingBusy.Get, OnPress: func() {
+							if routingBusy.Get() {
+								return
+							}
+							mode := routing.InferMode(routingStage.Get(), travelMode.Get())
+							origin, destination := routingOrigin.Get(), routingDestination.Get()
+							routingBusy.Set(true)
+							routingFailed.Set(false)
+							routingResult.Set(locales.RoutingLookupRunning(cx))
+							go func() {
+								result, err := routing.Lookup(context.Background(), s.db, mode,
+									origin, destination)
+								s.scope.Post(func() {
+									routingBusy.Set(false)
+									if err != nil {
+										routingFailed.Set(true)
+										routingResult.Set(routingErrorMessage(cx, err))
+										return
+									}
+									km := strconv.Itoa(result.DistanceKM)
+									if result.Source == routing.SourceHaversine {
+										routingResult.Set(locales.RoutingLookupDoneHaversine(cx, km))
+									} else {
+										routingResult.Set(locales.RoutingLookupDoneAmap(cx, km))
+									}
+									if routingStage.Get() == "travel" {
+										amount.Set(km)
+									}
+								})
+							}()
+						}, TestID: prefix + "-routing-lookup"},
+					core.Show{When: func() bool { return routingResult.Get() != "" },
+						Then: func(cx *core.Scope) core.Node {
+							return core.Text{ContentFunc: func() string { return routingResult.Get() },
+								Style: core.Style{FontSize: 12}, StyleFunc: func() core.Style {
+									if routingFailed.Get() {
+										return ui.Colored(ui.ColorsOf(cx).Danger)()
+									}
+									return ui.Colored(ui.ColorsOf(cx).Muted)()
+								}}
+						}},
+				}}
+		}},
 		core.Dynamic(efSelect),
 		core.View{Style: core.Style{Direction: core.Row, Gap: 8}, Children: []core.Node{
 			core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{dataField(cx,
@@ -1232,6 +1315,25 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 		ui.Button{Text: saveLabel(cx), Busy: busy.Get, OnPress: save, TestID: prefix + "-save"},
 	}, prefix+"-dialog")
 	return form
+}
+
+// routingErrorMessage maps a routing failure onto the localized message shown
+// beside the lookup button.
+func routingErrorMessage(cx *core.Scope, err error) string {
+	var detail *routing.Error
+	if errors.As(err, &detail) {
+		switch detail.Kind {
+		case routing.KindKeyMissing:
+			return locales.RoutingErrorKeyMissing(cx)
+		case routing.KindRateLimited:
+			return locales.RoutingErrorRateLimited(cx)
+		case routing.KindRouteNotFound:
+			return locales.RoutingErrorRouteNotFound(cx)
+		case routing.KindAirportUnknown:
+			return locales.RoutingErrorAirportUnknown(cx, detail.Airport)
+		}
+	}
+	return locales.RoutingErrorApi(cx)
 }
 
 func (s *Session) activityByID(id string) *store.Activity {

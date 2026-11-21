@@ -1037,6 +1037,11 @@ reportsSectionObservations: Notable observations
 reportsSectionReporting: Reporting boundary
 reportsSetupRequired: Set organization profile in Settings first.
 requiredField: Required
+routingErrorAirportUnknown: 'Unknown airport: {iata}'
+routingErrorApi: AMap API error. Check the address format and try again.
+routingErrorKeyMissing: AMap API key not configured. Open Settings to set it up.
+routingErrorRateLimited: AMap rate limit reached. Try again later.
+routingErrorRouteNotFound: AMap could not find a route between these locations.
 routingLookupButton: Look up distance
 routingLookupDoneAmap: 'AMap: {km} km'
 routingLookupDoneHaversine: 'Haversine: {km} km'
@@ -1097,6 +1102,11 @@ settingsAiCacheClearing: Clearing…
 settingsAiCacheHint: Keeps repeat AI answers (EF matches, readiness) so re-runs don't re-pay. Safe to clear any time.
 settingsAiCacheLabel: AI cache
 settingsAiHint: Used for document extraction. The API key is kept in the system keychain, never in the workspace file.
+settingsAmapBody: Used by "Look up distance" on freight and travel rows. Get a free key at https://lbs.amap.com/dev/ (100,000 requests/day). Stored in this workspace, not the keychain.
+settingsAmapHeading: AMap routing key
+settingsAmapLabel: API key (optional)
+settingsAmapPlaceholder: AMap web-service key
+settingsAmapSaved: AMap key saved
 settingsApikeyLabel: API key
 settingsApikeyPlaceholder: Leave empty to keep the saved key
 settingsApikeyReplace: Replace

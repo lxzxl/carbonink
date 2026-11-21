@@ -165,6 +165,7 @@ var Parameters = map[string][]string{
 	"ReportsExportSuccess":                    {"kind", "path"},
 	"ReportsGenerateFailed":                   {"message"},
 	"ReportsGeneratedAt":                      {"date"},
+	"RoutingErrorAirportUnknown":              {"iata"},
 	"RoutingLookupDoneAmap":                   {"km"},
 	"RoutingLookupDoneHaversine":              {"km"},
 	"SettingsAgentClientConfigured":           {"client"},
@@ -352,6 +353,7 @@ type Translation struct {
 	ReportsExportSuccess                    func(kind string, path string) string
 	ReportsGenerateFailed                   func(message string) string
 	ReportsGeneratedAt                      func(date string) string
+	RoutingErrorAirportUnknown              func(iata string) string
 	RoutingLookupDoneAmap                   func(km string) string
 	RoutingLookupDoneHaversine              func(km string) string
 	SettingsAgentClientConfigured           func(client string) string
@@ -1323,6 +1325,10 @@ const (
 	textReportsSectionReporting
 	textReportsSetupRequired
 	textRequiredField
+	textRoutingErrorApi
+	textRoutingErrorKeyMissing
+	textRoutingErrorRateLimited
+	textRoutingErrorRouteNotFound
 	textRoutingLookupButton
 	textRoutingLookupRunning
 	textSettingsAboutAppId
@@ -1377,6 +1383,11 @@ const (
 	textSettingsAiCacheHint
 	textSettingsAiCacheLabel
 	textSettingsAiHint
+	textSettingsAmapBody
+	textSettingsAmapHeading
+	textSettingsAmapLabel
+	textSettingsAmapPlaceholder
+	textSettingsAmapSaved
 	textSettingsApikeyLabel
 	textSettingsApikeyPlaceholder
 	textSettingsApikeyReplace
@@ -2645,6 +2656,10 @@ var keyOfText = [numTexts]string{
 	"reportsSectionReporting",
 	"reportsSetupRequired",
 	"requiredField",
+	"routingErrorApi",
+	"routingErrorKeyMissing",
+	"routingErrorRateLimited",
+	"routingErrorRouteNotFound",
 	"routingLookupButton",
 	"routingLookupRunning",
 	"settingsAboutAppId",
@@ -2699,6 +2714,11 @@ var keyOfText = [numTexts]string{
 	"settingsAiCacheHint",
 	"settingsAiCacheLabel",
 	"settingsAiHint",
+	"settingsAmapBody",
+	"settingsAmapHeading",
+	"settingsAmapLabel",
+	"settingsAmapPlaceholder",
+	"settingsAmapSaved",
 	"settingsApikeyLabel",
 	"settingsApikeyPlaceholder",
 	"settingsApikeyReplace",
@@ -3965,6 +3985,10 @@ var textsEn = i18n.NewTexts(""+
 	"Reporting boundary"+
 	"Set organization profile in Settings first."+
 	"Required"+
+	"AMap API error. Check the address format and try again."+
+	"AMap API key not configured. Open Settings to set it up."+
+	"AMap rate limit reached. Try again later."+
+	"AMap could not find a route between these locations."+
 	"Look up distance"+
 	"Looking up…"+
 	"App ID"+
@@ -4019,6 +4043,11 @@ var textsEn = i18n.NewTexts(""+
 	"Keeps repeat AI answers (EF matches, readiness) so re-runs don't re-pay. Safe to clear any time."+
 	"AI cache"+
 	"Used for document extraction. The API key is kept in the system keychain, never in the workspace file."+
+	"Used by \"Look up distance\" on freight and travel rows. Get a free key at https://lbs.amap.com/dev/ (100,000 requests/day). Stored in this workspace, not the keychain."+
+	"AMap routing key"+
+	"API key (optional)"+
+	"AMap web-service key"+
+	"AMap key saved"+
 	"API key"+
 	"Leave empty to keep the saved key"+
 	"Replace"+
@@ -5282,6 +5311,10 @@ var textsEn = i18n.NewTexts(""+
 		18,
 		43,
 		8,
+		55,
+		56,
+		41,
+		52,
 		16,
 		13,
 		6,
@@ -5336,6 +5369,11 @@ var textsEn = i18n.NewTexts(""+
 		96,
 		8,
 		102,
+		166,
+		16,
+		18,
+		20,
+		14,
 		7,
 		33,
 		7,
@@ -6602,6 +6640,10 @@ var textsZhCN = i18n.NewTexts(""+
 	"报告范围"+
 	"请先在设置中填写组织档案。"+
 	"必填"+
+	"高德接口出错，请检查地址格式后重试。"+
+	"尚未配置高德 Key，请到设置中填写。"+
+	"高德接口调用额度已用完，请稍后再试。"+
+	"高德未能找到这两个地点之间的路线。"+
 	"查询距离"+
 	"查询中…"+
 	"应用 ID"+
@@ -6656,6 +6698,11 @@ var textsZhCN = i18n.NewTexts(""+
 	"保存重复的 AI 结果（EF 匹配、readiness），重复运行时不再重复计费，可随时清空。"+
 	"AI 缓存"+
 	"用于文档抽取。API 密钥保存在系统钥匙串中，不会写入工作区文件。"+
+	"用于货运与差旅记录的「查询距离」。可在 https://lbs.amap.com/dev/ 免费申请（每日 10 万次）。Key 保存在当前账套，不写入系统钥匙串。"+
+	"高德（AMap）路由 Key"+
+	"API Key（可选）"+
+	"高德 Web 服务 Key"+
+	"高德 Key 已保存"+
 	"API 密钥"+
 	"留空则保留已保存的密钥"+
 	"替换"+
@@ -7919,6 +7966,10 @@ var textsZhCN = i18n.NewTexts(""+
 		12,
 		39,
 		6,
+		54,
+		49,
+		54,
+		51,
 		12,
 		12,
 		9,
@@ -7973,6 +8024,11 @@ var textsZhCN = i18n.NewTexts(""+
 		109,
 		9,
 		91,
+		176,
+		26,
+		19,
+		21,
+		20,
 		10,
 		33,
 		6,
@@ -8748,6 +8804,9 @@ func Supply(lang string, t Translation) {
 	}
 	if t.ReportsGeneratedAt != nil {
 		s.ReportsGeneratedAt = t.ReportsGeneratedAt
+	}
+	if t.RoutingErrorAirportUnknown != nil {
+		s.RoutingErrorAirportUnknown = t.RoutingErrorAirportUnknown
 	}
 	if t.RoutingLookupDoneAmap != nil {
 		s.RoutingLookupDoneAmap = t.RoutingLookupDoneAmap
@@ -19339,6 +19398,60 @@ func RequiredField(cx *core.Scope) string { return For(cx).RequiredField() }
 // RequiredField is the package's RequiredField in the language of msgs.
 func (msgs Messages) RequiredField() string { return msgs.text(textRequiredField) }
 
+// RoutingErrorAirportUnknown says "Unknown airport: {iata}"
+// in the language the app shows under cx.
+func RoutingErrorAirportUnknown(cx *core.Scope, iata string) string {
+	return For(cx).RoutingErrorAirportUnknown(iata)
+}
+
+// RoutingErrorAirportUnknown is the package's RoutingErrorAirportUnknown in the language of msgs.
+func (msgs Messages) RoutingErrorAirportUnknown(iata string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.RoutingErrorAirportUnknown(iata))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].RoutingErrorAirportUnknown; f != nil {
+			return f(iata)
+		}
+		switch lang {
+		case "", "en":
+			return "Unknown airport: " + msgs.arg(iata)
+		case "zh-CN":
+			return "未知机场：" + iata
+		}
+	}
+}
+
+// RoutingErrorApi says "AMap API error. Check the address format and try again."
+// in the language the app shows under cx.
+func RoutingErrorApi(cx *core.Scope) string { return For(cx).RoutingErrorApi() }
+
+// RoutingErrorApi is the package's RoutingErrorApi in the language of msgs.
+func (msgs Messages) RoutingErrorApi() string { return msgs.text(textRoutingErrorApi) }
+
+// RoutingErrorKeyMissing says "AMap API key not configured. Open Settings to set it up."
+// in the language the app shows under cx.
+func RoutingErrorKeyMissing(cx *core.Scope) string { return For(cx).RoutingErrorKeyMissing() }
+
+// RoutingErrorKeyMissing is the package's RoutingErrorKeyMissing in the language of msgs.
+func (msgs Messages) RoutingErrorKeyMissing() string { return msgs.text(textRoutingErrorKeyMissing) }
+
+// RoutingErrorRateLimited says "AMap rate limit reached. Try again later."
+// in the language the app shows under cx.
+func RoutingErrorRateLimited(cx *core.Scope) string { return For(cx).RoutingErrorRateLimited() }
+
+// RoutingErrorRateLimited is the package's RoutingErrorRateLimited in the language of msgs.
+func (msgs Messages) RoutingErrorRateLimited() string { return msgs.text(textRoutingErrorRateLimited) }
+
+// RoutingErrorRouteNotFound says "AMap could not find a route between these locations."
+// in the language the app shows under cx.
+func RoutingErrorRouteNotFound(cx *core.Scope) string { return For(cx).RoutingErrorRouteNotFound() }
+
+// RoutingErrorRouteNotFound is the package's RoutingErrorRouteNotFound in the language of msgs.
+func (msgs Messages) RoutingErrorRouteNotFound() string {
+	return msgs.text(textRoutingErrorRouteNotFound)
+}
+
 // RoutingLookupButton says "Look up distance"
 // in the language the app shows under cx.
 func RoutingLookupButton(cx *core.Scope) string { return For(cx).RoutingLookupButton() }
@@ -19908,6 +20021,41 @@ func SettingsAiHint(cx *core.Scope) string { return For(cx).SettingsAiHint() }
 
 // SettingsAiHint is the package's SettingsAiHint in the language of msgs.
 func (msgs Messages) SettingsAiHint() string { return msgs.text(textSettingsAiHint) }
+
+// SettingsAmapBody says "Used by \"Look up distance\" on freight and travel rows. Get a free key at https://lbs.amap.com/dev/ (100,000 requests/day). Stored in this workspace, not the keychain."
+// in the language the app shows under cx.
+func SettingsAmapBody(cx *core.Scope) string { return For(cx).SettingsAmapBody() }
+
+// SettingsAmapBody is the package's SettingsAmapBody in the language of msgs.
+func (msgs Messages) SettingsAmapBody() string { return msgs.text(textSettingsAmapBody) }
+
+// SettingsAmapHeading says "AMap routing key"
+// in the language the app shows under cx.
+func SettingsAmapHeading(cx *core.Scope) string { return For(cx).SettingsAmapHeading() }
+
+// SettingsAmapHeading is the package's SettingsAmapHeading in the language of msgs.
+func (msgs Messages) SettingsAmapHeading() string { return msgs.text(textSettingsAmapHeading) }
+
+// SettingsAmapLabel says "API key (optional)"
+// in the language the app shows under cx.
+func SettingsAmapLabel(cx *core.Scope) string { return For(cx).SettingsAmapLabel() }
+
+// SettingsAmapLabel is the package's SettingsAmapLabel in the language of msgs.
+func (msgs Messages) SettingsAmapLabel() string { return msgs.text(textSettingsAmapLabel) }
+
+// SettingsAmapPlaceholder says "AMap web-service key"
+// in the language the app shows under cx.
+func SettingsAmapPlaceholder(cx *core.Scope) string { return For(cx).SettingsAmapPlaceholder() }
+
+// SettingsAmapPlaceholder is the package's SettingsAmapPlaceholder in the language of msgs.
+func (msgs Messages) SettingsAmapPlaceholder() string { return msgs.text(textSettingsAmapPlaceholder) }
+
+// SettingsAmapSaved says "AMap key saved"
+// in the language the app shows under cx.
+func SettingsAmapSaved(cx *core.Scope) string { return For(cx).SettingsAmapSaved() }
+
+// SettingsAmapSaved is the package's SettingsAmapSaved in the language of msgs.
+func (msgs Messages) SettingsAmapSaved() string { return msgs.text(textSettingsAmapSaved) }
 
 // SettingsApikeyLabel says "API key"
 // in the language the app shows under cx.

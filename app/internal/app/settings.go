@@ -163,6 +163,7 @@ func (s *Session) settingsScreen(cx *core.Scope) core.Node {
 				),
 				s.workspacesCard(cx),
 				s.organizationProfileCard(cx),
+				s.amapKeyCard(cx),
 				s.aiProviderCard(cx),
 				s.agentIntegrationCard(cx),
 				s.migrationCard(cx),

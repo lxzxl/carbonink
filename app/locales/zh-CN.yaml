@@ -1036,6 +1036,11 @@ reportsSectionObservations: 观察发现
 reportsSectionReporting: 报告范围
 reportsSetupRequired: 请先在设置中填写组织档案。
 requiredField: 必填
+routingErrorAirportUnknown: 未知机场：{iata}
+routingErrorApi: 高德接口出错，请检查地址格式后重试。
+routingErrorKeyMissing: 尚未配置高德 Key，请到设置中填写。
+routingErrorRateLimited: 高德接口调用额度已用完，请稍后再试。
+routingErrorRouteNotFound: 高德未能找到这两个地点之间的路线。
 routingLookupButton: 查询距离
 routingLookupDoneAmap: 高德：{km} km
 routingLookupDoneHaversine: 大圆距离：{km} km
@@ -1096,6 +1101,11 @@ settingsAiCacheClearing: 正在清空…
 settingsAiCacheHint: 保存重复的 AI 结果（EF 匹配、readiness），重复运行时不再重复计费，可随时清空。
 settingsAiCacheLabel: AI 缓存
 settingsAiHint: 用于文档抽取。API 密钥保存在系统钥匙串中，不会写入工作区文件。
+settingsAmapBody: 用于货运与差旅记录的「查询距离」。可在 https://lbs.amap.com/dev/ 免费申请（每日 10 万次）。Key 保存在当前账套，不写入系统钥匙串。
+settingsAmapHeading: 高德（AMap）路由 Key
+settingsAmapLabel: API Key（可选）
+settingsAmapPlaceholder: 高德 Web 服务 Key
+settingsAmapSaved: 高德 Key 已保存
 settingsApikeyLabel: API 密钥
 settingsApikeyPlaceholder: 留空则保留已保存的密钥
 settingsApikeyReplace: 替换

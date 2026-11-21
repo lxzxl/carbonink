@@ -47,6 +47,9 @@ func (s *Session) extractionPrefill(document store.Document, row *store.Extracti
 		seed.Unit = "kg"
 		seed.Start = dateValue(data["occurred_at"])
 		seed.End = seed.Start
+		seed.RoutingStage = "freight"
+		seed.RoutingOrigin = textValue(data["origin"])
+		seed.RoutingDestination = textValue(data["destination"])
 		seed.Notes = joinNotes(textValue(data["supplier_name"]), textValue(data["mode"]),
 			routeText(data["origin"], data["destination"]), textValue(data["tracking_no"]))
 	case "purchase.v1":
@@ -67,6 +70,10 @@ func (s *Session) extractionPrefill(document store.Document, row *store.Extracti
 		}
 		seed.Start = dateValue(data["departure_at"])
 		seed.End = seed.Start
+		seed.RoutingStage = "travel"
+		seed.RoutingOrigin = textValue(data["origin"])
+		seed.RoutingDestination = textValue(data["destination"])
+		seed.TravelMode = textValue(data["mode"])
 		seed.Notes = joinNotes(textValue(data["supplier_name"]), textValue(data["mode"]),
 			routeText(data["origin"], data["destination"]),
 			firstText(data["flight_or_train_no"], data["ticket_no"]))

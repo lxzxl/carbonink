@@ -104,6 +104,33 @@ func TestExtractionPrefillFallsBackToPeriodDates(t *testing.T) {
 	}
 }
 
+// TestExtractionPrefillCarriesRoutingHints checks the endpoints the distance
+// lookup needs: freight rows can be looked up without a travel mode, and
+// travel rows keep the mode that selects air / rail / road.
+func TestExtractionPrefillCarriesRoutingHints(t *testing.T) {
+	s := prefillSession()
+	freight := s.extractionPrefill(store.Document{ID: "doc"}, &store.Extraction{
+		ID: "freight", PromptVersion: "freight.v1",
+		ParsedJSON: `{"doc_type":"freight","weight_kg":1,"origin":"Guangzhou",` +
+			`"destination":"Shanghai","occurred_at":"2026-05-08"}`,
+	})
+	if freight == nil || freight.RoutingStage != "freight" ||
+		freight.RoutingOrigin != "Guangzhou" || freight.RoutingDestination != "Shanghai" ||
+		freight.TravelMode != "" {
+		t.Fatalf("freight routing = %+v", freight)
+	}
+	travel := s.extractionPrefill(store.Document{ID: "doc"}, &store.Extraction{
+		ID: "travel", PromptVersion: "travel.v1",
+		ParsedJSON: `{"doc_type":"travel","mode":"air","origin":"Beijing",` +
+			`"destination":"Shanghai","departure_at":"2026-04-15"}`,
+	})
+	if travel == nil || travel.RoutingStage != "travel" ||
+		travel.RoutingOrigin != "Beijing" || travel.RoutingDestination != "Shanghai" ||
+		travel.TravelMode != "air" {
+		t.Fatalf("travel routing = %+v", travel)
+	}
+}
+
 func TestExtractionPrefillRejectsBadInput(t *testing.T) {
 	s := prefillSession()
 	if seed := s.extractionPrefill(store.Document{}, &store.Extraction{
