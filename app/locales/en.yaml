@@ -993,10 +993,12 @@ reportsDeliverableSuccessMissing: Deliverable bundle saved to {path} — {missin
 reportsExportBothButton: Confirm and export (PDF + Excel)
 reportsExportDeliverableButton: Export deliverable bundle (ZIP)
 reportsExportFailed: 'Export failed: {message}'
+reportsExportPdfButton: Export PDF
 reportsExportSuccess: Exported {kind} → {path}
 reportsExportXlsxButton: Export Excel appendix
 reportsGenerateButton: Generate report
 reportsGenerateFailed: 'Generation failed: {message}'
+reportsGeneratedAt: Generated {date}
 reportsKindIso: ISO 14064-1 inventory report
 reportsKindLabel: Report type
 reportsKindTcfd: TCFD climate disclosure (four pillars)
@@ -1007,8 +1009,16 @@ reportsListHeading: Inventory reports
 reportsListSubheading: Generate ISO 14064-1-style reports.
 reportsNav: Reports
 reportsNewCta: New report
+reportsNoActivity: No activity data for this reporting period.
 reportsNoPeriods: No reporting periods yet.
 reportsNoProvider: No LLM provider configured. Open Settings.
+reportsPeriodLabel: Reporting period
+reportsPillarGovernance: Governance
+reportsPillarMetrics: Metrics and targets
+reportsPillarRisk: Risk management
+reportsPillarStrategy: Strategy
+reportsPreviewHeading: Preview
+reportsPreviewHint: Generate a report to preview it here.
 reportsProgressAssembling: Assembling inventory data...
 reportsProgressBoundary: Writing organizational boundary...
 reportsProgressChanges: Writing significant changes...
@@ -1019,6 +1029,12 @@ reportsProgressObservations: Writing notable observations...
 reportsProgressReportingBoundary: Writing reporting boundary...
 reportsRegenerateButton: Regenerate
 reportsRegenerateWarning: Regenerating will discard unsaved edits. Continue?
+reportsSectionBoundary: Organizational boundary
+reportsSectionChanges: Significant changes
+reportsSectionInventory: Emissions summary
+reportsSectionMethod: Methodology
+reportsSectionObservations: Notable observations
+reportsSectionReporting: Reporting boundary
 reportsSetupRequired: Set organization profile in Settings first.
 requiredField: Required
 routingLookupButton: Look up distance

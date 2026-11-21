@@ -164,6 +164,7 @@ var Parameters = map[string][]string{
 	"ReportsExportFailed":                     {"message"},
 	"ReportsExportSuccess":                    {"kind", "path"},
 	"ReportsGenerateFailed":                   {"message"},
+	"ReportsGeneratedAt":                      {"date"},
 	"RoutingLookupDoneAmap":                   {"km"},
 	"RoutingLookupDoneHaversine":              {"km"},
 	"SettingsAiCacheCleared":                  {"count"},
@@ -344,6 +345,7 @@ type Translation struct {
 	ReportsExportFailed                     func(message string) string
 	ReportsExportSuccess                    func(kind string, path string) string
 	ReportsGenerateFailed                   func(message string) string
+	ReportsGeneratedAt                      func(date string) string
 	RoutingLookupDoneAmap                   func(km string) string
 	RoutingLookupDoneHaversine              func(km string) string
 	SettingsAiCacheCleared                  func(count string) string
@@ -1268,6 +1270,7 @@ const (
 	textReportsCancelButton
 	textReportsExportBothButton
 	textReportsExportDeliverableButton
+	textReportsExportPdfButton
 	textReportsExportXlsxButton
 	textReportsGenerateButton
 	textReportsKindIso
@@ -1280,8 +1283,16 @@ const (
 	textReportsListSubheading
 	textReportsNav
 	textReportsNewCta
+	textReportsNoActivity
 	textReportsNoPeriods
 	textReportsNoProvider
+	textReportsPeriodLabel
+	textReportsPillarGovernance
+	textReportsPillarMetrics
+	textReportsPillarRisk
+	textReportsPillarStrategy
+	textReportsPreviewHeading
+	textReportsPreviewHint
 	textReportsProgressAssembling
 	textReportsProgressBoundary
 	textReportsProgressChanges
@@ -1292,6 +1303,12 @@ const (
 	textReportsProgressReportingBoundary
 	textReportsRegenerateButton
 	textReportsRegenerateWarning
+	textReportsSectionBoundary
+	textReportsSectionChanges
+	textReportsSectionInventory
+	textReportsSectionMethod
+	textReportsSectionObservations
+	textReportsSectionReporting
 	textReportsSetupRequired
 	textRequiredField
 	textRoutingLookupButton
@@ -2533,6 +2550,7 @@ var keyOfText = [numTexts]string{
 	"reportsCancelButton",
 	"reportsExportBothButton",
 	"reportsExportDeliverableButton",
+	"reportsExportPdfButton",
 	"reportsExportXlsxButton",
 	"reportsGenerateButton",
 	"reportsKindIso",
@@ -2545,8 +2563,16 @@ var keyOfText = [numTexts]string{
 	"reportsListSubheading",
 	"reportsNav",
 	"reportsNewCta",
+	"reportsNoActivity",
 	"reportsNoPeriods",
 	"reportsNoProvider",
+	"reportsPeriodLabel",
+	"reportsPillarGovernance",
+	"reportsPillarMetrics",
+	"reportsPillarRisk",
+	"reportsPillarStrategy",
+	"reportsPreviewHeading",
+	"reportsPreviewHint",
 	"reportsProgressAssembling",
 	"reportsProgressBoundary",
 	"reportsProgressChanges",
@@ -2557,6 +2583,12 @@ var keyOfText = [numTexts]string{
 	"reportsProgressReportingBoundary",
 	"reportsRegenerateButton",
 	"reportsRegenerateWarning",
+	"reportsSectionBoundary",
+	"reportsSectionChanges",
+	"reportsSectionInventory",
+	"reportsSectionMethod",
+	"reportsSectionObservations",
+	"reportsSectionReporting",
 	"reportsSetupRequired",
 	"requiredField",
 	"routingLookupButton",
@@ -3796,6 +3828,7 @@ var textsEn = i18n.NewTexts(""+
 	"Cancel"+
 	"Confirm and export (PDF + Excel)"+
 	"Export deliverable bundle (ZIP)"+
+	"Export PDF"+
 	"Export Excel appendix"+
 	"Generate report"+
 	"ISO 14064-1 inventory report"+
@@ -3808,8 +3841,16 @@ var textsEn = i18n.NewTexts(""+
 	"Generate ISO 14064-1-style reports."+
 	"Reports"+
 	"New report"+
+	"No activity data for this reporting period."+
 	"No reporting periods yet."+
 	"No LLM provider configured. Open Settings."+
+	"Reporting period"+
+	"Governance"+
+	"Metrics and targets"+
+	"Risk management"+
+	"Strategy"+
+	"Preview"+
+	"Generate a report to preview it here."+
 	"Assembling inventory data..."+
 	"Writing organizational boundary..."+
 	"Writing significant changes..."+
@@ -3820,6 +3861,12 @@ var textsEn = i18n.NewTexts(""+
 	"Writing reporting boundary..."+
 	"Regenerate"+
 	"Regenerating will discard unsaved edits. Continue?"+
+	"Organizational boundary"+
+	"Significant changes"+
+	"Emissions summary"+
+	"Methodology"+
+	"Notable observations"+
+	"Reporting boundary"+
 	"Set organization profile in Settings first."+
 	"Required"+
 	"Look up distance"+
@@ -5056,6 +5103,7 @@ var textsEn = i18n.NewTexts(""+
 		6,
 		32,
 		31,
+		10,
 		21,
 		15,
 		28,
@@ -5068,8 +5116,16 @@ var textsEn = i18n.NewTexts(""+
 		35,
 		7,
 		10,
+		43,
 		25,
 		42,
+		16,
+		10,
+		19,
+		15,
+		8,
+		7,
+		37,
 		28,
 		34,
 		30,
@@ -5080,6 +5136,12 @@ var textsEn = i18n.NewTexts(""+
 		29,
 		10,
 		50,
+		23,
+		19,
+		17,
+		11,
+		20,
+		18,
 		43,
 		8,
 		16,
@@ -6319,6 +6381,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"取消"+
 	"确认导出 (PDF + Excel)"+
 	"导出交付包 (ZIP)"+
+	"导出 PDF"+
 	"导出 Excel 附录"+
 	"生成报告"+
 	"ISO 14064-1 盘查报告"+
@@ -6331,8 +6394,16 @@ var textsZhCN = i18n.NewTexts(""+
 	"生成 ISO 14064-1 风格的报告。"+
 	"报告"+
 	"新建报告"+
+	"该报告期暂无活动数据。"+
 	"暂无报告期。"+
 	"未配置 LLM 提供商，请打开设置。"+
+	"报告期"+
+	"治理"+
+	"指标与目标"+
+	"风险管理"+
+	"战略"+
+	"预览"+
+	"生成报告后可在此预览。"+
 	"正在装配清单数据..."+
 	"正在撰写组织边界..."+
 	"正在撰写重大变动..."+
@@ -6343,6 +6414,12 @@ var textsZhCN = i18n.NewTexts(""+
 	"正在撰写报告范围..."+
 	"重新生成"+
 	"重新生成会丢弃未保存的修改，是否继续？"+
+	"组织边界"+
+	"重大变动"+
+	"排放概要"+
+	"方法学"+
+	"观察发现"+
+	"报告范围"+
 	"请先在设置中填写组织档案。"+
 	"必填"+
 	"查询距离"+
@@ -7579,6 +7656,7 @@ var textsZhCN = i18n.NewTexts(""+
 		6,
 		26,
 		21,
+		10,
 		19,
 		12,
 		24,
@@ -7591,8 +7669,16 @@ var textsZhCN = i18n.NewTexts(""+
 		37,
 		6,
 		12,
+		33,
 		18,
 		44,
+		9,
+		6,
+		15,
+		12,
+		6,
+		6,
+		33,
 		27,
 		27,
 		27,
@@ -7603,6 +7689,12 @@ var textsZhCN = i18n.NewTexts(""+
 		27,
 		12,
 		57,
+		12,
+		12,
+		12,
+		9,
+		12,
+		12,
 		39,
 		6,
 		12,
@@ -8389,6 +8481,9 @@ func Supply(lang string, t Translation) {
 	}
 	if t.ReportsGenerateFailed != nil {
 		s.ReportsGenerateFailed = t.ReportsGenerateFailed
+	}
+	if t.ReportsGeneratedAt != nil {
+		s.ReportsGeneratedAt = t.ReportsGeneratedAt
 	}
 	if t.RoutingLookupDoneAmap != nil {
 		s.RoutingLookupDoneAmap = t.RoutingLookupDoneAmap
@@ -18587,6 +18682,13 @@ func (msgs Messages) ReportsExportFailed(message string) string {
 	}
 }
 
+// ReportsExportPdfButton says "Export PDF"
+// in the language the app shows under cx.
+func ReportsExportPdfButton(cx *core.Scope) string { return For(cx).ReportsExportPdfButton() }
+
+// ReportsExportPdfButton is the package's ReportsExportPdfButton in the language of msgs.
+func (msgs Messages) ReportsExportPdfButton() string { return msgs.text(textReportsExportPdfButton) }
+
 // ReportsExportSuccess says "Exported {kind} → {path}"
 // in the language the app shows under cx.
 func ReportsExportSuccess(cx *core.Scope, kind string, path string) string {
@@ -18645,6 +18747,28 @@ func (msgs Messages) ReportsGenerateFailed(message string) string {
 			return "Generation failed: " + msgs.arg(message)
 		case "zh-CN":
 			return "生成失败: " + message
+		}
+	}
+}
+
+// ReportsGeneratedAt says "Generated {date}"
+// in the language the app shows under cx.
+func ReportsGeneratedAt(cx *core.Scope, date string) string { return For(cx).ReportsGeneratedAt(date) }
+
+// ReportsGeneratedAt is the package's ReportsGeneratedAt in the language of msgs.
+func (msgs Messages) ReportsGeneratedAt(date string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ReportsGeneratedAt(date))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ReportsGeneratedAt; f != nil {
+			return f(date)
+		}
+		switch lang {
+		case "", "en":
+			return "Generated " + msgs.arg(date)
+		case "zh-CN":
+			return "生成于 " + date
 		}
 	}
 }
@@ -18719,6 +18843,13 @@ func ReportsNewCta(cx *core.Scope) string { return For(cx).ReportsNewCta() }
 // ReportsNewCta is the package's ReportsNewCta in the language of msgs.
 func (msgs Messages) ReportsNewCta() string { return msgs.text(textReportsNewCta) }
 
+// ReportsNoActivity says "No activity data for this reporting period."
+// in the language the app shows under cx.
+func ReportsNoActivity(cx *core.Scope) string { return For(cx).ReportsNoActivity() }
+
+// ReportsNoActivity is the package's ReportsNoActivity in the language of msgs.
+func (msgs Messages) ReportsNoActivity() string { return msgs.text(textReportsNoActivity) }
+
 // ReportsNoPeriods says "No reporting periods yet."
 // in the language the app shows under cx.
 func ReportsNoPeriods(cx *core.Scope) string { return For(cx).ReportsNoPeriods() }
@@ -18732,6 +18863,55 @@ func ReportsNoProvider(cx *core.Scope) string { return For(cx).ReportsNoProvider
 
 // ReportsNoProvider is the package's ReportsNoProvider in the language of msgs.
 func (msgs Messages) ReportsNoProvider() string { return msgs.text(textReportsNoProvider) }
+
+// ReportsPeriodLabel says "Reporting period"
+// in the language the app shows under cx.
+func ReportsPeriodLabel(cx *core.Scope) string { return For(cx).ReportsPeriodLabel() }
+
+// ReportsPeriodLabel is the package's ReportsPeriodLabel in the language of msgs.
+func (msgs Messages) ReportsPeriodLabel() string { return msgs.text(textReportsPeriodLabel) }
+
+// ReportsPillarGovernance says "Governance"
+// in the language the app shows under cx.
+func ReportsPillarGovernance(cx *core.Scope) string { return For(cx).ReportsPillarGovernance() }
+
+// ReportsPillarGovernance is the package's ReportsPillarGovernance in the language of msgs.
+func (msgs Messages) ReportsPillarGovernance() string { return msgs.text(textReportsPillarGovernance) }
+
+// ReportsPillarMetrics says "Metrics and targets"
+// in the language the app shows under cx.
+func ReportsPillarMetrics(cx *core.Scope) string { return For(cx).ReportsPillarMetrics() }
+
+// ReportsPillarMetrics is the package's ReportsPillarMetrics in the language of msgs.
+func (msgs Messages) ReportsPillarMetrics() string { return msgs.text(textReportsPillarMetrics) }
+
+// ReportsPillarRisk says "Risk management"
+// in the language the app shows under cx.
+func ReportsPillarRisk(cx *core.Scope) string { return For(cx).ReportsPillarRisk() }
+
+// ReportsPillarRisk is the package's ReportsPillarRisk in the language of msgs.
+func (msgs Messages) ReportsPillarRisk() string { return msgs.text(textReportsPillarRisk) }
+
+// ReportsPillarStrategy says "Strategy"
+// in the language the app shows under cx.
+func ReportsPillarStrategy(cx *core.Scope) string { return For(cx).ReportsPillarStrategy() }
+
+// ReportsPillarStrategy is the package's ReportsPillarStrategy in the language of msgs.
+func (msgs Messages) ReportsPillarStrategy() string { return msgs.text(textReportsPillarStrategy) }
+
+// ReportsPreviewHeading says "Preview"
+// in the language the app shows under cx.
+func ReportsPreviewHeading(cx *core.Scope) string { return For(cx).ReportsPreviewHeading() }
+
+// ReportsPreviewHeading is the package's ReportsPreviewHeading in the language of msgs.
+func (msgs Messages) ReportsPreviewHeading() string { return msgs.text(textReportsPreviewHeading) }
+
+// ReportsPreviewHint says "Generate a report to preview it here."
+// in the language the app shows under cx.
+func ReportsPreviewHint(cx *core.Scope) string { return For(cx).ReportsPreviewHint() }
+
+// ReportsPreviewHint is the package's ReportsPreviewHint in the language of msgs.
+func (msgs Messages) ReportsPreviewHint() string { return msgs.text(textReportsPreviewHint) }
 
 // ReportsProgressAssembling says "Assembling inventory data..."
 // in the language the app shows under cx.
@@ -18818,6 +18998,50 @@ func ReportsRegenerateWarning(cx *core.Scope) string { return For(cx).ReportsReg
 func (msgs Messages) ReportsRegenerateWarning() string {
 	return msgs.text(textReportsRegenerateWarning)
 }
+
+// ReportsSectionBoundary says "Organizational boundary"
+// in the language the app shows under cx.
+func ReportsSectionBoundary(cx *core.Scope) string { return For(cx).ReportsSectionBoundary() }
+
+// ReportsSectionBoundary is the package's ReportsSectionBoundary in the language of msgs.
+func (msgs Messages) ReportsSectionBoundary() string { return msgs.text(textReportsSectionBoundary) }
+
+// ReportsSectionChanges says "Significant changes"
+// in the language the app shows under cx.
+func ReportsSectionChanges(cx *core.Scope) string { return For(cx).ReportsSectionChanges() }
+
+// ReportsSectionChanges is the package's ReportsSectionChanges in the language of msgs.
+func (msgs Messages) ReportsSectionChanges() string { return msgs.text(textReportsSectionChanges) }
+
+// ReportsSectionInventory says "Emissions summary"
+// in the language the app shows under cx.
+func ReportsSectionInventory(cx *core.Scope) string { return For(cx).ReportsSectionInventory() }
+
+// ReportsSectionInventory is the package's ReportsSectionInventory in the language of msgs.
+func (msgs Messages) ReportsSectionInventory() string { return msgs.text(textReportsSectionInventory) }
+
+// ReportsSectionMethod says "Methodology"
+// in the language the app shows under cx.
+func ReportsSectionMethod(cx *core.Scope) string { return For(cx).ReportsSectionMethod() }
+
+// ReportsSectionMethod is the package's ReportsSectionMethod in the language of msgs.
+func (msgs Messages) ReportsSectionMethod() string { return msgs.text(textReportsSectionMethod) }
+
+// ReportsSectionObservations says "Notable observations"
+// in the language the app shows under cx.
+func ReportsSectionObservations(cx *core.Scope) string { return For(cx).ReportsSectionObservations() }
+
+// ReportsSectionObservations is the package's ReportsSectionObservations in the language of msgs.
+func (msgs Messages) ReportsSectionObservations() string {
+	return msgs.text(textReportsSectionObservations)
+}
+
+// ReportsSectionReporting says "Reporting boundary"
+// in the language the app shows under cx.
+func ReportsSectionReporting(cx *core.Scope) string { return For(cx).ReportsSectionReporting() }
+
+// ReportsSectionReporting is the package's ReportsSectionReporting in the language of msgs.
+func (msgs Messages) ReportsSectionReporting() string { return msgs.text(textReportsSectionReporting) }
 
 // ReportsSetupRequired says "Set organization profile in Settings first."
 // in the language the app shows under cx.

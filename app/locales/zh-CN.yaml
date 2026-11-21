@@ -992,10 +992,12 @@ reportsDeliverableSuccessMissing: 交付包已保存至 {path}——{count} 份�
 reportsExportBothButton: 确认导出 (PDF + Excel)
 reportsExportDeliverableButton: 导出交付包 (ZIP)
 reportsExportFailed: '导出失败: {message}'
+reportsExportPdfButton: 导出 PDF
 reportsExportSuccess: 已导出 {kind} → {path}
 reportsExportXlsxButton: 导出 Excel 附录
 reportsGenerateButton: 生成报告
 reportsGenerateFailed: '生成失败: {message}'
+reportsGeneratedAt: 生成于 {date}
 reportsKindIso: ISO 14064-1 盘查报告
 reportsKindLabel: 报告类型
 reportsKindTcfd: TCFD 气候披露（四支柱）
@@ -1006,8 +1008,16 @@ reportsListHeading: 盘查报告
 reportsListSubheading: 生成 ISO 14064-1 风格的报告。
 reportsNav: 报告
 reportsNewCta: 新建报告
+reportsNoActivity: 该报告期暂无活动数据。
 reportsNoPeriods: 暂无报告期。
 reportsNoProvider: 未配置 LLM 提供商，请打开设置。
+reportsPeriodLabel: 报告期
+reportsPillarGovernance: 治理
+reportsPillarMetrics: 指标与目标
+reportsPillarRisk: 风险管理
+reportsPillarStrategy: 战略
+reportsPreviewHeading: 预览
+reportsPreviewHint: 生成报告后可在此预览。
 reportsProgressAssembling: 正在装配清单数据...
 reportsProgressBoundary: 正在撰写组织边界...
 reportsProgressChanges: 正在撰写重大变动...
@@ -1018,6 +1028,12 @@ reportsProgressObservations: 正在撰写观察发现...
 reportsProgressReportingBoundary: 正在撰写报告范围...
 reportsRegenerateButton: 重新生成
 reportsRegenerateWarning: 重新生成会丢弃未保存的修改，是否继续？
+reportsSectionBoundary: 组织边界
+reportsSectionChanges: 重大变动
+reportsSectionInventory: 排放概要
+reportsSectionMethod: 方法学
+reportsSectionObservations: 观察发现
+reportsSectionReporting: 报告范围
 reportsSetupRequired: 请先在设置中填写组织档案。
 requiredField: 必填
 routingLookupButton: 查询距离

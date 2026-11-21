@@ -16,6 +16,9 @@ import (
 //go:embed fonts/NotoSansSC-subset.ttf
 var cjkFont []byte
 
+// Font returns the embedded CJK font every printable document shares.
+func Font() []byte { return cjkFont }
+
 // Labels is the exported language's fixed copy.
 type Labels struct {
 	DueDate     string

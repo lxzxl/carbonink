@@ -291,6 +291,8 @@ func (s *Session) view(cx *core.Scope) core.Node {
 			Then: func(cx *core.Scope) core.Node { return s.questionnairesScreen(cx, dataRev) }},
 		core.Show{When: func() bool { return active.Get() == ScreenSupplierDisclosures },
 			Then: func(cx *core.Scope) core.Node { return s.supplierDisclosuresScreen(cx, dataRev) }},
+		core.Show{When: func() bool { return active.Get() == ScreenReports },
+			Then: func(cx *core.Scope) core.Node { return s.reportsScreen(cx, dataRev) }},
 		core.Show{When: func() bool { return active.Get() == ScreenAudit },
 			Then: func(cx *core.Scope) core.Node { return s.auditScreen(cx, dataRev) }},
 		core.Show{When: func() bool { return active.Get() == ScreenSettings },
@@ -299,7 +301,7 @@ func (s *Session) view(cx *core.Scope) core.Node {
 			id := active.Get()
 			return id != ScreenActivities && id != ScreenDashboard &&
 				id != ScreenSources && id != ScreenDocuments && id != ScreenQuestionnaires &&
-				id != ScreenSupplierDisclosures &&
+				id != ScreenSupplierDisclosures && id != ScreenReports &&
 				id != ScreenAudit && id != ScreenSettings
 		},
 			Then: func(cx *core.Scope) core.Node { return placeholder(cx) }},
@@ -332,6 +334,8 @@ func (s *Session) view(cx *core.Scope) core.Node {
 					case ScreenSupplierDisclosures:
 						return locales.SupplierDisclosuresCount(cx,
 							strconv.Itoa(s.inboundQuestionnaires()))
+					case ScreenReports:
+						return locales.ReportsListSubheading(cx)
 					case ScreenAudit:
 						return locales.AuditSubheading(cx)
 					}
