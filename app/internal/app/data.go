@@ -1041,7 +1041,7 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 				continue
 			}
 			factors, err := s.db.ListEmissionFactors(context.Background(), store.EFFilter{
-				Scope: src.Scope, Category: src.Category, Limit: 100,
+				Scope: src.Scope, Category: src.Category, Limit: 500,
 			})
 			if err != nil {
 				status.Set(err.Error())

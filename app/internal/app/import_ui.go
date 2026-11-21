@@ -943,11 +943,11 @@ func (s *Session) importEFOptions(sourceID string) []store.EmissionFactor {
 			continue
 		}
 		factors, err := s.db.ListEmissionFactors(context.Background(), store.EFFilter{
-			Scope: src.Scope, Category: src.Category, Limit: 100,
+			Scope: src.Scope, Category: src.Category, Limit: 500,
 		})
 		if err == nil && len(factors) == 0 {
 			factors, _ = s.db.ListEmissionFactors(context.Background(), store.EFFilter{
-				Scope: src.Scope, Limit: 100,
+				Scope: src.Scope, Limit: 500,
 			})
 		}
 		return factors

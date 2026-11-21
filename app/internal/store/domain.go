@@ -553,8 +553,11 @@ func (s *Store) sourceByID(ctx context.Context, id string) (*EmissionSource, err
 // ListEmissionFactors returns factors matching the filter, newest first.
 func (s *Store) ListEmissionFactors(ctx context.Context, f EFFilter) ([]EmissionFactor, error) {
 	limit := f.Limit
-	if limit <= 0 || limit > 500 {
+	if limit <= 0 {
 		limit = 100
+	}
+	if limit > 500 {
+		limit = 500
 	}
 	clauses := []string{"1 = 1"}
 	args := []any{}
