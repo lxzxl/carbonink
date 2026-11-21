@@ -1,0 +1,33 @@
+appName: CarbonInk
+
+navOverview: 概览
+navDashboard: 仪表盘
+navActivities: 活动数据
+navInventory: 清单
+navSources: 排放源
+navInputs: 输入
+navDocuments: 文档
+navReports: 报告
+navSystem: 系统
+navSettings: 设置
+
+activitiesTitle: 活动数据
+activitiesSubtitle: 当前账套中的活动数据。
+activitiesEmpty: 还没有活动数据。
+activitiesCount:
+  message: "{count} 行"
+  placeholders:
+    count: {type: int}
+
+workspaceActive: 当前账套
+importedLegacy: 已从 CarbonInk 1.x 导入
+
+colDate: 日期
+colSite: 场所
+colSource: 排放源
+colAmount: 数量
+colUnit: 单位
+colCO2e: kg CO2e
+colScope: 范围
+
+phaseTwo: 该页面将在 Phase 2 完成。

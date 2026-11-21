@@ -94,10 +94,10 @@ jobs:
         # prerender of the marketing pages.
         run: pnpm cloud:build:web
 
-  go-spike:
-    # Phase 0 harness only. Compiles the NSGo module and runs the pure-Go
-    # packages (PDFium-WASM, SQLite, LLM adapter); the native UI tests need a
-    # window and stay on macOS/Windows.
+  go-app:
+    # Compiles the NSGo module and runs the packages that need no display.
+    # The headless UI tests (internal/app, package main) need the platform
+    # backend and run on macOS/Windows instead.
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -114,7 +114,7 @@ jobs:
         run: go vet ./...
 
       - name: Test pure-Go packages
-        run: go test ./internal/...
+        run: go test ./internal/llm ./internal/platform ./internal/store ./internal/workspace ./internal/spike
 
       - name: Cross-compile the Linux backend
         run: go build ./...

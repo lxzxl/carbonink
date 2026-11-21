@@ -1,6 +1,8 @@
-name: CarbonInk Spike
-id: app.carbonink.desktop.spike
-version: 0.0.1
+name: CarbonInk
+id: app.carbonink.desktop.beta
+version: 2.0.0-beta.1
+
+i18n: { dir: locales, source: en }
 
 # macOS and iOS use assets/AppIcon.icon, or assets/AppIcon.icns on macOS; the
 # other targets, and Apple ones without those, use assets/Icon.png. An Apple

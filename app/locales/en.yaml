@@ -1,0 +1,34 @@
+appName: CarbonInk
+
+navOverview: Overview
+navDashboard: Dashboard
+navActivities: Activities
+navInventory: Inventory
+navSources: Sources
+navInputs: Inputs
+navDocuments: Documents
+navReports: Reports
+navSystem: System
+navSettings: Settings
+
+activitiesTitle: Activities
+activitiesSubtitle: Activity data from the active workspace.
+activitiesEmpty: No activity data yet.
+activitiesCount:
+  message: "{count} rows"
+  description: The number of activity rows, under the screen title.
+  placeholders:
+    count: {type: int}
+
+workspaceActive: Active workspace
+importedLegacy: Imported from CarbonInk 1.x
+
+colDate: Date
+colSite: Site
+colSource: Source
+colAmount: Amount
+colUnit: Unit
+colCO2e: kg CO2e
+colScope: Scope
+
+phaseTwo: This screen lands in Phase 2.
