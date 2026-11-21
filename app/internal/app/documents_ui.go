@@ -660,12 +660,35 @@ func (s *Session) discardDocumentExtraction(cx *core.Scope, detail *documentDeta
 	if row == nil {
 		return
 	}
+	before := *row
 	if err := s.db.DiscardExtraction(context.Background(), row.ID); err != nil {
 		detail.status.Set(err.Error())
 		detail.failed.Set(true)
 		detail.rev.Set(detail.rev.Get() + 1)
 		return
 	}
+	refresh := func() {
+		if detail.open.Get() {
+			s.loadLatestExtraction(context.Background(), detail, detail.doc.Get().ID)
+			_ = dataRefresh(s, detail.dataRev)
+			detail.rev.Set(detail.rev.Get() + 1)
+		}
+	}
+	s.pushUndoAction("extraction.discard",
+		func(ctx context.Context) error {
+			if err := s.db.RestoreExtraction(ctx, before); err != nil {
+				return err
+			}
+			refresh()
+			return nil
+		},
+		func(ctx context.Context) error {
+			if err := s.db.DiscardExtraction(ctx, before.ID); err != nil {
+				return err
+			}
+			refresh()
+			return nil
+		})
 	detail.status.Set(locales.DocumentsReviewDiscardSuccess(cx))
 	detail.failed.Set(false)
 	s.loadLatestExtraction(context.Background(), detail, detail.doc.Get().ID)

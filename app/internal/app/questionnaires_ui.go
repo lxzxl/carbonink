@@ -593,6 +593,7 @@ func (d *questionnaireDetail) save(s *Session, cx *core.Scope, dataRev *core.Sig
 	if id == "" {
 		return
 	}
+	before, _ := s.db.AnswerByQuestion(context.Background(), id)
 	d.busy.Set(true)
 	answer, err := s.db.SaveAnswer(context.Background(), store.SaveAnswerInput{
 		QuestionID: id, Value: d.value.Get(), Unit: strings.TrimSpace(d.unit.Get()),
@@ -604,6 +605,11 @@ func (d *questionnaireDetail) save(s *Session, cx *core.Scope, dataRev *core.Sig
 		d.message.Set(locales.QuestionnairesAnswerSaveFailed(cx) + ": " + err.Error())
 		return
 	}
+	kind := "answer.save"
+	if finalize {
+		kind = "answer.finalize"
+	}
+	s.recordAnswerSave(d, kind, before, answer)
 	d.failed.Set(false)
 	d.message.Set(locales.QuestionnairesAnswerSaved(cx))
 	d.selectedFinalized.Set(answer.FinalizedAt != "")
@@ -623,6 +629,7 @@ func (d *questionnaireDetail) unfinalize(s *Session, cx *core.Scope) {
 	if id == "" {
 		return
 	}
+	before, _ := s.db.AnswerByQuestion(context.Background(), id)
 	d.busy.Set(true)
 	answer, err := s.db.UnfinalizeAnswer(context.Background(), id)
 	d.busy.Set(false)
@@ -631,6 +638,7 @@ func (d *questionnaireDetail) unfinalize(s *Session, cx *core.Scope) {
 		d.message.Set(err.Error())
 		return
 	}
+	s.recordAnswerSave(d, "answer.unfinalize", before, answer)
 	d.failed.Set(false)
 	d.message.Set(locales.QuestionnairesAnswerSaved(cx))
 	d.selectedFinalized.Set(answer.FinalizedAt != "")
@@ -643,6 +651,11 @@ func (d *questionnaireDetail) finalizeAll(s *Session, cx *core.Scope,
 	if d.id == "" {
 		return
 	}
+	beforeAnswers, _ := s.db.ListAnswers(context.Background(), d.id)
+	beforeStatus := ""
+	if q, err := s.db.QuestionnaireByID(context.Background(), d.id); err == nil && q != nil {
+		beforeStatus = q.Status
+	}
 	d.busy.Set(true)
 	err := s.db.FinalizeQuestionnaire(context.Background(), d.id)
 	d.busy.Set(false)
@@ -651,6 +664,7 @@ func (d *questionnaireDetail) finalizeAll(s *Session, cx *core.Scope,
 		d.message.Set(err.Error())
 		return
 	}
+	s.recordFinalizeAll(d, beforeAnswers, beforeStatus)
 	d.failed.Set(false)
 	d.message.Set(locales.QuestionnairesAnswerSaved(cx))
 	if q, err := s.db.QuestionnaireByID(context.Background(), d.id); err == nil && q != nil {

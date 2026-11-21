@@ -862,15 +862,32 @@ func (s *Session) sourceDialog(cx *core.Scope, src *store.EmissionSource, dataRe
 		busy.Set(true)
 		var err error
 		if editingID.Get() == "" {
-			_, err = s.db.CreateSource(context.Background(), store.SourceInput{
+			var created *store.EmissionSource
+			created, err = s.db.CreateSource(context.Background(), store.SourceInput{
 				SiteID: siteID.Get(), Name: name.Get(), Scope: scope.Get(), Category: sourceCategory,
 				GHGProtocolPath: sourcePath,
 			})
+			if err == nil {
+				s.recordSourceCreate(created, dataRev)
+			}
 		} else {
+			before := store.EmissionSource{}
+			if src != nil {
+				before = *src
+			}
 			err = s.db.UpdateSource(context.Background(), editingID.Get(), store.SourcePatch{
 				Name: name.Get(), Scope: scope.Get(), Category: sourceCategory,
 				GHGProtocolPath: sourcePath, IsActive: active.Get(),
 			})
+			if err == nil {
+				after := before
+				after.Name = name.Get()
+				after.Scope = scope.Get()
+				after.Category = sourceCategory
+				after.GHGProtocolPath = sourcePath
+				after.IsActive = active.Get()
+				s.recordSourceUpdate(before, after, dataRev)
+			}
 		}
 		busy.Set(false)
 		if err != nil {
@@ -1154,6 +1171,12 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 			FuelCode: fuel.Get(), Notes: notes.Get(),
 		}
 		current := initial()
+		var before *store.Activity
+		if current != nil {
+			copied := *current
+			before = &copied
+		}
+		var extractionBefore *store.Extraction
 		if current == nil {
 			var seed *activityPrefill
 			if prefill != nil {
@@ -1164,13 +1187,26 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 				input.EvidenceDocumentID = seed.EvidenceDocumentID
 			}
 			if seed != nil && seed.ExtractionID != "" {
-				_, err = s.db.CreateActivityFromExtraction(context.Background(), input)
+				extractionBefore, _ = s.db.ExtractionByID(context.Background(), seed.ExtractionID)
+				var created *store.Activity
+				created, err = s.db.CreateActivityFromExtraction(context.Background(), input)
+				if err == nil {
+					s.recordActivityCreate(created, extractionBefore, onSaved, dataRev)
+				}
 			} else {
-				_, err = s.db.CreateActivity(context.Background(), input)
+				var created *store.Activity
+				created, err = s.db.CreateActivity(context.Background(), input)
+				if err == nil {
+					s.recordActivityCreate(created, nil, onSaved, dataRev)
+				}
 			}
 		} else {
 			input.ExtractionID = current.ExtractionID
-			_, err = s.db.UpdateActivity(context.Background(), current.ID, input)
+			var updated *store.Activity
+			updated, err = s.db.UpdateActivity(context.Background(), current.ID, input)
+			if err == nil {
+				s.recordActivityUpdate(before, updated, onSaved, dataRev)
+			}
 		}
 		busy.Set(false)
 		if err != nil {
@@ -1357,13 +1393,36 @@ func (s *Session) deleteActivityButton(cx *core.Scope, selectedID *core.Signal[s
 		if selectedID.Get() == "" {
 			return
 		}
+		id := selectedID.Get()
+		row := s.activityByID(id)
+		if row == nil {
+			return
+		}
+		snapshot := *row
+		evidence, _ := s.db.ListEvidence(context.Background(),
+			store.EvidenceTarget{ActivityDataID: id})
 		busy.Set(true)
-		err := s.db.DeleteActivity(context.Background(), selectedID.Get())
+		err := s.db.DeleteActivity(context.Background(), id)
 		busy.Set(false)
 		if err != nil {
 			status.Set(err.Error())
 			return
 		}
+		s.pushUndoAction("activity.delete",
+			func(ctx context.Context) error {
+				if err := s.db.RestoreActivity(ctx, snapshot, evidence); err != nil {
+					return err
+				}
+				_ = dataRefresh(s, dataRev)
+				return nil
+			},
+			func(ctx context.Context) error {
+				if err := s.db.DeleteActivity(ctx, snapshot.ID); err != nil {
+					return err
+				}
+				_ = dataRefresh(s, dataRev)
+				return nil
+			})
 		open.Set(false)
 		selectedID.Set("")
 		_ = dataRefresh(s, dataRev)

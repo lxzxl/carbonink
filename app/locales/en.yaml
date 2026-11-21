@@ -1481,7 +1481,11 @@ topbarBack: Go back
 topbarDetail: Detail
 topbarForward: Go forward
 undo: Undo
+undoDone: Undone
 undoFailed: Could not undo the last action.
+redo: Redo
+redoDone: Redone
+redoFailed: Could not redo the last action.
 unitKgCo2e: kg CO2e
 updaterCheckButton: Check for Updates
 updaterCurrentVersion: 'Current version: {version}'

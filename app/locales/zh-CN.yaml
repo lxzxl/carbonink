@@ -1480,7 +1480,11 @@ topbarBack: 后退
 topbarDetail: 详情
 topbarForward: 前进
 undo: 撤销
+undoDone: 已撤销
 undoFailed: 撤销失败。
+redo: 重做
+redoDone: 已重做
+redoFailed: 重做失败。
 unitKgCo2e: kg CO2e
 updaterCheckButton: 检查更新
 updaterCurrentVersion: 当前版本：{version}

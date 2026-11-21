@@ -100,13 +100,14 @@ func (s *Session) sourceCatalogDialog(cx *core.Scope, dataRev *core.Signal[int])
 			})
 		}
 		c.busy.Set(true)
-		_, err := s.db.CreateSources(context.Background(), inputs)
+		created, err := s.db.CreateSources(context.Background(), inputs)
 		c.busy.Set(false)
 		if err != nil {
 			c.status.Set(err.Error())
 			c.rev.Set(c.rev.Get() + 1)
 			return
 		}
+		s.recordSourceBatchCreate(created, dataRev)
 		c.open.Set(false)
 		_ = dataRefresh(s, dataRev)
 	}

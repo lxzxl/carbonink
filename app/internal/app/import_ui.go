@@ -455,6 +455,9 @@ func (s *Session) importCreateSource(cx *core.Scope, w *importWizard, name strin
 		w.rev.Set(w.rev.Get() + 1)
 		return
 	}
+	if w.dataRev != nil {
+		s.recordSourceCreate(created, w.dataRev)
+	}
 	if sig := w.sourceIDs[name]; sig != nil {
 		sig.Set(created.ID)
 	}

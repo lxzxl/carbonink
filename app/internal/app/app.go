@@ -17,6 +17,7 @@ import (
 	"app.carbonink.desktop/internal/platform"
 	"app.carbonink.desktop/internal/prefs"
 	"app.carbonink.desktop/internal/store"
+	"app.carbonink.desktop/internal/undo"
 	"app.carbonink.desktop/internal/workspace"
 	"app.carbonink.desktop/locales"
 
@@ -74,6 +75,8 @@ type Session struct {
 	prefsPath        string
 	settings         prefs.Settings
 	log              *platform.Logger
+	undo             *undo.Manager
+	undoStatus       *core.Signal[string]
 }
 
 // Root opens the active workspace and returns the shell. It is the app's
@@ -110,7 +113,8 @@ func Root(cx *core.Scope) core.Node {
 
 func open(cx *core.Scope, log *platform.Logger) (*Session, error) {
 	ctx := context.Background()
-	s := &Session{log: log, dataDir: cx.DataDir(), scope: cx, batch: newBatchExtraction(cx)}
+	s := &Session{log: log, dataDir: cx.DataDir(), scope: cx, batch: newBatchExtraction(cx),
+		undo: undo.New(100)}
 	s.prefsPath = prefs.Path(cx.DataDir())
 	if settings, err := prefs.Load(s.prefsPath); err == nil {
 		s.settings = settings
@@ -291,8 +295,13 @@ func (s *Session) view(cx *core.Scope) core.Node {
 	active := core.NewSignal(cx, start)
 	open := core.NewSignal(cx, true)
 	paletteOpen := core.NewSignal(cx, false)
+	undoStatus := core.NewSignal(cx, "")
+	s.undoStatus = undoStatus
 	dataRev := s.dataRev
 	cx.OnKey("mod+k", func() { paletteOpen.Set(true) })
+	cx.OnKey("mod+z", func() { s.performHistory(cx, dataRev, false) })
+	cx.OnKey("mod+shift+z", func() { s.performHistory(cx, dataRev, true) })
+	cx.OnKey("mod+y", func() { s.performHistory(cx, dataRev, true) })
 	cx.OnNotificationPress(func(id string) {
 		if id == overdueNotificationID {
 			active.Set(ScreenSupplierDisclosures)
@@ -339,6 +348,12 @@ func (s *Session) view(cx *core.Scope) core.Node {
 		nav = append(nav, core.Text{ContentFunc: func() string { return locales.ImportedLegacy(cx) },
 			Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)})
 	}
+	nav = append(nav, core.Show{When: func() bool { return undoStatus.Get() != "" },
+		Then: func(cx *core.Scope) core.Node {
+			return core.Text{ContentFunc: func() string { return undoStatus.Get() },
+				Style:     core.Style{FontSize: 11, Padding: core.All(10)},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2}
+		}})
 
 	content := []core.Node{
 		core.Show{When: func() bool { return active.Get() == ScreenActivities },

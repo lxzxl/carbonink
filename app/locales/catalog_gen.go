@@ -1717,7 +1717,11 @@ const (
 	textTopbarDetail
 	textTopbarForward
 	textUndo
+	textUndoDone
 	textUndoFailed
+	textRedo
+	textRedoDone
+	textRedoFailed
 	textUnitKgCo2e
 	textUpdaterCheckButton
 	textUpdaterDownloadButton
@@ -3048,7 +3052,11 @@ var keyOfText = [numTexts]string{
 	"topbarDetail",
 	"topbarForward",
 	"undo",
+	"undoDone",
 	"undoFailed",
+	"redo",
+	"redoDone",
+	"redoFailed",
 	"unitKgCo2e",
 	"updaterCheckButton",
 	"updaterDownloadButton",
@@ -4377,7 +4385,11 @@ var textsEn = i18n.NewTexts(""+
 	"Detail"+
 	"Go forward"+
 	"Undo"+
+	"Undone"+
 	"Could not undo the last action."+
+	"Redo"+
+	"Redone"+
+	"Could not redo the last action."+
 	"kg CO2e"+
 	"Check for Updates"+
 	"Open Download Page"+
@@ -5703,6 +5715,10 @@ var textsEn = i18n.NewTexts(""+
 		6,
 		10,
 		4,
+		6,
+		31,
+		4,
+		6,
 		31,
 		7,
 		17,
@@ -7032,7 +7048,11 @@ var textsZhCN = i18n.NewTexts(""+
 	"详情"+
 	"前进"+
 	"撤销"+
+	"已撤销"+
 	"撤销失败。"+
+	"重做"+
+	"已重做"+
+	"重做失败。"+
 	"kg CO2e"+
 	"检查更新"+
 	"打开下载页"+
@@ -8358,6 +8378,10 @@ var textsZhCN = i18n.NewTexts(""+
 		6,
 		6,
 		6,
+		9,
+		15,
+		6,
+		9,
 		15,
 		7,
 		12,
@@ -24023,12 +24047,40 @@ func Undo(cx *core.Scope) string { return For(cx).Undo() }
 // Undo is the package's Undo in the language of msgs.
 func (msgs Messages) Undo() string { return msgs.text(textUndo) }
 
+// UndoDone says "Undone"
+// in the language the app shows under cx.
+func UndoDone(cx *core.Scope) string { return For(cx).UndoDone() }
+
+// UndoDone is the package's UndoDone in the language of msgs.
+func (msgs Messages) UndoDone() string { return msgs.text(textUndoDone) }
+
 // UndoFailed says "Could not undo the last action."
 // in the language the app shows under cx.
 func UndoFailed(cx *core.Scope) string { return For(cx).UndoFailed() }
 
 // UndoFailed is the package's UndoFailed in the language of msgs.
 func (msgs Messages) UndoFailed() string { return msgs.text(textUndoFailed) }
+
+// Redo says "Redo"
+// in the language the app shows under cx.
+func Redo(cx *core.Scope) string { return For(cx).Redo() }
+
+// Redo is the package's Redo in the language of msgs.
+func (msgs Messages) Redo() string { return msgs.text(textRedo) }
+
+// RedoDone says "Redone"
+// in the language the app shows under cx.
+func RedoDone(cx *core.Scope) string { return For(cx).RedoDone() }
+
+// RedoDone is the package's RedoDone in the language of msgs.
+func (msgs Messages) RedoDone() string { return msgs.text(textRedoDone) }
+
+// RedoFailed says "Could not redo the last action."
+// in the language the app shows under cx.
+func RedoFailed(cx *core.Scope) string { return For(cx).RedoFailed() }
+
+// RedoFailed is the package's RedoFailed in the language of msgs.
+func (msgs Messages) RedoFailed() string { return msgs.text(textRedoFailed) }
 
 // UnitKgCo2e says "kg CO2e"
 // in the language the app shows under cx.
