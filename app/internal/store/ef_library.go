@@ -218,6 +218,59 @@ func (s *Store) KnownUnits(ctx context.Context) (map[string]bool, error) {
 	return out, rows.Err()
 }
 
+// BrowseEFLibrary returns one page of factors in an imported library and the
+// total matching the search. A blank search lists the whole library.
+func (s *Store) BrowseEFLibrary(ctx context.Context, id, search string, limit, offset int) ([]EmissionFactor, int, error) {
+	library, err := efLibraryByID(ctx, s.db, id)
+	if err != nil {
+		return nil, 0, err
+	}
+	if library == nil {
+		return nil, 0, fmt.Errorf("EF library not found: %s", id)
+	}
+	if limit <= 0 || limit > 200 {
+		limit = 50
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	clauses := []string{"source = ?"}
+	args := []any{library.Source}
+	if query := strings.TrimSpace(search); query != "" {
+		like := "%" + strings.ToLower(query) + "%"
+		clauses = append(clauses, `(lower(coalesce(name_zh, '')) LIKE ? OR lower(coalesce(name_en, '')) LIKE ?
+			OR lower(factor_code) LIKE ?)`)
+		args = append(args, like, like, like)
+	}
+	where := strings.Join(clauses, " AND ")
+	var total int
+	if err := s.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM emission_factor WHERE `+where, args...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	pageArgs := append(append([]any{}, args...), limit, offset)
+	rows, err := s.db.QueryContext(ctx, `SELECT factor_code, year, source, geography, dataset_version,
+			scope, coalesce(category, ''), coalesce(ghg_protocol_path, ''), input_unit, co2e_kg_per_unit,
+			ch4_kg_per_unit, n2o_kg_per_unit, gwp_basis, coalesce(name_zh, ''), coalesce(name_en, ''),
+			coalesce(citation_url, '')
+		FROM emission_factor WHERE `+where+`
+		ORDER BY lower(coalesce(nullif(name_en, ''), name_zh, factor_code)), factor_code, year DESC
+		LIMIT ? OFFSET ?`, pageArgs...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	out := make([]EmissionFactor, 0, limit)
+	for rows.Next() {
+		factor, err := scanEmissionFactor(rows)
+		if err != nil {
+			return nil, 0, err
+		}
+		out = append(out, factor)
+	}
+	return out, total, rows.Err()
+}
+
 func efLibraryByName(ctx context.Context, q queryer, name string) (*EFLibrary, error) {
 	row := q.QueryRowContext(ctx, `SELECT id, name, source, version,
 			coalesce(source_filename, ''), coalesce(document_id, ''), factor_count,

@@ -115,3 +115,48 @@ func TestEFLibraryRejectsBadNames(t *testing.T) {
 		t.Errorf("empty rows error = %v", err)
 	}
 }
+
+func TestBrowseEFLibrary(t *testing.T) {
+	s, ctx := openFixture(t)
+	rows := []efimport.ValidRow{
+		{Row: 2, FactorCode: "INT-GRID", Year: 2024, Geography: "CN", Scope: 2,
+			Category: "electricity.grid", InputUnit: "kWh", CO2e: 0.42,
+			GWP: "AR6", NameEN: "Internal grid"},
+		{Row: 3, FactorCode: "INT-DIESEL", Year: 2024, Geography: "GLOBAL", Scope: 1,
+			Category: "fuel.combustion", InputUnit: "L", CO2e: 2.68,
+			GWP: "AR6", NameEN: "Internal diesel"},
+		{Row: 4, FactorCode: "INT-STEEL", Year: 2024, Geography: "GLOBAL", Scope: 3,
+			Category: "purchase.material.steel", InputUnit: "kg", CO2e: 1.9,
+			GWP: "AR6", NameEN: "Steel purchase"},
+	}
+	library, _, err := s.ImportEFLibrary(ctx, EFLibraryImport{Name: "Browse", Rows: rows})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	page, total, err := s.BrowseEFLibrary(ctx, library.ID, "", 2, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if total != 3 || len(page) != 2 || page[0].FactorCode != "INT-DIESEL" {
+		t.Fatalf("page 1 = %d/%d %+v", len(page), total, page)
+	}
+	page, total, err = s.BrowseEFLibrary(ctx, library.ID, "", 2, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if total != 3 || len(page) != 1 || page[0].FactorCode != "INT-STEEL" {
+		t.Fatalf("page 2 = %d/%d %+v", len(page), total, page)
+	}
+	page, total, err = s.BrowseEFLibrary(ctx, library.ID, "diesel", 50, 0)
+	if err != nil || total != 1 || len(page) != 1 || page[0].FactorCode != "INT-DIESEL" {
+		t.Fatalf("search = %d/%d %+v, %v", len(page), total, page, err)
+	}
+	page, total, err = s.BrowseEFLibrary(ctx, library.ID, "nothing-matches", 50, 0)
+	if err != nil || total != 0 || len(page) != 0 {
+		t.Fatalf("empty search = %d/%d %+v, %v", len(page), total, page, err)
+	}
+	if _, _, err := s.BrowseEFLibrary(ctx, "missing", "", 50, 0); err == nil {
+		t.Error("missing library resolved")
+	}
+}

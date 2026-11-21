@@ -52,6 +52,7 @@ func (s *Session) efLibraryList(cx *core.Scope, dataRev *core.Signal[int]) core.
 						strconv.Itoa(library.FactorCount), dateOnly(library.ImportedAt)),
 						Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
 				}},
+				s.efLibraryBrowseButton(cx, library),
 				s.efLibraryDeleteButton(cx, library, dataRev),
 			},
 		})
@@ -99,6 +100,124 @@ func (s *Session) efLibraryDeleteButton(cx *core.Scope, library store.EFLibrary,
 				TestID: "ef-library-delete-confirm"},
 		}, "ef-library-delete-dialog"),
 	}}
+}
+
+type efBrowser struct {
+	open   *core.Signal[bool]
+	rev    *core.Signal[int]
+	query  *core.Signal[string]
+	status *core.Signal[string]
+
+	factors []store.EmissionFactor
+	total   int
+	offset  int
+}
+
+func (s *Session) efLibraryBrowseButton(cx *core.Scope, library store.EFLibrary) core.Node {
+	b := &efBrowser{
+		open:   core.NewSignal(cx, false),
+		rev:    core.NewSignal(cx, 0),
+		query:  core.NewSignal(cx, ""),
+		status: core.NewSignal(cx, ""),
+	}
+	load := func(reset bool) {
+		if reset {
+			b.factors = nil
+			b.offset = 0
+		}
+		page, total, err := s.db.BrowseEFLibrary(context.Background(), library.ID,
+			b.query.Get(), 50, b.offset)
+		if err != nil {
+			b.status.Set(err.Error())
+			b.rev.Set(b.rev.Get() + 1)
+			return
+		}
+		b.factors = append(b.factors, page...)
+		b.total = total
+		b.offset += len(page)
+		b.status.Set("")
+		b.rev.Set(b.rev.Get() + 1)
+	}
+	show := func() {
+		b.query.Set("")
+		b.factors = nil
+		b.total = 0
+		b.offset = 0
+		b.status.Set("")
+		load(true)
+		b.open.Set(true)
+	}
+	return core.View{Children: []core.Node{
+		ui.Button{Text: locales.EfLibraryBrowseOpen(cx), Variant: ui.ButtonSecondary,
+			OnPress: show, TestID: "ef-library-browse-" + library.Name},
+		dataDialogSized(cx, b.open, library.Name, []core.Node{
+			dataField(cx, locales.EfLibraryBrowseSearchPlaceholder(cx),
+				ui.Input{Value: b.query.Get, Placeholder: locales.EfLibraryBrowseSearchPlaceholder(cx),
+					OnChange: func(v string) {
+						b.query.Set(v)
+						load(true)
+					},
+					TestID: "ef-browse-search"}),
+			core.Scroll{Style: core.Style{MaxHeight: core.Pt(460)}, Children: []core.Node{
+				core.Dynamic(func(cx *core.Scope) core.Node {
+					_ = b.rev.Get()
+					return efBrowseList(cx, b, load)
+				}),
+			}},
+			dataError(cx, b.status),
+		}, []core.Node{
+			dataCancelButton(cx, b.open, "ef-browse-close"),
+		}, "ef-library-browse-dialog", 720),
+	}}
+}
+
+func efBrowseList(cx *core.Scope, b *efBrowser, load func(bool)) core.Node {
+	if len(b.factors) == 0 {
+		empty := locales.EfLibraryBrowseEmptyLibrary(cx)
+		if strings.TrimSpace(b.query.Get()) != "" {
+			empty = locales.EfLibraryBrowseEmptySearch(cx)
+		}
+		return core.Text{Content: empty, Style: core.Style{FontSize: 12},
+			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)}
+	}
+	rows := make([]core.Node, 0, len(b.factors)+2)
+	rows = append(rows, core.Text{
+		Content: locales.EfLibraryBrowseCount(cx, strconv.Itoa(len(b.factors)), strconv.Itoa(b.total)),
+		Style:   core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
+	for i := range b.factors {
+		factor := b.factors[i]
+		name := factor.NameEN
+		if name == "" {
+			name = factor.NameZH
+		}
+		rows = append(rows, core.View{
+			Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 10,
+				Padding: core.Symmetric(7, 0), Borders: core.Edges{Bottom: 1}},
+			StyleFunc: func() core.Style { return core.Style{BorderColor: ui.ColorsOf(cx).Line()} },
+			Children: []core.Node{
+				core.View{Style: core.Style{Gap: 2, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
+					Children: []core.Node{
+						core.Text{Content: name, Style: core.Style{FontSize: 13, FontWeight: ui.Semibold},
+							MaxLines: 1},
+						core.Text{Content: factor.FactorCode + " · " +
+							locales.EfLibraryBrowsePerUnit(cx, commaFloat(factor.CO2eKgPerUnit),
+								factor.InputUnit),
+							Style:     core.Style{FontSize: 11},
+							StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
+					}},
+				ui.Badge{Text: locales.EfLibraryBrowseScope(cx, strconv.Itoa(factor.Scope)),
+					Variant: ui.BadgeNeutral},
+			},
+		})
+	}
+	if len(b.factors) < b.total {
+		rows = append(rows, core.View{Style: core.Style{Padding: core.Symmetric(8, 0)},
+			Children: []core.Node{
+				ui.Button{Text: locales.EfLibraryBrowseLoadMore(cx), Variant: ui.ButtonSecondary,
+					OnPress: func() { load(false) }, TestID: "ef-browse-more"},
+			}})
+	}
+	return core.View{Style: core.Style{Gap: 0}, Children: rows}
 }
 
 type efWizard struct {
