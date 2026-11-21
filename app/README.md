@@ -61,6 +61,11 @@ Logs are JSON lines in `cx.LogsDir()` (`~/Library/Logs/app.carbonink.desktop.bet
 on macOS), rotated at 5 MB. On startup the app keeps at most seven daily
 snapshots under `<data>/auto-backups/<workspace_id>/`, using the 1.x file name.
 
+The NSGo update public key is in `nsgo.yaml`; its secret is in
+`.nsgo/updates-key.txt` (gitignored). Move that secret to a password manager and
+to the release environment as `NSGO_UPDATES_KEY`. The channel stays `none`
+until the 2.0 appcast is hosted.
+
 ## Phase 1 status
 
 - Workspace registry, active workspace, one-time legacy import: done

@@ -4,6 +4,12 @@ version: 2.0.0-beta.1
 
 i18n: { dir: locales, source: en }
 
+updates:
+  key: HkKgeSqjLiqKO1yf1OKt51JC8PXJiQKI2FoON04ImOs=
+  # Switch to direct when the 2.0 appcast is hosted. Until then, none keeps
+  # the beta from reading 1.x's Electron releases at the repo's latest release.
+  channel: none
+
 # macOS and iOS use assets/AppIcon.icon, or assets/AppIcon.icns on macOS; the
 # other targets, and Apple ones without those, use assets/Icon.png. An Apple
 # TV's icon is a wide layered card and an Apple Watch's is drawn in circles,
