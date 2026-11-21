@@ -160,3 +160,108 @@ func TestExtractionAuditEvents(t *testing.T) {
 		t.Fatalf("audit kinds = %v", kinds)
 	}
 }
+
+func TestCreateActivityFromExtraction(t *testing.T) {
+	s, ctx := openFixture(t)
+	_, site, period := onboard(t, s, ctx)
+	src, err := s.CreateSource(ctx, SourceInput{
+		SiteID: site.ID, Name: "Purchased electricity", Scope: 2, Category: "electricity.grid",
+		GHGProtocolPath: "scope2.location",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ef := findFactor(t, s, ctx, EFFilter{Scope: 2, Category: "electricity.grid", Search: "national"})
+	document, _, err := s.SaveDocument(ctx, DocumentInput{
+		Filename: "bill.pdf", MIMEType: "application/pdf", Data: []byte("%PDF-1.7\nbill\n"),
+	}, t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	row, err := s.InsertExtraction(ctx, ExtractionInput{
+		DocumentID: document.ID, LLMProvider: "openai", LLMModel: "gpt-test",
+		PromptVersion: "china_utility.v1", ParsedJSON: `{"doc_type":"china_utility"}`,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	activity, err := s.CreateActivityFromExtraction(ctx, ActivityInput{
+		EmissionSourceID: src.ID, ReportingPeriodID: period.ID,
+		OccurredAtStart: "2025-01-01", OccurredAtEnd: "2025-01-31",
+		Amount: 100, Unit: "kWh", EF: keyOf(ef),
+		ExtractionID: row.ID, EvidenceDocumentID: document.ID,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if activity.ExtractionID != row.ID || activity.EmissionSourceID != src.ID {
+		t.Fatalf("activity = %+v", activity)
+	}
+	confirmed, err := s.ExtractionByID(ctx, row.ID)
+	if err != nil || confirmed.Status != ExtractionParsed || confirmed.ReviewedByUserAt == "" {
+		t.Fatalf("extraction = %+v, %v", confirmed, err)
+	}
+	var evidence int
+	if err := s.DB().QueryRowContext(ctx,
+		`SELECT count(*) FROM evidence_attachment WHERE activity_data_id = ? AND document_id = ?`,
+		activity.ID, document.ID).Scan(&evidence); err != nil || evidence != 1 {
+		t.Fatalf("evidence = %d, %v", evidence, err)
+	}
+	var kinds []string
+	rows, err := s.DB().QueryContext(ctx,
+		`SELECT event_kind FROM audit_event WHERE event_kind IN
+			('activity_data.created', 'extraction.confirmed') ORDER BY occurred_at, id`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var kind string
+		if err := rows.Scan(&kind); err != nil {
+			t.Fatal(err)
+		}
+		kinds = append(kinds, kind)
+	}
+	if len(kinds) != 2 {
+		t.Fatalf("audit kinds = %v", kinds)
+	}
+
+	before, err := s.ActivityCount(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.CreateActivityFromExtraction(ctx, ActivityInput{
+		EmissionSourceID: src.ID, ReportingPeriodID: period.ID,
+		OccurredAtStart: "2025-01-01", OccurredAtEnd: "2025-01-31",
+		Amount: 100, Unit: "kWh", EF: keyOf(ef), ExtractionID: row.ID,
+	}); err == nil {
+		t.Fatal("confirmed extraction was reused")
+	}
+	after, err := s.ActivityCount(ctx)
+	if err != nil || after != before {
+		t.Fatalf("activity count after failed confirm = %d, %v", after, err)
+	}
+}
+
+func TestCreateActivityFromMissingExtractionWritesNothing(t *testing.T) {
+	s, ctx := openFixture(t)
+	_, site, period := onboard(t, s, ctx)
+	src, err := s.CreateSource(ctx, SourceInput{
+		SiteID: site.ID, Name: "Purchased electricity", Scope: 2, Category: "electricity.grid",
+		GHGProtocolPath: "scope2.location",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ef := findFactor(t, s, ctx, EFFilter{Scope: 2, Category: "electricity.grid", Search: "national"})
+	if _, err := s.CreateActivityFromExtraction(ctx, ActivityInput{
+		EmissionSourceID: src.ID, ReportingPeriodID: period.ID,
+		OccurredAtStart: "2025-01-01", OccurredAtEnd: "2025-01-31",
+		Amount: 100, Unit: "kWh", EF: keyOf(ef), ExtractionID: "missing",
+	}); err == nil {
+		t.Fatal("missing extraction was accepted")
+	}
+	if count, err := s.ActivityCount(ctx); err != nil || count != 0 {
+		t.Fatalf("activity count = %d, %v", count, err)
+	}
+}

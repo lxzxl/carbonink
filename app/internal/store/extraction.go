@@ -233,6 +233,67 @@ func (s *Store) ConfirmExtraction(ctx context.Context, id string) error {
 	return tx.Commit()
 }
 
+// CreateActivityFromExtraction writes the activity and promotes its source
+// extraction to parsed in one transaction. The activity keeps the extraction
+// and evidence links that insertActivity audits.
+func (s *Store) CreateActivityFromExtraction(ctx context.Context, in ActivityInput) (*Activity, error) {
+	extractionID := strings.TrimSpace(in.ExtractionID)
+	if extractionID == "" {
+		return nil, errors.New("extraction is required")
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	var status string
+	err = tx.QueryRowContext(ctx, `SELECT status FROM extraction WHERE id = ?`, extractionID).Scan(&status)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, fmt.Errorf("extraction not found: %s", extractionID)
+	}
+	if err != nil {
+		return nil, err
+	}
+	if status != ExtractionReviewNeeded {
+		return nil, fmt.Errorf("extraction not confirmable: %s (status=%s)", extractionID, status)
+	}
+
+	activityID, err := insertActivity(ctx, tx, in)
+	if err != nil {
+		return nil, err
+	}
+	ts := now()
+	result, err := tx.ExecContext(ctx, `UPDATE extraction
+		SET status = 'parsed', reviewed_by_user_at = ?
+		WHERE id = ? AND status = 'review_needed'`, ts, extractionID)
+	if err != nil {
+		return nil, err
+	}
+	changed, err := result.RowsAffected()
+	if err != nil {
+		return nil, err
+	}
+	if changed == 0 {
+		return nil, fmt.Errorf("extraction not confirmable: %s", extractionID)
+	}
+	if err := writeAudit(ctx, tx, "extraction.confirmed", ts, map[string]any{
+		"extraction_id": extractionID,
+		"activity_id":   activityID,
+		"status":        ExtractionParsed,
+	}); err != nil {
+		return nil, err
+	}
+	created, err := activityByID(ctx, tx, activityID)
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return created, nil
+}
+
 // DiscardExtraction rejects a review_needed row. Discarding an already
 // rejected row is a no-op; parsed and pending rows are refused because they
 // are not part of the review flow.

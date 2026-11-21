@@ -637,8 +637,12 @@ func TestRunDocumentExtractionThroughUI(t *testing.T) {
 	ui.WaitFor("text:国网北京市电力公司", 5*time.Second)
 	ui.WaitFor("text:523.5", 5*time.Second)
 	ui.WaitFor("text:Needs review", 3*time.Second)
-	ui.Press("id:documents-extraction-discard")
-	ui.WaitFor("text:Extraction discarded", 5*time.Second)
+	ui.Press("id:documents-extraction-confirm")
+	ui.WaitFor("id:documents-extraction-activity-dialog", 3*time.Second)
+	ui.Press("id:documents-extraction-activity-save")
+	ui.WaitFor("text:Extraction confirmed", 5*time.Second)
+	ui.WaitFor("text:Confirmed", 3*time.Second)
+	ui.WaitFor("text:1 linked", 3*time.Second)
 	if calls.Load() != 1 {
 		t.Errorf("model calls = %d, want 1", calls.Load())
 	}
@@ -649,14 +653,22 @@ func TestRunDocumentExtractionThroughUI(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer check.Close()
-	var status string
-	var parsed any
+	var status, reviewed string
 	if err := check.DB().QueryRowContext(ctx,
-		`SELECT status, parsed_json FROM extraction`).Scan(&status, &parsed); err != nil {
+		`SELECT status, coalesce(reviewed_by_user_at, '') FROM extraction`).Scan(&status, &reviewed); err != nil {
 		t.Fatal(err)
 	}
-	if status != store.ExtractionRejected || parsed != nil {
-		t.Fatalf("extraction = %s, parsed = %v", status, parsed)
+	if status != store.ExtractionParsed || reviewed == "" {
+		t.Fatalf("extraction = %s, reviewed = %q", status, reviewed)
+	}
+	var activities, links int
+	if err := check.DB().QueryRowContext(ctx,
+		`SELECT (SELECT count(*) FROM activity_data), (SELECT count(*) FROM evidence_attachment)`).
+		Scan(&activities, &links); err != nil {
+		t.Fatal(err)
+	}
+	if activities != 2 || links != 1 {
+		t.Fatalf("activities = %d, evidence links = %d", activities, links)
 	}
 }
 

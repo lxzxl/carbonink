@@ -48,6 +48,8 @@ type documentDetail struct {
 	extracting    *core.Signal[bool]
 	extraction    *core.Signal[*store.Extraction]
 	providerReady bool
+	prefill       *activityPrefill
+	openForm      func()
 	evidence      []store.DocumentEvidence
 	total         int
 	text          string
@@ -88,6 +90,13 @@ func (s *Session) documentsScreen(cx *core.Scope, dataRev *core.Signal[int]) cor
 	statusFailed := core.NewSignal(cx, false)
 	preview := newDocumentPreview(cx)
 	detail := newDocumentDetail(cx)
+	extractionForm := s.newActivityForm(cx, dataRev,
+		func() *store.Activity { return nil },
+		func() *activityPrefill { return detail.prefill },
+		locales.DocumentsReviewConfirm, locales.DocumentsReviewConfirm,
+		"documents-extraction-activity",
+		func() { s.afterExtractionActivity(cx, detail) })
+	detail.openForm = extractionForm.show
 	return core.View{
 		Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
 		Children: []core.Node{
@@ -103,6 +112,7 @@ func (s *Session) documentsScreen(cx *core.Scope, dataRev *core.Signal[int]) cor
 			},
 			s.documentPreviewDialog(cx, preview),
 			s.documentDetailDialog(cx, detail),
+			extractionForm.dialog,
 		},
 	}
 }
@@ -356,6 +366,7 @@ func (s *Session) openDocumentDetail(cx *core.Scope, detail *documentDetail, doc
 	detail.total = 0
 	detail.text = ""
 	detail.pages = 0
+	detail.prefill = nil
 	detail.providerReady = s.llmProvider(cx).Configured()
 	detail.status.Set("")
 	detail.failed.Set(false)
@@ -497,6 +508,34 @@ func (s *Session) discardDocumentExtraction(cx *core.Scope, detail *documentDeta
 	detail.rev.Set(detail.rev.Get() + 1)
 }
 
+// afterExtractionActivity runs after the activity form commits. The activity
+// and the extraction promotion already happened in one store transaction; here
+// we refresh the ledger and the dialog without rebuilding the screen, so the
+// document stays open.
+func (s *Session) afterExtractionActivity(cx *core.Scope, detail *documentDetail) {
+	ctx := context.Background()
+	if err := s.reload(ctx); err != nil {
+		detail.status.Set(err.Error())
+		detail.failed.Set(true)
+		detail.rev.Set(detail.rev.Get() + 1)
+		return
+	}
+	detail.prefill = nil
+	documentID := detail.doc.Get().ID
+	s.loadLatestExtraction(ctx, detail, documentID)
+	evidence, total, err := s.db.DocumentEvidence(ctx, documentID, 50)
+	if err != nil {
+		detail.status.Set(err.Error())
+		detail.failed.Set(true)
+		detail.rev.Set(detail.rev.Get() + 1)
+		return
+	}
+	detail.evidence, detail.total = evidence, total
+	detail.status.Set(locales.DocumentsReviewConfirmSuccess(cx))
+	detail.failed.Set(false)
+	detail.rev.Set(detail.rev.Get() + 1)
+}
+
 func (s *Session) documentExtractionCard(cx *core.Scope, detail *documentDetail) core.Node {
 	stages := extraction.List()
 	options := make([]ui.Option[string], 0, len(stages))
@@ -592,11 +631,25 @@ func (s *Session) documentExtractionResult(cx *core.Scope, detail *documentDetai
 		children = append(children,
 			core.Text{ContentFunc: func() string { return locales.DocumentsExtractionReviewHint(cx) },
 				Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2},
-			core.View{Style: core.Style{Direction: core.Row, JustifyContent: core.JustifyEnd},
+			core.View{Style: core.Style{Direction: core.Row, JustifyContent: core.JustifyEnd, Gap: 8},
 				Children: []core.Node{
 					ui.Button{Text: locales.DocumentsReviewDiscard(cx), Variant: ui.ButtonSecondary,
 						OnPress: func() { s.discardDocumentExtraction(cx, detail) },
 						TestID:  "documents-extraction-discard"},
+					ui.Button{Text: locales.DocumentsReviewConfirm(cx),
+						OnPress: func() {
+							seed := s.extractionPrefill(detail.doc.Get(), row)
+							if seed == nil {
+								detail.status.Set(locales.DocumentsReviewParseError(cx))
+								detail.failed.Set(true)
+								detail.rev.Set(detail.rev.Get() + 1)
+								return
+							}
+							detail.prefill = seed
+							if detail.openForm != nil {
+								detail.openForm()
+							}
+						}, TestID: "documents-extraction-confirm"},
 				}})
 	}
 	return core.View{Style: core.Style{Gap: 6}, Children: children}

@@ -817,9 +817,47 @@ func (s *Session) editActivityDialog(cx *core.Scope, selectedID *core.Signal[str
 		func() bool { return selectedID.Get() == "" })
 }
 
+// activityPrefill is a one-shot seed for a new activity, used when confirming
+// an extraction. The ids bind the row to its provenance and evidence.
+type activityPrefill struct {
+	SourceID           string
+	PeriodID           string
+	Start              string
+	End                string
+	Amount             float64
+	Unit               string
+	FuelCode           string
+	Notes              string
+	ExtractionID       string
+	EvidenceDocumentID string
+}
+
+// activityForm is a form dialog that the caller can open without a trigger.
+type activityForm struct {
+	open   *core.Signal[bool]
+	show   func()
+	dialog core.Node
+}
+
 func (s *Session) activityFormDialog(cx *core.Scope, dataRev *core.Signal[int],
 	initial func() *store.Activity, triggerLabel func(*core.Scope) string,
-	saveLabel func(*core.Scope) string, triggerID string, prefix string, disabled func() bool) core.Node {
+	saveLabel func(*core.Scope) string, triggerID string, prefix string,
+	disabled func() bool) core.Node {
+	form := s.newActivityForm(cx, dataRev, initial, nil, triggerLabel, saveLabel, prefix, nil)
+	return core.View{Children: []core.Node{
+		ui.Button{Text: triggerLabel(cx), Variant: ui.ButtonSecondary, OnPress: form.show,
+			Disabled: disabled, TestID: triggerID},
+		form.dialog,
+	}}
+}
+
+// newActivityForm builds the form and returns its open handle so a screen can
+// present it from another dialog. prefill, when non-nil, seeds a new row;
+// onSaved replaces the default data refresh.
+func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
+	initial func() *store.Activity, prefill func() *activityPrefill,
+	title func(*core.Scope) string, saveLabel func(*core.Scope) string,
+	prefix string, onSaved func()) *activityForm {
 	open := core.NewSignal(cx, false)
 	sourceID := core.NewSignal(cx, "")
 	periodID := core.NewSignal(cx, "")
@@ -894,6 +932,21 @@ func (s *Session) activityFormDialog(cx *core.Scope, dataRev *core.Signal[int],
 			open.Set(true)
 			return
 		}
+		if prefill != nil {
+			if seed := prefill(); seed != nil {
+				sourceID.Set(seed.SourceID)
+				periodID.Set(seed.PeriodID)
+				start.Set(seed.Start)
+				end.Set(seed.End)
+				amount.Set(strconv.FormatFloat(seed.Amount, 'f', -1, 64))
+				unit.Set(seed.Unit)
+				fuel.Set(seed.FuelCode)
+				notes.Set(seed.Notes)
+				loadEFs(seed.SourceID)
+				open.Set(true)
+				return
+			}
+		}
 		sourceID.Set("")
 		for _, src := range s.sources {
 			if src.IsActive {
@@ -950,7 +1003,19 @@ func (s *Session) activityFormDialog(cx *core.Scope, dataRev *core.Signal[int],
 		}
 		current := initial()
 		if current == nil {
-			_, err = s.db.CreateActivity(context.Background(), input)
+			var seed *activityPrefill
+			if prefill != nil {
+				seed = prefill()
+			}
+			if seed != nil {
+				input.ExtractionID = seed.ExtractionID
+				input.EvidenceDocumentID = seed.EvidenceDocumentID
+			}
+			if seed != nil && seed.ExtractionID != "" {
+				_, err = s.db.CreateActivityFromExtraction(context.Background(), input)
+			} else {
+				_, err = s.db.CreateActivity(context.Background(), input)
+			}
 		} else {
 			input.ExtractionID = current.ExtractionID
 			_, err = s.db.UpdateActivity(context.Background(), current.ID, input)
@@ -961,6 +1026,10 @@ func (s *Session) activityFormDialog(cx *core.Scope, dataRev *core.Signal[int],
 			return
 		}
 		open.Set(false)
+		if onSaved != nil {
+			onSaved()
+			return
+		}
 		_ = dataRefresh(s, dataRev)
 	}
 
@@ -993,10 +1062,10 @@ func (s *Session) activityFormDialog(cx *core.Scope, dataRev *core.Signal[int],
 			SearchPlaceholder: locales.ActivitiesSearchPlaceholder(cx)}
 	}
 
-	return core.View{Children: []core.Node{
-		ui.Button{Text: triggerLabel(cx), Variant: ui.ButtonSecondary, OnPress: show,
-			Disabled: disabled, TestID: triggerID},
-		dataDialog(cx, open, triggerLabel(cx), []core.Node{
+	return &activityForm{
+		open: open,
+		show: show,
+		dialog: dataDialog(cx, open, title(cx), []core.Node{
 			dataField(cx, locales.ActivitiesFormSource(cx),
 				ui.Select[string]{Options: sourceOptions, Value: sourceID.Get,
 					OnChange:    func(v string) { sourceID.Set(v); loadEFs(v) },
@@ -1040,7 +1109,7 @@ func (s *Session) activityFormDialog(cx *core.Scope, dataRev *core.Signal[int],
 			dataCancelButton(cx, open, prefix+"-cancel"),
 			ui.Button{Text: saveLabel(cx), Busy: busy.Get, OnPress: save, TestID: prefix + "-save"},
 		}, prefix+"-dialog"),
-	}}
+	}
 }
 
 func (s *Session) activityByID(id string) *store.Activity {
