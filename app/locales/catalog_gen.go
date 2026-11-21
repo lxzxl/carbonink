@@ -44,6 +44,7 @@ func For(cx *core.Scope) Messages {
 // (tsx.RegisterMessages).
 var Parameters = map[string][]string{
 	"ActivitiesCount": {"count"},
+	"SettingsCurrent": {"value"},
 }
 
 // Translation is a language's messages another package supplies:
@@ -53,6 +54,7 @@ var Parameters = map[string][]string{
 type Translation struct {
 	Texts           map[string]string
 	ActivitiesCount func(count int) string
+	SettingsCurrent func(value string) string
 }
 
 var supplied = map[string]Translation{}
@@ -83,6 +85,17 @@ const (
 	textColCO2e
 	textColScope
 	textPhaseTwo
+	textSettingsAppearance
+	textSettingsThemeSystem
+	textSettingsThemeLight
+	textSettingsThemeDark
+	textSettingsLanguage
+	textSettingsLanguageSystem
+	textSettingsLanguageEnglish
+	textSettingsLanguageChinese
+	textSettingsDataDir
+	textSettingsWorkspace
+	textSettingsWindowNote
 	numTexts
 )
 
@@ -113,6 +126,17 @@ var keyOfText = [numTexts]string{
 	"colCO2e",
 	"colScope",
 	"phaseTwo",
+	"settingsAppearance",
+	"settingsThemeSystem",
+	"settingsThemeLight",
+	"settingsThemeDark",
+	"settingsLanguage",
+	"settingsLanguageSystem",
+	"settingsLanguageEnglish",
+	"settingsLanguageChinese",
+	"settingsDataDir",
+	"settingsWorkspace",
+	"settingsWindowNote",
 }
 
 // textsEn are the messages without arguments in en.
@@ -140,7 +164,18 @@ var textsEn = i18n.NewTexts(""+
 	"Unit"+
 	"kg CO2e"+
 	"Scope"+
-	"This screen lands in Phase 2.",
+	"This screen lands in Phase 2."+
+	"Appearance"+
+	"System"+
+	"Light"+
+	"Dark"+
+	"Language"+
+	"System"+
+	"English"+
+	"中文"+
+	"Data directory"+
+	"Workspace"+
+	"The window frame is saved when you quit.",
 	[]uint16{
 		9,
 		8,
@@ -166,6 +201,17 @@ var textsEn = i18n.NewTexts(""+
 		7,
 		5,
 		29,
+		10,
+		6,
+		5,
+		4,
+		8,
+		6,
+		7,
+		6,
+		14,
+		9,
+		40,
 	})
 
 // textsZhCN are the messages without arguments in zh-CN.
@@ -193,7 +239,18 @@ var textsZhCN = i18n.NewTexts(""+
 	"单位"+
 	"kg CO2e"+
 	"范围"+
-	"该页面将在 Phase 2 完成。",
+	"该页面将在 Phase 2 完成。"+
+	"外观"+
+	"跟随系统"+
+	"浅色"+
+	"深色"+
+	"语言"+
+	"跟随系统"+
+	"English"+
+	"中文"+
+	"数据目录"+
+	"账套"+
+	"退出时会保存窗口位置与大小。",
 	[]uint16{
 		9,
 		6,
@@ -219,6 +276,17 @@ var textsZhCN = i18n.NewTexts(""+
 		7,
 		6,
 		33,
+		6,
+		12,
+		6,
+		6,
+		6,
+		12,
+		7,
+		6,
+		12,
+		6,
+		42,
 	})
 
 // texts returns the messages without arguments in lang, nil for a
@@ -277,6 +345,9 @@ func Supply(lang string, t Translation) {
 	s := supplied[lang]
 	if t.ActivitiesCount != nil {
 		s.ActivitiesCount = t.ActivitiesCount
+	}
+	if t.SettingsCurrent != nil {
+		s.SettingsCurrent = t.SettingsCurrent
 	}
 	supplied[lang] = s
 	Catalog.Add(lang)
@@ -482,3 +553,102 @@ func PhaseTwo(cx *core.Scope) string { return For(cx).PhaseTwo() }
 
 // PhaseTwo is the package's PhaseTwo in the language of msgs.
 func (msgs Messages) PhaseTwo() string { return msgs.text(textPhaseTwo) }
+
+// SettingsAppearance says "Appearance"
+// in the language the app shows under cx.
+func SettingsAppearance(cx *core.Scope) string { return For(cx).SettingsAppearance() }
+
+// SettingsAppearance is the package's SettingsAppearance in the language of msgs.
+func (msgs Messages) SettingsAppearance() string { return msgs.text(textSettingsAppearance) }
+
+// SettingsThemeSystem says "System"
+// in the language the app shows under cx.
+func SettingsThemeSystem(cx *core.Scope) string { return For(cx).SettingsThemeSystem() }
+
+// SettingsThemeSystem is the package's SettingsThemeSystem in the language of msgs.
+func (msgs Messages) SettingsThemeSystem() string { return msgs.text(textSettingsThemeSystem) }
+
+// SettingsThemeLight says "Light"
+// in the language the app shows under cx.
+func SettingsThemeLight(cx *core.Scope) string { return For(cx).SettingsThemeLight() }
+
+// SettingsThemeLight is the package's SettingsThemeLight in the language of msgs.
+func (msgs Messages) SettingsThemeLight() string { return msgs.text(textSettingsThemeLight) }
+
+// SettingsThemeDark says "Dark"
+// in the language the app shows under cx.
+func SettingsThemeDark(cx *core.Scope) string { return For(cx).SettingsThemeDark() }
+
+// SettingsThemeDark is the package's SettingsThemeDark in the language of msgs.
+func (msgs Messages) SettingsThemeDark() string { return msgs.text(textSettingsThemeDark) }
+
+// SettingsLanguage says "Language"
+// in the language the app shows under cx.
+func SettingsLanguage(cx *core.Scope) string { return For(cx).SettingsLanguage() }
+
+// SettingsLanguage is the package's SettingsLanguage in the language of msgs.
+func (msgs Messages) SettingsLanguage() string { return msgs.text(textSettingsLanguage) }
+
+// SettingsLanguageSystem says "System"
+// in the language the app shows under cx.
+func SettingsLanguageSystem(cx *core.Scope) string { return For(cx).SettingsLanguageSystem() }
+
+// SettingsLanguageSystem is the package's SettingsLanguageSystem in the language of msgs.
+func (msgs Messages) SettingsLanguageSystem() string { return msgs.text(textSettingsLanguageSystem) }
+
+// SettingsLanguageEnglish says "English"
+// in the language the app shows under cx.
+func SettingsLanguageEnglish(cx *core.Scope) string { return For(cx).SettingsLanguageEnglish() }
+
+// SettingsLanguageEnglish is the package's SettingsLanguageEnglish in the language of msgs.
+func (msgs Messages) SettingsLanguageEnglish() string { return msgs.text(textSettingsLanguageEnglish) }
+
+// SettingsLanguageChinese says "中文"
+// in the language the app shows under cx.
+func SettingsLanguageChinese(cx *core.Scope) string { return For(cx).SettingsLanguageChinese() }
+
+// SettingsLanguageChinese is the package's SettingsLanguageChinese in the language of msgs.
+func (msgs Messages) SettingsLanguageChinese() string { return msgs.text(textSettingsLanguageChinese) }
+
+// SettingsCurrent says "Current: {value}"
+// in the language the app shows under cx.
+func SettingsCurrent(cx *core.Scope, value string) string { return For(cx).SettingsCurrent(value) }
+
+// SettingsCurrent is the package's SettingsCurrent in the language of msgs.
+func (msgs Messages) SettingsCurrent(value string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SettingsCurrent(value))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SettingsCurrent; f != nil {
+			return f(value)
+		}
+		switch lang {
+		case "", "en":
+			return "Current: " + msgs.arg(value)
+		case "zh-CN":
+			return "当前：" + value
+		}
+	}
+}
+
+// SettingsDataDir says "Data directory"
+// in the language the app shows under cx.
+func SettingsDataDir(cx *core.Scope) string { return For(cx).SettingsDataDir() }
+
+// SettingsDataDir is the package's SettingsDataDir in the language of msgs.
+func (msgs Messages) SettingsDataDir() string { return msgs.text(textSettingsDataDir) }
+
+// SettingsWorkspace says "Workspace"
+// in the language the app shows under cx.
+func SettingsWorkspace(cx *core.Scope) string { return For(cx).SettingsWorkspace() }
+
+// SettingsWorkspace is the package's SettingsWorkspace in the language of msgs.
+func (msgs Messages) SettingsWorkspace() string { return msgs.text(textSettingsWorkspace) }
+
+// SettingsWindowNote says "The window frame is saved when you quit."
+// in the language the app shows under cx.
+func SettingsWindowNote(cx *core.Scope) string { return For(cx).SettingsWindowNote() }
+
+// SettingsWindowNote is the package's SettingsWindowNote in the language of msgs.
+func (msgs Messages) SettingsWindowNote() string { return msgs.text(textSettingsWindowNote) }

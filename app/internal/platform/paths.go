@@ -7,6 +7,16 @@ import (
 	"path/filepath"
 )
 
+// DataDir is where NSGo keeps an app's files: the user's config directory plus
+// the app id. It lets main read preferences before nsgo.Run has a scope.
+func DataDir(id string) string {
+	base, err := os.UserConfigDir()
+	if err != nil {
+		return ""
+	}
+	return filepath.Join(base, id)
+}
+
 // LegacyDir returns the Electron data directory when it still holds a
 // workspace registry, else "". CARBONINK_LEGACY_DIR overrides the search;
 // CARBONINK_NO_LEGACY_IMPORT disables it (tests).

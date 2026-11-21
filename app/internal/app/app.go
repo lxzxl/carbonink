@@ -12,12 +12,14 @@ import (
 	"strconv"
 
 	"app.carbonink.desktop/internal/platform"
+	"app.carbonink.desktop/internal/prefs"
 	"app.carbonink.desktop/internal/store"
 	"app.carbonink.desktop/internal/workspace"
 	"app.carbonink.desktop/locales"
 
 	"github.com/nsgo-dev/nsgo/base/datatable"
 	"github.com/nsgo-dev/nsgo/core"
+	"github.com/nsgo-dev/nsgo/desktop"
 	"github.com/nsgo-dev/nsgo/icons/lucide"
 	"github.com/nsgo-dev/nsgo/ui"
 )
@@ -41,24 +43,39 @@ type Session struct {
 	db         *store.Store
 	activities []store.Activity
 	imported   bool
+	prefsPath  string
+	settings   prefs.Settings
 }
 
 // Root opens the active workspace and returns the shell. It is the app's
 // first screen.
 func Root(cx *core.Scope) core.Node {
 	s, err := open(cx)
-	if s != nil && s.db != nil {
-		cx.OnQuit(func(context.Context) { _ = s.db.Close() })
-	}
 	if err != nil {
 		return errorView(cx, err)
 	}
+	if s.settings.Locale != "" {
+		cx.SetLocale(s.settings.Locale)
+	}
+	applyAppearance(cx, s.settings.Theme)
+	cx.OnQuit(func(context.Context) {
+		f := desktop.Frame(cx)
+		s.settings.Window = &prefs.Window{
+			X: float32(f.X), Y: float32(f.Y), Width: float32(f.Width), Height: float32(f.Height),
+		}
+		_ = prefs.Save(s.prefsPath, s.settings)
+		_ = s.db.Close()
+	})
 	return s.view(cx)
 }
 
 func open(cx *core.Scope) (*Session, error) {
 	ctx := context.Background()
 	s := &Session{}
+	s.prefsPath = prefs.Path(cx.DataDir())
+	if settings, err := prefs.Load(s.prefsPath); err == nil {
+		s.settings = settings
+	}
 	var path string
 
 	if testDB := os.Getenv("CARBONINK_TEST_DB"); testDB != "" {
@@ -142,13 +159,8 @@ func (s *Session) view(cx *core.Scope) core.Node {
 		case ScreenSettings:
 			nav = append(nav, navSection(cx, locales.NavSystem))
 		}
-		nav = append(nav, ui.SidebarButton{
-			Text:     sc.Title(cx),
-			Icon:     sc.Icon,
-			Selected: func() bool { return active.Get() == sc.ID },
-			OnPress:  func() { active.Set(sc.ID) },
-			TestID:   "nav:" + string(sc.ID),
-		})
+		nav = append(nav, navButton(cx, sc, func() bool { return active.Get() == sc.ID },
+			func() { active.Set(sc.ID) }))
 	}
 	if s.imported {
 		nav = append(nav, core.Text{ContentFunc: func() string { return locales.ImportedLegacy(cx) },
@@ -158,7 +170,12 @@ func (s *Session) view(cx *core.Scope) core.Node {
 	content := []core.Node{
 		core.Show{When: func() bool { return active.Get() == ScreenActivities },
 			Then: func(cx *core.Scope) core.Node { return s.activitiesScreen(cx) }},
-		core.Show{When: func() bool { return active.Get() != ScreenActivities },
+		core.Show{When: func() bool { return active.Get() == ScreenSettings },
+			Then: func(cx *core.Scope) core.Node { return s.settingsScreen(cx) }},
+		core.Show{When: func() bool {
+			id := active.Get()
+			return id != ScreenActivities && id != ScreenSettings
+		},
 			Then: func(cx *core.Scope) core.Node { return placeholder(cx) }},
 	}
 
@@ -185,6 +202,31 @@ func (s *Session) view(cx *core.Scope) core.Node {
 				Children: content},
 		},
 		TestID: "shell",
+	}
+}
+
+// navButton is SidebarButton with a reactive label, so switching language
+// updates the sidebar without a restart.
+func navButton(cx *core.Scope, sc screenInfo, selected func() bool, onPress func()) core.Node {
+	return core.View{
+		TestID: "nav:" + string(sc.ID),
+		Role:   core.RoleButton,
+		OnPress: func(core.PressEvent) {
+			onPress()
+		},
+		Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8,
+			Height: core.Pt(30), Padding: core.Symmetric(0, 8), CornerRadius: 6},
+		StyleFunc: func() core.Style {
+			if selected() {
+				return core.Style{Background: ui.Alpha(ui.ColorsOf(cx).Accent(), 0.12)}
+			}
+			return core.Style{}
+		},
+		Children: []core.Node{
+			ui.Icon(sc.Icon, 16, ui.ColorsOf(cx).Muted),
+			core.Text{ContentFunc: func() string { return sc.Title(cx) },
+				Style: core.Style{FontSize: 13}, MaxLines: 1},
+		},
 	}
 }
 

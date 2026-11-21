@@ -9,6 +9,7 @@ import (
 
 	"app.carbonink.desktop/internal/store"
 
+	"github.com/nsgo-dev/nsgo/core"
 	"github.com/nsgo-dev/nsgo/nsgotest"
 )
 
@@ -21,12 +22,28 @@ func TestMain(m *testing.M) {
 // renders its row, not placeholder data.
 func TestActivitiesFromWorkspace(t *testing.T) {
 	t.Setenv("CARBONINK_TEST_DB", fixtureDB(t))
-	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820))
+	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
+		nsgotest.Environment(core.Environment{Locale: "en-US"}))
 	ui.WaitFor("id:activities-table", 5*time.Second)
 	ui.WaitFor("text:上海工厂", 2*time.Second)
 	ui.WaitFor("text:外购电力", 2*time.Second)
 	ui.WaitFor("text:240.00", 2*time.Second)
 	ui.WaitFor("text:120.00", 2*time.Second)
+}
+
+// TestSettingsSwitchThemeAndLanguage proves the settings screen persists a
+// choice and that labels, including the sidebar, follow the new locale.
+func TestSettingsSwitchThemeAndLanguage(t *testing.T) {
+	t.Setenv("CARBONINK_TEST_DB", fixtureDB(t))
+	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
+		nsgotest.Environment(core.Environment{Locale: "en-US"}))
+	ui.Press("id:nav:settings")
+	ui.WaitFor("text:Appearance", 2*time.Second)
+	ui.Press("text:Dark")
+	ui.WaitFor("text:Current: Dark", 2*time.Second)
+	ui.Press("text:中文")
+	ui.WaitFor("text:外观", 2*time.Second)
+	ui.WaitFor("text:活动数据", 2*time.Second)
 }
 
 func fixtureDB(t *testing.T) string {

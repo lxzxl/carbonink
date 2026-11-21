@@ -60,9 +60,9 @@ headless UI test uses it for a fixture workspace.
 - Workspace registry, active workspace, one-time legacy import: done
 - SQLite (cgo-free, FTS5, JSON1, WAL) and the 22 Electron migrations: done
 - Real activity ledger (5,000 rows) with sort/resize/scroll: done
-- NSGo catalogs with en + zh-CN, generated functions: started
-- Window-state restore, theme switch, locale switch, command palette, signing:
-  pending
+- NSGo catalogs with en + zh-CN for the shell: done
+- Theme switch, locale switch, window-frame restore: done
+- Command palette, signing/notarization, update appcast: pending
 
 ## Phase 0 results (2026-11-19, macOS 15.8.3 arm64)
 

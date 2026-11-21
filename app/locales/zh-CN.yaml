@@ -31,3 +31,19 @@ colCO2e: kg CO2e
 colScope: 范围
 
 phaseTwo: 该页面将在 Phase 2 完成。
+
+settingsAppearance: 外观
+settingsThemeSystem: 跟随系统
+settingsThemeLight: 浅色
+settingsThemeDark: 深色
+settingsLanguage: 语言
+settingsLanguageSystem: 跟随系统
+settingsLanguageEnglish: English
+settingsLanguageChinese: 中文
+settingsCurrent:
+  message: "当前：{value}"
+  placeholders:
+    value: {type: String}
+settingsDataDir: 数据目录
+settingsWorkspace: 账套
+settingsWindowNote: 退出时会保存窗口位置与大小。

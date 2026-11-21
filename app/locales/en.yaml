@@ -32,3 +32,19 @@ colCO2e: kg CO2e
 colScope: Scope
 
 phaseTwo: This screen lands in Phase 2.
+
+settingsAppearance: Appearance
+settingsThemeSystem: System
+settingsThemeLight: Light
+settingsThemeDark: Dark
+settingsLanguage: Language
+settingsLanguageSystem: System
+settingsLanguageEnglish: English
+settingsLanguageChinese: 中文
+settingsCurrent:
+  message: "Current: {value}"
+  placeholders:
+    value: {type: String}
+settingsDataDir: Data directory
+settingsWorkspace: Workspace
+settingsWindowNote: The window frame is saved when you quit.
