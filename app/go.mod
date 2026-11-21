@@ -11,6 +11,7 @@ require (
 	github.com/ncruces/go-sqlite3 v0.37.0
 	github.com/nsgo-dev/nsgo v0.2.0
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
+	go.yaml.in/yaml/v3 v3.0.6
 	golang.org/x/image v0.48.0
 )
 
@@ -31,7 +32,6 @@ require (
 	github.com/tetratelabs/wazero v1.12.0 // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	github.com/yuin/goldmark v1.8.7 // indirect
-	go.yaml.in/yaml/v3 v3.0.6 // indirect
 	golang.org/x/net v0.62.0 // indirect
 	golang.org/x/oauth2 v0.35.0 // indirect
 	golang.org/x/sync v0.25.0 // indirect

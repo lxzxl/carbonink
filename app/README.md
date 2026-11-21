@@ -60,7 +60,8 @@ headless UI test uses it for a fixture workspace.
 - Workspace registry, active workspace, one-time legacy import: done
 - SQLite (cgo-free, FTS5, JSON1, WAL) and the 22 Electron migrations: done
 - Real activity ledger (5,000 rows) with sort/resize/scroll: done
-- NSGo catalogs with en + zh-CN for the shell: done
+- NSGo catalogs with en + zh-CN, including all 1,206 Electron keys
+  (`go run ./cmd/genlocales`): done
 - Theme switch, locale switch, window-frame restore: done
 - Command palette, signing/notarization, update appcast: pending
 

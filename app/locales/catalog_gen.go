@@ -43,8 +43,145 @@ func For(cx *core.Scope) Messages {
 // its method, for the TSX declarations of the messages
 // (tsx.RegisterMessages).
 var Parameters = map[string][]string{
-	"ActivitiesCount": {"count"},
-	"SettingsCurrent": {"value"},
+	"ActivitiesCount":                         {"count"},
+	"ActivitiesFromDocument":                  {"filename"},
+	"ActivityImportColumnN":                   {"n"},
+	"ActivityImportGroupRowsTotal":            {"count", "total", "unit"},
+	"ActivityImportMoreIssues":                {"count"},
+	"ActivityImportResultImported":            {"count"},
+	"ActivityImportResultSkippedGroups":       {"count"},
+	"ActivityImportResultSkippedSources":      {"count"},
+	"ActivityImportResultSkippedValidation":   {"count"},
+	"ActivityImportRowCount":                  {"count"},
+	"ActivityImportRowLabel":                  {"row"},
+	"ActivityImportSourceRows":                {"count"},
+	"ActivityImportSummaryErrors":             {"count"},
+	"ActivityImportSummaryValid":              {"count"},
+	"ActivityImportSummaryWarnings":           {"count"},
+	"AnswerExportDone":                        {"written", "drafts"},
+	"AnswerGenerateAllDone":                   {"ok", "failed"},
+	"AuditExportCsvSuccess":                   {"rows"},
+	"AuditRebindDelta":                        {"old_co2e", "new_co2e", "delta_signed", "pct_signed"},
+	"AuditRebindSummary":                      {"activity_id_short", "old_ef", "new_ef"},
+	"AuditUnknownEventKind":                   {"kind"},
+	"DocumentsBatchButton":                    {"count"},
+	"DocumentsBatchCanceledToast":             {"done", "total"},
+	"DocumentsBatchHint":                      {"count"},
+	"DocumentsBatchProgress":                  {"done", "total"},
+	"DocumentsBatchSummaryToast":              {"ok", "failed"},
+	"DocumentsReviewUploadedOn":               {"date"},
+	"EfImportColumnN":                         {"n"},
+	"EfImportMoreIssues":                      {"count"},
+	"EfImportReplaceBody":                     {"name"},
+	"EfImportRowCount":                        {"count"},
+	"EfImportRowLabel":                        {"row"},
+	"EfImportSuccess":                         {"count"},
+	"EfImportSuccessSkipped":                  {"count"},
+	"EfImportSummaryErrors":                   {"count"},
+	"EfImportSummaryValid":                    {"count"},
+	"EfImportSummaryWarnings":                 {"count"},
+	"EfLibraryBrowseCount":                    {"shown", "total"},
+	"EfLibraryBrowsePerUnit":                  {"value", "unit"},
+	"EfLibraryBrowseScope":                    {"scope"},
+	"EfLibraryDeleteConfirm":                  {"name"},
+	"EfLibraryDeleteSuccess":                  {"count"},
+	"EfLibraryRowMeta":                        {"version", "count", "date"},
+	"GuidanceProgress":                        {"current", "total"},
+	"InboundAcceptAria":                       {"position"},
+	"InboundAnswerNote":                       {"note"},
+	"InboundAnswerRaw":                        {"value"},
+	"InboundCreatedToast":                     {"count"},
+	"InboundDeleteDialogDesc":                 {"name"},
+	"InboundDeleteSuccessWithActivities":      {"count"},
+	"InboundDueOn":                            {"date"},
+	"InboundExportSuccess":                    {"path", "bytes"},
+	"InboundImportParsed":                     {"count"},
+	"InboundIngestActivityCount":              {"count"},
+	"InboundIngestSuccess":                    {"id"},
+	"InboundOverdueDays":                      {"days"},
+	"InboundQuestionCount":                    {"count"},
+	"InboundRemindMailDueLine":                {"due"},
+	"InboundRemindMailGreeting":               {"supplier"},
+	"InboundRemindMailOverdueLine":            {"due", "days"},
+	"InboundRemindMailSentLine":               {"year"},
+	"InboundRemindMailSignoff":                {"org"},
+	"InboundRemindMailSubject":                {"year", "supplier"},
+	"InboundTableNote":                        {"note"},
+	"InboundTier1Outcome":                     {"pcf"},
+	"InboundTier2Outcome":                     {"co2e"},
+	"InboundWarningCount":                     {"count"},
+	"LineageEfPinnedAt":                       {"date"},
+	"LineageSnapshotRevision":                 {"revision", "date"},
+	"OnboardingEyebrow":                       {"current", "total"},
+	"QuestionnaireExportPdfFailed":            {"message"},
+	"QuestionnaireExportPdfSuccess":           {"path"},
+	"QuestionnairesDetailInventoryEmptyTitle": {"year"},
+	"QuestionnairesWizardFileChosen":          {"filename"},
+	"QuestionnairesWizardSuccess":             {"count"},
+	"QuestionnairesWizardSuccessWithReused":   {"count", "reused"},
+	"ReadinessAllClearBody":                   {"count"},
+	"ReadinessCheckC1Detail":                  {"source_name", "scope", "year"},
+	"ReadinessCheckC3Detail":                  {"source_name", "occurred", "period"},
+	"ReadinessCheckC5Detail":                  {"customer_name", "question_text"},
+	"ReadinessCheckC6Detail":                  {"observation"},
+	"ReadinessCheckD2DetailDeleted":           {"source_name", "frozen_co2e_kg"},
+	"ReadinessCheckD2DetailEdited":            {"source_name", "frozen_co2e_kg", "live_co2e_kg"},
+	"ReadinessCheckD3Detail":                  {"supplier_name", "due_date"},
+	"ReadinessCheckN1Detail":                  {"source_name", "amount", "unit", "ef_input_unit"},
+	"ReadinessCheckN2Detail":                  {"source_name", "amount", "unit", "detail", "ratio"},
+	"ReadinessCheckN3Detail":                  {"source_name", "amount", "unit", "occurred"},
+	"ReadinessCheckN5Detail":                  {"year", "bases"},
+	"ReadinessCheckN6Detail":                  {"observation"},
+	"ReadinessCheckT1Detail":                  {"unevidenced_count", "total_count", "co2e_share_pct"},
+	"ReadinessCheckT2Detail":                  {"source_name", "created_at"},
+	"ReadinessCheckT3Detail":                  {"source_name", "factor_code", "ef_year", "reporting_year"},
+	"ReadinessCheckT4Detail":                  {"source_name", "factor_code", "ef_source"},
+	"ReadinessCounts":                         {"blocker", "warning", "info"},
+	"ReadinessDismissedNote":                  {"count"},
+	"ReadinessLastChecked":                    {"time_"},
+	"RebindDelta":                             {"delta_signed", "pct_signed"},
+	"RebindErrorToast":                        {"message"},
+	"RebindOverrideAmountLabel":               {"unit"},
+	"RebindOverrideAmountPlaceholder":         {"unit"},
+	"RebindSuccessToast":                      {"co2e", "pct_signed"},
+	"RebindUnitConversion":                    {"from_amt", "from_unit", "to_amt", "to_unit"},
+	"RebindUnitCrossFamily":                   {"from", "to"},
+	"ReportsDeliverableSuccess":               {"path", "count"},
+	"ReportsDeliverableSuccessMissing":        {"path", "missing", "count"},
+	"ReportsExportFailed":                     {"message"},
+	"ReportsExportSuccess":                    {"kind", "path"},
+	"ReportsGenerateFailed":                   {"message"},
+	"RoutingLookupDoneAmap":                   {"km"},
+	"RoutingLookupDoneHaversine":              {"km"},
+	"SettingsAiCacheCleared":                  {"count"},
+	"SettingsCurrent":                         {"value"},
+	"SettingsDataCacheClearSuccess":           {"rows", "size"},
+	"SettingsDataCacheExtractionSummary":      {"count", "size"},
+	"SettingsMcpConfigured":                   {"client"},
+	"SettingsMcpRemoved":                      {"client"},
+	"SettingsModelCustomOption":               {"id"},
+	"SettingsProviderUnknownWarning":          {"provider"},
+	"SettingsSkillInstalled":                  {"count"},
+	"SettingsSkillStatusInstalled":            {"count"},
+	"SettingsSkillWillInstallTo":              {"hosts"},
+	"SourcesCatalogBatchAdd":                  {"count"},
+	"SourcesCatalogBatchAddSuccess":           {"count"},
+	"SourcesCatalogSelectAll":                 {"count"},
+	"SourcesCatalogSelectedCount":             {"count"},
+	"SourcesFormCategoryCustom":               {"query"},
+	"SourcesFromCatalog":                      {"origin"},
+	"SourcesStatsActivityCount":               {"count"},
+	"SourcesStatsLast":                        {"date"},
+	"SourcesStatsTotal":                       {"value"},
+	"UpdaterCurrentVersion":                   {"version"},
+	"UpdaterStatusAvailable":                  {"version"},
+	"UpdaterStatusAvailableManual":            {"version"},
+	"UpdaterStatusDownloaded":                 {"version"},
+	"UpdaterStatusDownloading":                {"percent"},
+	"UpdaterStatusError":                      {"message"},
+	"WorkspaceCreatedAt":                      {"date"},
+	"WorkspaceDeleteConfirm":                  {"name"},
+	"WorkspaceSwitchConfirm":                  {"name"},
 }
 
 // Translation is a language's messages another package supplies:
@@ -52,241 +189,6762 @@ var Parameters = map[string][]string{
 // of the others; a key or a field left out leaves the message to the
 // catalog.
 type Translation struct {
-	Texts           map[string]string
-	ActivitiesCount func(count int) string
-	SettingsCurrent func(value string) string
+	Texts                                   map[string]string
+	ActivitiesCount                         func(count int) string
+	ActivitiesFromDocument                  func(filename string) string
+	ActivityImportColumnN                   func(n string) string
+	ActivityImportGroupRowsTotal            func(count string, total string, unit string) string
+	ActivityImportMoreIssues                func(count string) string
+	ActivityImportResultImported            func(count string) string
+	ActivityImportResultSkippedGroups       func(count string) string
+	ActivityImportResultSkippedSources      func(count string) string
+	ActivityImportResultSkippedValidation   func(count string) string
+	ActivityImportRowCount                  func(count string) string
+	ActivityImportRowLabel                  func(row string) string
+	ActivityImportSourceRows                func(count string) string
+	ActivityImportSummaryErrors             func(count string) string
+	ActivityImportSummaryValid              func(count string) string
+	ActivityImportSummaryWarnings           func(count string) string
+	AnswerExportDone                        func(written string, drafts string) string
+	AnswerGenerateAllDone                   func(ok string, failed string) string
+	AuditExportCsvSuccess                   func(rows string) string
+	AuditRebindDelta                        func(old_co2e string, new_co2e string, delta_signed string, pct_signed string) string
+	AuditRebindSummary                      func(activity_id_short string, old_ef string, new_ef string) string
+	AuditUnknownEventKind                   func(kind string) string
+	DocumentsBatchButton                    func(count string) string
+	DocumentsBatchCanceledToast             func(done string, total string) string
+	DocumentsBatchHint                      func(count string) string
+	DocumentsBatchProgress                  func(done string, total string) string
+	DocumentsBatchSummaryToast              func(ok string, failed string) string
+	DocumentsReviewUploadedOn               func(date string) string
+	EfImportColumnN                         func(n string) string
+	EfImportMoreIssues                      func(count string) string
+	EfImportReplaceBody                     func(name string) string
+	EfImportRowCount                        func(count string) string
+	EfImportRowLabel                        func(row string) string
+	EfImportSuccess                         func(count string) string
+	EfImportSuccessSkipped                  func(count string) string
+	EfImportSummaryErrors                   func(count string) string
+	EfImportSummaryValid                    func(count string) string
+	EfImportSummaryWarnings                 func(count string) string
+	EfLibraryBrowseCount                    func(shown string, total string) string
+	EfLibraryBrowsePerUnit                  func(value string, unit string) string
+	EfLibraryBrowseScope                    func(scope string) string
+	EfLibraryDeleteConfirm                  func(name string) string
+	EfLibraryDeleteSuccess                  func(count string) string
+	EfLibraryRowMeta                        func(version string, count string, date string) string
+	GuidanceProgress                        func(current string, total string) string
+	InboundAcceptAria                       func(position string) string
+	InboundAnswerNote                       func(note string) string
+	InboundAnswerRaw                        func(value string) string
+	InboundCreatedToast                     func(count string) string
+	InboundDeleteDialogDesc                 func(name string) string
+	InboundDeleteSuccessWithActivities      func(count string) string
+	InboundDueOn                            func(date string) string
+	InboundExportSuccess                    func(path string, bytes string) string
+	InboundImportParsed                     func(count string) string
+	InboundIngestActivityCount              func(count string) string
+	InboundIngestSuccess                    func(id string) string
+	InboundOverdueDays                      func(days string) string
+	InboundQuestionCount                    func(count string) string
+	InboundRemindMailDueLine                func(due string) string
+	InboundRemindMailGreeting               func(supplier string) string
+	InboundRemindMailOverdueLine            func(due string, days string) string
+	InboundRemindMailSentLine               func(year string) string
+	InboundRemindMailSignoff                func(org string) string
+	InboundRemindMailSubject                func(year string, supplier string) string
+	InboundTableNote                        func(note string) string
+	InboundTier1Outcome                     func(pcf string) string
+	InboundTier2Outcome                     func(co2e string) string
+	InboundWarningCount                     func(count string) string
+	LineageEfPinnedAt                       func(date string) string
+	LineageSnapshotRevision                 func(revision string, date string) string
+	OnboardingEyebrow                       func(current string, total string) string
+	QuestionnaireExportPdfFailed            func(message string) string
+	QuestionnaireExportPdfSuccess           func(path string) string
+	QuestionnairesDetailInventoryEmptyTitle func(year string) string
+	QuestionnairesWizardFileChosen          func(filename string) string
+	QuestionnairesWizardSuccess             func(count string) string
+	QuestionnairesWizardSuccessWithReused   func(count string, reused string) string
+	ReadinessAllClearBody                   func(count string) string
+	ReadinessCheckC1Detail                  func(source_name string, scope string, year string) string
+	ReadinessCheckC3Detail                  func(source_name string, occurred string, period string) string
+	ReadinessCheckC5Detail                  func(customer_name string, question_text string) string
+	ReadinessCheckC6Detail                  func(observation string) string
+	ReadinessCheckD2DetailDeleted           func(source_name string, frozen_co2e_kg string) string
+	ReadinessCheckD2DetailEdited            func(source_name string, frozen_co2e_kg string, live_co2e_kg string) string
+	ReadinessCheckD3Detail                  func(supplier_name string, due_date string) string
+	ReadinessCheckN1Detail                  func(source_name string, amount string, unit string, ef_input_unit string) string
+	ReadinessCheckN2Detail                  func(source_name string, amount string, unit string, detail string, ratio string) string
+	ReadinessCheckN3Detail                  func(source_name string, amount string, unit string, occurred string) string
+	ReadinessCheckN5Detail                  func(year string, bases string) string
+	ReadinessCheckN6Detail                  func(observation string) string
+	ReadinessCheckT1Detail                  func(unevidenced_count string, total_count string, co2e_share_pct string) string
+	ReadinessCheckT2Detail                  func(source_name string, created_at string) string
+	ReadinessCheckT3Detail                  func(source_name string, factor_code string, ef_year string, reporting_year string) string
+	ReadinessCheckT4Detail                  func(source_name string, factor_code string, ef_source string) string
+	ReadinessCounts                         func(blocker string, warning string, info string) string
+	ReadinessDismissedNote                  func(count string) string
+	ReadinessLastChecked                    func(time_ string) string
+	RebindDelta                             func(delta_signed string, pct_signed string) string
+	RebindErrorToast                        func(message string) string
+	RebindOverrideAmountLabel               func(unit string) string
+	RebindOverrideAmountPlaceholder         func(unit string) string
+	RebindSuccessToast                      func(co2e string, pct_signed string) string
+	RebindUnitConversion                    func(from_amt string, from_unit string, to_amt string, to_unit string) string
+	RebindUnitCrossFamily                   func(from string, to string) string
+	ReportsDeliverableSuccess               func(path string, count string) string
+	ReportsDeliverableSuccessMissing        func(path string, missing string, count string) string
+	ReportsExportFailed                     func(message string) string
+	ReportsExportSuccess                    func(kind string, path string) string
+	ReportsGenerateFailed                   func(message string) string
+	RoutingLookupDoneAmap                   func(km string) string
+	RoutingLookupDoneHaversine              func(km string) string
+	SettingsAiCacheCleared                  func(count string) string
+	SettingsCurrent                         func(value string) string
+	SettingsDataCacheClearSuccess           func(rows string, size string) string
+	SettingsDataCacheExtractionSummary      func(count string, size string) string
+	SettingsMcpConfigured                   func(client string) string
+	SettingsMcpRemoved                      func(client string) string
+	SettingsModelCustomOption               func(id string) string
+	SettingsProviderUnknownWarning          func(provider string) string
+	SettingsSkillInstalled                  func(count string) string
+	SettingsSkillStatusInstalled            func(count string) string
+	SettingsSkillWillInstallTo              func(hosts string) string
+	SourcesCatalogBatchAdd                  func(count string) string
+	SourcesCatalogBatchAddSuccess           func(count string) string
+	SourcesCatalogSelectAll                 func(count string) string
+	SourcesCatalogSelectedCount             func(count string) string
+	SourcesFormCategoryCustom               func(query string) string
+	SourcesFromCatalog                      func(origin string) string
+	SourcesStatsActivityCount               func(count string) string
+	SourcesStatsLast                        func(date string) string
+	SourcesStatsTotal                       func(value string) string
+	UpdaterCurrentVersion                   func(version string) string
+	UpdaterStatusAvailable                  func(version string) string
+	UpdaterStatusAvailableManual            func(version string) string
+	UpdaterStatusDownloaded                 func(version string) string
+	UpdaterStatusDownloading                func(percent string) string
+	UpdaterStatusError                      func(message string) string
+	WorkspaceCreatedAt                      func(date string) string
+	WorkspaceDeleteConfirm                  func(name string) string
+	WorkspaceSwitchConfirm                  func(name string) string
 }
 
 var supplied = map[string]Translation{}
 
 // The indexes of the messages without arguments in the tables.
 const (
-	textAppName = iota
-	textNavOverview
-	textNavDashboard
-	textNavActivities
-	textNavInventory
-	textNavSources
-	textNavInputs
-	textNavDocuments
-	textNavReports
-	textNavSystem
-	textNavSettings
-	textActivitiesTitle
-	textActivitiesSubtitle
+	textActivitiesAddButton = iota
+	textActivitiesCreateFailed
+	textActivitiesCreateSuccess
 	textActivitiesEmpty
-	textWorkspaceActive
-	textImportedLegacy
+	textActivitiesEmptyBody
+	textActivitiesEmptyNoSourcesBody
+	textActivitiesEmptyNoSourcesCta
+	textActivitiesEmptyNoSourcesTitle
+	textActivitiesEmptyTitle
+	textActivitiesFilterClear
+	textActivitiesFilterEmpty
+	textActivitiesFormAmount
+	textActivitiesFormEf
+	textActivitiesFormEfLoading
+	textActivitiesFormEfNone
+	textActivitiesFormEfPickSourceFirst
+	textActivitiesFormEfSelected
+	textActivitiesFormFuel
+	textActivitiesFormFuelHint
+	textActivitiesFormFuelNone
+	textActivitiesFormNoPeriods
+	textActivitiesFormNoSources
+	textActivitiesFormNotes
+	textActivitiesFormOccurredEnd
+	textActivitiesFormOccurredStart
+	textActivitiesFormPeriod
+	textActivitiesFormPeriodPlaceholder
+	textActivitiesFormSource
+	textActivitiesFormSourcePlaceholder
+	textActivitiesFormSubmit
+	textActivitiesFormSubmitting
+	textActivitiesFormUnit
+	textActivitiesFormUnitPlaceholder
+	textActivitiesFromLedgerImport
+	textActivitiesFromSupplierDisclosure
+	textActivitiesLoadFailed
+	textActivitiesSearchPlaceholder
+	textActivitiesSortCo2eAsc
+	textActivitiesSortCo2eDesc
+	textActivitiesSortOldest
+	textActivitiesSortRecent
+	textActivitiesSortSource
+	textActivitiesSourceManual
+	textActivitiesSubtitle
+	textActivitiesTableAmount
+	textActivitiesTableCo2e
+	textActivitiesTableEf
+	textActivitiesTableOccurred
+	textActivitiesTableSource
+	textActivitiesTitle
+	textActivityDocCancel
+	textActivityDocCanceled
+	textActivityDocClassifyFailedBody
+	textActivityDocClassifyFailedTitle
+	textActivityDocClassifyHintDuration
+	textActivityDocClassifyTimeoutBody
+	textActivityDocClassifyTimeoutTitle
+	textActivityDocClassifying
+	textActivityDocHint
+	textActivityDocPrefilledBanner
+	textActivityDocRecognized
+	textActivityDocReupload
+	textActivityDocSubhint
+	textActivityDocUploading
+	textActivityImportBackButton
+	textActivityImportButton
+	textActivityImportCancelButton
+	textActivityImportCloseButton
+	textActivityImportDescription
+	textActivityImportErrorNothingToImport
+	textActivityImportErrorPeriodMissing
+	textActivityImportErrorTokenExpired
+	textActivityImportErrorUnconfirmed
+	textActivityImportErrorsHeading
+	textActivityImportFailed
+	textActivityImportFieldAmount
+	textActivityImportFieldDescription
+	textActivityImportFieldNotes
+	textActivityImportFieldOccurredAtEnd
+	textActivityImportFieldOccurredAtStart
+	textActivityImportFieldSourceName
+	textActivityImportFieldUnit
+	textActivityImportGroupConfirmButton
+	textActivityImportGroupDimensionMismatch
+	textActivityImportGroupReopenButton
+	textActivityImportGroupSkipButton
+	textActivityImportGroupStatusConfirmed
+	textActivityImportGroupStatusPending
+	textActivityImportGroupStatusSkipped
+	textActivityImportGroupsBody
+	textActivityImportGroupsHeading
+	textActivityImportImportButton
+	textActivityImportIssueAmountInvalid
+	textActivityImportIssueAmountMissing
+	textActivityImportIssueAmountOutlier
+	textActivityImportIssueCreateFailed
+	textActivityImportIssueDateInvalid
+	textActivityImportIssueDateRangeInvalid
+	textActivityImportIssueDescriptionMissing
+	textActivityImportIssueDuplicateInDb
+	textActivityImportIssueDuplicateInFile
+	textActivityImportIssuePeriodMismatch
+	textActivityImportIssueSourceNameMissing
+	textActivityImportIssueUnitDimensionMismatch
+	textActivityImportIssueUnitMissing
+	textActivityImportMappingBody
+	textActivityImportMappingHeading
+	textActivityImportNextButton
+	textActivityImportPeriodHint
+	textActivityImportPeriodLabel
+	textActivityImportPeriodPlaceholder
+	textActivityImportPickButton
+	textActivityImportPickFailed
+	textActivityImportPickHint
+	textActivityImportRepickButton
+	textActivityImportRequired
+	textActivityImportResultHeading
+	textActivityImportResultWarningsHeading
+	textActivityImportSourceCreateButton
+	textActivityImportSourceCreateCategory
+	textActivityImportSourceCreateFailed
+	textActivityImportSourceCreateScope
+	textActivityImportSourceCreateSite
+	textActivityImportSourceCreated
+	textActivityImportSourceMatched
+	textActivityImportSourceSelectPlaceholder
+	textActivityImportSourceUnresolved
+	textActivityImportSourcesBody
+	textActivityImportSourcesHeading
+	textActivityImportTitle
+	textActivityImportUnmapped
+	textActivityImportWarningsHeading
+	textAnswerExportButton
+	textAnswerExportRunning
+	textAnswerFinalized
+	textAnswerFinalizedHint
+	textAnswerGenerate
+	textAnswerGenerateAllButton
+	textAnswerGenerateAllEmpty
+	textAnswerGenerateAllRunning
+	textAnswerGenerateErrorLabel
+	textAnswerGenerating
+	textAnswerInventoryEmpty
+	textAnswerNotGenerated
+	textAnswerSave
+	textAnswerSaveFinalize
+	textAnswerSource
+	textAnswerSourceReused
+	textAnswerUnfinalize
+	textAnswerUnit
+	textAnswerValue
+	textAppName
+	textAppTagline
+	textAppTitle
+	textAuditEmptyStateBody
+	textAuditEmptyStateHeading
+	textAuditEventKindActivityDataCreated
+	textAuditEventKindActivityDataDeleted
+	textAuditEventKindActivityRebindEf
+	textAuditEventKindEvidenceAttached
+	textAuditEventKindEvidenceRemoved
+	textAuditExportCsvButton
+	textAuditExportCsvFailed
+	textAuditFilterEventKindLabel
+	textAuditFilterResetButton
+	textAuditFilterSinceLabel
+	textAuditFilterUntilLabel
+	textAuditHeading
+	textAuditHideRaw
+	textAuditLoadOlderButton
+	textAuditMalformedPayload
+	textAuditNav
+	textAuditRebindActivityLabel
+	textAuditShowRaw
+	textAuditSortOldest
+	textAuditSortRecent
+	textAuditSubheading
+	textCancel
+	textCmdOpenDocuments
+	textCmdOpenSettings
+	textColAmount
+	textColCO2e
 	textColDate
+	textColScope
 	textColSite
 	textColSource
-	textColAmount
 	textColUnit
-	textColCO2e
-	textColScope
+	textDashboardInventoryBody
+	textDashboardInventoryTitle
+	textDashboardMonthlyTrend
+	textDashboardNoDataForChart
+	textDashboardRecentActivities
+	textDashboardRecentEmpty
+	textDashboardScope1
+	textDashboardScope2
+	textDashboardScope3
+	textDashboardStartActivitiesBody
+	textDashboardStartActivitiesCta
+	textDashboardStartActivitiesTitle
+	textDashboardStartReportBody
+	textDashboardStartReportCta
+	textDashboardStartReportTitle
+	textDashboardStartSourcesBody
+	textDashboardStartSourcesCta
+	textDashboardStartSourcesTitle
+	textDashboardStartStepDone
+	textDashboardStartSubtitle
+	textDashboardStartTitle
+	textDashboardTotalCo2e
+	textDashboardWelcomeBody
+	textDashboardWelcomeTitle
+	textDashboardWidgetViewAll
+	textDocumentsAiRequiredBody
+	textDocumentsAiRequiredCta
+	textDocumentsAiRequiredTitle
+	textDocumentsBackToList
+	textDocumentsBatchAlreadyRunning
+	textDocumentsBatchCancel
+	textDocumentsBatchFailuresHeading
+	textDocumentsBatchReasonClassifyFailed
+	textDocumentsBatchReasonError
+	textDocumentsEmpty
+	textDocumentsExtracting
+	textDocumentsExtractingVision
+	textDocumentsExtractionDone
+	textDocumentsExtractionFailed
+	textDocumentsExtractionRunAgain
+	textDocumentsExtractionRunNow
+	textDocumentsExtractionRunning
+	textDocumentsExtractionStarted
+	textDocumentsFilterClear
+	textDocumentsFilterEmpty
+	textDocumentsFilterStatusAll
+	textDocumentsLoadFailed
+	textDocumentsNext
+	textDocumentsOpenRow
+	textDocumentsPlaceholder
+	textDocumentsPrev
+	textDocumentsPreviewDrawerTitle
+	textDocumentsPreviewOpenDetail
+	textDocumentsReviewAlreadyConfirmedBody
+	textDocumentsReviewAlreadyConfirmedTitle
+	textDocumentsReviewBack
+	textDocumentsReviewClassifyFailed
+	textDocumentsReviewClassifying
+	textDocumentsReviewConfidence
+	textDocumentsReviewConfidenceHigh
+	textDocumentsReviewConfidenceLow
+	textDocumentsReviewConfidenceMedium
+	textDocumentsReviewConfirm
+	textDocumentsReviewConfirmFailed
+	textDocumentsReviewConfirmSuccess
+	textDocumentsReviewDiscard
+	textDocumentsReviewDiscardConfirm
+	textDocumentsReviewDiscardFailed
+	textDocumentsReviewDiscardSuccess
+	textDocumentsReviewExtracting
+	textDocumentsReviewFieldAccount
+	textDocumentsReviewFieldAmountKwh
+	textDocumentsReviewFieldAmountYuan
+	textDocumentsReviewFieldArrivalAt
+	textDocumentsReviewFieldCategory
+	textDocumentsReviewFieldDepartureAt
+	textDocumentsReviewFieldDestination
+	textDocumentsReviewFieldDistanceKm
+	textDocumentsReviewFieldFlightOrTrainNo
+	textDocumentsReviewFieldFuelCategory
+	textDocumentsReviewFieldFuelType
+	textDocumentsReviewFieldInvoiceNo
+	textDocumentsReviewFieldItemDescription
+	textDocumentsReviewFieldLicensePlate
+	textDocumentsReviewFieldMode
+	textDocumentsReviewFieldOccurredAt
+	textDocumentsReviewFieldOrigin
+	textDocumentsReviewFieldPassengerName
+	textDocumentsReviewFieldPeriodEnd
+	textDocumentsReviewFieldPeriodStart
+	textDocumentsReviewFieldQuantityKg
+	textDocumentsReviewFieldSupplier
+	textDocumentsReviewFieldTicketNo
+	textDocumentsReviewFieldTrackingNo
+	textDocumentsReviewFieldTravelClass
+	textDocumentsReviewFieldUnitPriceYuan
+	textDocumentsReviewFieldVehicleClass
+	textDocumentsReviewFieldVehiclePlate
+	textDocumentsReviewFieldVolumeL
+	textDocumentsReviewFieldVolumeM3
+	textDocumentsReviewFieldWeightKg
+	textDocumentsReviewFuelCategoryOtherWarning
+	textDocumentsReviewLoadFailed
+	textDocumentsReviewNoExtraction
+	textDocumentsReviewParseError
+	textDocumentsReviewPdfLoading
+	textDocumentsReviewPdfUnavailable
+	textDocumentsReviewPreviousDiscarded
+	textDocumentsReviewProvider
+	textDocumentsReviewPurchaseCategoryOtherWarning
+	textDocumentsReviewReextractBody
+	textDocumentsReviewReextractConfirm
+	textDocumentsReviewReextractFailed
+	textDocumentsReviewReextractStageLabel
+	textDocumentsReviewReextractSuccess
+	textDocumentsReviewShaLabel
+	textDocumentsReviewStage
+	textDocumentsReviewSwitchStage
+	textDocumentsReviewViewActivitiesLink
+	textDocumentsReviewViewActivityLink
+	textDocumentsSearchPlaceholder
+	textDocumentsSortFilename
+	textDocumentsSortOldest
+	textDocumentsSortRecent
+	textDocumentsStageNoVision
+	textDocumentsStatusNone
+	textDocumentsStatusParsed
+	textDocumentsStatusRejected
+	textDocumentsStatusReviewNeeded
+	textDocumentsStatusUnclassified
+	textDocumentsTableFilename
+	textDocumentsTableSha
+	textDocumentsTableStatus
+	textDocumentsTableUploaded
+	textDocumentsUploadButton
+	textDocumentsUploadCollapse
+	textDocumentsUploadDone
+	textDocumentsUploadFailed
+	textDocumentsUploadHint
+	textDocumentsUploadPdfOnly
+	textDocumentsUploadPickStage
+	textDocumentsUploadSuccess
+	textDocumentsUploading
+	textDocumentsVisionUnsupported
+	textEfImportCancelButton
+	textEfImportDescription
+	textEfImportErrorInvalidName
+	textEfImportErrorNothingToImport
+	textEfImportErrorTokenExpired
+	textEfImportErrorsHeading
+	textEfImportFailed
+	textEfImportFieldBiogenicCo2Factor
+	textEfImportFieldCategory
+	textEfImportFieldCh4KgPerUnit
+	textEfImportFieldCitationUrl
+	textEfImportFieldCo2eKgPerUnit
+	textEfImportFieldDescriptionEn
+	textEfImportFieldDescriptionZh
+	textEfImportFieldFactorCode
+	textEfImportFieldGeography
+	textEfImportFieldGwpBasis
+	textEfImportFieldHfcKgPerUnit
+	textEfImportFieldInputUnit
+	textEfImportFieldN2oKgPerUnit
+	textEfImportFieldNameEn
+	textEfImportFieldNameZh
+	textEfImportFieldNf3KgPerUnit
+	textEfImportFieldNotes
+	textEfImportFieldPfcKgPerUnit
+	textEfImportFieldScope
+	textEfImportFieldSf6KgPerUnit
+	textEfImportFieldYear
+	textEfImportFileErrorFileEmpty
+	textEfImportFileErrorFileReadFailed
+	textEfImportFileErrorFileTooLarge
+	textEfImportFileErrorTooManyRows
+	textEfImportFileErrorUnsupportedFileType
+	textEfImportFileErrorXlsxInvalid
+	textEfImportImportButton
+	textEfImportIssueCategoryEmpty
+	textEfImportIssueCo2eMissing
+	textEfImportIssueDuplicateKey
+	textEfImportIssueGwpInvalid
+	textEfImportIssueNameMissing
+	textEfImportIssueScopeInvalid
+	textEfImportIssueScopeMissing
+	textEfImportIssueUnitMissing
+	textEfImportIssueUnitUnknown
+	textEfImportIssueValueInvalid
+	textEfImportIssueYearInvalid
+	textEfImportIssueYearMissing
+	textEfImportMappingBody
+	textEfImportMappingHeading
+	textEfImportNameLabel
+	textEfImportNamePlaceholder
+	textEfImportPickButton
+	textEfImportPickFailed
+	textEfImportPickHint
+	textEfImportRepickButton
+	textEfImportReplaceConfirmButton
+	textEfImportRequired
+	textEfImportSampleHeading
+	textEfImportTitle
+	textEfImportUnmapped
+	textEfImportVersionLabel
+	textEfImportVersionPlaceholder
+	textEfImportWarningsHeading
+	textEfLibraryBrowseEmptyLibrary
+	textEfLibraryBrowseEmptySearch
+	textEfLibraryBrowseLoadMore
+	textEfLibraryBrowseLoading
+	textEfLibraryBrowseOpen
+	textEfLibraryBrowseSearchPlaceholder
+	textEfLibraryDeleteButton
+	textEfLibraryDeleteFailed
+	textEfLibraryEmpty
+	textEfLibraryGroupBody
+	textEfLibraryGroupHeading
+	textEfLibraryImportButton
+	textEfLibraryListHeading
+	textEfLibraryTemplateButton
+	textEfLibraryTemplateFailed
+	textEfLibraryTemplateSaved
+	textEfMatcherAllCandidates
+	textEfMatcherLoading
+	textEfMatcherNoCandidates
+	textEfMatcherReasoningLabel
+	textEfMatcherRecommendedHeading
+	textEfPickerLoading
+	textEfPickerNoRecommendations
+	textEfPickerTabBrowse
+	textEfPickerTabRecommended
+	textEfUserLibraryBadge
+	textEvidenceAddButton
+	textEvidenceAddFailed
+	textEvidenceAdding
+	textEvidenceEmpty
+	textEvidencePreviewImageAlt
+	textEvidencePreviewUnsupported
+	textEvidenceRemoveButton
+	textEvidenceRemoveFailed
+	textFuelCoalAnthracite
+	textFuelDiesel
+	textFuelGasoline
+	textFuelLpg
+	textFuelNaturalGas
+	textGuidanceAnswerActionsBody
+	textGuidanceAnswerActionsTitle
+	textGuidanceAnswerBulkBody
+	textGuidanceAnswerBulkTitle
+	textGuidanceAnswerCardBody
+	textGuidanceAnswerCardTitle
+	textGuidanceBack
+	textGuidanceDone
+	textGuidanceExtractionActionsBody
+	textGuidanceExtractionActionsTitle
+	textGuidanceExtractionStageBody
+	textGuidanceExtractionStageTitle
+	textGuidanceExtractionSwitchBody
+	textGuidanceExtractionSwitchTitle
+	textGuidanceNext
+	textGuidanceQuestionnairesListBody
+	textGuidanceQuestionnairesListTitle
+	textGuidanceQuestionnairesNewBody
+	textGuidanceQuestionnairesNewTitle
+	textGuidanceRebindConfirmBody
+	textGuidanceRebindConfirmTitle
+	textGuidanceRebindCurrentBody
+	textGuidanceRebindCurrentTitle
+	textGuidanceRebindPickerBody
+	textGuidanceRebindPickerTitle
+	textGuidanceReportDeliverableBody
+	textGuidanceReportDeliverableTitle
+	textGuidanceReportExportBody
+	textGuidanceReportExportTitle
+	textGuidanceReportScopeBody
+	textGuidanceReportScopeTitle
+	textGuidanceSkip
+	textImportedLegacy
+	textInboundAnswerBlank
+	textInboundBack
+	textInboundBackToDetail
+	textInboundBackToList
+	textInboundClearFilters
+	textInboundCreateDraft
+	textInboundCreateFailed
+	textInboundCreateNextHint
+	textInboundCreating
+	textInboundDeleteButton
+	textInboundDeleteConfirm
+	textInboundDeleteDialogIngestedExtra
+	textInboundDeleteDialogIrreversible
+	textInboundDeleteDialogTitle
+	textInboundDeleteSuccess
+	textInboundDeleting
+	textInboundDetailStatusDraft
+	textInboundDetailStatusIngested
+	textInboundDetailStatusReceived
+	textInboundDetailStatusSent
+	textInboundExportBlank
+	textInboundExporting
+	textInboundFilterAll
+	textInboundFilterOverdue
+	textInboundGotoOutbound
+	textInboundGroupMeta
+	textInboundGroupTier1
+	textInboundGroupTier2
+	textInboundHintDraft
+	textInboundHintIngested
+	textInboundHintReceived
+	textInboundHintSent
+	textInboundImportFailed
+	textInboundImportFilled
+	textInboundImporting
+	textInboundIngestConfirm
+	textInboundIngestEstimatePrefix
+	textInboundIngestGateNeedQty
+	textInboundIngestGateNoTier
+	textInboundIngestGateNoneAccepted
+	textInboundIngestLoadFailed
+	textInboundIngestLoadFailedHint
+	textInboundIngestLoading
+	textInboundIngestNoData
+	textInboundIngestNoRowsDesc
+	textInboundIngestNoRowsTitle
+	textInboundIngestNoTierData
+	textInboundIngestPathPrefix
+	textInboundIngestSupplierPrefix
+	textInboundIngestTierChoiceHint
+	textInboundIngestTierChoiceLabel
+	textInboundIngesting
+	textInboundListEmpty
+	textInboundListNoMatch
+	textInboundListTitle
+	textInboundMinOneQuestion
+	textInboundNewButton
+	textInboundNewIntro
+	textInboundNewPeriodRequired
+	textInboundNewSupplierRequired
+	textInboundNewTitle
+	textInboundNoActivity
+	textInboundNotFound
+	textInboundPeriodCurrent
+	textInboundPeriodLabel
+	textInboundPeriodPlaceholder
+	textInboundQMeta1
+	textInboundQMeta2
+	textInboundQMeta3
+	textInboundQRequiredMeta
+	textInboundQTier11
+	textInboundQTier21
+	textInboundQTier22
+	textInboundQTier23
+	textInboundQuestionsLabel
+	textInboundReexport
+	textInboundReimportFilled
+	textInboundRemindButton
+	textInboundRemindEmailDialogDesc
+	textInboundRemindEmailDialogTitle
+	textInboundRemindEmailEdit
+	textInboundRemindEmailLabel
+	textInboundRemindEmailSave
+	textInboundRemindMailAskLine
+	textInboundReviewIngest
+	textInboundSearchPlaceholder
+	textInboundSelectHint
+	textInboundSortDue
+	textInboundSortOldest
+	textInboundSortQuestions
+	textInboundSortRecent
+	textInboundSortSupplier
+	textInboundStatusDraft
+	textInboundStatusIngested
+	textInboundStatusReceived
+	textInboundStatusSent
+	textInboundSupplierCreateSelect
+	textInboundSupplierLabel
+	textInboundSupplierNamePlaceholder
+	textInboundSupplierNew
+	textInboundSupplierPlaceholder
+	textInboundTableEmpty
+	textInboundTableMetaBadge
+	textInboundTableRequired
+	textInboundTableSupplierValuePrefix
+	textInboundTemplateCat1Option
+	textInboundTemplateLabel
+	textInboundTemplateNote
+	textInboundTier1Missing
+	textInboundTier1QtyLabel
+	textInboundTier1QtyNote
+	textInboundTier1QtyPlaceholder
+	textInboundTier1Title
+	textInboundTier2Missing
+	textInboundTier2Title
+	textInboundViewActivities
+	textInboundWillCreateActivity
+	textInboundWrongDirection
+	textLineageAnswerKindAi
+	textLineageAnswerKindManual
+	textLineageAnswerKindMapped
+	textLineageAnswerUpstream
+	textLineageDrawerClose
+	textLineageDrawerTitle
+	textLineageHistoryEmpty
+	textLineageLoadFailed
+	textLineageNoDownstream
+	textLineageNodeActivity
+	textLineageNodeAnswer
+	textLineageNodeAnswers
+	textLineageNodeDownstream
+	textLineageNodeEf
+	textLineageNodeQuestion
+	textLineageNodeSnapshots
+	textLineageOpenButton
+	textLineageOpenInActivities
+	textLineageSectionChain
+	textLineageSectionEvidence
+	textLineageSectionHistory
+	textLineageSourceDocument
+	textLineageSourceInbound
+	textLineageSourceManual
+	textLineageSourceManualHint
+	textLoading
+	textNavActivities
+	textNavDashboard
+	textNavDisclosureFilings
+	textNavDocuments
+	textNavDocumentsAll
+	textNavInputs
+	textNavInventory
+	textNavOverview
+	textNavQuestionnairesAll
+	textNavReports
+	textNavSectionDocumentsQuestionnaires
+	textNavSectionGeneral
+	textNavSectionInventory
+	textNavSectionMisc
+	textNavSectionSystem
+	textNavSettings
+	textNavSources
+	textNavSupplierDisclosures
+	textNavSystem
+	textOnboardingBack
+	textOnboardingCompleteFailed
+	textOnboardingCreating
+	textOnboardingFinish
+	textOnboardingNext
+	textOnboardingStepAiBody
+	textOnboardingStepAiByot
+	textOnboardingStepAiSkip
+	textOnboardingStepAiSubtitle
+	textOnboardingStepAiTitle
+	textOnboardingStepBoundaryBody
+	textOnboardingStepBoundaryEquityShare
+	textOnboardingStepBoundaryOperationalControl
+	textOnboardingStepBoundarySubtitle
+	textOnboardingStepBoundaryTitle
+	textOnboardingStepCompanyCountry
+	textOnboardingStepCompanyIndustry
+	textOnboardingStepCompanyIndustryPlaceholder
+	textOnboardingStepCompanyNameEn
+	textOnboardingStepCompanyNameHint
+	textOnboardingStepCompanyNameZh
+	textOnboardingStepCompanySubtitle
+	textOnboardingStepCompanyTitle
+	textOnboardingStepSiteAddress
+	textOnboardingStepSiteBody
+	textOnboardingStepSiteCountry
+	textOnboardingStepSiteNameEn
+	textOnboardingStepSiteNameZh
+	textOnboardingStepSiteSubtitle
+	textOnboardingStepSiteTitle
+	textOnboardingStepYearBody
+	textOnboardingStepYearSubtitle
+	textOnboardingStepYearTitle
+	textOnboardingTitle
+	textPeriodGranularityAnnual
+	textPeriodGranularityMonthly
+	textPeriodGranularityQuarterly
 	textPhaseTwo
+	textProviderGuidanceAnthropicLatency
+	textProviderGuidanceAnthropicNote
+	textProviderGuidanceDeepseekLatency
+	textProviderGuidanceDeepseekNote
+	textProviderGuidanceOpenaiLatency
+	textProviderGuidanceOpenaiNote
+	textQuestionnaireExportPdfButton
+	textQuestionnaireExportPdfCancel
+	textQuestionnaireExportPdfConfirm
+	textQuestionnaireExportPdfDialogHeading
+	textQuestionnaireExportPdfDialogSubheading
+	textQuestionnaireExportPdfLangEn
+	textQuestionnaireExportPdfLangLabel
+	textQuestionnaireExportPdfLangZh
+	textQuestionnaireExportPdfPending
+	textQuestionnairePdfCoverDueDate
+	textQuestionnairePdfCoverGeneratedAt
+	textQuestionnairePdfDraft
+	textQuestionnairePdfFinalized
+	textQuestionnairePdfSourceSummary
+	textQuestionnairePdfTocHeading
+	textQuestionnairePdfUnanswered
+	textQuestionnairesDetailAnswerPending
+	textQuestionnairesDetailBack
+	textQuestionnairesDetailInventoryEmptyBody
+	textQuestionnairesDetailInventoryEmptyCta
+	textQuestionnairesDetailKind
+	textQuestionnairesDetailNotFound
+	textQuestionnairesDetailPosition
+	textQuestionnairesDetailQuestion
+	textQuestionnairesDetailUnit
+	textQuestionnairesEmpty
+	textQuestionnairesFilterClear
+	textQuestionnairesFilterEmpty
+	textQuestionnairesFilterStatusAll
+	textQuestionnairesFinalizeButton
+	textQuestionnairesNewButton
+	textQuestionnairesSearchPlaceholder
+	textQuestionnairesSortCustomer
+	textQuestionnairesSortDue
+	textQuestionnairesSortOldest
+	textQuestionnairesSortQuestions
+	textQuestionnairesSortRecent
+	textQuestionnairesStatusAnswering
+	textQuestionnairesStatusExported
+	textQuestionnairesStatusFinalized
+	textQuestionnairesStatusMapping
+	textQuestionnairesStatusParsing
+	textQuestionnairesTableCustomer
+	textQuestionnairesTableDue
+	textQuestionnairesTableQuestions
+	textQuestionnairesTableStatus
+	textQuestionnairesTableYear
+	textQuestionnairesWizardCustomer
+	textQuestionnairesWizardDue
+	textQuestionnairesWizardFailed
+	textQuestionnairesWizardFileChoose
+	textQuestionnairesWizardHintRequired
+	textQuestionnairesWizardParsing
+	textQuestionnairesWizardTitle
+	textQuestionnairesWizardUpload
+	textQuestionnairesWizardYear
+	textReadinessAgentHint
+	textReadinessAgentUnavailable
+	textReadinessAllClearTitle
+	textReadinessCheckC1Title
+	textReadinessCheckC3Title
+	textReadinessCheckC5Title
+	textReadinessCheckC6Title
+	textReadinessCheckD1Detail
+	textReadinessCheckD1Title
+	textReadinessCheckD2Title
+	textReadinessCheckD3Title
+	textReadinessCheckN1Title
+	textReadinessCheckN2Title
+	textReadinessCheckN3Title
+	textReadinessCheckN5Title
+	textReadinessCheckN6Title
+	textReadinessCheckT1Title
+	textReadinessCheckT2Title
+	textReadinessCheckT3Title
+	textReadinessCheckT4Title
+	textReadinessDescription
+	textReadinessDismiss
+	textReadinessHomeCardCta
+	textReadinessHomeCardTitle
+	textReadinessNoPeriod
+	textReadinessOpen
+	textReadinessRerun
+	textReadinessReviewAgent
+	textReadinessReviewingAgent
+	textReadinessRun
+	textReadinessRunning
+	textReadinessSeverityBlocker
+	textReadinessSeverityInfo
+	textReadinessSeverityWarning
+	textReadinessTitle
+	textRebindButton
+	textRebindCancel
+	textRebindConfirm
+	textRebindCurrentCo2e
+	textRebindCurrentLabel
+	textRebindDrawerHeading
+	textRebindNewCo2e
+	textRebindPickerHeading
+	textRebindPreviewHeading
+	textReportsCancelButton
+	textReportsExportBothButton
+	textReportsExportDeliverableButton
+	textReportsExportXlsxButton
+	textReportsGenerateButton
+	textReportsKindIso
+	textReportsKindLabel
+	textReportsKindTcfd
+	textReportsLangEn
+	textReportsLangLabel
+	textReportsLangZh
+	textReportsListHeading
+	textReportsListSubheading
+	textReportsNav
+	textReportsNewCta
+	textReportsNoPeriods
+	textReportsNoProvider
+	textReportsProgressAssembling
+	textReportsProgressBoundary
+	textReportsProgressChanges
+	textReportsProgressEmissions
+	textReportsProgressFinalizing
+	textReportsProgressMethodology
+	textReportsProgressObservations
+	textReportsProgressReportingBoundary
+	textReportsRegenerateButton
+	textReportsRegenerateWarning
+	textReportsSetupRequired
+	textRequiredField
+	textRoutingLookupButton
+	textRoutingLookupRunning
+	textSettingsAboutAppName
+	textSettingsAboutChrome
+	textSettingsAboutElectron
+	textSettingsAboutNode
+	textSettingsAboutOpenDataDir
+	textSettingsAboutOpenDataDirFailed
+	textSettingsAboutOpenDataDirHint
+	textSettingsAboutOpenLogDir
+	textSettingsAboutOpenLogDirFailed
+	textSettingsAboutOpenLogDirHint
+	textSettingsAboutPlatform
+	textSettingsAboutSupportEmail
+	textSettingsAboutSupportLabel
+	textSettingsAboutUserData
+	textSettingsAboutVersion
+	textSettingsAboutWebsiteLabel
+	textSettingsAboutWebsiteUrl
+	textSettingsAiCacheClear
+	textSettingsAiCacheClearFailed
+	textSettingsAiCacheClearing
+	textSettingsAiCacheHint
+	textSettingsAiCacheLabel
+	textSettingsApikeyLabel
+	textSettingsApikeyReplace
+	textSettingsApikeySaved
 	textSettingsAppearance
-	textSettingsThemeSystem
-	textSettingsThemeLight
-	textSettingsThemeDark
-	textSettingsLanguage
-	textSettingsLanguageSystem
-	textSettingsLanguageEnglish
-	textSettingsLanguageChinese
+	textSettingsBaseYearLabel
+	textSettingsBaseYearNone
+	textSettingsBoundaryEquityShare
+	textSettingsBoundaryFinancialControl
+	textSettingsBoundaryLabel
+	textSettingsBoundaryOperationalControl
+	textSettingsCancel
+	textSettingsDataAutoBackupBody
+	textSettingsDataAutoBackupHeading
+	textSettingsDataAutoBackupOpen
+	textSettingsDataAutoBackupOpenFailed
+	textSettingsDataAutoBackupToggleFailed
+	textSettingsDataAutoBackupToggleLabel
+	textSettingsDataBackupBody
+	textSettingsDataBackupHeading
+	textSettingsDataCacheBody
+	textSettingsDataCacheClearButton
+	textSettingsDataCacheExtractionEmpty
+	textSettingsDataCacheHeading
+	textSettingsDataDbSize
 	textSettingsDataDir
-	textSettingsWorkspace
+	textSettingsDataExportButton
+	textSettingsDataExportFailed
+	textSettingsDataExportSuccess
+	textSettingsDataImportButton
+	textSettingsDataImportConfirm
+	textSettingsDataImportFailed
+	textSettingsDataImportSuccess
+	textSettingsDataResetBody
+	textSettingsDataResetButton
+	textSettingsDataResetConfirm
+	textSettingsDataResetConfirmInput
+	textSettingsDataResetHeading
+	textSettingsDataResetInflight
+	textSettingsGeneralGuidanceHint
+	textSettingsGeneralGuidanceLabel
+	textSettingsGeneralGuidanceOff
+	textSettingsGeneralGuidanceOn
+	textSettingsGeneralGuidanceReplay
+	textSettingsGeneralGuidanceReplayDone
+	textSettingsGeneralLanguageEn
+	textSettingsGeneralLanguageHint
+	textSettingsGeneralLanguageLabel
+	textSettingsGeneralLanguageZh
+	textSettingsGeneralThemeDark
+	textSettingsGeneralThemeHint
+	textSettingsGeneralThemeLabel
+	textSettingsGeneralThemeLight
+	textSettingsGeneralThemeSystem
+	textSettingsImportOutlierBody
+	textSettingsImportOutlierHeading
+	textSettingsImportOutlierInvalid
+	textSettingsImportOutlierLabel
+	textSettingsImportOutlierSaved
+	textSettingsLanguage
+	textSettingsLanguageChinese
+	textSettingsLanguageEnglish
+	textSettingsLanguageSystem
+	textSettingsLoadFailed
+	textSettingsMcpActionConfigure
+	textSettingsMcpActionReconfigure
+	textSettingsMcpActionRemove
+	textSettingsMcpActionUnavailable
+	textSettingsMcpActionViewPiGuide
+	textSettingsMcpBinaryLabel
+	textSettingsMcpClientClaudeCode
+	textSettingsMcpClientClaudeDesktop
+	textSettingsMcpClientCursor
+	textSettingsMcpClientPi
+	textSettingsMcpConfigureFailed
+	textSettingsMcpInvalidJson
+	textSettingsMcpMasterToggle
+	textSettingsMcpMasterToggleHelp
+	textSettingsMcpPiGuideIntro
+	textSettingsMcpPiGuideStep1
+	textSettingsMcpPiGuideStep2
+	textSettingsMcpPiGuideTitle
+	textSettingsMcpRemoveFailed
+	textSettingsMcpScriptLabel
+	textSettingsMcpStatusConfigured
+	textSettingsMcpStatusInvalidJson
+	textSettingsMcpStatusNeedsReconfigure
+	textSettingsMcpStatusNotConfigured
+	textSettingsMcpStatusNotInstalled
+	textSettingsMcpStepHelp
+	textSettingsMcpStepTitle
+	textSettingsMcpTitle
+	textSettingsModelCapabilityImage
+	textSettingsModelCapabilityReasoning
+	textSettingsModelCustomHint
+	textSettingsModelFetchFailed
+	textSettingsModelFetchLatest
+	textSettingsModelFetchNoKey
+	textSettingsModelFetchSuccess
+	textSettingsModelFetching
+	textSettingsModelPickerPlaceholder
+	textSettingsModelSearchPlaceholder
+	textSettingsModelStale
+	textSettingsNavLabel
+	textSettingsOrgBasicHeading
+	textSettingsOrgProfileHeading
+	textSettingsOrgProfileSubheading
+	textSettingsOrgReportingHeading
+	textSettingsPickerNoMatch
+	textSettingsProviderBaseUrlLabelAdvanced
+	textSettingsProviderGroupAll
+	textSettingsProviderGroupRecommended
+	textSettingsProviderGuidanceAccount
+	textSettingsProviderModelLabel
+	textSettingsProviderPickerLabel
+	textSettingsProviderPickerPlaceholder
+	textSettingsProviderSearchPlaceholder
+	textSettingsReportLogoBody
+	textSettingsReportLogoClear
+	textSettingsReportLogoCleared
+	textSettingsReportLogoHeading
+	textSettingsReportLogoInvalid
+	textSettingsReportLogoPick
+	textSettingsReportLogoReplace
+	textSettingsReportLogoSaved
+	textSettingsReportLogoTooLarge
+	textSettingsReportingProfileSave
+	textSettingsReportingProfileSaved
+	textSettingsResponsibleNameLabel
+	textSettingsResponsibleRoleLabel
+	textSettingsSave
+	textSettingsSaveFailed
+	textSettingsSaveSuccess
+	textSettingsSaving
+	textSettingsSectionAbout
+	textSettingsSectionAboutDescription
+	textSettingsSectionAi
+	textSettingsSectionAiDescription
+	textSettingsSectionAmap
+	textSettingsSectionAmapDescription
+	textSettingsSectionData
+	textSettingsSectionDataDescription
+	textSettingsSectionEfLibrary
+	textSettingsSectionEfLibraryDescription
+	textSettingsSectionGeneral
+	textSettingsSectionGeneralDescription
+	textSettingsSectionMcp
+	textSettingsSectionMcpDescription
+	textSettingsSectionOrg
+	textSettingsSectionOrgDescription
+	textSettingsSectionUpdates
+	textSettingsSectionUpdatesDescription
+	textSettingsSectionWorkspaces
+	textSettingsSectionWorkspacesDescription
+	textSettingsSkillActionInstall
+	textSettingsSkillActionRemove
+	textSettingsSkillActionUpdate
+	textSettingsSkillInstallFailed
+	textSettingsSkillLoading
+	textSettingsSkillNoHosts
+	textSettingsSkillRemoved
+	textSettingsSkillStatusNotInstalled
+	textSettingsSkillStatusOutdated
+	textSettingsSkillStepHelp
+	textSettingsSkillStepTitle
+	textSettingsSkillUpdated
+	textSettingsTestConnection
+	textSettingsTestFailed
+	textSettingsTestSuccess
+	textSettingsTesting
+	textSettingsThemeDark
+	textSettingsThemeLight
+	textSettingsThemeSystem
+	textSettingsTitle
 	textSettingsWindowNote
+	textSettingsWorkspace
+	textSidebarMcpLabelAvailable
+	textSidebarMcpLabelNotBuilt
+	textSidebarMcpLabelPending
+	textSortLabel
+	textSourceEditActiveLabel
+	textSourceEditCancel
+	textSourceEditFailed
+	textSourceEditSave
+	textSourceEditSuccess
+	textSourceEditTitle
+	textSourcesActiveNo
+	textSourcesActiveYes
+	textSourcesAddButton
+	textSourcesCancelButton
+	textSourcesCatalogAdd
+	textSourcesCatalogAddFailed
+	textSourcesCatalogAddSuccess
+	textSourcesCatalogAdded
+	textSourcesCatalogBatchAddFailed
+	textSourcesCatalogBatchAddPending
+	textSourcesCatalogButton
+	textSourcesCatalogCategoryAll
+	textSourcesCatalogDeselectAll
+	textSourcesCatalogEmpty
+	textSourcesCatalogNoResults
+	textSourcesCatalogNoSite
+	textSourcesCatalogScope1
+	textSourcesCatalogScope1Short
+	textSourcesCatalogScope2
+	textSourcesCatalogScope2Short
+	textSourcesCatalogScope3
+	textSourcesCatalogScope3Short
+	textSourcesCatalogScopeAll
+	textSourcesCatalogSearchPlaceholder
+	textSourcesCatalogTitle
+	textSourcesCreateFailed
+	textSourcesEmptyBody
+	textSourcesEmptyTitle
+	textSourcesFilterClear
+	textSourcesFilterEmpty
+	textSourcesFormCategory
+	textSourcesFormCategoryEmpty
+	textSourcesFormCategoryGroupCurrent
+	textSourcesFormCategoryGroupDownstream
+	textSourcesFormCategoryGroupUpstream
+	textSourcesFormCategoryHint
+	textSourcesFormCategoryNone
+	textSourcesFormCategoryNonstandard
+	textSourcesFormCategoryPlaceholder
+	textSourcesFormCategorySearch
+	textSourcesFormName
+	textSourcesFormScope
+	textSourcesFormScope1
+	textSourcesFormScope2
+	textSourcesFormScope3
+	textSourcesFormSite
+	textSourcesFormSubmit
+	textSourcesFormSubmitting
+	textSourcesInactiveChip
+	textSourcesLoadFailed
+	textSourcesSearchPlaceholder
+	textSourcesStatsUnused
+	textSourcesTableActive
+	textSourcesTableCategory
+	textSourcesTableName
+	textSourcesTableScope
+	textSupplierEmailOptionalLabel
+	textTopbarBack
+	textTopbarDetail
+	textTopbarForward
+	textUndo
+	textUndoFailed
+	textUnitKgCo2e
+	textUpdaterCheckButton
+	textUpdaterDownloadButton
+	textUpdaterDownloadUrl
+	textUpdaterInstallButton
+	textUpdaterSectionHeading
+	textUpdaterSectionSubheading
+	textUpdaterStatusChecking
+	textUpdaterStatusIdle
+	textUpdaterStatusNotAvailable
+	textWorkspaceActive
+	textWorkspaceActiveBadge
+	textWorkspaceBody
+	textWorkspaceCreateButton
+	textWorkspaceCreatePlaceholder
+	textWorkspaceCreatedToast
+	textWorkspaceDeleteButton
+	textWorkspaceDeleteFailed
+	textWorkspaceDeletedToast
+	textWorkspaceHeading
+	textWorkspaceInvalidName
+	textWorkspaceRenameButton
+	textWorkspaceRenameCancel
+	textWorkspaceRenameSave
+	textWorkspaceSwitchButton
+	textWorkspaceSwitchFailed
 	numTexts
 )
 
 // keyOfText is the key of the message without arguments at each
 // index, by which Supply reads a Translation's Texts.
 var keyOfText = [numTexts]string{
-	"appName",
-	"navOverview",
-	"navDashboard",
-	"navActivities",
-	"navInventory",
-	"navSources",
-	"navInputs",
-	"navDocuments",
-	"navReports",
-	"navSystem",
-	"navSettings",
-	"activitiesTitle",
-	"activitiesSubtitle",
+	"activitiesAddButton",
+	"activitiesCreateFailed",
+	"activitiesCreateSuccess",
 	"activitiesEmpty",
-	"workspaceActive",
-	"importedLegacy",
+	"activitiesEmptyBody",
+	"activitiesEmptyNoSourcesBody",
+	"activitiesEmptyNoSourcesCta",
+	"activitiesEmptyNoSourcesTitle",
+	"activitiesEmptyTitle",
+	"activitiesFilterClear",
+	"activitiesFilterEmpty",
+	"activitiesFormAmount",
+	"activitiesFormEf",
+	"activitiesFormEfLoading",
+	"activitiesFormEfNone",
+	"activitiesFormEfPickSourceFirst",
+	"activitiesFormEfSelected",
+	"activitiesFormFuel",
+	"activitiesFormFuelHint",
+	"activitiesFormFuelNone",
+	"activitiesFormNoPeriods",
+	"activitiesFormNoSources",
+	"activitiesFormNotes",
+	"activitiesFormOccurredEnd",
+	"activitiesFormOccurredStart",
+	"activitiesFormPeriod",
+	"activitiesFormPeriodPlaceholder",
+	"activitiesFormSource",
+	"activitiesFormSourcePlaceholder",
+	"activitiesFormSubmit",
+	"activitiesFormSubmitting",
+	"activitiesFormUnit",
+	"activitiesFormUnitPlaceholder",
+	"activitiesFromLedgerImport",
+	"activitiesFromSupplierDisclosure",
+	"activitiesLoadFailed",
+	"activitiesSearchPlaceholder",
+	"activitiesSortCo2eAsc",
+	"activitiesSortCo2eDesc",
+	"activitiesSortOldest",
+	"activitiesSortRecent",
+	"activitiesSortSource",
+	"activitiesSourceManual",
+	"activitiesSubtitle",
+	"activitiesTableAmount",
+	"activitiesTableCo2e",
+	"activitiesTableEf",
+	"activitiesTableOccurred",
+	"activitiesTableSource",
+	"activitiesTitle",
+	"activityDocCancel",
+	"activityDocCanceled",
+	"activityDocClassifyFailedBody",
+	"activityDocClassifyFailedTitle",
+	"activityDocClassifyHintDuration",
+	"activityDocClassifyTimeoutBody",
+	"activityDocClassifyTimeoutTitle",
+	"activityDocClassifying",
+	"activityDocHint",
+	"activityDocPrefilledBanner",
+	"activityDocRecognized",
+	"activityDocReupload",
+	"activityDocSubhint",
+	"activityDocUploading",
+	"activityImportBackButton",
+	"activityImportButton",
+	"activityImportCancelButton",
+	"activityImportCloseButton",
+	"activityImportDescription",
+	"activityImportErrorNothingToImport",
+	"activityImportErrorPeriodMissing",
+	"activityImportErrorTokenExpired",
+	"activityImportErrorUnconfirmed",
+	"activityImportErrorsHeading",
+	"activityImportFailed",
+	"activityImportFieldAmount",
+	"activityImportFieldDescription",
+	"activityImportFieldNotes",
+	"activityImportFieldOccurredAtEnd",
+	"activityImportFieldOccurredAtStart",
+	"activityImportFieldSourceName",
+	"activityImportFieldUnit",
+	"activityImportGroupConfirmButton",
+	"activityImportGroupDimensionMismatch",
+	"activityImportGroupReopenButton",
+	"activityImportGroupSkipButton",
+	"activityImportGroupStatusConfirmed",
+	"activityImportGroupStatusPending",
+	"activityImportGroupStatusSkipped",
+	"activityImportGroupsBody",
+	"activityImportGroupsHeading",
+	"activityImportImportButton",
+	"activityImportIssueAmountInvalid",
+	"activityImportIssueAmountMissing",
+	"activityImportIssueAmountOutlier",
+	"activityImportIssueCreateFailed",
+	"activityImportIssueDateInvalid",
+	"activityImportIssueDateRangeInvalid",
+	"activityImportIssueDescriptionMissing",
+	"activityImportIssueDuplicateInDb",
+	"activityImportIssueDuplicateInFile",
+	"activityImportIssuePeriodMismatch",
+	"activityImportIssueSourceNameMissing",
+	"activityImportIssueUnitDimensionMismatch",
+	"activityImportIssueUnitMissing",
+	"activityImportMappingBody",
+	"activityImportMappingHeading",
+	"activityImportNextButton",
+	"activityImportPeriodHint",
+	"activityImportPeriodLabel",
+	"activityImportPeriodPlaceholder",
+	"activityImportPickButton",
+	"activityImportPickFailed",
+	"activityImportPickHint",
+	"activityImportRepickButton",
+	"activityImportRequired",
+	"activityImportResultHeading",
+	"activityImportResultWarningsHeading",
+	"activityImportSourceCreateButton",
+	"activityImportSourceCreateCategory",
+	"activityImportSourceCreateFailed",
+	"activityImportSourceCreateScope",
+	"activityImportSourceCreateSite",
+	"activityImportSourceCreated",
+	"activityImportSourceMatched",
+	"activityImportSourceSelectPlaceholder",
+	"activityImportSourceUnresolved",
+	"activityImportSourcesBody",
+	"activityImportSourcesHeading",
+	"activityImportTitle",
+	"activityImportUnmapped",
+	"activityImportWarningsHeading",
+	"answerExportButton",
+	"answerExportRunning",
+	"answerFinalized",
+	"answerFinalizedHint",
+	"answerGenerate",
+	"answerGenerateAllButton",
+	"answerGenerateAllEmpty",
+	"answerGenerateAllRunning",
+	"answerGenerateErrorLabel",
+	"answerGenerating",
+	"answerInventoryEmpty",
+	"answerNotGenerated",
+	"answerSave",
+	"answerSaveFinalize",
+	"answerSource",
+	"answerSourceReused",
+	"answerUnfinalize",
+	"answerUnit",
+	"answerValue",
+	"appName",
+	"appTagline",
+	"appTitle",
+	"auditEmptyStateBody",
+	"auditEmptyStateHeading",
+	"auditEventKindActivityDataCreated",
+	"auditEventKindActivityDataDeleted",
+	"auditEventKindActivityRebindEf",
+	"auditEventKindEvidenceAttached",
+	"auditEventKindEvidenceRemoved",
+	"auditExportCsvButton",
+	"auditExportCsvFailed",
+	"auditFilterEventKindLabel",
+	"auditFilterResetButton",
+	"auditFilterSinceLabel",
+	"auditFilterUntilLabel",
+	"auditHeading",
+	"auditHideRaw",
+	"auditLoadOlderButton",
+	"auditMalformedPayload",
+	"auditNav",
+	"auditRebindActivityLabel",
+	"auditShowRaw",
+	"auditSortOldest",
+	"auditSortRecent",
+	"auditSubheading",
+	"cancel",
+	"cmdOpenDocuments",
+	"cmdOpenSettings",
+	"colAmount",
+	"colCO2e",
 	"colDate",
+	"colScope",
 	"colSite",
 	"colSource",
-	"colAmount",
 	"colUnit",
-	"colCO2e",
-	"colScope",
+	"dashboardInventoryBody",
+	"dashboardInventoryTitle",
+	"dashboardMonthlyTrend",
+	"dashboardNoDataForChart",
+	"dashboardRecentActivities",
+	"dashboardRecentEmpty",
+	"dashboardScope1",
+	"dashboardScope2",
+	"dashboardScope3",
+	"dashboardStartActivitiesBody",
+	"dashboardStartActivitiesCta",
+	"dashboardStartActivitiesTitle",
+	"dashboardStartReportBody",
+	"dashboardStartReportCta",
+	"dashboardStartReportTitle",
+	"dashboardStartSourcesBody",
+	"dashboardStartSourcesCta",
+	"dashboardStartSourcesTitle",
+	"dashboardStartStepDone",
+	"dashboardStartSubtitle",
+	"dashboardStartTitle",
+	"dashboardTotalCo2e",
+	"dashboardWelcomeBody",
+	"dashboardWelcomeTitle",
+	"dashboardWidgetViewAll",
+	"documentsAiRequiredBody",
+	"documentsAiRequiredCta",
+	"documentsAiRequiredTitle",
+	"documentsBackToList",
+	"documentsBatchAlreadyRunning",
+	"documentsBatchCancel",
+	"documentsBatchFailuresHeading",
+	"documentsBatchReasonClassifyFailed",
+	"documentsBatchReasonError",
+	"documentsEmpty",
+	"documentsExtracting",
+	"documentsExtractingVision",
+	"documentsExtractionDone",
+	"documentsExtractionFailed",
+	"documentsExtractionRunAgain",
+	"documentsExtractionRunNow",
+	"documentsExtractionRunning",
+	"documentsExtractionStarted",
+	"documentsFilterClear",
+	"documentsFilterEmpty",
+	"documentsFilterStatusAll",
+	"documentsLoadFailed",
+	"documentsNext",
+	"documentsOpenRow",
+	"documentsPlaceholder",
+	"documentsPrev",
+	"documentsPreviewDrawerTitle",
+	"documentsPreviewOpenDetail",
+	"documentsReviewAlreadyConfirmedBody",
+	"documentsReviewAlreadyConfirmedTitle",
+	"documentsReviewBack",
+	"documentsReviewClassifyFailed",
+	"documentsReviewClassifying",
+	"documentsReviewConfidence",
+	"documentsReviewConfidenceHigh",
+	"documentsReviewConfidenceLow",
+	"documentsReviewConfidenceMedium",
+	"documentsReviewConfirm",
+	"documentsReviewConfirmFailed",
+	"documentsReviewConfirmSuccess",
+	"documentsReviewDiscard",
+	"documentsReviewDiscardConfirm",
+	"documentsReviewDiscardFailed",
+	"documentsReviewDiscardSuccess",
+	"documentsReviewExtracting",
+	"documentsReviewFieldAccount",
+	"documentsReviewFieldAmountKwh",
+	"documentsReviewFieldAmountYuan",
+	"documentsReviewFieldArrivalAt",
+	"documentsReviewFieldCategory",
+	"documentsReviewFieldDepartureAt",
+	"documentsReviewFieldDestination",
+	"documentsReviewFieldDistanceKm",
+	"documentsReviewFieldFlightOrTrainNo",
+	"documentsReviewFieldFuelCategory",
+	"documentsReviewFieldFuelType",
+	"documentsReviewFieldInvoiceNo",
+	"documentsReviewFieldItemDescription",
+	"documentsReviewFieldLicensePlate",
+	"documentsReviewFieldMode",
+	"documentsReviewFieldOccurredAt",
+	"documentsReviewFieldOrigin",
+	"documentsReviewFieldPassengerName",
+	"documentsReviewFieldPeriodEnd",
+	"documentsReviewFieldPeriodStart",
+	"documentsReviewFieldQuantityKg",
+	"documentsReviewFieldSupplier",
+	"documentsReviewFieldTicketNo",
+	"documentsReviewFieldTrackingNo",
+	"documentsReviewFieldTravelClass",
+	"documentsReviewFieldUnitPriceYuan",
+	"documentsReviewFieldVehicleClass",
+	"documentsReviewFieldVehiclePlate",
+	"documentsReviewFieldVolumeL",
+	"documentsReviewFieldVolumeM3",
+	"documentsReviewFieldWeightKg",
+	"documentsReviewFuelCategoryOtherWarning",
+	"documentsReviewLoadFailed",
+	"documentsReviewNoExtraction",
+	"documentsReviewParseError",
+	"documentsReviewPdfLoading",
+	"documentsReviewPdfUnavailable",
+	"documentsReviewPreviousDiscarded",
+	"documentsReviewProvider",
+	"documentsReviewPurchaseCategoryOtherWarning",
+	"documentsReviewReextractBody",
+	"documentsReviewReextractConfirm",
+	"documentsReviewReextractFailed",
+	"documentsReviewReextractStageLabel",
+	"documentsReviewReextractSuccess",
+	"documentsReviewShaLabel",
+	"documentsReviewStage",
+	"documentsReviewSwitchStage",
+	"documentsReviewViewActivitiesLink",
+	"documentsReviewViewActivityLink",
+	"documentsSearchPlaceholder",
+	"documentsSortFilename",
+	"documentsSortOldest",
+	"documentsSortRecent",
+	"documentsStageNoVision",
+	"documentsStatusNone",
+	"documentsStatusParsed",
+	"documentsStatusRejected",
+	"documentsStatusReviewNeeded",
+	"documentsStatusUnclassified",
+	"documentsTableFilename",
+	"documentsTableSha",
+	"documentsTableStatus",
+	"documentsTableUploaded",
+	"documentsUploadButton",
+	"documentsUploadCollapse",
+	"documentsUploadDone",
+	"documentsUploadFailed",
+	"documentsUploadHint",
+	"documentsUploadPdfOnly",
+	"documentsUploadPickStage",
+	"documentsUploadSuccess",
+	"documentsUploading",
+	"documentsVisionUnsupported",
+	"efImportCancelButton",
+	"efImportDescription",
+	"efImportErrorInvalidName",
+	"efImportErrorNothingToImport",
+	"efImportErrorTokenExpired",
+	"efImportErrorsHeading",
+	"efImportFailed",
+	"efImportFieldBiogenicCo2Factor",
+	"efImportFieldCategory",
+	"efImportFieldCh4KgPerUnit",
+	"efImportFieldCitationUrl",
+	"efImportFieldCo2eKgPerUnit",
+	"efImportFieldDescriptionEn",
+	"efImportFieldDescriptionZh",
+	"efImportFieldFactorCode",
+	"efImportFieldGeography",
+	"efImportFieldGwpBasis",
+	"efImportFieldHfcKgPerUnit",
+	"efImportFieldInputUnit",
+	"efImportFieldN2oKgPerUnit",
+	"efImportFieldNameEn",
+	"efImportFieldNameZh",
+	"efImportFieldNf3KgPerUnit",
+	"efImportFieldNotes",
+	"efImportFieldPfcKgPerUnit",
+	"efImportFieldScope",
+	"efImportFieldSf6KgPerUnit",
+	"efImportFieldYear",
+	"efImportFileErrorFileEmpty",
+	"efImportFileErrorFileReadFailed",
+	"efImportFileErrorFileTooLarge",
+	"efImportFileErrorTooManyRows",
+	"efImportFileErrorUnsupportedFileType",
+	"efImportFileErrorXlsxInvalid",
+	"efImportImportButton",
+	"efImportIssueCategoryEmpty",
+	"efImportIssueCo2eMissing",
+	"efImportIssueDuplicateKey",
+	"efImportIssueGwpInvalid",
+	"efImportIssueNameMissing",
+	"efImportIssueScopeInvalid",
+	"efImportIssueScopeMissing",
+	"efImportIssueUnitMissing",
+	"efImportIssueUnitUnknown",
+	"efImportIssueValueInvalid",
+	"efImportIssueYearInvalid",
+	"efImportIssueYearMissing",
+	"efImportMappingBody",
+	"efImportMappingHeading",
+	"efImportNameLabel",
+	"efImportNamePlaceholder",
+	"efImportPickButton",
+	"efImportPickFailed",
+	"efImportPickHint",
+	"efImportRepickButton",
+	"efImportReplaceConfirmButton",
+	"efImportRequired",
+	"efImportSampleHeading",
+	"efImportTitle",
+	"efImportUnmapped",
+	"efImportVersionLabel",
+	"efImportVersionPlaceholder",
+	"efImportWarningsHeading",
+	"efLibraryBrowseEmptyLibrary",
+	"efLibraryBrowseEmptySearch",
+	"efLibraryBrowseLoadMore",
+	"efLibraryBrowseLoading",
+	"efLibraryBrowseOpen",
+	"efLibraryBrowseSearchPlaceholder",
+	"efLibraryDeleteButton",
+	"efLibraryDeleteFailed",
+	"efLibraryEmpty",
+	"efLibraryGroupBody",
+	"efLibraryGroupHeading",
+	"efLibraryImportButton",
+	"efLibraryListHeading",
+	"efLibraryTemplateButton",
+	"efLibraryTemplateFailed",
+	"efLibraryTemplateSaved",
+	"efMatcherAllCandidates",
+	"efMatcherLoading",
+	"efMatcherNoCandidates",
+	"efMatcherReasoningLabel",
+	"efMatcherRecommendedHeading",
+	"efPickerLoading",
+	"efPickerNoRecommendations",
+	"efPickerTabBrowse",
+	"efPickerTabRecommended",
+	"efUserLibraryBadge",
+	"evidenceAddButton",
+	"evidenceAddFailed",
+	"evidenceAdding",
+	"evidenceEmpty",
+	"evidencePreviewImageAlt",
+	"evidencePreviewUnsupported",
+	"evidenceRemoveButton",
+	"evidenceRemoveFailed",
+	"fuelCoalAnthracite",
+	"fuelDiesel",
+	"fuelGasoline",
+	"fuelLpg",
+	"fuelNaturalGas",
+	"guidanceAnswerActionsBody",
+	"guidanceAnswerActionsTitle",
+	"guidanceAnswerBulkBody",
+	"guidanceAnswerBulkTitle",
+	"guidanceAnswerCardBody",
+	"guidanceAnswerCardTitle",
+	"guidanceBack",
+	"guidanceDone",
+	"guidanceExtractionActionsBody",
+	"guidanceExtractionActionsTitle",
+	"guidanceExtractionStageBody",
+	"guidanceExtractionStageTitle",
+	"guidanceExtractionSwitchBody",
+	"guidanceExtractionSwitchTitle",
+	"guidanceNext",
+	"guidanceQuestionnairesListBody",
+	"guidanceQuestionnairesListTitle",
+	"guidanceQuestionnairesNewBody",
+	"guidanceQuestionnairesNewTitle",
+	"guidanceRebindConfirmBody",
+	"guidanceRebindConfirmTitle",
+	"guidanceRebindCurrentBody",
+	"guidanceRebindCurrentTitle",
+	"guidanceRebindPickerBody",
+	"guidanceRebindPickerTitle",
+	"guidanceReportDeliverableBody",
+	"guidanceReportDeliverableTitle",
+	"guidanceReportExportBody",
+	"guidanceReportExportTitle",
+	"guidanceReportScopeBody",
+	"guidanceReportScopeTitle",
+	"guidanceSkip",
+	"importedLegacy",
+	"inboundAnswerBlank",
+	"inboundBack",
+	"inboundBackToDetail",
+	"inboundBackToList",
+	"inboundClearFilters",
+	"inboundCreateDraft",
+	"inboundCreateFailed",
+	"inboundCreateNextHint",
+	"inboundCreating",
+	"inboundDeleteButton",
+	"inboundDeleteConfirm",
+	"inboundDeleteDialogIngestedExtra",
+	"inboundDeleteDialogIrreversible",
+	"inboundDeleteDialogTitle",
+	"inboundDeleteSuccess",
+	"inboundDeleting",
+	"inboundDetailStatusDraft",
+	"inboundDetailStatusIngested",
+	"inboundDetailStatusReceived",
+	"inboundDetailStatusSent",
+	"inboundExportBlank",
+	"inboundExporting",
+	"inboundFilterAll",
+	"inboundFilterOverdue",
+	"inboundGotoOutbound",
+	"inboundGroupMeta",
+	"inboundGroupTier1",
+	"inboundGroupTier2",
+	"inboundHintDraft",
+	"inboundHintIngested",
+	"inboundHintReceived",
+	"inboundHintSent",
+	"inboundImportFailed",
+	"inboundImportFilled",
+	"inboundImporting",
+	"inboundIngestConfirm",
+	"inboundIngestEstimatePrefix",
+	"inboundIngestGateNeedQty",
+	"inboundIngestGateNoTier",
+	"inboundIngestGateNoneAccepted",
+	"inboundIngestLoadFailed",
+	"inboundIngestLoadFailedHint",
+	"inboundIngestLoading",
+	"inboundIngestNoData",
+	"inboundIngestNoRowsDesc",
+	"inboundIngestNoRowsTitle",
+	"inboundIngestNoTierData",
+	"inboundIngestPathPrefix",
+	"inboundIngestSupplierPrefix",
+	"inboundIngestTierChoiceHint",
+	"inboundIngestTierChoiceLabel",
+	"inboundIngesting",
+	"inboundListEmpty",
+	"inboundListNoMatch",
+	"inboundListTitle",
+	"inboundMinOneQuestion",
+	"inboundNewButton",
+	"inboundNewIntro",
+	"inboundNewPeriodRequired",
+	"inboundNewSupplierRequired",
+	"inboundNewTitle",
+	"inboundNoActivity",
+	"inboundNotFound",
+	"inboundPeriodCurrent",
+	"inboundPeriodLabel",
+	"inboundPeriodPlaceholder",
+	"inboundQMeta1",
+	"inboundQMeta2",
+	"inboundQMeta3",
+	"inboundQRequiredMeta",
+	"inboundQTier11",
+	"inboundQTier21",
+	"inboundQTier22",
+	"inboundQTier23",
+	"inboundQuestionsLabel",
+	"inboundReexport",
+	"inboundReimportFilled",
+	"inboundRemindButton",
+	"inboundRemindEmailDialogDesc",
+	"inboundRemindEmailDialogTitle",
+	"inboundRemindEmailEdit",
+	"inboundRemindEmailLabel",
+	"inboundRemindEmailSave",
+	"inboundRemindMailAskLine",
+	"inboundReviewIngest",
+	"inboundSearchPlaceholder",
+	"inboundSelectHint",
+	"inboundSortDue",
+	"inboundSortOldest",
+	"inboundSortQuestions",
+	"inboundSortRecent",
+	"inboundSortSupplier",
+	"inboundStatusDraft",
+	"inboundStatusIngested",
+	"inboundStatusReceived",
+	"inboundStatusSent",
+	"inboundSupplierCreateSelect",
+	"inboundSupplierLabel",
+	"inboundSupplierNamePlaceholder",
+	"inboundSupplierNew",
+	"inboundSupplierPlaceholder",
+	"inboundTableEmpty",
+	"inboundTableMetaBadge",
+	"inboundTableRequired",
+	"inboundTableSupplierValuePrefix",
+	"inboundTemplateCat1Option",
+	"inboundTemplateLabel",
+	"inboundTemplateNote",
+	"inboundTier1Missing",
+	"inboundTier1QtyLabel",
+	"inboundTier1QtyNote",
+	"inboundTier1QtyPlaceholder",
+	"inboundTier1Title",
+	"inboundTier2Missing",
+	"inboundTier2Title",
+	"inboundViewActivities",
+	"inboundWillCreateActivity",
+	"inboundWrongDirection",
+	"lineageAnswerKindAi",
+	"lineageAnswerKindManual",
+	"lineageAnswerKindMapped",
+	"lineageAnswerUpstream",
+	"lineageDrawerClose",
+	"lineageDrawerTitle",
+	"lineageHistoryEmpty",
+	"lineageLoadFailed",
+	"lineageNoDownstream",
+	"lineageNodeActivity",
+	"lineageNodeAnswer",
+	"lineageNodeAnswers",
+	"lineageNodeDownstream",
+	"lineageNodeEf",
+	"lineageNodeQuestion",
+	"lineageNodeSnapshots",
+	"lineageOpenButton",
+	"lineageOpenInActivities",
+	"lineageSectionChain",
+	"lineageSectionEvidence",
+	"lineageSectionHistory",
+	"lineageSourceDocument",
+	"lineageSourceInbound",
+	"lineageSourceManual",
+	"lineageSourceManualHint",
+	"loading",
+	"navActivities",
+	"navDashboard",
+	"navDisclosureFilings",
+	"navDocuments",
+	"navDocumentsAll",
+	"navInputs",
+	"navInventory",
+	"navOverview",
+	"navQuestionnairesAll",
+	"navReports",
+	"navSectionDocumentsQuestionnaires",
+	"navSectionGeneral",
+	"navSectionInventory",
+	"navSectionMisc",
+	"navSectionSystem",
+	"navSettings",
+	"navSources",
+	"navSupplierDisclosures",
+	"navSystem",
+	"onboardingBack",
+	"onboardingCompleteFailed",
+	"onboardingCreating",
+	"onboardingFinish",
+	"onboardingNext",
+	"onboardingStepAiBody",
+	"onboardingStepAiByot",
+	"onboardingStepAiSkip",
+	"onboardingStepAiSubtitle",
+	"onboardingStepAiTitle",
+	"onboardingStepBoundaryBody",
+	"onboardingStepBoundaryEquityShare",
+	"onboardingStepBoundaryOperationalControl",
+	"onboardingStepBoundarySubtitle",
+	"onboardingStepBoundaryTitle",
+	"onboardingStepCompanyCountry",
+	"onboardingStepCompanyIndustry",
+	"onboardingStepCompanyIndustryPlaceholder",
+	"onboardingStepCompanyNameEn",
+	"onboardingStepCompanyNameHint",
+	"onboardingStepCompanyNameZh",
+	"onboardingStepCompanySubtitle",
+	"onboardingStepCompanyTitle",
+	"onboardingStepSiteAddress",
+	"onboardingStepSiteBody",
+	"onboardingStepSiteCountry",
+	"onboardingStepSiteNameEn",
+	"onboardingStepSiteNameZh",
+	"onboardingStepSiteSubtitle",
+	"onboardingStepSiteTitle",
+	"onboardingStepYearBody",
+	"onboardingStepYearSubtitle",
+	"onboardingStepYearTitle",
+	"onboardingTitle",
+	"periodGranularityAnnual",
+	"periodGranularityMonthly",
+	"periodGranularityQuarterly",
 	"phaseTwo",
+	"providerGuidanceAnthropicLatency",
+	"providerGuidanceAnthropicNote",
+	"providerGuidanceDeepseekLatency",
+	"providerGuidanceDeepseekNote",
+	"providerGuidanceOpenaiLatency",
+	"providerGuidanceOpenaiNote",
+	"questionnaireExportPdfButton",
+	"questionnaireExportPdfCancel",
+	"questionnaireExportPdfConfirm",
+	"questionnaireExportPdfDialogHeading",
+	"questionnaireExportPdfDialogSubheading",
+	"questionnaireExportPdfLangEn",
+	"questionnaireExportPdfLangLabel",
+	"questionnaireExportPdfLangZh",
+	"questionnaireExportPdfPending",
+	"questionnairePdfCoverDueDate",
+	"questionnairePdfCoverGeneratedAt",
+	"questionnairePdfDraft",
+	"questionnairePdfFinalized",
+	"questionnairePdfSourceSummary",
+	"questionnairePdfTocHeading",
+	"questionnairePdfUnanswered",
+	"questionnairesDetailAnswerPending",
+	"questionnairesDetailBack",
+	"questionnairesDetailInventoryEmptyBody",
+	"questionnairesDetailInventoryEmptyCta",
+	"questionnairesDetailKind",
+	"questionnairesDetailNotFound",
+	"questionnairesDetailPosition",
+	"questionnairesDetailQuestion",
+	"questionnairesDetailUnit",
+	"questionnairesEmpty",
+	"questionnairesFilterClear",
+	"questionnairesFilterEmpty",
+	"questionnairesFilterStatusAll",
+	"questionnairesFinalizeButton",
+	"questionnairesNewButton",
+	"questionnairesSearchPlaceholder",
+	"questionnairesSortCustomer",
+	"questionnairesSortDue",
+	"questionnairesSortOldest",
+	"questionnairesSortQuestions",
+	"questionnairesSortRecent",
+	"questionnairesStatusAnswering",
+	"questionnairesStatusExported",
+	"questionnairesStatusFinalized",
+	"questionnairesStatusMapping",
+	"questionnairesStatusParsing",
+	"questionnairesTableCustomer",
+	"questionnairesTableDue",
+	"questionnairesTableQuestions",
+	"questionnairesTableStatus",
+	"questionnairesTableYear",
+	"questionnairesWizardCustomer",
+	"questionnairesWizardDue",
+	"questionnairesWizardFailed",
+	"questionnairesWizardFileChoose",
+	"questionnairesWizardHintRequired",
+	"questionnairesWizardParsing",
+	"questionnairesWizardTitle",
+	"questionnairesWizardUpload",
+	"questionnairesWizardYear",
+	"readinessAgentHint",
+	"readinessAgentUnavailable",
+	"readinessAllClearTitle",
+	"readinessCheckC1Title",
+	"readinessCheckC3Title",
+	"readinessCheckC5Title",
+	"readinessCheckC6Title",
+	"readinessCheckD1Detail",
+	"readinessCheckD1Title",
+	"readinessCheckD2Title",
+	"readinessCheckD3Title",
+	"readinessCheckN1Title",
+	"readinessCheckN2Title",
+	"readinessCheckN3Title",
+	"readinessCheckN5Title",
+	"readinessCheckN6Title",
+	"readinessCheckT1Title",
+	"readinessCheckT2Title",
+	"readinessCheckT3Title",
+	"readinessCheckT4Title",
+	"readinessDescription",
+	"readinessDismiss",
+	"readinessHomeCardCta",
+	"readinessHomeCardTitle",
+	"readinessNoPeriod",
+	"readinessOpen",
+	"readinessRerun",
+	"readinessReviewAgent",
+	"readinessReviewingAgent",
+	"readinessRun",
+	"readinessRunning",
+	"readinessSeverityBlocker",
+	"readinessSeverityInfo",
+	"readinessSeverityWarning",
+	"readinessTitle",
+	"rebindButton",
+	"rebindCancel",
+	"rebindConfirm",
+	"rebindCurrentCo2e",
+	"rebindCurrentLabel",
+	"rebindDrawerHeading",
+	"rebindNewCo2e",
+	"rebindPickerHeading",
+	"rebindPreviewHeading",
+	"reportsCancelButton",
+	"reportsExportBothButton",
+	"reportsExportDeliverableButton",
+	"reportsExportXlsxButton",
+	"reportsGenerateButton",
+	"reportsKindIso",
+	"reportsKindLabel",
+	"reportsKindTcfd",
+	"reportsLangEn",
+	"reportsLangLabel",
+	"reportsLangZh",
+	"reportsListHeading",
+	"reportsListSubheading",
+	"reportsNav",
+	"reportsNewCta",
+	"reportsNoPeriods",
+	"reportsNoProvider",
+	"reportsProgressAssembling",
+	"reportsProgressBoundary",
+	"reportsProgressChanges",
+	"reportsProgressEmissions",
+	"reportsProgressFinalizing",
+	"reportsProgressMethodology",
+	"reportsProgressObservations",
+	"reportsProgressReportingBoundary",
+	"reportsRegenerateButton",
+	"reportsRegenerateWarning",
+	"reportsSetupRequired",
+	"requiredField",
+	"routingLookupButton",
+	"routingLookupRunning",
+	"settingsAboutAppName",
+	"settingsAboutChrome",
+	"settingsAboutElectron",
+	"settingsAboutNode",
+	"settingsAboutOpenDataDir",
+	"settingsAboutOpenDataDirFailed",
+	"settingsAboutOpenDataDirHint",
+	"settingsAboutOpenLogDir",
+	"settingsAboutOpenLogDirFailed",
+	"settingsAboutOpenLogDirHint",
+	"settingsAboutPlatform",
+	"settingsAboutSupportEmail",
+	"settingsAboutSupportLabel",
+	"settingsAboutUserData",
+	"settingsAboutVersion",
+	"settingsAboutWebsiteLabel",
+	"settingsAboutWebsiteUrl",
+	"settingsAiCacheClear",
+	"settingsAiCacheClearFailed",
+	"settingsAiCacheClearing",
+	"settingsAiCacheHint",
+	"settingsAiCacheLabel",
+	"settingsApikeyLabel",
+	"settingsApikeyReplace",
+	"settingsApikeySaved",
 	"settingsAppearance",
-	"settingsThemeSystem",
-	"settingsThemeLight",
-	"settingsThemeDark",
-	"settingsLanguage",
-	"settingsLanguageSystem",
-	"settingsLanguageEnglish",
-	"settingsLanguageChinese",
+	"settingsBaseYearLabel",
+	"settingsBaseYearNone",
+	"settingsBoundaryEquityShare",
+	"settingsBoundaryFinancialControl",
+	"settingsBoundaryLabel",
+	"settingsBoundaryOperationalControl",
+	"settingsCancel",
+	"settingsDataAutoBackupBody",
+	"settingsDataAutoBackupHeading",
+	"settingsDataAutoBackupOpen",
+	"settingsDataAutoBackupOpenFailed",
+	"settingsDataAutoBackupToggleFailed",
+	"settingsDataAutoBackupToggleLabel",
+	"settingsDataBackupBody",
+	"settingsDataBackupHeading",
+	"settingsDataCacheBody",
+	"settingsDataCacheClearButton",
+	"settingsDataCacheExtractionEmpty",
+	"settingsDataCacheHeading",
+	"settingsDataDbSize",
 	"settingsDataDir",
-	"settingsWorkspace",
+	"settingsDataExportButton",
+	"settingsDataExportFailed",
+	"settingsDataExportSuccess",
+	"settingsDataImportButton",
+	"settingsDataImportConfirm",
+	"settingsDataImportFailed",
+	"settingsDataImportSuccess",
+	"settingsDataResetBody",
+	"settingsDataResetButton",
+	"settingsDataResetConfirm",
+	"settingsDataResetConfirmInput",
+	"settingsDataResetHeading",
+	"settingsDataResetInflight",
+	"settingsGeneralGuidanceHint",
+	"settingsGeneralGuidanceLabel",
+	"settingsGeneralGuidanceOff",
+	"settingsGeneralGuidanceOn",
+	"settingsGeneralGuidanceReplay",
+	"settingsGeneralGuidanceReplayDone",
+	"settingsGeneralLanguageEn",
+	"settingsGeneralLanguageHint",
+	"settingsGeneralLanguageLabel",
+	"settingsGeneralLanguageZh",
+	"settingsGeneralThemeDark",
+	"settingsGeneralThemeHint",
+	"settingsGeneralThemeLabel",
+	"settingsGeneralThemeLight",
+	"settingsGeneralThemeSystem",
+	"settingsImportOutlierBody",
+	"settingsImportOutlierHeading",
+	"settingsImportOutlierInvalid",
+	"settingsImportOutlierLabel",
+	"settingsImportOutlierSaved",
+	"settingsLanguage",
+	"settingsLanguageChinese",
+	"settingsLanguageEnglish",
+	"settingsLanguageSystem",
+	"settingsLoadFailed",
+	"settingsMcpActionConfigure",
+	"settingsMcpActionReconfigure",
+	"settingsMcpActionRemove",
+	"settingsMcpActionUnavailable",
+	"settingsMcpActionViewPiGuide",
+	"settingsMcpBinaryLabel",
+	"settingsMcpClientClaudeCode",
+	"settingsMcpClientClaudeDesktop",
+	"settingsMcpClientCursor",
+	"settingsMcpClientPi",
+	"settingsMcpConfigureFailed",
+	"settingsMcpInvalidJson",
+	"settingsMcpMasterToggle",
+	"settingsMcpMasterToggleHelp",
+	"settingsMcpPiGuideIntro",
+	"settingsMcpPiGuideStep1",
+	"settingsMcpPiGuideStep2",
+	"settingsMcpPiGuideTitle",
+	"settingsMcpRemoveFailed",
+	"settingsMcpScriptLabel",
+	"settingsMcpStatusConfigured",
+	"settingsMcpStatusInvalidJson",
+	"settingsMcpStatusNeedsReconfigure",
+	"settingsMcpStatusNotConfigured",
+	"settingsMcpStatusNotInstalled",
+	"settingsMcpStepHelp",
+	"settingsMcpStepTitle",
+	"settingsMcpTitle",
+	"settingsModelCapabilityImage",
+	"settingsModelCapabilityReasoning",
+	"settingsModelCustomHint",
+	"settingsModelFetchFailed",
+	"settingsModelFetchLatest",
+	"settingsModelFetchNoKey",
+	"settingsModelFetchSuccess",
+	"settingsModelFetching",
+	"settingsModelPickerPlaceholder",
+	"settingsModelSearchPlaceholder",
+	"settingsModelStale",
+	"settingsNavLabel",
+	"settingsOrgBasicHeading",
+	"settingsOrgProfileHeading",
+	"settingsOrgProfileSubheading",
+	"settingsOrgReportingHeading",
+	"settingsPickerNoMatch",
+	"settingsProviderBaseUrlLabelAdvanced",
+	"settingsProviderGroupAll",
+	"settingsProviderGroupRecommended",
+	"settingsProviderGuidanceAccount",
+	"settingsProviderModelLabel",
+	"settingsProviderPickerLabel",
+	"settingsProviderPickerPlaceholder",
+	"settingsProviderSearchPlaceholder",
+	"settingsReportLogoBody",
+	"settingsReportLogoClear",
+	"settingsReportLogoCleared",
+	"settingsReportLogoHeading",
+	"settingsReportLogoInvalid",
+	"settingsReportLogoPick",
+	"settingsReportLogoReplace",
+	"settingsReportLogoSaved",
+	"settingsReportLogoTooLarge",
+	"settingsReportingProfileSave",
+	"settingsReportingProfileSaved",
+	"settingsResponsibleNameLabel",
+	"settingsResponsibleRoleLabel",
+	"settingsSave",
+	"settingsSaveFailed",
+	"settingsSaveSuccess",
+	"settingsSaving",
+	"settingsSectionAbout",
+	"settingsSectionAboutDescription",
+	"settingsSectionAi",
+	"settingsSectionAiDescription",
+	"settingsSectionAmap",
+	"settingsSectionAmapDescription",
+	"settingsSectionData",
+	"settingsSectionDataDescription",
+	"settingsSectionEfLibrary",
+	"settingsSectionEfLibraryDescription",
+	"settingsSectionGeneral",
+	"settingsSectionGeneralDescription",
+	"settingsSectionMcp",
+	"settingsSectionMcpDescription",
+	"settingsSectionOrg",
+	"settingsSectionOrgDescription",
+	"settingsSectionUpdates",
+	"settingsSectionUpdatesDescription",
+	"settingsSectionWorkspaces",
+	"settingsSectionWorkspacesDescription",
+	"settingsSkillActionInstall",
+	"settingsSkillActionRemove",
+	"settingsSkillActionUpdate",
+	"settingsSkillInstallFailed",
+	"settingsSkillLoading",
+	"settingsSkillNoHosts",
+	"settingsSkillRemoved",
+	"settingsSkillStatusNotInstalled",
+	"settingsSkillStatusOutdated",
+	"settingsSkillStepHelp",
+	"settingsSkillStepTitle",
+	"settingsSkillUpdated",
+	"settingsTestConnection",
+	"settingsTestFailed",
+	"settingsTestSuccess",
+	"settingsTesting",
+	"settingsThemeDark",
+	"settingsThemeLight",
+	"settingsThemeSystem",
+	"settingsTitle",
 	"settingsWindowNote",
+	"settingsWorkspace",
+	"sidebarMcpLabelAvailable",
+	"sidebarMcpLabelNotBuilt",
+	"sidebarMcpLabelPending",
+	"sortLabel",
+	"sourceEditActiveLabel",
+	"sourceEditCancel",
+	"sourceEditFailed",
+	"sourceEditSave",
+	"sourceEditSuccess",
+	"sourceEditTitle",
+	"sourcesActiveNo",
+	"sourcesActiveYes",
+	"sourcesAddButton",
+	"sourcesCancelButton",
+	"sourcesCatalogAdd",
+	"sourcesCatalogAddFailed",
+	"sourcesCatalogAddSuccess",
+	"sourcesCatalogAdded",
+	"sourcesCatalogBatchAddFailed",
+	"sourcesCatalogBatchAddPending",
+	"sourcesCatalogButton",
+	"sourcesCatalogCategoryAll",
+	"sourcesCatalogDeselectAll",
+	"sourcesCatalogEmpty",
+	"sourcesCatalogNoResults",
+	"sourcesCatalogNoSite",
+	"sourcesCatalogScope1",
+	"sourcesCatalogScope1Short",
+	"sourcesCatalogScope2",
+	"sourcesCatalogScope2Short",
+	"sourcesCatalogScope3",
+	"sourcesCatalogScope3Short",
+	"sourcesCatalogScopeAll",
+	"sourcesCatalogSearchPlaceholder",
+	"sourcesCatalogTitle",
+	"sourcesCreateFailed",
+	"sourcesEmptyBody",
+	"sourcesEmptyTitle",
+	"sourcesFilterClear",
+	"sourcesFilterEmpty",
+	"sourcesFormCategory",
+	"sourcesFormCategoryEmpty",
+	"sourcesFormCategoryGroupCurrent",
+	"sourcesFormCategoryGroupDownstream",
+	"sourcesFormCategoryGroupUpstream",
+	"sourcesFormCategoryHint",
+	"sourcesFormCategoryNone",
+	"sourcesFormCategoryNonstandard",
+	"sourcesFormCategoryPlaceholder",
+	"sourcesFormCategorySearch",
+	"sourcesFormName",
+	"sourcesFormScope",
+	"sourcesFormScope1",
+	"sourcesFormScope2",
+	"sourcesFormScope3",
+	"sourcesFormSite",
+	"sourcesFormSubmit",
+	"sourcesFormSubmitting",
+	"sourcesInactiveChip",
+	"sourcesLoadFailed",
+	"sourcesSearchPlaceholder",
+	"sourcesStatsUnused",
+	"sourcesTableActive",
+	"sourcesTableCategory",
+	"sourcesTableName",
+	"sourcesTableScope",
+	"supplierEmailOptionalLabel",
+	"topbarBack",
+	"topbarDetail",
+	"topbarForward",
+	"undo",
+	"undoFailed",
+	"unitKgCo2e",
+	"updaterCheckButton",
+	"updaterDownloadButton",
+	"updaterDownloadUrl",
+	"updaterInstallButton",
+	"updaterSectionHeading",
+	"updaterSectionSubheading",
+	"updaterStatusChecking",
+	"updaterStatusIdle",
+	"updaterStatusNotAvailable",
+	"workspaceActive",
+	"workspaceActiveBadge",
+	"workspaceBody",
+	"workspaceCreateButton",
+	"workspaceCreatePlaceholder",
+	"workspaceCreatedToast",
+	"workspaceDeleteButton",
+	"workspaceDeleteFailed",
+	"workspaceDeletedToast",
+	"workspaceHeading",
+	"workspaceInvalidName",
+	"workspaceRenameButton",
+	"workspaceRenameCancel",
+	"workspaceRenameSave",
+	"workspaceSwitchButton",
+	"workspaceSwitchFailed",
 }
 
 // textsEn are the messages without arguments in en.
 var textsEn = i18n.NewTexts(""+
-	"CarbonInk"+
-	"Overview"+
-	"Dashboard"+
-	"Activities"+
-	"Inventory"+
-	"Sources"+
-	"Inputs"+
-	"Documents"+
-	"Reports"+
-	"System"+
-	"Settings"+
-	"Activities"+
-	"Activity data from the active workspace."+
+	"Add Activity"+
+	"Failed to create activity"+
+	"Activity recorded"+
 	"No activity data yet."+
-	"Active workspace"+
-	"Imported from CarbonInk 1.x"+
+	"Record the consumption behind each source — a meter reading, a fuel receipt, a trip. Drop in a PDF and the fields get filled in for you."+
+	"Activity data hangs off an emission source, and this organization has none yet. Set one up and you can start recording consumption here."+
+	"Set up emission sources"+
+	"Add an emission source first"+
+	"No activity data yet"+
+	"Clear filters"+
+	"No matching activities"+
+	"Amount"+
+	"Emission factor"+
+	"Loading emission factors…"+
+	"No matching emission factors. Try a different source category."+
+	"Pick an emission source above to load EF candidates."+
+	"Selected"+
+	"Fuel (optional)"+
+	"Only needed for cross-family unit conversion (e.g. kg gasoline ↔ L)."+
+	"— None —"+
+	"No reporting periods yet. Finish onboarding first."+
+	"No sources yet. Add one in the Sources page first."+
+	"Notes (optional)"+
+	"End date"+
+	"Start date"+
+	"Reporting period"+
+	"Select a reporting period…"+
+	"Emission source"+
+	"Select a source…"+
+	"Record activity"+
+	"Recording…"+
+	"Unit"+
+	"e.g. kWh, L, kg, t, 度, 公里"+
+	"Ledger import"+
+	"From supplier disclosure"+
+	"Failed to load activities"+
+	"Search source, unit, or EF"+
+	"CO₂e low → high"+
+	"CO₂e high → low"+
+	"Oldest first"+
+	"Most recent"+
+	"Source name"+
+	"Entered manually"+
+	"Activity data from the active workspace."+
+	"Amount"+
+	"CO2e"+
+	"Emission factor"+
 	"Date"+
+	"Source"+
+	"Activities"+
+	"Cancel"+
+	"Upload + recognition canceled"+
+	"Fill in the form below manually."+
+	"AI recognition failed"+
+	"usually 30–60 s"+
+	"The AI provider is slow or unreachable. Check Settings → AI provider and retry, or fill the form manually."+
+	"AI recognition timed out"+
+	"Recognizing"+
+	"Upload a receipt / bill to auto-fill"+
+	"Form filled from the uploaded document. Please verify before saving."+
+	"Recognized"+
+	"Re-upload"+
+	"Drop a PDF or click to select · AI extracts fields into the form"+
+	"Uploading"+
+	"Back"+
+	"Batch import"+
+	"Cancel"+
+	"Done"+
+	"Import a ledger spreadsheet: map columns, resolve sources, confirm one emission factor per group."+
+	"Nothing importable — check mapping, sources and groups."+
+	"Choose a reporting period first."+
+	"The staged import expired — pick the file again."+
+	"Every group must be confirmed or skipped first."+
+	"Rows that will be skipped"+
+	"Import failed"+
+	"Amount"+
+	"Description"+
+	"Notes"+
+	"End date"+
+	"Start date"+
+	"Source name"+
+	"Unit"+
+	"Confirm EF"+
+	"This EF's unit family differs from the group's — bind a fuel below or pick another EF."+
+	"Choose EF"+
+	"Skip group"+
+	"Confirmed"+
+	"Pending"+
+	"Skipped"+
+	"Rows with the same description, unit and source form one group — one decision covers them all."+
+	"Confirm emission factors by group"+
+	"Import"+
+	"amount must be a positive number"+
+	"amount missing"+
+	"amount deviates >10x from the group median"+
+	"row failed to save — see detail"+
+	"unrecognized date"+
+	"start date after end date"+
+	"description missing"+
+	"a matching row already exists in this period"+
+	"duplicate within the file, first at row"+
+	"dates outside the selected period"+
+	"source name missing"+
+	"unit incompatible with the chosen EF"+
+	"unit missing"+
+	"Auto-detected from your headers — adjust if needed."+
+	"Column mapping"+
+	"Next"+
+	"One import lands in one period; rows without dates inherit its bounds."+
+	"Reporting period"+
+	"Select period"+
+	"Choose file"+
+	"Could not read the file"+
+	"xlsx / csv ledger, one activity row per line"+
+	"Re-pick"+
+	"Required"+
+	"Import complete"+
+	"Review warnings"+
+	"Create source"+
+	"Category (optional)"+
+	"Failed to create source"+
+	"Scope"+
+	"Site"+
+	"Source created"+
+	"Matched existing"+
+	"Choose emission source"+
+	"Unresolved"+
+	"Each distinct source name must point at an emission source; unresolved names' rows are skipped."+
+	"Map ledger sources"+
+	"Batch import activity data"+
+	"— Not mapped —"+
+	"Warnings (won't block)"+
+	"Export to Excel"+
+	"Exporting…"+
+	"Finalized"+
+	"Finalized. Unfinalize to edit."+
+	"Generate answer"+
+	"Generate all unanswered"+
+	"All questions already answered."+
+	"Generating…"+
+	"Last generation failed"+
+	"Generating…"+
+	"No inventory data for this year — manual answer required."+
+	"Not yet generated"+
+	"Save"+
+	"Save & finalize"+
+	"Source"+
+	"Reused from previous questionnaire"+
+	"Unfinalize"+
+	"Unit"+
+	"Value"+
+	"CarbonInk"+
+	"Local GHG accounting"+
+	"CarbonInk"+
+	"Events are recorded as you confirm extractions, finalize answers, or rebind emission factors."+
+	"No audit events yet"+
+	"Activity data created"+
+	"Activity data deleted"+
+	"Rebind emission factor"+
+	"Evidence attached"+
+	"Evidence removed"+
+	"Export CSV"+
+	"Audit export failed"+
+	"Event kind"+
+	"Reset filters"+
+	"Since"+
+	"Until"+
+	"Audit log"+
+	"Hide raw payload"+
+	"Load older"+
+	"Malformed payload"+
+	"Audit log"+
+	"Activity"+
+	"Show raw payload"+
+	"Oldest first"+
+	"Most recent"+
+	"Track changes to your inventory."+
+	"Cancel"+
+	"Open Documents"+
+	"Open Settings"+
+	"Amount"+
+	"kg CO2e"+
+	"Date"+
+	"Scope"+
 	"Site"+
 	"Source"+
-	"Amount"+
 	"Unit"+
-	"kg CO2e"+
+	"No emission data yet."+
+	"Inventory Dashboard"+
+	"Monthly emissions"+
+	"Once activities are recorded, monthly totals appear here."+
+	"Recent activities"+
+	"No activities yet"+
+	"Scope 1"+
+	"Scope 2"+
+	"Scope 3"+
+	"Attach the consumption you measured — kWh, litres, tonne-kilometres — to a source. CO2e is computed from the bound emission factor, so the numbers stay traceable."+
+	"Add activity data"+
+	"Record activity data"+
+	"Once activity data is in, export the ISO 14064-1 inventory report, the Excel appendix and an evidence-backed deliverable bundle."+
+	"Go to reports"+
+	"Generate the report"+
+	"A source is a thing you account for — a site meter, a boiler, a vehicle fleet. The catalog ships presets that already carry the right scope, category and emission factor."+
+	"Browse the catalog"+
+	"Set up emission sources"+
+	"Done"+
+	"Three steps from an empty workspace to a defensible inventory."+
+	"Start here"+
+	"Total CO2e"+
+	"You haven't set up your organization yet. The onboarding wizard will guide you next."+
+	"Welcome to CarbonInk"+
+	"View all"+
+	"Carbonink needs an AI provider to read documents. Set one up in Settings — you'll need an API key from your provider (OpenAI / Anthropic / Azure / DeepSeek, or any OpenAI-compatible endpoint)."+
+	"Open Settings"+
+	"AI provider not configured"+
+	"Documents"+
+	"A batch recognition is already running"+
+	"Cancel"+
+	"Failed documents"+
+	"could not auto-classify — open it and pick a stage"+
+	"recognition error"+
+	"No documents yet. Drop a PDF above to get started."+
+	"Extracting…"+
+	"Recognizing image (longer wait)…"+
+	"Extraction ready for review"+
+	"Extraction failed"+
+	"Run again"+
+	"Run extraction"+
+	"Extracting..."+
+	"Extraction started"+
+	"Clear filters"+
+	"No matching documents"+
+	"All statuses"+
+	"Failed to load documents"+
+	"Next"+
+	"Open"+
+	"Document upload + extraction lands in Phase 1b Task 14."+
+	"Previous"+
+	"Document preview"+
+	"Open in document detail"+
+	"This extraction has been added to your activity data. To edit or delete it, go to the Activities page."+
+	"Already confirmed"+
+	"Back to documents"+
+	"Could not identify document type. Please pick the stage manually."+
+	"Analyzing document type…"+
+	"Confidence"+
+	"High"+
+	"Low"+
+	"Medium"+
+	"Confirm → Add as activity"+
+	"Failed to confirm extraction"+
+	"Extraction confirmed"+
+	"Discard"+
+	"Discard this extraction? This can't be undone."+
+	"Failed to discard extraction"+
+	"Extraction discarded"+
+	"Extracting fields…"+
+	"Account"+
+	"Energy (kWh)"+
+	"Total (CNY)"+
+	"Arrival"+
+	"Category"+
+	"Departure"+
+	"Destination"+
+	"Distance (km)"+
+	"Flight / train no."+
+	"Fuel category"+
+	"Fuel type (as printed)"+
+	"Invoice no."+
+	"Item description"+
+	"License plate"+
+	"Transport mode"+
+	"Fueling date"+
+	"Origin"+
+	"Passenger"+
+	"Period end"+
+	"Period start"+
+	"Quantity (kg)"+
+	"Supplier"+
+	"Ticket no."+
+	"Tracking no."+
+	"Class"+
+	"Unit price (CNY/L)"+
+	"Vehicle class"+
+	"Plate"+
+	"Volume (L)"+
+	"Volume (m³)"+
+	"Weight (kg)"+
+	"Fuel category couldn't be classified — please override manually before Confirm."+
+	"Failed to load document"+
+	"No extraction yet for this document."+
+	"Could not parse the extraction output."+
+	"Loading PDF preview…"+
+	"PDF preview unavailable."+
+	"Previous extraction was discarded. Re-running will call the LLM again — consider switching model or providing a clearer PDF first."+
+	"Provider"+
+	"Item category couldn't be classified — please override manually before Confirm."+
+	"This will discard the current extraction and re-run the LLM with the selected stage."+
+	"Confirm re-extraction"+
+	"Re-extraction failed"+
+	"Document type"+
+	"Re-extraction started"+
+	"SHA"+
+	"Stage"+
+	"Switch stage and re-extract"+
+	"Go to Activities →"+
+	"View in activities list →"+
+	"Search by filename"+
+	"Filename A→Z"+
+	"Oldest first"+
+	"Most recent"+
+	"Vision input not yet supported for this stage"+
+	"No extractions"+
+	"Confirmed"+
+	"Discarded"+
+	"Needs review"+
+	"Not classified"+
+	"File"+
+	"Hash"+
+	"Status"+
+	"Uploaded"+
+	"Upload"+
+	"Hide upload"+
+	"Done"+
+	"Upload failed"+
+	"Drop one or more PDFs here, or click to browse"+
+	"Only PDF files are supported."+
+	"Document type"+
+	"Document uploaded"+
+	"Uploading…"+
+	"Selected model can't read images"+
+	"Cancel"+
+	"Choose a spreadsheet, map its columns, review validation, then import."+
+	"Library name is empty or too long (max 50 characters)"+
+	"Nothing to import — no valid rows under the current mapping"+
+	"The staged file expired — please choose the file again"+
+	"Rows with errors (skipped on import)"+
+	"Import failed"+
+	"Biogenic CO2 factor"+
+	"Category"+
+	"CH4 (kg per unit)"+
+	"Citation URL"+
+	"CO2e (kg per unit)"+
+	"Description (English)"+
+	"Description (Chinese)"+
+	"Factor code"+
+	"Geography"+
+	"GWP basis (AR5/AR6)"+
+	"HFCs (kg per unit)"+
+	"Input unit"+
+	"N2O (kg per unit)"+
+	"Name (English)"+
+	"Name (Chinese)"+
+	"NF3 (kg per unit)"+
+	"Notes"+
+	"PFCs (kg per unit)"+
 	"Scope"+
+	"SF6 (kg per unit)"+
+	"Year"+
+	"The file is empty"+
+	"The file could not be read"+
+	"File exceeds the 20MB limit"+
+	"More than 50,000 data rows"+
+	"Unsupported file type — use .xlsx or .csv"+
+	"Not a valid .xlsx workbook"+
+	"Import"+
+	"no category — this factor won't participate in AI matching"+
+	"CO2e value is missing"+
+	"duplicate factor (same code, year and geography as an earlier row)"+
+	"GWP basis must be AR5 or AR6"+
+	"name is missing (fill the Chinese or English name)"+
+	"scope must be 1, 2 or 3"+
+	"scope is missing"+
+	"unit is missing"+
+	"unit not in the built-in unit list — unit conversion won't apply"+
+	"not a valid number"+
+	"year must be an integer between 1990 and 2100"+
+	"year is missing"+
+	"Columns were auto-detected from the header row; adjust anything that's wrong. Fields marked * are required."+
+	"Column mapping"+
+	"Library name"+
+	"e.g. ecoinvent 3.10 or Internal ledger"+
+	"Choose file…"+
+	"Could not read the file"+
+	".xlsx or .csv, up to 20MB / 50,000 rows. The first non-empty row must be the header."+
+	"Choose another"+
+	"Replace library"+
+	"Required"+
+	"Preview of valid rows"+
+	"Import EF library"+
+	"Not mapped"+
+	"Version"+
+	"Defaults to today's date"+
+	"Warnings (imported anyway)"+
+	"This library has no factors."+
+	"No factors match this search."+
+	"Load more"+
+	"Loading…"+
+	"Browse factors"+
+	"Search name or factor code"+
+	"Delete library"+
+	"Could not delete library"+
+	"No imported libraries yet. Import one to see it listed here."+
+	"Bring your own factors — purchased datasets, industry libraries, or internal ledgers — from an .xlsx or .csv file. Imported factors appear alongside the built-in catalog in every picker and in AI matching; each import records its source file, version and row count. Factors already pinned to activity data keep their frozen snapshot even if the library is later replaced or deleted."+
+	"Import an emission-factor library"+
+	"Import library"+
+	"Imported libraries"+
+	"Download template"+
+	"Could not save template"+
+	"Template saved"+
+	"All candidates"+
+	"Analyzing..."+
+	"No emission factors match this source's scope/category."+
+	"Reason:"+
+	"Recommended for this document"+
+	"Loading..."+
+	"No recommendations."+
+	"Browse"+
+	"Recommended"+
+	"Imported library"+
+	"Add evidence"+
+	"Failed to attach evidence"+
+	"Adding…"+
+	"No evidence attached yet"+
+	"Evidence image preview"+
+	"No preview for this file type"+
+	"Remove evidence"+
+	"Failed to remove evidence"+
+	"Anthracite coal"+
+	"Diesel"+
+	"Gasoline"+
+	"LPG"+
+	"Natural gas"+
+	"Save keeps a draft you can keep editing. Save & finalize locks the answer, makes the fields read-only and records it in the audit trail — the button then becomes Unfinalize if you need to reopen it."+
+	"Save vs. finalize"+
+	"The bottom bar acts on the whole questionnaire: generate every unanswered question, export to Excel or PDF, and finalize all answers at once."+
+	"Whole-questionnaire actions"+
+	"Every question in the workbook gets a card. Generate an answer and the AI answers from this reporting year's activity data, showing the source it used under the field."+
+	"One card per question"+
+	"Back"+
+	"Got it"+
+	"Confirm turns the extraction into an activity-data row, pins an emission factor to it and computes the emissions. Discard drops this extraction; the file itself stays."+
+	"What confirming does"+
+	"CarbonInk first classifies the file — utility bill, fuel receipt, freight note, travel, questionnaire — then extracts with that stage's field template. The stage decides which fields you see below."+
+	"Extraction stage"+
+	"If the classification missed — a fuel receipt read as a utility bill — switch to the right stage here and re-extract. The previous extraction is discarded."+
+	"Wrong stage?"+
+	"Next"+
+	"Every outbound questionnaire is listed here. Filter by status, sort by due date, and select a row to open its answers."+
+	"Track by status and due date"+
+	"Import the .xlsx a customer sent you here. CarbonInk parses the workbook into one card per question — you review and finalize the answers on those cards, then export back into the same workbook."+
+	"Start from a customer questionnaire"+
+	"Confirming recomputes this activity in place and writes an audit event that keeps the old factor and the old emissions. Reports already exported to disk are untouched — the new figure appears the next time you generate one."+
+	"After rebinding"+
+	"This activity pinned one emission-factor version when it was computed. Later library updates never silently change it — that is what keeps a finished report reproducible."+
+	"The current factor is a pinned snapshot"+
+	"Rebind when the library publishes a newer year, when the geography was wrong, or when the original match was not the right entry. Pick a factor and preview the recomputation before you commit."+
+	"When to rebind"+
+	"Bundles the report, its detail tables and the evidence files into one ZIP to hand to the client, with a manifest listing every file."+
+	"Deliverable bundle"+
+	"One click writes both: the PDF for delivery and the Excel appendix with the detail tables an auditor can check against."+
+	"Export PDF and Excel"+
+	"Totals are grouped the ISO 14064-1 way: Scope 1 direct emissions, Scope 2 purchased electricity and heat, Scope 3 other value-chain emissions. The grouping comes from each activity's emission source, not from anything chosen at export time."+
+	"How Scope 1 / 2 / 3 are grouped"+
+	"Skip"+
+	"Imported from CarbonInk 1.x"+
+	"Not filled in"+
+	"Back"+
+	"Back to detail"+
+	"← Back to disclosures"+
+	"Clear filters"+
+	"Create draft"+
+	"Create failed"+
+	"After creation you land on the detail page; the next step is exporting the blank xlsx and emailing it to the supplier."+
+	"Creating…"+
+	"Delete"+
+	"Delete"+
+	" This disclosure was ingested — its generated activity rows will also be removed from the Scope 3 inventory."+
+	"This cannot be undone."+
+	"Delete supplier disclosure?"+
+	"Disclosure deleted."+
+	"Deleting…"+
+	"Draft (awaiting export)"+
+	"Ingested"+
+	"Received (awaiting review)"+
+	"Sent to supplier"+
+	"Export blank xlsx"+
+	"Exporting…"+
+	"All statuses"+
+	"Overdue"+
+	"→ Go to questionnaire detail"+
+	"Metadata"+
+	"Tier 1 — per-unit product carbon footprint"+
+	"Tier 2 — allocated emissions"+
+	"Next: click \"Export blank xlsx\" (bottom right) and email the file to the supplier. When they send the filled file back, return here and import it."+
+	"Ingested. The supplier's reported emissions are now in your Scope 3 inventory — see the Activities page."+
+	"The supplier's reply is parsed and awaiting review. Click \"Review and ingest\" to open the review page and write confirmed rows into the activity ledger. If the supplier sends a corrected file, \"Re-import filled xlsx\" replaces the previous parse."+
+	"Sent to the supplier. Once their reply arrives, click \"Import filled xlsx\" (bottom right) to load the email attachment."+
+	"Import failed"+
+	"Import filled xlsx"+
+	"Importing…"+
+	"Confirm and ingest"+
+	"Will ingest: "+
+	"Fill in \"Purchased quantity (kg)\" above first"+
+	"Supplier data is insufficient (needs a Tier 1 per-unit PCF, or all three Tier 2 answers)"+
+	"Accept at least one answer"+
+	"Failed to load preview"+
+	"If the returned file is lost, go back to the detail page, click \"Re-export\", and ask the supplier to fill it in again."+
+	"Loading preview…"+
+	"No data."+
+	"The accepted answers don't add up to a Tier 1 or Tier 2 path. Check your selections."+
+	"No activity rows created"+
+	"Not enough data"+
+	"Path: "+
+	"Supplier: "+
+	"The supplier filled both bases; Tier 1 is preselected per the GHG Protocol preference — switch if needed."+
+	"Ingest basis"+
+	"Ingesting…"+
+	"No supplier disclosures yet. Click \"+ New disclosure\" (top right) to start collecting Scope 3 Cat 1 data from upstream suppliers."+
+	"No disclosures match the current filters."+
+	"Supplier disclosures"+
+	"Select at least one question."+
+	"New disclosure"+
+	"Send a Scope 3 Cat 1 disclosure questionnaire to an upstream supplier. When they return the filled xlsx, it converts into your Scope 3 inventory automatically."+
+	"Select a reporting period first"+
+	"Select a supplier first"+
+	"New supplier disclosure"+
+	"No activity row"+
+	"Disclosure not found."+
+	" · current"+
+	"Reporting period"+
+	"Select a reporting period"+
+	"Supplier legal name"+
+	"Supplier reporting period"+
+	"GHG inventory status"+
+	" · required metadata"+
+	"Product carbon footprint (kgCO2e/kg)"+
+	"Total annual Scope 1+2 emissions (kgCO2e)"+
+	"Allocation method"+
+	"Emissions attributed to our purchases (kgCO2e)"+
+	"Included questions"+
+	"Re-export"+
+	"Re-import filled xlsx"+
+	"Send reminder"+
+	"This supplier has no email on file. After saving, your mail client opens with a reminder draft."+
+	"Add supplier email"+
+	"Edit email"+
+	"Supplier email"+
+	"Save & compose"+
+	"Please fill in the xlsx attached to our earlier email and reply with the completed file. If anything is unclear, just reply to this email."+
+	"Review and ingest"+
+	"Search supplier name…"+
+	"Select a supplier disclosure on the left to view details."+
+	"By due date"+
+	"Oldest first"+
+	"By question count"+
+	"Newest first"+
+	"By supplier name"+
+	"Draft"+
+	"Ingested"+
+	"Received"+
+	"Sent"+
+	"Create and select"+
+	"Supplier"+
+	"Supplier legal name"+
+	"New"+
+	"Select a supplier"+
+	"No questions configured. Go back to \"New\" and reselect the template."+
+	"Metadata"+
+	"*required"+
+	"Supplier filled: "+
+	"Cat 1 Supplier Disclosure (v1.0) — 7 questions"+
+	"Template"+
+	"v2.0 ships only the Cat 1 template. Other categories (Cat 4 transport, Cat 5 waste, …) arrive in later versions."+
+	"Needs supplier PCF"+
+	"Purchased quantity this period (kg)"+
+	"On the Tier 1 path, the activity row's emissions = supplier per-unit PCF × the total weight you purchased from them this period."+
+	"e.g. 10000"+
+	"Per-unit product carbon footprint"+
+	"Needs attributed emissions"+
+	"Allocated emissions"+
+	"View linked activities"+
+	"Will create an activity row"+
+	"This record is an outbound customer questionnaire — it does not live here."+
+	"AI suggested"+
+	"entered manually"+
+	"mapped from inventory"+
+	"Upstream inventory data"+
+	"Close lineage panel"+
+	"Data lineage"+
+	"No audit events for this record yet"+
+	"Failed to load lineage"+
+	"Not yet cited by any answer or frozen report"+
+	"Activity data"+
+	"Answer"+
+	"Answers citing this row"+
+	"Downstream"+
+	"Emission factor (pinned snapshot)"+
+	"Question"+
+	"Frozen snapshots"+
+	"Lineage"+
+	"Show in activities"+
+	"Lineage chain"+
+	"Evidence"+
+	"Audit history"+
+	"Source document"+
+	"Supplier disclosure"+
+	"Manual entry"+
+	"Entered by hand — attach evidence below to back it up"+
+	"Loading…"+
+	"Activities"+
+	"Dashboard"+
+	"Disclosure filings"+
+	"Documents"+
+	"All documents"+
+	"Inputs"+
+	"Inventory"+
+	"Overview"+
+	"All questionnaires"+
+	"Reports"+
+	"Inputs"+
+	"Overview"+
+	"Inventory"+
+	"More"+
+	"System"+
+	"Settings"+
+	"Sources"+
+	"Supplier disclosures"+
+	"System"+
+	"Back"+
+	"Could not complete onboarding."+
+	"Creating organization…"+
+	"Finish"+
+	"Next"+
+	"CarbonInk needs an AI provider to parse documents and answer questionnaires. You can configure this later in Settings; skipping is fine for now."+
+	"I have an API key (configure in Settings after onboarding)"+
+	"Skip for now (configure later in Settings)"+
+	"Document extraction and questionnaire auto-answer rely on an LLM provider. You can skip and configure later."+
+	"AI provider"+
+	"Per GHG Protocol Corporate Standard. Choose how you account for organizational boundaries."+
+	"Equity Share — emissions allocated by ownership share of joint ventures."+
+	"Operational Control — emissions from facilities you operate, regardless of ownership."+
+	"Per GHG Protocol — how do you account for emissions from facilities you don't fully own?"+
+	"Organizational boundary"+
+	"Country"+
+	"Industry"+
+	"Select industry…"+
+	"English name"+
+	"At least one of Chinese / English name is required."+
+	"Chinese name"+
+	"Tell us about your organization. This sets the boundary for the inventory report."+
+	"Company info"+
+	"Address"+
+	"A site is a physical location (factory, office, warehouse). You'll add more later."+
+	"Country code"+
+	"Site name (English)"+
+	"Site name (中文)"+
+	"A site is a physical location: factory, office, warehouse. You'll add more after onboarding."+
+	"Add your first site"+
+	"Default is the current year. Select the fiscal year you'll be calculating emissions for."+
+	"Choose the fiscal year you're calculating emissions for. You can add additional years later."+
+	"Reporting year"+
+	"Onboarding"+
+	"Annual"+
+	"Monthly"+
+	"Quarterly"+
 	"This screen lands in Phase 2."+
-	"Appearance"+
-	"System"+
-	"Light"+
-	"Dark"+
-	"Language"+
-	"System"+
+	"Higher latency from CN"+
+	"Global endpoint; expect higher latency from China."+
+	"Typically faster from CN"+
+	"Low latency from China. Strong Chinese. Pay-per-token, low cost."+
+	"Higher latency from CN"+
+	"Global endpoint; expect higher latency from China."+
+	"Export PDF"+
+	"Cancel"+
+	"Export"+
+	"Export questionnaire as PDF"+
+	"Pick the export language."+
 	"English"+
-	"中文"+
+	"Language"+
+	"Chinese (zh-CN)"+
+	"Generating PDF..."+
+	"Due date"+
+	"Generated"+
+	"DRAFT"+
+	"Finalized"+
+	"Source"+
+	"Table of contents"+
+	"(Unanswered)"+
+	"Phase 2.2b will generate answers here."+
+	"← Disclosure filings"+
+	"Record electricity, fuel, freight, etc. for that year first so the AI has a basis to draft answers from."+
+	"Add activity data →"+
+	"Type"+
+	"Disclosure filing not found"+
+	"Cell"+
+	"Question"+
+	"Unit"+
+	"No disclosure filings yet"+
+	"Clear filters"+
+	"No matching disclosure filings"+
+	"All statuses"+
+	"Finalize answers"+
+	"New disclosure filing"+
+	"Search customer name"+
+	"Customer A→Z"+
+	"Due date"+
+	"Oldest first"+
+	"Question count"+
+	"Most recent"+
+	"Answering"+
+	"Exported"+
+	"Finalized"+
+	"Draft"+
+	"Parsing"+
+	"Customer"+
+	"Due date"+
+	"Questions"+
+	"Status"+
+	"Reporting year"+
+	"Customer name"+
+	"Due date (optional)"+
+	"Parsing failed"+
+	"Click or drop a .xlsx file here"+
+	"Customer name and .xlsx file are required"+
+	"Parsing questionnaire…"+
+	"New disclosure filing"+
+	"Upload .xlsx and parse"+
+	"Reporting year"+
+	"Uses your configured AI provider to look for classification problems no rule can express."+
+	"No AI provider configured — the deterministic checks above still ran."+
+	"Nothing to flag"+
+	"Emission source has no data"+
+	"Activity dated outside its reporting period"+
+	"Question has no answer"+
+	"An expected emission source may be missing"+
+	"Year-over-year comparison has nothing to anchor to."+
+	"No base year set"+
+	"Delivered figure no longer matches the ledger"+
+	"Supplier disclosure is overdue"+
+	"Unit does not match the emission factor"+
+	"Amount far from comparable rows"+
+	"Possible duplicate row"+
+	"Mixed GWP bases in one period"+
+	"Source classification looks inconsistent with its name"+
+	"Rows with no attached evidence"+
+	"Row has no audit trail"+
+	"Factor vintage is far from the reporting year"+
+	"Factor library no longer exists"+
+	"Deterministic checks over this reporting period. No AI provider required."+
+	"Dismiss"+
+	"Review this period"+
+	"Readiness review"+
+	"Create a reporting period before running a readiness review."+
+	"Open"+
+	"Re-run"+
+	"Deeper review (AI)"+
+	"Reviewing…"+
+	"Run review"+
+	"Reviewing…"+
+	"Blocker"+
+	"For information"+
+	"Warning"+
+	"Readiness review"+
+	"Rebind"+
+	"Cancel"+
+	"Confirm rebind"+
+	"Current emissions"+
+	"Current"+
+	"Rebind emission factor"+
+	"New emissions"+
+	"Pick a new emission factor"+
+	"Preview"+
+	"Cancel"+
+	"Confirm and export (PDF + Excel)"+
+	"Export deliverable bundle (ZIP)"+
+	"Export Excel appendix"+
+	"Generate report"+
+	"ISO 14064-1 inventory report"+
+	"Report type"+
+	"TCFD climate disclosure (four pillars)"+
+	"English"+
+	"Language"+
+	"Chinese (zh-CN)"+
+	"Inventory reports"+
+	"Generate ISO 14064-1-style reports."+
+	"Reports"+
+	"New report"+
+	"No reporting periods yet."+
+	"No LLM provider configured. Open Settings."+
+	"Assembling inventory data..."+
+	"Writing organizational boundary..."+
+	"Writing significant changes..."+
+	"Writing emissions summary..."+
+	"Finalizing..."+
+	"Writing methodology..."+
+	"Writing notable observations..."+
+	"Writing reporting boundary..."+
+	"Regenerate"+
+	"Regenerating will discard unsaved edits. Continue?"+
+	"Set organization profile in Settings first."+
+	"Required"+
+	"Look up distance"+
+	"Looking up…"+
+	"App"+
+	"Chromium"+
+	"Electron"+
+	"Node"+
+	"Open data folder"+
+	"Could not open the data folder."+
+	"Reveals the app's data folder (sqlite database, attachments, settings)."+
+	"Open log folder"+
+	"Could not open the log folder."+
+	"Daily log files for support. Last 14 days are kept."+
+	"Platform"+
+	"support@carbonink.xyz"+
+	"Support"+
+	"Data folder"+
+	"Version"+
+	"Website"+
+	"carbonink.xyz"+
+	"Clear AI cache"+
+	"Failed to clear AI cache"+
+	"Clearing…"+
+	"Keeps repeat AI answers (EF matches, readiness) so re-runs don't re-pay. Safe to clear any time."+
+	"AI cache"+
+	"API key"+
+	"Replace"+
+	"Saved"+
+	"Appearance"+
+	"Base year"+
+	"(not selected)"+
+	"Equity share"+
+	"Financial control"+
+	"Consolidation approach"+
+	"Operational control"+
+	"Cancel"+
+	"When CarbonInk launches, it makes a daily backup to the app's auto-backup folder. The last 7 are kept."+
+	"Auto-backup"+
+	"Open auto-backup folder"+
+	"Could not open the auto-backup folder."+
+	"Could not save the auto-backup setting."+
+	"Auto-backup enabled"+
+	"Backups are a single .carbonink-backup file (a SQLite database). Attachments (PDFs) are NOT included in v1 — they can be re-uploaded after restoring."+
+	"Backup & restore"+
+	"Cached LLM responses (already-confirmed extractions) accumulate over time. Clearing them is safe — it does not affect activities, reports, or any user data."+
+	"Clear LLM cache"+
+	"No cached LLM responses."+
+	"Cache"+
+	"Database size"+
 	"Data directory"+
+	"Export backup"+
+	"Backup failed"+
+	"Backup saved"+
+	"Import backup"+
+	"Importing will REPLACE all current data with the backup. The app will restart. Continue?"+
+	"Restore failed"+
+	"Backup restored — restarting…"+
+	"Deletes everything — organization, sites, activities, documents, extractions, audit log. The app will restart and run the onboarding wizard."+
+	"Reset all data"+
+	"Reset and restart"+
+	"Type RESET to confirm"+
+	"Reset all data"+
+	"Resetting — restarting…"+
+	"Short walkthroughs that play once, the first time you open a screen."+
+	"Guided tours"+
+	"Off"+
+	"On"+
+	"Replay all tours"+
+	"Guided tours will play again the next time you open each screen."+
+	"English"+
+	"Affects the entire app — sidebar, dialogs, exports. Reports keep their author-locale."+
+	"Display language"+
+	"简体中文"+
+	"Dark"+
+	"Follow the system, force light, or force dark."+
+	"Appearance"+
+	"Light"+
+	"System"+
+	"During batch ledger import, a row is flagged as a suspected outlier when its amount is more than N× away from its group's median (both directions). Applies to this workspace only; warnings never block the import."+
+	"Batch-import anomaly detection"+
+	"Enter a number between 2 and 1000"+
+	"Outlier multiplier (2–1000)"+
+	"Outlier multiplier saved"+
+	"Language"+
+	"中文"+
+	"English"+
+	"System"+
+	"Failed to load settings"+
+	"Configure"+
+	"Reconfigure"+
+	"Remove"+
+	"—"+
+	"View setup guide"+
+	"Server binary"+
+	"Claude Code"+
+	"Claude Desktop"+
+	"Cursor"+
+	"Pi"+
+	"Failed to write config"+
+	"Config file is not valid JSON"+
+	"Enable MCP integration"+
+	"When off, the buttons below are disabled. Already-configured clients keep working until you click Remove."+
+	"Pi doesn't ship a native mcpServers config yet. Use the pi-mcporter bridge extension:"+
+	"1. Install the bridge extension in Pi:"+
+	"2. Restart Pi. The carbonink MCP server will be auto-detected."+
+	"Connect CarbonInk to Pi"+
+	"Failed to remove config"+
+	"Server script"+
+	"Configured ✓"+
+	"Config file is not valid JSON — open and fix manually"+
+	"Configured but path is stale — click Reconfigure"+
+	"Detected, not configured"+
+	"Not detected"+
+	"The Skill above tells agents WHEN to query CarbonInk. The MCP configuration below tells them HOW (which server, what tools)."+
+	"Step 2 · Configure MCP Clients"+
+	"MCP integration"+
+	"Image"+
+	"Reasoning"+
+	"Custom id: not in the bundled catalog. Test the connection before saving."+
+	"Fetch failed"+
+	"Fetch latest"+
+	"Enter an API key first (or save one), then fetch."+
+	"Model list updated."+
+	"Fetching…"+
+	"Select a model…"+
+	"Search models…"+
+	"List may be outdated."+
+	"Settings categories"+
+	"Company identity"+
+	"Organization Profile (ISO 14064-1)"+
+	"Used by the inventory report."+
+	"Reporting profile"+
+	"No matches"+
+	"Override base URL (advanced)"+
+	"All providers"+
+	"Recommended"+
+	"Get an account"+
+	"Model"+
+	"Provider"+
+	"Select a provider…"+
+	"Search providers…"+
+	"Shown on the ISO 14064-1 and TCFD report covers. Stored per workspace — set each client's own logo. PNG/JPEG, up to 512 KB."+
+	"Remove"+
+	"Report logo removed"+
+	"Report logo"+
+	"Unsupported image — use PNG or JPEG"+
+	"Choose logo"+
+	"Replace"+
+	"Report logo saved"+
+	"Image too large — 512 KB max"+
+	"Save profile"+
+	"Organization profile updated."+
+	"Responsible person — name"+
+	"Responsible person — role"+
+	"Save"+
+	"Failed to save settings"+
+	"Settings saved"+
+	"Saving…"+
+	"About"+
+	"Version, runtime info, and support links."+
+	"AI provider"+
+	"Configure the LLM provider and API key. Document extraction, questionnaire auto-answer, and report narrative all rely on this."+
+	"AMap routing"+
+	"Used by the distance lookup on travel + freight activities (optional)."+
+	"Data"+
+	"Backup, restore, reset, and cache cleanup."+
+	"EF libraries"+
+	"Import and manage your own emission-factor libraries"+
+	"General"+
+	"Language, display, and other preferences that apply across the whole app."+
+	"MCP server"+
+	"Integrate CarbonInk into Claude Desktop — query sources and activities directly from chat."+
+	"Organization"+
+	"Metadata required by the ISO 14064-1 report: boundary, responsible person, base year."+
+	"Software updates"+
+	"View current version and download new releases."+
+	"Workspaces"+
+	"One database file per client"+
+	"Install"+
+	"Remove"+
+	"Update"+
+	"Skill operation failed"+
+	"Detecting…"+
+	"no agent hosts detected (only ~/.agents/skills/)"+
+	"Skill removed."+
+	"Not installed"+
+	"Installed — update available"+
+	"Lets AI agents know when to query your CarbonInk data. One copy goes to ~/.agents/skills/; symlinks are created for each detected agent host."+
+	"Step 1 · Install Agent Skill"+
+	"Skill updated."+
+	"Test connection"+
+	"Connection failed"+
+	"Connection successful"+
+	"Testing…"+
+	"Dark"+
+	"Light"+
+	"System"+
+	"Settings"+
+	"The window frame is saved when you quit."+
 	"Workspace"+
-	"The window frame is saved when you quit.",
+	"MCP"+
+	"MCP · Not built"+
+	"MCP · Not configured"+
+	"Sort"+
+	"Active"+
+	"Cancel"+
+	"Update failed"+
+	"Save"+
+	"Source updated"+
+	"Edit emission source"+
+	"No"+
+	"Yes"+
+	"Add Source"+
+	"Cancel"+
+	"Add"+
+	"Add failed"+
+	"Added to your sources"+
+	"Added"+
+	"Batch add failed"+
+	"Adding…"+
+	"Add from catalog"+
+	"All categories"+
+	"Clear selection"+
+	"Catalog is empty."+
+	"No matching emission sources"+
+	"Create a site first."+
+	"Scope 1 — Direct emissions"+
+	"Scope 1"+
+	"Scope 2 — Energy indirect emissions"+
+	"Scope 2"+
+	"Scope 3 — Other indirect emissions"+
+	"Scope 3"+
+	"All"+
+	"Search by name, category, or source"+
+	"Emission source catalog"+
+	"Failed to create source"+
+	"Emission sources are the skeleton of the inventory — every activity row hangs off one. Start from the catalog to get scope, category and emission factor filled in for you, or define one by hand."+
+	"No emission sources yet"+
+	"Clear filters"+
+	"No matching sources"+
+	"Category (optional)"+
+	"No matching category"+
+	"Current value"+
+	"Downstream (3.9–3.15)"+
+	"Upstream (3.1–3.8)"+
+	"GHG Protocol category. Determines which emission factors are suggested."+
+	"Not set"+
+	"Non-standard"+
+	"Select a category…"+
+	"Search categories…"+
+	"Name"+
+	"Scope"+
+	"Scope 1 — direct emissions"+
+	"Scope 2 — purchased energy"+
+	"Scope 3 — value chain"+
+	"Site"+
+	"Create source"+
+	"Creating…"+
+	"Inactive"+
+	"Failed to load sources"+
+	"Search by name, category, or GHG path"+
+	"Not used yet"+
+	"Active"+
+	"Category"+
+	"Name"+
+	"Scope"+
+	"Supplier email (optional, used for reminders)"+
+	"Go back"+
+	"Detail"+
+	"Go forward"+
+	"Undo"+
+	"Could not undo the last action."+
+	"kg CO2e"+
+	"Check for Updates"+
+	"Open Download Page"+
+	"carbonink.xyz/download"+
+	"Restart & Update"+
+	"Software Updates"+
+	"Keep CarbonInk up to date for the latest features and fixes."+
+	"Checking for updates..."+
+	"No update check performed yet."+
+	"You are running the latest version."+
+	"Active workspace"+
+	"Active"+
+	"Each workspace is its own local database file — client data stays physically separate. Switching reloads the app."+
+	"New workspace"+
+	"New workspace name (e.g. client name)"+
+	"Workspace created — press Switch to open it"+
+	"Delete"+
+	"Cannot delete — switch to another workspace first"+
+	"Workspace removed — database file archived"+
+	"Client workspaces"+
+	"Name must be 1–60 characters"+
+	"Rename"+
+	"Cancel"+
+	"Save"+
+	"Switch"+
+	"Switch failed",
 	[]uint16{
-		9,
-		8,
-		9,
-		10,
-		9,
-		7,
-		6,
-		9,
-		7,
-		6,
-		8,
-		10,
-		40,
+		12,
+		25,
+		17,
 		21,
-		16,
+		138,
+		136,
+		23,
+		28,
+		20,
+		13,
+		22,
+		6,
+		15,
 		27,
+		62,
+		52,
+		8,
+		15,
+		70,
+		12,
+		50,
+		50,
+		16,
+		8,
+		10,
+		16,
+		28,
+		15,
+		18,
+		15,
+		12,
 		4,
+		31,
+		13,
+		24,
+		25,
+		26,
+		19,
+		19,
+		12,
+		11,
+		11,
+		16,
+		40,
+		6,
+		4,
+		15,
 		4,
 		6,
-		6,
-		4,
-		7,
-		5,
-		29,
 		10,
 		6,
+		29,
+		32,
+		21,
+		17,
+		108,
+		24,
+		11,
+		36,
+		68,
+		10,
+		9,
+		65,
+		9,
+		4,
+		12,
+		6,
+		4,
+		97,
+		57,
+		32,
+		50,
+		47,
+		25,
+		13,
+		6,
+		11,
+		5,
+		8,
+		10,
+		11,
+		4,
+		10,
+		88,
+		9,
+		10,
+		9,
+		7,
+		7,
+		96,
+		33,
+		6,
+		32,
+		14,
+		42,
+		33,
+		17,
+		25,
+		19,
+		44,
+		39,
+		33,
+		19,
+		36,
+		12,
+		53,
+		14,
+		4,
+		70,
+		16,
+		13,
+		11,
+		23,
+		44,
+		7,
+		8,
+		15,
+		15,
+		13,
+		19,
+		23,
 		5,
 		4,
-		8,
+		14,
+		16,
+		22,
+		10,
+		95,
+		18,
+		26,
+		18,
+		22,
+		15,
+		12,
+		9,
+		30,
+		15,
+		23,
+		31,
+		13,
+		22,
+		13,
+		59,
+		17,
+		4,
+		15,
 		6,
-		7,
+		34,
+		10,
+		4,
+		5,
+		9,
+		20,
+		9,
+		93,
+		19,
+		21,
+		21,
+		22,
+		17,
+		16,
+		10,
+		19,
+		10,
+		13,
+		5,
+		5,
+		9,
+		16,
+		10,
+		17,
+		9,
+		8,
+		16,
+		12,
+		11,
+		32,
 		6,
 		14,
+		13,
+		6,
+		7,
+		4,
+		5,
+		4,
+		6,
+		4,
+		21,
+		19,
+		17,
+		57,
+		17,
+		17,
+		7,
+		7,
+		7,
+		166,
+		17,
+		20,
+		128,
+		13,
+		19,
+		172,
+		18,
+		23,
+		4,
+		62,
+		10,
+		10,
+		84,
+		20,
+		8,
+		194,
+		13,
+		26,
 		9,
+		38,
+		6,
+		16,
+		52,
+		17,
+		50,
+		13,
+		34,
+		27,
+		17,
+		9,
+		14,
+		13,
+		18,
+		13,
+		21,
+		12,
+		24,
+		4,
+		4,
+		55,
+		8,
+		16,
+		23,
+		102,
+		17,
+		17,
+		65,
+		26,
+		10,
+		4,
+		3,
+		6,
+		27,
+		28,
+		20,
+		7,
+		46,
+		28,
+		20,
+		20,
+		7,
+		12,
+		11,
+		7,
+		8,
+		9,
+		11,
+		13,
+		18,
+		13,
+		22,
+		11,
+		16,
+		13,
+		14,
+		12,
+		6,
+		9,
+		10,
+		12,
+		13,
+		8,
+		10,
+		12,
+		5,
+		18,
+		13,
+		5,
+		10,
+		12,
+		11,
+		81,
+		23,
+		36,
+		38,
+		22,
+		24,
+		132,
+		8,
+		81,
+		84,
+		21,
+		20,
+		13,
+		21,
+		3,
+		5,
+		27,
+		20,
+		27,
+		18,
+		14,
+		12,
+		11,
+		45,
+		14,
+		9,
+		9,
+		12,
+		14,
+		4,
+		4,
+		6,
+		8,
+		6,
+		11,
+		4,
+		13,
+		46,
+		29,
+		13,
+		17,
+		12,
+		32,
+		6,
+		70,
+		53,
+		61,
+		56,
+		36,
+		13,
+		19,
+		8,
+		17,
+		12,
+		18,
+		21,
+		21,
+		11,
+		9,
+		19,
+		18,
+		10,
+		17,
+		14,
+		14,
+		17,
+		5,
+		18,
+		5,
+		17,
+		4,
+		17,
+		26,
+		27,
+		26,
+		43,
+		26,
+		6,
+		60,
+		21,
+		66,
+		28,
+		50,
+		23,
+		16,
+		15,
+		66,
+		18,
+		45,
+		15,
+		107,
+		14,
+		12,
+		38,
+		14,
+		23,
+		84,
+		14,
+		15,
+		8,
+		21,
+		17,
+		10,
+		7,
+		24,
+		26,
+		28,
+		29,
+		9,
+		10,
+		14,
+		26,
+		14,
+		24,
+		60,
+		386,
+		33,
+		14,
+		18,
+		17,
+		23,
+		14,
+		14,
+		12,
+		55,
+		7,
+		29,
+		10,
+		19,
+		6,
+		11,
+		16,
+		12,
+		25,
+		9,
+		24,
+		22,
+		29,
+		15,
+		25,
+		15,
+		6,
+		8,
+		3,
+		11,
+		200,
+		17,
+		141,
+		27,
+		167,
+		21,
+		4,
+		6,
+		167,
+		20,
+		201,
+		16,
+		159,
+		12,
+		4,
+		118,
+		28,
+		196,
+		35,
+		225,
+		15,
+		172,
+		39,
+		192,
+		14,
+		132,
+		18,
+		119,
+		20,
+		240,
+		31,
+		4,
+		27,
+		13,
+		4,
+		14,
+		23,
+		13,
+		12,
+		13,
+		118,
+		11,
+		6,
+		6,
+		110,
+		22,
+		27,
+		19,
+		11,
+		23,
+		8,
+		26,
+		16,
+		17,
+		12,
+		12,
+		7,
+		30,
+		8,
+		44,
+		30,
+		146,
+		106,
+		245,
+		119,
+		13,
+		18,
+		12,
+		18,
+		13,
+		45,
+		88,
+		26,
+		22,
+		118,
+		18,
+		8,
+		84,
+		24,
+		15,
+		6,
+		10,
+		107,
+		12,
+		12,
+		129,
+		41,
+		20,
+		29,
+		14,
+		159,
+		31,
+		23,
+		23,
+		15,
+		21,
+		11,
+		16,
+		25,
+		19,
+		25,
+		20,
+		21,
+		36,
+		41,
+		17,
+		46,
+		18,
+		9,
+		21,
+		13,
+		95,
+		18,
+		10,
+		14,
+		14,
+		138,
+		17,
+		23,
+		57,
+		11,
+		12,
+		17,
+		12,
+		16,
+		5,
+		8,
+		8,
+		4,
+		17,
+		8,
+		19,
+		3,
+		17,
+		68,
+		8,
+		9,
+		17,
+		48,
+		8,
+		114,
+		18,
+		35,
+		129,
+		10,
+		33,
+		26,
+		19,
+		22,
+		27,
+		76,
+		12,
+		16,
+		21,
+		23,
+		19,
+		12,
+		35,
+		22,
+		44,
+		13,
+		6,
+		23,
+		10,
+		33,
+		8,
+		16,
+		7,
+		18,
+		13,
+		8,
+		13,
+		15,
+		19,
+		12,
+		55,
+		10,
+		10,
+		9,
+		18,
+		9,
+		13,
+		6,
+		9,
+		8,
+		18,
+		7,
+		6,
+		8,
+		9,
+		4,
+		6,
+		8,
+		7,
+		20,
+		6,
+		4,
+		30,
+		24,
+		6,
+		4,
+		144,
+		58,
+		42,
+		108,
+		11,
+		90,
+		74,
+		87,
+		90,
+		23,
+		7,
+		8,
+		18,
+		12,
+		51,
+		12,
+		81,
+		12,
+		7,
+		82,
+		12,
+		19,
+		18,
+		92,
+		19,
+		88,
+		92,
+		14,
+		10,
+		6,
+		7,
+		9,
+		29,
+		22,
+		50,
+		24,
+		64,
+		22,
+		50,
+		10,
+		6,
+		6,
+		27,
+		25,
+		7,
+		8,
+		15,
+		17,
+		8,
+		9,
+		5,
+		9,
+		6,
+		17,
+		12,
+		38,
+		22,
+		104,
+		21,
+		4,
+		27,
+		4,
+		8,
+		4,
+		25,
+		13,
+		30,
+		12,
+		16,
+		21,
+		20,
+		14,
+		8,
+		12,
+		14,
+		11,
+		9,
+		8,
+		9,
+		5,
+		7,
+		8,
+		8,
+		9,
+		6,
+		14,
+		13,
+		19,
+		14,
+		31,
+		41,
+		24,
+		21,
+		22,
+		14,
+		89,
+		71,
+		15,
+		27,
+		43,
+		22,
+		42,
+		51,
+		16,
+		45,
+		30,
+		39,
+		31,
+		22,
+		29,
+		54,
+		30,
+		22,
+		45,
+		31,
+		73,
+		7,
+		18,
+		16,
+		60,
+		4,
+		6,
+		18,
+		12,
+		10,
+		12,
+		7,
+		15,
+		7,
+		16,
+		6,
+		6,
+		14,
+		17,
+		7,
+		22,
+		13,
+		26,
+		7,
+		6,
+		32,
+		31,
+		21,
+		15,
+		28,
+		11,
+		38,
+		7,
+		8,
+		15,
+		17,
+		35,
+		7,
+		10,
+		25,
+		42,
+		28,
+		34,
+		30,
+		28,
+		13,
+		22,
+		31,
+		29,
+		10,
+		50,
+		43,
+		8,
+		16,
+		13,
+		3,
+		8,
+		8,
+		4,
+		16,
+		31,
+		71,
+		15,
+		30,
+		51,
+		8,
+		21,
+		7,
+		11,
+		7,
+		7,
+		13,
+		14,
+		24,
+		11,
+		96,
+		8,
+		7,
+		7,
+		5,
+		10,
+		9,
+		14,
+		12,
+		17,
+		22,
+		19,
+		6,
+		102,
+		11,
+		23,
+		38,
+		39,
+		19,
+		151,
+		16,
+		158,
+		15,
+		24,
+		5,
+		13,
+		14,
+		13,
+		13,
+		12,
+		13,
+		88,
+		14,
+		33,
+		142,
+		14,
+		17,
+		21,
+		14,
+		27,
+		68,
+		12,
+		3,
+		2,
+		16,
+		64,
+		7,
+		87,
+		16,
+		12,
+		4,
+		46,
+		10,
+		5,
+		6,
+		213,
+		30,
+		33,
+		29,
+		24,
+		8,
+		6,
+		7,
+		6,
+		23,
+		9,
+		11,
+		6,
+		3,
+		16,
+		13,
+		11,
+		14,
+		6,
+		2,
+		22,
+		29,
+		22,
+		105,
+		85,
+		38,
+		62,
+		23,
+		23,
+		13,
+		14,
+		55,
+		50,
+		24,
+		12,
+		124,
+		31,
+		15,
+		5,
+		9,
+		73,
+		12,
+		12,
+		49,
+		19,
+		11,
+		17,
+		16,
+		21,
+		19,
+		16,
+		34,
+		29,
+		17,
+		10,
+		28,
+		13,
+		11,
+		14,
+		5,
+		8,
+		20,
+		19,
+		125,
+		6,
+		19,
+		11,
+		37,
+		11,
+		7,
+		17,
+		30,
+		12,
+		29,
+		27,
+		27,
+		4,
+		23,
+		14,
+		9,
+		5,
+		41,
+		11,
+		126,
+		12,
+		70,
+		4,
+		42,
+		12,
+		52,
+		7,
+		73,
+		10,
+		92,
+		12,
+		85,
+		16,
+		47,
+		10,
+		28,
+		7,
+		6,
+		6,
+		22,
+		12,
+		48,
+		14,
+		13,
+		30,
+		141,
+		29,
+		14,
+		15,
+		17,
+		21,
+		10,
+		4,
+		5,
+		6,
+		8,
 		40,
+		9,
+		3,
+		16,
+		21,
+		4,
+		6,
+		6,
+		13,
+		4,
+		14,
+		20,
+		2,
+		3,
+		10,
+		6,
+		3,
+		10,
+		21,
+		5,
+		16,
+		9,
+		16,
+		14,
+		15,
+		17,
+		28,
+		20,
+		28,
+		7,
+		37,
+		7,
+		36,
+		7,
+		3,
+		35,
+		23,
+		23,
+		196,
+		23,
+		13,
+		19,
+		19,
+		20,
+		13,
+		23,
+		20,
+		71,
+		7,
+		12,
+		20,
+		20,
+		4,
+		5,
+		28,
+		28,
+		23,
+		4,
+		13,
+		11,
+		8,
+		22,
+		37,
+		12,
+		6,
+		8,
+		4,
+		5,
+		45,
+		7,
+		6,
+		10,
+		4,
+		31,
+		7,
+		17,
+		18,
+		22,
+		16,
+		16,
+		60,
+		23,
+		30,
+		35,
+		16,
+		6,
+		115,
+		13,
+		37,
+		45,
+		6,
+		51,
+		44,
+		17,
+		30,
+		6,
+		6,
+		4,
+		6,
+		13,
 	})
 
 // textsZhCN are the messages without arguments in zh-CN.
 var textsZhCN = i18n.NewTexts(""+
-	"CarbonInk"+
-	"概览"+
-	"仪表盘"+
-	"活动数据"+
-	"清单"+
-	"排放源"+
-	"输入"+
-	"文档"+
-	"报告"+
-	"系统"+
-	"设置"+
-	"活动数据"+
-	"当前账套中的活动数据。"+
+	"添加活动数据"+
+	"创建活动数据失败"+
+	"活动数据已记录"+
 	"还没有活动数据。"+
-	"当前账套"+
-	"已从 CarbonInk 1.x 导入"+
+	"记录每个排放源背后的实际用量——一次抄表、一张加油发票、一趟差旅。上传 PDF 还能自动填好表单。"+
+	"活动数据要挂在排放源下面，而当前组织还没有任何排放源。建好第一个之后，就可以在这里录入用量了。"+
+	"去建立排放源"+
+	"请先建立排放源"+
+	"还没有活动数据"+
+	"清除筛选"+
+	"未找到匹配的活动"+
+	"数量"+
+	"排放因子"+
+	"正在加载排放因子…"+
+	"没有匹配的排放因子。试试换一个分类。"+
+	"请先在上方选择一个排放源，再加载候选因子。"+
+	"已选"+
+	"燃料（可选）"+
+	"仅在跨单位族换算时需要（例如 kg 汽油 ↔ L）。"+
+	"— 不选 —"+
+	"还没有报告期。请先完成引导。"+
+	"还没有排放源。请先在「排放源」页面创建。"+
+	"备注（可选）"+
+	"结束日期"+
+	"开始日期"+
+	"报告期"+
+	"选择报告期…"+
+	"排放源"+
+	"选择排放源…"+
+	"记录活动"+
+	"正在记录…"+
+	"单位"+
+	"例如 kWh、L、kg、t、度、公里"+
+	"台账导入"+
+	"来自供应商披露"+
+	"加载活动数据失败"+
+	"搜索排放源、单位或 EF"+
+	"CO₂e 少到多"+
+	"CO₂e 多到少"+
+	"最早活动"+
+	"最近活动"+
+	"排放源名称"+
+	"手工录入"+
+	"当前账套中的活动数据。"+
+	"数量"+
+	"CO2e"+
+	"排放因子"+
 	"日期"+
+	"排放源"+
+	"活动数据"+
+	"取消"+
+	"已取消上传识别"+
+	"你可以手动填写下方表单。"+
+	"AI 识别失败"+
+	"通常 30-60 秒"+
+	"AI 服务响应太慢或不可达。请检查 Settings 里的 provider 配置后重试，或手动填写表单。"+
+	"AI 识别超时"+
+	"正在识别"+
+	"上传发票/账单自动填写"+
+	"已根据上传的文档自动填写。请核对各字段后保存。"+
+	"已识别"+
+	"重新上传"+
+	"拖入 PDF 或点击选择文件 · AI 自动识别后填入表单"+
+	"上传中"+
+	"上一步"+
+	"批量导入"+
+	"取消"+
+	"完成"+
+	"导入台账表格：映射列、落位排放源、按组确认排放因子。"+
+	"没有可导入的行——检查列映射、源落位与分组确认。"+
+	"请先选择报告期。"+
+	"导入会话已失效，请重新选择文件。"+
+	"还有分组未确认或未跳过。"+
+	"将被跳过的行"+
+	"导入失败"+
+	"数量"+
+	"描述"+
+	"备注"+
+	"结束日期"+
+	"开始日期"+
+	"排放源名称"+
+	"单位"+
+	"确认因子"+
+	"该因子的单位与本组不同族——在下方绑定燃料，或换一个因子。"+
+	"选择因子"+
+	"跳过该组"+
+	"已确认"+
+	"待确认"+
+	"已跳过"+
+	"描述、单位、排放源相同的行归为一组，确认一次即整组生效。"+
+	"按组确认排放因子"+
+	"导入"+
+	"数量须为正数"+
+	"缺数量"+
+	"数量偏离组内中位数超 10 倍"+
+	"该行保存失败——见详情"+
+	"日期无法识别"+
+	"开始日期晚于结束日期"+
+	"缺描述"+
+	"库内同期已有相同的行"+
+	"与文件内已有行重复，首现于第"+
+	"日期落在所选报告期之外"+
+	"缺排放源名称"+
+	"单位与所选因子量纲不符"+
+	"缺单位"+
+	"已按表头自动识别，可手动调整。"+
+	"列映射"+
+	"下一步"+
+	"一次导入落一个报告期；没有日期的行沿用报告期起止。"+
+	"报告期"+
+	"选择报告期"+
+	"选择文件"+
+	"文件读取失败"+
+	"xlsx / csv 台账，一行一条活动数据"+
+	"重新选择"+
+	"必填"+
+	"导入完成"+
+	"复核警告"+
+	"新建排放源"+
+	"类别（可选）"+
+	"创建排放源失败"+
+	"范围"+
+	"站点"+
+	"排放源已创建"+
+	"已匹配现有源"+
+	"选择排放源"+
+	"未落位"+
+	"每个源名称要对应一个排放源；未落位的行会被跳过。"+
+	"排放源落位"+
+	"批量导入活动数据"+
+	"— 未映射 —"+
+	"警告（不阻断导入）"+
+	"导出 Excel"+
+	"导出中…"+
+	"已定稿"+
+	"已定稿。如需修改请先撤销定稿。"+
+	"生成答案"+
+	"批量生成未答"+
+	"所有题目均已回答。"+
+	"生成中…"+
+	"上次生成失败"+
+	"生成中…"+
+	"本年度无库存数据，需手动填写。"+
+	"尚未生成"+
+	"保存"+
+	"保存并定稿"+
+	"来源"+
+	"沿用上次问卷答案"+
+	"撤销定稿"+
+	"单位"+
+	"数值"+
+	"CarbonInk"+
+	"本地碳核算"+
+	"碳墨"+
+	"在你确认抽取、定稿答案或重新镶嵌排放因子时会自动记录事件。"+
+	"暂无审计事件"+
+	"创建活动数据"+
+	"删除活动数据"+
+	"重新镶嵌排放因子"+
+	"挂载证据"+
+	"移除证据"+
+	"导出 CSV"+
+	"审计导出失败"+
+	"事件类型"+
+	"重置筛选"+
+	"起始日期"+
+	"截止日期"+
+	"审计日志"+
+	"隐藏原始数据"+
+	"加载更早"+
+	"数据格式异常"+
+	"审计日志"+
+	"活动"+
+	"显示原始数据"+
+	"最早事件"+
+	"最近事件"+
+	"查看清单的变更历史。"+
+	"取消"+
+	"打开文档"+
+	"打开设置"+
+	"数量"+
+	"kg CO2e"+
+	"日期"+
+	"范围"+
 	"场所"+
 	"排放源"+
-	"数量"+
 	"单位"+
-	"kg CO2e"+
-	"范围"+
+	"目前没有排放数据。"+
+	"排放清单仪表盘"+
+	"月度排放趋势"+
+	"录入活动数据后，按月汇总会显示在这里。"+
+	"最近活动"+
+	"暂无活动数据"+
+	"范围 1"+
+	"范围 2"+
+	"范围 3"+
+	"把实测的用量挂到排放源上——用电量、加油升数、货运吨公里。排放量由绑定的排放因子算出，每个数都能溯源。"+
+	"添加活动数据"+
+	"记录活动数据"+
+	"活动数据齐了，就能导出 ISO 14064-1 盘查报告、Excel 附录，以及带证据文件的交付包。"+
+	"前往报告"+
+	"生成盘查报告"+
+	"排放源就是你要盘查的对象——一块厂区电表、一台锅炉、一支公务车队。目录里的预置模板已经带好了范围、分类和排放因子。"+
+	"浏览排放源目录"+
+	"建立排放源"+
+	"已完成"+
+	"三步，把空工作区变成一份可核查的排放清单。"+
+	"从这里开始"+
+	"总 CO2e"+
+	"你还没有设置组织。下一步引导向导会带你完成。"+
+	"欢迎使用 碳墨"+
+	"查看全部"+
+	"碳墨 需要一个 AI 服务来读取文档内容。请在 Settings 中配置——你需要一个 provider 的 API key（OpenAI / Anthropic / Azure / DeepSeek 或任何 OpenAI 兼容端点）。"+
+	"打开 Settings"+
+	"尚未配置 AI 服务"+
+	"文档列表"+
+	"已有批量识别在进行中"+
+	"取消"+
+	"识别失败的文档"+
+	"无法自动识别类型——打开文档手动选择"+
+	"识别出错"+
+	"还没有文档。把 PDF 拖到上方开始。"+
+	"正在抽取…"+
+	"正在识别图像（需要更长时间）…"+
+	"抽取完成，待审核"+
+	"抽取失败"+
+	"重新抽取"+
+	"开始抽取"+
+	"抽取中..."+
+	"已开始抽取"+
+	"清除筛选"+
+	"未找到匹配的文档"+
+	"全部状态"+
+	"加载文档失败"+
+	"下一份"+
+	"打开"+
+	"文档上传和抽取功能在 Phase 1b Task 14 落地。"+
+	"上一份"+
+	"文档预览"+
+	"打开文档详情页"+
+	"这条抽取已经记入活动数据。如需修改或删除，请到「活动数据」页面操作。"+
+	"已确认"+
+	"返回文档列表"+
+	"无法识别单据类型，请手动选择 stage。"+
+	"正在分析单据类型…"+
+	"置信度"+
+	"高"+
+	"低"+
+	"中"+
+	"确认 → 记为活动数据"+
+	"确认失败"+
+	"已确认"+
+	"丢弃"+
+	"确定丢弃这条抽取？不可撤销。"+
+	"丢弃失败"+
+	"已丢弃"+
+	"正在抽取字段…"+
+	"户号"+
+	"用电量（kWh）"+
+	"总金额（元）"+
+	"到达时间"+
+	"类别"+
+	"出发时间"+
+	"目的地"+
+	"距离（km）"+
+	"航班/车次"+
+	"燃料大类"+
+	"燃料品种（票面）"+
+	"发票号"+
+	"货物名称"+
+	"车牌号"+
+	"运输方式"+
+	"加油日期"+
+	"起运地"+
+	"乘客"+
+	"计费终止"+
+	"计费起始"+
+	"数量（kg）"+
+	"供电公司"+
+	"票号"+
+	"运单/箱号"+
+	"舱位/席别"+
+	"单价（元/L）"+
+	"车型/箱型"+
+	"车牌"+
+	"加油量（L）"+
+	"体积（m³）"+
+	"重量（kg）"+
+	"无法自动分类燃料大类——请在确认前手动调整。"+
+	"加载文档失败"+
+	"这份文档还没有抽取结果。"+
+	"无法解析抽取结果。"+
+	"正在加载 PDF 预览…"+
+	"无法预览 PDF。"+
+	"上次抽取已被丢弃。重新抽取会再调一次 LLM —— 如果之前结果不准，建议先换模型或换张更清晰的 PDF。"+
+	"提供方"+
+	"无法自动分类货物类别——请在确认前手动调整。"+
+	"确认后将丢弃当前抽取结果，并以所选类型重新调用 LLM。"+
+	"确认重抽"+
+	"重抽失败"+
+	"文档类型"+
+	"已开始重新抽取"+
+	"SHA"+
+	"Stage"+
+	"切换类型重抽"+
+	"前往活动数据 →"+
+	"在活动列表中查看 →"+
+	"搜索文件名"+
+	"文件名 A→Z"+
+	"最早上传"+
+	"最近上传"+
+	"此 stage 暂不支持图像输入"+
+	"无抽取"+
+	"已确认"+
+	"已丢弃"+
+	"待审核"+
+	"未分类"+
+	"文件"+
+	"Hash"+
+	"状态"+
+	"上传时间"+
+	"上传文档"+
+	"收起上传"+
+	"完成"+
+	"上传失败"+
+	"把 PDF 拖到这里（可多选），或点击选择文件"+
+	"只支持 PDF 文件。"+
+	"单据类型"+
+	"文档已上传"+
+	"上传中…"+
+	"当前模型不支持读取图片"+
+	"取消"+
+	"选择表格文件，核对列映射与校验结果后导入。"+
+	"库名称为空或过长（最多 50 字符）"+
+	"当前映射下没有有效行，无法导入"+
+	"暂存文件已失效，请重新选择文件"+
+	"错误行（导入时跳过）"+
+	"导入失败"+
+	"生物源 CO2 因子"+
+	"类别"+
+	"CH4（kg/单位）"+
+	"引用链接"+
+	"CO2e（kg/单位）"+
+	"英文描述"+
+	"中文描述"+
+	"因子编码"+
+	"地区"+
+	"GWP 基准（AR5/AR6）"+
+	"HFCs（kg/单位）"+
+	"计量单位"+
+	"N2O（kg/单位）"+
+	"英文名称"+
+	"中文名称"+
+	"NF3（kg/单位）"+
+	"备注"+
+	"PFCs（kg/单位）"+
+	"范围 (Scope)"+
+	"SF6（kg/单位）"+
+	"年份"+
+	"文件为空"+
+	"文件无法读取"+
+	"文件超过 20MB 上限"+
+	"数据超过 50,000 行"+
+	"不支持的文件类型，请用 .xlsx 或 .csv"+
+	"不是有效的 .xlsx 工作簿"+
+	"导入"+
+	"未填类别，该因子不参与 AI 匹配"+
+	"缺少 CO2e 数值"+
+	"重复因子（与前面行的编码、年份、地区相同）"+
+	"GWP 基准须为 AR5 或 AR6"+
+	"缺少名称（中文或英文名至少填一个）"+
+	"范围须为 1、2 或 3"+
+	"缺少范围"+
+	"缺少单位"+
+	"单位不在内置单位表中，单位换算不适用"+
+	"数值无效"+
+	"年份须为 1990–2100 之间的整数"+
+	"缺少年份"+
+	"已按表头自动识别，如有错误请调整；带 * 为必填字段。"+
+	"列映射"+
+	"库名称"+
+	"如 ecoinvent 3.10、内部台账"+
+	"选择文件…"+
+	"文件读取失败"+
+	"支持 .xlsx / .csv，不超过 20MB、50,000 行；第一个非空行须为表头。"+
+	"重新选择"+
+	"替换导入"+
+	"必填"+
+	"有效行预览"+
+	"导入排放因子库"+
+	"未映射"+
+	"版本"+
+	"留空则用今天日期"+
+	"提醒（仍会导入）"+
+	"该库内没有因子。"+
+	"没有匹配的因子。"+
+	"加载更多"+
+	"加载中…"+
+	"浏览因子"+
+	"搜索名称或因子编码"+
+	"删除库"+
+	"删除失败"+
+	"还没有导入过因子库。导入后会在这里列出。"+
+	"把自购数据集、行业因子库或内部台账整理为 .xlsx / .csv 后导入。导入的因子与内置目录并列出现在所有选择器与 AI 匹配中；每次导入记录来源文件、版本与条数。已绑定活动数据的因子有固定快照，之后替换或删除库都不影响既有数字。"+
+	"导入排放因子库"+
+	"导入因子库"+
+	"已导入的库"+
+	"下载模板"+
+	"模板保存失败"+
+	"模板已保存"+
+	"全部候选"+
+	"正在分析..."+
+	"未找到与该排放源范围/类别匹配的排放因子。"+
+	"原因："+
+	"为本单据推荐"+
+	"加载中..."+
+	"暂无推荐。"+
+	"浏览"+
+	"推荐"+
+	"自有因子库"+
+	"添加证据"+
+	"证据添加失败"+
+	"添加中…"+
+	"暂无证据附件"+
+	"证据图片预览"+
+	"此文件类型不支持预览"+
+	"移除证据"+
+	"证据移除失败"+
+	"无烟煤"+
+	"柴油"+
+	"汽油"+
+	"液化石油气"+
+	"天然气"+
+	"「保存」只留草稿，随时可改；「保存并定稿」锁定这条答案、字段转为只读，并记入审计轨迹——按钮随后变成「撤销定稿」，需要时可以退回草稿。"+
+	"保存 与 保存并定稿"+
+	"底部动作条作用于整份问卷：批量生成未答题目、导出 Excel 或 PDF、以及一次性确认全部答案。"+
+	"整份问卷的动作"+
+	"问卷里的每个问题都是一张卡片。点「生成答案」，AI 会用这个报告年度的活动数据作答，并在字段下方标出所用的数据来源。"+
+	"每题一张卡片"+
+	"上一步"+
+	"知道了"+
+	"「确认」把抽取结果写成一条活动数据，钉住排放因子并完成计算；「放弃」只丢弃这次抽取，文件本身保留。"+
+	"确认之后会发生什么"+
+	"系统先判断这份文件属于哪一类（电费单、燃油发票、货运单、差旅、问卷），再用对应阶段的字段模板抽取。阶段决定了下方显示哪些字段。"+
+	"抽取阶段"+
+	"如果阶段判错（例如把燃油发票当成电费单），在这里换成正确的阶段重抽，原来那次抽取会被作废。"+
+	"分类判错了？"+
+	"下一步"+
+	"左侧列出全部外发问卷，可按状态筛选、按到期日排序。选中一行即进入答题界面。"+
+	"按状态与到期日追踪"+
+	"客户发来的 .xlsx 问卷从这里导入。上传后系统会把表格解析成逐题卡片，你在卡片里核对、生成、定稿答案，最后导回同一张表。"+
+	"从客户问卷开始"+
+	"确认后这条活动数据就地重算，并写入一条审计事件，其中保留旧因子与旧排放值。已经导出到磁盘的报告文件不受影响，新数值要等下次生成报告才会出现。"+
+	"换绑之后"+
+	"这条活动数据在计算时钉住了某一个版本的排放因子，之后因子库更新也不会悄悄改动它——这正是报告可以复算的前提。"+
+	"当前因子是钉住的快照"+
+	"换绑用于这几种情况：因子库发布了更新年份、地域选错了、或者当初匹配到的并不是合适的条目。选中新因子后可以先看重算预览。"+
+	"什么时候该换"+
+	"把报告、明细表与证据文件打成一个 ZIP 交给客户，附带列明每个文件的清单。"+
+	"交付包"+
+	"一次写出两份：PDF 用于交付，Excel 附录保留可逐条核对的明细表。"+
+	"导出 PDF 与 Excel"+
+	"报告按 ISO 14064-1 的范围汇总：范围一是直接排放，范围二是外购电力与热力，范围三是其他价值链间接排放。分到哪一组取决于活动数据所属排放源的设定，不是导出时才决定的。"+
+	"Scope 1 / 2 / 3 怎么分组"+
+	"跳过"+
+	"已从 CarbonInk 1.x 导入"+
+	"未填写"+
+	"返回"+
+	"返回详情"+
+	"← 返回披露列表"+
+	"清除筛选"+
+	"创建草稿"+
+	"创建失败"+
+	"创建后跳转到详情页，下一步是导出空白 xlsx 邮件发给供应商。"+
+	"创建中..."+
+	"删除"+
+	"确认删除"+
+	" 该披露已入库，其生成的活动数据也会一并从 Scope 3 库存中移除。"+
+	"此操作不可撤销。"+
+	"删除供应商披露？"+
+	"已删除披露。"+
+	"删除中..."+
+	"草稿（待导出）"+
+	"已入库"+
+	"已收回（待审核）"+
+	"已发送供应商"+
+	"导出空白 xlsx"+
+	"导出中..."+
+	"全部状态"+
+	"逾期"+
+	"→ 转到披露填报详情"+
+	"元数据 / Metadata"+
+	"Tier 1 — 单位产品碳足迹"+
+	"Tier 2 — 分配排放"+
+	"下一步：点击右下角「导出空白 xlsx」，将文件邮件发给供应商。供应商填写后邮件回传，再回到本页面导入。"+
+	"已入库。供应商回传的排放数据已写入 Scope 3 库存，可在「活动数据」页面查看。"+
+	"供应商回传已解析，等待人工审核。点击「审核并入库」进入审核页面，确认无误后写入活动数据库。如供应商发来修正版，可点「重新导入回填表」覆盖上次解析结果。"+
+	"已发送给供应商。等待回传后，点击右下角「导入回填表」上传供应商邮件附件。"+
+	"导入失败"+
+	"导入回填表"+
+	"导入中..."+
+	"确认并入库"+
+	"预计入库："+
+	"请先在上方填写「本期采购数量 (kg)」"+
+	"供应商未提供足够数据（需要 Tier 1 单位碳足迹，或 Tier 2 三项齐全）"+
+	"请至少勾选一项答案"+
+	"加载预览失败"+
+	"如果回收文件丢失，请回到详情页点击「重新导出」并请供应商重新填写。"+
+	"加载预览中…"+
+	"没有数据。"+
+	"所选的答案不足以构成 Tier 1 或 Tier 2 路径。请检查所选项。"+
+	"未生成活动行"+
+	"无足够数据"+
+	"路径："+
+	"供应商："+
+	"供应商两种口径都填了，默认按 GHG Protocol 优先 Tier 1，可切换。"+
+	"入库口径"+
+	"入库中..."+
+	"尚无供应商披露。点击右上「+ 新建披露」开始向上游供应商收集 Scope 3 Cat 1 数据。"+
+	"没有符合筛选条件的披露。"+
+	"供应商披露"+
+	"至少选择一题。"+
+	"新建披露"+
+	"向上游供应商发送 Scope 3 Cat 1 披露问卷。供应商填写后回传 xlsx，系统自动转换为本企业 Scope 3 库存数据。"+
+	"请先选择报告期"+
+	"请先选择供应商"+
+	"新建供应商披露 / Supplier Disclosure"+
+	"不产生活动行"+
+	"披露不存在。"+
+	" · 当前"+
+	"报告期 / Reporting period"+
+	"选择报告期"+
+	"供应商法定名称"+
+	"供应商报告期"+
+	"GHG 清单状态"+
+	" · 必填元数据"+
+	"单位产品碳足迹 (kgCO2e/kg)"+
+	"Scope 1+2 年度排放总量 (kgCO2e)"+
+	"分配方法"+
+	"归因于我方采购的排放量 (kgCO2e)"+
+	"包含的题目 / Included questions"+
+	"重新导出"+
+	"重新导入回填表"+
+	"催办邮件"+
+	"该供应商尚无邮箱。保存后将打开系统邮件客户端，生成催办邮件草稿。"+
+	"填写供应商邮箱"+
+	"修改邮箱"+
+	"供应商邮箱"+
+	"保存并撰写"+
+	"烦请尽快填写此前邮件所附 xlsx 并回传；如有疑问，直接回复本邮件即可。"+
+	"审核并入库"+
+	"搜索供应商名称…"+
+	"从左侧选择一份供应商披露查看详情。"+
+	"按截止日期"+
+	"最早创建"+
+	"按题目数"+
+	"最近创建"+
+	"按供应商名"+
+	"草稿"+
+	"已入库"+
+	"已回收"+
+	"已发送"+
+	"创建并选择"+
+	"供应商 / Supplier"+
+	"供应商法定名称 / Supplier legal name"+
+	"新建"+
+	"选择供应商"+
+	"尚未配置题目。请回到「新建」重选模板。"+
+	"元数据"+
+	"*必填"+
+	"供应商填写："+
+	"Cat 1 Supplier Disclosure (v1.0) — 7 题"+
+	"模板 / Template"+
+	"v2.0 仅提供 Cat 1 模板。其他类目（Cat 4 运输、Cat 5 废弃物等）将在后续版本加入。"+
+	"需供应商 PCF"+
+	"本期采购数量 / Purchased quantity (kg)"+
+	"Tier 1 路径下，活动数据排放量 = 供应商单位 PCF × 您本期向其采购的总重量。"+
+	"例如：10000"+
+	"单位产品碳足迹"+
+	"需归因排放量"+
+	"分配排放"+
+	"查看关联活动数据"+
+	"将创建活动行"+
+	"这条记录是「客户披露填报」，不在此处。"+
+	"AI 建议"+
+	"手工填写"+
+	"映射自台账"+
+	"上游台账数据"+
+	"关闭溯源面板"+
+	"数据溯源"+
+	"该记录暂无审计事件"+
+	"溯源信息加载失败"+
+	"尚未被任何答案或冻结报告引用"+
+	"活动数据"+
+	"答案"+
+	"引用此行的答案"+
+	"下游引用"+
+	"排放因子（固定快照）"+
+	"问题"+
+	"冻结快照"+
+	"溯源"+
+	"在活动数据中查看"+
+	"血缘链"+
+	"证据附件"+
+	"审计历史"+
+	"来源单据"+
+	"供应商披露"+
+	"手工录入"+
+	"手工填写的数据——可在下方挂载佐证材料"+
+	"加载中…"+
+	"活动数据"+
+	"仪表盘"+
+	"披露填报"+
+	"文档"+
+	"全部文档"+
+	"输入"+
+	"清单"+
+	"概览"+
+	"全部问卷"+
+	"报告"+
+	"输入资料"+
+	"概览"+
+	"排放清单"+
+	"其他"+
+	"系统"+
+	"设置"+
+	"排放源"+
+	"供应商披露"+
+	"系统"+
+	"返回"+
+	"完成新手引导失败。"+
+	"正在创建组织…"+
+	"完成"+
+	"下一步"+
+	"碳墨 需要 AI 提供方解析文档和回答问卷。可以稍后在设置里配置；现在跳过也可以。"+
+	"我有 API key（向导完成后到设置里填）"+
+	"稍后在设置里配置"+
+	"文档抽取和问卷自动作答依赖 LLM 服务。可以先跳过、稍后再配置。"+
+	"AI 提供方"+
+	"依据 GHG Protocol Corporate Standard，选择组织边界核算方式。"+
+	"股权比例 — 按对合资公司持股比例分配排放。"+
+	"经营控制 — 算自己运营的设施排放，无论是否持股。多数小厂适用。"+
+	"依据 GHG Protocol — 你如何核算\"非完全所有\"设施的排放？"+
+	"组织边界"+
+	"国家"+
+	"行业"+
+	"请选择行业…"+
+	"英文名"+
+	"中文名或英文名至少填一个。"+
+	"中文名"+
+	"告诉我们公司的基本情况，决定排放清单的核算边界。"+
+	"公司基本信息"+
+	"地址"+
+	"Site 是物理地点（工厂、办公楼、仓库）。后面可以加更多。"+
+	"国家代码"+
+	"Site 名称（English）"+
+	"Site 名称（中文）"+
+	"厂区是物理位置：工厂、办公室、仓库等。引导结束后可以继续添加。"+
+	"添加第一个 Site"+
+	"默认本年。选择你要核算排放的财年。"+
+	"选择本次核算的财年。后续可以添加其他年份。"+
+	"报告年度"+
+	"引导设置"+
+	"年度"+
+	"月度"+
+	"季度"+
 	"该页面将在 Phase 2 完成。"+
-	"外观"+
-	"跟随系统"+
-	"浅色"+
-	"深色"+
+	"从中国大陆连接延迟较高"+
+	"全球 endpoint，从中国访问延迟较高。"+
+	"从中国大陆连接通常更快"+
+	"从中国延迟低，中文能力强，按 token 计费，价格较低。"+
+	"从中国大陆连接延迟较高"+
+	"全球 endpoint，从中国访问延迟较高。"+
+	"导出 PDF"+
+	"取消"+
+	"导出"+
+	"导出问卷为 PDF"+
+	"选择导出语言。"+
+	"英语"+
 	"语言"+
-	"跟随系统"+
-	"English"+
-	"中文"+
+	"中文 (zh-CN)"+
+	"正在生成 PDF..."+
+	"截止日期"+
+	"生成时间"+
+	"草稿"+
+	"已定稿"+
+	"来源"+
+	"目录"+
+	"(未答)"+
+	"Phase 2.2b 将在此处生成答案。"+
+	"← 返回披露填报列表"+
+	"需要先在活动数据中录入该年度的电、油、运费等记录，AI 才能生成有依据的答案。"+
+	"去录入活动数据 →"+
+	"题型"+
+	"披露填报不存在"+
+	"单元格"+
+	"题目"+
+	"单位"+
+	"还没有披露填报"+
+	"清除筛选"+
+	"未找到匹配的披露填报"+
+	"全部状态"+
+	"确认全部答案"+
+	"新建披露填报"+
+	"搜索客户名称"+
+	"客户 A→Z"+
+	"截止日期"+
+	"最早创建"+
+	"问题数量"+
+	"最近创建"+
+	"答题中"+
+	"已导出"+
+	"已定稿"+
+	"草稿"+
+	"解析中"+
+	"客户"+
+	"截止日期"+
+	"题目数"+
+	"状态"+
+	"报告年度"+
+	"客户名称"+
+	"截止日期（可选）"+
+	"解析失败"+
+	"点击选择或拖入 .xlsx 文件"+
+	"客户名称与 .xlsx 文件必填"+
+	"正在解析问卷…"+
+	"新建披露填报"+
+	"上传 Excel 并解析"+
+	"报告年度"+
+	"调用你配置的 AI 供应商，寻找规则无法表达的分类问题。"+
+	"尚未配置 AI 供应商 —— 上方的确定性检查已照常完成。"+
+	"没有发现问题"+
+	"排放源全期无数据"+
+	"活动数据落在报告期之外"+
+	"问题尚未作答"+
+	"可能缺少某个应有的排放源"+
+	"同比对比没有可锚定的基准。"+
+	"尚未设定基准年"+
+	"已交付的数字与当前账本不一致"+
+	"供应商披露已逾期"+
+	"单位与排放因子量纲不符"+
+	"数量明显偏离同类行"+
+	"疑似重复行"+
+	"同一报告期混用了 GWP 口径"+
+	"排放源的分类与其名称不一致"+
+	"无凭证支撑的行"+
+	"该行没有审计轨迹"+
+	"因子年份与报告年份相差较远"+
+	"所属因子库已被删除"+
+	"对本报告期做一遍确定性检查，无需配置 AI 供应商。"+
+	"忽略"+
+	"体检当前报告期"+
+	"盘查体检"+
+	"请先建立报告期，再运行盘查体检。"+
+	"查看"+
+	"重新体检"+
+	"深度复核（AI）"+
+	"复核中…"+
+	"开始体检"+
+	"体检中…"+
+	"阻断"+
+	"提示"+
+	"警告"+
+	"盘查体检"+
+	"重新镶嵌"+
+	"取消"+
+	"确认重新镶嵌"+
+	"当前排放"+
+	"当前"+
+	"重新镶嵌排放因子"+
+	"新排放"+
+	"选择新的排放因子"+
+	"预览"+
+	"取消"+
+	"确认导出 (PDF + Excel)"+
+	"导出交付包 (ZIP)"+
+	"导出 Excel 附录"+
+	"生成报告"+
+	"ISO 14064-1 盘查报告"+
+	"报告类型"+
+	"TCFD 气候披露（四支柱）"+
+	"英语"+
+	"语言"+
+	"中文 (zh-CN)"+
+	"盘查报告"+
+	"生成 ISO 14064-1 风格的报告。"+
+	"报告"+
+	"新建报告"+
+	"暂无报告期。"+
+	"未配置 LLM 提供商，请打开设置。"+
+	"正在装配清单数据..."+
+	"正在撰写组织边界..."+
+	"正在撰写重大变动..."+
+	"正在撰写排放概要..."+
+	"正在收尾..."+
+	"正在撰写方法学..."+
+	"正在撰写观察发现..."+
+	"正在撰写报告范围..."+
+	"重新生成"+
+	"重新生成会丢弃未保存的修改，是否继续？"+
+	"请先在设置中填写组织档案。"+
+	"必填"+
+	"查询距离"+
+	"查询中…"+
+	"应用"+
+	"Chromium"+
+	"Electron"+
+	"Node"+
+	"打开数据目录"+
+	"无法打开数据目录。"+
+	"在文件管理器里显示 app 的数据目录（SQLite 数据库、附件、设置）。"+
+	"打开日志目录"+
+	"无法打开日志目录。"+
+	"按天滚动的日志文件，留存 14 天，便于客服排错。"+
+	"平台"+
+	"support@carbonink.xyz"+
+	"技术支持"+
 	"数据目录"+
+	"版本"+
+	"官网"+
+	"carbonink.xyz"+
+	"清空 AI 缓存"+
+	"清空 AI 缓存失败"+
+	"正在清空…"+
+	"保存重复的 AI 结果（EF 匹配、readiness），重复运行时不再重复计费，可随时清空。"+
+	"AI 缓存"+
+	"API 密钥"+
+	"替换"+
+	"已保存"+
+	"外观"+
+	"基准年"+
+	"（未选）"+
+	"股权法"+
+	"财务控制法"+
+	"合并方法"+
+	"运营控制法"+
+	"取消"+
+	"每次启动 CarbonInk 会写入一份每日备份到自动备份目录，最近 7 份保留。"+
+	"自动备份"+
+	"打开自动备份目录"+
+	"无法打开自动备份目录。"+
+	"保存自动备份设置失败。"+
+	"启用自动备份"+
+	"备份是单个 .carbonink-backup 文件（SQLite 数据库）。v1 不包含附件（PDF 等）— 还原后可以重新上传。"+
+	"备份与还原"+
+	"已确认的抽取记录会保留 LLM 原始响应。清理这些缓存是安全的，不会影响活动、报告或任何用户数据。"+
+	"清理 LLM 缓存"+
+	"无 LLM 缓存。"+
+	"缓存"+
+	"数据库大小"+
+	"数据目录"+
+	"导出备份"+
+	"导出失败"+
+	"已保存备份"+
+	"导入备份"+
+	"导入会覆盖当前所有数据，应用将重启。继续吗？"+
+	"还原失败"+
+	"已还原备份，正在重启…"+
+	"删除全部数据 — 组织、厂区、活动、文档、抽取记录、审计日志。应用将重启并进入引导流程。"+
+	"重置所有数据"+
+	"重置并重启"+
+	"输入 RESET 确认"+
+	"重置所有数据"+
+	"正在重置 — 重启中…"+
+	"首次进入某个界面时播放一次的分步说明。"+
+	"引导提示"+
+	"关"+
+	"开"+
+	"重新播放全部引导"+
+	"下次进入各个界面时会重新播放引导。"+
+	"English"+
+	"影响整个 app — 侧栏、对话框、导出。报告会保持创建时所用的语言。"+
+	"界面语言"+
+	"简体中文"+
+	"深色"+
+	"跟随系统、强制浅色，或强制深色。"+
+	"外观"+
+	"浅色"+
+	"跟随系统"+
+	"批量导入台账时，某行数量偏离组内中位数超过 N 倍（双向）即标记为疑似离群。仅对当前账套生效；警告不会阻断导入。"+
+	"批量导入异常检测"+
+	"请输入 2 到 1000 之间的数字"+
+	"离群倍数（2–1000）"+
+	"离群倍数已保存"+
+	"语言"+
+	"中文"+
+	"English"+
+	"跟随系统"+
+	"加载设置失败"+
+	"配置"+
+	"重新配置"+
+	"移除"+
+	"—"+
+	"查看接入指南"+
+	"服务器可执行文件"+
+	"Claude Code"+
+	"Claude Desktop"+
+	"Cursor"+
+	"Pi"+
+	"写入配置失败"+
+	"配置文件不是合法 JSON"+
+	"启用 MCP 集成"+
+	"关闭后下方按钮被禁用。已配置的客户端仍可使用，直到你点击「移除」。"+
+	"Pi 暂未提供原生 mcpServers 配置。请用 pi-mcporter 桥接扩展："+
+	"1. 在 Pi 里安装桥接扩展："+
+	"2. 重启 Pi，carbonink MCP server 会自动被检测到。"+
+	"把 CarbonInk 接入 Pi"+
+	"移除配置失败"+
+	"服务器脚本"+
+	"已配置 ✓"+
+	"配置文件不是合法 JSON — 请手动打开修复"+
+	"已配置但路径过期 — 请点「重新配置」"+
+	"已检测到，未配置"+
+	"未检测到"+
+	"上方的 Skill 告诉 agent **何时**该查询碳墨；下方的 MCP 配置告诉它**如何**查（用哪个 server、有哪些工具）。"+
+	"步骤 2 · 配置 MCP 客户端"+
+	"MCP 集成"+
+	"图像"+
+	"推理"+
+	"自定义 id：不在内置目录中，保存前请先测试连接。"+
+	"获取失败"+
+	"获取最新"+
+	"请先输入（或保存）API key，再获取。"+
+	"模型列表已更新。"+
+	"获取中…"+
+	"请选择模型…"+
+	"搜索模型…"+
+	"列表可能已过时。"+
+	"设置分类"+
+	"公司身份"+
+	"组织档案（ISO 14064-1）"+
+	"用于盘查报告。"+
+	"报告档案"+
+	"无匹配结果"+
+	"覆盖 base URL（高级）"+
+	"全部服务商"+
+	"推荐"+
+	"去官网注册"+
+	"模型"+
+	"服务商"+
+	"请选择服务商…"+
+	"搜索服务商…"+
+	"显示在 ISO 14064-1 与 TCFD 报告封面。按账套存储——可为每个客户设置各自的 logo。PNG/JPEG，最大 512 KB。"+
+	"移除"+
+	"报告 Logo 已移除"+
+	"报告 Logo"+
+	"不支持的图片格式——请用 PNG 或 JPEG"+
+	"选择 Logo"+
+	"更换"+
+	"报告 Logo 已保存"+
+	"图片过大——最大 512 KB"+
+	"保存档案"+
+	"组织档案已更新。"+
+	"责任人 — 姓名"+
+	"责任人 — 职务"+
+	"保存"+
+	"保存设置失败"+
+	"设置已保存"+
+	"保存中…"+
+	"关于"+
+	"版本信息、运行时与支持链接。"+
+	"AI 服务"+
+	"配置 LLM provider 与 API key。文档抽取、问卷自动作答、报告叙述都依赖此服务。"+
+	"AMap 路由"+
+	"用于差旅与货运记录的距离查询（可选）。"+
+	"数据"+
+	"备份、还原、重置、缓存清理。"+
+	"因子库"+
+	"导入并管理自有排放因子库"+
+	"通用"+
+	"界面语言、显示，以及作用于整个 app 的偏好。"+
+	"MCP 服务"+
+	"把 碳墨 集成进 Claude Desktop —— 在对话中直接查询排放源与活动。"+
+	"组织资料"+
+	"ISO 14064-1 报告必需的元数据：组织边界、责任人、基准年。"+
+	"软件更新"+
+	"查看当前版本与下载新版本。"+
 	"账套"+
-	"退出时会保存窗口位置与大小。",
+	"一个客户一个数据库文件"+
+	"安装"+
+	"移除"+
+	"更新"+
+	"Skill 操作失败"+
+	"检测中…"+
+	"未检测到 agent host（仅 ~/.agents/skills/）"+
+	"Skill 已移除。"+
+	"未安装"+
+	"已安装 — 可更新"+
+	"让 AI agent 知道何时该查询你的碳墨数据。会复制到 ~/.agents/skills/，并为检测到的每个 agent host 创建 symlink。"+
+	"步骤 1 · 安装 Agent Skill"+
+	"Skill 已更新。"+
+	"测试连接"+
+	"连接失败"+
+	"连接成功"+
+	"测试中…"+
+	"深色"+
+	"浅色"+
+	"跟随系统"+
+	"设置"+
+	"退出时会保存窗口位置与大小。"+
+	"账套"+
+	"MCP"+
+	"MCP·未构建"+
+	"MCP·待配置"+
+	"排序"+
+	"启用"+
+	"取消"+
+	"更新失败"+
+	"保存"+
+	"排放源已更新"+
+	"编辑排放源"+
+	"否"+
+	"是"+
+	"添加排放源"+
+	"取消"+
+	"添加"+
+	"添加失败"+
+	"已加入组织排放源"+
+	"已添加"+
+	"批量添加失败"+
+	"添加中…"+
+	"从目录添加"+
+	"全部类别"+
+	"取消全选"+
+	"目录暂无内容。"+
+	"未找到匹配的排放源"+
+	"请先创建一个 Site。"+
+	"范围 1 — 直接排放"+
+	"范围 1"+
+	"范围 2 — 能源间接排放"+
+	"范围 2"+
+	"范围 3 — 其他间接排放"+
+	"范围 3"+
+	"全部"+
+	"搜索名称、类别或来源"+
+	"排放源目录"+
+	"创建排放源失败"+
+	"排放源是清单的骨架——每一条活动数据都要挂在某个排放源下。从目录添加可以直接带出范围、分类和排放因子，也可以自己手动定义。"+
+	"还没有排放源"+
+	"清除筛选"+
+	"未找到匹配的排放源"+
+	"分类（可选）"+
+	"未找到匹配的分类"+
+	"当前值"+
+	"下游（3.9–3.15）"+
+	"上游（3.1–3.8）"+
+	"GHG Protocol 类别，决定推荐哪些排放因子。"+
+	"不设置"+
+	"非标准"+
+	"选择分类…"+
+	"搜索分类…"+
+	"名称"+
+	"范围"+
+	"范围 1 — 直接排放"+
+	"范围 2 — 外购能源"+
+	"范围 3 — 价值链"+
+	"Site"+
+	"创建排放源"+
+	"正在创建…"+
+	"已停用"+
+	"加载排放源失败"+
+	"搜索名称、类别或 GHG 路径"+
+	"尚未使用"+
+	"启用"+
+	"分类"+
+	"名称"+
+	"范围"+
+	"供应商邮箱（可选，用于催办）"+
+	"后退"+
+	"详情"+
+	"前进"+
+	"撤销"+
+	"撤销失败。"+
+	"kg CO2e"+
+	"检查更新"+
+	"打开下载页"+
+	"carbonink.xyz/zh/download"+
+	"重启并更新"+
+	"软件更新"+
+	"保持 碳墨 为最新版本，获取最新功能和修复。"+
+	"正在检查更新..."+
+	"尚未检查更新。"+
+	"当前已是最新版本。"+
+	"当前账套"+
+	"当前"+
+	"每个账套是一个独立的本地数据库文件，客户数据物理隔离。切换后应用会重新加载。"+
+	"新建账套"+
+	"新账套名称（如：客户名）"+
+	"账套已创建，点「切换」开始使用"+
+	"删除"+
+	"无法删除——请先切换到其他账套"+
+	"账套已删除，数据文件已归档"+
+	"客户账套"+
+	"名称不能为空且不超过 60 字"+
+	"重命名"+
+	"取消"+
+	"保存"+
+	"切换"+
+	"切换失败",
 	[]uint16{
-		9,
-		6,
-		9,
-		12,
-		6,
-		9,
-		6,
-		6,
-		6,
-		6,
-		6,
-		12,
-		33,
+		18,
 		24,
+		21,
+		24,
+		137,
+		141,
+		18,
+		21,
+		21,
+		12,
+		24,
+		6,
 		12,
 		27,
+		54,
+		63,
+		6,
+		18,
+		64,
+		14,
+		42,
+		60,
+		18,
+		12,
+		12,
+		9,
+		18,
+		9,
+		18,
+		12,
+		15,
+		6,
+		38,
+		12,
+		21,
+		24,
+		30,
+		16,
+		16,
+		12,
+		12,
+		15,
+		12,
+		33,
+		6,
+		4,
+		12,
+		6,
+		9,
+		12,
+		6,
+		21,
+		36,
+		15,
+		16,
+		113,
+		15,
+		12,
+		31,
+		69,
+		9,
+		12,
+		66,
+		9,
+		9,
+		12,
+		6,
+		6,
+		78,
+		72,
+		24,
+		48,
+		36,
+		18,
+		12,
+		6,
+		6,
+		6,
+		12,
+		12,
+		15,
+		6,
+		12,
+		87,
+		12,
+		12,
+		9,
+		9,
+		9,
+		84,
+		24,
+		6,
+		18,
+		9,
+		37,
+		33,
+		18,
+		30,
+		9,
+		30,
+		42,
+		33,
+		18,
+		33,
+		9,
+		45,
+		9,
+		9,
+		75,
+		9,
+		15,
+		12,
+		18,
+		44,
+		12,
+		6,
+		12,
+		12,
+		15,
+		18,
+		21,
+		6,
+		6,
+		18,
+		18,
+		15,
+		9,
+		72,
+		15,
+		24,
+		17,
+		27,
+		12,
+		12,
+		9,
+		45,
+		12,
+		18,
+		27,
+		12,
+		18,
+		12,
+		45,
+		12,
+		6,
+		15,
+		6,
+		24,
+		12,
+		6,
+		6,
+		9,
+		15,
+		6,
+		87,
+		18,
+		18,
+		18,
+		24,
+		12,
+		12,
+		10,
+		18,
+		12,
+		12,
+		12,
+		12,
+		12,
+		18,
+		12,
+		18,
+		12,
+		6,
+		18,
+		12,
+		12,
+		30,
+		6,
+		12,
+		12,
+		6,
+		7,
+		6,
 		6,
 		6,
 		9,
 		6,
+		27,
+		21,
+		18,
+		57,
+		12,
+		18,
+		8,
+		8,
+		8,
+		153,
+		18,
+		18,
+		112,
+		12,
+		18,
+		171,
+		21,
+		15,
+		9,
+		63,
+		15,
+		8,
+		66,
+		19,
+		12,
+		196,
+		15,
+		22,
+		12,
+		30,
+		6,
+		21,
+		54,
+		12,
+		47,
+		15,
+		45,
+		24,
+		12,
+		12,
+		12,
+		12,
+		15,
+		12,
+		24,
+		12,
+		18,
+		9,
+		6,
+		57,
+		9,
+		12,
+		21,
+		102,
+		9,
+		18,
+		51,
+		27,
+		9,
+		3,
+		3,
+		3,
+		29,
+		12,
+		9,
+		6,
+		42,
+		12,
+		9,
+		21,
+		6,
+		18,
+		18,
+		12,
+		6,
+		12,
+		9,
+		14,
+		13,
+		12,
+		24,
+		9,
+		12,
+		9,
+		12,
+		12,
+		9,
+		6,
+		12,
+		12,
+		14,
+		12,
+		6,
+		13,
+		13,
+		17,
+		13,
+		6,
+		16,
+		15,
+		14,
+		66,
+		18,
+		36,
+		27,
+		26,
+		19,
+		139,
+		9,
+		66,
+		76,
+		12,
+		12,
+		12,
+		21,
+		3,
+		5,
+		18,
+		22,
+		28,
+		15,
+		15,
+		12,
+		12,
+		34,
+		9,
+		9,
+		9,
+		9,
+		9,
+		6,
+		4,
+		6,
+		12,
+		12,
+		12,
+		6,
+		12,
+		59,
+		23,
+		12,
+		15,
+		12,
+		33,
+		6,
+		63,
+		46,
+		45,
+		45,
+		30,
+		12,
+		20,
+		6,
+		18,
+		12,
+		19,
+		12,
+		12,
+		12,
+		6,
+		23,
+		19,
+		12,
+		18,
+		12,
+		12,
+		18,
+		6,
+		19,
+		14,
+		18,
+		6,
+		12,
+		18,
+		24,
+		23,
+		48,
+		31,
+		6,
+		43,
+		18,
+		63,
+		28,
+		51,
+		24,
+		12,
+		12,
+		54,
+		12,
+		40,
+		12,
+		75,
+		9,
+		9,
+		33,
+		15,
+		18,
+		85,
+		12,
+		12,
+		6,
+		15,
+		21,
+		9,
+		6,
+		24,
+		24,
+		24,
+		24,
+		12,
+		12,
+		12,
+		27,
+		9,
+		12,
+		60,
+		315,
+		21,
+		15,
+		15,
+		12,
+		18,
+		15,
+		12,
+		15,
+		61,
+		9,
+		18,
+		12,
+		15,
+		6,
+		6,
+		15,
+		12,
+		18,
+		12,
+		18,
+		18,
+		30,
+		12,
+		18,
+		9,
+		6,
+		6,
+		15,
+		9,
+		201,
+		26,
+		125,
+		21,
+		168,
+		18,
+		9,
+		9,
+		147,
+		27,
+		189,
+		12,
+		135,
+		18,
+		9,
+		111,
+		27,
+		172,
+		21,
+		210,
+		12,
+		162,
+		30,
+		177,
+		18,
+		104,
+		9,
+		88,
+		20,
+		238,
+		28,
+		6,
+		27,
+		9,
+		6,
+		12,
+		22,
+		12,
+		12,
+		12,
+		84,
+		12,
+		6,
+		12,
+		88,
+		24,
+		24,
+		18,
+		12,
+		21,
+		9,
+		24,
+		18,
+		17,
+		12,
+		12,
+		6,
+		28,
+		20,
+		32,
+		23,
+		146,
+		108,
+		225,
+		108,
+		12,
+		15,
+		12,
+		15,
+		15,
+		50,
+		91,
+		27,
+		18,
+		99,
+		18,
+		15,
+		79,
+		18,
+		15,
+		9,
+		12,
+		84,
+		12,
+		12,
+		110,
+		36,
+		15,
+		21,
+		12,
+		140,
+		21,
+		21,
+		43,
+		18,
+		18,
+		10,
+		28,
+		15,
+		21,
+		18,
+		16,
+		19,
+		33,
+		37,
+		12,
+		42,
+		36,
+		12,
+		21,
+		12,
+		96,
+		21,
+		12,
+		15,
+		15,
+		99,
+		15,
+		24,
+		51,
+		15,
+		12,
+		12,
+		12,
+		15,
+		6,
+		9,
+		9,
+		9,
+		15,
+		20,
+		43,
+		6,
+		15,
+		57,
+		9,
+		7,
+		18,
+		42,
+		17,
+		108,
+		16,
+		44,
+		102,
+		14,
+		21,
+		18,
+		12,
+		24,
+		18,
+		57,
+		9,
+		12,
+		15,
+		18,
+		18,
+		12,
+		27,
+		24,
+		42,
+		12,
+		6,
+		21,
+		12,
+		30,
+		6,
+		12,
+		6,
+		24,
+		9,
+		12,
+		12,
+		12,
+		15,
+		12,
+		57,
+		12,
+		12,
+		9,
+		12,
+		6,
+		12,
+		6,
+		6,
+		6,
+		12,
+		6,
+		12,
+		6,
+		12,
+		6,
+		6,
+		6,
+		9,
+		15,
+		6,
+		6,
+		27,
+		21,
+		6,
+		9,
+		113,
+		50,
+		24,
+		89,
+		12,
+		74,
+		62,
+		92,
+		74,
+		12,
+		6,
+		6,
+		18,
+		9,
+		39,
+		9,
+		72,
+		18,
+		6,
+		80,
+		12,
+		24,
+		23,
+		93,
+		20,
+		51,
+		63,
+		12,
+		12,
+		6,
+		6,
+		6,
+		33,
+		33,
+		48,
+		33,
+		73,
+		33,
+		48,
+		10,
+		6,
+		6,
+		19,
+		21,
+		6,
+		6,
+		14,
+		19,
+		12,
+		12,
+		6,
+		9,
+		6,
+		6,
+		8,
+		38,
+		28,
+		111,
+		25,
+		6,
+		21,
+		9,
+		6,
+		6,
+		21,
+		12,
+		30,
+		12,
+		18,
+		18,
+		18,
+		12,
+		12,
+		12,
+		12,
+		12,
+		9,
+		9,
+		9,
+		6,
+		9,
+		6,
+		12,
+		9,
+		6,
+		12,
+		12,
+		24,
+		12,
+		34,
+		34,
+		21,
+		18,
+		22,
+		12,
+		76,
+		75,
+		18,
+		24,
+		33,
+		18,
+		36,
+		39,
+		21,
+		42,
+		24,
+		33,
+		27,
+		15,
+		35,
+		39,
+		21,
+		24,
+		39,
+		27,
+		70,
+		6,
+		21,
+		12,
+		48,
+		6,
+		12,
+		20,
+		12,
+		12,
+		12,
+		6,
+		6,
+		6,
+		12,
+		12,
+		6,
+		18,
+		12,
+		6,
+		24,
+		9,
+		24,
+		6,
+		6,
+		26,
+		21,
+		19,
+		12,
+		24,
+		12,
+		32,
+		6,
+		6,
+		14,
+		12,
+		37,
+		6,
+		12,
+		18,
+		44,
+		27,
+		27,
+		27,
+		27,
+		15,
+		24,
+		27,
+		27,
+		12,
+		57,
+		39,
+		6,
+		12,
+		12,
+		6,
+		8,
+		8,
+		4,
+		18,
+		27,
+		90,
+		18,
+		27,
+		67,
+		6,
+		21,
+		12,
+		12,
+		6,
+		6,
+		13,
+		16,
+		22,
+		15,
+		109,
+		9,
+		10,
+		6,
+		9,
+		6,
+		9,
+		12,
+		9,
+		15,
+		12,
+		15,
+		6,
+		95,
+		12,
+		24,
+		33,
+		33,
+		18,
+		130,
+		15,
+		137,
+		17,
+		17,
+		6,
+		15,
+		12,
+		12,
+		12,
+		15,
+		12,
+		66,
+		12,
+		33,
+		128,
+		18,
+		15,
+		19,
+		18,
+		29,
+		57,
+		12,
+		3,
+		3,
+		24,
+		51,
+		7,
+		93,
+		12,
+		12,
+		6,
+		48,
+		6,
+		6,
+		12,
+		162,
+		24,
+		36,
+		26,
+		21,
+		6,
 		6,
 		7,
+		12,
+		18,
+		6,
+		12,
+		6,
+		3,
+		18,
+		24,
+		11,
+		14,
+		6,
+		2,
+		18,
+		29,
+		17,
+		99,
+		76,
+		34,
+		60,
+		23,
+		18,
+		15,
+		13,
+		55,
+		53,
+		24,
+		12,
+		142,
+		32,
+		10,
+		6,
+		6,
+		69,
+		12,
+		12,
+		49,
+		24,
+		12,
+		18,
+		15,
+		24,
+		12,
+		12,
+		29,
+		21,
+		12,
+		15,
+		27,
+		15,
+		6,
+		15,
+		6,
+		9,
+		21,
+		18,
+		135,
+		6,
+		21,
+		11,
+		49,
+		11,
+		6,
+		21,
+		31,
+		12,
+		24,
+		20,
+		20,
+		6,
+		18,
+		15,
+		12,
+		6,
+		42,
+		9,
+		103,
+		11,
+		57,
+		6,
+		42,
+		9,
+		36,
+		6,
+		62,
+		10,
+		88,
+		12,
+		78,
+		12,
+		39,
 		6,
 		33,
 		6,
+		6,
+		6,
+		18,
+		12,
+		50,
+		18,
+		9,
+		23,
+		141,
+		30,
+		18,
+		12,
+		12,
+		12,
 		12,
 		6,
-		6,
-		6,
-		12,
-		7,
 		6,
 		12,
 		6,
 		42,
+		6,
+		3,
+		14,
+		14,
+		6,
+		6,
+		6,
+		12,
+		6,
+		18,
+		15,
+		3,
+		3,
+		15,
+		6,
+		6,
+		12,
+		24,
+		9,
+		18,
+		12,
+		15,
+		12,
+		12,
+		21,
+		27,
+		26,
+		25,
+		8,
+		31,
+		8,
+		31,
+		8,
+		6,
+		30,
+		15,
+		21,
+		183,
+		18,
+		12,
+		27,
+		18,
+		24,
+		9,
+		22,
+		21,
+		55,
+		9,
+		9,
+		15,
+		15,
+		6,
+		6,
+		25,
+		25,
+		22,
+		4,
+		15,
+		15,
+		9,
+		21,
+		35,
+		12,
+		6,
+		6,
+		6,
+		6,
+		42,
+		6,
+		6,
+		6,
+		6,
+		15,
+		7,
+		12,
+		15,
+		25,
+		15,
+		12,
+		62,
+		21,
+		21,
+		27,
+		12,
+		6,
+		114,
+		12,
+		36,
+		45,
+		6,
+		45,
+		39,
+		12,
+		37,
+		9,
+		6,
+		6,
+		6,
+		12,
 	})
 
 // texts returns the messages without arguments in lang, nil for a
@@ -346,8 +7004,419 @@ func Supply(lang string, t Translation) {
 	if t.ActivitiesCount != nil {
 		s.ActivitiesCount = t.ActivitiesCount
 	}
+	if t.ActivitiesFromDocument != nil {
+		s.ActivitiesFromDocument = t.ActivitiesFromDocument
+	}
+	if t.ActivityImportColumnN != nil {
+		s.ActivityImportColumnN = t.ActivityImportColumnN
+	}
+	if t.ActivityImportGroupRowsTotal != nil {
+		s.ActivityImportGroupRowsTotal = t.ActivityImportGroupRowsTotal
+	}
+	if t.ActivityImportMoreIssues != nil {
+		s.ActivityImportMoreIssues = t.ActivityImportMoreIssues
+	}
+	if t.ActivityImportResultImported != nil {
+		s.ActivityImportResultImported = t.ActivityImportResultImported
+	}
+	if t.ActivityImportResultSkippedGroups != nil {
+		s.ActivityImportResultSkippedGroups = t.ActivityImportResultSkippedGroups
+	}
+	if t.ActivityImportResultSkippedSources != nil {
+		s.ActivityImportResultSkippedSources = t.ActivityImportResultSkippedSources
+	}
+	if t.ActivityImportResultSkippedValidation != nil {
+		s.ActivityImportResultSkippedValidation = t.ActivityImportResultSkippedValidation
+	}
+	if t.ActivityImportRowCount != nil {
+		s.ActivityImportRowCount = t.ActivityImportRowCount
+	}
+	if t.ActivityImportRowLabel != nil {
+		s.ActivityImportRowLabel = t.ActivityImportRowLabel
+	}
+	if t.ActivityImportSourceRows != nil {
+		s.ActivityImportSourceRows = t.ActivityImportSourceRows
+	}
+	if t.ActivityImportSummaryErrors != nil {
+		s.ActivityImportSummaryErrors = t.ActivityImportSummaryErrors
+	}
+	if t.ActivityImportSummaryValid != nil {
+		s.ActivityImportSummaryValid = t.ActivityImportSummaryValid
+	}
+	if t.ActivityImportSummaryWarnings != nil {
+		s.ActivityImportSummaryWarnings = t.ActivityImportSummaryWarnings
+	}
+	if t.AnswerExportDone != nil {
+		s.AnswerExportDone = t.AnswerExportDone
+	}
+	if t.AnswerGenerateAllDone != nil {
+		s.AnswerGenerateAllDone = t.AnswerGenerateAllDone
+	}
+	if t.AuditExportCsvSuccess != nil {
+		s.AuditExportCsvSuccess = t.AuditExportCsvSuccess
+	}
+	if t.AuditRebindDelta != nil {
+		s.AuditRebindDelta = t.AuditRebindDelta
+	}
+	if t.AuditRebindSummary != nil {
+		s.AuditRebindSummary = t.AuditRebindSummary
+	}
+	if t.AuditUnknownEventKind != nil {
+		s.AuditUnknownEventKind = t.AuditUnknownEventKind
+	}
+	if t.DocumentsBatchButton != nil {
+		s.DocumentsBatchButton = t.DocumentsBatchButton
+	}
+	if t.DocumentsBatchCanceledToast != nil {
+		s.DocumentsBatchCanceledToast = t.DocumentsBatchCanceledToast
+	}
+	if t.DocumentsBatchHint != nil {
+		s.DocumentsBatchHint = t.DocumentsBatchHint
+	}
+	if t.DocumentsBatchProgress != nil {
+		s.DocumentsBatchProgress = t.DocumentsBatchProgress
+	}
+	if t.DocumentsBatchSummaryToast != nil {
+		s.DocumentsBatchSummaryToast = t.DocumentsBatchSummaryToast
+	}
+	if t.DocumentsReviewUploadedOn != nil {
+		s.DocumentsReviewUploadedOn = t.DocumentsReviewUploadedOn
+	}
+	if t.EfImportColumnN != nil {
+		s.EfImportColumnN = t.EfImportColumnN
+	}
+	if t.EfImportMoreIssues != nil {
+		s.EfImportMoreIssues = t.EfImportMoreIssues
+	}
+	if t.EfImportReplaceBody != nil {
+		s.EfImportReplaceBody = t.EfImportReplaceBody
+	}
+	if t.EfImportRowCount != nil {
+		s.EfImportRowCount = t.EfImportRowCount
+	}
+	if t.EfImportRowLabel != nil {
+		s.EfImportRowLabel = t.EfImportRowLabel
+	}
+	if t.EfImportSuccess != nil {
+		s.EfImportSuccess = t.EfImportSuccess
+	}
+	if t.EfImportSuccessSkipped != nil {
+		s.EfImportSuccessSkipped = t.EfImportSuccessSkipped
+	}
+	if t.EfImportSummaryErrors != nil {
+		s.EfImportSummaryErrors = t.EfImportSummaryErrors
+	}
+	if t.EfImportSummaryValid != nil {
+		s.EfImportSummaryValid = t.EfImportSummaryValid
+	}
+	if t.EfImportSummaryWarnings != nil {
+		s.EfImportSummaryWarnings = t.EfImportSummaryWarnings
+	}
+	if t.EfLibraryBrowseCount != nil {
+		s.EfLibraryBrowseCount = t.EfLibraryBrowseCount
+	}
+	if t.EfLibraryBrowsePerUnit != nil {
+		s.EfLibraryBrowsePerUnit = t.EfLibraryBrowsePerUnit
+	}
+	if t.EfLibraryBrowseScope != nil {
+		s.EfLibraryBrowseScope = t.EfLibraryBrowseScope
+	}
+	if t.EfLibraryDeleteConfirm != nil {
+		s.EfLibraryDeleteConfirm = t.EfLibraryDeleteConfirm
+	}
+	if t.EfLibraryDeleteSuccess != nil {
+		s.EfLibraryDeleteSuccess = t.EfLibraryDeleteSuccess
+	}
+	if t.EfLibraryRowMeta != nil {
+		s.EfLibraryRowMeta = t.EfLibraryRowMeta
+	}
+	if t.GuidanceProgress != nil {
+		s.GuidanceProgress = t.GuidanceProgress
+	}
+	if t.InboundAcceptAria != nil {
+		s.InboundAcceptAria = t.InboundAcceptAria
+	}
+	if t.InboundAnswerNote != nil {
+		s.InboundAnswerNote = t.InboundAnswerNote
+	}
+	if t.InboundAnswerRaw != nil {
+		s.InboundAnswerRaw = t.InboundAnswerRaw
+	}
+	if t.InboundCreatedToast != nil {
+		s.InboundCreatedToast = t.InboundCreatedToast
+	}
+	if t.InboundDeleteDialogDesc != nil {
+		s.InboundDeleteDialogDesc = t.InboundDeleteDialogDesc
+	}
+	if t.InboundDeleteSuccessWithActivities != nil {
+		s.InboundDeleteSuccessWithActivities = t.InboundDeleteSuccessWithActivities
+	}
+	if t.InboundDueOn != nil {
+		s.InboundDueOn = t.InboundDueOn
+	}
+	if t.InboundExportSuccess != nil {
+		s.InboundExportSuccess = t.InboundExportSuccess
+	}
+	if t.InboundImportParsed != nil {
+		s.InboundImportParsed = t.InboundImportParsed
+	}
+	if t.InboundIngestActivityCount != nil {
+		s.InboundIngestActivityCount = t.InboundIngestActivityCount
+	}
+	if t.InboundIngestSuccess != nil {
+		s.InboundIngestSuccess = t.InboundIngestSuccess
+	}
+	if t.InboundOverdueDays != nil {
+		s.InboundOverdueDays = t.InboundOverdueDays
+	}
+	if t.InboundQuestionCount != nil {
+		s.InboundQuestionCount = t.InboundQuestionCount
+	}
+	if t.InboundRemindMailDueLine != nil {
+		s.InboundRemindMailDueLine = t.InboundRemindMailDueLine
+	}
+	if t.InboundRemindMailGreeting != nil {
+		s.InboundRemindMailGreeting = t.InboundRemindMailGreeting
+	}
+	if t.InboundRemindMailOverdueLine != nil {
+		s.InboundRemindMailOverdueLine = t.InboundRemindMailOverdueLine
+	}
+	if t.InboundRemindMailSentLine != nil {
+		s.InboundRemindMailSentLine = t.InboundRemindMailSentLine
+	}
+	if t.InboundRemindMailSignoff != nil {
+		s.InboundRemindMailSignoff = t.InboundRemindMailSignoff
+	}
+	if t.InboundRemindMailSubject != nil {
+		s.InboundRemindMailSubject = t.InboundRemindMailSubject
+	}
+	if t.InboundTableNote != nil {
+		s.InboundTableNote = t.InboundTableNote
+	}
+	if t.InboundTier1Outcome != nil {
+		s.InboundTier1Outcome = t.InboundTier1Outcome
+	}
+	if t.InboundTier2Outcome != nil {
+		s.InboundTier2Outcome = t.InboundTier2Outcome
+	}
+	if t.InboundWarningCount != nil {
+		s.InboundWarningCount = t.InboundWarningCount
+	}
+	if t.LineageEfPinnedAt != nil {
+		s.LineageEfPinnedAt = t.LineageEfPinnedAt
+	}
+	if t.LineageSnapshotRevision != nil {
+		s.LineageSnapshotRevision = t.LineageSnapshotRevision
+	}
+	if t.OnboardingEyebrow != nil {
+		s.OnboardingEyebrow = t.OnboardingEyebrow
+	}
+	if t.QuestionnaireExportPdfFailed != nil {
+		s.QuestionnaireExportPdfFailed = t.QuestionnaireExportPdfFailed
+	}
+	if t.QuestionnaireExportPdfSuccess != nil {
+		s.QuestionnaireExportPdfSuccess = t.QuestionnaireExportPdfSuccess
+	}
+	if t.QuestionnairesDetailInventoryEmptyTitle != nil {
+		s.QuestionnairesDetailInventoryEmptyTitle = t.QuestionnairesDetailInventoryEmptyTitle
+	}
+	if t.QuestionnairesWizardFileChosen != nil {
+		s.QuestionnairesWizardFileChosen = t.QuestionnairesWizardFileChosen
+	}
+	if t.QuestionnairesWizardSuccess != nil {
+		s.QuestionnairesWizardSuccess = t.QuestionnairesWizardSuccess
+	}
+	if t.QuestionnairesWizardSuccessWithReused != nil {
+		s.QuestionnairesWizardSuccessWithReused = t.QuestionnairesWizardSuccessWithReused
+	}
+	if t.ReadinessAllClearBody != nil {
+		s.ReadinessAllClearBody = t.ReadinessAllClearBody
+	}
+	if t.ReadinessCheckC1Detail != nil {
+		s.ReadinessCheckC1Detail = t.ReadinessCheckC1Detail
+	}
+	if t.ReadinessCheckC3Detail != nil {
+		s.ReadinessCheckC3Detail = t.ReadinessCheckC3Detail
+	}
+	if t.ReadinessCheckC5Detail != nil {
+		s.ReadinessCheckC5Detail = t.ReadinessCheckC5Detail
+	}
+	if t.ReadinessCheckC6Detail != nil {
+		s.ReadinessCheckC6Detail = t.ReadinessCheckC6Detail
+	}
+	if t.ReadinessCheckD2DetailDeleted != nil {
+		s.ReadinessCheckD2DetailDeleted = t.ReadinessCheckD2DetailDeleted
+	}
+	if t.ReadinessCheckD2DetailEdited != nil {
+		s.ReadinessCheckD2DetailEdited = t.ReadinessCheckD2DetailEdited
+	}
+	if t.ReadinessCheckD3Detail != nil {
+		s.ReadinessCheckD3Detail = t.ReadinessCheckD3Detail
+	}
+	if t.ReadinessCheckN1Detail != nil {
+		s.ReadinessCheckN1Detail = t.ReadinessCheckN1Detail
+	}
+	if t.ReadinessCheckN2Detail != nil {
+		s.ReadinessCheckN2Detail = t.ReadinessCheckN2Detail
+	}
+	if t.ReadinessCheckN3Detail != nil {
+		s.ReadinessCheckN3Detail = t.ReadinessCheckN3Detail
+	}
+	if t.ReadinessCheckN5Detail != nil {
+		s.ReadinessCheckN5Detail = t.ReadinessCheckN5Detail
+	}
+	if t.ReadinessCheckN6Detail != nil {
+		s.ReadinessCheckN6Detail = t.ReadinessCheckN6Detail
+	}
+	if t.ReadinessCheckT1Detail != nil {
+		s.ReadinessCheckT1Detail = t.ReadinessCheckT1Detail
+	}
+	if t.ReadinessCheckT2Detail != nil {
+		s.ReadinessCheckT2Detail = t.ReadinessCheckT2Detail
+	}
+	if t.ReadinessCheckT3Detail != nil {
+		s.ReadinessCheckT3Detail = t.ReadinessCheckT3Detail
+	}
+	if t.ReadinessCheckT4Detail != nil {
+		s.ReadinessCheckT4Detail = t.ReadinessCheckT4Detail
+	}
+	if t.ReadinessCounts != nil {
+		s.ReadinessCounts = t.ReadinessCounts
+	}
+	if t.ReadinessDismissedNote != nil {
+		s.ReadinessDismissedNote = t.ReadinessDismissedNote
+	}
+	if t.ReadinessLastChecked != nil {
+		s.ReadinessLastChecked = t.ReadinessLastChecked
+	}
+	if t.RebindDelta != nil {
+		s.RebindDelta = t.RebindDelta
+	}
+	if t.RebindErrorToast != nil {
+		s.RebindErrorToast = t.RebindErrorToast
+	}
+	if t.RebindOverrideAmountLabel != nil {
+		s.RebindOverrideAmountLabel = t.RebindOverrideAmountLabel
+	}
+	if t.RebindOverrideAmountPlaceholder != nil {
+		s.RebindOverrideAmountPlaceholder = t.RebindOverrideAmountPlaceholder
+	}
+	if t.RebindSuccessToast != nil {
+		s.RebindSuccessToast = t.RebindSuccessToast
+	}
+	if t.RebindUnitConversion != nil {
+		s.RebindUnitConversion = t.RebindUnitConversion
+	}
+	if t.RebindUnitCrossFamily != nil {
+		s.RebindUnitCrossFamily = t.RebindUnitCrossFamily
+	}
+	if t.ReportsDeliverableSuccess != nil {
+		s.ReportsDeliverableSuccess = t.ReportsDeliverableSuccess
+	}
+	if t.ReportsDeliverableSuccessMissing != nil {
+		s.ReportsDeliverableSuccessMissing = t.ReportsDeliverableSuccessMissing
+	}
+	if t.ReportsExportFailed != nil {
+		s.ReportsExportFailed = t.ReportsExportFailed
+	}
+	if t.ReportsExportSuccess != nil {
+		s.ReportsExportSuccess = t.ReportsExportSuccess
+	}
+	if t.ReportsGenerateFailed != nil {
+		s.ReportsGenerateFailed = t.ReportsGenerateFailed
+	}
+	if t.RoutingLookupDoneAmap != nil {
+		s.RoutingLookupDoneAmap = t.RoutingLookupDoneAmap
+	}
+	if t.RoutingLookupDoneHaversine != nil {
+		s.RoutingLookupDoneHaversine = t.RoutingLookupDoneHaversine
+	}
+	if t.SettingsAiCacheCleared != nil {
+		s.SettingsAiCacheCleared = t.SettingsAiCacheCleared
+	}
 	if t.SettingsCurrent != nil {
 		s.SettingsCurrent = t.SettingsCurrent
+	}
+	if t.SettingsDataCacheClearSuccess != nil {
+		s.SettingsDataCacheClearSuccess = t.SettingsDataCacheClearSuccess
+	}
+	if t.SettingsDataCacheExtractionSummary != nil {
+		s.SettingsDataCacheExtractionSummary = t.SettingsDataCacheExtractionSummary
+	}
+	if t.SettingsMcpConfigured != nil {
+		s.SettingsMcpConfigured = t.SettingsMcpConfigured
+	}
+	if t.SettingsMcpRemoved != nil {
+		s.SettingsMcpRemoved = t.SettingsMcpRemoved
+	}
+	if t.SettingsModelCustomOption != nil {
+		s.SettingsModelCustomOption = t.SettingsModelCustomOption
+	}
+	if t.SettingsProviderUnknownWarning != nil {
+		s.SettingsProviderUnknownWarning = t.SettingsProviderUnknownWarning
+	}
+	if t.SettingsSkillInstalled != nil {
+		s.SettingsSkillInstalled = t.SettingsSkillInstalled
+	}
+	if t.SettingsSkillStatusInstalled != nil {
+		s.SettingsSkillStatusInstalled = t.SettingsSkillStatusInstalled
+	}
+	if t.SettingsSkillWillInstallTo != nil {
+		s.SettingsSkillWillInstallTo = t.SettingsSkillWillInstallTo
+	}
+	if t.SourcesCatalogBatchAdd != nil {
+		s.SourcesCatalogBatchAdd = t.SourcesCatalogBatchAdd
+	}
+	if t.SourcesCatalogBatchAddSuccess != nil {
+		s.SourcesCatalogBatchAddSuccess = t.SourcesCatalogBatchAddSuccess
+	}
+	if t.SourcesCatalogSelectAll != nil {
+		s.SourcesCatalogSelectAll = t.SourcesCatalogSelectAll
+	}
+	if t.SourcesCatalogSelectedCount != nil {
+		s.SourcesCatalogSelectedCount = t.SourcesCatalogSelectedCount
+	}
+	if t.SourcesFormCategoryCustom != nil {
+		s.SourcesFormCategoryCustom = t.SourcesFormCategoryCustom
+	}
+	if t.SourcesFromCatalog != nil {
+		s.SourcesFromCatalog = t.SourcesFromCatalog
+	}
+	if t.SourcesStatsActivityCount != nil {
+		s.SourcesStatsActivityCount = t.SourcesStatsActivityCount
+	}
+	if t.SourcesStatsLast != nil {
+		s.SourcesStatsLast = t.SourcesStatsLast
+	}
+	if t.SourcesStatsTotal != nil {
+		s.SourcesStatsTotal = t.SourcesStatsTotal
+	}
+	if t.UpdaterCurrentVersion != nil {
+		s.UpdaterCurrentVersion = t.UpdaterCurrentVersion
+	}
+	if t.UpdaterStatusAvailable != nil {
+		s.UpdaterStatusAvailable = t.UpdaterStatusAvailable
+	}
+	if t.UpdaterStatusAvailableManual != nil {
+		s.UpdaterStatusAvailableManual = t.UpdaterStatusAvailableManual
+	}
+	if t.UpdaterStatusDownloaded != nil {
+		s.UpdaterStatusDownloaded = t.UpdaterStatusDownloaded
+	}
+	if t.UpdaterStatusDownloading != nil {
+		s.UpdaterStatusDownloading = t.UpdaterStatusDownloading
+	}
+	if t.UpdaterStatusError != nil {
+		s.UpdaterStatusError = t.UpdaterStatusError
+	}
+	if t.WorkspaceCreatedAt != nil {
+		s.WorkspaceCreatedAt = t.WorkspaceCreatedAt
+	}
+	if t.WorkspaceDeleteConfirm != nil {
+		s.WorkspaceDeleteConfirm = t.WorkspaceDeleteConfirm
+	}
+	if t.WorkspaceSwitchConfirm != nil {
+		s.WorkspaceSwitchConfirm = t.WorkspaceSwitchConfirm
 	}
 	supplied[lang] = s
 	Catalog.Add(lang)
@@ -362,103 +7431,12 @@ func (msgs Messages) arg(s string) string {
 	return s
 }
 
-// AppName says "CarbonInk"
+// ActivitiesAddButton says "Add Activity"
 // in the language the app shows under cx.
-func AppName(cx *core.Scope) string { return For(cx).AppName() }
+func ActivitiesAddButton(cx *core.Scope) string { return For(cx).ActivitiesAddButton() }
 
-// AppName is the package's AppName in the language of msgs.
-func (msgs Messages) AppName() string { return msgs.text(textAppName) }
-
-// NavOverview says "Overview"
-// in the language the app shows under cx.
-func NavOverview(cx *core.Scope) string { return For(cx).NavOverview() }
-
-// NavOverview is the package's NavOverview in the language of msgs.
-func (msgs Messages) NavOverview() string { return msgs.text(textNavOverview) }
-
-// NavDashboard says "Dashboard"
-// in the language the app shows under cx.
-func NavDashboard(cx *core.Scope) string { return For(cx).NavDashboard() }
-
-// NavDashboard is the package's NavDashboard in the language of msgs.
-func (msgs Messages) NavDashboard() string { return msgs.text(textNavDashboard) }
-
-// NavActivities says "Activities"
-// in the language the app shows under cx.
-func NavActivities(cx *core.Scope) string { return For(cx).NavActivities() }
-
-// NavActivities is the package's NavActivities in the language of msgs.
-func (msgs Messages) NavActivities() string { return msgs.text(textNavActivities) }
-
-// NavInventory says "Inventory"
-// in the language the app shows under cx.
-func NavInventory(cx *core.Scope) string { return For(cx).NavInventory() }
-
-// NavInventory is the package's NavInventory in the language of msgs.
-func (msgs Messages) NavInventory() string { return msgs.text(textNavInventory) }
-
-// NavSources says "Sources"
-// in the language the app shows under cx.
-func NavSources(cx *core.Scope) string { return For(cx).NavSources() }
-
-// NavSources is the package's NavSources in the language of msgs.
-func (msgs Messages) NavSources() string { return msgs.text(textNavSources) }
-
-// NavInputs says "Inputs"
-// in the language the app shows under cx.
-func NavInputs(cx *core.Scope) string { return For(cx).NavInputs() }
-
-// NavInputs is the package's NavInputs in the language of msgs.
-func (msgs Messages) NavInputs() string { return msgs.text(textNavInputs) }
-
-// NavDocuments says "Documents"
-// in the language the app shows under cx.
-func NavDocuments(cx *core.Scope) string { return For(cx).NavDocuments() }
-
-// NavDocuments is the package's NavDocuments in the language of msgs.
-func (msgs Messages) NavDocuments() string { return msgs.text(textNavDocuments) }
-
-// NavReports says "Reports"
-// in the language the app shows under cx.
-func NavReports(cx *core.Scope) string { return For(cx).NavReports() }
-
-// NavReports is the package's NavReports in the language of msgs.
-func (msgs Messages) NavReports() string { return msgs.text(textNavReports) }
-
-// NavSystem says "System"
-// in the language the app shows under cx.
-func NavSystem(cx *core.Scope) string { return For(cx).NavSystem() }
-
-// NavSystem is the package's NavSystem in the language of msgs.
-func (msgs Messages) NavSystem() string { return msgs.text(textNavSystem) }
-
-// NavSettings says "Settings"
-// in the language the app shows under cx.
-func NavSettings(cx *core.Scope) string { return For(cx).NavSettings() }
-
-// NavSettings is the package's NavSettings in the language of msgs.
-func (msgs Messages) NavSettings() string { return msgs.text(textNavSettings) }
-
-// ActivitiesTitle says "Activities"
-// in the language the app shows under cx.
-func ActivitiesTitle(cx *core.Scope) string { return For(cx).ActivitiesTitle() }
-
-// ActivitiesTitle is the package's ActivitiesTitle in the language of msgs.
-func (msgs Messages) ActivitiesTitle() string { return msgs.text(textActivitiesTitle) }
-
-// ActivitiesSubtitle says "Activity data from the active workspace."
-// in the language the app shows under cx.
-func ActivitiesSubtitle(cx *core.Scope) string { return For(cx).ActivitiesSubtitle() }
-
-// ActivitiesSubtitle is the package's ActivitiesSubtitle in the language of msgs.
-func (msgs Messages) ActivitiesSubtitle() string { return msgs.text(textActivitiesSubtitle) }
-
-// ActivitiesEmpty says "No activity data yet."
-// in the language the app shows under cx.
-func ActivitiesEmpty(cx *core.Scope) string { return For(cx).ActivitiesEmpty() }
-
-// ActivitiesEmpty is the package's ActivitiesEmpty in the language of msgs.
-func (msgs Messages) ActivitiesEmpty() string { return msgs.text(textActivitiesEmpty) }
+// ActivitiesAddButton is the package's ActivitiesAddButton in the language of msgs.
+func (msgs Messages) ActivitiesAddButton() string { return msgs.text(textActivitiesAddButton) }
 
 // ActivitiesCount says "{count} rows"
 // in the language the app shows under cx.
@@ -484,19 +7462,2044 @@ func (msgs Messages) ActivitiesCount(count int) string {
 	}
 }
 
-// WorkspaceActive says "Active workspace"
+// ActivitiesCreateFailed says "Failed to create activity"
 // in the language the app shows under cx.
-func WorkspaceActive(cx *core.Scope) string { return For(cx).WorkspaceActive() }
+func ActivitiesCreateFailed(cx *core.Scope) string { return For(cx).ActivitiesCreateFailed() }
 
-// WorkspaceActive is the package's WorkspaceActive in the language of msgs.
-func (msgs Messages) WorkspaceActive() string { return msgs.text(textWorkspaceActive) }
+// ActivitiesCreateFailed is the package's ActivitiesCreateFailed in the language of msgs.
+func (msgs Messages) ActivitiesCreateFailed() string { return msgs.text(textActivitiesCreateFailed) }
 
-// ImportedLegacy says "Imported from CarbonInk 1.x"
+// ActivitiesCreateSuccess says "Activity recorded"
 // in the language the app shows under cx.
-func ImportedLegacy(cx *core.Scope) string { return For(cx).ImportedLegacy() }
+func ActivitiesCreateSuccess(cx *core.Scope) string { return For(cx).ActivitiesCreateSuccess() }
 
-// ImportedLegacy is the package's ImportedLegacy in the language of msgs.
-func (msgs Messages) ImportedLegacy() string { return msgs.text(textImportedLegacy) }
+// ActivitiesCreateSuccess is the package's ActivitiesCreateSuccess in the language of msgs.
+func (msgs Messages) ActivitiesCreateSuccess() string { return msgs.text(textActivitiesCreateSuccess) }
+
+// ActivitiesEmpty says "No activity data yet."
+// in the language the app shows under cx.
+func ActivitiesEmpty(cx *core.Scope) string { return For(cx).ActivitiesEmpty() }
+
+// ActivitiesEmpty is the package's ActivitiesEmpty in the language of msgs.
+func (msgs Messages) ActivitiesEmpty() string { return msgs.text(textActivitiesEmpty) }
+
+// ActivitiesEmptyBody says "Record the consumption behind each source — a meter reading, a fuel receipt, a trip. Drop in a PDF and the fields get filled in for you."
+// in the language the app shows under cx.
+func ActivitiesEmptyBody(cx *core.Scope) string { return For(cx).ActivitiesEmptyBody() }
+
+// ActivitiesEmptyBody is the package's ActivitiesEmptyBody in the language of msgs.
+func (msgs Messages) ActivitiesEmptyBody() string { return msgs.text(textActivitiesEmptyBody) }
+
+// ActivitiesEmptyNoSourcesBody says "Activity data hangs off an emission source, and this organization has none yet. Set one up and you can start recording consumption here."
+// in the language the app shows under cx.
+func ActivitiesEmptyNoSourcesBody(cx *core.Scope) string {
+	return For(cx).ActivitiesEmptyNoSourcesBody()
+}
+
+// ActivitiesEmptyNoSourcesBody is the package's ActivitiesEmptyNoSourcesBody in the language of msgs.
+func (msgs Messages) ActivitiesEmptyNoSourcesBody() string {
+	return msgs.text(textActivitiesEmptyNoSourcesBody)
+}
+
+// ActivitiesEmptyNoSourcesCta says "Set up emission sources"
+// in the language the app shows under cx.
+func ActivitiesEmptyNoSourcesCta(cx *core.Scope) string { return For(cx).ActivitiesEmptyNoSourcesCta() }
+
+// ActivitiesEmptyNoSourcesCta is the package's ActivitiesEmptyNoSourcesCta in the language of msgs.
+func (msgs Messages) ActivitiesEmptyNoSourcesCta() string {
+	return msgs.text(textActivitiesEmptyNoSourcesCta)
+}
+
+// ActivitiesEmptyNoSourcesTitle says "Add an emission source first"
+// in the language the app shows under cx.
+func ActivitiesEmptyNoSourcesTitle(cx *core.Scope) string {
+	return For(cx).ActivitiesEmptyNoSourcesTitle()
+}
+
+// ActivitiesEmptyNoSourcesTitle is the package's ActivitiesEmptyNoSourcesTitle in the language of msgs.
+func (msgs Messages) ActivitiesEmptyNoSourcesTitle() string {
+	return msgs.text(textActivitiesEmptyNoSourcesTitle)
+}
+
+// ActivitiesEmptyTitle says "No activity data yet"
+// in the language the app shows under cx.
+func ActivitiesEmptyTitle(cx *core.Scope) string { return For(cx).ActivitiesEmptyTitle() }
+
+// ActivitiesEmptyTitle is the package's ActivitiesEmptyTitle in the language of msgs.
+func (msgs Messages) ActivitiesEmptyTitle() string { return msgs.text(textActivitiesEmptyTitle) }
+
+// ActivitiesFilterClear says "Clear filters"
+// in the language the app shows under cx.
+func ActivitiesFilterClear(cx *core.Scope) string { return For(cx).ActivitiesFilterClear() }
+
+// ActivitiesFilterClear is the package's ActivitiesFilterClear in the language of msgs.
+func (msgs Messages) ActivitiesFilterClear() string { return msgs.text(textActivitiesFilterClear) }
+
+// ActivitiesFilterEmpty says "No matching activities"
+// in the language the app shows under cx.
+func ActivitiesFilterEmpty(cx *core.Scope) string { return For(cx).ActivitiesFilterEmpty() }
+
+// ActivitiesFilterEmpty is the package's ActivitiesFilterEmpty in the language of msgs.
+func (msgs Messages) ActivitiesFilterEmpty() string { return msgs.text(textActivitiesFilterEmpty) }
+
+// ActivitiesFormAmount says "Amount"
+// in the language the app shows under cx.
+func ActivitiesFormAmount(cx *core.Scope) string { return For(cx).ActivitiesFormAmount() }
+
+// ActivitiesFormAmount is the package's ActivitiesFormAmount in the language of msgs.
+func (msgs Messages) ActivitiesFormAmount() string { return msgs.text(textActivitiesFormAmount) }
+
+// ActivitiesFormEf says "Emission factor"
+// in the language the app shows under cx.
+func ActivitiesFormEf(cx *core.Scope) string { return For(cx).ActivitiesFormEf() }
+
+// ActivitiesFormEf is the package's ActivitiesFormEf in the language of msgs.
+func (msgs Messages) ActivitiesFormEf() string { return msgs.text(textActivitiesFormEf) }
+
+// ActivitiesFormEfLoading says "Loading emission factors…"
+// in the language the app shows under cx.
+func ActivitiesFormEfLoading(cx *core.Scope) string { return For(cx).ActivitiesFormEfLoading() }
+
+// ActivitiesFormEfLoading is the package's ActivitiesFormEfLoading in the language of msgs.
+func (msgs Messages) ActivitiesFormEfLoading() string { return msgs.text(textActivitiesFormEfLoading) }
+
+// ActivitiesFormEfNone says "No matching emission factors. Try a different source category."
+// in the language the app shows under cx.
+func ActivitiesFormEfNone(cx *core.Scope) string { return For(cx).ActivitiesFormEfNone() }
+
+// ActivitiesFormEfNone is the package's ActivitiesFormEfNone in the language of msgs.
+func (msgs Messages) ActivitiesFormEfNone() string { return msgs.text(textActivitiesFormEfNone) }
+
+// ActivitiesFormEfPickSourceFirst says "Pick an emission source above to load EF candidates."
+// in the language the app shows under cx.
+func ActivitiesFormEfPickSourceFirst(cx *core.Scope) string {
+	return For(cx).ActivitiesFormEfPickSourceFirst()
+}
+
+// ActivitiesFormEfPickSourceFirst is the package's ActivitiesFormEfPickSourceFirst in the language of msgs.
+func (msgs Messages) ActivitiesFormEfPickSourceFirst() string {
+	return msgs.text(textActivitiesFormEfPickSourceFirst)
+}
+
+// ActivitiesFormEfSelected says "Selected"
+// in the language the app shows under cx.
+func ActivitiesFormEfSelected(cx *core.Scope) string { return For(cx).ActivitiesFormEfSelected() }
+
+// ActivitiesFormEfSelected is the package's ActivitiesFormEfSelected in the language of msgs.
+func (msgs Messages) ActivitiesFormEfSelected() string {
+	return msgs.text(textActivitiesFormEfSelected)
+}
+
+// ActivitiesFormFuel says "Fuel (optional)"
+// in the language the app shows under cx.
+func ActivitiesFormFuel(cx *core.Scope) string { return For(cx).ActivitiesFormFuel() }
+
+// ActivitiesFormFuel is the package's ActivitiesFormFuel in the language of msgs.
+func (msgs Messages) ActivitiesFormFuel() string { return msgs.text(textActivitiesFormFuel) }
+
+// ActivitiesFormFuelHint says "Only needed for cross-family unit conversion (e.g. kg gasoline ↔ L)."
+// in the language the app shows under cx.
+func ActivitiesFormFuelHint(cx *core.Scope) string { return For(cx).ActivitiesFormFuelHint() }
+
+// ActivitiesFormFuelHint is the package's ActivitiesFormFuelHint in the language of msgs.
+func (msgs Messages) ActivitiesFormFuelHint() string { return msgs.text(textActivitiesFormFuelHint) }
+
+// ActivitiesFormFuelNone says "— None —"
+// in the language the app shows under cx.
+func ActivitiesFormFuelNone(cx *core.Scope) string { return For(cx).ActivitiesFormFuelNone() }
+
+// ActivitiesFormFuelNone is the package's ActivitiesFormFuelNone in the language of msgs.
+func (msgs Messages) ActivitiesFormFuelNone() string { return msgs.text(textActivitiesFormFuelNone) }
+
+// ActivitiesFormNoPeriods says "No reporting periods yet. Finish onboarding first."
+// in the language the app shows under cx.
+func ActivitiesFormNoPeriods(cx *core.Scope) string { return For(cx).ActivitiesFormNoPeriods() }
+
+// ActivitiesFormNoPeriods is the package's ActivitiesFormNoPeriods in the language of msgs.
+func (msgs Messages) ActivitiesFormNoPeriods() string { return msgs.text(textActivitiesFormNoPeriods) }
+
+// ActivitiesFormNoSources says "No sources yet. Add one in the Sources page first."
+// in the language the app shows under cx.
+func ActivitiesFormNoSources(cx *core.Scope) string { return For(cx).ActivitiesFormNoSources() }
+
+// ActivitiesFormNoSources is the package's ActivitiesFormNoSources in the language of msgs.
+func (msgs Messages) ActivitiesFormNoSources() string { return msgs.text(textActivitiesFormNoSources) }
+
+// ActivitiesFormNotes says "Notes (optional)"
+// in the language the app shows under cx.
+func ActivitiesFormNotes(cx *core.Scope) string { return For(cx).ActivitiesFormNotes() }
+
+// ActivitiesFormNotes is the package's ActivitiesFormNotes in the language of msgs.
+func (msgs Messages) ActivitiesFormNotes() string { return msgs.text(textActivitiesFormNotes) }
+
+// ActivitiesFormOccurredEnd says "End date"
+// in the language the app shows under cx.
+func ActivitiesFormOccurredEnd(cx *core.Scope) string { return For(cx).ActivitiesFormOccurredEnd() }
+
+// ActivitiesFormOccurredEnd is the package's ActivitiesFormOccurredEnd in the language of msgs.
+func (msgs Messages) ActivitiesFormOccurredEnd() string {
+	return msgs.text(textActivitiesFormOccurredEnd)
+}
+
+// ActivitiesFormOccurredStart says "Start date"
+// in the language the app shows under cx.
+func ActivitiesFormOccurredStart(cx *core.Scope) string { return For(cx).ActivitiesFormOccurredStart() }
+
+// ActivitiesFormOccurredStart is the package's ActivitiesFormOccurredStart in the language of msgs.
+func (msgs Messages) ActivitiesFormOccurredStart() string {
+	return msgs.text(textActivitiesFormOccurredStart)
+}
+
+// ActivitiesFormPeriod says "Reporting period"
+// in the language the app shows under cx.
+func ActivitiesFormPeriod(cx *core.Scope) string { return For(cx).ActivitiesFormPeriod() }
+
+// ActivitiesFormPeriod is the package's ActivitiesFormPeriod in the language of msgs.
+func (msgs Messages) ActivitiesFormPeriod() string { return msgs.text(textActivitiesFormPeriod) }
+
+// ActivitiesFormPeriodPlaceholder says "Select a reporting period…"
+// in the language the app shows under cx.
+func ActivitiesFormPeriodPlaceholder(cx *core.Scope) string {
+	return For(cx).ActivitiesFormPeriodPlaceholder()
+}
+
+// ActivitiesFormPeriodPlaceholder is the package's ActivitiesFormPeriodPlaceholder in the language of msgs.
+func (msgs Messages) ActivitiesFormPeriodPlaceholder() string {
+	return msgs.text(textActivitiesFormPeriodPlaceholder)
+}
+
+// ActivitiesFormSource says "Emission source"
+// in the language the app shows under cx.
+func ActivitiesFormSource(cx *core.Scope) string { return For(cx).ActivitiesFormSource() }
+
+// ActivitiesFormSource is the package's ActivitiesFormSource in the language of msgs.
+func (msgs Messages) ActivitiesFormSource() string { return msgs.text(textActivitiesFormSource) }
+
+// ActivitiesFormSourcePlaceholder says "Select a source…"
+// in the language the app shows under cx.
+func ActivitiesFormSourcePlaceholder(cx *core.Scope) string {
+	return For(cx).ActivitiesFormSourcePlaceholder()
+}
+
+// ActivitiesFormSourcePlaceholder is the package's ActivitiesFormSourcePlaceholder in the language of msgs.
+func (msgs Messages) ActivitiesFormSourcePlaceholder() string {
+	return msgs.text(textActivitiesFormSourcePlaceholder)
+}
+
+// ActivitiesFormSubmit says "Record activity"
+// in the language the app shows under cx.
+func ActivitiesFormSubmit(cx *core.Scope) string { return For(cx).ActivitiesFormSubmit() }
+
+// ActivitiesFormSubmit is the package's ActivitiesFormSubmit in the language of msgs.
+func (msgs Messages) ActivitiesFormSubmit() string { return msgs.text(textActivitiesFormSubmit) }
+
+// ActivitiesFormSubmitting says "Recording…"
+// in the language the app shows under cx.
+func ActivitiesFormSubmitting(cx *core.Scope) string { return For(cx).ActivitiesFormSubmitting() }
+
+// ActivitiesFormSubmitting is the package's ActivitiesFormSubmitting in the language of msgs.
+func (msgs Messages) ActivitiesFormSubmitting() string {
+	return msgs.text(textActivitiesFormSubmitting)
+}
+
+// ActivitiesFormUnit says "Unit"
+// in the language the app shows under cx.
+func ActivitiesFormUnit(cx *core.Scope) string { return For(cx).ActivitiesFormUnit() }
+
+// ActivitiesFormUnit is the package's ActivitiesFormUnit in the language of msgs.
+func (msgs Messages) ActivitiesFormUnit() string { return msgs.text(textActivitiesFormUnit) }
+
+// ActivitiesFormUnitPlaceholder says "e.g. kWh, L, kg, t, 度, 公里"
+// in the language the app shows under cx.
+func ActivitiesFormUnitPlaceholder(cx *core.Scope) string {
+	return For(cx).ActivitiesFormUnitPlaceholder()
+}
+
+// ActivitiesFormUnitPlaceholder is the package's ActivitiesFormUnitPlaceholder in the language of msgs.
+func (msgs Messages) ActivitiesFormUnitPlaceholder() string {
+	return msgs.text(textActivitiesFormUnitPlaceholder)
+}
+
+// ActivitiesFromDocument says "From {filename}"
+// in the language the app shows under cx.
+func ActivitiesFromDocument(cx *core.Scope, filename string) string {
+	return For(cx).ActivitiesFromDocument(filename)
+}
+
+// ActivitiesFromDocument is the package's ActivitiesFromDocument in the language of msgs.
+func (msgs Messages) ActivitiesFromDocument(filename string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ActivitiesFromDocument(filename))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ActivitiesFromDocument; f != nil {
+			return f(filename)
+		}
+		switch lang {
+		case "", "en":
+			return "From " + msgs.arg(filename)
+		case "zh-CN":
+			return "来自文档：" + filename
+		}
+	}
+}
+
+// ActivitiesFromLedgerImport says "Ledger import"
+// in the language the app shows under cx.
+func ActivitiesFromLedgerImport(cx *core.Scope) string { return For(cx).ActivitiesFromLedgerImport() }
+
+// ActivitiesFromLedgerImport is the package's ActivitiesFromLedgerImport in the language of msgs.
+func (msgs Messages) ActivitiesFromLedgerImport() string {
+	return msgs.text(textActivitiesFromLedgerImport)
+}
+
+// ActivitiesFromSupplierDisclosure says "From supplier disclosure"
+// in the language the app shows under cx.
+func ActivitiesFromSupplierDisclosure(cx *core.Scope) string {
+	return For(cx).ActivitiesFromSupplierDisclosure()
+}
+
+// ActivitiesFromSupplierDisclosure is the package's ActivitiesFromSupplierDisclosure in the language of msgs.
+func (msgs Messages) ActivitiesFromSupplierDisclosure() string {
+	return msgs.text(textActivitiesFromSupplierDisclosure)
+}
+
+// ActivitiesLoadFailed says "Failed to load activities"
+// in the language the app shows under cx.
+func ActivitiesLoadFailed(cx *core.Scope) string { return For(cx).ActivitiesLoadFailed() }
+
+// ActivitiesLoadFailed is the package's ActivitiesLoadFailed in the language of msgs.
+func (msgs Messages) ActivitiesLoadFailed() string { return msgs.text(textActivitiesLoadFailed) }
+
+// ActivitiesSearchPlaceholder says "Search source, unit, or EF"
+// in the language the app shows under cx.
+func ActivitiesSearchPlaceholder(cx *core.Scope) string { return For(cx).ActivitiesSearchPlaceholder() }
+
+// ActivitiesSearchPlaceholder is the package's ActivitiesSearchPlaceholder in the language of msgs.
+func (msgs Messages) ActivitiesSearchPlaceholder() string {
+	return msgs.text(textActivitiesSearchPlaceholder)
+}
+
+// ActivitiesSortCo2eAsc says "CO₂e low → high"
+// in the language the app shows under cx.
+func ActivitiesSortCo2eAsc(cx *core.Scope) string { return For(cx).ActivitiesSortCo2eAsc() }
+
+// ActivitiesSortCo2eAsc is the package's ActivitiesSortCo2eAsc in the language of msgs.
+func (msgs Messages) ActivitiesSortCo2eAsc() string { return msgs.text(textActivitiesSortCo2eAsc) }
+
+// ActivitiesSortCo2eDesc says "CO₂e high → low"
+// in the language the app shows under cx.
+func ActivitiesSortCo2eDesc(cx *core.Scope) string { return For(cx).ActivitiesSortCo2eDesc() }
+
+// ActivitiesSortCo2eDesc is the package's ActivitiesSortCo2eDesc in the language of msgs.
+func (msgs Messages) ActivitiesSortCo2eDesc() string { return msgs.text(textActivitiesSortCo2eDesc) }
+
+// ActivitiesSortOldest says "Oldest first"
+// in the language the app shows under cx.
+func ActivitiesSortOldest(cx *core.Scope) string { return For(cx).ActivitiesSortOldest() }
+
+// ActivitiesSortOldest is the package's ActivitiesSortOldest in the language of msgs.
+func (msgs Messages) ActivitiesSortOldest() string { return msgs.text(textActivitiesSortOldest) }
+
+// ActivitiesSortRecent says "Most recent"
+// in the language the app shows under cx.
+func ActivitiesSortRecent(cx *core.Scope) string { return For(cx).ActivitiesSortRecent() }
+
+// ActivitiesSortRecent is the package's ActivitiesSortRecent in the language of msgs.
+func (msgs Messages) ActivitiesSortRecent() string { return msgs.text(textActivitiesSortRecent) }
+
+// ActivitiesSortSource says "Source name"
+// in the language the app shows under cx.
+func ActivitiesSortSource(cx *core.Scope) string { return For(cx).ActivitiesSortSource() }
+
+// ActivitiesSortSource is the package's ActivitiesSortSource in the language of msgs.
+func (msgs Messages) ActivitiesSortSource() string { return msgs.text(textActivitiesSortSource) }
+
+// ActivitiesSourceManual says "Entered manually"
+// in the language the app shows under cx.
+func ActivitiesSourceManual(cx *core.Scope) string { return For(cx).ActivitiesSourceManual() }
+
+// ActivitiesSourceManual is the package's ActivitiesSourceManual in the language of msgs.
+func (msgs Messages) ActivitiesSourceManual() string { return msgs.text(textActivitiesSourceManual) }
+
+// ActivitiesSubtitle says "Activity data from the active workspace."
+// in the language the app shows under cx.
+func ActivitiesSubtitle(cx *core.Scope) string { return For(cx).ActivitiesSubtitle() }
+
+// ActivitiesSubtitle is the package's ActivitiesSubtitle in the language of msgs.
+func (msgs Messages) ActivitiesSubtitle() string { return msgs.text(textActivitiesSubtitle) }
+
+// ActivitiesTableAmount says "Amount"
+// in the language the app shows under cx.
+func ActivitiesTableAmount(cx *core.Scope) string { return For(cx).ActivitiesTableAmount() }
+
+// ActivitiesTableAmount is the package's ActivitiesTableAmount in the language of msgs.
+func (msgs Messages) ActivitiesTableAmount() string { return msgs.text(textActivitiesTableAmount) }
+
+// ActivitiesTableCo2e says "CO2e"
+// in the language the app shows under cx.
+func ActivitiesTableCo2e(cx *core.Scope) string { return For(cx).ActivitiesTableCo2e() }
+
+// ActivitiesTableCo2e is the package's ActivitiesTableCo2e in the language of msgs.
+func (msgs Messages) ActivitiesTableCo2e() string { return msgs.text(textActivitiesTableCo2e) }
+
+// ActivitiesTableEf says "Emission factor"
+// in the language the app shows under cx.
+func ActivitiesTableEf(cx *core.Scope) string { return For(cx).ActivitiesTableEf() }
+
+// ActivitiesTableEf is the package's ActivitiesTableEf in the language of msgs.
+func (msgs Messages) ActivitiesTableEf() string { return msgs.text(textActivitiesTableEf) }
+
+// ActivitiesTableOccurred says "Date"
+// in the language the app shows under cx.
+func ActivitiesTableOccurred(cx *core.Scope) string { return For(cx).ActivitiesTableOccurred() }
+
+// ActivitiesTableOccurred is the package's ActivitiesTableOccurred in the language of msgs.
+func (msgs Messages) ActivitiesTableOccurred() string { return msgs.text(textActivitiesTableOccurred) }
+
+// ActivitiesTableSource says "Source"
+// in the language the app shows under cx.
+func ActivitiesTableSource(cx *core.Scope) string { return For(cx).ActivitiesTableSource() }
+
+// ActivitiesTableSource is the package's ActivitiesTableSource in the language of msgs.
+func (msgs Messages) ActivitiesTableSource() string { return msgs.text(textActivitiesTableSource) }
+
+// ActivitiesTitle says "Activities"
+// in the language the app shows under cx.
+func ActivitiesTitle(cx *core.Scope) string { return For(cx).ActivitiesTitle() }
+
+// ActivitiesTitle is the package's ActivitiesTitle in the language of msgs.
+func (msgs Messages) ActivitiesTitle() string { return msgs.text(textActivitiesTitle) }
+
+// ActivityDocCancel says "Cancel"
+// in the language the app shows under cx.
+func ActivityDocCancel(cx *core.Scope) string { return For(cx).ActivityDocCancel() }
+
+// ActivityDocCancel is the package's ActivityDocCancel in the language of msgs.
+func (msgs Messages) ActivityDocCancel() string { return msgs.text(textActivityDocCancel) }
+
+// ActivityDocCanceled says "Upload + recognition canceled"
+// in the language the app shows under cx.
+func ActivityDocCanceled(cx *core.Scope) string { return For(cx).ActivityDocCanceled() }
+
+// ActivityDocCanceled is the package's ActivityDocCanceled in the language of msgs.
+func (msgs Messages) ActivityDocCanceled() string { return msgs.text(textActivityDocCanceled) }
+
+// ActivityDocClassifyFailedBody says "Fill in the form below manually."
+// in the language the app shows under cx.
+func ActivityDocClassifyFailedBody(cx *core.Scope) string {
+	return For(cx).ActivityDocClassifyFailedBody()
+}
+
+// ActivityDocClassifyFailedBody is the package's ActivityDocClassifyFailedBody in the language of msgs.
+func (msgs Messages) ActivityDocClassifyFailedBody() string {
+	return msgs.text(textActivityDocClassifyFailedBody)
+}
+
+// ActivityDocClassifyFailedTitle says "AI recognition failed"
+// in the language the app shows under cx.
+func ActivityDocClassifyFailedTitle(cx *core.Scope) string {
+	return For(cx).ActivityDocClassifyFailedTitle()
+}
+
+// ActivityDocClassifyFailedTitle is the package's ActivityDocClassifyFailedTitle in the language of msgs.
+func (msgs Messages) ActivityDocClassifyFailedTitle() string {
+	return msgs.text(textActivityDocClassifyFailedTitle)
+}
+
+// ActivityDocClassifyHintDuration says "usually 30–60 s"
+// in the language the app shows under cx.
+func ActivityDocClassifyHintDuration(cx *core.Scope) string {
+	return For(cx).ActivityDocClassifyHintDuration()
+}
+
+// ActivityDocClassifyHintDuration is the package's ActivityDocClassifyHintDuration in the language of msgs.
+func (msgs Messages) ActivityDocClassifyHintDuration() string {
+	return msgs.text(textActivityDocClassifyHintDuration)
+}
+
+// ActivityDocClassifyTimeoutBody says "The AI provider is slow or unreachable. Check Settings → AI provider and retry, or fill the form manually."
+// in the language the app shows under cx.
+func ActivityDocClassifyTimeoutBody(cx *core.Scope) string {
+	return For(cx).ActivityDocClassifyTimeoutBody()
+}
+
+// ActivityDocClassifyTimeoutBody is the package's ActivityDocClassifyTimeoutBody in the language of msgs.
+func (msgs Messages) ActivityDocClassifyTimeoutBody() string {
+	return msgs.text(textActivityDocClassifyTimeoutBody)
+}
+
+// ActivityDocClassifyTimeoutTitle says "AI recognition timed out"
+// in the language the app shows under cx.
+func ActivityDocClassifyTimeoutTitle(cx *core.Scope) string {
+	return For(cx).ActivityDocClassifyTimeoutTitle()
+}
+
+// ActivityDocClassifyTimeoutTitle is the package's ActivityDocClassifyTimeoutTitle in the language of msgs.
+func (msgs Messages) ActivityDocClassifyTimeoutTitle() string {
+	return msgs.text(textActivityDocClassifyTimeoutTitle)
+}
+
+// ActivityDocClassifying says "Recognizing"
+// in the language the app shows under cx.
+func ActivityDocClassifying(cx *core.Scope) string { return For(cx).ActivityDocClassifying() }
+
+// ActivityDocClassifying is the package's ActivityDocClassifying in the language of msgs.
+func (msgs Messages) ActivityDocClassifying() string { return msgs.text(textActivityDocClassifying) }
+
+// ActivityDocHint says "Upload a receipt / bill to auto-fill"
+// in the language the app shows under cx.
+func ActivityDocHint(cx *core.Scope) string { return For(cx).ActivityDocHint() }
+
+// ActivityDocHint is the package's ActivityDocHint in the language of msgs.
+func (msgs Messages) ActivityDocHint() string { return msgs.text(textActivityDocHint) }
+
+// ActivityDocPrefilledBanner says "Form filled from the uploaded document. Please verify before saving."
+// in the language the app shows under cx.
+func ActivityDocPrefilledBanner(cx *core.Scope) string { return For(cx).ActivityDocPrefilledBanner() }
+
+// ActivityDocPrefilledBanner is the package's ActivityDocPrefilledBanner in the language of msgs.
+func (msgs Messages) ActivityDocPrefilledBanner() string {
+	return msgs.text(textActivityDocPrefilledBanner)
+}
+
+// ActivityDocRecognized says "Recognized"
+// in the language the app shows under cx.
+func ActivityDocRecognized(cx *core.Scope) string { return For(cx).ActivityDocRecognized() }
+
+// ActivityDocRecognized is the package's ActivityDocRecognized in the language of msgs.
+func (msgs Messages) ActivityDocRecognized() string { return msgs.text(textActivityDocRecognized) }
+
+// ActivityDocReupload says "Re-upload"
+// in the language the app shows under cx.
+func ActivityDocReupload(cx *core.Scope) string { return For(cx).ActivityDocReupload() }
+
+// ActivityDocReupload is the package's ActivityDocReupload in the language of msgs.
+func (msgs Messages) ActivityDocReupload() string { return msgs.text(textActivityDocReupload) }
+
+// ActivityDocSubhint says "Drop a PDF or click to select · AI extracts fields into the form"
+// in the language the app shows under cx.
+func ActivityDocSubhint(cx *core.Scope) string { return For(cx).ActivityDocSubhint() }
+
+// ActivityDocSubhint is the package's ActivityDocSubhint in the language of msgs.
+func (msgs Messages) ActivityDocSubhint() string { return msgs.text(textActivityDocSubhint) }
+
+// ActivityDocUploading says "Uploading"
+// in the language the app shows under cx.
+func ActivityDocUploading(cx *core.Scope) string { return For(cx).ActivityDocUploading() }
+
+// ActivityDocUploading is the package's ActivityDocUploading in the language of msgs.
+func (msgs Messages) ActivityDocUploading() string { return msgs.text(textActivityDocUploading) }
+
+// ActivityImportBackButton says "Back"
+// in the language the app shows under cx.
+func ActivityImportBackButton(cx *core.Scope) string { return For(cx).ActivityImportBackButton() }
+
+// ActivityImportBackButton is the package's ActivityImportBackButton in the language of msgs.
+func (msgs Messages) ActivityImportBackButton() string {
+	return msgs.text(textActivityImportBackButton)
+}
+
+// ActivityImportButton says "Batch import"
+// in the language the app shows under cx.
+func ActivityImportButton(cx *core.Scope) string { return For(cx).ActivityImportButton() }
+
+// ActivityImportButton is the package's ActivityImportButton in the language of msgs.
+func (msgs Messages) ActivityImportButton() string { return msgs.text(textActivityImportButton) }
+
+// ActivityImportCancelButton says "Cancel"
+// in the language the app shows under cx.
+func ActivityImportCancelButton(cx *core.Scope) string { return For(cx).ActivityImportCancelButton() }
+
+// ActivityImportCancelButton is the package's ActivityImportCancelButton in the language of msgs.
+func (msgs Messages) ActivityImportCancelButton() string {
+	return msgs.text(textActivityImportCancelButton)
+}
+
+// ActivityImportCloseButton says "Done"
+// in the language the app shows under cx.
+func ActivityImportCloseButton(cx *core.Scope) string { return For(cx).ActivityImportCloseButton() }
+
+// ActivityImportCloseButton is the package's ActivityImportCloseButton in the language of msgs.
+func (msgs Messages) ActivityImportCloseButton() string {
+	return msgs.text(textActivityImportCloseButton)
+}
+
+// ActivityImportColumnN says "Column {n}"
+// in the language the app shows under cx.
+func ActivityImportColumnN(cx *core.Scope, n string) string { return For(cx).ActivityImportColumnN(n) }
+
+// ActivityImportColumnN is the package's ActivityImportColumnN in the language of msgs.
+func (msgs Messages) ActivityImportColumnN(n string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ActivityImportColumnN(n))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ActivityImportColumnN; f != nil {
+			return f(n)
+		}
+		switch lang {
+		case "", "en":
+			return "Column " + msgs.arg(n)
+		case "zh-CN":
+			return "第 " + n + " 列"
+		}
+	}
+}
+
+// ActivityImportDescription says "Import a ledger spreadsheet: map columns, resolve sources, confirm one emission factor per group."
+// in the language the app shows under cx.
+func ActivityImportDescription(cx *core.Scope) string { return For(cx).ActivityImportDescription() }
+
+// ActivityImportDescription is the package's ActivityImportDescription in the language of msgs.
+func (msgs Messages) ActivityImportDescription() string {
+	return msgs.text(textActivityImportDescription)
+}
+
+// ActivityImportErrorNothingToImport says "Nothing importable — check mapping, sources and groups."
+// in the language the app shows under cx.
+func ActivityImportErrorNothingToImport(cx *core.Scope) string {
+	return For(cx).ActivityImportErrorNothingToImport()
+}
+
+// ActivityImportErrorNothingToImport is the package's ActivityImportErrorNothingToImport in the language of msgs.
+func (msgs Messages) ActivityImportErrorNothingToImport() string {
+	return msgs.text(textActivityImportErrorNothingToImport)
+}
+
+// ActivityImportErrorPeriodMissing says "Choose a reporting period first."
+// in the language the app shows under cx.
+func ActivityImportErrorPeriodMissing(cx *core.Scope) string {
+	return For(cx).ActivityImportErrorPeriodMissing()
+}
+
+// ActivityImportErrorPeriodMissing is the package's ActivityImportErrorPeriodMissing in the language of msgs.
+func (msgs Messages) ActivityImportErrorPeriodMissing() string {
+	return msgs.text(textActivityImportErrorPeriodMissing)
+}
+
+// ActivityImportErrorTokenExpired says "The staged import expired — pick the file again."
+// in the language the app shows under cx.
+func ActivityImportErrorTokenExpired(cx *core.Scope) string {
+	return For(cx).ActivityImportErrorTokenExpired()
+}
+
+// ActivityImportErrorTokenExpired is the package's ActivityImportErrorTokenExpired in the language of msgs.
+func (msgs Messages) ActivityImportErrorTokenExpired() string {
+	return msgs.text(textActivityImportErrorTokenExpired)
+}
+
+// ActivityImportErrorUnconfirmed says "Every group must be confirmed or skipped first."
+// in the language the app shows under cx.
+func ActivityImportErrorUnconfirmed(cx *core.Scope) string {
+	return For(cx).ActivityImportErrorUnconfirmed()
+}
+
+// ActivityImportErrorUnconfirmed is the package's ActivityImportErrorUnconfirmed in the language of msgs.
+func (msgs Messages) ActivityImportErrorUnconfirmed() string {
+	return msgs.text(textActivityImportErrorUnconfirmed)
+}
+
+// ActivityImportErrorsHeading says "Rows that will be skipped"
+// in the language the app shows under cx.
+func ActivityImportErrorsHeading(cx *core.Scope) string { return For(cx).ActivityImportErrorsHeading() }
+
+// ActivityImportErrorsHeading is the package's ActivityImportErrorsHeading in the language of msgs.
+func (msgs Messages) ActivityImportErrorsHeading() string {
+	return msgs.text(textActivityImportErrorsHeading)
+}
+
+// ActivityImportFailed says "Import failed"
+// in the language the app shows under cx.
+func ActivityImportFailed(cx *core.Scope) string { return For(cx).ActivityImportFailed() }
+
+// ActivityImportFailed is the package's ActivityImportFailed in the language of msgs.
+func (msgs Messages) ActivityImportFailed() string { return msgs.text(textActivityImportFailed) }
+
+// ActivityImportFieldAmount says "Amount"
+// in the language the app shows under cx.
+func ActivityImportFieldAmount(cx *core.Scope) string { return For(cx).ActivityImportFieldAmount() }
+
+// ActivityImportFieldAmount is the package's ActivityImportFieldAmount in the language of msgs.
+func (msgs Messages) ActivityImportFieldAmount() string {
+	return msgs.text(textActivityImportFieldAmount)
+}
+
+// ActivityImportFieldDescription says "Description"
+// in the language the app shows under cx.
+func ActivityImportFieldDescription(cx *core.Scope) string {
+	return For(cx).ActivityImportFieldDescription()
+}
+
+// ActivityImportFieldDescription is the package's ActivityImportFieldDescription in the language of msgs.
+func (msgs Messages) ActivityImportFieldDescription() string {
+	return msgs.text(textActivityImportFieldDescription)
+}
+
+// ActivityImportFieldNotes says "Notes"
+// in the language the app shows under cx.
+func ActivityImportFieldNotes(cx *core.Scope) string { return For(cx).ActivityImportFieldNotes() }
+
+// ActivityImportFieldNotes is the package's ActivityImportFieldNotes in the language of msgs.
+func (msgs Messages) ActivityImportFieldNotes() string {
+	return msgs.text(textActivityImportFieldNotes)
+}
+
+// ActivityImportFieldOccurredAtEnd says "End date"
+// in the language the app shows under cx.
+func ActivityImportFieldOccurredAtEnd(cx *core.Scope) string {
+	return For(cx).ActivityImportFieldOccurredAtEnd()
+}
+
+// ActivityImportFieldOccurredAtEnd is the package's ActivityImportFieldOccurredAtEnd in the language of msgs.
+func (msgs Messages) ActivityImportFieldOccurredAtEnd() string {
+	return msgs.text(textActivityImportFieldOccurredAtEnd)
+}
+
+// ActivityImportFieldOccurredAtStart says "Start date"
+// in the language the app shows under cx.
+func ActivityImportFieldOccurredAtStart(cx *core.Scope) string {
+	return For(cx).ActivityImportFieldOccurredAtStart()
+}
+
+// ActivityImportFieldOccurredAtStart is the package's ActivityImportFieldOccurredAtStart in the language of msgs.
+func (msgs Messages) ActivityImportFieldOccurredAtStart() string {
+	return msgs.text(textActivityImportFieldOccurredAtStart)
+}
+
+// ActivityImportFieldSourceName says "Source name"
+// in the language the app shows under cx.
+func ActivityImportFieldSourceName(cx *core.Scope) string {
+	return For(cx).ActivityImportFieldSourceName()
+}
+
+// ActivityImportFieldSourceName is the package's ActivityImportFieldSourceName in the language of msgs.
+func (msgs Messages) ActivityImportFieldSourceName() string {
+	return msgs.text(textActivityImportFieldSourceName)
+}
+
+// ActivityImportFieldUnit says "Unit"
+// in the language the app shows under cx.
+func ActivityImportFieldUnit(cx *core.Scope) string { return For(cx).ActivityImportFieldUnit() }
+
+// ActivityImportFieldUnit is the package's ActivityImportFieldUnit in the language of msgs.
+func (msgs Messages) ActivityImportFieldUnit() string { return msgs.text(textActivityImportFieldUnit) }
+
+// ActivityImportGroupConfirmButton says "Confirm EF"
+// in the language the app shows under cx.
+func ActivityImportGroupConfirmButton(cx *core.Scope) string {
+	return For(cx).ActivityImportGroupConfirmButton()
+}
+
+// ActivityImportGroupConfirmButton is the package's ActivityImportGroupConfirmButton in the language of msgs.
+func (msgs Messages) ActivityImportGroupConfirmButton() string {
+	return msgs.text(textActivityImportGroupConfirmButton)
+}
+
+// ActivityImportGroupDimensionMismatch says "This EF's unit family differs from the group's — bind a fuel below or pick another EF."
+// in the language the app shows under cx.
+func ActivityImportGroupDimensionMismatch(cx *core.Scope) string {
+	return For(cx).ActivityImportGroupDimensionMismatch()
+}
+
+// ActivityImportGroupDimensionMismatch is the package's ActivityImportGroupDimensionMismatch in the language of msgs.
+func (msgs Messages) ActivityImportGroupDimensionMismatch() string {
+	return msgs.text(textActivityImportGroupDimensionMismatch)
+}
+
+// ActivityImportGroupReopenButton says "Choose EF"
+// in the language the app shows under cx.
+func ActivityImportGroupReopenButton(cx *core.Scope) string {
+	return For(cx).ActivityImportGroupReopenButton()
+}
+
+// ActivityImportGroupReopenButton is the package's ActivityImportGroupReopenButton in the language of msgs.
+func (msgs Messages) ActivityImportGroupReopenButton() string {
+	return msgs.text(textActivityImportGroupReopenButton)
+}
+
+// ActivityImportGroupRowsTotal says "{count} rows · total {total} {unit}"
+// in the language the app shows under cx.
+func ActivityImportGroupRowsTotal(cx *core.Scope, count string, total string, unit string) string {
+	return For(cx).ActivityImportGroupRowsTotal(count, total, unit)
+}
+
+// ActivityImportGroupRowsTotal is the package's ActivityImportGroupRowsTotal in the language of msgs.
+func (msgs Messages) ActivityImportGroupRowsTotal(count string, total string, unit string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ActivityImportGroupRowsTotal(count, total, unit))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ActivityImportGroupRowsTotal; f != nil {
+			return f(count, total, unit)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " rows · total " + msgs.arg(total) + " " + msgs.arg(unit)
+		case "zh-CN":
+			return count + " 行 · 合计 " + total + " " + unit
+		}
+	}
+}
+
+// ActivityImportGroupSkipButton says "Skip group"
+// in the language the app shows under cx.
+func ActivityImportGroupSkipButton(cx *core.Scope) string {
+	return For(cx).ActivityImportGroupSkipButton()
+}
+
+// ActivityImportGroupSkipButton is the package's ActivityImportGroupSkipButton in the language of msgs.
+func (msgs Messages) ActivityImportGroupSkipButton() string {
+	return msgs.text(textActivityImportGroupSkipButton)
+}
+
+// ActivityImportGroupStatusConfirmed says "Confirmed"
+// in the language the app shows under cx.
+func ActivityImportGroupStatusConfirmed(cx *core.Scope) string {
+	return For(cx).ActivityImportGroupStatusConfirmed()
+}
+
+// ActivityImportGroupStatusConfirmed is the package's ActivityImportGroupStatusConfirmed in the language of msgs.
+func (msgs Messages) ActivityImportGroupStatusConfirmed() string {
+	return msgs.text(textActivityImportGroupStatusConfirmed)
+}
+
+// ActivityImportGroupStatusPending says "Pending"
+// in the language the app shows under cx.
+func ActivityImportGroupStatusPending(cx *core.Scope) string {
+	return For(cx).ActivityImportGroupStatusPending()
+}
+
+// ActivityImportGroupStatusPending is the package's ActivityImportGroupStatusPending in the language of msgs.
+func (msgs Messages) ActivityImportGroupStatusPending() string {
+	return msgs.text(textActivityImportGroupStatusPending)
+}
+
+// ActivityImportGroupStatusSkipped says "Skipped"
+// in the language the app shows under cx.
+func ActivityImportGroupStatusSkipped(cx *core.Scope) string {
+	return For(cx).ActivityImportGroupStatusSkipped()
+}
+
+// ActivityImportGroupStatusSkipped is the package's ActivityImportGroupStatusSkipped in the language of msgs.
+func (msgs Messages) ActivityImportGroupStatusSkipped() string {
+	return msgs.text(textActivityImportGroupStatusSkipped)
+}
+
+// ActivityImportGroupsBody says "Rows with the same description, unit and source form one group — one decision covers them all."
+// in the language the app shows under cx.
+func ActivityImportGroupsBody(cx *core.Scope) string { return For(cx).ActivityImportGroupsBody() }
+
+// ActivityImportGroupsBody is the package's ActivityImportGroupsBody in the language of msgs.
+func (msgs Messages) ActivityImportGroupsBody() string {
+	return msgs.text(textActivityImportGroupsBody)
+}
+
+// ActivityImportGroupsHeading says "Confirm emission factors by group"
+// in the language the app shows under cx.
+func ActivityImportGroupsHeading(cx *core.Scope) string { return For(cx).ActivityImportGroupsHeading() }
+
+// ActivityImportGroupsHeading is the package's ActivityImportGroupsHeading in the language of msgs.
+func (msgs Messages) ActivityImportGroupsHeading() string {
+	return msgs.text(textActivityImportGroupsHeading)
+}
+
+// ActivityImportImportButton says "Import"
+// in the language the app shows under cx.
+func ActivityImportImportButton(cx *core.Scope) string { return For(cx).ActivityImportImportButton() }
+
+// ActivityImportImportButton is the package's ActivityImportImportButton in the language of msgs.
+func (msgs Messages) ActivityImportImportButton() string {
+	return msgs.text(textActivityImportImportButton)
+}
+
+// ActivityImportIssueAmountInvalid says "amount must be a positive number"
+// in the language the app shows under cx.
+func ActivityImportIssueAmountInvalid(cx *core.Scope) string {
+	return For(cx).ActivityImportIssueAmountInvalid()
+}
+
+// ActivityImportIssueAmountInvalid is the package's ActivityImportIssueAmountInvalid in the language of msgs.
+func (msgs Messages) ActivityImportIssueAmountInvalid() string {
+	return msgs.text(textActivityImportIssueAmountInvalid)
+}
+
+// ActivityImportIssueAmountMissing says "amount missing"
+// in the language the app shows under cx.
+func ActivityImportIssueAmountMissing(cx *core.Scope) string {
+	return For(cx).ActivityImportIssueAmountMissing()
+}
+
+// ActivityImportIssueAmountMissing is the package's ActivityImportIssueAmountMissing in the language of msgs.
+func (msgs Messages) ActivityImportIssueAmountMissing() string {
+	return msgs.text(textActivityImportIssueAmountMissing)
+}
+
+// ActivityImportIssueAmountOutlier says "amount deviates >10x from the group median"
+// in the language the app shows under cx.
+func ActivityImportIssueAmountOutlier(cx *core.Scope) string {
+	return For(cx).ActivityImportIssueAmountOutlier()
+}
+
+// ActivityImportIssueAmountOutlier is the package's ActivityImportIssueAmountOutlier in the language of msgs.
+func (msgs Messages) ActivityImportIssueAmountOutlier() string {
+	return msgs.text(textActivityImportIssueAmountOutlier)
+}
+
+// ActivityImportIssueCreateFailed says "row failed to save — see detail"
+// in the language the app shows under cx.
+func ActivityImportIssueCreateFailed(cx *core.Scope) string {
+	return For(cx).ActivityImportIssueCreateFailed()
+}
+
+// ActivityImportIssueCreateFailed is the package's ActivityImportIssueCreateFailed in the language of msgs.
+func (msgs Messages) ActivityImportIssueCreateFailed() string {
+	return msgs.text(textActivityImportIssueCreateFailed)
+}
+
+// ActivityImportIssueDateInvalid says "unrecognized date"
+// in the language the app shows under cx.
+func ActivityImportIssueDateInvalid(cx *core.Scope) string {
+	return For(cx).ActivityImportIssueDateInvalid()
+}
+
+// ActivityImportIssueDateInvalid is the package's ActivityImportIssueDateInvalid in the language of msgs.
+func (msgs Messages) ActivityImportIssueDateInvalid() string {
+	return msgs.text(textActivityImportIssueDateInvalid)
+}
+
+// ActivityImportIssueDateRangeInvalid says "start date after end date"
+// in the language the app shows under cx.
+func ActivityImportIssueDateRangeInvalid(cx *core.Scope) string {
+	return For(cx).ActivityImportIssueDateRangeInvalid()
+}
+
+// ActivityImportIssueDateRangeInvalid is the package's ActivityImportIssueDateRangeInvalid in the language of msgs.
+func (msgs Messages) ActivityImportIssueDateRangeInvalid() string {
+	return msgs.text(textActivityImportIssueDateRangeInvalid)
+}
+
+// ActivityImportIssueDescriptionMissing says "description missing"
+// in the language the app shows under cx.
+func ActivityImportIssueDescriptionMissing(cx *core.Scope) string {
+	return For(cx).ActivityImportIssueDescriptionMissing()
+}
+
+// ActivityImportIssueDescriptionMissing is the package's ActivityImportIssueDescriptionMissing in the language of msgs.
+func (msgs Messages) ActivityImportIssueDescriptionMissing() string {
+	return msgs.text(textActivityImportIssueDescriptionMissing)
+}
+
+// ActivityImportIssueDuplicateInDb says "a matching row already exists in this period"
+// in the language the app shows under cx.
+func ActivityImportIssueDuplicateInDb(cx *core.Scope) string {
+	return For(cx).ActivityImportIssueDuplicateInDb()
+}
+
+// ActivityImportIssueDuplicateInDb is the package's ActivityImportIssueDuplicateInDb in the language of msgs.
+func (msgs Messages) ActivityImportIssueDuplicateInDb() string {
+	return msgs.text(textActivityImportIssueDuplicateInDb)
+}
+
+// ActivityImportIssueDuplicateInFile says "duplicate within the file, first at row"
+// in the language the app shows under cx.
+func ActivityImportIssueDuplicateInFile(cx *core.Scope) string {
+	return For(cx).ActivityImportIssueDuplicateInFile()
+}
+
+// ActivityImportIssueDuplicateInFile is the package's ActivityImportIssueDuplicateInFile in the language of msgs.
+func (msgs Messages) ActivityImportIssueDuplicateInFile() string {
+	return msgs.text(textActivityImportIssueDuplicateInFile)
+}
+
+// ActivityImportIssuePeriodMismatch says "dates outside the selected period"
+// in the language the app shows under cx.
+func ActivityImportIssuePeriodMismatch(cx *core.Scope) string {
+	return For(cx).ActivityImportIssuePeriodMismatch()
+}
+
+// ActivityImportIssuePeriodMismatch is the package's ActivityImportIssuePeriodMismatch in the language of msgs.
+func (msgs Messages) ActivityImportIssuePeriodMismatch() string {
+	return msgs.text(textActivityImportIssuePeriodMismatch)
+}
+
+// ActivityImportIssueSourceNameMissing says "source name missing"
+// in the language the app shows under cx.
+func ActivityImportIssueSourceNameMissing(cx *core.Scope) string {
+	return For(cx).ActivityImportIssueSourceNameMissing()
+}
+
+// ActivityImportIssueSourceNameMissing is the package's ActivityImportIssueSourceNameMissing in the language of msgs.
+func (msgs Messages) ActivityImportIssueSourceNameMissing() string {
+	return msgs.text(textActivityImportIssueSourceNameMissing)
+}
+
+// ActivityImportIssueUnitDimensionMismatch says "unit incompatible with the chosen EF"
+// in the language the app shows under cx.
+func ActivityImportIssueUnitDimensionMismatch(cx *core.Scope) string {
+	return For(cx).ActivityImportIssueUnitDimensionMismatch()
+}
+
+// ActivityImportIssueUnitDimensionMismatch is the package's ActivityImportIssueUnitDimensionMismatch in the language of msgs.
+func (msgs Messages) ActivityImportIssueUnitDimensionMismatch() string {
+	return msgs.text(textActivityImportIssueUnitDimensionMismatch)
+}
+
+// ActivityImportIssueUnitMissing says "unit missing"
+// in the language the app shows under cx.
+func ActivityImportIssueUnitMissing(cx *core.Scope) string {
+	return For(cx).ActivityImportIssueUnitMissing()
+}
+
+// ActivityImportIssueUnitMissing is the package's ActivityImportIssueUnitMissing in the language of msgs.
+func (msgs Messages) ActivityImportIssueUnitMissing() string {
+	return msgs.text(textActivityImportIssueUnitMissing)
+}
+
+// ActivityImportMappingBody says "Auto-detected from your headers — adjust if needed."
+// in the language the app shows under cx.
+func ActivityImportMappingBody(cx *core.Scope) string { return For(cx).ActivityImportMappingBody() }
+
+// ActivityImportMappingBody is the package's ActivityImportMappingBody in the language of msgs.
+func (msgs Messages) ActivityImportMappingBody() string {
+	return msgs.text(textActivityImportMappingBody)
+}
+
+// ActivityImportMappingHeading says "Column mapping"
+// in the language the app shows under cx.
+func ActivityImportMappingHeading(cx *core.Scope) string {
+	return For(cx).ActivityImportMappingHeading()
+}
+
+// ActivityImportMappingHeading is the package's ActivityImportMappingHeading in the language of msgs.
+func (msgs Messages) ActivityImportMappingHeading() string {
+	return msgs.text(textActivityImportMappingHeading)
+}
+
+// ActivityImportMoreIssues says "+{count} more"
+// in the language the app shows under cx.
+func ActivityImportMoreIssues(cx *core.Scope, count string) string {
+	return For(cx).ActivityImportMoreIssues(count)
+}
+
+// ActivityImportMoreIssues is the package's ActivityImportMoreIssues in the language of msgs.
+func (msgs Messages) ActivityImportMoreIssues(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ActivityImportMoreIssues(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ActivityImportMoreIssues; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return "+" + msgs.arg(count) + " more"
+		case "zh-CN":
+			return "还有 " + count + " 条"
+		}
+	}
+}
+
+// ActivityImportNextButton says "Next"
+// in the language the app shows under cx.
+func ActivityImportNextButton(cx *core.Scope) string { return For(cx).ActivityImportNextButton() }
+
+// ActivityImportNextButton is the package's ActivityImportNextButton in the language of msgs.
+func (msgs Messages) ActivityImportNextButton() string {
+	return msgs.text(textActivityImportNextButton)
+}
+
+// ActivityImportPeriodHint says "One import lands in one period; rows without dates inherit its bounds."
+// in the language the app shows under cx.
+func ActivityImportPeriodHint(cx *core.Scope) string { return For(cx).ActivityImportPeriodHint() }
+
+// ActivityImportPeriodHint is the package's ActivityImportPeriodHint in the language of msgs.
+func (msgs Messages) ActivityImportPeriodHint() string {
+	return msgs.text(textActivityImportPeriodHint)
+}
+
+// ActivityImportPeriodLabel says "Reporting period"
+// in the language the app shows under cx.
+func ActivityImportPeriodLabel(cx *core.Scope) string { return For(cx).ActivityImportPeriodLabel() }
+
+// ActivityImportPeriodLabel is the package's ActivityImportPeriodLabel in the language of msgs.
+func (msgs Messages) ActivityImportPeriodLabel() string {
+	return msgs.text(textActivityImportPeriodLabel)
+}
+
+// ActivityImportPeriodPlaceholder says "Select period"
+// in the language the app shows under cx.
+func ActivityImportPeriodPlaceholder(cx *core.Scope) string {
+	return For(cx).ActivityImportPeriodPlaceholder()
+}
+
+// ActivityImportPeriodPlaceholder is the package's ActivityImportPeriodPlaceholder in the language of msgs.
+func (msgs Messages) ActivityImportPeriodPlaceholder() string {
+	return msgs.text(textActivityImportPeriodPlaceholder)
+}
+
+// ActivityImportPickButton says "Choose file"
+// in the language the app shows under cx.
+func ActivityImportPickButton(cx *core.Scope) string { return For(cx).ActivityImportPickButton() }
+
+// ActivityImportPickButton is the package's ActivityImportPickButton in the language of msgs.
+func (msgs Messages) ActivityImportPickButton() string {
+	return msgs.text(textActivityImportPickButton)
+}
+
+// ActivityImportPickFailed says "Could not read the file"
+// in the language the app shows under cx.
+func ActivityImportPickFailed(cx *core.Scope) string { return For(cx).ActivityImportPickFailed() }
+
+// ActivityImportPickFailed is the package's ActivityImportPickFailed in the language of msgs.
+func (msgs Messages) ActivityImportPickFailed() string {
+	return msgs.text(textActivityImportPickFailed)
+}
+
+// ActivityImportPickHint says "xlsx / csv ledger, one activity row per line"
+// in the language the app shows under cx.
+func ActivityImportPickHint(cx *core.Scope) string { return For(cx).ActivityImportPickHint() }
+
+// ActivityImportPickHint is the package's ActivityImportPickHint in the language of msgs.
+func (msgs Messages) ActivityImportPickHint() string { return msgs.text(textActivityImportPickHint) }
+
+// ActivityImportRepickButton says "Re-pick"
+// in the language the app shows under cx.
+func ActivityImportRepickButton(cx *core.Scope) string { return For(cx).ActivityImportRepickButton() }
+
+// ActivityImportRepickButton is the package's ActivityImportRepickButton in the language of msgs.
+func (msgs Messages) ActivityImportRepickButton() string {
+	return msgs.text(textActivityImportRepickButton)
+}
+
+// ActivityImportRequired says "Required"
+// in the language the app shows under cx.
+func ActivityImportRequired(cx *core.Scope) string { return For(cx).ActivityImportRequired() }
+
+// ActivityImportRequired is the package's ActivityImportRequired in the language of msgs.
+func (msgs Messages) ActivityImportRequired() string { return msgs.text(textActivityImportRequired) }
+
+// ActivityImportResultHeading says "Import complete"
+// in the language the app shows under cx.
+func ActivityImportResultHeading(cx *core.Scope) string { return For(cx).ActivityImportResultHeading() }
+
+// ActivityImportResultHeading is the package's ActivityImportResultHeading in the language of msgs.
+func (msgs Messages) ActivityImportResultHeading() string {
+	return msgs.text(textActivityImportResultHeading)
+}
+
+// ActivityImportResultImported says "{count} rows imported"
+// in the language the app shows under cx.
+func ActivityImportResultImported(cx *core.Scope, count string) string {
+	return For(cx).ActivityImportResultImported(count)
+}
+
+// ActivityImportResultImported is the package's ActivityImportResultImported in the language of msgs.
+func (msgs Messages) ActivityImportResultImported(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ActivityImportResultImported(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ActivityImportResultImported; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " rows imported"
+		case "zh-CN":
+			return "已导入 " + count + " 行"
+		}
+	}
+}
+
+// ActivityImportResultSkippedGroups says "{count} skipped (skipped groups)"
+// in the language the app shows under cx.
+func ActivityImportResultSkippedGroups(cx *core.Scope, count string) string {
+	return For(cx).ActivityImportResultSkippedGroups(count)
+}
+
+// ActivityImportResultSkippedGroups is the package's ActivityImportResultSkippedGroups in the language of msgs.
+func (msgs Messages) ActivityImportResultSkippedGroups(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ActivityImportResultSkippedGroups(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ActivityImportResultSkippedGroups; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " skipped (skipped groups)"
+		case "zh-CN":
+			return count + " 行跳过（组被跳过）"
+		}
+	}
+}
+
+// ActivityImportResultSkippedSources says "{count} skipped (unresolved sources)"
+// in the language the app shows under cx.
+func ActivityImportResultSkippedSources(cx *core.Scope, count string) string {
+	return For(cx).ActivityImportResultSkippedSources(count)
+}
+
+// ActivityImportResultSkippedSources is the package's ActivityImportResultSkippedSources in the language of msgs.
+func (msgs Messages) ActivityImportResultSkippedSources(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ActivityImportResultSkippedSources(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ActivityImportResultSkippedSources; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " skipped (unresolved sources)"
+		case "zh-CN":
+			return count + " 行跳过（源未落位）"
+		}
+	}
+}
+
+// ActivityImportResultSkippedValidation says "{count} skipped (validation errors)"
+// in the language the app shows under cx.
+func ActivityImportResultSkippedValidation(cx *core.Scope, count string) string {
+	return For(cx).ActivityImportResultSkippedValidation(count)
+}
+
+// ActivityImportResultSkippedValidation is the package's ActivityImportResultSkippedValidation in the language of msgs.
+func (msgs Messages) ActivityImportResultSkippedValidation(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ActivityImportResultSkippedValidation(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ActivityImportResultSkippedValidation; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " skipped (validation errors)"
+		case "zh-CN":
+			return count + " 行跳过（校验错误）"
+		}
+	}
+}
+
+// ActivityImportResultWarningsHeading says "Review warnings"
+// in the language the app shows under cx.
+func ActivityImportResultWarningsHeading(cx *core.Scope) string {
+	return For(cx).ActivityImportResultWarningsHeading()
+}
+
+// ActivityImportResultWarningsHeading is the package's ActivityImportResultWarningsHeading in the language of msgs.
+func (msgs Messages) ActivityImportResultWarningsHeading() string {
+	return msgs.text(textActivityImportResultWarningsHeading)
+}
+
+// ActivityImportRowCount says "{count} data rows"
+// in the language the app shows under cx.
+func ActivityImportRowCount(cx *core.Scope, count string) string {
+	return For(cx).ActivityImportRowCount(count)
+}
+
+// ActivityImportRowCount is the package's ActivityImportRowCount in the language of msgs.
+func (msgs Messages) ActivityImportRowCount(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ActivityImportRowCount(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ActivityImportRowCount; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " data rows"
+		case "zh-CN":
+			return count + " 行数据"
+		}
+	}
+}
+
+// ActivityImportRowLabel says "Row {row}"
+// in the language the app shows under cx.
+func ActivityImportRowLabel(cx *core.Scope, row string) string {
+	return For(cx).ActivityImportRowLabel(row)
+}
+
+// ActivityImportRowLabel is the package's ActivityImportRowLabel in the language of msgs.
+func (msgs Messages) ActivityImportRowLabel(row string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ActivityImportRowLabel(row))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ActivityImportRowLabel; f != nil {
+			return f(row)
+		}
+		switch lang {
+		case "", "en":
+			return "Row " + msgs.arg(row)
+		case "zh-CN":
+			return "第 " + row + " 行"
+		}
+	}
+}
+
+// ActivityImportSourceCreateButton says "Create source"
+// in the language the app shows under cx.
+func ActivityImportSourceCreateButton(cx *core.Scope) string {
+	return For(cx).ActivityImportSourceCreateButton()
+}
+
+// ActivityImportSourceCreateButton is the package's ActivityImportSourceCreateButton in the language of msgs.
+func (msgs Messages) ActivityImportSourceCreateButton() string {
+	return msgs.text(textActivityImportSourceCreateButton)
+}
+
+// ActivityImportSourceCreateCategory says "Category (optional)"
+// in the language the app shows under cx.
+func ActivityImportSourceCreateCategory(cx *core.Scope) string {
+	return For(cx).ActivityImportSourceCreateCategory()
+}
+
+// ActivityImportSourceCreateCategory is the package's ActivityImportSourceCreateCategory in the language of msgs.
+func (msgs Messages) ActivityImportSourceCreateCategory() string {
+	return msgs.text(textActivityImportSourceCreateCategory)
+}
+
+// ActivityImportSourceCreateFailed says "Failed to create source"
+// in the language the app shows under cx.
+func ActivityImportSourceCreateFailed(cx *core.Scope) string {
+	return For(cx).ActivityImportSourceCreateFailed()
+}
+
+// ActivityImportSourceCreateFailed is the package's ActivityImportSourceCreateFailed in the language of msgs.
+func (msgs Messages) ActivityImportSourceCreateFailed() string {
+	return msgs.text(textActivityImportSourceCreateFailed)
+}
+
+// ActivityImportSourceCreateScope says "Scope"
+// in the language the app shows under cx.
+func ActivityImportSourceCreateScope(cx *core.Scope) string {
+	return For(cx).ActivityImportSourceCreateScope()
+}
+
+// ActivityImportSourceCreateScope is the package's ActivityImportSourceCreateScope in the language of msgs.
+func (msgs Messages) ActivityImportSourceCreateScope() string {
+	return msgs.text(textActivityImportSourceCreateScope)
+}
+
+// ActivityImportSourceCreateSite says "Site"
+// in the language the app shows under cx.
+func ActivityImportSourceCreateSite(cx *core.Scope) string {
+	return For(cx).ActivityImportSourceCreateSite()
+}
+
+// ActivityImportSourceCreateSite is the package's ActivityImportSourceCreateSite in the language of msgs.
+func (msgs Messages) ActivityImportSourceCreateSite() string {
+	return msgs.text(textActivityImportSourceCreateSite)
+}
+
+// ActivityImportSourceCreated says "Source created"
+// in the language the app shows under cx.
+func ActivityImportSourceCreated(cx *core.Scope) string { return For(cx).ActivityImportSourceCreated() }
+
+// ActivityImportSourceCreated is the package's ActivityImportSourceCreated in the language of msgs.
+func (msgs Messages) ActivityImportSourceCreated() string {
+	return msgs.text(textActivityImportSourceCreated)
+}
+
+// ActivityImportSourceMatched says "Matched existing"
+// in the language the app shows under cx.
+func ActivityImportSourceMatched(cx *core.Scope) string { return For(cx).ActivityImportSourceMatched() }
+
+// ActivityImportSourceMatched is the package's ActivityImportSourceMatched in the language of msgs.
+func (msgs Messages) ActivityImportSourceMatched() string {
+	return msgs.text(textActivityImportSourceMatched)
+}
+
+// ActivityImportSourceRows says "{count} rows"
+// in the language the app shows under cx.
+func ActivityImportSourceRows(cx *core.Scope, count string) string {
+	return For(cx).ActivityImportSourceRows(count)
+}
+
+// ActivityImportSourceRows is the package's ActivityImportSourceRows in the language of msgs.
+func (msgs Messages) ActivityImportSourceRows(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ActivityImportSourceRows(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ActivityImportSourceRows; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " rows"
+		case "zh-CN":
+			return count + " 行"
+		}
+	}
+}
+
+// ActivityImportSourceSelectPlaceholder says "Choose emission source"
+// in the language the app shows under cx.
+func ActivityImportSourceSelectPlaceholder(cx *core.Scope) string {
+	return For(cx).ActivityImportSourceSelectPlaceholder()
+}
+
+// ActivityImportSourceSelectPlaceholder is the package's ActivityImportSourceSelectPlaceholder in the language of msgs.
+func (msgs Messages) ActivityImportSourceSelectPlaceholder() string {
+	return msgs.text(textActivityImportSourceSelectPlaceholder)
+}
+
+// ActivityImportSourceUnresolved says "Unresolved"
+// in the language the app shows under cx.
+func ActivityImportSourceUnresolved(cx *core.Scope) string {
+	return For(cx).ActivityImportSourceUnresolved()
+}
+
+// ActivityImportSourceUnresolved is the package's ActivityImportSourceUnresolved in the language of msgs.
+func (msgs Messages) ActivityImportSourceUnresolved() string {
+	return msgs.text(textActivityImportSourceUnresolved)
+}
+
+// ActivityImportSourcesBody says "Each distinct source name must point at an emission source; unresolved names' rows are skipped."
+// in the language the app shows under cx.
+func ActivityImportSourcesBody(cx *core.Scope) string { return For(cx).ActivityImportSourcesBody() }
+
+// ActivityImportSourcesBody is the package's ActivityImportSourcesBody in the language of msgs.
+func (msgs Messages) ActivityImportSourcesBody() string {
+	return msgs.text(textActivityImportSourcesBody)
+}
+
+// ActivityImportSourcesHeading says "Map ledger sources"
+// in the language the app shows under cx.
+func ActivityImportSourcesHeading(cx *core.Scope) string {
+	return For(cx).ActivityImportSourcesHeading()
+}
+
+// ActivityImportSourcesHeading is the package's ActivityImportSourcesHeading in the language of msgs.
+func (msgs Messages) ActivityImportSourcesHeading() string {
+	return msgs.text(textActivityImportSourcesHeading)
+}
+
+// ActivityImportSummaryErrors says "{count} errors"
+// in the language the app shows under cx.
+func ActivityImportSummaryErrors(cx *core.Scope, count string) string {
+	return For(cx).ActivityImportSummaryErrors(count)
+}
+
+// ActivityImportSummaryErrors is the package's ActivityImportSummaryErrors in the language of msgs.
+func (msgs Messages) ActivityImportSummaryErrors(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ActivityImportSummaryErrors(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ActivityImportSummaryErrors; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " errors"
+		case "zh-CN":
+			return count + " 行错误"
+		}
+	}
+}
+
+// ActivityImportSummaryValid says "{count} valid"
+// in the language the app shows under cx.
+func ActivityImportSummaryValid(cx *core.Scope, count string) string {
+	return For(cx).ActivityImportSummaryValid(count)
+}
+
+// ActivityImportSummaryValid is the package's ActivityImportSummaryValid in the language of msgs.
+func (msgs Messages) ActivityImportSummaryValid(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ActivityImportSummaryValid(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ActivityImportSummaryValid; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " valid"
+		case "zh-CN":
+			return count + " 行有效"
+		}
+	}
+}
+
+// ActivityImportSummaryWarnings says "{count} warnings"
+// in the language the app shows under cx.
+func ActivityImportSummaryWarnings(cx *core.Scope, count string) string {
+	return For(cx).ActivityImportSummaryWarnings(count)
+}
+
+// ActivityImportSummaryWarnings is the package's ActivityImportSummaryWarnings in the language of msgs.
+func (msgs Messages) ActivityImportSummaryWarnings(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ActivityImportSummaryWarnings(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ActivityImportSummaryWarnings; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " warnings"
+		case "zh-CN":
+			return count + " 条警告"
+		}
+	}
+}
+
+// ActivityImportTitle says "Batch import activity data"
+// in the language the app shows under cx.
+func ActivityImportTitle(cx *core.Scope) string { return For(cx).ActivityImportTitle() }
+
+// ActivityImportTitle is the package's ActivityImportTitle in the language of msgs.
+func (msgs Messages) ActivityImportTitle() string { return msgs.text(textActivityImportTitle) }
+
+// ActivityImportUnmapped says "— Not mapped —"
+// in the language the app shows under cx.
+func ActivityImportUnmapped(cx *core.Scope) string { return For(cx).ActivityImportUnmapped() }
+
+// ActivityImportUnmapped is the package's ActivityImportUnmapped in the language of msgs.
+func (msgs Messages) ActivityImportUnmapped() string { return msgs.text(textActivityImportUnmapped) }
+
+// ActivityImportWarningsHeading says "Warnings (won't block)"
+// in the language the app shows under cx.
+func ActivityImportWarningsHeading(cx *core.Scope) string {
+	return For(cx).ActivityImportWarningsHeading()
+}
+
+// ActivityImportWarningsHeading is the package's ActivityImportWarningsHeading in the language of msgs.
+func (msgs Messages) ActivityImportWarningsHeading() string {
+	return msgs.text(textActivityImportWarningsHeading)
+}
+
+// AnswerExportButton says "Export to Excel"
+// in the language the app shows under cx.
+func AnswerExportButton(cx *core.Scope) string { return For(cx).AnswerExportButton() }
+
+// AnswerExportButton is the package's AnswerExportButton in the language of msgs.
+func (msgs Messages) AnswerExportButton() string { return msgs.text(textAnswerExportButton) }
+
+// AnswerExportDone says "{written} answers written ({drafts} drafts)."
+// in the language the app shows under cx.
+func AnswerExportDone(cx *core.Scope, written string, drafts string) string {
+	return For(cx).AnswerExportDone(written, drafts)
+}
+
+// AnswerExportDone is the package's AnswerExportDone in the language of msgs.
+func (msgs Messages) AnswerExportDone(written string, drafts string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.AnswerExportDone(written, drafts))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].AnswerExportDone; f != nil {
+			return f(written, drafts)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(written) + " answers written (" + msgs.arg(drafts) + " drafts)."
+		case "zh-CN":
+			return "已写入 " + written + " 条答案（其中 " + drafts + " 条草稿）。"
+		}
+	}
+}
+
+// AnswerExportRunning says "Exporting…"
+// in the language the app shows under cx.
+func AnswerExportRunning(cx *core.Scope) string { return For(cx).AnswerExportRunning() }
+
+// AnswerExportRunning is the package's AnswerExportRunning in the language of msgs.
+func (msgs Messages) AnswerExportRunning() string { return msgs.text(textAnswerExportRunning) }
+
+// AnswerFinalized says "Finalized"
+// in the language the app shows under cx.
+func AnswerFinalized(cx *core.Scope) string { return For(cx).AnswerFinalized() }
+
+// AnswerFinalized is the package's AnswerFinalized in the language of msgs.
+func (msgs Messages) AnswerFinalized() string { return msgs.text(textAnswerFinalized) }
+
+// AnswerFinalizedHint says "Finalized. Unfinalize to edit."
+// in the language the app shows under cx.
+func AnswerFinalizedHint(cx *core.Scope) string { return For(cx).AnswerFinalizedHint() }
+
+// AnswerFinalizedHint is the package's AnswerFinalizedHint in the language of msgs.
+func (msgs Messages) AnswerFinalizedHint() string { return msgs.text(textAnswerFinalizedHint) }
+
+// AnswerGenerate says "Generate answer"
+// in the language the app shows under cx.
+func AnswerGenerate(cx *core.Scope) string { return For(cx).AnswerGenerate() }
+
+// AnswerGenerate is the package's AnswerGenerate in the language of msgs.
+func (msgs Messages) AnswerGenerate() string { return msgs.text(textAnswerGenerate) }
+
+// AnswerGenerateAllButton says "Generate all unanswered"
+// in the language the app shows under cx.
+func AnswerGenerateAllButton(cx *core.Scope) string { return For(cx).AnswerGenerateAllButton() }
+
+// AnswerGenerateAllButton is the package's AnswerGenerateAllButton in the language of msgs.
+func (msgs Messages) AnswerGenerateAllButton() string { return msgs.text(textAnswerGenerateAllButton) }
+
+// AnswerGenerateAllDone says "{ok} answered, {failed} failed"
+// in the language the app shows under cx.
+func AnswerGenerateAllDone(cx *core.Scope, ok string, failed string) string {
+	return For(cx).AnswerGenerateAllDone(ok, failed)
+}
+
+// AnswerGenerateAllDone is the package's AnswerGenerateAllDone in the language of msgs.
+func (msgs Messages) AnswerGenerateAllDone(ok string, failed string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.AnswerGenerateAllDone(ok, failed))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].AnswerGenerateAllDone; f != nil {
+			return f(ok, failed)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(ok) + " answered, " + msgs.arg(failed) + " failed"
+		case "zh-CN":
+			return "已生成 " + ok + " 条，" + failed + " 条失败"
+		}
+	}
+}
+
+// AnswerGenerateAllEmpty says "All questions already answered."
+// in the language the app shows under cx.
+func AnswerGenerateAllEmpty(cx *core.Scope) string { return For(cx).AnswerGenerateAllEmpty() }
+
+// AnswerGenerateAllEmpty is the package's AnswerGenerateAllEmpty in the language of msgs.
+func (msgs Messages) AnswerGenerateAllEmpty() string { return msgs.text(textAnswerGenerateAllEmpty) }
+
+// AnswerGenerateAllRunning says "Generating…"
+// in the language the app shows under cx.
+func AnswerGenerateAllRunning(cx *core.Scope) string { return For(cx).AnswerGenerateAllRunning() }
+
+// AnswerGenerateAllRunning is the package's AnswerGenerateAllRunning in the language of msgs.
+func (msgs Messages) AnswerGenerateAllRunning() string {
+	return msgs.text(textAnswerGenerateAllRunning)
+}
+
+// AnswerGenerateErrorLabel says "Last generation failed"
+// in the language the app shows under cx.
+func AnswerGenerateErrorLabel(cx *core.Scope) string { return For(cx).AnswerGenerateErrorLabel() }
+
+// AnswerGenerateErrorLabel is the package's AnswerGenerateErrorLabel in the language of msgs.
+func (msgs Messages) AnswerGenerateErrorLabel() string {
+	return msgs.text(textAnswerGenerateErrorLabel)
+}
+
+// AnswerGenerating says "Generating…"
+// in the language the app shows under cx.
+func AnswerGenerating(cx *core.Scope) string { return For(cx).AnswerGenerating() }
+
+// AnswerGenerating is the package's AnswerGenerating in the language of msgs.
+func (msgs Messages) AnswerGenerating() string { return msgs.text(textAnswerGenerating) }
+
+// AnswerInventoryEmpty says "No inventory data for this year — manual answer required."
+// in the language the app shows under cx.
+func AnswerInventoryEmpty(cx *core.Scope) string { return For(cx).AnswerInventoryEmpty() }
+
+// AnswerInventoryEmpty is the package's AnswerInventoryEmpty in the language of msgs.
+func (msgs Messages) AnswerInventoryEmpty() string { return msgs.text(textAnswerInventoryEmpty) }
+
+// AnswerNotGenerated says "Not yet generated"
+// in the language the app shows under cx.
+func AnswerNotGenerated(cx *core.Scope) string { return For(cx).AnswerNotGenerated() }
+
+// AnswerNotGenerated is the package's AnswerNotGenerated in the language of msgs.
+func (msgs Messages) AnswerNotGenerated() string { return msgs.text(textAnswerNotGenerated) }
+
+// AnswerSave says "Save"
+// in the language the app shows under cx.
+func AnswerSave(cx *core.Scope) string { return For(cx).AnswerSave() }
+
+// AnswerSave is the package's AnswerSave in the language of msgs.
+func (msgs Messages) AnswerSave() string { return msgs.text(textAnswerSave) }
+
+// AnswerSaveFinalize says "Save & finalize"
+// in the language the app shows under cx.
+func AnswerSaveFinalize(cx *core.Scope) string { return For(cx).AnswerSaveFinalize() }
+
+// AnswerSaveFinalize is the package's AnswerSaveFinalize in the language of msgs.
+func (msgs Messages) AnswerSaveFinalize() string { return msgs.text(textAnswerSaveFinalize) }
+
+// AnswerSource says "Source"
+// in the language the app shows under cx.
+func AnswerSource(cx *core.Scope) string { return For(cx).AnswerSource() }
+
+// AnswerSource is the package's AnswerSource in the language of msgs.
+func (msgs Messages) AnswerSource() string { return msgs.text(textAnswerSource) }
+
+// AnswerSourceReused says "Reused from previous questionnaire"
+// in the language the app shows under cx.
+func AnswerSourceReused(cx *core.Scope) string { return For(cx).AnswerSourceReused() }
+
+// AnswerSourceReused is the package's AnswerSourceReused in the language of msgs.
+func (msgs Messages) AnswerSourceReused() string { return msgs.text(textAnswerSourceReused) }
+
+// AnswerUnfinalize says "Unfinalize"
+// in the language the app shows under cx.
+func AnswerUnfinalize(cx *core.Scope) string { return For(cx).AnswerUnfinalize() }
+
+// AnswerUnfinalize is the package's AnswerUnfinalize in the language of msgs.
+func (msgs Messages) AnswerUnfinalize() string { return msgs.text(textAnswerUnfinalize) }
+
+// AnswerUnit says "Unit"
+// in the language the app shows under cx.
+func AnswerUnit(cx *core.Scope) string { return For(cx).AnswerUnit() }
+
+// AnswerUnit is the package's AnswerUnit in the language of msgs.
+func (msgs Messages) AnswerUnit() string { return msgs.text(textAnswerUnit) }
+
+// AnswerValue says "Value"
+// in the language the app shows under cx.
+func AnswerValue(cx *core.Scope) string { return For(cx).AnswerValue() }
+
+// AnswerValue is the package's AnswerValue in the language of msgs.
+func (msgs Messages) AnswerValue() string { return msgs.text(textAnswerValue) }
+
+// AppName says "CarbonInk"
+// in the language the app shows under cx.
+func AppName(cx *core.Scope) string { return For(cx).AppName() }
+
+// AppName is the package's AppName in the language of msgs.
+func (msgs Messages) AppName() string { return msgs.text(textAppName) }
+
+// AppTagline says "Local GHG accounting"
+// in the language the app shows under cx.
+func AppTagline(cx *core.Scope) string { return For(cx).AppTagline() }
+
+// AppTagline is the package's AppTagline in the language of msgs.
+func (msgs Messages) AppTagline() string { return msgs.text(textAppTagline) }
+
+// AppTitle says "CarbonInk"
+// in the language the app shows under cx.
+func AppTitle(cx *core.Scope) string { return For(cx).AppTitle() }
+
+// AppTitle is the package's AppTitle in the language of msgs.
+func (msgs Messages) AppTitle() string { return msgs.text(textAppTitle) }
+
+// AuditEmptyStateBody says "Events are recorded as you confirm extractions, finalize answers, or rebind emission factors."
+// in the language the app shows under cx.
+func AuditEmptyStateBody(cx *core.Scope) string { return For(cx).AuditEmptyStateBody() }
+
+// AuditEmptyStateBody is the package's AuditEmptyStateBody in the language of msgs.
+func (msgs Messages) AuditEmptyStateBody() string { return msgs.text(textAuditEmptyStateBody) }
+
+// AuditEmptyStateHeading says "No audit events yet"
+// in the language the app shows under cx.
+func AuditEmptyStateHeading(cx *core.Scope) string { return For(cx).AuditEmptyStateHeading() }
+
+// AuditEmptyStateHeading is the package's AuditEmptyStateHeading in the language of msgs.
+func (msgs Messages) AuditEmptyStateHeading() string { return msgs.text(textAuditEmptyStateHeading) }
+
+// AuditEventKindActivityDataCreated says "Activity data created"
+// in the language the app shows under cx.
+func AuditEventKindActivityDataCreated(cx *core.Scope) string {
+	return For(cx).AuditEventKindActivityDataCreated()
+}
+
+// AuditEventKindActivityDataCreated is the package's AuditEventKindActivityDataCreated in the language of msgs.
+func (msgs Messages) AuditEventKindActivityDataCreated() string {
+	return msgs.text(textAuditEventKindActivityDataCreated)
+}
+
+// AuditEventKindActivityDataDeleted says "Activity data deleted"
+// in the language the app shows under cx.
+func AuditEventKindActivityDataDeleted(cx *core.Scope) string {
+	return For(cx).AuditEventKindActivityDataDeleted()
+}
+
+// AuditEventKindActivityDataDeleted is the package's AuditEventKindActivityDataDeleted in the language of msgs.
+func (msgs Messages) AuditEventKindActivityDataDeleted() string {
+	return msgs.text(textAuditEventKindActivityDataDeleted)
+}
+
+// AuditEventKindActivityRebindEf says "Rebind emission factor"
+// in the language the app shows under cx.
+func AuditEventKindActivityRebindEf(cx *core.Scope) string {
+	return For(cx).AuditEventKindActivityRebindEf()
+}
+
+// AuditEventKindActivityRebindEf is the package's AuditEventKindActivityRebindEf in the language of msgs.
+func (msgs Messages) AuditEventKindActivityRebindEf() string {
+	return msgs.text(textAuditEventKindActivityRebindEf)
+}
+
+// AuditEventKindEvidenceAttached says "Evidence attached"
+// in the language the app shows under cx.
+func AuditEventKindEvidenceAttached(cx *core.Scope) string {
+	return For(cx).AuditEventKindEvidenceAttached()
+}
+
+// AuditEventKindEvidenceAttached is the package's AuditEventKindEvidenceAttached in the language of msgs.
+func (msgs Messages) AuditEventKindEvidenceAttached() string {
+	return msgs.text(textAuditEventKindEvidenceAttached)
+}
+
+// AuditEventKindEvidenceRemoved says "Evidence removed"
+// in the language the app shows under cx.
+func AuditEventKindEvidenceRemoved(cx *core.Scope) string {
+	return For(cx).AuditEventKindEvidenceRemoved()
+}
+
+// AuditEventKindEvidenceRemoved is the package's AuditEventKindEvidenceRemoved in the language of msgs.
+func (msgs Messages) AuditEventKindEvidenceRemoved() string {
+	return msgs.text(textAuditEventKindEvidenceRemoved)
+}
+
+// AuditExportCsvButton says "Export CSV"
+// in the language the app shows under cx.
+func AuditExportCsvButton(cx *core.Scope) string { return For(cx).AuditExportCsvButton() }
+
+// AuditExportCsvButton is the package's AuditExportCsvButton in the language of msgs.
+func (msgs Messages) AuditExportCsvButton() string { return msgs.text(textAuditExportCsvButton) }
+
+// AuditExportCsvFailed says "Audit export failed"
+// in the language the app shows under cx.
+func AuditExportCsvFailed(cx *core.Scope) string { return For(cx).AuditExportCsvFailed() }
+
+// AuditExportCsvFailed is the package's AuditExportCsvFailed in the language of msgs.
+func (msgs Messages) AuditExportCsvFailed() string { return msgs.text(textAuditExportCsvFailed) }
+
+// AuditExportCsvSuccess says "Exported {rows} rows"
+// in the language the app shows under cx.
+func AuditExportCsvSuccess(cx *core.Scope, rows string) string {
+	return For(cx).AuditExportCsvSuccess(rows)
+}
+
+// AuditExportCsvSuccess is the package's AuditExportCsvSuccess in the language of msgs.
+func (msgs Messages) AuditExportCsvSuccess(rows string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.AuditExportCsvSuccess(rows))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].AuditExportCsvSuccess; f != nil {
+			return f(rows)
+		}
+		switch lang {
+		case "", "en":
+			return "Exported " + msgs.arg(rows) + " rows"
+		case "zh-CN":
+			return "已导出 " + rows + " 行"
+		}
+	}
+}
+
+// AuditFilterEventKindLabel says "Event kind"
+// in the language the app shows under cx.
+func AuditFilterEventKindLabel(cx *core.Scope) string { return For(cx).AuditFilterEventKindLabel() }
+
+// AuditFilterEventKindLabel is the package's AuditFilterEventKindLabel in the language of msgs.
+func (msgs Messages) AuditFilterEventKindLabel() string {
+	return msgs.text(textAuditFilterEventKindLabel)
+}
+
+// AuditFilterResetButton says "Reset filters"
+// in the language the app shows under cx.
+func AuditFilterResetButton(cx *core.Scope) string { return For(cx).AuditFilterResetButton() }
+
+// AuditFilterResetButton is the package's AuditFilterResetButton in the language of msgs.
+func (msgs Messages) AuditFilterResetButton() string { return msgs.text(textAuditFilterResetButton) }
+
+// AuditFilterSinceLabel says "Since"
+// in the language the app shows under cx.
+func AuditFilterSinceLabel(cx *core.Scope) string { return For(cx).AuditFilterSinceLabel() }
+
+// AuditFilterSinceLabel is the package's AuditFilterSinceLabel in the language of msgs.
+func (msgs Messages) AuditFilterSinceLabel() string { return msgs.text(textAuditFilterSinceLabel) }
+
+// AuditFilterUntilLabel says "Until"
+// in the language the app shows under cx.
+func AuditFilterUntilLabel(cx *core.Scope) string { return For(cx).AuditFilterUntilLabel() }
+
+// AuditFilterUntilLabel is the package's AuditFilterUntilLabel in the language of msgs.
+func (msgs Messages) AuditFilterUntilLabel() string { return msgs.text(textAuditFilterUntilLabel) }
+
+// AuditHeading says "Audit log"
+// in the language the app shows under cx.
+func AuditHeading(cx *core.Scope) string { return For(cx).AuditHeading() }
+
+// AuditHeading is the package's AuditHeading in the language of msgs.
+func (msgs Messages) AuditHeading() string { return msgs.text(textAuditHeading) }
+
+// AuditHideRaw says "Hide raw payload"
+// in the language the app shows under cx.
+func AuditHideRaw(cx *core.Scope) string { return For(cx).AuditHideRaw() }
+
+// AuditHideRaw is the package's AuditHideRaw in the language of msgs.
+func (msgs Messages) AuditHideRaw() string { return msgs.text(textAuditHideRaw) }
+
+// AuditLoadOlderButton says "Load older"
+// in the language the app shows under cx.
+func AuditLoadOlderButton(cx *core.Scope) string { return For(cx).AuditLoadOlderButton() }
+
+// AuditLoadOlderButton is the package's AuditLoadOlderButton in the language of msgs.
+func (msgs Messages) AuditLoadOlderButton() string { return msgs.text(textAuditLoadOlderButton) }
+
+// AuditMalformedPayload says "Malformed payload"
+// in the language the app shows under cx.
+func AuditMalformedPayload(cx *core.Scope) string { return For(cx).AuditMalformedPayload() }
+
+// AuditMalformedPayload is the package's AuditMalformedPayload in the language of msgs.
+func (msgs Messages) AuditMalformedPayload() string { return msgs.text(textAuditMalformedPayload) }
+
+// AuditNav says "Audit log"
+// in the language the app shows under cx.
+func AuditNav(cx *core.Scope) string { return For(cx).AuditNav() }
+
+// AuditNav is the package's AuditNav in the language of msgs.
+func (msgs Messages) AuditNav() string { return msgs.text(textAuditNav) }
+
+// AuditRebindActivityLabel says "Activity"
+// in the language the app shows under cx.
+func AuditRebindActivityLabel(cx *core.Scope) string { return For(cx).AuditRebindActivityLabel() }
+
+// AuditRebindActivityLabel is the package's AuditRebindActivityLabel in the language of msgs.
+func (msgs Messages) AuditRebindActivityLabel() string {
+	return msgs.text(textAuditRebindActivityLabel)
+}
+
+// AuditRebindDelta says "CO2e: {old_co2e} kg → {new_co2e} kg ({delta_signed} kg, {pct_signed}%)"
+// in the language the app shows under cx.
+func AuditRebindDelta(cx *core.Scope, old_co2e string, new_co2e string, delta_signed string, pct_signed string) string {
+	return For(cx).AuditRebindDelta(old_co2e, new_co2e, delta_signed, pct_signed)
+}
+
+// AuditRebindDelta is the package's AuditRebindDelta in the language of msgs.
+func (msgs Messages) AuditRebindDelta(old_co2e string, new_co2e string, delta_signed string, pct_signed string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.AuditRebindDelta(old_co2e, new_co2e, delta_signed, pct_signed))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].AuditRebindDelta; f != nil {
+			return f(old_co2e, new_co2e, delta_signed, pct_signed)
+		}
+		switch lang {
+		case "", "en":
+			return "CO2e: " + msgs.arg(old_co2e) + " kg → " + msgs.arg(new_co2e) + " kg (" + msgs.arg(delta_signed) + " kg, " + msgs.arg(pct_signed) + "%)"
+		case "zh-CN":
+			return "CO2e: " + old_co2e + " kg → " + new_co2e + " kg (" + delta_signed + " kg, " + pct_signed + "%)"
+		}
+	}
+}
+
+// AuditRebindSummary says "Rebound activity {activity_id_short}: {old_ef} → {new_ef}"
+// in the language the app shows under cx.
+func AuditRebindSummary(cx *core.Scope, activity_id_short string, old_ef string, new_ef string) string {
+	return For(cx).AuditRebindSummary(activity_id_short, old_ef, new_ef)
+}
+
+// AuditRebindSummary is the package's AuditRebindSummary in the language of msgs.
+func (msgs Messages) AuditRebindSummary(activity_id_short string, old_ef string, new_ef string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.AuditRebindSummary(activity_id_short, old_ef, new_ef))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].AuditRebindSummary; f != nil {
+			return f(activity_id_short, old_ef, new_ef)
+		}
+		switch lang {
+		case "", "en":
+			return "Rebound activity " + msgs.arg(activity_id_short) + ": " + msgs.arg(old_ef) + " → " + msgs.arg(new_ef)
+		case "zh-CN":
+			return "重新镶嵌活动 " + activity_id_short + ": " + old_ef + " → " + new_ef
+		}
+	}
+}
+
+// AuditShowRaw says "Show raw payload"
+// in the language the app shows under cx.
+func AuditShowRaw(cx *core.Scope) string { return For(cx).AuditShowRaw() }
+
+// AuditShowRaw is the package's AuditShowRaw in the language of msgs.
+func (msgs Messages) AuditShowRaw() string { return msgs.text(textAuditShowRaw) }
+
+// AuditSortOldest says "Oldest first"
+// in the language the app shows under cx.
+func AuditSortOldest(cx *core.Scope) string { return For(cx).AuditSortOldest() }
+
+// AuditSortOldest is the package's AuditSortOldest in the language of msgs.
+func (msgs Messages) AuditSortOldest() string { return msgs.text(textAuditSortOldest) }
+
+// AuditSortRecent says "Most recent"
+// in the language the app shows under cx.
+func AuditSortRecent(cx *core.Scope) string { return For(cx).AuditSortRecent() }
+
+// AuditSortRecent is the package's AuditSortRecent in the language of msgs.
+func (msgs Messages) AuditSortRecent() string { return msgs.text(textAuditSortRecent) }
+
+// AuditSubheading says "Track changes to your inventory."
+// in the language the app shows under cx.
+func AuditSubheading(cx *core.Scope) string { return For(cx).AuditSubheading() }
+
+// AuditSubheading is the package's AuditSubheading in the language of msgs.
+func (msgs Messages) AuditSubheading() string { return msgs.text(textAuditSubheading) }
+
+// AuditUnknownEventKind says "Unknown event kind: {kind}"
+// in the language the app shows under cx.
+func AuditUnknownEventKind(cx *core.Scope, kind string) string {
+	return For(cx).AuditUnknownEventKind(kind)
+}
+
+// AuditUnknownEventKind is the package's AuditUnknownEventKind in the language of msgs.
+func (msgs Messages) AuditUnknownEventKind(kind string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.AuditUnknownEventKind(kind))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].AuditUnknownEventKind; f != nil {
+			return f(kind)
+		}
+		switch lang {
+		case "", "en":
+			return "Unknown event kind: " + msgs.arg(kind)
+		case "zh-CN":
+			return "未知事件类型: " + kind
+		}
+	}
+}
+
+// Cancel says "Cancel"
+// in the language the app shows under cx.
+func Cancel(cx *core.Scope) string { return For(cx).Cancel() }
+
+// Cancel is the package's Cancel in the language of msgs.
+func (msgs Messages) Cancel() string { return msgs.text(textCancel) }
+
+// CmdOpenDocuments says "Open Documents"
+// in the language the app shows under cx.
+func CmdOpenDocuments(cx *core.Scope) string { return For(cx).CmdOpenDocuments() }
+
+// CmdOpenDocuments is the package's CmdOpenDocuments in the language of msgs.
+func (msgs Messages) CmdOpenDocuments() string { return msgs.text(textCmdOpenDocuments) }
+
+// CmdOpenSettings says "Open Settings"
+// in the language the app shows under cx.
+func CmdOpenSettings(cx *core.Scope) string { return For(cx).CmdOpenSettings() }
+
+// CmdOpenSettings is the package's CmdOpenSettings in the language of msgs.
+func (msgs Messages) CmdOpenSettings() string { return msgs.text(textCmdOpenSettings) }
+
+// ColAmount says "Amount"
+// in the language the app shows under cx.
+func ColAmount(cx *core.Scope) string { return For(cx).ColAmount() }
+
+// ColAmount is the package's ColAmount in the language of msgs.
+func (msgs Messages) ColAmount() string { return msgs.text(textColAmount) }
+
+// ColCO2e says "kg CO2e"
+// in the language the app shows under cx.
+func ColCO2e(cx *core.Scope) string { return For(cx).ColCO2e() }
+
+// ColCO2e is the package's ColCO2e in the language of msgs.
+func (msgs Messages) ColCO2e() string { return msgs.text(textColCO2e) }
 
 // ColDate says "Date"
 // in the language the app shows under cx.
@@ -504,6 +9507,13 @@ func ColDate(cx *core.Scope) string { return For(cx).ColDate() }
 
 // ColDate is the package's ColDate in the language of msgs.
 func (msgs Messages) ColDate() string { return msgs.text(textColDate) }
+
+// ColScope says "Scope"
+// in the language the app shows under cx.
+func ColScope(cx *core.Scope) string { return For(cx).ColScope() }
+
+// ColScope is the package's ColScope in the language of msgs.
+func (msgs Messages) ColScope() string { return msgs.text(textColScope) }
 
 // ColSite says "Site"
 // in the language the app shows under cx.
@@ -519,13 +9529,6 @@ func ColSource(cx *core.Scope) string { return For(cx).ColSource() }
 // ColSource is the package's ColSource in the language of msgs.
 func (msgs Messages) ColSource() string { return msgs.text(textColSource) }
 
-// ColAmount says "Amount"
-// in the language the app shows under cx.
-func ColAmount(cx *core.Scope) string { return For(cx).ColAmount() }
-
-// ColAmount is the package's ColAmount in the language of msgs.
-func (msgs Messages) ColAmount() string { return msgs.text(textColAmount) }
-
 // ColUnit says "Unit"
 // in the language the app shows under cx.
 func ColUnit(cx *core.Scope) string { return For(cx).ColUnit() }
@@ -533,19 +9536,5098 @@ func ColUnit(cx *core.Scope) string { return For(cx).ColUnit() }
 // ColUnit is the package's ColUnit in the language of msgs.
 func (msgs Messages) ColUnit() string { return msgs.text(textColUnit) }
 
-// ColCO2e says "kg CO2e"
+// DashboardInventoryBody says "No emission data yet."
 // in the language the app shows under cx.
-func ColCO2e(cx *core.Scope) string { return For(cx).ColCO2e() }
+func DashboardInventoryBody(cx *core.Scope) string { return For(cx).DashboardInventoryBody() }
 
-// ColCO2e is the package's ColCO2e in the language of msgs.
-func (msgs Messages) ColCO2e() string { return msgs.text(textColCO2e) }
+// DashboardInventoryBody is the package's DashboardInventoryBody in the language of msgs.
+func (msgs Messages) DashboardInventoryBody() string { return msgs.text(textDashboardInventoryBody) }
 
-// ColScope says "Scope"
+// DashboardInventoryTitle says "Inventory Dashboard"
 // in the language the app shows under cx.
-func ColScope(cx *core.Scope) string { return For(cx).ColScope() }
+func DashboardInventoryTitle(cx *core.Scope) string { return For(cx).DashboardInventoryTitle() }
 
-// ColScope is the package's ColScope in the language of msgs.
-func (msgs Messages) ColScope() string { return msgs.text(textColScope) }
+// DashboardInventoryTitle is the package's DashboardInventoryTitle in the language of msgs.
+func (msgs Messages) DashboardInventoryTitle() string { return msgs.text(textDashboardInventoryTitle) }
+
+// DashboardMonthlyTrend says "Monthly emissions"
+// in the language the app shows under cx.
+func DashboardMonthlyTrend(cx *core.Scope) string { return For(cx).DashboardMonthlyTrend() }
+
+// DashboardMonthlyTrend is the package's DashboardMonthlyTrend in the language of msgs.
+func (msgs Messages) DashboardMonthlyTrend() string { return msgs.text(textDashboardMonthlyTrend) }
+
+// DashboardNoDataForChart says "Once activities are recorded, monthly totals appear here."
+// in the language the app shows under cx.
+func DashboardNoDataForChart(cx *core.Scope) string { return For(cx).DashboardNoDataForChart() }
+
+// DashboardNoDataForChart is the package's DashboardNoDataForChart in the language of msgs.
+func (msgs Messages) DashboardNoDataForChart() string { return msgs.text(textDashboardNoDataForChart) }
+
+// DashboardRecentActivities says "Recent activities"
+// in the language the app shows under cx.
+func DashboardRecentActivities(cx *core.Scope) string { return For(cx).DashboardRecentActivities() }
+
+// DashboardRecentActivities is the package's DashboardRecentActivities in the language of msgs.
+func (msgs Messages) DashboardRecentActivities() string {
+	return msgs.text(textDashboardRecentActivities)
+}
+
+// DashboardRecentEmpty says "No activities yet"
+// in the language the app shows under cx.
+func DashboardRecentEmpty(cx *core.Scope) string { return For(cx).DashboardRecentEmpty() }
+
+// DashboardRecentEmpty is the package's DashboardRecentEmpty in the language of msgs.
+func (msgs Messages) DashboardRecentEmpty() string { return msgs.text(textDashboardRecentEmpty) }
+
+// DashboardScope1 says "Scope 1"
+// in the language the app shows under cx.
+func DashboardScope1(cx *core.Scope) string { return For(cx).DashboardScope1() }
+
+// DashboardScope1 is the package's DashboardScope1 in the language of msgs.
+func (msgs Messages) DashboardScope1() string { return msgs.text(textDashboardScope1) }
+
+// DashboardScope2 says "Scope 2"
+// in the language the app shows under cx.
+func DashboardScope2(cx *core.Scope) string { return For(cx).DashboardScope2() }
+
+// DashboardScope2 is the package's DashboardScope2 in the language of msgs.
+func (msgs Messages) DashboardScope2() string { return msgs.text(textDashboardScope2) }
+
+// DashboardScope3 says "Scope 3"
+// in the language the app shows under cx.
+func DashboardScope3(cx *core.Scope) string { return For(cx).DashboardScope3() }
+
+// DashboardScope3 is the package's DashboardScope3 in the language of msgs.
+func (msgs Messages) DashboardScope3() string { return msgs.text(textDashboardScope3) }
+
+// DashboardStartActivitiesBody says "Attach the consumption you measured — kWh, litres, tonne-kilometres — to a source. CO2e is computed from the bound emission factor, so the numbers stay traceable."
+// in the language the app shows under cx.
+func DashboardStartActivitiesBody(cx *core.Scope) string {
+	return For(cx).DashboardStartActivitiesBody()
+}
+
+// DashboardStartActivitiesBody is the package's DashboardStartActivitiesBody in the language of msgs.
+func (msgs Messages) DashboardStartActivitiesBody() string {
+	return msgs.text(textDashboardStartActivitiesBody)
+}
+
+// DashboardStartActivitiesCta says "Add activity data"
+// in the language the app shows under cx.
+func DashboardStartActivitiesCta(cx *core.Scope) string { return For(cx).DashboardStartActivitiesCta() }
+
+// DashboardStartActivitiesCta is the package's DashboardStartActivitiesCta in the language of msgs.
+func (msgs Messages) DashboardStartActivitiesCta() string {
+	return msgs.text(textDashboardStartActivitiesCta)
+}
+
+// DashboardStartActivitiesTitle says "Record activity data"
+// in the language the app shows under cx.
+func DashboardStartActivitiesTitle(cx *core.Scope) string {
+	return For(cx).DashboardStartActivitiesTitle()
+}
+
+// DashboardStartActivitiesTitle is the package's DashboardStartActivitiesTitle in the language of msgs.
+func (msgs Messages) DashboardStartActivitiesTitle() string {
+	return msgs.text(textDashboardStartActivitiesTitle)
+}
+
+// DashboardStartReportBody says "Once activity data is in, export the ISO 14064-1 inventory report, the Excel appendix and an evidence-backed deliverable bundle."
+// in the language the app shows under cx.
+func DashboardStartReportBody(cx *core.Scope) string { return For(cx).DashboardStartReportBody() }
+
+// DashboardStartReportBody is the package's DashboardStartReportBody in the language of msgs.
+func (msgs Messages) DashboardStartReportBody() string {
+	return msgs.text(textDashboardStartReportBody)
+}
+
+// DashboardStartReportCta says "Go to reports"
+// in the language the app shows under cx.
+func DashboardStartReportCta(cx *core.Scope) string { return For(cx).DashboardStartReportCta() }
+
+// DashboardStartReportCta is the package's DashboardStartReportCta in the language of msgs.
+func (msgs Messages) DashboardStartReportCta() string { return msgs.text(textDashboardStartReportCta) }
+
+// DashboardStartReportTitle says "Generate the report"
+// in the language the app shows under cx.
+func DashboardStartReportTitle(cx *core.Scope) string { return For(cx).DashboardStartReportTitle() }
+
+// DashboardStartReportTitle is the package's DashboardStartReportTitle in the language of msgs.
+func (msgs Messages) DashboardStartReportTitle() string {
+	return msgs.text(textDashboardStartReportTitle)
+}
+
+// DashboardStartSourcesBody says "A source is a thing you account for — a site meter, a boiler, a vehicle fleet. The catalog ships presets that already carry the right scope, category and emission factor."
+// in the language the app shows under cx.
+func DashboardStartSourcesBody(cx *core.Scope) string { return For(cx).DashboardStartSourcesBody() }
+
+// DashboardStartSourcesBody is the package's DashboardStartSourcesBody in the language of msgs.
+func (msgs Messages) DashboardStartSourcesBody() string {
+	return msgs.text(textDashboardStartSourcesBody)
+}
+
+// DashboardStartSourcesCta says "Browse the catalog"
+// in the language the app shows under cx.
+func DashboardStartSourcesCta(cx *core.Scope) string { return For(cx).DashboardStartSourcesCta() }
+
+// DashboardStartSourcesCta is the package's DashboardStartSourcesCta in the language of msgs.
+func (msgs Messages) DashboardStartSourcesCta() string {
+	return msgs.text(textDashboardStartSourcesCta)
+}
+
+// DashboardStartSourcesTitle says "Set up emission sources"
+// in the language the app shows under cx.
+func DashboardStartSourcesTitle(cx *core.Scope) string { return For(cx).DashboardStartSourcesTitle() }
+
+// DashboardStartSourcesTitle is the package's DashboardStartSourcesTitle in the language of msgs.
+func (msgs Messages) DashboardStartSourcesTitle() string {
+	return msgs.text(textDashboardStartSourcesTitle)
+}
+
+// DashboardStartStepDone says "Done"
+// in the language the app shows under cx.
+func DashboardStartStepDone(cx *core.Scope) string { return For(cx).DashboardStartStepDone() }
+
+// DashboardStartStepDone is the package's DashboardStartStepDone in the language of msgs.
+func (msgs Messages) DashboardStartStepDone() string { return msgs.text(textDashboardStartStepDone) }
+
+// DashboardStartSubtitle says "Three steps from an empty workspace to a defensible inventory."
+// in the language the app shows under cx.
+func DashboardStartSubtitle(cx *core.Scope) string { return For(cx).DashboardStartSubtitle() }
+
+// DashboardStartSubtitle is the package's DashboardStartSubtitle in the language of msgs.
+func (msgs Messages) DashboardStartSubtitle() string { return msgs.text(textDashboardStartSubtitle) }
+
+// DashboardStartTitle says "Start here"
+// in the language the app shows under cx.
+func DashboardStartTitle(cx *core.Scope) string { return For(cx).DashboardStartTitle() }
+
+// DashboardStartTitle is the package's DashboardStartTitle in the language of msgs.
+func (msgs Messages) DashboardStartTitle() string { return msgs.text(textDashboardStartTitle) }
+
+// DashboardTotalCo2e says "Total CO2e"
+// in the language the app shows under cx.
+func DashboardTotalCo2e(cx *core.Scope) string { return For(cx).DashboardTotalCo2e() }
+
+// DashboardTotalCo2e is the package's DashboardTotalCo2e in the language of msgs.
+func (msgs Messages) DashboardTotalCo2e() string { return msgs.text(textDashboardTotalCo2e) }
+
+// DashboardWelcomeBody says "You haven't set up your organization yet. The onboarding wizard will guide you next."
+// in the language the app shows under cx.
+func DashboardWelcomeBody(cx *core.Scope) string { return For(cx).DashboardWelcomeBody() }
+
+// DashboardWelcomeBody is the package's DashboardWelcomeBody in the language of msgs.
+func (msgs Messages) DashboardWelcomeBody() string { return msgs.text(textDashboardWelcomeBody) }
+
+// DashboardWelcomeTitle says "Welcome to CarbonInk"
+// in the language the app shows under cx.
+func DashboardWelcomeTitle(cx *core.Scope) string { return For(cx).DashboardWelcomeTitle() }
+
+// DashboardWelcomeTitle is the package's DashboardWelcomeTitle in the language of msgs.
+func (msgs Messages) DashboardWelcomeTitle() string { return msgs.text(textDashboardWelcomeTitle) }
+
+// DashboardWidgetViewAll says "View all"
+// in the language the app shows under cx.
+func DashboardWidgetViewAll(cx *core.Scope) string { return For(cx).DashboardWidgetViewAll() }
+
+// DashboardWidgetViewAll is the package's DashboardWidgetViewAll in the language of msgs.
+func (msgs Messages) DashboardWidgetViewAll() string { return msgs.text(textDashboardWidgetViewAll) }
+
+// DocumentsAiRequiredBody says "Carbonink needs an AI provider to read documents. Set one up in Settings — you'll need an API key from your provider (OpenAI / Anthropic / Azure / DeepSeek, or any OpenAI-compatible endpoint)."
+// in the language the app shows under cx.
+func DocumentsAiRequiredBody(cx *core.Scope) string { return For(cx).DocumentsAiRequiredBody() }
+
+// DocumentsAiRequiredBody is the package's DocumentsAiRequiredBody in the language of msgs.
+func (msgs Messages) DocumentsAiRequiredBody() string { return msgs.text(textDocumentsAiRequiredBody) }
+
+// DocumentsAiRequiredCta says "Open Settings"
+// in the language the app shows under cx.
+func DocumentsAiRequiredCta(cx *core.Scope) string { return For(cx).DocumentsAiRequiredCta() }
+
+// DocumentsAiRequiredCta is the package's DocumentsAiRequiredCta in the language of msgs.
+func (msgs Messages) DocumentsAiRequiredCta() string { return msgs.text(textDocumentsAiRequiredCta) }
+
+// DocumentsAiRequiredTitle says "AI provider not configured"
+// in the language the app shows under cx.
+func DocumentsAiRequiredTitle(cx *core.Scope) string { return For(cx).DocumentsAiRequiredTitle() }
+
+// DocumentsAiRequiredTitle is the package's DocumentsAiRequiredTitle in the language of msgs.
+func (msgs Messages) DocumentsAiRequiredTitle() string {
+	return msgs.text(textDocumentsAiRequiredTitle)
+}
+
+// DocumentsBackToList says "Documents"
+// in the language the app shows under cx.
+func DocumentsBackToList(cx *core.Scope) string { return For(cx).DocumentsBackToList() }
+
+// DocumentsBackToList is the package's DocumentsBackToList in the language of msgs.
+func (msgs Messages) DocumentsBackToList() string { return msgs.text(textDocumentsBackToList) }
+
+// DocumentsBatchAlreadyRunning says "A batch recognition is already running"
+// in the language the app shows under cx.
+func DocumentsBatchAlreadyRunning(cx *core.Scope) string {
+	return For(cx).DocumentsBatchAlreadyRunning()
+}
+
+// DocumentsBatchAlreadyRunning is the package's DocumentsBatchAlreadyRunning in the language of msgs.
+func (msgs Messages) DocumentsBatchAlreadyRunning() string {
+	return msgs.text(textDocumentsBatchAlreadyRunning)
+}
+
+// DocumentsBatchButton says "Recognize all ({count})"
+// in the language the app shows under cx.
+func DocumentsBatchButton(cx *core.Scope, count string) string {
+	return For(cx).DocumentsBatchButton(count)
+}
+
+// DocumentsBatchButton is the package's DocumentsBatchButton in the language of msgs.
+func (msgs Messages) DocumentsBatchButton(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.DocumentsBatchButton(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].DocumentsBatchButton; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return "Recognize all (" + msgs.arg(count) + ")"
+		case "zh-CN":
+			return "批量识别（" + count + "）"
+		}
+	}
+}
+
+// DocumentsBatchCancel says "Cancel"
+// in the language the app shows under cx.
+func DocumentsBatchCancel(cx *core.Scope) string { return For(cx).DocumentsBatchCancel() }
+
+// DocumentsBatchCancel is the package's DocumentsBatchCancel in the language of msgs.
+func (msgs Messages) DocumentsBatchCancel() string { return msgs.text(textDocumentsBatchCancel) }
+
+// DocumentsBatchCanceledToast says "Batch canceled ({done}/{total} done)"
+// in the language the app shows under cx.
+func DocumentsBatchCanceledToast(cx *core.Scope, done string, total string) string {
+	return For(cx).DocumentsBatchCanceledToast(done, total)
+}
+
+// DocumentsBatchCanceledToast is the package's DocumentsBatchCanceledToast in the language of msgs.
+func (msgs Messages) DocumentsBatchCanceledToast(done string, total string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.DocumentsBatchCanceledToast(done, total))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].DocumentsBatchCanceledToast; f != nil {
+			return f(done, total)
+		}
+		switch lang {
+		case "", "en":
+			return "Batch canceled (" + msgs.arg(done) + "/" + msgs.arg(total) + " done)"
+		case "zh-CN":
+			return "批量识别已取消（完成 " + done + "/" + total + "）"
+		}
+	}
+}
+
+// DocumentsBatchFailuresHeading says "Failed documents"
+// in the language the app shows under cx.
+func DocumentsBatchFailuresHeading(cx *core.Scope) string {
+	return For(cx).DocumentsBatchFailuresHeading()
+}
+
+// DocumentsBatchFailuresHeading is the package's DocumentsBatchFailuresHeading in the language of msgs.
+func (msgs Messages) DocumentsBatchFailuresHeading() string {
+	return msgs.text(textDocumentsBatchFailuresHeading)
+}
+
+// DocumentsBatchHint says "Calls the AI once per document — {count} calls"
+// in the language the app shows under cx.
+func DocumentsBatchHint(cx *core.Scope, count string) string {
+	return For(cx).DocumentsBatchHint(count)
+}
+
+// DocumentsBatchHint is the package's DocumentsBatchHint in the language of msgs.
+func (msgs Messages) DocumentsBatchHint(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.DocumentsBatchHint(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].DocumentsBatchHint; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return "Calls the AI once per document — " + msgs.arg(count) + " calls"
+		case "zh-CN":
+			return "每份文档调用一次 AI，共 " + count + " 次"
+		}
+	}
+}
+
+// DocumentsBatchProgress says "Recognizing {done}/{total}"
+// in the language the app shows under cx.
+func DocumentsBatchProgress(cx *core.Scope, done string, total string) string {
+	return For(cx).DocumentsBatchProgress(done, total)
+}
+
+// DocumentsBatchProgress is the package's DocumentsBatchProgress in the language of msgs.
+func (msgs Messages) DocumentsBatchProgress(done string, total string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.DocumentsBatchProgress(done, total))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].DocumentsBatchProgress; f != nil {
+			return f(done, total)
+		}
+		switch lang {
+		case "", "en":
+			return "Recognizing " + msgs.arg(done) + "/" + msgs.arg(total)
+		case "zh-CN":
+			return "识别中 " + done + "/" + total
+		}
+	}
+}
+
+// DocumentsBatchReasonClassifyFailed says "could not auto-classify — open it and pick a stage"
+// in the language the app shows under cx.
+func DocumentsBatchReasonClassifyFailed(cx *core.Scope) string {
+	return For(cx).DocumentsBatchReasonClassifyFailed()
+}
+
+// DocumentsBatchReasonClassifyFailed is the package's DocumentsBatchReasonClassifyFailed in the language of msgs.
+func (msgs Messages) DocumentsBatchReasonClassifyFailed() string {
+	return msgs.text(textDocumentsBatchReasonClassifyFailed)
+}
+
+// DocumentsBatchReasonError says "recognition error"
+// in the language the app shows under cx.
+func DocumentsBatchReasonError(cx *core.Scope) string { return For(cx).DocumentsBatchReasonError() }
+
+// DocumentsBatchReasonError is the package's DocumentsBatchReasonError in the language of msgs.
+func (msgs Messages) DocumentsBatchReasonError() string {
+	return msgs.text(textDocumentsBatchReasonError)
+}
+
+// DocumentsBatchSummaryToast says "Batch recognition done: {ok} ok · {failed} failed"
+// in the language the app shows under cx.
+func DocumentsBatchSummaryToast(cx *core.Scope, ok string, failed string) string {
+	return For(cx).DocumentsBatchSummaryToast(ok, failed)
+}
+
+// DocumentsBatchSummaryToast is the package's DocumentsBatchSummaryToast in the language of msgs.
+func (msgs Messages) DocumentsBatchSummaryToast(ok string, failed string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.DocumentsBatchSummaryToast(ok, failed))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].DocumentsBatchSummaryToast; f != nil {
+			return f(ok, failed)
+		}
+		switch lang {
+		case "", "en":
+			return "Batch recognition done: " + msgs.arg(ok) + " ok · " + msgs.arg(failed) + " failed"
+		case "zh-CN":
+			return "批量识别完成：成功 " + ok + " · 失败 " + failed
+		}
+	}
+}
+
+// DocumentsEmpty says "No documents yet. Drop a PDF above to get started."
+// in the language the app shows under cx.
+func DocumentsEmpty(cx *core.Scope) string { return For(cx).DocumentsEmpty() }
+
+// DocumentsEmpty is the package's DocumentsEmpty in the language of msgs.
+func (msgs Messages) DocumentsEmpty() string { return msgs.text(textDocumentsEmpty) }
+
+// DocumentsExtracting says "Extracting…"
+// in the language the app shows under cx.
+func DocumentsExtracting(cx *core.Scope) string { return For(cx).DocumentsExtracting() }
+
+// DocumentsExtracting is the package's DocumentsExtracting in the language of msgs.
+func (msgs Messages) DocumentsExtracting() string { return msgs.text(textDocumentsExtracting) }
+
+// DocumentsExtractingVision says "Recognizing image (longer wait)…"
+// in the language the app shows under cx.
+func DocumentsExtractingVision(cx *core.Scope) string { return For(cx).DocumentsExtractingVision() }
+
+// DocumentsExtractingVision is the package's DocumentsExtractingVision in the language of msgs.
+func (msgs Messages) DocumentsExtractingVision() string {
+	return msgs.text(textDocumentsExtractingVision)
+}
+
+// DocumentsExtractionDone says "Extraction ready for review"
+// in the language the app shows under cx.
+func DocumentsExtractionDone(cx *core.Scope) string { return For(cx).DocumentsExtractionDone() }
+
+// DocumentsExtractionDone is the package's DocumentsExtractionDone in the language of msgs.
+func (msgs Messages) DocumentsExtractionDone() string { return msgs.text(textDocumentsExtractionDone) }
+
+// DocumentsExtractionFailed says "Extraction failed"
+// in the language the app shows under cx.
+func DocumentsExtractionFailed(cx *core.Scope) string { return For(cx).DocumentsExtractionFailed() }
+
+// DocumentsExtractionFailed is the package's DocumentsExtractionFailed in the language of msgs.
+func (msgs Messages) DocumentsExtractionFailed() string {
+	return msgs.text(textDocumentsExtractionFailed)
+}
+
+// DocumentsExtractionRunAgain says "Run again"
+// in the language the app shows under cx.
+func DocumentsExtractionRunAgain(cx *core.Scope) string { return For(cx).DocumentsExtractionRunAgain() }
+
+// DocumentsExtractionRunAgain is the package's DocumentsExtractionRunAgain in the language of msgs.
+func (msgs Messages) DocumentsExtractionRunAgain() string {
+	return msgs.text(textDocumentsExtractionRunAgain)
+}
+
+// DocumentsExtractionRunNow says "Run extraction"
+// in the language the app shows under cx.
+func DocumentsExtractionRunNow(cx *core.Scope) string { return For(cx).DocumentsExtractionRunNow() }
+
+// DocumentsExtractionRunNow is the package's DocumentsExtractionRunNow in the language of msgs.
+func (msgs Messages) DocumentsExtractionRunNow() string {
+	return msgs.text(textDocumentsExtractionRunNow)
+}
+
+// DocumentsExtractionRunning says "Extracting..."
+// in the language the app shows under cx.
+func DocumentsExtractionRunning(cx *core.Scope) string { return For(cx).DocumentsExtractionRunning() }
+
+// DocumentsExtractionRunning is the package's DocumentsExtractionRunning in the language of msgs.
+func (msgs Messages) DocumentsExtractionRunning() string {
+	return msgs.text(textDocumentsExtractionRunning)
+}
+
+// DocumentsExtractionStarted says "Extraction started"
+// in the language the app shows under cx.
+func DocumentsExtractionStarted(cx *core.Scope) string { return For(cx).DocumentsExtractionStarted() }
+
+// DocumentsExtractionStarted is the package's DocumentsExtractionStarted in the language of msgs.
+func (msgs Messages) DocumentsExtractionStarted() string {
+	return msgs.text(textDocumentsExtractionStarted)
+}
+
+// DocumentsFilterClear says "Clear filters"
+// in the language the app shows under cx.
+func DocumentsFilterClear(cx *core.Scope) string { return For(cx).DocumentsFilterClear() }
+
+// DocumentsFilterClear is the package's DocumentsFilterClear in the language of msgs.
+func (msgs Messages) DocumentsFilterClear() string { return msgs.text(textDocumentsFilterClear) }
+
+// DocumentsFilterEmpty says "No matching documents"
+// in the language the app shows under cx.
+func DocumentsFilterEmpty(cx *core.Scope) string { return For(cx).DocumentsFilterEmpty() }
+
+// DocumentsFilterEmpty is the package's DocumentsFilterEmpty in the language of msgs.
+func (msgs Messages) DocumentsFilterEmpty() string { return msgs.text(textDocumentsFilterEmpty) }
+
+// DocumentsFilterStatusAll says "All statuses"
+// in the language the app shows under cx.
+func DocumentsFilterStatusAll(cx *core.Scope) string { return For(cx).DocumentsFilterStatusAll() }
+
+// DocumentsFilterStatusAll is the package's DocumentsFilterStatusAll in the language of msgs.
+func (msgs Messages) DocumentsFilterStatusAll() string {
+	return msgs.text(textDocumentsFilterStatusAll)
+}
+
+// DocumentsLoadFailed says "Failed to load documents"
+// in the language the app shows under cx.
+func DocumentsLoadFailed(cx *core.Scope) string { return For(cx).DocumentsLoadFailed() }
+
+// DocumentsLoadFailed is the package's DocumentsLoadFailed in the language of msgs.
+func (msgs Messages) DocumentsLoadFailed() string { return msgs.text(textDocumentsLoadFailed) }
+
+// DocumentsNext says "Next"
+// in the language the app shows under cx.
+func DocumentsNext(cx *core.Scope) string { return For(cx).DocumentsNext() }
+
+// DocumentsNext is the package's DocumentsNext in the language of msgs.
+func (msgs Messages) DocumentsNext() string { return msgs.text(textDocumentsNext) }
+
+// DocumentsOpenRow says "Open"
+// in the language the app shows under cx.
+func DocumentsOpenRow(cx *core.Scope) string { return For(cx).DocumentsOpenRow() }
+
+// DocumentsOpenRow is the package's DocumentsOpenRow in the language of msgs.
+func (msgs Messages) DocumentsOpenRow() string { return msgs.text(textDocumentsOpenRow) }
+
+// DocumentsPlaceholder says "Document upload + extraction lands in Phase 1b Task 14."
+// in the language the app shows under cx.
+func DocumentsPlaceholder(cx *core.Scope) string { return For(cx).DocumentsPlaceholder() }
+
+// DocumentsPlaceholder is the package's DocumentsPlaceholder in the language of msgs.
+func (msgs Messages) DocumentsPlaceholder() string { return msgs.text(textDocumentsPlaceholder) }
+
+// DocumentsPrev says "Previous"
+// in the language the app shows under cx.
+func DocumentsPrev(cx *core.Scope) string { return For(cx).DocumentsPrev() }
+
+// DocumentsPrev is the package's DocumentsPrev in the language of msgs.
+func (msgs Messages) DocumentsPrev() string { return msgs.text(textDocumentsPrev) }
+
+// DocumentsPreviewDrawerTitle says "Document preview"
+// in the language the app shows under cx.
+func DocumentsPreviewDrawerTitle(cx *core.Scope) string { return For(cx).DocumentsPreviewDrawerTitle() }
+
+// DocumentsPreviewDrawerTitle is the package's DocumentsPreviewDrawerTitle in the language of msgs.
+func (msgs Messages) DocumentsPreviewDrawerTitle() string {
+	return msgs.text(textDocumentsPreviewDrawerTitle)
+}
+
+// DocumentsPreviewOpenDetail says "Open in document detail"
+// in the language the app shows under cx.
+func DocumentsPreviewOpenDetail(cx *core.Scope) string { return For(cx).DocumentsPreviewOpenDetail() }
+
+// DocumentsPreviewOpenDetail is the package's DocumentsPreviewOpenDetail in the language of msgs.
+func (msgs Messages) DocumentsPreviewOpenDetail() string {
+	return msgs.text(textDocumentsPreviewOpenDetail)
+}
+
+// DocumentsReviewAlreadyConfirmedBody says "This extraction has been added to your activity data. To edit or delete it, go to the Activities page."
+// in the language the app shows under cx.
+func DocumentsReviewAlreadyConfirmedBody(cx *core.Scope) string {
+	return For(cx).DocumentsReviewAlreadyConfirmedBody()
+}
+
+// DocumentsReviewAlreadyConfirmedBody is the package's DocumentsReviewAlreadyConfirmedBody in the language of msgs.
+func (msgs Messages) DocumentsReviewAlreadyConfirmedBody() string {
+	return msgs.text(textDocumentsReviewAlreadyConfirmedBody)
+}
+
+// DocumentsReviewAlreadyConfirmedTitle says "Already confirmed"
+// in the language the app shows under cx.
+func DocumentsReviewAlreadyConfirmedTitle(cx *core.Scope) string {
+	return For(cx).DocumentsReviewAlreadyConfirmedTitle()
+}
+
+// DocumentsReviewAlreadyConfirmedTitle is the package's DocumentsReviewAlreadyConfirmedTitle in the language of msgs.
+func (msgs Messages) DocumentsReviewAlreadyConfirmedTitle() string {
+	return msgs.text(textDocumentsReviewAlreadyConfirmedTitle)
+}
+
+// DocumentsReviewBack says "Back to documents"
+// in the language the app shows under cx.
+func DocumentsReviewBack(cx *core.Scope) string { return For(cx).DocumentsReviewBack() }
+
+// DocumentsReviewBack is the package's DocumentsReviewBack in the language of msgs.
+func (msgs Messages) DocumentsReviewBack() string { return msgs.text(textDocumentsReviewBack) }
+
+// DocumentsReviewClassifyFailed says "Could not identify document type. Please pick the stage manually."
+// in the language the app shows under cx.
+func DocumentsReviewClassifyFailed(cx *core.Scope) string {
+	return For(cx).DocumentsReviewClassifyFailed()
+}
+
+// DocumentsReviewClassifyFailed is the package's DocumentsReviewClassifyFailed in the language of msgs.
+func (msgs Messages) DocumentsReviewClassifyFailed() string {
+	return msgs.text(textDocumentsReviewClassifyFailed)
+}
+
+// DocumentsReviewClassifying says "Analyzing document type…"
+// in the language the app shows under cx.
+func DocumentsReviewClassifying(cx *core.Scope) string { return For(cx).DocumentsReviewClassifying() }
+
+// DocumentsReviewClassifying is the package's DocumentsReviewClassifying in the language of msgs.
+func (msgs Messages) DocumentsReviewClassifying() string {
+	return msgs.text(textDocumentsReviewClassifying)
+}
+
+// DocumentsReviewConfidence says "Confidence"
+// in the language the app shows under cx.
+func DocumentsReviewConfidence(cx *core.Scope) string { return For(cx).DocumentsReviewConfidence() }
+
+// DocumentsReviewConfidence is the package's DocumentsReviewConfidence in the language of msgs.
+func (msgs Messages) DocumentsReviewConfidence() string {
+	return msgs.text(textDocumentsReviewConfidence)
+}
+
+// DocumentsReviewConfidenceHigh says "High"
+// in the language the app shows under cx.
+func DocumentsReviewConfidenceHigh(cx *core.Scope) string {
+	return For(cx).DocumentsReviewConfidenceHigh()
+}
+
+// DocumentsReviewConfidenceHigh is the package's DocumentsReviewConfidenceHigh in the language of msgs.
+func (msgs Messages) DocumentsReviewConfidenceHigh() string {
+	return msgs.text(textDocumentsReviewConfidenceHigh)
+}
+
+// DocumentsReviewConfidenceLow says "Low"
+// in the language the app shows under cx.
+func DocumentsReviewConfidenceLow(cx *core.Scope) string {
+	return For(cx).DocumentsReviewConfidenceLow()
+}
+
+// DocumentsReviewConfidenceLow is the package's DocumentsReviewConfidenceLow in the language of msgs.
+func (msgs Messages) DocumentsReviewConfidenceLow() string {
+	return msgs.text(textDocumentsReviewConfidenceLow)
+}
+
+// DocumentsReviewConfidenceMedium says "Medium"
+// in the language the app shows under cx.
+func DocumentsReviewConfidenceMedium(cx *core.Scope) string {
+	return For(cx).DocumentsReviewConfidenceMedium()
+}
+
+// DocumentsReviewConfidenceMedium is the package's DocumentsReviewConfidenceMedium in the language of msgs.
+func (msgs Messages) DocumentsReviewConfidenceMedium() string {
+	return msgs.text(textDocumentsReviewConfidenceMedium)
+}
+
+// DocumentsReviewConfirm says "Confirm → Add as activity"
+// in the language the app shows under cx.
+func DocumentsReviewConfirm(cx *core.Scope) string { return For(cx).DocumentsReviewConfirm() }
+
+// DocumentsReviewConfirm is the package's DocumentsReviewConfirm in the language of msgs.
+func (msgs Messages) DocumentsReviewConfirm() string { return msgs.text(textDocumentsReviewConfirm) }
+
+// DocumentsReviewConfirmFailed says "Failed to confirm extraction"
+// in the language the app shows under cx.
+func DocumentsReviewConfirmFailed(cx *core.Scope) string {
+	return For(cx).DocumentsReviewConfirmFailed()
+}
+
+// DocumentsReviewConfirmFailed is the package's DocumentsReviewConfirmFailed in the language of msgs.
+func (msgs Messages) DocumentsReviewConfirmFailed() string {
+	return msgs.text(textDocumentsReviewConfirmFailed)
+}
+
+// DocumentsReviewConfirmSuccess says "Extraction confirmed"
+// in the language the app shows under cx.
+func DocumentsReviewConfirmSuccess(cx *core.Scope) string {
+	return For(cx).DocumentsReviewConfirmSuccess()
+}
+
+// DocumentsReviewConfirmSuccess is the package's DocumentsReviewConfirmSuccess in the language of msgs.
+func (msgs Messages) DocumentsReviewConfirmSuccess() string {
+	return msgs.text(textDocumentsReviewConfirmSuccess)
+}
+
+// DocumentsReviewDiscard says "Discard"
+// in the language the app shows under cx.
+func DocumentsReviewDiscard(cx *core.Scope) string { return For(cx).DocumentsReviewDiscard() }
+
+// DocumentsReviewDiscard is the package's DocumentsReviewDiscard in the language of msgs.
+func (msgs Messages) DocumentsReviewDiscard() string { return msgs.text(textDocumentsReviewDiscard) }
+
+// DocumentsReviewDiscardConfirm says "Discard this extraction? This can't be undone."
+// in the language the app shows under cx.
+func DocumentsReviewDiscardConfirm(cx *core.Scope) string {
+	return For(cx).DocumentsReviewDiscardConfirm()
+}
+
+// DocumentsReviewDiscardConfirm is the package's DocumentsReviewDiscardConfirm in the language of msgs.
+func (msgs Messages) DocumentsReviewDiscardConfirm() string {
+	return msgs.text(textDocumentsReviewDiscardConfirm)
+}
+
+// DocumentsReviewDiscardFailed says "Failed to discard extraction"
+// in the language the app shows under cx.
+func DocumentsReviewDiscardFailed(cx *core.Scope) string {
+	return For(cx).DocumentsReviewDiscardFailed()
+}
+
+// DocumentsReviewDiscardFailed is the package's DocumentsReviewDiscardFailed in the language of msgs.
+func (msgs Messages) DocumentsReviewDiscardFailed() string {
+	return msgs.text(textDocumentsReviewDiscardFailed)
+}
+
+// DocumentsReviewDiscardSuccess says "Extraction discarded"
+// in the language the app shows under cx.
+func DocumentsReviewDiscardSuccess(cx *core.Scope) string {
+	return For(cx).DocumentsReviewDiscardSuccess()
+}
+
+// DocumentsReviewDiscardSuccess is the package's DocumentsReviewDiscardSuccess in the language of msgs.
+func (msgs Messages) DocumentsReviewDiscardSuccess() string {
+	return msgs.text(textDocumentsReviewDiscardSuccess)
+}
+
+// DocumentsReviewExtracting says "Extracting fields…"
+// in the language the app shows under cx.
+func DocumentsReviewExtracting(cx *core.Scope) string { return For(cx).DocumentsReviewExtracting() }
+
+// DocumentsReviewExtracting is the package's DocumentsReviewExtracting in the language of msgs.
+func (msgs Messages) DocumentsReviewExtracting() string {
+	return msgs.text(textDocumentsReviewExtracting)
+}
+
+// DocumentsReviewFieldAccount says "Account"
+// in the language the app shows under cx.
+func DocumentsReviewFieldAccount(cx *core.Scope) string { return For(cx).DocumentsReviewFieldAccount() }
+
+// DocumentsReviewFieldAccount is the package's DocumentsReviewFieldAccount in the language of msgs.
+func (msgs Messages) DocumentsReviewFieldAccount() string {
+	return msgs.text(textDocumentsReviewFieldAccount)
+}
+
+// DocumentsReviewFieldAmountKwh says "Energy (kWh)"
+// in the language the app shows under cx.
+func DocumentsReviewFieldAmountKwh(cx *core.Scope) string {
+	return For(cx).DocumentsReviewFieldAmountKwh()
+}
+
+// DocumentsReviewFieldAmountKwh is the package's DocumentsReviewFieldAmountKwh in the language of msgs.
+func (msgs Messages) DocumentsReviewFieldAmountKwh() string {
+	return msgs.text(textDocumentsReviewFieldAmountKwh)
+}
+
+// DocumentsReviewFieldAmountYuan says "Total (CNY)"
+// in the language the app shows under cx.
+func DocumentsReviewFieldAmountYuan(cx *core.Scope) string {
+	return For(cx).DocumentsReviewFieldAmountYuan()
+}
+
+// DocumentsReviewFieldAmountYuan is the package's DocumentsReviewFieldAmountYuan in the language of msgs.
+func (msgs Messages) DocumentsReviewFieldAmountYuan() string {
+	return msgs.text(textDocumentsReviewFieldAmountYuan)
+}
+
+// DocumentsReviewFieldArrivalAt says "Arrival"
+// in the language the app shows under cx.
+func DocumentsReviewFieldArrivalAt(cx *core.Scope) string {
+	return For(cx).DocumentsReviewFieldArrivalAt()
+}
+
+// DocumentsReviewFieldArrivalAt is the package's DocumentsReviewFieldArrivalAt in the language of msgs.
+func (msgs Messages) DocumentsReviewFieldArrivalAt() string {
+	return msgs.text(textDocumentsReviewFieldArrivalAt)
+}
+
+// DocumentsReviewFieldCategory says "Category"
+// in the language the app shows under cx.
+func DocumentsReviewFieldCategory(cx *core.Scope) string {
+	return For(cx).DocumentsReviewFieldCategory()
+}
+
+// DocumentsReviewFieldCategory is the package's DocumentsReviewFieldCategory in the language of msgs.
+func (msgs Messages) DocumentsReviewFieldCategory() string {
+	return msgs.text(textDocumentsReviewFieldCategory)
+}
+
+// DocumentsReviewFieldDepartureAt says "Departure"
+// in the language the app shows under cx.
+func DocumentsReviewFieldDepartureAt(cx *core.Scope) string {
+	return For(cx).DocumentsReviewFieldDepartureAt()
+}
+
+// DocumentsReviewFieldDepartureAt is the package's DocumentsReviewFieldDepartureAt in the language of msgs.
+func (msgs Messages) DocumentsReviewFieldDepartureAt() string {
+	return msgs.text(textDocumentsReviewFieldDepartureAt)
+}
+
+// DocumentsReviewFieldDestination says "Destination"
+// in the language the app shows under cx.
+func DocumentsReviewFieldDestination(cx *core.Scope) string {
+	return For(cx).DocumentsReviewFieldDestination()
+}
+
+// DocumentsReviewFieldDestination is the package's DocumentsReviewFieldDestination in the language of msgs.
+func (msgs Messages) DocumentsReviewFieldDestination() string {
+	return msgs.text(textDocumentsReviewFieldDestination)
+}
+
+// DocumentsReviewFieldDistanceKm says "Distance (km)"
+// in the language the app shows under cx.
+func DocumentsReviewFieldDistanceKm(cx *core.Scope) string {
+	return For(cx).DocumentsReviewFieldDistanceKm()
+}
+
+// DocumentsReviewFieldDistanceKm is the package's DocumentsReviewFieldDistanceKm in the language of msgs.
+func (msgs Messages) DocumentsReviewFieldDistanceKm() string {
+	return msgs.text(textDocumentsReviewFieldDistanceKm)
+}
+
+// DocumentsReviewFieldFlightOrTrainNo says "Flight / train no."
+// in the language the app shows under cx.
+func DocumentsReviewFieldFlightOrTrainNo(cx *core.Scope) string {
+	return For(cx).DocumentsReviewFieldFlightOrTrainNo()
+}
+
+// DocumentsReviewFieldFlightOrTrainNo is the package's DocumentsReviewFieldFlightOrTrainNo in the language of msgs.
+func (msgs Messages) DocumentsReviewFieldFlightOrTrainNo() string {
+	return msgs.text(textDocumentsReviewFieldFlightOrTrainNo)
+}
+
+// DocumentsReviewFieldFuelCategory says "Fuel category"
+// in the language the app shows under cx.
+func DocumentsReviewFieldFuelCategory(cx *core.Scope) string {
+	return For(cx).DocumentsReviewFieldFuelCategory()
+}
+
+// DocumentsReviewFieldFuelCategory is the package's DocumentsReviewFieldFuelCategory in the language of msgs.
+func (msgs Messages) DocumentsReviewFieldFuelCategory() string {
+	return msgs.text(textDocumentsReviewFieldFuelCategory)
+}
+
+// DocumentsReviewFieldFuelType says "Fuel type (as printed)"
+// in the language the app shows under cx.
+func DocumentsReviewFieldFuelType(cx *core.Scope) string {
+	return For(cx).DocumentsReviewFieldFuelType()
+}
+
+// DocumentsReviewFieldFuelType is the package's DocumentsReviewFieldFuelType in the language of msgs.
+func (msgs Messages) DocumentsReviewFieldFuelType() string {
+	return msgs.text(textDocumentsReviewFieldFuelType)
+}
+
+// DocumentsReviewFieldInvoiceNo says "Invoice no."
+// in the language the app shows under cx.
+func DocumentsReviewFieldInvoiceNo(cx *core.Scope) string {
+	return For(cx).DocumentsReviewFieldInvoiceNo()
+}
+
+// DocumentsReviewFieldInvoiceNo is the package's DocumentsReviewFieldInvoiceNo in the language of msgs.
+func (msgs Messages) DocumentsReviewFieldInvoiceNo() string {
+	return msgs.text(textDocumentsReviewFieldInvoiceNo)
+}
+
+// DocumentsReviewFieldItemDescription says "Item description"
+// in the language the app shows under cx.
+func DocumentsReviewFieldItemDescription(cx *core.Scope) string {
+	return For(cx).DocumentsReviewFieldItemDescription()
+}
+
+// DocumentsReviewFieldItemDescription is the package's DocumentsReviewFieldItemDescription in the language of msgs.
+func (msgs Messages) DocumentsReviewFieldItemDescription() string {
+	return msgs.text(textDocumentsReviewFieldItemDescription)
+}
+
+// DocumentsReviewFieldLicensePlate says "License plate"
+// in the language the app shows under cx.
+func DocumentsReviewFieldLicensePlate(cx *core.Scope) string {
+	return For(cx).DocumentsReviewFieldLicensePlate()
+}
+
+// DocumentsReviewFieldLicensePlate is the package's DocumentsReviewFieldLicensePlate in the language of msgs.
+func (msgs Messages) DocumentsReviewFieldLicensePlate() string {
+	return msgs.text(textDocumentsReviewFieldLicensePlate)
+}
+
+// DocumentsReviewFieldMode says "Transport mode"
+// in the language the app shows under cx.
+func DocumentsReviewFieldMode(cx *core.Scope) string { return For(cx).DocumentsReviewFieldMode() }
+
+// DocumentsReviewFieldMode is the package's DocumentsReviewFieldMode in the language of msgs.
+func (msgs Messages) DocumentsReviewFieldMode() string {
+	return msgs.text(textDocumentsReviewFieldMode)
+}
+
+// DocumentsReviewFieldOccurredAt says "Fueling date"
+// in the language the app shows under cx.
+func DocumentsReviewFieldOccurredAt(cx *core.Scope) string {
+	return For(cx).DocumentsReviewFieldOccurredAt()
+}
+
+// DocumentsReviewFieldOccurredAt is the package's DocumentsReviewFieldOccurredAt in the language of msgs.
+func (msgs Messages) DocumentsReviewFieldOccurredAt() string {
+	return msgs.text(textDocumentsReviewFieldOccurredAt)
+}
+
+// DocumentsReviewFieldOrigin says "Origin"
+// in the language the app shows under cx.
+func DocumentsReviewFieldOrigin(cx *core.Scope) string { return For(cx).DocumentsReviewFieldOrigin() }
+
+// DocumentsReviewFieldOrigin is the package's DocumentsReviewFieldOrigin in the language of msgs.
+func (msgs Messages) DocumentsReviewFieldOrigin() string {
+	return msgs.text(textDocumentsReviewFieldOrigin)
+}
+
+// DocumentsReviewFieldPassengerName says "Passenger"
+// in the language the app shows under cx.
+func DocumentsReviewFieldPassengerName(cx *core.Scope) string {
+	return For(cx).DocumentsReviewFieldPassengerName()
+}
+
+// DocumentsReviewFieldPassengerName is the package's DocumentsReviewFieldPassengerName in the language of msgs.
+func (msgs Messages) DocumentsReviewFieldPassengerName() string {
+	return msgs.text(textDocumentsReviewFieldPassengerName)
+}
+
+// DocumentsReviewFieldPeriodEnd says "Period end"
+// in the language the app shows under cx.
+func DocumentsReviewFieldPeriodEnd(cx *core.Scope) string {
+	return For(cx).DocumentsReviewFieldPeriodEnd()
+}
+
+// DocumentsReviewFieldPeriodEnd is the package's DocumentsReviewFieldPeriodEnd in the language of msgs.
+func (msgs Messages) DocumentsReviewFieldPeriodEnd() string {
+	return msgs.text(textDocumentsReviewFieldPeriodEnd)
+}
+
+// DocumentsReviewFieldPeriodStart says "Period start"
+// in the language the app shows under cx.
+func DocumentsReviewFieldPeriodStart(cx *core.Scope) string {
+	return For(cx).DocumentsReviewFieldPeriodStart()
+}
+
+// DocumentsReviewFieldPeriodStart is the package's DocumentsReviewFieldPeriodStart in the language of msgs.
+func (msgs Messages) DocumentsReviewFieldPeriodStart() string {
+	return msgs.text(textDocumentsReviewFieldPeriodStart)
+}
+
+// DocumentsReviewFieldQuantityKg says "Quantity (kg)"
+// in the language the app shows under cx.
+func DocumentsReviewFieldQuantityKg(cx *core.Scope) string {
+	return For(cx).DocumentsReviewFieldQuantityKg()
+}
+
+// DocumentsReviewFieldQuantityKg is the package's DocumentsReviewFieldQuantityKg in the language of msgs.
+func (msgs Messages) DocumentsReviewFieldQuantityKg() string {
+	return msgs.text(textDocumentsReviewFieldQuantityKg)
+}
+
+// DocumentsReviewFieldSupplier says "Supplier"
+// in the language the app shows under cx.
+func DocumentsReviewFieldSupplier(cx *core.Scope) string {
+	return For(cx).DocumentsReviewFieldSupplier()
+}
+
+// DocumentsReviewFieldSupplier is the package's DocumentsReviewFieldSupplier in the language of msgs.
+func (msgs Messages) DocumentsReviewFieldSupplier() string {
+	return msgs.text(textDocumentsReviewFieldSupplier)
+}
+
+// DocumentsReviewFieldTicketNo says "Ticket no."
+// in the language the app shows under cx.
+func DocumentsReviewFieldTicketNo(cx *core.Scope) string {
+	return For(cx).DocumentsReviewFieldTicketNo()
+}
+
+// DocumentsReviewFieldTicketNo is the package's DocumentsReviewFieldTicketNo in the language of msgs.
+func (msgs Messages) DocumentsReviewFieldTicketNo() string {
+	return msgs.text(textDocumentsReviewFieldTicketNo)
+}
+
+// DocumentsReviewFieldTrackingNo says "Tracking no."
+// in the language the app shows under cx.
+func DocumentsReviewFieldTrackingNo(cx *core.Scope) string {
+	return For(cx).DocumentsReviewFieldTrackingNo()
+}
+
+// DocumentsReviewFieldTrackingNo is the package's DocumentsReviewFieldTrackingNo in the language of msgs.
+func (msgs Messages) DocumentsReviewFieldTrackingNo() string {
+	return msgs.text(textDocumentsReviewFieldTrackingNo)
+}
+
+// DocumentsReviewFieldTravelClass says "Class"
+// in the language the app shows under cx.
+func DocumentsReviewFieldTravelClass(cx *core.Scope) string {
+	return For(cx).DocumentsReviewFieldTravelClass()
+}
+
+// DocumentsReviewFieldTravelClass is the package's DocumentsReviewFieldTravelClass in the language of msgs.
+func (msgs Messages) DocumentsReviewFieldTravelClass() string {
+	return msgs.text(textDocumentsReviewFieldTravelClass)
+}
+
+// DocumentsReviewFieldUnitPriceYuan says "Unit price (CNY/L)"
+// in the language the app shows under cx.
+func DocumentsReviewFieldUnitPriceYuan(cx *core.Scope) string {
+	return For(cx).DocumentsReviewFieldUnitPriceYuan()
+}
+
+// DocumentsReviewFieldUnitPriceYuan is the package's DocumentsReviewFieldUnitPriceYuan in the language of msgs.
+func (msgs Messages) DocumentsReviewFieldUnitPriceYuan() string {
+	return msgs.text(textDocumentsReviewFieldUnitPriceYuan)
+}
+
+// DocumentsReviewFieldVehicleClass says "Vehicle class"
+// in the language the app shows under cx.
+func DocumentsReviewFieldVehicleClass(cx *core.Scope) string {
+	return For(cx).DocumentsReviewFieldVehicleClass()
+}
+
+// DocumentsReviewFieldVehicleClass is the package's DocumentsReviewFieldVehicleClass in the language of msgs.
+func (msgs Messages) DocumentsReviewFieldVehicleClass() string {
+	return msgs.text(textDocumentsReviewFieldVehicleClass)
+}
+
+// DocumentsReviewFieldVehiclePlate says "Plate"
+// in the language the app shows under cx.
+func DocumentsReviewFieldVehiclePlate(cx *core.Scope) string {
+	return For(cx).DocumentsReviewFieldVehiclePlate()
+}
+
+// DocumentsReviewFieldVehiclePlate is the package's DocumentsReviewFieldVehiclePlate in the language of msgs.
+func (msgs Messages) DocumentsReviewFieldVehiclePlate() string {
+	return msgs.text(textDocumentsReviewFieldVehiclePlate)
+}
+
+// DocumentsReviewFieldVolumeL says "Volume (L)"
+// in the language the app shows under cx.
+func DocumentsReviewFieldVolumeL(cx *core.Scope) string { return For(cx).DocumentsReviewFieldVolumeL() }
+
+// DocumentsReviewFieldVolumeL is the package's DocumentsReviewFieldVolumeL in the language of msgs.
+func (msgs Messages) DocumentsReviewFieldVolumeL() string {
+	return msgs.text(textDocumentsReviewFieldVolumeL)
+}
+
+// DocumentsReviewFieldVolumeM3 says "Volume (m³)"
+// in the language the app shows under cx.
+func DocumentsReviewFieldVolumeM3(cx *core.Scope) string {
+	return For(cx).DocumentsReviewFieldVolumeM3()
+}
+
+// DocumentsReviewFieldVolumeM3 is the package's DocumentsReviewFieldVolumeM3 in the language of msgs.
+func (msgs Messages) DocumentsReviewFieldVolumeM3() string {
+	return msgs.text(textDocumentsReviewFieldVolumeM3)
+}
+
+// DocumentsReviewFieldWeightKg says "Weight (kg)"
+// in the language the app shows under cx.
+func DocumentsReviewFieldWeightKg(cx *core.Scope) string {
+	return For(cx).DocumentsReviewFieldWeightKg()
+}
+
+// DocumentsReviewFieldWeightKg is the package's DocumentsReviewFieldWeightKg in the language of msgs.
+func (msgs Messages) DocumentsReviewFieldWeightKg() string {
+	return msgs.text(textDocumentsReviewFieldWeightKg)
+}
+
+// DocumentsReviewFuelCategoryOtherWarning says "Fuel category couldn't be classified — please override manually before Confirm."
+// in the language the app shows under cx.
+func DocumentsReviewFuelCategoryOtherWarning(cx *core.Scope) string {
+	return For(cx).DocumentsReviewFuelCategoryOtherWarning()
+}
+
+// DocumentsReviewFuelCategoryOtherWarning is the package's DocumentsReviewFuelCategoryOtherWarning in the language of msgs.
+func (msgs Messages) DocumentsReviewFuelCategoryOtherWarning() string {
+	return msgs.text(textDocumentsReviewFuelCategoryOtherWarning)
+}
+
+// DocumentsReviewLoadFailed says "Failed to load document"
+// in the language the app shows under cx.
+func DocumentsReviewLoadFailed(cx *core.Scope) string { return For(cx).DocumentsReviewLoadFailed() }
+
+// DocumentsReviewLoadFailed is the package's DocumentsReviewLoadFailed in the language of msgs.
+func (msgs Messages) DocumentsReviewLoadFailed() string {
+	return msgs.text(textDocumentsReviewLoadFailed)
+}
+
+// DocumentsReviewNoExtraction says "No extraction yet for this document."
+// in the language the app shows under cx.
+func DocumentsReviewNoExtraction(cx *core.Scope) string { return For(cx).DocumentsReviewNoExtraction() }
+
+// DocumentsReviewNoExtraction is the package's DocumentsReviewNoExtraction in the language of msgs.
+func (msgs Messages) DocumentsReviewNoExtraction() string {
+	return msgs.text(textDocumentsReviewNoExtraction)
+}
+
+// DocumentsReviewParseError says "Could not parse the extraction output."
+// in the language the app shows under cx.
+func DocumentsReviewParseError(cx *core.Scope) string { return For(cx).DocumentsReviewParseError() }
+
+// DocumentsReviewParseError is the package's DocumentsReviewParseError in the language of msgs.
+func (msgs Messages) DocumentsReviewParseError() string {
+	return msgs.text(textDocumentsReviewParseError)
+}
+
+// DocumentsReviewPdfLoading says "Loading PDF preview…"
+// in the language the app shows under cx.
+func DocumentsReviewPdfLoading(cx *core.Scope) string { return For(cx).DocumentsReviewPdfLoading() }
+
+// DocumentsReviewPdfLoading is the package's DocumentsReviewPdfLoading in the language of msgs.
+func (msgs Messages) DocumentsReviewPdfLoading() string {
+	return msgs.text(textDocumentsReviewPdfLoading)
+}
+
+// DocumentsReviewPdfUnavailable says "PDF preview unavailable."
+// in the language the app shows under cx.
+func DocumentsReviewPdfUnavailable(cx *core.Scope) string {
+	return For(cx).DocumentsReviewPdfUnavailable()
+}
+
+// DocumentsReviewPdfUnavailable is the package's DocumentsReviewPdfUnavailable in the language of msgs.
+func (msgs Messages) DocumentsReviewPdfUnavailable() string {
+	return msgs.text(textDocumentsReviewPdfUnavailable)
+}
+
+// DocumentsReviewPreviousDiscarded says "Previous extraction was discarded. Re-running will call the LLM again — consider switching model or providing a clearer PDF first."
+// in the language the app shows under cx.
+func DocumentsReviewPreviousDiscarded(cx *core.Scope) string {
+	return For(cx).DocumentsReviewPreviousDiscarded()
+}
+
+// DocumentsReviewPreviousDiscarded is the package's DocumentsReviewPreviousDiscarded in the language of msgs.
+func (msgs Messages) DocumentsReviewPreviousDiscarded() string {
+	return msgs.text(textDocumentsReviewPreviousDiscarded)
+}
+
+// DocumentsReviewProvider says "Provider"
+// in the language the app shows under cx.
+func DocumentsReviewProvider(cx *core.Scope) string { return For(cx).DocumentsReviewProvider() }
+
+// DocumentsReviewProvider is the package's DocumentsReviewProvider in the language of msgs.
+func (msgs Messages) DocumentsReviewProvider() string { return msgs.text(textDocumentsReviewProvider) }
+
+// DocumentsReviewPurchaseCategoryOtherWarning says "Item category couldn't be classified — please override manually before Confirm."
+// in the language the app shows under cx.
+func DocumentsReviewPurchaseCategoryOtherWarning(cx *core.Scope) string {
+	return For(cx).DocumentsReviewPurchaseCategoryOtherWarning()
+}
+
+// DocumentsReviewPurchaseCategoryOtherWarning is the package's DocumentsReviewPurchaseCategoryOtherWarning in the language of msgs.
+func (msgs Messages) DocumentsReviewPurchaseCategoryOtherWarning() string {
+	return msgs.text(textDocumentsReviewPurchaseCategoryOtherWarning)
+}
+
+// DocumentsReviewReextractBody says "This will discard the current extraction and re-run the LLM with the selected stage."
+// in the language the app shows under cx.
+func DocumentsReviewReextractBody(cx *core.Scope) string {
+	return For(cx).DocumentsReviewReextractBody()
+}
+
+// DocumentsReviewReextractBody is the package's DocumentsReviewReextractBody in the language of msgs.
+func (msgs Messages) DocumentsReviewReextractBody() string {
+	return msgs.text(textDocumentsReviewReextractBody)
+}
+
+// DocumentsReviewReextractConfirm says "Confirm re-extraction"
+// in the language the app shows under cx.
+func DocumentsReviewReextractConfirm(cx *core.Scope) string {
+	return For(cx).DocumentsReviewReextractConfirm()
+}
+
+// DocumentsReviewReextractConfirm is the package's DocumentsReviewReextractConfirm in the language of msgs.
+func (msgs Messages) DocumentsReviewReextractConfirm() string {
+	return msgs.text(textDocumentsReviewReextractConfirm)
+}
+
+// DocumentsReviewReextractFailed says "Re-extraction failed"
+// in the language the app shows under cx.
+func DocumentsReviewReextractFailed(cx *core.Scope) string {
+	return For(cx).DocumentsReviewReextractFailed()
+}
+
+// DocumentsReviewReextractFailed is the package's DocumentsReviewReextractFailed in the language of msgs.
+func (msgs Messages) DocumentsReviewReextractFailed() string {
+	return msgs.text(textDocumentsReviewReextractFailed)
+}
+
+// DocumentsReviewReextractStageLabel says "Document type"
+// in the language the app shows under cx.
+func DocumentsReviewReextractStageLabel(cx *core.Scope) string {
+	return For(cx).DocumentsReviewReextractStageLabel()
+}
+
+// DocumentsReviewReextractStageLabel is the package's DocumentsReviewReextractStageLabel in the language of msgs.
+func (msgs Messages) DocumentsReviewReextractStageLabel() string {
+	return msgs.text(textDocumentsReviewReextractStageLabel)
+}
+
+// DocumentsReviewReextractSuccess says "Re-extraction started"
+// in the language the app shows under cx.
+func DocumentsReviewReextractSuccess(cx *core.Scope) string {
+	return For(cx).DocumentsReviewReextractSuccess()
+}
+
+// DocumentsReviewReextractSuccess is the package's DocumentsReviewReextractSuccess in the language of msgs.
+func (msgs Messages) DocumentsReviewReextractSuccess() string {
+	return msgs.text(textDocumentsReviewReextractSuccess)
+}
+
+// DocumentsReviewShaLabel says "SHA"
+// in the language the app shows under cx.
+func DocumentsReviewShaLabel(cx *core.Scope) string { return For(cx).DocumentsReviewShaLabel() }
+
+// DocumentsReviewShaLabel is the package's DocumentsReviewShaLabel in the language of msgs.
+func (msgs Messages) DocumentsReviewShaLabel() string { return msgs.text(textDocumentsReviewShaLabel) }
+
+// DocumentsReviewStage says "Stage"
+// in the language the app shows under cx.
+func DocumentsReviewStage(cx *core.Scope) string { return For(cx).DocumentsReviewStage() }
+
+// DocumentsReviewStage is the package's DocumentsReviewStage in the language of msgs.
+func (msgs Messages) DocumentsReviewStage() string { return msgs.text(textDocumentsReviewStage) }
+
+// DocumentsReviewSwitchStage says "Switch stage and re-extract"
+// in the language the app shows under cx.
+func DocumentsReviewSwitchStage(cx *core.Scope) string { return For(cx).DocumentsReviewSwitchStage() }
+
+// DocumentsReviewSwitchStage is the package's DocumentsReviewSwitchStage in the language of msgs.
+func (msgs Messages) DocumentsReviewSwitchStage() string {
+	return msgs.text(textDocumentsReviewSwitchStage)
+}
+
+// DocumentsReviewUploadedOn says "Uploaded {date}"
+// in the language the app shows under cx.
+func DocumentsReviewUploadedOn(cx *core.Scope, date string) string {
+	return For(cx).DocumentsReviewUploadedOn(date)
+}
+
+// DocumentsReviewUploadedOn is the package's DocumentsReviewUploadedOn in the language of msgs.
+func (msgs Messages) DocumentsReviewUploadedOn(date string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.DocumentsReviewUploadedOn(date))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].DocumentsReviewUploadedOn; f != nil {
+			return f(date)
+		}
+		switch lang {
+		case "", "en":
+			return "Uploaded " + msgs.arg(date)
+		case "zh-CN":
+			return "上传于 " + date
+		}
+	}
+}
+
+// DocumentsReviewViewActivitiesLink says "Go to Activities →"
+// in the language the app shows under cx.
+func DocumentsReviewViewActivitiesLink(cx *core.Scope) string {
+	return For(cx).DocumentsReviewViewActivitiesLink()
+}
+
+// DocumentsReviewViewActivitiesLink is the package's DocumentsReviewViewActivitiesLink in the language of msgs.
+func (msgs Messages) DocumentsReviewViewActivitiesLink() string {
+	return msgs.text(textDocumentsReviewViewActivitiesLink)
+}
+
+// DocumentsReviewViewActivityLink says "View in activities list →"
+// in the language the app shows under cx.
+func DocumentsReviewViewActivityLink(cx *core.Scope) string {
+	return For(cx).DocumentsReviewViewActivityLink()
+}
+
+// DocumentsReviewViewActivityLink is the package's DocumentsReviewViewActivityLink in the language of msgs.
+func (msgs Messages) DocumentsReviewViewActivityLink() string {
+	return msgs.text(textDocumentsReviewViewActivityLink)
+}
+
+// DocumentsSearchPlaceholder says "Search by filename"
+// in the language the app shows under cx.
+func DocumentsSearchPlaceholder(cx *core.Scope) string { return For(cx).DocumentsSearchPlaceholder() }
+
+// DocumentsSearchPlaceholder is the package's DocumentsSearchPlaceholder in the language of msgs.
+func (msgs Messages) DocumentsSearchPlaceholder() string {
+	return msgs.text(textDocumentsSearchPlaceholder)
+}
+
+// DocumentsSortFilename says "Filename A→Z"
+// in the language the app shows under cx.
+func DocumentsSortFilename(cx *core.Scope) string { return For(cx).DocumentsSortFilename() }
+
+// DocumentsSortFilename is the package's DocumentsSortFilename in the language of msgs.
+func (msgs Messages) DocumentsSortFilename() string { return msgs.text(textDocumentsSortFilename) }
+
+// DocumentsSortOldest says "Oldest first"
+// in the language the app shows under cx.
+func DocumentsSortOldest(cx *core.Scope) string { return For(cx).DocumentsSortOldest() }
+
+// DocumentsSortOldest is the package's DocumentsSortOldest in the language of msgs.
+func (msgs Messages) DocumentsSortOldest() string { return msgs.text(textDocumentsSortOldest) }
+
+// DocumentsSortRecent says "Most recent"
+// in the language the app shows under cx.
+func DocumentsSortRecent(cx *core.Scope) string { return For(cx).DocumentsSortRecent() }
+
+// DocumentsSortRecent is the package's DocumentsSortRecent in the language of msgs.
+func (msgs Messages) DocumentsSortRecent() string { return msgs.text(textDocumentsSortRecent) }
+
+// DocumentsStageNoVision says "Vision input not yet supported for this stage"
+// in the language the app shows under cx.
+func DocumentsStageNoVision(cx *core.Scope) string { return For(cx).DocumentsStageNoVision() }
+
+// DocumentsStageNoVision is the package's DocumentsStageNoVision in the language of msgs.
+func (msgs Messages) DocumentsStageNoVision() string { return msgs.text(textDocumentsStageNoVision) }
+
+// DocumentsStatusNone says "No extractions"
+// in the language the app shows under cx.
+func DocumentsStatusNone(cx *core.Scope) string { return For(cx).DocumentsStatusNone() }
+
+// DocumentsStatusNone is the package's DocumentsStatusNone in the language of msgs.
+func (msgs Messages) DocumentsStatusNone() string { return msgs.text(textDocumentsStatusNone) }
+
+// DocumentsStatusParsed says "Confirmed"
+// in the language the app shows under cx.
+func DocumentsStatusParsed(cx *core.Scope) string { return For(cx).DocumentsStatusParsed() }
+
+// DocumentsStatusParsed is the package's DocumentsStatusParsed in the language of msgs.
+func (msgs Messages) DocumentsStatusParsed() string { return msgs.text(textDocumentsStatusParsed) }
+
+// DocumentsStatusRejected says "Discarded"
+// in the language the app shows under cx.
+func DocumentsStatusRejected(cx *core.Scope) string { return For(cx).DocumentsStatusRejected() }
+
+// DocumentsStatusRejected is the package's DocumentsStatusRejected in the language of msgs.
+func (msgs Messages) DocumentsStatusRejected() string { return msgs.text(textDocumentsStatusRejected) }
+
+// DocumentsStatusReviewNeeded says "Needs review"
+// in the language the app shows under cx.
+func DocumentsStatusReviewNeeded(cx *core.Scope) string { return For(cx).DocumentsStatusReviewNeeded() }
+
+// DocumentsStatusReviewNeeded is the package's DocumentsStatusReviewNeeded in the language of msgs.
+func (msgs Messages) DocumentsStatusReviewNeeded() string {
+	return msgs.text(textDocumentsStatusReviewNeeded)
+}
+
+// DocumentsStatusUnclassified says "Not classified"
+// in the language the app shows under cx.
+func DocumentsStatusUnclassified(cx *core.Scope) string { return For(cx).DocumentsStatusUnclassified() }
+
+// DocumentsStatusUnclassified is the package's DocumentsStatusUnclassified in the language of msgs.
+func (msgs Messages) DocumentsStatusUnclassified() string {
+	return msgs.text(textDocumentsStatusUnclassified)
+}
+
+// DocumentsTableFilename says "File"
+// in the language the app shows under cx.
+func DocumentsTableFilename(cx *core.Scope) string { return For(cx).DocumentsTableFilename() }
+
+// DocumentsTableFilename is the package's DocumentsTableFilename in the language of msgs.
+func (msgs Messages) DocumentsTableFilename() string { return msgs.text(textDocumentsTableFilename) }
+
+// DocumentsTableSha says "Hash"
+// in the language the app shows under cx.
+func DocumentsTableSha(cx *core.Scope) string { return For(cx).DocumentsTableSha() }
+
+// DocumentsTableSha is the package's DocumentsTableSha in the language of msgs.
+func (msgs Messages) DocumentsTableSha() string { return msgs.text(textDocumentsTableSha) }
+
+// DocumentsTableStatus says "Status"
+// in the language the app shows under cx.
+func DocumentsTableStatus(cx *core.Scope) string { return For(cx).DocumentsTableStatus() }
+
+// DocumentsTableStatus is the package's DocumentsTableStatus in the language of msgs.
+func (msgs Messages) DocumentsTableStatus() string { return msgs.text(textDocumentsTableStatus) }
+
+// DocumentsTableUploaded says "Uploaded"
+// in the language the app shows under cx.
+func DocumentsTableUploaded(cx *core.Scope) string { return For(cx).DocumentsTableUploaded() }
+
+// DocumentsTableUploaded is the package's DocumentsTableUploaded in the language of msgs.
+func (msgs Messages) DocumentsTableUploaded() string { return msgs.text(textDocumentsTableUploaded) }
+
+// DocumentsUploadButton says "Upload"
+// in the language the app shows under cx.
+func DocumentsUploadButton(cx *core.Scope) string { return For(cx).DocumentsUploadButton() }
+
+// DocumentsUploadButton is the package's DocumentsUploadButton in the language of msgs.
+func (msgs Messages) DocumentsUploadButton() string { return msgs.text(textDocumentsUploadButton) }
+
+// DocumentsUploadCollapse says "Hide upload"
+// in the language the app shows under cx.
+func DocumentsUploadCollapse(cx *core.Scope) string { return For(cx).DocumentsUploadCollapse() }
+
+// DocumentsUploadCollapse is the package's DocumentsUploadCollapse in the language of msgs.
+func (msgs Messages) DocumentsUploadCollapse() string { return msgs.text(textDocumentsUploadCollapse) }
+
+// DocumentsUploadDone says "Done"
+// in the language the app shows under cx.
+func DocumentsUploadDone(cx *core.Scope) string { return For(cx).DocumentsUploadDone() }
+
+// DocumentsUploadDone is the package's DocumentsUploadDone in the language of msgs.
+func (msgs Messages) DocumentsUploadDone() string { return msgs.text(textDocumentsUploadDone) }
+
+// DocumentsUploadFailed says "Upload failed"
+// in the language the app shows under cx.
+func DocumentsUploadFailed(cx *core.Scope) string { return For(cx).DocumentsUploadFailed() }
+
+// DocumentsUploadFailed is the package's DocumentsUploadFailed in the language of msgs.
+func (msgs Messages) DocumentsUploadFailed() string { return msgs.text(textDocumentsUploadFailed) }
+
+// DocumentsUploadHint says "Drop one or more PDFs here, or click to browse"
+// in the language the app shows under cx.
+func DocumentsUploadHint(cx *core.Scope) string { return For(cx).DocumentsUploadHint() }
+
+// DocumentsUploadHint is the package's DocumentsUploadHint in the language of msgs.
+func (msgs Messages) DocumentsUploadHint() string { return msgs.text(textDocumentsUploadHint) }
+
+// DocumentsUploadPdfOnly says "Only PDF files are supported."
+// in the language the app shows under cx.
+func DocumentsUploadPdfOnly(cx *core.Scope) string { return For(cx).DocumentsUploadPdfOnly() }
+
+// DocumentsUploadPdfOnly is the package's DocumentsUploadPdfOnly in the language of msgs.
+func (msgs Messages) DocumentsUploadPdfOnly() string { return msgs.text(textDocumentsUploadPdfOnly) }
+
+// DocumentsUploadPickStage says "Document type"
+// in the language the app shows under cx.
+func DocumentsUploadPickStage(cx *core.Scope) string { return For(cx).DocumentsUploadPickStage() }
+
+// DocumentsUploadPickStage is the package's DocumentsUploadPickStage in the language of msgs.
+func (msgs Messages) DocumentsUploadPickStage() string {
+	return msgs.text(textDocumentsUploadPickStage)
+}
+
+// DocumentsUploadSuccess says "Document uploaded"
+// in the language the app shows under cx.
+func DocumentsUploadSuccess(cx *core.Scope) string { return For(cx).DocumentsUploadSuccess() }
+
+// DocumentsUploadSuccess is the package's DocumentsUploadSuccess in the language of msgs.
+func (msgs Messages) DocumentsUploadSuccess() string { return msgs.text(textDocumentsUploadSuccess) }
+
+// DocumentsUploading says "Uploading…"
+// in the language the app shows under cx.
+func DocumentsUploading(cx *core.Scope) string { return For(cx).DocumentsUploading() }
+
+// DocumentsUploading is the package's DocumentsUploading in the language of msgs.
+func (msgs Messages) DocumentsUploading() string { return msgs.text(textDocumentsUploading) }
+
+// DocumentsVisionUnsupported says "Selected model can't read images"
+// in the language the app shows under cx.
+func DocumentsVisionUnsupported(cx *core.Scope) string { return For(cx).DocumentsVisionUnsupported() }
+
+// DocumentsVisionUnsupported is the package's DocumentsVisionUnsupported in the language of msgs.
+func (msgs Messages) DocumentsVisionUnsupported() string {
+	return msgs.text(textDocumentsVisionUnsupported)
+}
+
+// EfImportCancelButton says "Cancel"
+// in the language the app shows under cx.
+func EfImportCancelButton(cx *core.Scope) string { return For(cx).EfImportCancelButton() }
+
+// EfImportCancelButton is the package's EfImportCancelButton in the language of msgs.
+func (msgs Messages) EfImportCancelButton() string { return msgs.text(textEfImportCancelButton) }
+
+// EfImportColumnN says "Column {n}"
+// in the language the app shows under cx.
+func EfImportColumnN(cx *core.Scope, n string) string { return For(cx).EfImportColumnN(n) }
+
+// EfImportColumnN is the package's EfImportColumnN in the language of msgs.
+func (msgs Messages) EfImportColumnN(n string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.EfImportColumnN(n))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].EfImportColumnN; f != nil {
+			return f(n)
+		}
+		switch lang {
+		case "", "en":
+			return "Column " + msgs.arg(n)
+		case "zh-CN":
+			return "第 " + n + " 列"
+		}
+	}
+}
+
+// EfImportDescription says "Choose a spreadsheet, map its columns, review validation, then import."
+// in the language the app shows under cx.
+func EfImportDescription(cx *core.Scope) string { return For(cx).EfImportDescription() }
+
+// EfImportDescription is the package's EfImportDescription in the language of msgs.
+func (msgs Messages) EfImportDescription() string { return msgs.text(textEfImportDescription) }
+
+// EfImportErrorInvalidName says "Library name is empty or too long (max 50 characters)"
+// in the language the app shows under cx.
+func EfImportErrorInvalidName(cx *core.Scope) string { return For(cx).EfImportErrorInvalidName() }
+
+// EfImportErrorInvalidName is the package's EfImportErrorInvalidName in the language of msgs.
+func (msgs Messages) EfImportErrorInvalidName() string {
+	return msgs.text(textEfImportErrorInvalidName)
+}
+
+// EfImportErrorNothingToImport says "Nothing to import — no valid rows under the current mapping"
+// in the language the app shows under cx.
+func EfImportErrorNothingToImport(cx *core.Scope) string {
+	return For(cx).EfImportErrorNothingToImport()
+}
+
+// EfImportErrorNothingToImport is the package's EfImportErrorNothingToImport in the language of msgs.
+func (msgs Messages) EfImportErrorNothingToImport() string {
+	return msgs.text(textEfImportErrorNothingToImport)
+}
+
+// EfImportErrorTokenExpired says "The staged file expired — please choose the file again"
+// in the language the app shows under cx.
+func EfImportErrorTokenExpired(cx *core.Scope) string { return For(cx).EfImportErrorTokenExpired() }
+
+// EfImportErrorTokenExpired is the package's EfImportErrorTokenExpired in the language of msgs.
+func (msgs Messages) EfImportErrorTokenExpired() string {
+	return msgs.text(textEfImportErrorTokenExpired)
+}
+
+// EfImportErrorsHeading says "Rows with errors (skipped on import)"
+// in the language the app shows under cx.
+func EfImportErrorsHeading(cx *core.Scope) string { return For(cx).EfImportErrorsHeading() }
+
+// EfImportErrorsHeading is the package's EfImportErrorsHeading in the language of msgs.
+func (msgs Messages) EfImportErrorsHeading() string { return msgs.text(textEfImportErrorsHeading) }
+
+// EfImportFailed says "Import failed"
+// in the language the app shows under cx.
+func EfImportFailed(cx *core.Scope) string { return For(cx).EfImportFailed() }
+
+// EfImportFailed is the package's EfImportFailed in the language of msgs.
+func (msgs Messages) EfImportFailed() string { return msgs.text(textEfImportFailed) }
+
+// EfImportFieldBiogenicCo2Factor says "Biogenic CO2 factor"
+// in the language the app shows under cx.
+func EfImportFieldBiogenicCo2Factor(cx *core.Scope) string {
+	return For(cx).EfImportFieldBiogenicCo2Factor()
+}
+
+// EfImportFieldBiogenicCo2Factor is the package's EfImportFieldBiogenicCo2Factor in the language of msgs.
+func (msgs Messages) EfImportFieldBiogenicCo2Factor() string {
+	return msgs.text(textEfImportFieldBiogenicCo2Factor)
+}
+
+// EfImportFieldCategory says "Category"
+// in the language the app shows under cx.
+func EfImportFieldCategory(cx *core.Scope) string { return For(cx).EfImportFieldCategory() }
+
+// EfImportFieldCategory is the package's EfImportFieldCategory in the language of msgs.
+func (msgs Messages) EfImportFieldCategory() string { return msgs.text(textEfImportFieldCategory) }
+
+// EfImportFieldCh4KgPerUnit says "CH4 (kg per unit)"
+// in the language the app shows under cx.
+func EfImportFieldCh4KgPerUnit(cx *core.Scope) string { return For(cx).EfImportFieldCh4KgPerUnit() }
+
+// EfImportFieldCh4KgPerUnit is the package's EfImportFieldCh4KgPerUnit in the language of msgs.
+func (msgs Messages) EfImportFieldCh4KgPerUnit() string {
+	return msgs.text(textEfImportFieldCh4KgPerUnit)
+}
+
+// EfImportFieldCitationUrl says "Citation URL"
+// in the language the app shows under cx.
+func EfImportFieldCitationUrl(cx *core.Scope) string { return For(cx).EfImportFieldCitationUrl() }
+
+// EfImportFieldCitationUrl is the package's EfImportFieldCitationUrl in the language of msgs.
+func (msgs Messages) EfImportFieldCitationUrl() string {
+	return msgs.text(textEfImportFieldCitationUrl)
+}
+
+// EfImportFieldCo2eKgPerUnit says "CO2e (kg per unit)"
+// in the language the app shows under cx.
+func EfImportFieldCo2eKgPerUnit(cx *core.Scope) string { return For(cx).EfImportFieldCo2eKgPerUnit() }
+
+// EfImportFieldCo2eKgPerUnit is the package's EfImportFieldCo2eKgPerUnit in the language of msgs.
+func (msgs Messages) EfImportFieldCo2eKgPerUnit() string {
+	return msgs.text(textEfImportFieldCo2eKgPerUnit)
+}
+
+// EfImportFieldDescriptionEn says "Description (English)"
+// in the language the app shows under cx.
+func EfImportFieldDescriptionEn(cx *core.Scope) string { return For(cx).EfImportFieldDescriptionEn() }
+
+// EfImportFieldDescriptionEn is the package's EfImportFieldDescriptionEn in the language of msgs.
+func (msgs Messages) EfImportFieldDescriptionEn() string {
+	return msgs.text(textEfImportFieldDescriptionEn)
+}
+
+// EfImportFieldDescriptionZh says "Description (Chinese)"
+// in the language the app shows under cx.
+func EfImportFieldDescriptionZh(cx *core.Scope) string { return For(cx).EfImportFieldDescriptionZh() }
+
+// EfImportFieldDescriptionZh is the package's EfImportFieldDescriptionZh in the language of msgs.
+func (msgs Messages) EfImportFieldDescriptionZh() string {
+	return msgs.text(textEfImportFieldDescriptionZh)
+}
+
+// EfImportFieldFactorCode says "Factor code"
+// in the language the app shows under cx.
+func EfImportFieldFactorCode(cx *core.Scope) string { return For(cx).EfImportFieldFactorCode() }
+
+// EfImportFieldFactorCode is the package's EfImportFieldFactorCode in the language of msgs.
+func (msgs Messages) EfImportFieldFactorCode() string { return msgs.text(textEfImportFieldFactorCode) }
+
+// EfImportFieldGeography says "Geography"
+// in the language the app shows under cx.
+func EfImportFieldGeography(cx *core.Scope) string { return For(cx).EfImportFieldGeography() }
+
+// EfImportFieldGeography is the package's EfImportFieldGeography in the language of msgs.
+func (msgs Messages) EfImportFieldGeography() string { return msgs.text(textEfImportFieldGeography) }
+
+// EfImportFieldGwpBasis says "GWP basis (AR5/AR6)"
+// in the language the app shows under cx.
+func EfImportFieldGwpBasis(cx *core.Scope) string { return For(cx).EfImportFieldGwpBasis() }
+
+// EfImportFieldGwpBasis is the package's EfImportFieldGwpBasis in the language of msgs.
+func (msgs Messages) EfImportFieldGwpBasis() string { return msgs.text(textEfImportFieldGwpBasis) }
+
+// EfImportFieldHfcKgPerUnit says "HFCs (kg per unit)"
+// in the language the app shows under cx.
+func EfImportFieldHfcKgPerUnit(cx *core.Scope) string { return For(cx).EfImportFieldHfcKgPerUnit() }
+
+// EfImportFieldHfcKgPerUnit is the package's EfImportFieldHfcKgPerUnit in the language of msgs.
+func (msgs Messages) EfImportFieldHfcKgPerUnit() string {
+	return msgs.text(textEfImportFieldHfcKgPerUnit)
+}
+
+// EfImportFieldInputUnit says "Input unit"
+// in the language the app shows under cx.
+func EfImportFieldInputUnit(cx *core.Scope) string { return For(cx).EfImportFieldInputUnit() }
+
+// EfImportFieldInputUnit is the package's EfImportFieldInputUnit in the language of msgs.
+func (msgs Messages) EfImportFieldInputUnit() string { return msgs.text(textEfImportFieldInputUnit) }
+
+// EfImportFieldN2oKgPerUnit says "N2O (kg per unit)"
+// in the language the app shows under cx.
+func EfImportFieldN2oKgPerUnit(cx *core.Scope) string { return For(cx).EfImportFieldN2oKgPerUnit() }
+
+// EfImportFieldN2oKgPerUnit is the package's EfImportFieldN2oKgPerUnit in the language of msgs.
+func (msgs Messages) EfImportFieldN2oKgPerUnit() string {
+	return msgs.text(textEfImportFieldN2oKgPerUnit)
+}
+
+// EfImportFieldNameEn says "Name (English)"
+// in the language the app shows under cx.
+func EfImportFieldNameEn(cx *core.Scope) string { return For(cx).EfImportFieldNameEn() }
+
+// EfImportFieldNameEn is the package's EfImportFieldNameEn in the language of msgs.
+func (msgs Messages) EfImportFieldNameEn() string { return msgs.text(textEfImportFieldNameEn) }
+
+// EfImportFieldNameZh says "Name (Chinese)"
+// in the language the app shows under cx.
+func EfImportFieldNameZh(cx *core.Scope) string { return For(cx).EfImportFieldNameZh() }
+
+// EfImportFieldNameZh is the package's EfImportFieldNameZh in the language of msgs.
+func (msgs Messages) EfImportFieldNameZh() string { return msgs.text(textEfImportFieldNameZh) }
+
+// EfImportFieldNf3KgPerUnit says "NF3 (kg per unit)"
+// in the language the app shows under cx.
+func EfImportFieldNf3KgPerUnit(cx *core.Scope) string { return For(cx).EfImportFieldNf3KgPerUnit() }
+
+// EfImportFieldNf3KgPerUnit is the package's EfImportFieldNf3KgPerUnit in the language of msgs.
+func (msgs Messages) EfImportFieldNf3KgPerUnit() string {
+	return msgs.text(textEfImportFieldNf3KgPerUnit)
+}
+
+// EfImportFieldNotes says "Notes"
+// in the language the app shows under cx.
+func EfImportFieldNotes(cx *core.Scope) string { return For(cx).EfImportFieldNotes() }
+
+// EfImportFieldNotes is the package's EfImportFieldNotes in the language of msgs.
+func (msgs Messages) EfImportFieldNotes() string { return msgs.text(textEfImportFieldNotes) }
+
+// EfImportFieldPfcKgPerUnit says "PFCs (kg per unit)"
+// in the language the app shows under cx.
+func EfImportFieldPfcKgPerUnit(cx *core.Scope) string { return For(cx).EfImportFieldPfcKgPerUnit() }
+
+// EfImportFieldPfcKgPerUnit is the package's EfImportFieldPfcKgPerUnit in the language of msgs.
+func (msgs Messages) EfImportFieldPfcKgPerUnit() string {
+	return msgs.text(textEfImportFieldPfcKgPerUnit)
+}
+
+// EfImportFieldScope says "Scope"
+// in the language the app shows under cx.
+func EfImportFieldScope(cx *core.Scope) string { return For(cx).EfImportFieldScope() }
+
+// EfImportFieldScope is the package's EfImportFieldScope in the language of msgs.
+func (msgs Messages) EfImportFieldScope() string { return msgs.text(textEfImportFieldScope) }
+
+// EfImportFieldSf6KgPerUnit says "SF6 (kg per unit)"
+// in the language the app shows under cx.
+func EfImportFieldSf6KgPerUnit(cx *core.Scope) string { return For(cx).EfImportFieldSf6KgPerUnit() }
+
+// EfImportFieldSf6KgPerUnit is the package's EfImportFieldSf6KgPerUnit in the language of msgs.
+func (msgs Messages) EfImportFieldSf6KgPerUnit() string {
+	return msgs.text(textEfImportFieldSf6KgPerUnit)
+}
+
+// EfImportFieldYear says "Year"
+// in the language the app shows under cx.
+func EfImportFieldYear(cx *core.Scope) string { return For(cx).EfImportFieldYear() }
+
+// EfImportFieldYear is the package's EfImportFieldYear in the language of msgs.
+func (msgs Messages) EfImportFieldYear() string { return msgs.text(textEfImportFieldYear) }
+
+// EfImportFileErrorFileEmpty says "The file is empty"
+// in the language the app shows under cx.
+func EfImportFileErrorFileEmpty(cx *core.Scope) string { return For(cx).EfImportFileErrorFileEmpty() }
+
+// EfImportFileErrorFileEmpty is the package's EfImportFileErrorFileEmpty in the language of msgs.
+func (msgs Messages) EfImportFileErrorFileEmpty() string {
+	return msgs.text(textEfImportFileErrorFileEmpty)
+}
+
+// EfImportFileErrorFileReadFailed says "The file could not be read"
+// in the language the app shows under cx.
+func EfImportFileErrorFileReadFailed(cx *core.Scope) string {
+	return For(cx).EfImportFileErrorFileReadFailed()
+}
+
+// EfImportFileErrorFileReadFailed is the package's EfImportFileErrorFileReadFailed in the language of msgs.
+func (msgs Messages) EfImportFileErrorFileReadFailed() string {
+	return msgs.text(textEfImportFileErrorFileReadFailed)
+}
+
+// EfImportFileErrorFileTooLarge says "File exceeds the 20MB limit"
+// in the language the app shows under cx.
+func EfImportFileErrorFileTooLarge(cx *core.Scope) string {
+	return For(cx).EfImportFileErrorFileTooLarge()
+}
+
+// EfImportFileErrorFileTooLarge is the package's EfImportFileErrorFileTooLarge in the language of msgs.
+func (msgs Messages) EfImportFileErrorFileTooLarge() string {
+	return msgs.text(textEfImportFileErrorFileTooLarge)
+}
+
+// EfImportFileErrorTooManyRows says "More than 50,000 data rows"
+// in the language the app shows under cx.
+func EfImportFileErrorTooManyRows(cx *core.Scope) string {
+	return For(cx).EfImportFileErrorTooManyRows()
+}
+
+// EfImportFileErrorTooManyRows is the package's EfImportFileErrorTooManyRows in the language of msgs.
+func (msgs Messages) EfImportFileErrorTooManyRows() string {
+	return msgs.text(textEfImportFileErrorTooManyRows)
+}
+
+// EfImportFileErrorUnsupportedFileType says "Unsupported file type — use .xlsx or .csv"
+// in the language the app shows under cx.
+func EfImportFileErrorUnsupportedFileType(cx *core.Scope) string {
+	return For(cx).EfImportFileErrorUnsupportedFileType()
+}
+
+// EfImportFileErrorUnsupportedFileType is the package's EfImportFileErrorUnsupportedFileType in the language of msgs.
+func (msgs Messages) EfImportFileErrorUnsupportedFileType() string {
+	return msgs.text(textEfImportFileErrorUnsupportedFileType)
+}
+
+// EfImportFileErrorXlsxInvalid says "Not a valid .xlsx workbook"
+// in the language the app shows under cx.
+func EfImportFileErrorXlsxInvalid(cx *core.Scope) string {
+	return For(cx).EfImportFileErrorXlsxInvalid()
+}
+
+// EfImportFileErrorXlsxInvalid is the package's EfImportFileErrorXlsxInvalid in the language of msgs.
+func (msgs Messages) EfImportFileErrorXlsxInvalid() string {
+	return msgs.text(textEfImportFileErrorXlsxInvalid)
+}
+
+// EfImportImportButton says "Import"
+// in the language the app shows under cx.
+func EfImportImportButton(cx *core.Scope) string { return For(cx).EfImportImportButton() }
+
+// EfImportImportButton is the package's EfImportImportButton in the language of msgs.
+func (msgs Messages) EfImportImportButton() string { return msgs.text(textEfImportImportButton) }
+
+// EfImportIssueCategoryEmpty says "no category — this factor won't participate in AI matching"
+// in the language the app shows under cx.
+func EfImportIssueCategoryEmpty(cx *core.Scope) string { return For(cx).EfImportIssueCategoryEmpty() }
+
+// EfImportIssueCategoryEmpty is the package's EfImportIssueCategoryEmpty in the language of msgs.
+func (msgs Messages) EfImportIssueCategoryEmpty() string {
+	return msgs.text(textEfImportIssueCategoryEmpty)
+}
+
+// EfImportIssueCo2eMissing says "CO2e value is missing"
+// in the language the app shows under cx.
+func EfImportIssueCo2eMissing(cx *core.Scope) string { return For(cx).EfImportIssueCo2eMissing() }
+
+// EfImportIssueCo2eMissing is the package's EfImportIssueCo2eMissing in the language of msgs.
+func (msgs Messages) EfImportIssueCo2eMissing() string {
+	return msgs.text(textEfImportIssueCo2eMissing)
+}
+
+// EfImportIssueDuplicateKey says "duplicate factor (same code, year and geography as an earlier row)"
+// in the language the app shows under cx.
+func EfImportIssueDuplicateKey(cx *core.Scope) string { return For(cx).EfImportIssueDuplicateKey() }
+
+// EfImportIssueDuplicateKey is the package's EfImportIssueDuplicateKey in the language of msgs.
+func (msgs Messages) EfImportIssueDuplicateKey() string {
+	return msgs.text(textEfImportIssueDuplicateKey)
+}
+
+// EfImportIssueGwpInvalid says "GWP basis must be AR5 or AR6"
+// in the language the app shows under cx.
+func EfImportIssueGwpInvalid(cx *core.Scope) string { return For(cx).EfImportIssueGwpInvalid() }
+
+// EfImportIssueGwpInvalid is the package's EfImportIssueGwpInvalid in the language of msgs.
+func (msgs Messages) EfImportIssueGwpInvalid() string { return msgs.text(textEfImportIssueGwpInvalid) }
+
+// EfImportIssueNameMissing says "name is missing (fill the Chinese or English name)"
+// in the language the app shows under cx.
+func EfImportIssueNameMissing(cx *core.Scope) string { return For(cx).EfImportIssueNameMissing() }
+
+// EfImportIssueNameMissing is the package's EfImportIssueNameMissing in the language of msgs.
+func (msgs Messages) EfImportIssueNameMissing() string {
+	return msgs.text(textEfImportIssueNameMissing)
+}
+
+// EfImportIssueScopeInvalid says "scope must be 1, 2 or 3"
+// in the language the app shows under cx.
+func EfImportIssueScopeInvalid(cx *core.Scope) string { return For(cx).EfImportIssueScopeInvalid() }
+
+// EfImportIssueScopeInvalid is the package's EfImportIssueScopeInvalid in the language of msgs.
+func (msgs Messages) EfImportIssueScopeInvalid() string {
+	return msgs.text(textEfImportIssueScopeInvalid)
+}
+
+// EfImportIssueScopeMissing says "scope is missing"
+// in the language the app shows under cx.
+func EfImportIssueScopeMissing(cx *core.Scope) string { return For(cx).EfImportIssueScopeMissing() }
+
+// EfImportIssueScopeMissing is the package's EfImportIssueScopeMissing in the language of msgs.
+func (msgs Messages) EfImportIssueScopeMissing() string {
+	return msgs.text(textEfImportIssueScopeMissing)
+}
+
+// EfImportIssueUnitMissing says "unit is missing"
+// in the language the app shows under cx.
+func EfImportIssueUnitMissing(cx *core.Scope) string { return For(cx).EfImportIssueUnitMissing() }
+
+// EfImportIssueUnitMissing is the package's EfImportIssueUnitMissing in the language of msgs.
+func (msgs Messages) EfImportIssueUnitMissing() string {
+	return msgs.text(textEfImportIssueUnitMissing)
+}
+
+// EfImportIssueUnitUnknown says "unit not in the built-in unit list — unit conversion won't apply"
+// in the language the app shows under cx.
+func EfImportIssueUnitUnknown(cx *core.Scope) string { return For(cx).EfImportIssueUnitUnknown() }
+
+// EfImportIssueUnitUnknown is the package's EfImportIssueUnitUnknown in the language of msgs.
+func (msgs Messages) EfImportIssueUnitUnknown() string {
+	return msgs.text(textEfImportIssueUnitUnknown)
+}
+
+// EfImportIssueValueInvalid says "not a valid number"
+// in the language the app shows under cx.
+func EfImportIssueValueInvalid(cx *core.Scope) string { return For(cx).EfImportIssueValueInvalid() }
+
+// EfImportIssueValueInvalid is the package's EfImportIssueValueInvalid in the language of msgs.
+func (msgs Messages) EfImportIssueValueInvalid() string {
+	return msgs.text(textEfImportIssueValueInvalid)
+}
+
+// EfImportIssueYearInvalid says "year must be an integer between 1990 and 2100"
+// in the language the app shows under cx.
+func EfImportIssueYearInvalid(cx *core.Scope) string { return For(cx).EfImportIssueYearInvalid() }
+
+// EfImportIssueYearInvalid is the package's EfImportIssueYearInvalid in the language of msgs.
+func (msgs Messages) EfImportIssueYearInvalid() string {
+	return msgs.text(textEfImportIssueYearInvalid)
+}
+
+// EfImportIssueYearMissing says "year is missing"
+// in the language the app shows under cx.
+func EfImportIssueYearMissing(cx *core.Scope) string { return For(cx).EfImportIssueYearMissing() }
+
+// EfImportIssueYearMissing is the package's EfImportIssueYearMissing in the language of msgs.
+func (msgs Messages) EfImportIssueYearMissing() string {
+	return msgs.text(textEfImportIssueYearMissing)
+}
+
+// EfImportMappingBody says "Columns were auto-detected from the header row; adjust anything that's wrong. Fields marked * are required."
+// in the language the app shows under cx.
+func EfImportMappingBody(cx *core.Scope) string { return For(cx).EfImportMappingBody() }
+
+// EfImportMappingBody is the package's EfImportMappingBody in the language of msgs.
+func (msgs Messages) EfImportMappingBody() string { return msgs.text(textEfImportMappingBody) }
+
+// EfImportMappingHeading says "Column mapping"
+// in the language the app shows under cx.
+func EfImportMappingHeading(cx *core.Scope) string { return For(cx).EfImportMappingHeading() }
+
+// EfImportMappingHeading is the package's EfImportMappingHeading in the language of msgs.
+func (msgs Messages) EfImportMappingHeading() string { return msgs.text(textEfImportMappingHeading) }
+
+// EfImportMoreIssues says "…and {count} more"
+// in the language the app shows under cx.
+func EfImportMoreIssues(cx *core.Scope, count string) string {
+	return For(cx).EfImportMoreIssues(count)
+}
+
+// EfImportMoreIssues is the package's EfImportMoreIssues in the language of msgs.
+func (msgs Messages) EfImportMoreIssues(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.EfImportMoreIssues(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].EfImportMoreIssues; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return "…and " + msgs.arg(count) + " more"
+		case "zh-CN":
+			return "…还有 " + count + " 条"
+		}
+	}
+}
+
+// EfImportNameLabel says "Library name"
+// in the language the app shows under cx.
+func EfImportNameLabel(cx *core.Scope) string { return For(cx).EfImportNameLabel() }
+
+// EfImportNameLabel is the package's EfImportNameLabel in the language of msgs.
+func (msgs Messages) EfImportNameLabel() string { return msgs.text(textEfImportNameLabel) }
+
+// EfImportNamePlaceholder says "e.g. ecoinvent 3.10 or Internal ledger"
+// in the language the app shows under cx.
+func EfImportNamePlaceholder(cx *core.Scope) string { return For(cx).EfImportNamePlaceholder() }
+
+// EfImportNamePlaceholder is the package's EfImportNamePlaceholder in the language of msgs.
+func (msgs Messages) EfImportNamePlaceholder() string { return msgs.text(textEfImportNamePlaceholder) }
+
+// EfImportPickButton says "Choose file…"
+// in the language the app shows under cx.
+func EfImportPickButton(cx *core.Scope) string { return For(cx).EfImportPickButton() }
+
+// EfImportPickButton is the package's EfImportPickButton in the language of msgs.
+func (msgs Messages) EfImportPickButton() string { return msgs.text(textEfImportPickButton) }
+
+// EfImportPickFailed says "Could not read the file"
+// in the language the app shows under cx.
+func EfImportPickFailed(cx *core.Scope) string { return For(cx).EfImportPickFailed() }
+
+// EfImportPickFailed is the package's EfImportPickFailed in the language of msgs.
+func (msgs Messages) EfImportPickFailed() string { return msgs.text(textEfImportPickFailed) }
+
+// EfImportPickHint says ".xlsx or .csv, up to 20MB / 50,000 rows. The first non-empty row must be the header."
+// in the language the app shows under cx.
+func EfImportPickHint(cx *core.Scope) string { return For(cx).EfImportPickHint() }
+
+// EfImportPickHint is the package's EfImportPickHint in the language of msgs.
+func (msgs Messages) EfImportPickHint() string { return msgs.text(textEfImportPickHint) }
+
+// EfImportRepickButton says "Choose another"
+// in the language the app shows under cx.
+func EfImportRepickButton(cx *core.Scope) string { return For(cx).EfImportRepickButton() }
+
+// EfImportRepickButton is the package's EfImportRepickButton in the language of msgs.
+func (msgs Messages) EfImportRepickButton() string { return msgs.text(textEfImportRepickButton) }
+
+// EfImportReplaceBody says "A library named \"{name}\" already exists. Replacing it deletes its current factors from the catalog (pinned snapshots on existing activity data are unaffected) and imports this file in their place."
+// in the language the app shows under cx.
+func EfImportReplaceBody(cx *core.Scope, name string) string {
+	return For(cx).EfImportReplaceBody(name)
+}
+
+// EfImportReplaceBody is the package's EfImportReplaceBody in the language of msgs.
+func (msgs Messages) EfImportReplaceBody(name string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.EfImportReplaceBody(name))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].EfImportReplaceBody; f != nil {
+			return f(name)
+		}
+		switch lang {
+		case "", "en":
+			return "A library named \"" + msgs.arg(name) + "\" already exists. Replacing it deletes its current factors from the catalog (pinned snapshots on existing activity data are unaffected) and imports this file in their place."
+		case "zh-CN":
+			return "已存在同名库「" + name + "」。替换将把其现有因子从目录中删除（已绑定活动数据的固定快照不受影响），并导入本文件。"
+		}
+	}
+}
+
+// EfImportReplaceConfirmButton says "Replace library"
+// in the language the app shows under cx.
+func EfImportReplaceConfirmButton(cx *core.Scope) string {
+	return For(cx).EfImportReplaceConfirmButton()
+}
+
+// EfImportReplaceConfirmButton is the package's EfImportReplaceConfirmButton in the language of msgs.
+func (msgs Messages) EfImportReplaceConfirmButton() string {
+	return msgs.text(textEfImportReplaceConfirmButton)
+}
+
+// EfImportRequired says "Required"
+// in the language the app shows under cx.
+func EfImportRequired(cx *core.Scope) string { return For(cx).EfImportRequired() }
+
+// EfImportRequired is the package's EfImportRequired in the language of msgs.
+func (msgs Messages) EfImportRequired() string { return msgs.text(textEfImportRequired) }
+
+// EfImportRowCount says "{count} rows"
+// in the language the app shows under cx.
+func EfImportRowCount(cx *core.Scope, count string) string { return For(cx).EfImportRowCount(count) }
+
+// EfImportRowCount is the package's EfImportRowCount in the language of msgs.
+func (msgs Messages) EfImportRowCount(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.EfImportRowCount(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].EfImportRowCount; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " rows"
+		case "zh-CN":
+			return count + " 行"
+		}
+	}
+}
+
+// EfImportRowLabel says "Row {row}"
+// in the language the app shows under cx.
+func EfImportRowLabel(cx *core.Scope, row string) string { return For(cx).EfImportRowLabel(row) }
+
+// EfImportRowLabel is the package's EfImportRowLabel in the language of msgs.
+func (msgs Messages) EfImportRowLabel(row string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.EfImportRowLabel(row))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].EfImportRowLabel; f != nil {
+			return f(row)
+		}
+		switch lang {
+		case "", "en":
+			return "Row " + msgs.arg(row)
+		case "zh-CN":
+			return "第 " + row + " 行"
+		}
+	}
+}
+
+// EfImportSampleHeading says "Preview of valid rows"
+// in the language the app shows under cx.
+func EfImportSampleHeading(cx *core.Scope) string { return For(cx).EfImportSampleHeading() }
+
+// EfImportSampleHeading is the package's EfImportSampleHeading in the language of msgs.
+func (msgs Messages) EfImportSampleHeading() string { return msgs.text(textEfImportSampleHeading) }
+
+// EfImportSuccess says "Imported {count} factors"
+// in the language the app shows under cx.
+func EfImportSuccess(cx *core.Scope, count string) string { return For(cx).EfImportSuccess(count) }
+
+// EfImportSuccess is the package's EfImportSuccess in the language of msgs.
+func (msgs Messages) EfImportSuccess(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.EfImportSuccess(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].EfImportSuccess; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return "Imported " + msgs.arg(count) + " factors"
+		case "zh-CN":
+			return "已导入 " + count + " 条因子"
+		}
+	}
+}
+
+// EfImportSuccessSkipped says "{count} rows with errors were skipped"
+// in the language the app shows under cx.
+func EfImportSuccessSkipped(cx *core.Scope, count string) string {
+	return For(cx).EfImportSuccessSkipped(count)
+}
+
+// EfImportSuccessSkipped is the package's EfImportSuccessSkipped in the language of msgs.
+func (msgs Messages) EfImportSuccessSkipped(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.EfImportSuccessSkipped(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].EfImportSuccessSkipped; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " rows with errors were skipped"
+		case "zh-CN":
+			return count + " 条错误行已跳过"
+		}
+	}
+}
+
+// EfImportSummaryErrors says "{count} errors"
+// in the language the app shows under cx.
+func EfImportSummaryErrors(cx *core.Scope, count string) string {
+	return For(cx).EfImportSummaryErrors(count)
+}
+
+// EfImportSummaryErrors is the package's EfImportSummaryErrors in the language of msgs.
+func (msgs Messages) EfImportSummaryErrors(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.EfImportSummaryErrors(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].EfImportSummaryErrors; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " errors"
+		case "zh-CN":
+			return count + " 条错误"
+		}
+	}
+}
+
+// EfImportSummaryValid says "{count} valid"
+// in the language the app shows under cx.
+func EfImportSummaryValid(cx *core.Scope, count string) string {
+	return For(cx).EfImportSummaryValid(count)
+}
+
+// EfImportSummaryValid is the package's EfImportSummaryValid in the language of msgs.
+func (msgs Messages) EfImportSummaryValid(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.EfImportSummaryValid(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].EfImportSummaryValid; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " valid"
+		case "zh-CN":
+			return count + " 条有效"
+		}
+	}
+}
+
+// EfImportSummaryWarnings says "{count} warnings"
+// in the language the app shows under cx.
+func EfImportSummaryWarnings(cx *core.Scope, count string) string {
+	return For(cx).EfImportSummaryWarnings(count)
+}
+
+// EfImportSummaryWarnings is the package's EfImportSummaryWarnings in the language of msgs.
+func (msgs Messages) EfImportSummaryWarnings(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.EfImportSummaryWarnings(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].EfImportSummaryWarnings; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " warnings"
+		case "zh-CN":
+			return count + " 条提醒"
+		}
+	}
+}
+
+// EfImportTitle says "Import EF library"
+// in the language the app shows under cx.
+func EfImportTitle(cx *core.Scope) string { return For(cx).EfImportTitle() }
+
+// EfImportTitle is the package's EfImportTitle in the language of msgs.
+func (msgs Messages) EfImportTitle() string { return msgs.text(textEfImportTitle) }
+
+// EfImportUnmapped says "Not mapped"
+// in the language the app shows under cx.
+func EfImportUnmapped(cx *core.Scope) string { return For(cx).EfImportUnmapped() }
+
+// EfImportUnmapped is the package's EfImportUnmapped in the language of msgs.
+func (msgs Messages) EfImportUnmapped() string { return msgs.text(textEfImportUnmapped) }
+
+// EfImportVersionLabel says "Version"
+// in the language the app shows under cx.
+func EfImportVersionLabel(cx *core.Scope) string { return For(cx).EfImportVersionLabel() }
+
+// EfImportVersionLabel is the package's EfImportVersionLabel in the language of msgs.
+func (msgs Messages) EfImportVersionLabel() string { return msgs.text(textEfImportVersionLabel) }
+
+// EfImportVersionPlaceholder says "Defaults to today's date"
+// in the language the app shows under cx.
+func EfImportVersionPlaceholder(cx *core.Scope) string { return For(cx).EfImportVersionPlaceholder() }
+
+// EfImportVersionPlaceholder is the package's EfImportVersionPlaceholder in the language of msgs.
+func (msgs Messages) EfImportVersionPlaceholder() string {
+	return msgs.text(textEfImportVersionPlaceholder)
+}
+
+// EfImportWarningsHeading says "Warnings (imported anyway)"
+// in the language the app shows under cx.
+func EfImportWarningsHeading(cx *core.Scope) string { return For(cx).EfImportWarningsHeading() }
+
+// EfImportWarningsHeading is the package's EfImportWarningsHeading in the language of msgs.
+func (msgs Messages) EfImportWarningsHeading() string { return msgs.text(textEfImportWarningsHeading) }
+
+// EfLibraryBrowseCount says "{shown} of {total}"
+// in the language the app shows under cx.
+func EfLibraryBrowseCount(cx *core.Scope, shown string, total string) string {
+	return For(cx).EfLibraryBrowseCount(shown, total)
+}
+
+// EfLibraryBrowseCount is the package's EfLibraryBrowseCount in the language of msgs.
+func (msgs Messages) EfLibraryBrowseCount(shown string, total string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.EfLibraryBrowseCount(shown, total))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].EfLibraryBrowseCount; f != nil {
+			return f(shown, total)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(shown) + " of " + msgs.arg(total)
+		case "zh-CN":
+			return shown + " / " + total
+		}
+	}
+}
+
+// EfLibraryBrowseEmptyLibrary says "This library has no factors."
+// in the language the app shows under cx.
+func EfLibraryBrowseEmptyLibrary(cx *core.Scope) string { return For(cx).EfLibraryBrowseEmptyLibrary() }
+
+// EfLibraryBrowseEmptyLibrary is the package's EfLibraryBrowseEmptyLibrary in the language of msgs.
+func (msgs Messages) EfLibraryBrowseEmptyLibrary() string {
+	return msgs.text(textEfLibraryBrowseEmptyLibrary)
+}
+
+// EfLibraryBrowseEmptySearch says "No factors match this search."
+// in the language the app shows under cx.
+func EfLibraryBrowseEmptySearch(cx *core.Scope) string { return For(cx).EfLibraryBrowseEmptySearch() }
+
+// EfLibraryBrowseEmptySearch is the package's EfLibraryBrowseEmptySearch in the language of msgs.
+func (msgs Messages) EfLibraryBrowseEmptySearch() string {
+	return msgs.text(textEfLibraryBrowseEmptySearch)
+}
+
+// EfLibraryBrowseLoadMore says "Load more"
+// in the language the app shows under cx.
+func EfLibraryBrowseLoadMore(cx *core.Scope) string { return For(cx).EfLibraryBrowseLoadMore() }
+
+// EfLibraryBrowseLoadMore is the package's EfLibraryBrowseLoadMore in the language of msgs.
+func (msgs Messages) EfLibraryBrowseLoadMore() string { return msgs.text(textEfLibraryBrowseLoadMore) }
+
+// EfLibraryBrowseLoading says "Loading…"
+// in the language the app shows under cx.
+func EfLibraryBrowseLoading(cx *core.Scope) string { return For(cx).EfLibraryBrowseLoading() }
+
+// EfLibraryBrowseLoading is the package's EfLibraryBrowseLoading in the language of msgs.
+func (msgs Messages) EfLibraryBrowseLoading() string { return msgs.text(textEfLibraryBrowseLoading) }
+
+// EfLibraryBrowseOpen says "Browse factors"
+// in the language the app shows under cx.
+func EfLibraryBrowseOpen(cx *core.Scope) string { return For(cx).EfLibraryBrowseOpen() }
+
+// EfLibraryBrowseOpen is the package's EfLibraryBrowseOpen in the language of msgs.
+func (msgs Messages) EfLibraryBrowseOpen() string { return msgs.text(textEfLibraryBrowseOpen) }
+
+// EfLibraryBrowsePerUnit says "{value} kgCO2e / {unit}"
+// in the language the app shows under cx.
+func EfLibraryBrowsePerUnit(cx *core.Scope, value string, unit string) string {
+	return For(cx).EfLibraryBrowsePerUnit(value, unit)
+}
+
+// EfLibraryBrowsePerUnit is the package's EfLibraryBrowsePerUnit in the language of msgs.
+func (msgs Messages) EfLibraryBrowsePerUnit(value string, unit string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.EfLibraryBrowsePerUnit(value, unit))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].EfLibraryBrowsePerUnit; f != nil {
+			return f(value, unit)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(value) + " kgCO2e / " + msgs.arg(unit)
+		case "zh-CN":
+			return value + " kgCO2e / " + unit
+		}
+	}
+}
+
+// EfLibraryBrowseScope says "Scope {scope}"
+// in the language the app shows under cx.
+func EfLibraryBrowseScope(cx *core.Scope, scope string) string {
+	return For(cx).EfLibraryBrowseScope(scope)
+}
+
+// EfLibraryBrowseScope is the package's EfLibraryBrowseScope in the language of msgs.
+func (msgs Messages) EfLibraryBrowseScope(scope string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.EfLibraryBrowseScope(scope))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].EfLibraryBrowseScope; f != nil {
+			return f(scope)
+		}
+		switch lang {
+		case "", "en":
+			return "Scope " + msgs.arg(scope)
+		case "zh-CN":
+			return "范围 " + scope
+		}
+	}
+}
+
+// EfLibraryBrowseSearchPlaceholder says "Search name or factor code"
+// in the language the app shows under cx.
+func EfLibraryBrowseSearchPlaceholder(cx *core.Scope) string {
+	return For(cx).EfLibraryBrowseSearchPlaceholder()
+}
+
+// EfLibraryBrowseSearchPlaceholder is the package's EfLibraryBrowseSearchPlaceholder in the language of msgs.
+func (msgs Messages) EfLibraryBrowseSearchPlaceholder() string {
+	return msgs.text(textEfLibraryBrowseSearchPlaceholder)
+}
+
+// EfLibraryDeleteButton says "Delete library"
+// in the language the app shows under cx.
+func EfLibraryDeleteButton(cx *core.Scope) string { return For(cx).EfLibraryDeleteButton() }
+
+// EfLibraryDeleteButton is the package's EfLibraryDeleteButton in the language of msgs.
+func (msgs Messages) EfLibraryDeleteButton() string { return msgs.text(textEfLibraryDeleteButton) }
+
+// EfLibraryDeleteConfirm says "Delete library \"{name}\"? Its factors leave the catalog and can no longer be selected. Activity rows already bound to them keep their pinned snapshot and computed emissions."
+// in the language the app shows under cx.
+func EfLibraryDeleteConfirm(cx *core.Scope, name string) string {
+	return For(cx).EfLibraryDeleteConfirm(name)
+}
+
+// EfLibraryDeleteConfirm is the package's EfLibraryDeleteConfirm in the language of msgs.
+func (msgs Messages) EfLibraryDeleteConfirm(name string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.EfLibraryDeleteConfirm(name))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].EfLibraryDeleteConfirm; f != nil {
+			return f(name)
+		}
+		switch lang {
+		case "", "en":
+			return "Delete library \"" + msgs.arg(name) + "\"? Its factors leave the catalog and can no longer be selected. Activity rows already bound to them keep their pinned snapshot and computed emissions."
+		case "zh-CN":
+			return "删除因子库「" + name + "」？其因子将从目录移除、不再可选；已绑定的活动数据保留固定快照与计算结果，不受影响。"
+		}
+	}
+}
+
+// EfLibraryDeleteFailed says "Could not delete library"
+// in the language the app shows under cx.
+func EfLibraryDeleteFailed(cx *core.Scope) string { return For(cx).EfLibraryDeleteFailed() }
+
+// EfLibraryDeleteFailed is the package's EfLibraryDeleteFailed in the language of msgs.
+func (msgs Messages) EfLibraryDeleteFailed() string { return msgs.text(textEfLibraryDeleteFailed) }
+
+// EfLibraryDeleteSuccess says "Library deleted ({count} factors removed)"
+// in the language the app shows under cx.
+func EfLibraryDeleteSuccess(cx *core.Scope, count string) string {
+	return For(cx).EfLibraryDeleteSuccess(count)
+}
+
+// EfLibraryDeleteSuccess is the package's EfLibraryDeleteSuccess in the language of msgs.
+func (msgs Messages) EfLibraryDeleteSuccess(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.EfLibraryDeleteSuccess(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].EfLibraryDeleteSuccess; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return "Library deleted (" + msgs.arg(count) + " factors removed)"
+		case "zh-CN":
+			return "已删除（移除 " + count + " 条因子）"
+		}
+	}
+}
+
+// EfLibraryEmpty says "No imported libraries yet. Import one to see it listed here."
+// in the language the app shows under cx.
+func EfLibraryEmpty(cx *core.Scope) string { return For(cx).EfLibraryEmpty() }
+
+// EfLibraryEmpty is the package's EfLibraryEmpty in the language of msgs.
+func (msgs Messages) EfLibraryEmpty() string { return msgs.text(textEfLibraryEmpty) }
+
+// EfLibraryGroupBody says "Bring your own factors — purchased datasets, industry libraries, or internal ledgers — from an .xlsx or .csv file. Imported factors appear alongside the built-in catalog in every picker and in AI matching; each import records its source file, version and row count. Factors already pinned to activity data keep their frozen snapshot even if the library is later replaced or deleted."
+// in the language the app shows under cx.
+func EfLibraryGroupBody(cx *core.Scope) string { return For(cx).EfLibraryGroupBody() }
+
+// EfLibraryGroupBody is the package's EfLibraryGroupBody in the language of msgs.
+func (msgs Messages) EfLibraryGroupBody() string { return msgs.text(textEfLibraryGroupBody) }
+
+// EfLibraryGroupHeading says "Import an emission-factor library"
+// in the language the app shows under cx.
+func EfLibraryGroupHeading(cx *core.Scope) string { return For(cx).EfLibraryGroupHeading() }
+
+// EfLibraryGroupHeading is the package's EfLibraryGroupHeading in the language of msgs.
+func (msgs Messages) EfLibraryGroupHeading() string { return msgs.text(textEfLibraryGroupHeading) }
+
+// EfLibraryImportButton says "Import library"
+// in the language the app shows under cx.
+func EfLibraryImportButton(cx *core.Scope) string { return For(cx).EfLibraryImportButton() }
+
+// EfLibraryImportButton is the package's EfLibraryImportButton in the language of msgs.
+func (msgs Messages) EfLibraryImportButton() string { return msgs.text(textEfLibraryImportButton) }
+
+// EfLibraryListHeading says "Imported libraries"
+// in the language the app shows under cx.
+func EfLibraryListHeading(cx *core.Scope) string { return For(cx).EfLibraryListHeading() }
+
+// EfLibraryListHeading is the package's EfLibraryListHeading in the language of msgs.
+func (msgs Messages) EfLibraryListHeading() string { return msgs.text(textEfLibraryListHeading) }
+
+// EfLibraryRowMeta says "{version} · {count} factors · imported {date}"
+// in the language the app shows under cx.
+func EfLibraryRowMeta(cx *core.Scope, version string, count string, date string) string {
+	return For(cx).EfLibraryRowMeta(version, count, date)
+}
+
+// EfLibraryRowMeta is the package's EfLibraryRowMeta in the language of msgs.
+func (msgs Messages) EfLibraryRowMeta(version string, count string, date string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.EfLibraryRowMeta(version, count, date))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].EfLibraryRowMeta; f != nil {
+			return f(version, count, date)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(version) + " · " + msgs.arg(count) + " factors · imported " + msgs.arg(date)
+		case "zh-CN":
+			return version + " · " + count + " 条因子 · 导入于 " + date
+		}
+	}
+}
+
+// EfLibraryTemplateButton says "Download template"
+// in the language the app shows under cx.
+func EfLibraryTemplateButton(cx *core.Scope) string { return For(cx).EfLibraryTemplateButton() }
+
+// EfLibraryTemplateButton is the package's EfLibraryTemplateButton in the language of msgs.
+func (msgs Messages) EfLibraryTemplateButton() string { return msgs.text(textEfLibraryTemplateButton) }
+
+// EfLibraryTemplateFailed says "Could not save template"
+// in the language the app shows under cx.
+func EfLibraryTemplateFailed(cx *core.Scope) string { return For(cx).EfLibraryTemplateFailed() }
+
+// EfLibraryTemplateFailed is the package's EfLibraryTemplateFailed in the language of msgs.
+func (msgs Messages) EfLibraryTemplateFailed() string { return msgs.text(textEfLibraryTemplateFailed) }
+
+// EfLibraryTemplateSaved says "Template saved"
+// in the language the app shows under cx.
+func EfLibraryTemplateSaved(cx *core.Scope) string { return For(cx).EfLibraryTemplateSaved() }
+
+// EfLibraryTemplateSaved is the package's EfLibraryTemplateSaved in the language of msgs.
+func (msgs Messages) EfLibraryTemplateSaved() string { return msgs.text(textEfLibraryTemplateSaved) }
+
+// EfMatcherAllCandidates says "All candidates"
+// in the language the app shows under cx.
+func EfMatcherAllCandidates(cx *core.Scope) string { return For(cx).EfMatcherAllCandidates() }
+
+// EfMatcherAllCandidates is the package's EfMatcherAllCandidates in the language of msgs.
+func (msgs Messages) EfMatcherAllCandidates() string { return msgs.text(textEfMatcherAllCandidates) }
+
+// EfMatcherLoading says "Analyzing..."
+// in the language the app shows under cx.
+func EfMatcherLoading(cx *core.Scope) string { return For(cx).EfMatcherLoading() }
+
+// EfMatcherLoading is the package's EfMatcherLoading in the language of msgs.
+func (msgs Messages) EfMatcherLoading() string { return msgs.text(textEfMatcherLoading) }
+
+// EfMatcherNoCandidates says "No emission factors match this source's scope/category."
+// in the language the app shows under cx.
+func EfMatcherNoCandidates(cx *core.Scope) string { return For(cx).EfMatcherNoCandidates() }
+
+// EfMatcherNoCandidates is the package's EfMatcherNoCandidates in the language of msgs.
+func (msgs Messages) EfMatcherNoCandidates() string { return msgs.text(textEfMatcherNoCandidates) }
+
+// EfMatcherReasoningLabel says "Reason:"
+// in the language the app shows under cx.
+func EfMatcherReasoningLabel(cx *core.Scope) string { return For(cx).EfMatcherReasoningLabel() }
+
+// EfMatcherReasoningLabel is the package's EfMatcherReasoningLabel in the language of msgs.
+func (msgs Messages) EfMatcherReasoningLabel() string { return msgs.text(textEfMatcherReasoningLabel) }
+
+// EfMatcherRecommendedHeading says "Recommended for this document"
+// in the language the app shows under cx.
+func EfMatcherRecommendedHeading(cx *core.Scope) string { return For(cx).EfMatcherRecommendedHeading() }
+
+// EfMatcherRecommendedHeading is the package's EfMatcherRecommendedHeading in the language of msgs.
+func (msgs Messages) EfMatcherRecommendedHeading() string {
+	return msgs.text(textEfMatcherRecommendedHeading)
+}
+
+// EfPickerLoading says "Loading..."
+// in the language the app shows under cx.
+func EfPickerLoading(cx *core.Scope) string { return For(cx).EfPickerLoading() }
+
+// EfPickerLoading is the package's EfPickerLoading in the language of msgs.
+func (msgs Messages) EfPickerLoading() string { return msgs.text(textEfPickerLoading) }
+
+// EfPickerNoRecommendations says "No recommendations."
+// in the language the app shows under cx.
+func EfPickerNoRecommendations(cx *core.Scope) string { return For(cx).EfPickerNoRecommendations() }
+
+// EfPickerNoRecommendations is the package's EfPickerNoRecommendations in the language of msgs.
+func (msgs Messages) EfPickerNoRecommendations() string {
+	return msgs.text(textEfPickerNoRecommendations)
+}
+
+// EfPickerTabBrowse says "Browse"
+// in the language the app shows under cx.
+func EfPickerTabBrowse(cx *core.Scope) string { return For(cx).EfPickerTabBrowse() }
+
+// EfPickerTabBrowse is the package's EfPickerTabBrowse in the language of msgs.
+func (msgs Messages) EfPickerTabBrowse() string { return msgs.text(textEfPickerTabBrowse) }
+
+// EfPickerTabRecommended says "Recommended"
+// in the language the app shows under cx.
+func EfPickerTabRecommended(cx *core.Scope) string { return For(cx).EfPickerTabRecommended() }
+
+// EfPickerTabRecommended is the package's EfPickerTabRecommended in the language of msgs.
+func (msgs Messages) EfPickerTabRecommended() string { return msgs.text(textEfPickerTabRecommended) }
+
+// EfUserLibraryBadge says "Imported library"
+// in the language the app shows under cx.
+func EfUserLibraryBadge(cx *core.Scope) string { return For(cx).EfUserLibraryBadge() }
+
+// EfUserLibraryBadge is the package's EfUserLibraryBadge in the language of msgs.
+func (msgs Messages) EfUserLibraryBadge() string { return msgs.text(textEfUserLibraryBadge) }
+
+// EvidenceAddButton says "Add evidence"
+// in the language the app shows under cx.
+func EvidenceAddButton(cx *core.Scope) string { return For(cx).EvidenceAddButton() }
+
+// EvidenceAddButton is the package's EvidenceAddButton in the language of msgs.
+func (msgs Messages) EvidenceAddButton() string { return msgs.text(textEvidenceAddButton) }
+
+// EvidenceAddFailed says "Failed to attach evidence"
+// in the language the app shows under cx.
+func EvidenceAddFailed(cx *core.Scope) string { return For(cx).EvidenceAddFailed() }
+
+// EvidenceAddFailed is the package's EvidenceAddFailed in the language of msgs.
+func (msgs Messages) EvidenceAddFailed() string { return msgs.text(textEvidenceAddFailed) }
+
+// EvidenceAdding says "Adding…"
+// in the language the app shows under cx.
+func EvidenceAdding(cx *core.Scope) string { return For(cx).EvidenceAdding() }
+
+// EvidenceAdding is the package's EvidenceAdding in the language of msgs.
+func (msgs Messages) EvidenceAdding() string { return msgs.text(textEvidenceAdding) }
+
+// EvidenceEmpty says "No evidence attached yet"
+// in the language the app shows under cx.
+func EvidenceEmpty(cx *core.Scope) string { return For(cx).EvidenceEmpty() }
+
+// EvidenceEmpty is the package's EvidenceEmpty in the language of msgs.
+func (msgs Messages) EvidenceEmpty() string { return msgs.text(textEvidenceEmpty) }
+
+// EvidencePreviewImageAlt says "Evidence image preview"
+// in the language the app shows under cx.
+func EvidencePreviewImageAlt(cx *core.Scope) string { return For(cx).EvidencePreviewImageAlt() }
+
+// EvidencePreviewImageAlt is the package's EvidencePreviewImageAlt in the language of msgs.
+func (msgs Messages) EvidencePreviewImageAlt() string { return msgs.text(textEvidencePreviewImageAlt) }
+
+// EvidencePreviewUnsupported says "No preview for this file type"
+// in the language the app shows under cx.
+func EvidencePreviewUnsupported(cx *core.Scope) string { return For(cx).EvidencePreviewUnsupported() }
+
+// EvidencePreviewUnsupported is the package's EvidencePreviewUnsupported in the language of msgs.
+func (msgs Messages) EvidencePreviewUnsupported() string {
+	return msgs.text(textEvidencePreviewUnsupported)
+}
+
+// EvidenceRemoveButton says "Remove evidence"
+// in the language the app shows under cx.
+func EvidenceRemoveButton(cx *core.Scope) string { return For(cx).EvidenceRemoveButton() }
+
+// EvidenceRemoveButton is the package's EvidenceRemoveButton in the language of msgs.
+func (msgs Messages) EvidenceRemoveButton() string { return msgs.text(textEvidenceRemoveButton) }
+
+// EvidenceRemoveFailed says "Failed to remove evidence"
+// in the language the app shows under cx.
+func EvidenceRemoveFailed(cx *core.Scope) string { return For(cx).EvidenceRemoveFailed() }
+
+// EvidenceRemoveFailed is the package's EvidenceRemoveFailed in the language of msgs.
+func (msgs Messages) EvidenceRemoveFailed() string { return msgs.text(textEvidenceRemoveFailed) }
+
+// FuelCoalAnthracite says "Anthracite coal"
+// in the language the app shows under cx.
+func FuelCoalAnthracite(cx *core.Scope) string { return For(cx).FuelCoalAnthracite() }
+
+// FuelCoalAnthracite is the package's FuelCoalAnthracite in the language of msgs.
+func (msgs Messages) FuelCoalAnthracite() string { return msgs.text(textFuelCoalAnthracite) }
+
+// FuelDiesel says "Diesel"
+// in the language the app shows under cx.
+func FuelDiesel(cx *core.Scope) string { return For(cx).FuelDiesel() }
+
+// FuelDiesel is the package's FuelDiesel in the language of msgs.
+func (msgs Messages) FuelDiesel() string { return msgs.text(textFuelDiesel) }
+
+// FuelGasoline says "Gasoline"
+// in the language the app shows under cx.
+func FuelGasoline(cx *core.Scope) string { return For(cx).FuelGasoline() }
+
+// FuelGasoline is the package's FuelGasoline in the language of msgs.
+func (msgs Messages) FuelGasoline() string { return msgs.text(textFuelGasoline) }
+
+// FuelLpg says "LPG"
+// in the language the app shows under cx.
+func FuelLpg(cx *core.Scope) string { return For(cx).FuelLpg() }
+
+// FuelLpg is the package's FuelLpg in the language of msgs.
+func (msgs Messages) FuelLpg() string { return msgs.text(textFuelLpg) }
+
+// FuelNaturalGas says "Natural gas"
+// in the language the app shows under cx.
+func FuelNaturalGas(cx *core.Scope) string { return For(cx).FuelNaturalGas() }
+
+// FuelNaturalGas is the package's FuelNaturalGas in the language of msgs.
+func (msgs Messages) FuelNaturalGas() string { return msgs.text(textFuelNaturalGas) }
+
+// GuidanceAnswerActionsBody says "Save keeps a draft you can keep editing. Save & finalize locks the answer, makes the fields read-only and records it in the audit trail — the button then becomes Unfinalize if you need to reopen it."
+// in the language the app shows under cx.
+func GuidanceAnswerActionsBody(cx *core.Scope) string { return For(cx).GuidanceAnswerActionsBody() }
+
+// GuidanceAnswerActionsBody is the package's GuidanceAnswerActionsBody in the language of msgs.
+func (msgs Messages) GuidanceAnswerActionsBody() string {
+	return msgs.text(textGuidanceAnswerActionsBody)
+}
+
+// GuidanceAnswerActionsTitle says "Save vs. finalize"
+// in the language the app shows under cx.
+func GuidanceAnswerActionsTitle(cx *core.Scope) string { return For(cx).GuidanceAnswerActionsTitle() }
+
+// GuidanceAnswerActionsTitle is the package's GuidanceAnswerActionsTitle in the language of msgs.
+func (msgs Messages) GuidanceAnswerActionsTitle() string {
+	return msgs.text(textGuidanceAnswerActionsTitle)
+}
+
+// GuidanceAnswerBulkBody says "The bottom bar acts on the whole questionnaire: generate every unanswered question, export to Excel or PDF, and finalize all answers at once."
+// in the language the app shows under cx.
+func GuidanceAnswerBulkBody(cx *core.Scope) string { return For(cx).GuidanceAnswerBulkBody() }
+
+// GuidanceAnswerBulkBody is the package's GuidanceAnswerBulkBody in the language of msgs.
+func (msgs Messages) GuidanceAnswerBulkBody() string { return msgs.text(textGuidanceAnswerBulkBody) }
+
+// GuidanceAnswerBulkTitle says "Whole-questionnaire actions"
+// in the language the app shows under cx.
+func GuidanceAnswerBulkTitle(cx *core.Scope) string { return For(cx).GuidanceAnswerBulkTitle() }
+
+// GuidanceAnswerBulkTitle is the package's GuidanceAnswerBulkTitle in the language of msgs.
+func (msgs Messages) GuidanceAnswerBulkTitle() string { return msgs.text(textGuidanceAnswerBulkTitle) }
+
+// GuidanceAnswerCardBody says "Every question in the workbook gets a card. Generate an answer and the AI answers from this reporting year's activity data, showing the source it used under the field."
+// in the language the app shows under cx.
+func GuidanceAnswerCardBody(cx *core.Scope) string { return For(cx).GuidanceAnswerCardBody() }
+
+// GuidanceAnswerCardBody is the package's GuidanceAnswerCardBody in the language of msgs.
+func (msgs Messages) GuidanceAnswerCardBody() string { return msgs.text(textGuidanceAnswerCardBody) }
+
+// GuidanceAnswerCardTitle says "One card per question"
+// in the language the app shows under cx.
+func GuidanceAnswerCardTitle(cx *core.Scope) string { return For(cx).GuidanceAnswerCardTitle() }
+
+// GuidanceAnswerCardTitle is the package's GuidanceAnswerCardTitle in the language of msgs.
+func (msgs Messages) GuidanceAnswerCardTitle() string { return msgs.text(textGuidanceAnswerCardTitle) }
+
+// GuidanceBack says "Back"
+// in the language the app shows under cx.
+func GuidanceBack(cx *core.Scope) string { return For(cx).GuidanceBack() }
+
+// GuidanceBack is the package's GuidanceBack in the language of msgs.
+func (msgs Messages) GuidanceBack() string { return msgs.text(textGuidanceBack) }
+
+// GuidanceDone says "Got it"
+// in the language the app shows under cx.
+func GuidanceDone(cx *core.Scope) string { return For(cx).GuidanceDone() }
+
+// GuidanceDone is the package's GuidanceDone in the language of msgs.
+func (msgs Messages) GuidanceDone() string { return msgs.text(textGuidanceDone) }
+
+// GuidanceExtractionActionsBody says "Confirm turns the extraction into an activity-data row, pins an emission factor to it and computes the emissions. Discard drops this extraction; the file itself stays."
+// in the language the app shows under cx.
+func GuidanceExtractionActionsBody(cx *core.Scope) string {
+	return For(cx).GuidanceExtractionActionsBody()
+}
+
+// GuidanceExtractionActionsBody is the package's GuidanceExtractionActionsBody in the language of msgs.
+func (msgs Messages) GuidanceExtractionActionsBody() string {
+	return msgs.text(textGuidanceExtractionActionsBody)
+}
+
+// GuidanceExtractionActionsTitle says "What confirming does"
+// in the language the app shows under cx.
+func GuidanceExtractionActionsTitle(cx *core.Scope) string {
+	return For(cx).GuidanceExtractionActionsTitle()
+}
+
+// GuidanceExtractionActionsTitle is the package's GuidanceExtractionActionsTitle in the language of msgs.
+func (msgs Messages) GuidanceExtractionActionsTitle() string {
+	return msgs.text(textGuidanceExtractionActionsTitle)
+}
+
+// GuidanceExtractionStageBody says "CarbonInk first classifies the file — utility bill, fuel receipt, freight note, travel, questionnaire — then extracts with that stage's field template. The stage decides which fields you see below."
+// in the language the app shows under cx.
+func GuidanceExtractionStageBody(cx *core.Scope) string { return For(cx).GuidanceExtractionStageBody() }
+
+// GuidanceExtractionStageBody is the package's GuidanceExtractionStageBody in the language of msgs.
+func (msgs Messages) GuidanceExtractionStageBody() string {
+	return msgs.text(textGuidanceExtractionStageBody)
+}
+
+// GuidanceExtractionStageTitle says "Extraction stage"
+// in the language the app shows under cx.
+func GuidanceExtractionStageTitle(cx *core.Scope) string {
+	return For(cx).GuidanceExtractionStageTitle()
+}
+
+// GuidanceExtractionStageTitle is the package's GuidanceExtractionStageTitle in the language of msgs.
+func (msgs Messages) GuidanceExtractionStageTitle() string {
+	return msgs.text(textGuidanceExtractionStageTitle)
+}
+
+// GuidanceExtractionSwitchBody says "If the classification missed — a fuel receipt read as a utility bill — switch to the right stage here and re-extract. The previous extraction is discarded."
+// in the language the app shows under cx.
+func GuidanceExtractionSwitchBody(cx *core.Scope) string {
+	return For(cx).GuidanceExtractionSwitchBody()
+}
+
+// GuidanceExtractionSwitchBody is the package's GuidanceExtractionSwitchBody in the language of msgs.
+func (msgs Messages) GuidanceExtractionSwitchBody() string {
+	return msgs.text(textGuidanceExtractionSwitchBody)
+}
+
+// GuidanceExtractionSwitchTitle says "Wrong stage?"
+// in the language the app shows under cx.
+func GuidanceExtractionSwitchTitle(cx *core.Scope) string {
+	return For(cx).GuidanceExtractionSwitchTitle()
+}
+
+// GuidanceExtractionSwitchTitle is the package's GuidanceExtractionSwitchTitle in the language of msgs.
+func (msgs Messages) GuidanceExtractionSwitchTitle() string {
+	return msgs.text(textGuidanceExtractionSwitchTitle)
+}
+
+// GuidanceNext says "Next"
+// in the language the app shows under cx.
+func GuidanceNext(cx *core.Scope) string { return For(cx).GuidanceNext() }
+
+// GuidanceNext is the package's GuidanceNext in the language of msgs.
+func (msgs Messages) GuidanceNext() string { return msgs.text(textGuidanceNext) }
+
+// GuidanceProgress says "Step {current} of {total}"
+// in the language the app shows under cx.
+func GuidanceProgress(cx *core.Scope, current string, total string) string {
+	return For(cx).GuidanceProgress(current, total)
+}
+
+// GuidanceProgress is the package's GuidanceProgress in the language of msgs.
+func (msgs Messages) GuidanceProgress(current string, total string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.GuidanceProgress(current, total))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].GuidanceProgress; f != nil {
+			return f(current, total)
+		}
+		switch lang {
+		case "", "en":
+			return "Step " + msgs.arg(current) + " of " + msgs.arg(total)
+		case "zh-CN":
+			return "第 " + current + " 步，共 " + total + " 步"
+		}
+	}
+}
+
+// GuidanceQuestionnairesListBody says "Every outbound questionnaire is listed here. Filter by status, sort by due date, and select a row to open its answers."
+// in the language the app shows under cx.
+func GuidanceQuestionnairesListBody(cx *core.Scope) string {
+	return For(cx).GuidanceQuestionnairesListBody()
+}
+
+// GuidanceQuestionnairesListBody is the package's GuidanceQuestionnairesListBody in the language of msgs.
+func (msgs Messages) GuidanceQuestionnairesListBody() string {
+	return msgs.text(textGuidanceQuestionnairesListBody)
+}
+
+// GuidanceQuestionnairesListTitle says "Track by status and due date"
+// in the language the app shows under cx.
+func GuidanceQuestionnairesListTitle(cx *core.Scope) string {
+	return For(cx).GuidanceQuestionnairesListTitle()
+}
+
+// GuidanceQuestionnairesListTitle is the package's GuidanceQuestionnairesListTitle in the language of msgs.
+func (msgs Messages) GuidanceQuestionnairesListTitle() string {
+	return msgs.text(textGuidanceQuestionnairesListTitle)
+}
+
+// GuidanceQuestionnairesNewBody says "Import the .xlsx a customer sent you here. CarbonInk parses the workbook into one card per question — you review and finalize the answers on those cards, then export back into the same workbook."
+// in the language the app shows under cx.
+func GuidanceQuestionnairesNewBody(cx *core.Scope) string {
+	return For(cx).GuidanceQuestionnairesNewBody()
+}
+
+// GuidanceQuestionnairesNewBody is the package's GuidanceQuestionnairesNewBody in the language of msgs.
+func (msgs Messages) GuidanceQuestionnairesNewBody() string {
+	return msgs.text(textGuidanceQuestionnairesNewBody)
+}
+
+// GuidanceQuestionnairesNewTitle says "Start from a customer questionnaire"
+// in the language the app shows under cx.
+func GuidanceQuestionnairesNewTitle(cx *core.Scope) string {
+	return For(cx).GuidanceQuestionnairesNewTitle()
+}
+
+// GuidanceQuestionnairesNewTitle is the package's GuidanceQuestionnairesNewTitle in the language of msgs.
+func (msgs Messages) GuidanceQuestionnairesNewTitle() string {
+	return msgs.text(textGuidanceQuestionnairesNewTitle)
+}
+
+// GuidanceRebindConfirmBody says "Confirming recomputes this activity in place and writes an audit event that keeps the old factor and the old emissions. Reports already exported to disk are untouched — the new figure appears the next time you generate one."
+// in the language the app shows under cx.
+func GuidanceRebindConfirmBody(cx *core.Scope) string { return For(cx).GuidanceRebindConfirmBody() }
+
+// GuidanceRebindConfirmBody is the package's GuidanceRebindConfirmBody in the language of msgs.
+func (msgs Messages) GuidanceRebindConfirmBody() string {
+	return msgs.text(textGuidanceRebindConfirmBody)
+}
+
+// GuidanceRebindConfirmTitle says "After rebinding"
+// in the language the app shows under cx.
+func GuidanceRebindConfirmTitle(cx *core.Scope) string { return For(cx).GuidanceRebindConfirmTitle() }
+
+// GuidanceRebindConfirmTitle is the package's GuidanceRebindConfirmTitle in the language of msgs.
+func (msgs Messages) GuidanceRebindConfirmTitle() string {
+	return msgs.text(textGuidanceRebindConfirmTitle)
+}
+
+// GuidanceRebindCurrentBody says "This activity pinned one emission-factor version when it was computed. Later library updates never silently change it — that is what keeps a finished report reproducible."
+// in the language the app shows under cx.
+func GuidanceRebindCurrentBody(cx *core.Scope) string { return For(cx).GuidanceRebindCurrentBody() }
+
+// GuidanceRebindCurrentBody is the package's GuidanceRebindCurrentBody in the language of msgs.
+func (msgs Messages) GuidanceRebindCurrentBody() string {
+	return msgs.text(textGuidanceRebindCurrentBody)
+}
+
+// GuidanceRebindCurrentTitle says "The current factor is a pinned snapshot"
+// in the language the app shows under cx.
+func GuidanceRebindCurrentTitle(cx *core.Scope) string { return For(cx).GuidanceRebindCurrentTitle() }
+
+// GuidanceRebindCurrentTitle is the package's GuidanceRebindCurrentTitle in the language of msgs.
+func (msgs Messages) GuidanceRebindCurrentTitle() string {
+	return msgs.text(textGuidanceRebindCurrentTitle)
+}
+
+// GuidanceRebindPickerBody says "Rebind when the library publishes a newer year, when the geography was wrong, or when the original match was not the right entry. Pick a factor and preview the recomputation before you commit."
+// in the language the app shows under cx.
+func GuidanceRebindPickerBody(cx *core.Scope) string { return For(cx).GuidanceRebindPickerBody() }
+
+// GuidanceRebindPickerBody is the package's GuidanceRebindPickerBody in the language of msgs.
+func (msgs Messages) GuidanceRebindPickerBody() string {
+	return msgs.text(textGuidanceRebindPickerBody)
+}
+
+// GuidanceRebindPickerTitle says "When to rebind"
+// in the language the app shows under cx.
+func GuidanceRebindPickerTitle(cx *core.Scope) string { return For(cx).GuidanceRebindPickerTitle() }
+
+// GuidanceRebindPickerTitle is the package's GuidanceRebindPickerTitle in the language of msgs.
+func (msgs Messages) GuidanceRebindPickerTitle() string {
+	return msgs.text(textGuidanceRebindPickerTitle)
+}
+
+// GuidanceReportDeliverableBody says "Bundles the report, its detail tables and the evidence files into one ZIP to hand to the client, with a manifest listing every file."
+// in the language the app shows under cx.
+func GuidanceReportDeliverableBody(cx *core.Scope) string {
+	return For(cx).GuidanceReportDeliverableBody()
+}
+
+// GuidanceReportDeliverableBody is the package's GuidanceReportDeliverableBody in the language of msgs.
+func (msgs Messages) GuidanceReportDeliverableBody() string {
+	return msgs.text(textGuidanceReportDeliverableBody)
+}
+
+// GuidanceReportDeliverableTitle says "Deliverable bundle"
+// in the language the app shows under cx.
+func GuidanceReportDeliverableTitle(cx *core.Scope) string {
+	return For(cx).GuidanceReportDeliverableTitle()
+}
+
+// GuidanceReportDeliverableTitle is the package's GuidanceReportDeliverableTitle in the language of msgs.
+func (msgs Messages) GuidanceReportDeliverableTitle() string {
+	return msgs.text(textGuidanceReportDeliverableTitle)
+}
+
+// GuidanceReportExportBody says "One click writes both: the PDF for delivery and the Excel appendix with the detail tables an auditor can check against."
+// in the language the app shows under cx.
+func GuidanceReportExportBody(cx *core.Scope) string { return For(cx).GuidanceReportExportBody() }
+
+// GuidanceReportExportBody is the package's GuidanceReportExportBody in the language of msgs.
+func (msgs Messages) GuidanceReportExportBody() string {
+	return msgs.text(textGuidanceReportExportBody)
+}
+
+// GuidanceReportExportTitle says "Export PDF and Excel"
+// in the language the app shows under cx.
+func GuidanceReportExportTitle(cx *core.Scope) string { return For(cx).GuidanceReportExportTitle() }
+
+// GuidanceReportExportTitle is the package's GuidanceReportExportTitle in the language of msgs.
+func (msgs Messages) GuidanceReportExportTitle() string {
+	return msgs.text(textGuidanceReportExportTitle)
+}
+
+// GuidanceReportScopeBody says "Totals are grouped the ISO 14064-1 way: Scope 1 direct emissions, Scope 2 purchased electricity and heat, Scope 3 other value-chain emissions. The grouping comes from each activity's emission source, not from anything chosen at export time."
+// in the language the app shows under cx.
+func GuidanceReportScopeBody(cx *core.Scope) string { return For(cx).GuidanceReportScopeBody() }
+
+// GuidanceReportScopeBody is the package's GuidanceReportScopeBody in the language of msgs.
+func (msgs Messages) GuidanceReportScopeBody() string { return msgs.text(textGuidanceReportScopeBody) }
+
+// GuidanceReportScopeTitle says "How Scope 1 / 2 / 3 are grouped"
+// in the language the app shows under cx.
+func GuidanceReportScopeTitle(cx *core.Scope) string { return For(cx).GuidanceReportScopeTitle() }
+
+// GuidanceReportScopeTitle is the package's GuidanceReportScopeTitle in the language of msgs.
+func (msgs Messages) GuidanceReportScopeTitle() string {
+	return msgs.text(textGuidanceReportScopeTitle)
+}
+
+// GuidanceSkip says "Skip"
+// in the language the app shows under cx.
+func GuidanceSkip(cx *core.Scope) string { return For(cx).GuidanceSkip() }
+
+// GuidanceSkip is the package's GuidanceSkip in the language of msgs.
+func (msgs Messages) GuidanceSkip() string { return msgs.text(textGuidanceSkip) }
+
+// ImportedLegacy says "Imported from CarbonInk 1.x"
+// in the language the app shows under cx.
+func ImportedLegacy(cx *core.Scope) string { return For(cx).ImportedLegacy() }
+
+// ImportedLegacy is the package's ImportedLegacy in the language of msgs.
+func (msgs Messages) ImportedLegacy() string { return msgs.text(textImportedLegacy) }
+
+// InboundAcceptAria says "Accept {position}"
+// in the language the app shows under cx.
+func InboundAcceptAria(cx *core.Scope, position string) string {
+	return For(cx).InboundAcceptAria(position)
+}
+
+// InboundAcceptAria is the package's InboundAcceptAria in the language of msgs.
+func (msgs Messages) InboundAcceptAria(position string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.InboundAcceptAria(position))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].InboundAcceptAria; f != nil {
+			return f(position)
+		}
+		switch lang {
+		case "", "en":
+			return "Accept " + msgs.arg(position)
+		case "zh-CN":
+			return "接受 " + position
+		}
+	}
+}
+
+// InboundAnswerBlank says "Not filled in"
+// in the language the app shows under cx.
+func InboundAnswerBlank(cx *core.Scope) string { return For(cx).InboundAnswerBlank() }
+
+// InboundAnswerBlank is the package's InboundAnswerBlank in the language of msgs.
+func (msgs Messages) InboundAnswerBlank() string { return msgs.text(textInboundAnswerBlank) }
+
+// InboundAnswerNote says "Note: {note}"
+// in the language the app shows under cx.
+func InboundAnswerNote(cx *core.Scope, note string) string { return For(cx).InboundAnswerNote(note) }
+
+// InboundAnswerNote is the package's InboundAnswerNote in the language of msgs.
+func (msgs Messages) InboundAnswerNote(note string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.InboundAnswerNote(note))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].InboundAnswerNote; f != nil {
+			return f(note)
+		}
+		switch lang {
+		case "", "en":
+			return "Note: " + msgs.arg(note)
+		case "zh-CN":
+			return "备注: " + note
+		}
+	}
+}
+
+// InboundAnswerRaw says "Raw: {value}"
+// in the language the app shows under cx.
+func InboundAnswerRaw(cx *core.Scope, value string) string { return For(cx).InboundAnswerRaw(value) }
+
+// InboundAnswerRaw is the package's InboundAnswerRaw in the language of msgs.
+func (msgs Messages) InboundAnswerRaw(value string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.InboundAnswerRaw(value))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].InboundAnswerRaw; f != nil {
+			return f(value)
+		}
+		switch lang {
+		case "", "en":
+			return "Raw: " + msgs.arg(value)
+		case "zh-CN":
+			return "原始: " + value
+		}
+	}
+}
+
+// InboundBack says "Back"
+// in the language the app shows under cx.
+func InboundBack(cx *core.Scope) string { return For(cx).InboundBack() }
+
+// InboundBack is the package's InboundBack in the language of msgs.
+func (msgs Messages) InboundBack() string { return msgs.text(textInboundBack) }
+
+// InboundBackToDetail says "Back to detail"
+// in the language the app shows under cx.
+func InboundBackToDetail(cx *core.Scope) string { return For(cx).InboundBackToDetail() }
+
+// InboundBackToDetail is the package's InboundBackToDetail in the language of msgs.
+func (msgs Messages) InboundBackToDetail() string { return msgs.text(textInboundBackToDetail) }
+
+// InboundBackToList says "← Back to disclosures"
+// in the language the app shows under cx.
+func InboundBackToList(cx *core.Scope) string { return For(cx).InboundBackToList() }
+
+// InboundBackToList is the package's InboundBackToList in the language of msgs.
+func (msgs Messages) InboundBackToList() string { return msgs.text(textInboundBackToList) }
+
+// InboundClearFilters says "Clear filters"
+// in the language the app shows under cx.
+func InboundClearFilters(cx *core.Scope) string { return For(cx).InboundClearFilters() }
+
+// InboundClearFilters is the package's InboundClearFilters in the language of msgs.
+func (msgs Messages) InboundClearFilters() string { return msgs.text(textInboundClearFilters) }
+
+// InboundCreateDraft says "Create draft"
+// in the language the app shows under cx.
+func InboundCreateDraft(cx *core.Scope) string { return For(cx).InboundCreateDraft() }
+
+// InboundCreateDraft is the package's InboundCreateDraft in the language of msgs.
+func (msgs Messages) InboundCreateDraft() string { return msgs.text(textInboundCreateDraft) }
+
+// InboundCreateFailed says "Create failed"
+// in the language the app shows under cx.
+func InboundCreateFailed(cx *core.Scope) string { return For(cx).InboundCreateFailed() }
+
+// InboundCreateFailed is the package's InboundCreateFailed in the language of msgs.
+func (msgs Messages) InboundCreateFailed() string { return msgs.text(textInboundCreateFailed) }
+
+// InboundCreateNextHint says "After creation you land on the detail page; the next step is exporting the blank xlsx and emailing it to the supplier."
+// in the language the app shows under cx.
+func InboundCreateNextHint(cx *core.Scope) string { return For(cx).InboundCreateNextHint() }
+
+// InboundCreateNextHint is the package's InboundCreateNextHint in the language of msgs.
+func (msgs Messages) InboundCreateNextHint() string { return msgs.text(textInboundCreateNextHint) }
+
+// InboundCreatedToast says "Supplier disclosure draft created ({count} questions). Click \"Export blank xlsx\" to start the flow."
+// in the language the app shows under cx.
+func InboundCreatedToast(cx *core.Scope, count string) string {
+	return For(cx).InboundCreatedToast(count)
+}
+
+// InboundCreatedToast is the package's InboundCreatedToast in the language of msgs.
+func (msgs Messages) InboundCreatedToast(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.InboundCreatedToast(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].InboundCreatedToast; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return "Supplier disclosure draft created (" + msgs.arg(count) + " questions). Click \"Export blank xlsx\" to start the flow."
+		case "zh-CN":
+			return "已创建供应商披露草稿（" + count + " 题）。点击「导出空白 xlsx」开始流程。"
+		}
+	}
+}
+
+// InboundCreating says "Creating…"
+// in the language the app shows under cx.
+func InboundCreating(cx *core.Scope) string { return For(cx).InboundCreating() }
+
+// InboundCreating is the package's InboundCreating in the language of msgs.
+func (msgs Messages) InboundCreating() string { return msgs.text(textInboundCreating) }
+
+// InboundDeleteButton says "Delete"
+// in the language the app shows under cx.
+func InboundDeleteButton(cx *core.Scope) string { return For(cx).InboundDeleteButton() }
+
+// InboundDeleteButton is the package's InboundDeleteButton in the language of msgs.
+func (msgs Messages) InboundDeleteButton() string { return msgs.text(textInboundDeleteButton) }
+
+// InboundDeleteConfirm says "Delete"
+// in the language the app shows under cx.
+func InboundDeleteConfirm(cx *core.Scope) string { return For(cx).InboundDeleteConfirm() }
+
+// InboundDeleteConfirm is the package's InboundDeleteConfirm in the language of msgs.
+func (msgs Messages) InboundDeleteConfirm() string { return msgs.text(textInboundDeleteConfirm) }
+
+// InboundDeleteDialogDesc says "This deletes \"{name}\"'s disclosure along with all its questions and received answers."
+// in the language the app shows under cx.
+func InboundDeleteDialogDesc(cx *core.Scope, name string) string {
+	return For(cx).InboundDeleteDialogDesc(name)
+}
+
+// InboundDeleteDialogDesc is the package's InboundDeleteDialogDesc in the language of msgs.
+func (msgs Messages) InboundDeleteDialogDesc(name string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.InboundDeleteDialogDesc(name))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].InboundDeleteDialogDesc; f != nil {
+			return f(name)
+		}
+		switch lang {
+		case "", "en":
+			return "This deletes \"" + msgs.arg(name) + "\"'s disclosure along with all its questions and received answers."
+		case "zh-CN":
+			return "将删除「" + name + "」的这份披露及其全部题目与已收回的答案。"
+		}
+	}
+}
+
+// InboundDeleteDialogIngestedExtra says " This disclosure was ingested — its generated activity rows will also be removed from the Scope 3 inventory."
+// in the language the app shows under cx.
+func InboundDeleteDialogIngestedExtra(cx *core.Scope) string {
+	return For(cx).InboundDeleteDialogIngestedExtra()
+}
+
+// InboundDeleteDialogIngestedExtra is the package's InboundDeleteDialogIngestedExtra in the language of msgs.
+func (msgs Messages) InboundDeleteDialogIngestedExtra() string {
+	return msgs.text(textInboundDeleteDialogIngestedExtra)
+}
+
+// InboundDeleteDialogIrreversible says "This cannot be undone."
+// in the language the app shows under cx.
+func InboundDeleteDialogIrreversible(cx *core.Scope) string {
+	return For(cx).InboundDeleteDialogIrreversible()
+}
+
+// InboundDeleteDialogIrreversible is the package's InboundDeleteDialogIrreversible in the language of msgs.
+func (msgs Messages) InboundDeleteDialogIrreversible() string {
+	return msgs.text(textInboundDeleteDialogIrreversible)
+}
+
+// InboundDeleteDialogTitle says "Delete supplier disclosure?"
+// in the language the app shows under cx.
+func InboundDeleteDialogTitle(cx *core.Scope) string { return For(cx).InboundDeleteDialogTitle() }
+
+// InboundDeleteDialogTitle is the package's InboundDeleteDialogTitle in the language of msgs.
+func (msgs Messages) InboundDeleteDialogTitle() string {
+	return msgs.text(textInboundDeleteDialogTitle)
+}
+
+// InboundDeleteSuccess says "Disclosure deleted."
+// in the language the app shows under cx.
+func InboundDeleteSuccess(cx *core.Scope) string { return For(cx).InboundDeleteSuccess() }
+
+// InboundDeleteSuccess is the package's InboundDeleteSuccess in the language of msgs.
+func (msgs Messages) InboundDeleteSuccess() string { return msgs.text(textInboundDeleteSuccess) }
+
+// InboundDeleteSuccessWithActivities says "Disclosure deleted; {count} ingested activity rows removed as well."
+// in the language the app shows under cx.
+func InboundDeleteSuccessWithActivities(cx *core.Scope, count string) string {
+	return For(cx).InboundDeleteSuccessWithActivities(count)
+}
+
+// InboundDeleteSuccessWithActivities is the package's InboundDeleteSuccessWithActivities in the language of msgs.
+func (msgs Messages) InboundDeleteSuccessWithActivities(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.InboundDeleteSuccessWithActivities(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].InboundDeleteSuccessWithActivities; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return "Disclosure deleted; " + msgs.arg(count) + " ingested activity rows removed as well."
+		case "zh-CN":
+			return "已删除披露，并移除 " + count + " 条已入库活动数据。"
+		}
+	}
+}
+
+// InboundDeleting says "Deleting…"
+// in the language the app shows under cx.
+func InboundDeleting(cx *core.Scope) string { return For(cx).InboundDeleting() }
+
+// InboundDeleting is the package's InboundDeleting in the language of msgs.
+func (msgs Messages) InboundDeleting() string { return msgs.text(textInboundDeleting) }
+
+// InboundDetailStatusDraft says "Draft (awaiting export)"
+// in the language the app shows under cx.
+func InboundDetailStatusDraft(cx *core.Scope) string { return For(cx).InboundDetailStatusDraft() }
+
+// InboundDetailStatusDraft is the package's InboundDetailStatusDraft in the language of msgs.
+func (msgs Messages) InboundDetailStatusDraft() string {
+	return msgs.text(textInboundDetailStatusDraft)
+}
+
+// InboundDetailStatusIngested says "Ingested"
+// in the language the app shows under cx.
+func InboundDetailStatusIngested(cx *core.Scope) string { return For(cx).InboundDetailStatusIngested() }
+
+// InboundDetailStatusIngested is the package's InboundDetailStatusIngested in the language of msgs.
+func (msgs Messages) InboundDetailStatusIngested() string {
+	return msgs.text(textInboundDetailStatusIngested)
+}
+
+// InboundDetailStatusReceived says "Received (awaiting review)"
+// in the language the app shows under cx.
+func InboundDetailStatusReceived(cx *core.Scope) string { return For(cx).InboundDetailStatusReceived() }
+
+// InboundDetailStatusReceived is the package's InboundDetailStatusReceived in the language of msgs.
+func (msgs Messages) InboundDetailStatusReceived() string {
+	return msgs.text(textInboundDetailStatusReceived)
+}
+
+// InboundDetailStatusSent says "Sent to supplier"
+// in the language the app shows under cx.
+func InboundDetailStatusSent(cx *core.Scope) string { return For(cx).InboundDetailStatusSent() }
+
+// InboundDetailStatusSent is the package's InboundDetailStatusSent in the language of msgs.
+func (msgs Messages) InboundDetailStatusSent() string { return msgs.text(textInboundDetailStatusSent) }
+
+// InboundDueOn says "Due {date}"
+// in the language the app shows under cx.
+func InboundDueOn(cx *core.Scope, date string) string { return For(cx).InboundDueOn(date) }
+
+// InboundDueOn is the package's InboundDueOn in the language of msgs.
+func (msgs Messages) InboundDueOn(date string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.InboundDueOn(date))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].InboundDueOn; f != nil {
+			return f(date)
+		}
+		switch lang {
+		case "", "en":
+			return "Due " + msgs.arg(date)
+		case "zh-CN":
+			return "截止 " + date
+		}
+	}
+}
+
+// InboundExportBlank says "Export blank xlsx"
+// in the language the app shows under cx.
+func InboundExportBlank(cx *core.Scope) string { return For(cx).InboundExportBlank() }
+
+// InboundExportBlank is the package's InboundExportBlank in the language of msgs.
+func (msgs Messages) InboundExportBlank() string { return msgs.text(textInboundExportBlank) }
+
+// InboundExportSuccess says "Exported to {path} ({bytes} bytes). Email the file to the supplier."
+// in the language the app shows under cx.
+func InboundExportSuccess(cx *core.Scope, path string, bytes string) string {
+	return For(cx).InboundExportSuccess(path, bytes)
+}
+
+// InboundExportSuccess is the package's InboundExportSuccess in the language of msgs.
+func (msgs Messages) InboundExportSuccess(path string, bytes string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.InboundExportSuccess(path, bytes))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].InboundExportSuccess; f != nil {
+			return f(path, bytes)
+		}
+		switch lang {
+		case "", "en":
+			return "Exported to " + msgs.arg(path) + " (" + msgs.arg(bytes) + " bytes). Email the file to the supplier."
+		case "zh-CN":
+			return "已导出到 " + path + "（" + bytes + " 字节）。将文件邮件发给供应商。"
+		}
+	}
+}
+
+// InboundExporting says "Exporting…"
+// in the language the app shows under cx.
+func InboundExporting(cx *core.Scope) string { return For(cx).InboundExporting() }
+
+// InboundExporting is the package's InboundExporting in the language of msgs.
+func (msgs Messages) InboundExporting() string { return msgs.text(textInboundExporting) }
+
+// InboundFilterAll says "All statuses"
+// in the language the app shows under cx.
+func InboundFilterAll(cx *core.Scope) string { return For(cx).InboundFilterAll() }
+
+// InboundFilterAll is the package's InboundFilterAll in the language of msgs.
+func (msgs Messages) InboundFilterAll() string { return msgs.text(textInboundFilterAll) }
+
+// InboundFilterOverdue says "Overdue"
+// in the language the app shows under cx.
+func InboundFilterOverdue(cx *core.Scope) string { return For(cx).InboundFilterOverdue() }
+
+// InboundFilterOverdue is the package's InboundFilterOverdue in the language of msgs.
+func (msgs Messages) InboundFilterOverdue() string { return msgs.text(textInboundFilterOverdue) }
+
+// InboundGotoOutbound says "→ Go to questionnaire detail"
+// in the language the app shows under cx.
+func InboundGotoOutbound(cx *core.Scope) string { return For(cx).InboundGotoOutbound() }
+
+// InboundGotoOutbound is the package's InboundGotoOutbound in the language of msgs.
+func (msgs Messages) InboundGotoOutbound() string { return msgs.text(textInboundGotoOutbound) }
+
+// InboundGroupMeta says "Metadata"
+// in the language the app shows under cx.
+func InboundGroupMeta(cx *core.Scope) string { return For(cx).InboundGroupMeta() }
+
+// InboundGroupMeta is the package's InboundGroupMeta in the language of msgs.
+func (msgs Messages) InboundGroupMeta() string { return msgs.text(textInboundGroupMeta) }
+
+// InboundGroupTier1 says "Tier 1 — per-unit product carbon footprint"
+// in the language the app shows under cx.
+func InboundGroupTier1(cx *core.Scope) string { return For(cx).InboundGroupTier1() }
+
+// InboundGroupTier1 is the package's InboundGroupTier1 in the language of msgs.
+func (msgs Messages) InboundGroupTier1() string { return msgs.text(textInboundGroupTier1) }
+
+// InboundGroupTier2 says "Tier 2 — allocated emissions"
+// in the language the app shows under cx.
+func InboundGroupTier2(cx *core.Scope) string { return For(cx).InboundGroupTier2() }
+
+// InboundGroupTier2 is the package's InboundGroupTier2 in the language of msgs.
+func (msgs Messages) InboundGroupTier2() string { return msgs.text(textInboundGroupTier2) }
+
+// InboundHintDraft says "Next: click \"Export blank xlsx\" (bottom right) and email the file to the supplier. When they send the filled file back, return here and import it."
+// in the language the app shows under cx.
+func InboundHintDraft(cx *core.Scope) string { return For(cx).InboundHintDraft() }
+
+// InboundHintDraft is the package's InboundHintDraft in the language of msgs.
+func (msgs Messages) InboundHintDraft() string { return msgs.text(textInboundHintDraft) }
+
+// InboundHintIngested says "Ingested. The supplier's reported emissions are now in your Scope 3 inventory — see the Activities page."
+// in the language the app shows under cx.
+func InboundHintIngested(cx *core.Scope) string { return For(cx).InboundHintIngested() }
+
+// InboundHintIngested is the package's InboundHintIngested in the language of msgs.
+func (msgs Messages) InboundHintIngested() string { return msgs.text(textInboundHintIngested) }
+
+// InboundHintReceived says "The supplier's reply is parsed and awaiting review. Click \"Review and ingest\" to open the review page and write confirmed rows into the activity ledger. If the supplier sends a corrected file, \"Re-import filled xlsx\" replaces the previous parse."
+// in the language the app shows under cx.
+func InboundHintReceived(cx *core.Scope) string { return For(cx).InboundHintReceived() }
+
+// InboundHintReceived is the package's InboundHintReceived in the language of msgs.
+func (msgs Messages) InboundHintReceived() string { return msgs.text(textInboundHintReceived) }
+
+// InboundHintSent says "Sent to the supplier. Once their reply arrives, click \"Import filled xlsx\" (bottom right) to load the email attachment."
+// in the language the app shows under cx.
+func InboundHintSent(cx *core.Scope) string { return For(cx).InboundHintSent() }
+
+// InboundHintSent is the package's InboundHintSent in the language of msgs.
+func (msgs Messages) InboundHintSent() string { return msgs.text(textInboundHintSent) }
+
+// InboundImportFailed says "Import failed"
+// in the language the app shows under cx.
+func InboundImportFailed(cx *core.Scope) string { return For(cx).InboundImportFailed() }
+
+// InboundImportFailed is the package's InboundImportFailed in the language of msgs.
+func (msgs Messages) InboundImportFailed() string { return msgs.text(textInboundImportFailed) }
+
+// InboundImportFilled says "Import filled xlsx"
+// in the language the app shows under cx.
+func InboundImportFilled(cx *core.Scope) string { return For(cx).InboundImportFilled() }
+
+// InboundImportFilled is the package's InboundImportFilled in the language of msgs.
+func (msgs Messages) InboundImportFilled() string { return msgs.text(textInboundImportFilled) }
+
+// InboundImportParsed says "Parsed {count} answers. Opening the review page."
+// in the language the app shows under cx.
+func InboundImportParsed(cx *core.Scope, count string) string {
+	return For(cx).InboundImportParsed(count)
+}
+
+// InboundImportParsed is the package's InboundImportParsed in the language of msgs.
+func (msgs Messages) InboundImportParsed(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.InboundImportParsed(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].InboundImportParsed; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return "Parsed " + msgs.arg(count) + " answers. Opening the review page."
+		case "zh-CN":
+			return "已解析 " + count + " 题答案。进入审核页面。"
+		}
+	}
+}
+
+// InboundImporting says "Importing…"
+// in the language the app shows under cx.
+func InboundImporting(cx *core.Scope) string { return For(cx).InboundImporting() }
+
+// InboundImporting is the package's InboundImporting in the language of msgs.
+func (msgs Messages) InboundImporting() string { return msgs.text(textInboundImporting) }
+
+// InboundIngestActivityCount says "{count} activity rows"
+// in the language the app shows under cx.
+func InboundIngestActivityCount(cx *core.Scope, count string) string {
+	return For(cx).InboundIngestActivityCount(count)
+}
+
+// InboundIngestActivityCount is the package's InboundIngestActivityCount in the language of msgs.
+func (msgs Messages) InboundIngestActivityCount(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.InboundIngestActivityCount(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].InboundIngestActivityCount; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " activity rows"
+		case "zh-CN":
+			return count + " 条活动"
+		}
+	}
+}
+
+// InboundIngestConfirm says "Confirm and ingest"
+// in the language the app shows under cx.
+func InboundIngestConfirm(cx *core.Scope) string { return For(cx).InboundIngestConfirm() }
+
+// InboundIngestConfirm is the package's InboundIngestConfirm in the language of msgs.
+func (msgs Messages) InboundIngestConfirm() string { return msgs.text(textInboundIngestConfirm) }
+
+// InboundIngestEstimatePrefix says "Will ingest: "
+// in the language the app shows under cx.
+func InboundIngestEstimatePrefix(cx *core.Scope) string { return For(cx).InboundIngestEstimatePrefix() }
+
+// InboundIngestEstimatePrefix is the package's InboundIngestEstimatePrefix in the language of msgs.
+func (msgs Messages) InboundIngestEstimatePrefix() string {
+	return msgs.text(textInboundIngestEstimatePrefix)
+}
+
+// InboundIngestGateNeedQty says "Fill in \"Purchased quantity (kg)\" above first"
+// in the language the app shows under cx.
+func InboundIngestGateNeedQty(cx *core.Scope) string { return For(cx).InboundIngestGateNeedQty() }
+
+// InboundIngestGateNeedQty is the package's InboundIngestGateNeedQty in the language of msgs.
+func (msgs Messages) InboundIngestGateNeedQty() string {
+	return msgs.text(textInboundIngestGateNeedQty)
+}
+
+// InboundIngestGateNoTier says "Supplier data is insufficient (needs a Tier 1 per-unit PCF, or all three Tier 2 answers)"
+// in the language the app shows under cx.
+func InboundIngestGateNoTier(cx *core.Scope) string { return For(cx).InboundIngestGateNoTier() }
+
+// InboundIngestGateNoTier is the package's InboundIngestGateNoTier in the language of msgs.
+func (msgs Messages) InboundIngestGateNoTier() string { return msgs.text(textInboundIngestGateNoTier) }
+
+// InboundIngestGateNoneAccepted says "Accept at least one answer"
+// in the language the app shows under cx.
+func InboundIngestGateNoneAccepted(cx *core.Scope) string {
+	return For(cx).InboundIngestGateNoneAccepted()
+}
+
+// InboundIngestGateNoneAccepted is the package's InboundIngestGateNoneAccepted in the language of msgs.
+func (msgs Messages) InboundIngestGateNoneAccepted() string {
+	return msgs.text(textInboundIngestGateNoneAccepted)
+}
+
+// InboundIngestLoadFailed says "Failed to load preview"
+// in the language the app shows under cx.
+func InboundIngestLoadFailed(cx *core.Scope) string { return For(cx).InboundIngestLoadFailed() }
+
+// InboundIngestLoadFailed is the package's InboundIngestLoadFailed in the language of msgs.
+func (msgs Messages) InboundIngestLoadFailed() string { return msgs.text(textInboundIngestLoadFailed) }
+
+// InboundIngestLoadFailedHint says "If the returned file is lost, go back to the detail page, click \"Re-export\", and ask the supplier to fill it in again."
+// in the language the app shows under cx.
+func InboundIngestLoadFailedHint(cx *core.Scope) string { return For(cx).InboundIngestLoadFailedHint() }
+
+// InboundIngestLoadFailedHint is the package's InboundIngestLoadFailedHint in the language of msgs.
+func (msgs Messages) InboundIngestLoadFailedHint() string {
+	return msgs.text(textInboundIngestLoadFailedHint)
+}
+
+// InboundIngestLoading says "Loading preview…"
+// in the language the app shows under cx.
+func InboundIngestLoading(cx *core.Scope) string { return For(cx).InboundIngestLoading() }
+
+// InboundIngestLoading is the package's InboundIngestLoading in the language of msgs.
+func (msgs Messages) InboundIngestLoading() string { return msgs.text(textInboundIngestLoading) }
+
+// InboundIngestNoData says "No data."
+// in the language the app shows under cx.
+func InboundIngestNoData(cx *core.Scope) string { return For(cx).InboundIngestNoData() }
+
+// InboundIngestNoData is the package's InboundIngestNoData in the language of msgs.
+func (msgs Messages) InboundIngestNoData() string { return msgs.text(textInboundIngestNoData) }
+
+// InboundIngestNoRowsDesc says "The accepted answers don't add up to a Tier 1 or Tier 2 path. Check your selections."
+// in the language the app shows under cx.
+func InboundIngestNoRowsDesc(cx *core.Scope) string { return For(cx).InboundIngestNoRowsDesc() }
+
+// InboundIngestNoRowsDesc is the package's InboundIngestNoRowsDesc in the language of msgs.
+func (msgs Messages) InboundIngestNoRowsDesc() string { return msgs.text(textInboundIngestNoRowsDesc) }
+
+// InboundIngestNoRowsTitle says "No activity rows created"
+// in the language the app shows under cx.
+func InboundIngestNoRowsTitle(cx *core.Scope) string { return For(cx).InboundIngestNoRowsTitle() }
+
+// InboundIngestNoRowsTitle is the package's InboundIngestNoRowsTitle in the language of msgs.
+func (msgs Messages) InboundIngestNoRowsTitle() string {
+	return msgs.text(textInboundIngestNoRowsTitle)
+}
+
+// InboundIngestNoTierData says "Not enough data"
+// in the language the app shows under cx.
+func InboundIngestNoTierData(cx *core.Scope) string { return For(cx).InboundIngestNoTierData() }
+
+// InboundIngestNoTierData is the package's InboundIngestNoTierData in the language of msgs.
+func (msgs Messages) InboundIngestNoTierData() string { return msgs.text(textInboundIngestNoTierData) }
+
+// InboundIngestPathPrefix says "Path: "
+// in the language the app shows under cx.
+func InboundIngestPathPrefix(cx *core.Scope) string { return For(cx).InboundIngestPathPrefix() }
+
+// InboundIngestPathPrefix is the package's InboundIngestPathPrefix in the language of msgs.
+func (msgs Messages) InboundIngestPathPrefix() string { return msgs.text(textInboundIngestPathPrefix) }
+
+// InboundIngestSuccess says "Ingested 1 activity row ({id}...)"
+// in the language the app shows under cx.
+func InboundIngestSuccess(cx *core.Scope, id string) string { return For(cx).InboundIngestSuccess(id) }
+
+// InboundIngestSuccess is the package's InboundIngestSuccess in the language of msgs.
+func (msgs Messages) InboundIngestSuccess(id string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.InboundIngestSuccess(id))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].InboundIngestSuccess; f != nil {
+			return f(id)
+		}
+		switch lang {
+		case "", "en":
+			return "Ingested 1 activity row (" + msgs.arg(id) + "...)"
+		case "zh-CN":
+			return "已入库 1 条活动数据 (" + id + "...)"
+		}
+	}
+}
+
+// InboundIngestSupplierPrefix says "Supplier: "
+// in the language the app shows under cx.
+func InboundIngestSupplierPrefix(cx *core.Scope) string { return For(cx).InboundIngestSupplierPrefix() }
+
+// InboundIngestSupplierPrefix is the package's InboundIngestSupplierPrefix in the language of msgs.
+func (msgs Messages) InboundIngestSupplierPrefix() string {
+	return msgs.text(textInboundIngestSupplierPrefix)
+}
+
+// InboundIngestTierChoiceHint says "The supplier filled both bases; Tier 1 is preselected per the GHG Protocol preference — switch if needed."
+// in the language the app shows under cx.
+func InboundIngestTierChoiceHint(cx *core.Scope) string { return For(cx).InboundIngestTierChoiceHint() }
+
+// InboundIngestTierChoiceHint is the package's InboundIngestTierChoiceHint in the language of msgs.
+func (msgs Messages) InboundIngestTierChoiceHint() string {
+	return msgs.text(textInboundIngestTierChoiceHint)
+}
+
+// InboundIngestTierChoiceLabel says "Ingest basis"
+// in the language the app shows under cx.
+func InboundIngestTierChoiceLabel(cx *core.Scope) string {
+	return For(cx).InboundIngestTierChoiceLabel()
+}
+
+// InboundIngestTierChoiceLabel is the package's InboundIngestTierChoiceLabel in the language of msgs.
+func (msgs Messages) InboundIngestTierChoiceLabel() string {
+	return msgs.text(textInboundIngestTierChoiceLabel)
+}
+
+// InboundIngesting says "Ingesting…"
+// in the language the app shows under cx.
+func InboundIngesting(cx *core.Scope) string { return For(cx).InboundIngesting() }
+
+// InboundIngesting is the package's InboundIngesting in the language of msgs.
+func (msgs Messages) InboundIngesting() string { return msgs.text(textInboundIngesting) }
+
+// InboundListEmpty says "No supplier disclosures yet. Click \"+ New disclosure\" (top right) to start collecting Scope 3 Cat 1 data from upstream suppliers."
+// in the language the app shows under cx.
+func InboundListEmpty(cx *core.Scope) string { return For(cx).InboundListEmpty() }
+
+// InboundListEmpty is the package's InboundListEmpty in the language of msgs.
+func (msgs Messages) InboundListEmpty() string { return msgs.text(textInboundListEmpty) }
+
+// InboundListNoMatch says "No disclosures match the current filters."
+// in the language the app shows under cx.
+func InboundListNoMatch(cx *core.Scope) string { return For(cx).InboundListNoMatch() }
+
+// InboundListNoMatch is the package's InboundListNoMatch in the language of msgs.
+func (msgs Messages) InboundListNoMatch() string { return msgs.text(textInboundListNoMatch) }
+
+// InboundListTitle says "Supplier disclosures"
+// in the language the app shows under cx.
+func InboundListTitle(cx *core.Scope) string { return For(cx).InboundListTitle() }
+
+// InboundListTitle is the package's InboundListTitle in the language of msgs.
+func (msgs Messages) InboundListTitle() string { return msgs.text(textInboundListTitle) }
+
+// InboundMinOneQuestion says "Select at least one question."
+// in the language the app shows under cx.
+func InboundMinOneQuestion(cx *core.Scope) string { return For(cx).InboundMinOneQuestion() }
+
+// InboundMinOneQuestion is the package's InboundMinOneQuestion in the language of msgs.
+func (msgs Messages) InboundMinOneQuestion() string { return msgs.text(textInboundMinOneQuestion) }
+
+// InboundNewButton says "New disclosure"
+// in the language the app shows under cx.
+func InboundNewButton(cx *core.Scope) string { return For(cx).InboundNewButton() }
+
+// InboundNewButton is the package's InboundNewButton in the language of msgs.
+func (msgs Messages) InboundNewButton() string { return msgs.text(textInboundNewButton) }
+
+// InboundNewIntro says "Send a Scope 3 Cat 1 disclosure questionnaire to an upstream supplier. When they return the filled xlsx, it converts into your Scope 3 inventory automatically."
+// in the language the app shows under cx.
+func InboundNewIntro(cx *core.Scope) string { return For(cx).InboundNewIntro() }
+
+// InboundNewIntro is the package's InboundNewIntro in the language of msgs.
+func (msgs Messages) InboundNewIntro() string { return msgs.text(textInboundNewIntro) }
+
+// InboundNewPeriodRequired says "Select a reporting period first"
+// in the language the app shows under cx.
+func InboundNewPeriodRequired(cx *core.Scope) string { return For(cx).InboundNewPeriodRequired() }
+
+// InboundNewPeriodRequired is the package's InboundNewPeriodRequired in the language of msgs.
+func (msgs Messages) InboundNewPeriodRequired() string {
+	return msgs.text(textInboundNewPeriodRequired)
+}
+
+// InboundNewSupplierRequired says "Select a supplier first"
+// in the language the app shows under cx.
+func InboundNewSupplierRequired(cx *core.Scope) string { return For(cx).InboundNewSupplierRequired() }
+
+// InboundNewSupplierRequired is the package's InboundNewSupplierRequired in the language of msgs.
+func (msgs Messages) InboundNewSupplierRequired() string {
+	return msgs.text(textInboundNewSupplierRequired)
+}
+
+// InboundNewTitle says "New supplier disclosure"
+// in the language the app shows under cx.
+func InboundNewTitle(cx *core.Scope) string { return For(cx).InboundNewTitle() }
+
+// InboundNewTitle is the package's InboundNewTitle in the language of msgs.
+func (msgs Messages) InboundNewTitle() string { return msgs.text(textInboundNewTitle) }
+
+// InboundNoActivity says "No activity row"
+// in the language the app shows under cx.
+func InboundNoActivity(cx *core.Scope) string { return For(cx).InboundNoActivity() }
+
+// InboundNoActivity is the package's InboundNoActivity in the language of msgs.
+func (msgs Messages) InboundNoActivity() string { return msgs.text(textInboundNoActivity) }
+
+// InboundNotFound says "Disclosure not found."
+// in the language the app shows under cx.
+func InboundNotFound(cx *core.Scope) string { return For(cx).InboundNotFound() }
+
+// InboundNotFound is the package's InboundNotFound in the language of msgs.
+func (msgs Messages) InboundNotFound() string { return msgs.text(textInboundNotFound) }
+
+// InboundOverdueDays says "Overdue {days}d"
+// in the language the app shows under cx.
+func InboundOverdueDays(cx *core.Scope, days string) string { return For(cx).InboundOverdueDays(days) }
+
+// InboundOverdueDays is the package's InboundOverdueDays in the language of msgs.
+func (msgs Messages) InboundOverdueDays(days string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.InboundOverdueDays(days))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].InboundOverdueDays; f != nil {
+			return f(days)
+		}
+		switch lang {
+		case "", "en":
+			return "Overdue " + msgs.arg(days) + "d"
+		case "zh-CN":
+			return "逾期 " + days + " 天"
+		}
+	}
+}
+
+// InboundPeriodCurrent says " · current"
+// in the language the app shows under cx.
+func InboundPeriodCurrent(cx *core.Scope) string { return For(cx).InboundPeriodCurrent() }
+
+// InboundPeriodCurrent is the package's InboundPeriodCurrent in the language of msgs.
+func (msgs Messages) InboundPeriodCurrent() string { return msgs.text(textInboundPeriodCurrent) }
+
+// InboundPeriodLabel says "Reporting period"
+// in the language the app shows under cx.
+func InboundPeriodLabel(cx *core.Scope) string { return For(cx).InboundPeriodLabel() }
+
+// InboundPeriodLabel is the package's InboundPeriodLabel in the language of msgs.
+func (msgs Messages) InboundPeriodLabel() string { return msgs.text(textInboundPeriodLabel) }
+
+// InboundPeriodPlaceholder says "Select a reporting period"
+// in the language the app shows under cx.
+func InboundPeriodPlaceholder(cx *core.Scope) string { return For(cx).InboundPeriodPlaceholder() }
+
+// InboundPeriodPlaceholder is the package's InboundPeriodPlaceholder in the language of msgs.
+func (msgs Messages) InboundPeriodPlaceholder() string {
+	return msgs.text(textInboundPeriodPlaceholder)
+}
+
+// InboundQMeta1 says "Supplier legal name"
+// in the language the app shows under cx.
+func InboundQMeta1(cx *core.Scope) string { return For(cx).InboundQMeta1() }
+
+// InboundQMeta1 is the package's InboundQMeta1 in the language of msgs.
+func (msgs Messages) InboundQMeta1() string { return msgs.text(textInboundQMeta1) }
+
+// InboundQMeta2 says "Supplier reporting period"
+// in the language the app shows under cx.
+func InboundQMeta2(cx *core.Scope) string { return For(cx).InboundQMeta2() }
+
+// InboundQMeta2 is the package's InboundQMeta2 in the language of msgs.
+func (msgs Messages) InboundQMeta2() string { return msgs.text(textInboundQMeta2) }
+
+// InboundQMeta3 says "GHG inventory status"
+// in the language the app shows under cx.
+func InboundQMeta3(cx *core.Scope) string { return For(cx).InboundQMeta3() }
+
+// InboundQMeta3 is the package's InboundQMeta3 in the language of msgs.
+func (msgs Messages) InboundQMeta3() string { return msgs.text(textInboundQMeta3) }
+
+// InboundQRequiredMeta says " · required metadata"
+// in the language the app shows under cx.
+func InboundQRequiredMeta(cx *core.Scope) string { return For(cx).InboundQRequiredMeta() }
+
+// InboundQRequiredMeta is the package's InboundQRequiredMeta in the language of msgs.
+func (msgs Messages) InboundQRequiredMeta() string { return msgs.text(textInboundQRequiredMeta) }
+
+// InboundQTier11 says "Product carbon footprint (kgCO2e/kg)"
+// in the language the app shows under cx.
+func InboundQTier11(cx *core.Scope) string { return For(cx).InboundQTier11() }
+
+// InboundQTier11 is the package's InboundQTier11 in the language of msgs.
+func (msgs Messages) InboundQTier11() string { return msgs.text(textInboundQTier11) }
+
+// InboundQTier21 says "Total annual Scope 1+2 emissions (kgCO2e)"
+// in the language the app shows under cx.
+func InboundQTier21(cx *core.Scope) string { return For(cx).InboundQTier21() }
+
+// InboundQTier21 is the package's InboundQTier21 in the language of msgs.
+func (msgs Messages) InboundQTier21() string { return msgs.text(textInboundQTier21) }
+
+// InboundQTier22 says "Allocation method"
+// in the language the app shows under cx.
+func InboundQTier22(cx *core.Scope) string { return For(cx).InboundQTier22() }
+
+// InboundQTier22 is the package's InboundQTier22 in the language of msgs.
+func (msgs Messages) InboundQTier22() string { return msgs.text(textInboundQTier22) }
+
+// InboundQTier23 says "Emissions attributed to our purchases (kgCO2e)"
+// in the language the app shows under cx.
+func InboundQTier23(cx *core.Scope) string { return For(cx).InboundQTier23() }
+
+// InboundQTier23 is the package's InboundQTier23 in the language of msgs.
+func (msgs Messages) InboundQTier23() string { return msgs.text(textInboundQTier23) }
+
+// InboundQuestionCount says "{count} questions"
+// in the language the app shows under cx.
+func InboundQuestionCount(cx *core.Scope, count string) string {
+	return For(cx).InboundQuestionCount(count)
+}
+
+// InboundQuestionCount is the package's InboundQuestionCount in the language of msgs.
+func (msgs Messages) InboundQuestionCount(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.InboundQuestionCount(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].InboundQuestionCount; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " questions"
+		case "zh-CN":
+			return count + " 题"
+		}
+	}
+}
+
+// InboundQuestionsLabel says "Included questions"
+// in the language the app shows under cx.
+func InboundQuestionsLabel(cx *core.Scope) string { return For(cx).InboundQuestionsLabel() }
+
+// InboundQuestionsLabel is the package's InboundQuestionsLabel in the language of msgs.
+func (msgs Messages) InboundQuestionsLabel() string { return msgs.text(textInboundQuestionsLabel) }
+
+// InboundReexport says "Re-export"
+// in the language the app shows under cx.
+func InboundReexport(cx *core.Scope) string { return For(cx).InboundReexport() }
+
+// InboundReexport is the package's InboundReexport in the language of msgs.
+func (msgs Messages) InboundReexport() string { return msgs.text(textInboundReexport) }
+
+// InboundReimportFilled says "Re-import filled xlsx"
+// in the language the app shows under cx.
+func InboundReimportFilled(cx *core.Scope) string { return For(cx).InboundReimportFilled() }
+
+// InboundReimportFilled is the package's InboundReimportFilled in the language of msgs.
+func (msgs Messages) InboundReimportFilled() string { return msgs.text(textInboundReimportFilled) }
+
+// InboundRemindButton says "Send reminder"
+// in the language the app shows under cx.
+func InboundRemindButton(cx *core.Scope) string { return For(cx).InboundRemindButton() }
+
+// InboundRemindButton is the package's InboundRemindButton in the language of msgs.
+func (msgs Messages) InboundRemindButton() string { return msgs.text(textInboundRemindButton) }
+
+// InboundRemindEmailDialogDesc says "This supplier has no email on file. After saving, your mail client opens with a reminder draft."
+// in the language the app shows under cx.
+func InboundRemindEmailDialogDesc(cx *core.Scope) string {
+	return For(cx).InboundRemindEmailDialogDesc()
+}
+
+// InboundRemindEmailDialogDesc is the package's InboundRemindEmailDialogDesc in the language of msgs.
+func (msgs Messages) InboundRemindEmailDialogDesc() string {
+	return msgs.text(textInboundRemindEmailDialogDesc)
+}
+
+// InboundRemindEmailDialogTitle says "Add supplier email"
+// in the language the app shows under cx.
+func InboundRemindEmailDialogTitle(cx *core.Scope) string {
+	return For(cx).InboundRemindEmailDialogTitle()
+}
+
+// InboundRemindEmailDialogTitle is the package's InboundRemindEmailDialogTitle in the language of msgs.
+func (msgs Messages) InboundRemindEmailDialogTitle() string {
+	return msgs.text(textInboundRemindEmailDialogTitle)
+}
+
+// InboundRemindEmailEdit says "Edit email"
+// in the language the app shows under cx.
+func InboundRemindEmailEdit(cx *core.Scope) string { return For(cx).InboundRemindEmailEdit() }
+
+// InboundRemindEmailEdit is the package's InboundRemindEmailEdit in the language of msgs.
+func (msgs Messages) InboundRemindEmailEdit() string { return msgs.text(textInboundRemindEmailEdit) }
+
+// InboundRemindEmailLabel says "Supplier email"
+// in the language the app shows under cx.
+func InboundRemindEmailLabel(cx *core.Scope) string { return For(cx).InboundRemindEmailLabel() }
+
+// InboundRemindEmailLabel is the package's InboundRemindEmailLabel in the language of msgs.
+func (msgs Messages) InboundRemindEmailLabel() string { return msgs.text(textInboundRemindEmailLabel) }
+
+// InboundRemindEmailSave says "Save & compose"
+// in the language the app shows under cx.
+func InboundRemindEmailSave(cx *core.Scope) string { return For(cx).InboundRemindEmailSave() }
+
+// InboundRemindEmailSave is the package's InboundRemindEmailSave in the language of msgs.
+func (msgs Messages) InboundRemindEmailSave() string { return msgs.text(textInboundRemindEmailSave) }
+
+// InboundRemindMailAskLine says "Please fill in the xlsx attached to our earlier email and reply with the completed file. If anything is unclear, just reply to this email."
+// in the language the app shows under cx.
+func InboundRemindMailAskLine(cx *core.Scope) string { return For(cx).InboundRemindMailAskLine() }
+
+// InboundRemindMailAskLine is the package's InboundRemindMailAskLine in the language of msgs.
+func (msgs Messages) InboundRemindMailAskLine() string {
+	return msgs.text(textInboundRemindMailAskLine)
+}
+
+// InboundRemindMailDueLine says "Please complete and return it by {due}."
+// in the language the app shows under cx.
+func InboundRemindMailDueLine(cx *core.Scope, due string) string {
+	return For(cx).InboundRemindMailDueLine(due)
+}
+
+// InboundRemindMailDueLine is the package's InboundRemindMailDueLine in the language of msgs.
+func (msgs Messages) InboundRemindMailDueLine(due string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.InboundRemindMailDueLine(due))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].InboundRemindMailDueLine; f != nil {
+			return f(due)
+		}
+		switch lang {
+		case "", "en":
+			return "Please complete and return it by " + msgs.arg(due) + "."
+		case "zh-CN":
+			return "请在 " + due + " 前完成填写并回传。"
+		}
+	}
+}
+
+// InboundRemindMailGreeting says "Dear {supplier},"
+// in the language the app shows under cx.
+func InboundRemindMailGreeting(cx *core.Scope, supplier string) string {
+	return For(cx).InboundRemindMailGreeting(supplier)
+}
+
+// InboundRemindMailGreeting is the package's InboundRemindMailGreeting in the language of msgs.
+func (msgs Messages) InboundRemindMailGreeting(supplier string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.InboundRemindMailGreeting(supplier))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].InboundRemindMailGreeting; f != nil {
+			return f(supplier)
+		}
+		switch lang {
+		case "", "en":
+			return "Dear " + msgs.arg(supplier) + ","
+		case "zh-CN":
+			return supplier + " 您好："
+		}
+	}
+}
+
+// InboundRemindMailOverdueLine says "It was due on {due} and is now {days} day(s) overdue."
+// in the language the app shows under cx.
+func InboundRemindMailOverdueLine(cx *core.Scope, due string, days string) string {
+	return For(cx).InboundRemindMailOverdueLine(due, days)
+}
+
+// InboundRemindMailOverdueLine is the package's InboundRemindMailOverdueLine in the language of msgs.
+func (msgs Messages) InboundRemindMailOverdueLine(due string, days string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.InboundRemindMailOverdueLine(due, days))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].InboundRemindMailOverdueLine; f != nil {
+			return f(due, days)
+		}
+		switch lang {
+		case "", "en":
+			return "It was due on " + msgs.arg(due) + " and is now " + msgs.arg(days) + " day(s) overdue."
+		case "zh-CN":
+			return "该问卷已于 " + due + " 截止，目前已逾期 " + days + " 天。"
+		}
+	}
+}
+
+// InboundRemindMailSentLine says "We previously sent you the {year} Scope 3 Cat 1 supplier carbon disclosure form (xlsx attachment) and have not yet received it back."
+// in the language the app shows under cx.
+func InboundRemindMailSentLine(cx *core.Scope, year string) string {
+	return For(cx).InboundRemindMailSentLine(year)
+}
+
+// InboundRemindMailSentLine is the package's InboundRemindMailSentLine in the language of msgs.
+func (msgs Messages) InboundRemindMailSentLine(year string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.InboundRemindMailSentLine(year))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].InboundRemindMailSentLine; f != nil {
+			return f(year)
+		}
+		switch lang {
+		case "", "en":
+			return "We previously sent you the " + msgs.arg(year) + " Scope 3 Cat 1 supplier carbon disclosure form (xlsx attachment) and have not yet received it back."
+		case "zh-CN":
+			return "我们此前向贵司发送了 " + year + " 年度 Scope 3 Cat 1 供应商碳披露问卷（xlsx 附件），目前尚未收到回传。"
+		}
+	}
+}
+
+// InboundRemindMailSignoff says "Best regards,\n{org}"
+// in the language the app shows under cx.
+func InboundRemindMailSignoff(cx *core.Scope, org string) string {
+	return For(cx).InboundRemindMailSignoff(org)
+}
+
+// InboundRemindMailSignoff is the package's InboundRemindMailSignoff in the language of msgs.
+func (msgs Messages) InboundRemindMailSignoff(org string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.InboundRemindMailSignoff(org))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].InboundRemindMailSignoff; f != nil {
+			return f(org)
+		}
+		switch lang {
+		case "", "en":
+			return "Best regards,\n" + msgs.arg(org)
+		case "zh-CN":
+			return "此致\n" + org
+		}
+	}
+}
+
+// InboundRemindMailSubject says "[Reminder] {year} supplier carbon disclosure — {supplier}"
+// in the language the app shows under cx.
+func InboundRemindMailSubject(cx *core.Scope, year string, supplier string) string {
+	return For(cx).InboundRemindMailSubject(year, supplier)
+}
+
+// InboundRemindMailSubject is the package's InboundRemindMailSubject in the language of msgs.
+func (msgs Messages) InboundRemindMailSubject(year string, supplier string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.InboundRemindMailSubject(year, supplier))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].InboundRemindMailSubject; f != nil {
+			return f(year, supplier)
+		}
+		switch lang {
+		case "", "en":
+			return "[Reminder] " + msgs.arg(year) + " supplier carbon disclosure — " + msgs.arg(supplier)
+		case "zh-CN":
+			return "【催办】" + year + " 年度供应商碳披露问卷 — " + supplier
+		}
+	}
+}
+
+// InboundReviewIngest says "Review and ingest"
+// in the language the app shows under cx.
+func InboundReviewIngest(cx *core.Scope) string { return For(cx).InboundReviewIngest() }
+
+// InboundReviewIngest is the package's InboundReviewIngest in the language of msgs.
+func (msgs Messages) InboundReviewIngest() string { return msgs.text(textInboundReviewIngest) }
+
+// InboundSearchPlaceholder says "Search supplier name…"
+// in the language the app shows under cx.
+func InboundSearchPlaceholder(cx *core.Scope) string { return For(cx).InboundSearchPlaceholder() }
+
+// InboundSearchPlaceholder is the package's InboundSearchPlaceholder in the language of msgs.
+func (msgs Messages) InboundSearchPlaceholder() string {
+	return msgs.text(textInboundSearchPlaceholder)
+}
+
+// InboundSelectHint says "Select a supplier disclosure on the left to view details."
+// in the language the app shows under cx.
+func InboundSelectHint(cx *core.Scope) string { return For(cx).InboundSelectHint() }
+
+// InboundSelectHint is the package's InboundSelectHint in the language of msgs.
+func (msgs Messages) InboundSelectHint() string { return msgs.text(textInboundSelectHint) }
+
+// InboundSortDue says "By due date"
+// in the language the app shows under cx.
+func InboundSortDue(cx *core.Scope) string { return For(cx).InboundSortDue() }
+
+// InboundSortDue is the package's InboundSortDue in the language of msgs.
+func (msgs Messages) InboundSortDue() string { return msgs.text(textInboundSortDue) }
+
+// InboundSortOldest says "Oldest first"
+// in the language the app shows under cx.
+func InboundSortOldest(cx *core.Scope) string { return For(cx).InboundSortOldest() }
+
+// InboundSortOldest is the package's InboundSortOldest in the language of msgs.
+func (msgs Messages) InboundSortOldest() string { return msgs.text(textInboundSortOldest) }
+
+// InboundSortQuestions says "By question count"
+// in the language the app shows under cx.
+func InboundSortQuestions(cx *core.Scope) string { return For(cx).InboundSortQuestions() }
+
+// InboundSortQuestions is the package's InboundSortQuestions in the language of msgs.
+func (msgs Messages) InboundSortQuestions() string { return msgs.text(textInboundSortQuestions) }
+
+// InboundSortRecent says "Newest first"
+// in the language the app shows under cx.
+func InboundSortRecent(cx *core.Scope) string { return For(cx).InboundSortRecent() }
+
+// InboundSortRecent is the package's InboundSortRecent in the language of msgs.
+func (msgs Messages) InboundSortRecent() string { return msgs.text(textInboundSortRecent) }
+
+// InboundSortSupplier says "By supplier name"
+// in the language the app shows under cx.
+func InboundSortSupplier(cx *core.Scope) string { return For(cx).InboundSortSupplier() }
+
+// InboundSortSupplier is the package's InboundSortSupplier in the language of msgs.
+func (msgs Messages) InboundSortSupplier() string { return msgs.text(textInboundSortSupplier) }
+
+// InboundStatusDraft says "Draft"
+// in the language the app shows under cx.
+func InboundStatusDraft(cx *core.Scope) string { return For(cx).InboundStatusDraft() }
+
+// InboundStatusDraft is the package's InboundStatusDraft in the language of msgs.
+func (msgs Messages) InboundStatusDraft() string { return msgs.text(textInboundStatusDraft) }
+
+// InboundStatusIngested says "Ingested"
+// in the language the app shows under cx.
+func InboundStatusIngested(cx *core.Scope) string { return For(cx).InboundStatusIngested() }
+
+// InboundStatusIngested is the package's InboundStatusIngested in the language of msgs.
+func (msgs Messages) InboundStatusIngested() string { return msgs.text(textInboundStatusIngested) }
+
+// InboundStatusReceived says "Received"
+// in the language the app shows under cx.
+func InboundStatusReceived(cx *core.Scope) string { return For(cx).InboundStatusReceived() }
+
+// InboundStatusReceived is the package's InboundStatusReceived in the language of msgs.
+func (msgs Messages) InboundStatusReceived() string { return msgs.text(textInboundStatusReceived) }
+
+// InboundStatusSent says "Sent"
+// in the language the app shows under cx.
+func InboundStatusSent(cx *core.Scope) string { return For(cx).InboundStatusSent() }
+
+// InboundStatusSent is the package's InboundStatusSent in the language of msgs.
+func (msgs Messages) InboundStatusSent() string { return msgs.text(textInboundStatusSent) }
+
+// InboundSupplierCreateSelect says "Create and select"
+// in the language the app shows under cx.
+func InboundSupplierCreateSelect(cx *core.Scope) string { return For(cx).InboundSupplierCreateSelect() }
+
+// InboundSupplierCreateSelect is the package's InboundSupplierCreateSelect in the language of msgs.
+func (msgs Messages) InboundSupplierCreateSelect() string {
+	return msgs.text(textInboundSupplierCreateSelect)
+}
+
+// InboundSupplierLabel says "Supplier"
+// in the language the app shows under cx.
+func InboundSupplierLabel(cx *core.Scope) string { return For(cx).InboundSupplierLabel() }
+
+// InboundSupplierLabel is the package's InboundSupplierLabel in the language of msgs.
+func (msgs Messages) InboundSupplierLabel() string { return msgs.text(textInboundSupplierLabel) }
+
+// InboundSupplierNamePlaceholder says "Supplier legal name"
+// in the language the app shows under cx.
+func InboundSupplierNamePlaceholder(cx *core.Scope) string {
+	return For(cx).InboundSupplierNamePlaceholder()
+}
+
+// InboundSupplierNamePlaceholder is the package's InboundSupplierNamePlaceholder in the language of msgs.
+func (msgs Messages) InboundSupplierNamePlaceholder() string {
+	return msgs.text(textInboundSupplierNamePlaceholder)
+}
+
+// InboundSupplierNew says "New"
+// in the language the app shows under cx.
+func InboundSupplierNew(cx *core.Scope) string { return For(cx).InboundSupplierNew() }
+
+// InboundSupplierNew is the package's InboundSupplierNew in the language of msgs.
+func (msgs Messages) InboundSupplierNew() string { return msgs.text(textInboundSupplierNew) }
+
+// InboundSupplierPlaceholder says "Select a supplier"
+// in the language the app shows under cx.
+func InboundSupplierPlaceholder(cx *core.Scope) string { return For(cx).InboundSupplierPlaceholder() }
+
+// InboundSupplierPlaceholder is the package's InboundSupplierPlaceholder in the language of msgs.
+func (msgs Messages) InboundSupplierPlaceholder() string {
+	return msgs.text(textInboundSupplierPlaceholder)
+}
+
+// InboundTableEmpty says "No questions configured. Go back to \"New\" and reselect the template."
+// in the language the app shows under cx.
+func InboundTableEmpty(cx *core.Scope) string { return For(cx).InboundTableEmpty() }
+
+// InboundTableEmpty is the package's InboundTableEmpty in the language of msgs.
+func (msgs Messages) InboundTableEmpty() string { return msgs.text(textInboundTableEmpty) }
+
+// InboundTableMetaBadge says "Metadata"
+// in the language the app shows under cx.
+func InboundTableMetaBadge(cx *core.Scope) string { return For(cx).InboundTableMetaBadge() }
+
+// InboundTableMetaBadge is the package's InboundTableMetaBadge in the language of msgs.
+func (msgs Messages) InboundTableMetaBadge() string { return msgs.text(textInboundTableMetaBadge) }
+
+// InboundTableNote says "Note: {note}"
+// in the language the app shows under cx.
+func InboundTableNote(cx *core.Scope, note string) string { return For(cx).InboundTableNote(note) }
+
+// InboundTableNote is the package's InboundTableNote in the language of msgs.
+func (msgs Messages) InboundTableNote(note string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.InboundTableNote(note))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].InboundTableNote; f != nil {
+			return f(note)
+		}
+		switch lang {
+		case "", "en":
+			return "Note: " + msgs.arg(note)
+		case "zh-CN":
+			return "备注：" + note
+		}
+	}
+}
+
+// InboundTableRequired says "*required"
+// in the language the app shows under cx.
+func InboundTableRequired(cx *core.Scope) string { return For(cx).InboundTableRequired() }
+
+// InboundTableRequired is the package's InboundTableRequired in the language of msgs.
+func (msgs Messages) InboundTableRequired() string { return msgs.text(textInboundTableRequired) }
+
+// InboundTableSupplierValuePrefix says "Supplier filled: "
+// in the language the app shows under cx.
+func InboundTableSupplierValuePrefix(cx *core.Scope) string {
+	return For(cx).InboundTableSupplierValuePrefix()
+}
+
+// InboundTableSupplierValuePrefix is the package's InboundTableSupplierValuePrefix in the language of msgs.
+func (msgs Messages) InboundTableSupplierValuePrefix() string {
+	return msgs.text(textInboundTableSupplierValuePrefix)
+}
+
+// InboundTemplateCat1Option says "Cat 1 Supplier Disclosure (v1.0) — 7 questions"
+// in the language the app shows under cx.
+func InboundTemplateCat1Option(cx *core.Scope) string { return For(cx).InboundTemplateCat1Option() }
+
+// InboundTemplateCat1Option is the package's InboundTemplateCat1Option in the language of msgs.
+func (msgs Messages) InboundTemplateCat1Option() string {
+	return msgs.text(textInboundTemplateCat1Option)
+}
+
+// InboundTemplateLabel says "Template"
+// in the language the app shows under cx.
+func InboundTemplateLabel(cx *core.Scope) string { return For(cx).InboundTemplateLabel() }
+
+// InboundTemplateLabel is the package's InboundTemplateLabel in the language of msgs.
+func (msgs Messages) InboundTemplateLabel() string { return msgs.text(textInboundTemplateLabel) }
+
+// InboundTemplateNote says "v2.0 ships only the Cat 1 template. Other categories (Cat 4 transport, Cat 5 waste, …) arrive in later versions."
+// in the language the app shows under cx.
+func InboundTemplateNote(cx *core.Scope) string { return For(cx).InboundTemplateNote() }
+
+// InboundTemplateNote is the package's InboundTemplateNote in the language of msgs.
+func (msgs Messages) InboundTemplateNote() string { return msgs.text(textInboundTemplateNote) }
+
+// InboundTier1Missing says "Needs supplier PCF"
+// in the language the app shows under cx.
+func InboundTier1Missing(cx *core.Scope) string { return For(cx).InboundTier1Missing() }
+
+// InboundTier1Missing is the package's InboundTier1Missing in the language of msgs.
+func (msgs Messages) InboundTier1Missing() string { return msgs.text(textInboundTier1Missing) }
+
+// InboundTier1Outcome says "{pcf} kgCO2e/kg × purchased quantity"
+// in the language the app shows under cx.
+func InboundTier1Outcome(cx *core.Scope, pcf string) string { return For(cx).InboundTier1Outcome(pcf) }
+
+// InboundTier1Outcome is the package's InboundTier1Outcome in the language of msgs.
+func (msgs Messages) InboundTier1Outcome(pcf string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.InboundTier1Outcome(pcf))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].InboundTier1Outcome; f != nil {
+			return f(pcf)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(pcf) + " kgCO2e/kg × purchased quantity"
+		case "zh-CN":
+			return pcf + " kgCO2e/kg × 采购数量"
+		}
+	}
+}
+
+// InboundTier1QtyLabel says "Purchased quantity this period (kg)"
+// in the language the app shows under cx.
+func InboundTier1QtyLabel(cx *core.Scope) string { return For(cx).InboundTier1QtyLabel() }
+
+// InboundTier1QtyLabel is the package's InboundTier1QtyLabel in the language of msgs.
+func (msgs Messages) InboundTier1QtyLabel() string { return msgs.text(textInboundTier1QtyLabel) }
+
+// InboundTier1QtyNote says "On the Tier 1 path, the activity row's emissions = supplier per-unit PCF × the total weight you purchased from them this period."
+// in the language the app shows under cx.
+func InboundTier1QtyNote(cx *core.Scope) string { return For(cx).InboundTier1QtyNote() }
+
+// InboundTier1QtyNote is the package's InboundTier1QtyNote in the language of msgs.
+func (msgs Messages) InboundTier1QtyNote() string { return msgs.text(textInboundTier1QtyNote) }
+
+// InboundTier1QtyPlaceholder says "e.g. 10000"
+// in the language the app shows under cx.
+func InboundTier1QtyPlaceholder(cx *core.Scope) string { return For(cx).InboundTier1QtyPlaceholder() }
+
+// InboundTier1QtyPlaceholder is the package's InboundTier1QtyPlaceholder in the language of msgs.
+func (msgs Messages) InboundTier1QtyPlaceholder() string {
+	return msgs.text(textInboundTier1QtyPlaceholder)
+}
+
+// InboundTier1Title says "Per-unit product carbon footprint"
+// in the language the app shows under cx.
+func InboundTier1Title(cx *core.Scope) string { return For(cx).InboundTier1Title() }
+
+// InboundTier1Title is the package's InboundTier1Title in the language of msgs.
+func (msgs Messages) InboundTier1Title() string { return msgs.text(textInboundTier1Title) }
+
+// InboundTier2Missing says "Needs attributed emissions"
+// in the language the app shows under cx.
+func InboundTier2Missing(cx *core.Scope) string { return For(cx).InboundTier2Missing() }
+
+// InboundTier2Missing is the package's InboundTier2Missing in the language of msgs.
+func (msgs Messages) InboundTier2Missing() string { return msgs.text(textInboundTier2Missing) }
+
+// InboundTier2Outcome says "Uses {co2e} kgCO2e directly"
+// in the language the app shows under cx.
+func InboundTier2Outcome(cx *core.Scope, co2e string) string {
+	return For(cx).InboundTier2Outcome(co2e)
+}
+
+// InboundTier2Outcome is the package's InboundTier2Outcome in the language of msgs.
+func (msgs Messages) InboundTier2Outcome(co2e string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.InboundTier2Outcome(co2e))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].InboundTier2Outcome; f != nil {
+			return f(co2e)
+		}
+		switch lang {
+		case "", "en":
+			return "Uses " + msgs.arg(co2e) + " kgCO2e directly"
+		case "zh-CN":
+			return "直接采用 " + co2e + " kgCO2e"
+		}
+	}
+}
+
+// InboundTier2Title says "Allocated emissions"
+// in the language the app shows under cx.
+func InboundTier2Title(cx *core.Scope) string { return For(cx).InboundTier2Title() }
+
+// InboundTier2Title is the package's InboundTier2Title in the language of msgs.
+func (msgs Messages) InboundTier2Title() string { return msgs.text(textInboundTier2Title) }
+
+// InboundViewActivities says "View linked activities"
+// in the language the app shows under cx.
+func InboundViewActivities(cx *core.Scope) string { return For(cx).InboundViewActivities() }
+
+// InboundViewActivities is the package's InboundViewActivities in the language of msgs.
+func (msgs Messages) InboundViewActivities() string { return msgs.text(textInboundViewActivities) }
+
+// InboundWarningCount says "{count} warnings"
+// in the language the app shows under cx.
+func InboundWarningCount(cx *core.Scope, count string) string {
+	return For(cx).InboundWarningCount(count)
+}
+
+// InboundWarningCount is the package's InboundWarningCount in the language of msgs.
+func (msgs Messages) InboundWarningCount(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.InboundWarningCount(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].InboundWarningCount; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " warnings"
+		case "zh-CN":
+			return count + " 条警告"
+		}
+	}
+}
+
+// InboundWillCreateActivity says "Will create an activity row"
+// in the language the app shows under cx.
+func InboundWillCreateActivity(cx *core.Scope) string { return For(cx).InboundWillCreateActivity() }
+
+// InboundWillCreateActivity is the package's InboundWillCreateActivity in the language of msgs.
+func (msgs Messages) InboundWillCreateActivity() string {
+	return msgs.text(textInboundWillCreateActivity)
+}
+
+// InboundWrongDirection says "This record is an outbound customer questionnaire — it does not live here."
+// in the language the app shows under cx.
+func InboundWrongDirection(cx *core.Scope) string { return For(cx).InboundWrongDirection() }
+
+// InboundWrongDirection is the package's InboundWrongDirection in the language of msgs.
+func (msgs Messages) InboundWrongDirection() string { return msgs.text(textInboundWrongDirection) }
+
+// LineageAnswerKindAi says "AI suggested"
+// in the language the app shows under cx.
+func LineageAnswerKindAi(cx *core.Scope) string { return For(cx).LineageAnswerKindAi() }
+
+// LineageAnswerKindAi is the package's LineageAnswerKindAi in the language of msgs.
+func (msgs Messages) LineageAnswerKindAi() string { return msgs.text(textLineageAnswerKindAi) }
+
+// LineageAnswerKindManual says "entered manually"
+// in the language the app shows under cx.
+func LineageAnswerKindManual(cx *core.Scope) string { return For(cx).LineageAnswerKindManual() }
+
+// LineageAnswerKindManual is the package's LineageAnswerKindManual in the language of msgs.
+func (msgs Messages) LineageAnswerKindManual() string { return msgs.text(textLineageAnswerKindManual) }
+
+// LineageAnswerKindMapped says "mapped from inventory"
+// in the language the app shows under cx.
+func LineageAnswerKindMapped(cx *core.Scope) string { return For(cx).LineageAnswerKindMapped() }
+
+// LineageAnswerKindMapped is the package's LineageAnswerKindMapped in the language of msgs.
+func (msgs Messages) LineageAnswerKindMapped() string { return msgs.text(textLineageAnswerKindMapped) }
+
+// LineageAnswerUpstream says "Upstream inventory data"
+// in the language the app shows under cx.
+func LineageAnswerUpstream(cx *core.Scope) string { return For(cx).LineageAnswerUpstream() }
+
+// LineageAnswerUpstream is the package's LineageAnswerUpstream in the language of msgs.
+func (msgs Messages) LineageAnswerUpstream() string { return msgs.text(textLineageAnswerUpstream) }
+
+// LineageDrawerClose says "Close lineage panel"
+// in the language the app shows under cx.
+func LineageDrawerClose(cx *core.Scope) string { return For(cx).LineageDrawerClose() }
+
+// LineageDrawerClose is the package's LineageDrawerClose in the language of msgs.
+func (msgs Messages) LineageDrawerClose() string { return msgs.text(textLineageDrawerClose) }
+
+// LineageDrawerTitle says "Data lineage"
+// in the language the app shows under cx.
+func LineageDrawerTitle(cx *core.Scope) string { return For(cx).LineageDrawerTitle() }
+
+// LineageDrawerTitle is the package's LineageDrawerTitle in the language of msgs.
+func (msgs Messages) LineageDrawerTitle() string { return msgs.text(textLineageDrawerTitle) }
+
+// LineageEfPinnedAt says "Pinned on {date}"
+// in the language the app shows under cx.
+func LineageEfPinnedAt(cx *core.Scope, date string) string { return For(cx).LineageEfPinnedAt(date) }
+
+// LineageEfPinnedAt is the package's LineageEfPinnedAt in the language of msgs.
+func (msgs Messages) LineageEfPinnedAt(date string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.LineageEfPinnedAt(date))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].LineageEfPinnedAt; f != nil {
+			return f(date)
+		}
+		switch lang {
+		case "", "en":
+			return "Pinned on " + msgs.arg(date)
+		case "zh-CN":
+			return "固定于 " + date
+		}
+	}
+}
+
+// LineageHistoryEmpty says "No audit events for this record yet"
+// in the language the app shows under cx.
+func LineageHistoryEmpty(cx *core.Scope) string { return For(cx).LineageHistoryEmpty() }
+
+// LineageHistoryEmpty is the package's LineageHistoryEmpty in the language of msgs.
+func (msgs Messages) LineageHistoryEmpty() string { return msgs.text(textLineageHistoryEmpty) }
+
+// LineageLoadFailed says "Failed to load lineage"
+// in the language the app shows under cx.
+func LineageLoadFailed(cx *core.Scope) string { return For(cx).LineageLoadFailed() }
+
+// LineageLoadFailed is the package's LineageLoadFailed in the language of msgs.
+func (msgs Messages) LineageLoadFailed() string { return msgs.text(textLineageLoadFailed) }
+
+// LineageNoDownstream says "Not yet cited by any answer or frozen report"
+// in the language the app shows under cx.
+func LineageNoDownstream(cx *core.Scope) string { return For(cx).LineageNoDownstream() }
+
+// LineageNoDownstream is the package's LineageNoDownstream in the language of msgs.
+func (msgs Messages) LineageNoDownstream() string { return msgs.text(textLineageNoDownstream) }
+
+// LineageNodeActivity says "Activity data"
+// in the language the app shows under cx.
+func LineageNodeActivity(cx *core.Scope) string { return For(cx).LineageNodeActivity() }
+
+// LineageNodeActivity is the package's LineageNodeActivity in the language of msgs.
+func (msgs Messages) LineageNodeActivity() string { return msgs.text(textLineageNodeActivity) }
+
+// LineageNodeAnswer says "Answer"
+// in the language the app shows under cx.
+func LineageNodeAnswer(cx *core.Scope) string { return For(cx).LineageNodeAnswer() }
+
+// LineageNodeAnswer is the package's LineageNodeAnswer in the language of msgs.
+func (msgs Messages) LineageNodeAnswer() string { return msgs.text(textLineageNodeAnswer) }
+
+// LineageNodeAnswers says "Answers citing this row"
+// in the language the app shows under cx.
+func LineageNodeAnswers(cx *core.Scope) string { return For(cx).LineageNodeAnswers() }
+
+// LineageNodeAnswers is the package's LineageNodeAnswers in the language of msgs.
+func (msgs Messages) LineageNodeAnswers() string { return msgs.text(textLineageNodeAnswers) }
+
+// LineageNodeDownstream says "Downstream"
+// in the language the app shows under cx.
+func LineageNodeDownstream(cx *core.Scope) string { return For(cx).LineageNodeDownstream() }
+
+// LineageNodeDownstream is the package's LineageNodeDownstream in the language of msgs.
+func (msgs Messages) LineageNodeDownstream() string { return msgs.text(textLineageNodeDownstream) }
+
+// LineageNodeEf says "Emission factor (pinned snapshot)"
+// in the language the app shows under cx.
+func LineageNodeEf(cx *core.Scope) string { return For(cx).LineageNodeEf() }
+
+// LineageNodeEf is the package's LineageNodeEf in the language of msgs.
+func (msgs Messages) LineageNodeEf() string { return msgs.text(textLineageNodeEf) }
+
+// LineageNodeQuestion says "Question"
+// in the language the app shows under cx.
+func LineageNodeQuestion(cx *core.Scope) string { return For(cx).LineageNodeQuestion() }
+
+// LineageNodeQuestion is the package's LineageNodeQuestion in the language of msgs.
+func (msgs Messages) LineageNodeQuestion() string { return msgs.text(textLineageNodeQuestion) }
+
+// LineageNodeSnapshots says "Frozen snapshots"
+// in the language the app shows under cx.
+func LineageNodeSnapshots(cx *core.Scope) string { return For(cx).LineageNodeSnapshots() }
+
+// LineageNodeSnapshots is the package's LineageNodeSnapshots in the language of msgs.
+func (msgs Messages) LineageNodeSnapshots() string { return msgs.text(textLineageNodeSnapshots) }
+
+// LineageOpenButton says "Lineage"
+// in the language the app shows under cx.
+func LineageOpenButton(cx *core.Scope) string { return For(cx).LineageOpenButton() }
+
+// LineageOpenButton is the package's LineageOpenButton in the language of msgs.
+func (msgs Messages) LineageOpenButton() string { return msgs.text(textLineageOpenButton) }
+
+// LineageOpenInActivities says "Show in activities"
+// in the language the app shows under cx.
+func LineageOpenInActivities(cx *core.Scope) string { return For(cx).LineageOpenInActivities() }
+
+// LineageOpenInActivities is the package's LineageOpenInActivities in the language of msgs.
+func (msgs Messages) LineageOpenInActivities() string { return msgs.text(textLineageOpenInActivities) }
+
+// LineageSectionChain says "Lineage chain"
+// in the language the app shows under cx.
+func LineageSectionChain(cx *core.Scope) string { return For(cx).LineageSectionChain() }
+
+// LineageSectionChain is the package's LineageSectionChain in the language of msgs.
+func (msgs Messages) LineageSectionChain() string { return msgs.text(textLineageSectionChain) }
+
+// LineageSectionEvidence says "Evidence"
+// in the language the app shows under cx.
+func LineageSectionEvidence(cx *core.Scope) string { return For(cx).LineageSectionEvidence() }
+
+// LineageSectionEvidence is the package's LineageSectionEvidence in the language of msgs.
+func (msgs Messages) LineageSectionEvidence() string { return msgs.text(textLineageSectionEvidence) }
+
+// LineageSectionHistory says "Audit history"
+// in the language the app shows under cx.
+func LineageSectionHistory(cx *core.Scope) string { return For(cx).LineageSectionHistory() }
+
+// LineageSectionHistory is the package's LineageSectionHistory in the language of msgs.
+func (msgs Messages) LineageSectionHistory() string { return msgs.text(textLineageSectionHistory) }
+
+// LineageSnapshotRevision says "Revision {revision} · frozen {date}"
+// in the language the app shows under cx.
+func LineageSnapshotRevision(cx *core.Scope, revision string, date string) string {
+	return For(cx).LineageSnapshotRevision(revision, date)
+}
+
+// LineageSnapshotRevision is the package's LineageSnapshotRevision in the language of msgs.
+func (msgs Messages) LineageSnapshotRevision(revision string, date string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.LineageSnapshotRevision(revision, date))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].LineageSnapshotRevision; f != nil {
+			return f(revision, date)
+		}
+		switch lang {
+		case "", "en":
+			return "Revision " + msgs.arg(revision) + " · frozen " + msgs.arg(date)
+		case "zh-CN":
+			return "修订 " + revision + " · 冻结于 " + date
+		}
+	}
+}
+
+// LineageSourceDocument says "Source document"
+// in the language the app shows under cx.
+func LineageSourceDocument(cx *core.Scope) string { return For(cx).LineageSourceDocument() }
+
+// LineageSourceDocument is the package's LineageSourceDocument in the language of msgs.
+func (msgs Messages) LineageSourceDocument() string { return msgs.text(textLineageSourceDocument) }
+
+// LineageSourceInbound says "Supplier disclosure"
+// in the language the app shows under cx.
+func LineageSourceInbound(cx *core.Scope) string { return For(cx).LineageSourceInbound() }
+
+// LineageSourceInbound is the package's LineageSourceInbound in the language of msgs.
+func (msgs Messages) LineageSourceInbound() string { return msgs.text(textLineageSourceInbound) }
+
+// LineageSourceManual says "Manual entry"
+// in the language the app shows under cx.
+func LineageSourceManual(cx *core.Scope) string { return For(cx).LineageSourceManual() }
+
+// LineageSourceManual is the package's LineageSourceManual in the language of msgs.
+func (msgs Messages) LineageSourceManual() string { return msgs.text(textLineageSourceManual) }
+
+// LineageSourceManualHint says "Entered by hand — attach evidence below to back it up"
+// in the language the app shows under cx.
+func LineageSourceManualHint(cx *core.Scope) string { return For(cx).LineageSourceManualHint() }
+
+// LineageSourceManualHint is the package's LineageSourceManualHint in the language of msgs.
+func (msgs Messages) LineageSourceManualHint() string { return msgs.text(textLineageSourceManualHint) }
+
+// Loading says "Loading…"
+// in the language the app shows under cx.
+func Loading(cx *core.Scope) string { return For(cx).Loading() }
+
+// Loading is the package's Loading in the language of msgs.
+func (msgs Messages) Loading() string { return msgs.text(textLoading) }
+
+// NavActivities says "Activities"
+// in the language the app shows under cx.
+func NavActivities(cx *core.Scope) string { return For(cx).NavActivities() }
+
+// NavActivities is the package's NavActivities in the language of msgs.
+func (msgs Messages) NavActivities() string { return msgs.text(textNavActivities) }
+
+// NavDashboard says "Dashboard"
+// in the language the app shows under cx.
+func NavDashboard(cx *core.Scope) string { return For(cx).NavDashboard() }
+
+// NavDashboard is the package's NavDashboard in the language of msgs.
+func (msgs Messages) NavDashboard() string { return msgs.text(textNavDashboard) }
+
+// NavDisclosureFilings says "Disclosure filings"
+// in the language the app shows under cx.
+func NavDisclosureFilings(cx *core.Scope) string { return For(cx).NavDisclosureFilings() }
+
+// NavDisclosureFilings is the package's NavDisclosureFilings in the language of msgs.
+func (msgs Messages) NavDisclosureFilings() string { return msgs.text(textNavDisclosureFilings) }
+
+// NavDocuments says "Documents"
+// in the language the app shows under cx.
+func NavDocuments(cx *core.Scope) string { return For(cx).NavDocuments() }
+
+// NavDocuments is the package's NavDocuments in the language of msgs.
+func (msgs Messages) NavDocuments() string { return msgs.text(textNavDocuments) }
+
+// NavDocumentsAll says "All documents"
+// in the language the app shows under cx.
+func NavDocumentsAll(cx *core.Scope) string { return For(cx).NavDocumentsAll() }
+
+// NavDocumentsAll is the package's NavDocumentsAll in the language of msgs.
+func (msgs Messages) NavDocumentsAll() string { return msgs.text(textNavDocumentsAll) }
+
+// NavInputs says "Inputs"
+// in the language the app shows under cx.
+func NavInputs(cx *core.Scope) string { return For(cx).NavInputs() }
+
+// NavInputs is the package's NavInputs in the language of msgs.
+func (msgs Messages) NavInputs() string { return msgs.text(textNavInputs) }
+
+// NavInventory says "Inventory"
+// in the language the app shows under cx.
+func NavInventory(cx *core.Scope) string { return For(cx).NavInventory() }
+
+// NavInventory is the package's NavInventory in the language of msgs.
+func (msgs Messages) NavInventory() string { return msgs.text(textNavInventory) }
+
+// NavOverview says "Overview"
+// in the language the app shows under cx.
+func NavOverview(cx *core.Scope) string { return For(cx).NavOverview() }
+
+// NavOverview is the package's NavOverview in the language of msgs.
+func (msgs Messages) NavOverview() string { return msgs.text(textNavOverview) }
+
+// NavQuestionnairesAll says "All questionnaires"
+// in the language the app shows under cx.
+func NavQuestionnairesAll(cx *core.Scope) string { return For(cx).NavQuestionnairesAll() }
+
+// NavQuestionnairesAll is the package's NavQuestionnairesAll in the language of msgs.
+func (msgs Messages) NavQuestionnairesAll() string { return msgs.text(textNavQuestionnairesAll) }
+
+// NavReports says "Reports"
+// in the language the app shows under cx.
+func NavReports(cx *core.Scope) string { return For(cx).NavReports() }
+
+// NavReports is the package's NavReports in the language of msgs.
+func (msgs Messages) NavReports() string { return msgs.text(textNavReports) }
+
+// NavSectionDocumentsQuestionnaires says "Inputs"
+// in the language the app shows under cx.
+func NavSectionDocumentsQuestionnaires(cx *core.Scope) string {
+	return For(cx).NavSectionDocumentsQuestionnaires()
+}
+
+// NavSectionDocumentsQuestionnaires is the package's NavSectionDocumentsQuestionnaires in the language of msgs.
+func (msgs Messages) NavSectionDocumentsQuestionnaires() string {
+	return msgs.text(textNavSectionDocumentsQuestionnaires)
+}
+
+// NavSectionGeneral says "Overview"
+// in the language the app shows under cx.
+func NavSectionGeneral(cx *core.Scope) string { return For(cx).NavSectionGeneral() }
+
+// NavSectionGeneral is the package's NavSectionGeneral in the language of msgs.
+func (msgs Messages) NavSectionGeneral() string { return msgs.text(textNavSectionGeneral) }
+
+// NavSectionInventory says "Inventory"
+// in the language the app shows under cx.
+func NavSectionInventory(cx *core.Scope) string { return For(cx).NavSectionInventory() }
+
+// NavSectionInventory is the package's NavSectionInventory in the language of msgs.
+func (msgs Messages) NavSectionInventory() string { return msgs.text(textNavSectionInventory) }
+
+// NavSectionMisc says "More"
+// in the language the app shows under cx.
+func NavSectionMisc(cx *core.Scope) string { return For(cx).NavSectionMisc() }
+
+// NavSectionMisc is the package's NavSectionMisc in the language of msgs.
+func (msgs Messages) NavSectionMisc() string { return msgs.text(textNavSectionMisc) }
+
+// NavSectionSystem says "System"
+// in the language the app shows under cx.
+func NavSectionSystem(cx *core.Scope) string { return For(cx).NavSectionSystem() }
+
+// NavSectionSystem is the package's NavSectionSystem in the language of msgs.
+func (msgs Messages) NavSectionSystem() string { return msgs.text(textNavSectionSystem) }
+
+// NavSettings says "Settings"
+// in the language the app shows under cx.
+func NavSettings(cx *core.Scope) string { return For(cx).NavSettings() }
+
+// NavSettings is the package's NavSettings in the language of msgs.
+func (msgs Messages) NavSettings() string { return msgs.text(textNavSettings) }
+
+// NavSources says "Sources"
+// in the language the app shows under cx.
+func NavSources(cx *core.Scope) string { return For(cx).NavSources() }
+
+// NavSources is the package's NavSources in the language of msgs.
+func (msgs Messages) NavSources() string { return msgs.text(textNavSources) }
+
+// NavSupplierDisclosures says "Supplier disclosures"
+// in the language the app shows under cx.
+func NavSupplierDisclosures(cx *core.Scope) string { return For(cx).NavSupplierDisclosures() }
+
+// NavSupplierDisclosures is the package's NavSupplierDisclosures in the language of msgs.
+func (msgs Messages) NavSupplierDisclosures() string { return msgs.text(textNavSupplierDisclosures) }
+
+// NavSystem says "System"
+// in the language the app shows under cx.
+func NavSystem(cx *core.Scope) string { return For(cx).NavSystem() }
+
+// NavSystem is the package's NavSystem in the language of msgs.
+func (msgs Messages) NavSystem() string { return msgs.text(textNavSystem) }
+
+// OnboardingBack says "Back"
+// in the language the app shows under cx.
+func OnboardingBack(cx *core.Scope) string { return For(cx).OnboardingBack() }
+
+// OnboardingBack is the package's OnboardingBack in the language of msgs.
+func (msgs Messages) OnboardingBack() string { return msgs.text(textOnboardingBack) }
+
+// OnboardingCompleteFailed says "Could not complete onboarding."
+// in the language the app shows under cx.
+func OnboardingCompleteFailed(cx *core.Scope) string { return For(cx).OnboardingCompleteFailed() }
+
+// OnboardingCompleteFailed is the package's OnboardingCompleteFailed in the language of msgs.
+func (msgs Messages) OnboardingCompleteFailed() string {
+	return msgs.text(textOnboardingCompleteFailed)
+}
+
+// OnboardingCreating says "Creating organization…"
+// in the language the app shows under cx.
+func OnboardingCreating(cx *core.Scope) string { return For(cx).OnboardingCreating() }
+
+// OnboardingCreating is the package's OnboardingCreating in the language of msgs.
+func (msgs Messages) OnboardingCreating() string { return msgs.text(textOnboardingCreating) }
+
+// OnboardingEyebrow says "Step {current} of {total}"
+// in the language the app shows under cx.
+func OnboardingEyebrow(cx *core.Scope, current string, total string) string {
+	return For(cx).OnboardingEyebrow(current, total)
+}
+
+// OnboardingEyebrow is the package's OnboardingEyebrow in the language of msgs.
+func (msgs Messages) OnboardingEyebrow(current string, total string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.OnboardingEyebrow(current, total))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].OnboardingEyebrow; f != nil {
+			return f(current, total)
+		}
+		switch lang {
+		case "", "en":
+			return "Step " + msgs.arg(current) + " of " + msgs.arg(total)
+		case "zh-CN":
+			return "第 " + current + " 步 / 共 " + total + " 步"
+		}
+	}
+}
+
+// OnboardingFinish says "Finish"
+// in the language the app shows under cx.
+func OnboardingFinish(cx *core.Scope) string { return For(cx).OnboardingFinish() }
+
+// OnboardingFinish is the package's OnboardingFinish in the language of msgs.
+func (msgs Messages) OnboardingFinish() string { return msgs.text(textOnboardingFinish) }
+
+// OnboardingNext says "Next"
+// in the language the app shows under cx.
+func OnboardingNext(cx *core.Scope) string { return For(cx).OnboardingNext() }
+
+// OnboardingNext is the package's OnboardingNext in the language of msgs.
+func (msgs Messages) OnboardingNext() string { return msgs.text(textOnboardingNext) }
+
+// OnboardingStepAiBody says "CarbonInk needs an AI provider to parse documents and answer questionnaires. You can configure this later in Settings; skipping is fine for now."
+// in the language the app shows under cx.
+func OnboardingStepAiBody(cx *core.Scope) string { return For(cx).OnboardingStepAiBody() }
+
+// OnboardingStepAiBody is the package's OnboardingStepAiBody in the language of msgs.
+func (msgs Messages) OnboardingStepAiBody() string { return msgs.text(textOnboardingStepAiBody) }
+
+// OnboardingStepAiByot says "I have an API key (configure in Settings after onboarding)"
+// in the language the app shows under cx.
+func OnboardingStepAiByot(cx *core.Scope) string { return For(cx).OnboardingStepAiByot() }
+
+// OnboardingStepAiByot is the package's OnboardingStepAiByot in the language of msgs.
+func (msgs Messages) OnboardingStepAiByot() string { return msgs.text(textOnboardingStepAiByot) }
+
+// OnboardingStepAiSkip says "Skip for now (configure later in Settings)"
+// in the language the app shows under cx.
+func OnboardingStepAiSkip(cx *core.Scope) string { return For(cx).OnboardingStepAiSkip() }
+
+// OnboardingStepAiSkip is the package's OnboardingStepAiSkip in the language of msgs.
+func (msgs Messages) OnboardingStepAiSkip() string { return msgs.text(textOnboardingStepAiSkip) }
+
+// OnboardingStepAiSubtitle says "Document extraction and questionnaire auto-answer rely on an LLM provider. You can skip and configure later."
+// in the language the app shows under cx.
+func OnboardingStepAiSubtitle(cx *core.Scope) string { return For(cx).OnboardingStepAiSubtitle() }
+
+// OnboardingStepAiSubtitle is the package's OnboardingStepAiSubtitle in the language of msgs.
+func (msgs Messages) OnboardingStepAiSubtitle() string {
+	return msgs.text(textOnboardingStepAiSubtitle)
+}
+
+// OnboardingStepAiTitle says "AI provider"
+// in the language the app shows under cx.
+func OnboardingStepAiTitle(cx *core.Scope) string { return For(cx).OnboardingStepAiTitle() }
+
+// OnboardingStepAiTitle is the package's OnboardingStepAiTitle in the language of msgs.
+func (msgs Messages) OnboardingStepAiTitle() string { return msgs.text(textOnboardingStepAiTitle) }
+
+// OnboardingStepBoundaryBody says "Per GHG Protocol Corporate Standard. Choose how you account for organizational boundaries."
+// in the language the app shows under cx.
+func OnboardingStepBoundaryBody(cx *core.Scope) string { return For(cx).OnboardingStepBoundaryBody() }
+
+// OnboardingStepBoundaryBody is the package's OnboardingStepBoundaryBody in the language of msgs.
+func (msgs Messages) OnboardingStepBoundaryBody() string {
+	return msgs.text(textOnboardingStepBoundaryBody)
+}
+
+// OnboardingStepBoundaryEquityShare says "Equity Share — emissions allocated by ownership share of joint ventures."
+// in the language the app shows under cx.
+func OnboardingStepBoundaryEquityShare(cx *core.Scope) string {
+	return For(cx).OnboardingStepBoundaryEquityShare()
+}
+
+// OnboardingStepBoundaryEquityShare is the package's OnboardingStepBoundaryEquityShare in the language of msgs.
+func (msgs Messages) OnboardingStepBoundaryEquityShare() string {
+	return msgs.text(textOnboardingStepBoundaryEquityShare)
+}
+
+// OnboardingStepBoundaryOperationalControl says "Operational Control — emissions from facilities you operate, regardless of ownership."
+// in the language the app shows under cx.
+func OnboardingStepBoundaryOperationalControl(cx *core.Scope) string {
+	return For(cx).OnboardingStepBoundaryOperationalControl()
+}
+
+// OnboardingStepBoundaryOperationalControl is the package's OnboardingStepBoundaryOperationalControl in the language of msgs.
+func (msgs Messages) OnboardingStepBoundaryOperationalControl() string {
+	return msgs.text(textOnboardingStepBoundaryOperationalControl)
+}
+
+// OnboardingStepBoundarySubtitle says "Per GHG Protocol — how do you account for emissions from facilities you don't fully own?"
+// in the language the app shows under cx.
+func OnboardingStepBoundarySubtitle(cx *core.Scope) string {
+	return For(cx).OnboardingStepBoundarySubtitle()
+}
+
+// OnboardingStepBoundarySubtitle is the package's OnboardingStepBoundarySubtitle in the language of msgs.
+func (msgs Messages) OnboardingStepBoundarySubtitle() string {
+	return msgs.text(textOnboardingStepBoundarySubtitle)
+}
+
+// OnboardingStepBoundaryTitle says "Organizational boundary"
+// in the language the app shows under cx.
+func OnboardingStepBoundaryTitle(cx *core.Scope) string { return For(cx).OnboardingStepBoundaryTitle() }
+
+// OnboardingStepBoundaryTitle is the package's OnboardingStepBoundaryTitle in the language of msgs.
+func (msgs Messages) OnboardingStepBoundaryTitle() string {
+	return msgs.text(textOnboardingStepBoundaryTitle)
+}
+
+// OnboardingStepCompanyCountry says "Country"
+// in the language the app shows under cx.
+func OnboardingStepCompanyCountry(cx *core.Scope) string {
+	return For(cx).OnboardingStepCompanyCountry()
+}
+
+// OnboardingStepCompanyCountry is the package's OnboardingStepCompanyCountry in the language of msgs.
+func (msgs Messages) OnboardingStepCompanyCountry() string {
+	return msgs.text(textOnboardingStepCompanyCountry)
+}
+
+// OnboardingStepCompanyIndustry says "Industry"
+// in the language the app shows under cx.
+func OnboardingStepCompanyIndustry(cx *core.Scope) string {
+	return For(cx).OnboardingStepCompanyIndustry()
+}
+
+// OnboardingStepCompanyIndustry is the package's OnboardingStepCompanyIndustry in the language of msgs.
+func (msgs Messages) OnboardingStepCompanyIndustry() string {
+	return msgs.text(textOnboardingStepCompanyIndustry)
+}
+
+// OnboardingStepCompanyIndustryPlaceholder says "Select industry…"
+// in the language the app shows under cx.
+func OnboardingStepCompanyIndustryPlaceholder(cx *core.Scope) string {
+	return For(cx).OnboardingStepCompanyIndustryPlaceholder()
+}
+
+// OnboardingStepCompanyIndustryPlaceholder is the package's OnboardingStepCompanyIndustryPlaceholder in the language of msgs.
+func (msgs Messages) OnboardingStepCompanyIndustryPlaceholder() string {
+	return msgs.text(textOnboardingStepCompanyIndustryPlaceholder)
+}
+
+// OnboardingStepCompanyNameEn says "English name"
+// in the language the app shows under cx.
+func OnboardingStepCompanyNameEn(cx *core.Scope) string { return For(cx).OnboardingStepCompanyNameEn() }
+
+// OnboardingStepCompanyNameEn is the package's OnboardingStepCompanyNameEn in the language of msgs.
+func (msgs Messages) OnboardingStepCompanyNameEn() string {
+	return msgs.text(textOnboardingStepCompanyNameEn)
+}
+
+// OnboardingStepCompanyNameHint says "At least one of Chinese / English name is required."
+// in the language the app shows under cx.
+func OnboardingStepCompanyNameHint(cx *core.Scope) string {
+	return For(cx).OnboardingStepCompanyNameHint()
+}
+
+// OnboardingStepCompanyNameHint is the package's OnboardingStepCompanyNameHint in the language of msgs.
+func (msgs Messages) OnboardingStepCompanyNameHint() string {
+	return msgs.text(textOnboardingStepCompanyNameHint)
+}
+
+// OnboardingStepCompanyNameZh says "Chinese name"
+// in the language the app shows under cx.
+func OnboardingStepCompanyNameZh(cx *core.Scope) string { return For(cx).OnboardingStepCompanyNameZh() }
+
+// OnboardingStepCompanyNameZh is the package's OnboardingStepCompanyNameZh in the language of msgs.
+func (msgs Messages) OnboardingStepCompanyNameZh() string {
+	return msgs.text(textOnboardingStepCompanyNameZh)
+}
+
+// OnboardingStepCompanySubtitle says "Tell us about your organization. This sets the boundary for the inventory report."
+// in the language the app shows under cx.
+func OnboardingStepCompanySubtitle(cx *core.Scope) string {
+	return For(cx).OnboardingStepCompanySubtitle()
+}
+
+// OnboardingStepCompanySubtitle is the package's OnboardingStepCompanySubtitle in the language of msgs.
+func (msgs Messages) OnboardingStepCompanySubtitle() string {
+	return msgs.text(textOnboardingStepCompanySubtitle)
+}
+
+// OnboardingStepCompanyTitle says "Company info"
+// in the language the app shows under cx.
+func OnboardingStepCompanyTitle(cx *core.Scope) string { return For(cx).OnboardingStepCompanyTitle() }
+
+// OnboardingStepCompanyTitle is the package's OnboardingStepCompanyTitle in the language of msgs.
+func (msgs Messages) OnboardingStepCompanyTitle() string {
+	return msgs.text(textOnboardingStepCompanyTitle)
+}
+
+// OnboardingStepSiteAddress says "Address"
+// in the language the app shows under cx.
+func OnboardingStepSiteAddress(cx *core.Scope) string { return For(cx).OnboardingStepSiteAddress() }
+
+// OnboardingStepSiteAddress is the package's OnboardingStepSiteAddress in the language of msgs.
+func (msgs Messages) OnboardingStepSiteAddress() string {
+	return msgs.text(textOnboardingStepSiteAddress)
+}
+
+// OnboardingStepSiteBody says "A site is a physical location (factory, office, warehouse). You'll add more later."
+// in the language the app shows under cx.
+func OnboardingStepSiteBody(cx *core.Scope) string { return For(cx).OnboardingStepSiteBody() }
+
+// OnboardingStepSiteBody is the package's OnboardingStepSiteBody in the language of msgs.
+func (msgs Messages) OnboardingStepSiteBody() string { return msgs.text(textOnboardingStepSiteBody) }
+
+// OnboardingStepSiteCountry says "Country code"
+// in the language the app shows under cx.
+func OnboardingStepSiteCountry(cx *core.Scope) string { return For(cx).OnboardingStepSiteCountry() }
+
+// OnboardingStepSiteCountry is the package's OnboardingStepSiteCountry in the language of msgs.
+func (msgs Messages) OnboardingStepSiteCountry() string {
+	return msgs.text(textOnboardingStepSiteCountry)
+}
+
+// OnboardingStepSiteNameEn says "Site name (English)"
+// in the language the app shows under cx.
+func OnboardingStepSiteNameEn(cx *core.Scope) string { return For(cx).OnboardingStepSiteNameEn() }
+
+// OnboardingStepSiteNameEn is the package's OnboardingStepSiteNameEn in the language of msgs.
+func (msgs Messages) OnboardingStepSiteNameEn() string {
+	return msgs.text(textOnboardingStepSiteNameEn)
+}
+
+// OnboardingStepSiteNameZh says "Site name (中文)"
+// in the language the app shows under cx.
+func OnboardingStepSiteNameZh(cx *core.Scope) string { return For(cx).OnboardingStepSiteNameZh() }
+
+// OnboardingStepSiteNameZh is the package's OnboardingStepSiteNameZh in the language of msgs.
+func (msgs Messages) OnboardingStepSiteNameZh() string {
+	return msgs.text(textOnboardingStepSiteNameZh)
+}
+
+// OnboardingStepSiteSubtitle says "A site is a physical location: factory, office, warehouse. You'll add more after onboarding."
+// in the language the app shows under cx.
+func OnboardingStepSiteSubtitle(cx *core.Scope) string { return For(cx).OnboardingStepSiteSubtitle() }
+
+// OnboardingStepSiteSubtitle is the package's OnboardingStepSiteSubtitle in the language of msgs.
+func (msgs Messages) OnboardingStepSiteSubtitle() string {
+	return msgs.text(textOnboardingStepSiteSubtitle)
+}
+
+// OnboardingStepSiteTitle says "Add your first site"
+// in the language the app shows under cx.
+func OnboardingStepSiteTitle(cx *core.Scope) string { return For(cx).OnboardingStepSiteTitle() }
+
+// OnboardingStepSiteTitle is the package's OnboardingStepSiteTitle in the language of msgs.
+func (msgs Messages) OnboardingStepSiteTitle() string { return msgs.text(textOnboardingStepSiteTitle) }
+
+// OnboardingStepYearBody says "Default is the current year. Select the fiscal year you'll be calculating emissions for."
+// in the language the app shows under cx.
+func OnboardingStepYearBody(cx *core.Scope) string { return For(cx).OnboardingStepYearBody() }
+
+// OnboardingStepYearBody is the package's OnboardingStepYearBody in the language of msgs.
+func (msgs Messages) OnboardingStepYearBody() string { return msgs.text(textOnboardingStepYearBody) }
+
+// OnboardingStepYearSubtitle says "Choose the fiscal year you're calculating emissions for. You can add additional years later."
+// in the language the app shows under cx.
+func OnboardingStepYearSubtitle(cx *core.Scope) string { return For(cx).OnboardingStepYearSubtitle() }
+
+// OnboardingStepYearSubtitle is the package's OnboardingStepYearSubtitle in the language of msgs.
+func (msgs Messages) OnboardingStepYearSubtitle() string {
+	return msgs.text(textOnboardingStepYearSubtitle)
+}
+
+// OnboardingStepYearTitle says "Reporting year"
+// in the language the app shows under cx.
+func OnboardingStepYearTitle(cx *core.Scope) string { return For(cx).OnboardingStepYearTitle() }
+
+// OnboardingStepYearTitle is the package's OnboardingStepYearTitle in the language of msgs.
+func (msgs Messages) OnboardingStepYearTitle() string { return msgs.text(textOnboardingStepYearTitle) }
+
+// OnboardingTitle says "Onboarding"
+// in the language the app shows under cx.
+func OnboardingTitle(cx *core.Scope) string { return For(cx).OnboardingTitle() }
+
+// OnboardingTitle is the package's OnboardingTitle in the language of msgs.
+func (msgs Messages) OnboardingTitle() string { return msgs.text(textOnboardingTitle) }
+
+// PeriodGranularityAnnual says "Annual"
+// in the language the app shows under cx.
+func PeriodGranularityAnnual(cx *core.Scope) string { return For(cx).PeriodGranularityAnnual() }
+
+// PeriodGranularityAnnual is the package's PeriodGranularityAnnual in the language of msgs.
+func (msgs Messages) PeriodGranularityAnnual() string { return msgs.text(textPeriodGranularityAnnual) }
+
+// PeriodGranularityMonthly says "Monthly"
+// in the language the app shows under cx.
+func PeriodGranularityMonthly(cx *core.Scope) string { return For(cx).PeriodGranularityMonthly() }
+
+// PeriodGranularityMonthly is the package's PeriodGranularityMonthly in the language of msgs.
+func (msgs Messages) PeriodGranularityMonthly() string {
+	return msgs.text(textPeriodGranularityMonthly)
+}
+
+// PeriodGranularityQuarterly says "Quarterly"
+// in the language the app shows under cx.
+func PeriodGranularityQuarterly(cx *core.Scope) string { return For(cx).PeriodGranularityQuarterly() }
+
+// PeriodGranularityQuarterly is the package's PeriodGranularityQuarterly in the language of msgs.
+func (msgs Messages) PeriodGranularityQuarterly() string {
+	return msgs.text(textPeriodGranularityQuarterly)
+}
 
 // PhaseTwo says "This screen lands in Phase 2."
 // in the language the app shows under cx.
@@ -554,6 +14636,2350 @@ func PhaseTwo(cx *core.Scope) string { return For(cx).PhaseTwo() }
 // PhaseTwo is the package's PhaseTwo in the language of msgs.
 func (msgs Messages) PhaseTwo() string { return msgs.text(textPhaseTwo) }
 
+// ProviderGuidanceAnthropicLatency says "Higher latency from CN"
+// in the language the app shows under cx.
+func ProviderGuidanceAnthropicLatency(cx *core.Scope) string {
+	return For(cx).ProviderGuidanceAnthropicLatency()
+}
+
+// ProviderGuidanceAnthropicLatency is the package's ProviderGuidanceAnthropicLatency in the language of msgs.
+func (msgs Messages) ProviderGuidanceAnthropicLatency() string {
+	return msgs.text(textProviderGuidanceAnthropicLatency)
+}
+
+// ProviderGuidanceAnthropicNote says "Global endpoint; expect higher latency from China."
+// in the language the app shows under cx.
+func ProviderGuidanceAnthropicNote(cx *core.Scope) string {
+	return For(cx).ProviderGuidanceAnthropicNote()
+}
+
+// ProviderGuidanceAnthropicNote is the package's ProviderGuidanceAnthropicNote in the language of msgs.
+func (msgs Messages) ProviderGuidanceAnthropicNote() string {
+	return msgs.text(textProviderGuidanceAnthropicNote)
+}
+
+// ProviderGuidanceDeepseekLatency says "Typically faster from CN"
+// in the language the app shows under cx.
+func ProviderGuidanceDeepseekLatency(cx *core.Scope) string {
+	return For(cx).ProviderGuidanceDeepseekLatency()
+}
+
+// ProviderGuidanceDeepseekLatency is the package's ProviderGuidanceDeepseekLatency in the language of msgs.
+func (msgs Messages) ProviderGuidanceDeepseekLatency() string {
+	return msgs.text(textProviderGuidanceDeepseekLatency)
+}
+
+// ProviderGuidanceDeepseekNote says "Low latency from China. Strong Chinese. Pay-per-token, low cost."
+// in the language the app shows under cx.
+func ProviderGuidanceDeepseekNote(cx *core.Scope) string {
+	return For(cx).ProviderGuidanceDeepseekNote()
+}
+
+// ProviderGuidanceDeepseekNote is the package's ProviderGuidanceDeepseekNote in the language of msgs.
+func (msgs Messages) ProviderGuidanceDeepseekNote() string {
+	return msgs.text(textProviderGuidanceDeepseekNote)
+}
+
+// ProviderGuidanceOpenaiLatency says "Higher latency from CN"
+// in the language the app shows under cx.
+func ProviderGuidanceOpenaiLatency(cx *core.Scope) string {
+	return For(cx).ProviderGuidanceOpenaiLatency()
+}
+
+// ProviderGuidanceOpenaiLatency is the package's ProviderGuidanceOpenaiLatency in the language of msgs.
+func (msgs Messages) ProviderGuidanceOpenaiLatency() string {
+	return msgs.text(textProviderGuidanceOpenaiLatency)
+}
+
+// ProviderGuidanceOpenaiNote says "Global endpoint; expect higher latency from China."
+// in the language the app shows under cx.
+func ProviderGuidanceOpenaiNote(cx *core.Scope) string { return For(cx).ProviderGuidanceOpenaiNote() }
+
+// ProviderGuidanceOpenaiNote is the package's ProviderGuidanceOpenaiNote in the language of msgs.
+func (msgs Messages) ProviderGuidanceOpenaiNote() string {
+	return msgs.text(textProviderGuidanceOpenaiNote)
+}
+
+// QuestionnaireExportPdfButton says "Export PDF"
+// in the language the app shows under cx.
+func QuestionnaireExportPdfButton(cx *core.Scope) string {
+	return For(cx).QuestionnaireExportPdfButton()
+}
+
+// QuestionnaireExportPdfButton is the package's QuestionnaireExportPdfButton in the language of msgs.
+func (msgs Messages) QuestionnaireExportPdfButton() string {
+	return msgs.text(textQuestionnaireExportPdfButton)
+}
+
+// QuestionnaireExportPdfCancel says "Cancel"
+// in the language the app shows under cx.
+func QuestionnaireExportPdfCancel(cx *core.Scope) string {
+	return For(cx).QuestionnaireExportPdfCancel()
+}
+
+// QuestionnaireExportPdfCancel is the package's QuestionnaireExportPdfCancel in the language of msgs.
+func (msgs Messages) QuestionnaireExportPdfCancel() string {
+	return msgs.text(textQuestionnaireExportPdfCancel)
+}
+
+// QuestionnaireExportPdfConfirm says "Export"
+// in the language the app shows under cx.
+func QuestionnaireExportPdfConfirm(cx *core.Scope) string {
+	return For(cx).QuestionnaireExportPdfConfirm()
+}
+
+// QuestionnaireExportPdfConfirm is the package's QuestionnaireExportPdfConfirm in the language of msgs.
+func (msgs Messages) QuestionnaireExportPdfConfirm() string {
+	return msgs.text(textQuestionnaireExportPdfConfirm)
+}
+
+// QuestionnaireExportPdfDialogHeading says "Export questionnaire as PDF"
+// in the language the app shows under cx.
+func QuestionnaireExportPdfDialogHeading(cx *core.Scope) string {
+	return For(cx).QuestionnaireExportPdfDialogHeading()
+}
+
+// QuestionnaireExportPdfDialogHeading is the package's QuestionnaireExportPdfDialogHeading in the language of msgs.
+func (msgs Messages) QuestionnaireExportPdfDialogHeading() string {
+	return msgs.text(textQuestionnaireExportPdfDialogHeading)
+}
+
+// QuestionnaireExportPdfDialogSubheading says "Pick the export language."
+// in the language the app shows under cx.
+func QuestionnaireExportPdfDialogSubheading(cx *core.Scope) string {
+	return For(cx).QuestionnaireExportPdfDialogSubheading()
+}
+
+// QuestionnaireExportPdfDialogSubheading is the package's QuestionnaireExportPdfDialogSubheading in the language of msgs.
+func (msgs Messages) QuestionnaireExportPdfDialogSubheading() string {
+	return msgs.text(textQuestionnaireExportPdfDialogSubheading)
+}
+
+// QuestionnaireExportPdfFailed says "PDF export failed: {message}"
+// in the language the app shows under cx.
+func QuestionnaireExportPdfFailed(cx *core.Scope, message string) string {
+	return For(cx).QuestionnaireExportPdfFailed(message)
+}
+
+// QuestionnaireExportPdfFailed is the package's QuestionnaireExportPdfFailed in the language of msgs.
+func (msgs Messages) QuestionnaireExportPdfFailed(message string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.QuestionnaireExportPdfFailed(message))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].QuestionnaireExportPdfFailed; f != nil {
+			return f(message)
+		}
+		switch lang {
+		case "", "en":
+			return "PDF export failed: " + msgs.arg(message)
+		case "zh-CN":
+			return "PDF 导出失败: " + message
+		}
+	}
+}
+
+// QuestionnaireExportPdfLangEn says "English"
+// in the language the app shows under cx.
+func QuestionnaireExportPdfLangEn(cx *core.Scope) string {
+	return For(cx).QuestionnaireExportPdfLangEn()
+}
+
+// QuestionnaireExportPdfLangEn is the package's QuestionnaireExportPdfLangEn in the language of msgs.
+func (msgs Messages) QuestionnaireExportPdfLangEn() string {
+	return msgs.text(textQuestionnaireExportPdfLangEn)
+}
+
+// QuestionnaireExportPdfLangLabel says "Language"
+// in the language the app shows under cx.
+func QuestionnaireExportPdfLangLabel(cx *core.Scope) string {
+	return For(cx).QuestionnaireExportPdfLangLabel()
+}
+
+// QuestionnaireExportPdfLangLabel is the package's QuestionnaireExportPdfLangLabel in the language of msgs.
+func (msgs Messages) QuestionnaireExportPdfLangLabel() string {
+	return msgs.text(textQuestionnaireExportPdfLangLabel)
+}
+
+// QuestionnaireExportPdfLangZh says "Chinese (zh-CN)"
+// in the language the app shows under cx.
+func QuestionnaireExportPdfLangZh(cx *core.Scope) string {
+	return For(cx).QuestionnaireExportPdfLangZh()
+}
+
+// QuestionnaireExportPdfLangZh is the package's QuestionnaireExportPdfLangZh in the language of msgs.
+func (msgs Messages) QuestionnaireExportPdfLangZh() string {
+	return msgs.text(textQuestionnaireExportPdfLangZh)
+}
+
+// QuestionnaireExportPdfPending says "Generating PDF..."
+// in the language the app shows under cx.
+func QuestionnaireExportPdfPending(cx *core.Scope) string {
+	return For(cx).QuestionnaireExportPdfPending()
+}
+
+// QuestionnaireExportPdfPending is the package's QuestionnaireExportPdfPending in the language of msgs.
+func (msgs Messages) QuestionnaireExportPdfPending() string {
+	return msgs.text(textQuestionnaireExportPdfPending)
+}
+
+// QuestionnaireExportPdfSuccess says "Exported PDF → {path}"
+// in the language the app shows under cx.
+func QuestionnaireExportPdfSuccess(cx *core.Scope, path string) string {
+	return For(cx).QuestionnaireExportPdfSuccess(path)
+}
+
+// QuestionnaireExportPdfSuccess is the package's QuestionnaireExportPdfSuccess in the language of msgs.
+func (msgs Messages) QuestionnaireExportPdfSuccess(path string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.QuestionnaireExportPdfSuccess(path))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].QuestionnaireExportPdfSuccess; f != nil {
+			return f(path)
+		}
+		switch lang {
+		case "", "en":
+			return "Exported PDF → " + msgs.arg(path)
+		case "zh-CN":
+			return "已导出 PDF → " + path
+		}
+	}
+}
+
+// QuestionnairePdfCoverDueDate says "Due date"
+// in the language the app shows under cx.
+func QuestionnairePdfCoverDueDate(cx *core.Scope) string {
+	return For(cx).QuestionnairePdfCoverDueDate()
+}
+
+// QuestionnairePdfCoverDueDate is the package's QuestionnairePdfCoverDueDate in the language of msgs.
+func (msgs Messages) QuestionnairePdfCoverDueDate() string {
+	return msgs.text(textQuestionnairePdfCoverDueDate)
+}
+
+// QuestionnairePdfCoverGeneratedAt says "Generated"
+// in the language the app shows under cx.
+func QuestionnairePdfCoverGeneratedAt(cx *core.Scope) string {
+	return For(cx).QuestionnairePdfCoverGeneratedAt()
+}
+
+// QuestionnairePdfCoverGeneratedAt is the package's QuestionnairePdfCoverGeneratedAt in the language of msgs.
+func (msgs Messages) QuestionnairePdfCoverGeneratedAt() string {
+	return msgs.text(textQuestionnairePdfCoverGeneratedAt)
+}
+
+// QuestionnairePdfDraft says "DRAFT"
+// in the language the app shows under cx.
+func QuestionnairePdfDraft(cx *core.Scope) string { return For(cx).QuestionnairePdfDraft() }
+
+// QuestionnairePdfDraft is the package's QuestionnairePdfDraft in the language of msgs.
+func (msgs Messages) QuestionnairePdfDraft() string { return msgs.text(textQuestionnairePdfDraft) }
+
+// QuestionnairePdfFinalized says "Finalized"
+// in the language the app shows under cx.
+func QuestionnairePdfFinalized(cx *core.Scope) string { return For(cx).QuestionnairePdfFinalized() }
+
+// QuestionnairePdfFinalized is the package's QuestionnairePdfFinalized in the language of msgs.
+func (msgs Messages) QuestionnairePdfFinalized() string {
+	return msgs.text(textQuestionnairePdfFinalized)
+}
+
+// QuestionnairePdfSourceSummary says "Source"
+// in the language the app shows under cx.
+func QuestionnairePdfSourceSummary(cx *core.Scope) string {
+	return For(cx).QuestionnairePdfSourceSummary()
+}
+
+// QuestionnairePdfSourceSummary is the package's QuestionnairePdfSourceSummary in the language of msgs.
+func (msgs Messages) QuestionnairePdfSourceSummary() string {
+	return msgs.text(textQuestionnairePdfSourceSummary)
+}
+
+// QuestionnairePdfTocHeading says "Table of contents"
+// in the language the app shows under cx.
+func QuestionnairePdfTocHeading(cx *core.Scope) string { return For(cx).QuestionnairePdfTocHeading() }
+
+// QuestionnairePdfTocHeading is the package's QuestionnairePdfTocHeading in the language of msgs.
+func (msgs Messages) QuestionnairePdfTocHeading() string {
+	return msgs.text(textQuestionnairePdfTocHeading)
+}
+
+// QuestionnairePdfUnanswered says "(Unanswered)"
+// in the language the app shows under cx.
+func QuestionnairePdfUnanswered(cx *core.Scope) string { return For(cx).QuestionnairePdfUnanswered() }
+
+// QuestionnairePdfUnanswered is the package's QuestionnairePdfUnanswered in the language of msgs.
+func (msgs Messages) QuestionnairePdfUnanswered() string {
+	return msgs.text(textQuestionnairePdfUnanswered)
+}
+
+// QuestionnairesDetailAnswerPending says "Phase 2.2b will generate answers here."
+// in the language the app shows under cx.
+func QuestionnairesDetailAnswerPending(cx *core.Scope) string {
+	return For(cx).QuestionnairesDetailAnswerPending()
+}
+
+// QuestionnairesDetailAnswerPending is the package's QuestionnairesDetailAnswerPending in the language of msgs.
+func (msgs Messages) QuestionnairesDetailAnswerPending() string {
+	return msgs.text(textQuestionnairesDetailAnswerPending)
+}
+
+// QuestionnairesDetailBack says "← Disclosure filings"
+// in the language the app shows under cx.
+func QuestionnairesDetailBack(cx *core.Scope) string { return For(cx).QuestionnairesDetailBack() }
+
+// QuestionnairesDetailBack is the package's QuestionnairesDetailBack in the language of msgs.
+func (msgs Messages) QuestionnairesDetailBack() string {
+	return msgs.text(textQuestionnairesDetailBack)
+}
+
+// QuestionnairesDetailInventoryEmptyBody says "Record electricity, fuel, freight, etc. for that year first so the AI has a basis to draft answers from."
+// in the language the app shows under cx.
+func QuestionnairesDetailInventoryEmptyBody(cx *core.Scope) string {
+	return For(cx).QuestionnairesDetailInventoryEmptyBody()
+}
+
+// QuestionnairesDetailInventoryEmptyBody is the package's QuestionnairesDetailInventoryEmptyBody in the language of msgs.
+func (msgs Messages) QuestionnairesDetailInventoryEmptyBody() string {
+	return msgs.text(textQuestionnairesDetailInventoryEmptyBody)
+}
+
+// QuestionnairesDetailInventoryEmptyCta says "Add activity data →"
+// in the language the app shows under cx.
+func QuestionnairesDetailInventoryEmptyCta(cx *core.Scope) string {
+	return For(cx).QuestionnairesDetailInventoryEmptyCta()
+}
+
+// QuestionnairesDetailInventoryEmptyCta is the package's QuestionnairesDetailInventoryEmptyCta in the language of msgs.
+func (msgs Messages) QuestionnairesDetailInventoryEmptyCta() string {
+	return msgs.text(textQuestionnairesDetailInventoryEmptyCta)
+}
+
+// QuestionnairesDetailInventoryEmptyTitle says "No activity data for {year} yet"
+// in the language the app shows under cx.
+func QuestionnairesDetailInventoryEmptyTitle(cx *core.Scope, year string) string {
+	return For(cx).QuestionnairesDetailInventoryEmptyTitle(year)
+}
+
+// QuestionnairesDetailInventoryEmptyTitle is the package's QuestionnairesDetailInventoryEmptyTitle in the language of msgs.
+func (msgs Messages) QuestionnairesDetailInventoryEmptyTitle(year string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.QuestionnairesDetailInventoryEmptyTitle(year))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].QuestionnairesDetailInventoryEmptyTitle; f != nil {
+			return f(year)
+		}
+		switch lang {
+		case "", "en":
+			return "No activity data for " + msgs.arg(year) + " yet"
+		case "zh-CN":
+			return year + " 年度暂无活动数据"
+		}
+	}
+}
+
+// QuestionnairesDetailKind says "Type"
+// in the language the app shows under cx.
+func QuestionnairesDetailKind(cx *core.Scope) string { return For(cx).QuestionnairesDetailKind() }
+
+// QuestionnairesDetailKind is the package's QuestionnairesDetailKind in the language of msgs.
+func (msgs Messages) QuestionnairesDetailKind() string {
+	return msgs.text(textQuestionnairesDetailKind)
+}
+
+// QuestionnairesDetailNotFound says "Disclosure filing not found"
+// in the language the app shows under cx.
+func QuestionnairesDetailNotFound(cx *core.Scope) string {
+	return For(cx).QuestionnairesDetailNotFound()
+}
+
+// QuestionnairesDetailNotFound is the package's QuestionnairesDetailNotFound in the language of msgs.
+func (msgs Messages) QuestionnairesDetailNotFound() string {
+	return msgs.text(textQuestionnairesDetailNotFound)
+}
+
+// QuestionnairesDetailPosition says "Cell"
+// in the language the app shows under cx.
+func QuestionnairesDetailPosition(cx *core.Scope) string {
+	return For(cx).QuestionnairesDetailPosition()
+}
+
+// QuestionnairesDetailPosition is the package's QuestionnairesDetailPosition in the language of msgs.
+func (msgs Messages) QuestionnairesDetailPosition() string {
+	return msgs.text(textQuestionnairesDetailPosition)
+}
+
+// QuestionnairesDetailQuestion says "Question"
+// in the language the app shows under cx.
+func QuestionnairesDetailQuestion(cx *core.Scope) string {
+	return For(cx).QuestionnairesDetailQuestion()
+}
+
+// QuestionnairesDetailQuestion is the package's QuestionnairesDetailQuestion in the language of msgs.
+func (msgs Messages) QuestionnairesDetailQuestion() string {
+	return msgs.text(textQuestionnairesDetailQuestion)
+}
+
+// QuestionnairesDetailUnit says "Unit"
+// in the language the app shows under cx.
+func QuestionnairesDetailUnit(cx *core.Scope) string { return For(cx).QuestionnairesDetailUnit() }
+
+// QuestionnairesDetailUnit is the package's QuestionnairesDetailUnit in the language of msgs.
+func (msgs Messages) QuestionnairesDetailUnit() string {
+	return msgs.text(textQuestionnairesDetailUnit)
+}
+
+// QuestionnairesEmpty says "No disclosure filings yet"
+// in the language the app shows under cx.
+func QuestionnairesEmpty(cx *core.Scope) string { return For(cx).QuestionnairesEmpty() }
+
+// QuestionnairesEmpty is the package's QuestionnairesEmpty in the language of msgs.
+func (msgs Messages) QuestionnairesEmpty() string { return msgs.text(textQuestionnairesEmpty) }
+
+// QuestionnairesFilterClear says "Clear filters"
+// in the language the app shows under cx.
+func QuestionnairesFilterClear(cx *core.Scope) string { return For(cx).QuestionnairesFilterClear() }
+
+// QuestionnairesFilterClear is the package's QuestionnairesFilterClear in the language of msgs.
+func (msgs Messages) QuestionnairesFilterClear() string {
+	return msgs.text(textQuestionnairesFilterClear)
+}
+
+// QuestionnairesFilterEmpty says "No matching disclosure filings"
+// in the language the app shows under cx.
+func QuestionnairesFilterEmpty(cx *core.Scope) string { return For(cx).QuestionnairesFilterEmpty() }
+
+// QuestionnairesFilterEmpty is the package's QuestionnairesFilterEmpty in the language of msgs.
+func (msgs Messages) QuestionnairesFilterEmpty() string {
+	return msgs.text(textQuestionnairesFilterEmpty)
+}
+
+// QuestionnairesFilterStatusAll says "All statuses"
+// in the language the app shows under cx.
+func QuestionnairesFilterStatusAll(cx *core.Scope) string {
+	return For(cx).QuestionnairesFilterStatusAll()
+}
+
+// QuestionnairesFilterStatusAll is the package's QuestionnairesFilterStatusAll in the language of msgs.
+func (msgs Messages) QuestionnairesFilterStatusAll() string {
+	return msgs.text(textQuestionnairesFilterStatusAll)
+}
+
+// QuestionnairesFinalizeButton says "Finalize answers"
+// in the language the app shows under cx.
+func QuestionnairesFinalizeButton(cx *core.Scope) string {
+	return For(cx).QuestionnairesFinalizeButton()
+}
+
+// QuestionnairesFinalizeButton is the package's QuestionnairesFinalizeButton in the language of msgs.
+func (msgs Messages) QuestionnairesFinalizeButton() string {
+	return msgs.text(textQuestionnairesFinalizeButton)
+}
+
+// QuestionnairesNewButton says "New disclosure filing"
+// in the language the app shows under cx.
+func QuestionnairesNewButton(cx *core.Scope) string { return For(cx).QuestionnairesNewButton() }
+
+// QuestionnairesNewButton is the package's QuestionnairesNewButton in the language of msgs.
+func (msgs Messages) QuestionnairesNewButton() string { return msgs.text(textQuestionnairesNewButton) }
+
+// QuestionnairesSearchPlaceholder says "Search customer name"
+// in the language the app shows under cx.
+func QuestionnairesSearchPlaceholder(cx *core.Scope) string {
+	return For(cx).QuestionnairesSearchPlaceholder()
+}
+
+// QuestionnairesSearchPlaceholder is the package's QuestionnairesSearchPlaceholder in the language of msgs.
+func (msgs Messages) QuestionnairesSearchPlaceholder() string {
+	return msgs.text(textQuestionnairesSearchPlaceholder)
+}
+
+// QuestionnairesSortCustomer says "Customer A→Z"
+// in the language the app shows under cx.
+func QuestionnairesSortCustomer(cx *core.Scope) string { return For(cx).QuestionnairesSortCustomer() }
+
+// QuestionnairesSortCustomer is the package's QuestionnairesSortCustomer in the language of msgs.
+func (msgs Messages) QuestionnairesSortCustomer() string {
+	return msgs.text(textQuestionnairesSortCustomer)
+}
+
+// QuestionnairesSortDue says "Due date"
+// in the language the app shows under cx.
+func QuestionnairesSortDue(cx *core.Scope) string { return For(cx).QuestionnairesSortDue() }
+
+// QuestionnairesSortDue is the package's QuestionnairesSortDue in the language of msgs.
+func (msgs Messages) QuestionnairesSortDue() string { return msgs.text(textQuestionnairesSortDue) }
+
+// QuestionnairesSortOldest says "Oldest first"
+// in the language the app shows under cx.
+func QuestionnairesSortOldest(cx *core.Scope) string { return For(cx).QuestionnairesSortOldest() }
+
+// QuestionnairesSortOldest is the package's QuestionnairesSortOldest in the language of msgs.
+func (msgs Messages) QuestionnairesSortOldest() string {
+	return msgs.text(textQuestionnairesSortOldest)
+}
+
+// QuestionnairesSortQuestions says "Question count"
+// in the language the app shows under cx.
+func QuestionnairesSortQuestions(cx *core.Scope) string { return For(cx).QuestionnairesSortQuestions() }
+
+// QuestionnairesSortQuestions is the package's QuestionnairesSortQuestions in the language of msgs.
+func (msgs Messages) QuestionnairesSortQuestions() string {
+	return msgs.text(textQuestionnairesSortQuestions)
+}
+
+// QuestionnairesSortRecent says "Most recent"
+// in the language the app shows under cx.
+func QuestionnairesSortRecent(cx *core.Scope) string { return For(cx).QuestionnairesSortRecent() }
+
+// QuestionnairesSortRecent is the package's QuestionnairesSortRecent in the language of msgs.
+func (msgs Messages) QuestionnairesSortRecent() string {
+	return msgs.text(textQuestionnairesSortRecent)
+}
+
+// QuestionnairesStatusAnswering says "Answering"
+// in the language the app shows under cx.
+func QuestionnairesStatusAnswering(cx *core.Scope) string {
+	return For(cx).QuestionnairesStatusAnswering()
+}
+
+// QuestionnairesStatusAnswering is the package's QuestionnairesStatusAnswering in the language of msgs.
+func (msgs Messages) QuestionnairesStatusAnswering() string {
+	return msgs.text(textQuestionnairesStatusAnswering)
+}
+
+// QuestionnairesStatusExported says "Exported"
+// in the language the app shows under cx.
+func QuestionnairesStatusExported(cx *core.Scope) string {
+	return For(cx).QuestionnairesStatusExported()
+}
+
+// QuestionnairesStatusExported is the package's QuestionnairesStatusExported in the language of msgs.
+func (msgs Messages) QuestionnairesStatusExported() string {
+	return msgs.text(textQuestionnairesStatusExported)
+}
+
+// QuestionnairesStatusFinalized says "Finalized"
+// in the language the app shows under cx.
+func QuestionnairesStatusFinalized(cx *core.Scope) string {
+	return For(cx).QuestionnairesStatusFinalized()
+}
+
+// QuestionnairesStatusFinalized is the package's QuestionnairesStatusFinalized in the language of msgs.
+func (msgs Messages) QuestionnairesStatusFinalized() string {
+	return msgs.text(textQuestionnairesStatusFinalized)
+}
+
+// QuestionnairesStatusMapping says "Draft"
+// in the language the app shows under cx.
+func QuestionnairesStatusMapping(cx *core.Scope) string { return For(cx).QuestionnairesStatusMapping() }
+
+// QuestionnairesStatusMapping is the package's QuestionnairesStatusMapping in the language of msgs.
+func (msgs Messages) QuestionnairesStatusMapping() string {
+	return msgs.text(textQuestionnairesStatusMapping)
+}
+
+// QuestionnairesStatusParsing says "Parsing"
+// in the language the app shows under cx.
+func QuestionnairesStatusParsing(cx *core.Scope) string { return For(cx).QuestionnairesStatusParsing() }
+
+// QuestionnairesStatusParsing is the package's QuestionnairesStatusParsing in the language of msgs.
+func (msgs Messages) QuestionnairesStatusParsing() string {
+	return msgs.text(textQuestionnairesStatusParsing)
+}
+
+// QuestionnairesTableCustomer says "Customer"
+// in the language the app shows under cx.
+func QuestionnairesTableCustomer(cx *core.Scope) string { return For(cx).QuestionnairesTableCustomer() }
+
+// QuestionnairesTableCustomer is the package's QuestionnairesTableCustomer in the language of msgs.
+func (msgs Messages) QuestionnairesTableCustomer() string {
+	return msgs.text(textQuestionnairesTableCustomer)
+}
+
+// QuestionnairesTableDue says "Due date"
+// in the language the app shows under cx.
+func QuestionnairesTableDue(cx *core.Scope) string { return For(cx).QuestionnairesTableDue() }
+
+// QuestionnairesTableDue is the package's QuestionnairesTableDue in the language of msgs.
+func (msgs Messages) QuestionnairesTableDue() string { return msgs.text(textQuestionnairesTableDue) }
+
+// QuestionnairesTableQuestions says "Questions"
+// in the language the app shows under cx.
+func QuestionnairesTableQuestions(cx *core.Scope) string {
+	return For(cx).QuestionnairesTableQuestions()
+}
+
+// QuestionnairesTableQuestions is the package's QuestionnairesTableQuestions in the language of msgs.
+func (msgs Messages) QuestionnairesTableQuestions() string {
+	return msgs.text(textQuestionnairesTableQuestions)
+}
+
+// QuestionnairesTableStatus says "Status"
+// in the language the app shows under cx.
+func QuestionnairesTableStatus(cx *core.Scope) string { return For(cx).QuestionnairesTableStatus() }
+
+// QuestionnairesTableStatus is the package's QuestionnairesTableStatus in the language of msgs.
+func (msgs Messages) QuestionnairesTableStatus() string {
+	return msgs.text(textQuestionnairesTableStatus)
+}
+
+// QuestionnairesTableYear says "Reporting year"
+// in the language the app shows under cx.
+func QuestionnairesTableYear(cx *core.Scope) string { return For(cx).QuestionnairesTableYear() }
+
+// QuestionnairesTableYear is the package's QuestionnairesTableYear in the language of msgs.
+func (msgs Messages) QuestionnairesTableYear() string { return msgs.text(textQuestionnairesTableYear) }
+
+// QuestionnairesWizardCustomer says "Customer name"
+// in the language the app shows under cx.
+func QuestionnairesWizardCustomer(cx *core.Scope) string {
+	return For(cx).QuestionnairesWizardCustomer()
+}
+
+// QuestionnairesWizardCustomer is the package's QuestionnairesWizardCustomer in the language of msgs.
+func (msgs Messages) QuestionnairesWizardCustomer() string {
+	return msgs.text(textQuestionnairesWizardCustomer)
+}
+
+// QuestionnairesWizardDue says "Due date (optional)"
+// in the language the app shows under cx.
+func QuestionnairesWizardDue(cx *core.Scope) string { return For(cx).QuestionnairesWizardDue() }
+
+// QuestionnairesWizardDue is the package's QuestionnairesWizardDue in the language of msgs.
+func (msgs Messages) QuestionnairesWizardDue() string { return msgs.text(textQuestionnairesWizardDue) }
+
+// QuestionnairesWizardFailed says "Parsing failed"
+// in the language the app shows under cx.
+func QuestionnairesWizardFailed(cx *core.Scope) string { return For(cx).QuestionnairesWizardFailed() }
+
+// QuestionnairesWizardFailed is the package's QuestionnairesWizardFailed in the language of msgs.
+func (msgs Messages) QuestionnairesWizardFailed() string {
+	return msgs.text(textQuestionnairesWizardFailed)
+}
+
+// QuestionnairesWizardFileChoose says "Click or drop a .xlsx file here"
+// in the language the app shows under cx.
+func QuestionnairesWizardFileChoose(cx *core.Scope) string {
+	return For(cx).QuestionnairesWizardFileChoose()
+}
+
+// QuestionnairesWizardFileChoose is the package's QuestionnairesWizardFileChoose in the language of msgs.
+func (msgs Messages) QuestionnairesWizardFileChoose() string {
+	return msgs.text(textQuestionnairesWizardFileChoose)
+}
+
+// QuestionnairesWizardFileChosen says "Chosen: {filename}"
+// in the language the app shows under cx.
+func QuestionnairesWizardFileChosen(cx *core.Scope, filename string) string {
+	return For(cx).QuestionnairesWizardFileChosen(filename)
+}
+
+// QuestionnairesWizardFileChosen is the package's QuestionnairesWizardFileChosen in the language of msgs.
+func (msgs Messages) QuestionnairesWizardFileChosen(filename string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.QuestionnairesWizardFileChosen(filename))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].QuestionnairesWizardFileChosen; f != nil {
+			return f(filename)
+		}
+		switch lang {
+		case "", "en":
+			return "Chosen: " + msgs.arg(filename)
+		case "zh-CN":
+			return "已选择：" + filename
+		}
+	}
+}
+
+// QuestionnairesWizardHintRequired says "Customer name and .xlsx file are required"
+// in the language the app shows under cx.
+func QuestionnairesWizardHintRequired(cx *core.Scope) string {
+	return For(cx).QuestionnairesWizardHintRequired()
+}
+
+// QuestionnairesWizardHintRequired is the package's QuestionnairesWizardHintRequired in the language of msgs.
+func (msgs Messages) QuestionnairesWizardHintRequired() string {
+	return msgs.text(textQuestionnairesWizardHintRequired)
+}
+
+// QuestionnairesWizardParsing says "Parsing questionnaire…"
+// in the language the app shows under cx.
+func QuestionnairesWizardParsing(cx *core.Scope) string { return For(cx).QuestionnairesWizardParsing() }
+
+// QuestionnairesWizardParsing is the package's QuestionnairesWizardParsing in the language of msgs.
+func (msgs Messages) QuestionnairesWizardParsing() string {
+	return msgs.text(textQuestionnairesWizardParsing)
+}
+
+// QuestionnairesWizardSuccess says "Parsed: {count} question(s)"
+// in the language the app shows under cx.
+func QuestionnairesWizardSuccess(cx *core.Scope, count string) string {
+	return For(cx).QuestionnairesWizardSuccess(count)
+}
+
+// QuestionnairesWizardSuccess is the package's QuestionnairesWizardSuccess in the language of msgs.
+func (msgs Messages) QuestionnairesWizardSuccess(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.QuestionnairesWizardSuccess(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].QuestionnairesWizardSuccess; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return "Parsed: " + msgs.arg(count) + " question(s)"
+		case "zh-CN":
+			return "已解析 " + count + " 道题目"
+		}
+	}
+}
+
+// QuestionnairesWizardSuccessWithReused says "Parsed {count} questions ({reused} reused)"
+// in the language the app shows under cx.
+func QuestionnairesWizardSuccessWithReused(cx *core.Scope, count string, reused string) string {
+	return For(cx).QuestionnairesWizardSuccessWithReused(count, reused)
+}
+
+// QuestionnairesWizardSuccessWithReused is the package's QuestionnairesWizardSuccessWithReused in the language of msgs.
+func (msgs Messages) QuestionnairesWizardSuccessWithReused(count string, reused string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.QuestionnairesWizardSuccessWithReused(count, reused))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].QuestionnairesWizardSuccessWithReused; f != nil {
+			return f(count, reused)
+		}
+		switch lang {
+		case "", "en":
+			return "Parsed " + msgs.arg(count) + " questions (" + msgs.arg(reused) + " reused)"
+		case "zh-CN":
+			return "已解析 " + count + " 题（自动沿用 " + reused + " 题）"
+		}
+	}
+}
+
+// QuestionnairesWizardTitle says "New disclosure filing"
+// in the language the app shows under cx.
+func QuestionnairesWizardTitle(cx *core.Scope) string { return For(cx).QuestionnairesWizardTitle() }
+
+// QuestionnairesWizardTitle is the package's QuestionnairesWizardTitle in the language of msgs.
+func (msgs Messages) QuestionnairesWizardTitle() string {
+	return msgs.text(textQuestionnairesWizardTitle)
+}
+
+// QuestionnairesWizardUpload says "Upload .xlsx and parse"
+// in the language the app shows under cx.
+func QuestionnairesWizardUpload(cx *core.Scope) string { return For(cx).QuestionnairesWizardUpload() }
+
+// QuestionnairesWizardUpload is the package's QuestionnairesWizardUpload in the language of msgs.
+func (msgs Messages) QuestionnairesWizardUpload() string {
+	return msgs.text(textQuestionnairesWizardUpload)
+}
+
+// QuestionnairesWizardYear says "Reporting year"
+// in the language the app shows under cx.
+func QuestionnairesWizardYear(cx *core.Scope) string { return For(cx).QuestionnairesWizardYear() }
+
+// QuestionnairesWizardYear is the package's QuestionnairesWizardYear in the language of msgs.
+func (msgs Messages) QuestionnairesWizardYear() string {
+	return msgs.text(textQuestionnairesWizardYear)
+}
+
+// ReadinessAgentHint says "Uses your configured AI provider to look for classification problems no rule can express."
+// in the language the app shows under cx.
+func ReadinessAgentHint(cx *core.Scope) string { return For(cx).ReadinessAgentHint() }
+
+// ReadinessAgentHint is the package's ReadinessAgentHint in the language of msgs.
+func (msgs Messages) ReadinessAgentHint() string { return msgs.text(textReadinessAgentHint) }
+
+// ReadinessAgentUnavailable says "No AI provider configured — the deterministic checks above still ran."
+// in the language the app shows under cx.
+func ReadinessAgentUnavailable(cx *core.Scope) string { return For(cx).ReadinessAgentUnavailable() }
+
+// ReadinessAgentUnavailable is the package's ReadinessAgentUnavailable in the language of msgs.
+func (msgs Messages) ReadinessAgentUnavailable() string {
+	return msgs.text(textReadinessAgentUnavailable)
+}
+
+// ReadinessAllClearBody says "All {count} checks passed for this period."
+// in the language the app shows under cx.
+func ReadinessAllClearBody(cx *core.Scope, count string) string {
+	return For(cx).ReadinessAllClearBody(count)
+}
+
+// ReadinessAllClearBody is the package's ReadinessAllClearBody in the language of msgs.
+func (msgs Messages) ReadinessAllClearBody(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ReadinessAllClearBody(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ReadinessAllClearBody; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return "All " + msgs.arg(count) + " checks passed for this period."
+		case "zh-CN":
+			return "本期通过全部 " + count + " 项检查。"
+		}
+	}
+}
+
+// ReadinessAllClearTitle says "Nothing to flag"
+// in the language the app shows under cx.
+func ReadinessAllClearTitle(cx *core.Scope) string { return For(cx).ReadinessAllClearTitle() }
+
+// ReadinessAllClearTitle is the package's ReadinessAllClearTitle in the language of msgs.
+func (msgs Messages) ReadinessAllClearTitle() string { return msgs.text(textReadinessAllClearTitle) }
+
+// ReadinessCheckC1Detail says "{source_name} (Scope {scope}) has no activity data for {year}."
+// in the language the app shows under cx.
+func ReadinessCheckC1Detail(cx *core.Scope, source_name string, scope string, year string) string {
+	return For(cx).ReadinessCheckC1Detail(source_name, scope, year)
+}
+
+// ReadinessCheckC1Detail is the package's ReadinessCheckC1Detail in the language of msgs.
+func (msgs Messages) ReadinessCheckC1Detail(source_name string, scope string, year string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ReadinessCheckC1Detail(source_name, scope, year))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ReadinessCheckC1Detail; f != nil {
+			return f(source_name, scope, year)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(source_name) + " (Scope " + msgs.arg(scope) + ") has no activity data for " + msgs.arg(year) + "."
+		case "zh-CN":
+			return source_name + "（范围 " + scope + "）在 " + year + " 年没有任何活动数据。"
+		}
+	}
+}
+
+// ReadinessCheckC1Title says "Emission source has no data"
+// in the language the app shows under cx.
+func ReadinessCheckC1Title(cx *core.Scope) string { return For(cx).ReadinessCheckC1Title() }
+
+// ReadinessCheckC1Title is the package's ReadinessCheckC1Title in the language of msgs.
+func (msgs Messages) ReadinessCheckC1Title() string { return msgs.text(textReadinessCheckC1Title) }
+
+// ReadinessCheckC3Detail says "{source_name}: {occurred} falls outside {period}."
+// in the language the app shows under cx.
+func ReadinessCheckC3Detail(cx *core.Scope, source_name string, occurred string, period string) string {
+	return For(cx).ReadinessCheckC3Detail(source_name, occurred, period)
+}
+
+// ReadinessCheckC3Detail is the package's ReadinessCheckC3Detail in the language of msgs.
+func (msgs Messages) ReadinessCheckC3Detail(source_name string, occurred string, period string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ReadinessCheckC3Detail(source_name, occurred, period))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ReadinessCheckC3Detail; f != nil {
+			return f(source_name, occurred, period)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(source_name) + ": " + msgs.arg(occurred) + " falls outside " + msgs.arg(period) + "."
+		case "zh-CN":
+			return source_name + "：" + occurred + " 不在 " + period + " 范围内。"
+		}
+	}
+}
+
+// ReadinessCheckC3Title says "Activity dated outside its reporting period"
+// in the language the app shows under cx.
+func ReadinessCheckC3Title(cx *core.Scope) string { return For(cx).ReadinessCheckC3Title() }
+
+// ReadinessCheckC3Title is the package's ReadinessCheckC3Title in the language of msgs.
+func (msgs Messages) ReadinessCheckC3Title() string { return msgs.text(textReadinessCheckC3Title) }
+
+// ReadinessCheckC5Detail says "{customer_name}: {question_text}"
+// in the language the app shows under cx.
+func ReadinessCheckC5Detail(cx *core.Scope, customer_name string, question_text string) string {
+	return For(cx).ReadinessCheckC5Detail(customer_name, question_text)
+}
+
+// ReadinessCheckC5Detail is the package's ReadinessCheckC5Detail in the language of msgs.
+func (msgs Messages) ReadinessCheckC5Detail(customer_name string, question_text string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ReadinessCheckC5Detail(customer_name, question_text))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ReadinessCheckC5Detail; f != nil {
+			return f(customer_name, question_text)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(customer_name) + ": " + msgs.arg(question_text)
+		case "zh-CN":
+			return customer_name + "：" + question_text
+		}
+	}
+}
+
+// ReadinessCheckC5Title says "Question has no answer"
+// in the language the app shows under cx.
+func ReadinessCheckC5Title(cx *core.Scope) string { return For(cx).ReadinessCheckC5Title() }
+
+// ReadinessCheckC5Title is the package's ReadinessCheckC5Title in the language of msgs.
+func (msgs Messages) ReadinessCheckC5Title() string { return msgs.text(textReadinessCheckC5Title) }
+
+// ReadinessCheckC6Detail says "{observation}"
+// in the language the app shows under cx.
+func ReadinessCheckC6Detail(cx *core.Scope, observation string) string {
+	return For(cx).ReadinessCheckC6Detail(observation)
+}
+
+// ReadinessCheckC6Detail is the package's ReadinessCheckC6Detail in the language of msgs.
+func (msgs Messages) ReadinessCheckC6Detail(observation string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ReadinessCheckC6Detail(observation))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ReadinessCheckC6Detail; f != nil {
+			return f(observation)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(observation)
+		case "zh-CN":
+			return observation
+		}
+	}
+}
+
+// ReadinessCheckC6Title says "An expected emission source may be missing"
+// in the language the app shows under cx.
+func ReadinessCheckC6Title(cx *core.Scope) string { return For(cx).ReadinessCheckC6Title() }
+
+// ReadinessCheckC6Title is the package's ReadinessCheckC6Title in the language of msgs.
+func (msgs Messages) ReadinessCheckC6Title() string { return msgs.text(textReadinessCheckC6Title) }
+
+// ReadinessCheckD1Detail says "Year-over-year comparison has nothing to anchor to."
+// in the language the app shows under cx.
+func ReadinessCheckD1Detail(cx *core.Scope) string { return For(cx).ReadinessCheckD1Detail() }
+
+// ReadinessCheckD1Detail is the package's ReadinessCheckD1Detail in the language of msgs.
+func (msgs Messages) ReadinessCheckD1Detail() string { return msgs.text(textReadinessCheckD1Detail) }
+
+// ReadinessCheckD1Title says "No base year set"
+// in the language the app shows under cx.
+func ReadinessCheckD1Title(cx *core.Scope) string { return For(cx).ReadinessCheckD1Title() }
+
+// ReadinessCheckD1Title is the package's ReadinessCheckD1Title in the language of msgs.
+func (msgs Messages) ReadinessCheckD1Title() string { return msgs.text(textReadinessCheckD1Title) }
+
+// ReadinessCheckD2DetailDeleted says "{source_name}: delivered as {frozen_co2e_kg} kg CO2e; the underlying row has been deleted."
+// in the language the app shows under cx.
+func ReadinessCheckD2DetailDeleted(cx *core.Scope, source_name string, frozen_co2e_kg string) string {
+	return For(cx).ReadinessCheckD2DetailDeleted(source_name, frozen_co2e_kg)
+}
+
+// ReadinessCheckD2DetailDeleted is the package's ReadinessCheckD2DetailDeleted in the language of msgs.
+func (msgs Messages) ReadinessCheckD2DetailDeleted(source_name string, frozen_co2e_kg string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ReadinessCheckD2DetailDeleted(source_name, frozen_co2e_kg))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ReadinessCheckD2DetailDeleted; f != nil {
+			return f(source_name, frozen_co2e_kg)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(source_name) + ": delivered as " + msgs.arg(frozen_co2e_kg) + " kg CO2e; the underlying row has been deleted."
+		case "zh-CN":
+			return source_name + "：交付时为 " + frozen_co2e_kg + " kg CO2e，对应的活动行已被删除。"
+		}
+	}
+}
+
+// ReadinessCheckD2DetailEdited says "{source_name}: delivered as {frozen_co2e_kg} kg CO2e, now {live_co2e_kg} kg in the ledger."
+// in the language the app shows under cx.
+func ReadinessCheckD2DetailEdited(cx *core.Scope, source_name string, frozen_co2e_kg string, live_co2e_kg string) string {
+	return For(cx).ReadinessCheckD2DetailEdited(source_name, frozen_co2e_kg, live_co2e_kg)
+}
+
+// ReadinessCheckD2DetailEdited is the package's ReadinessCheckD2DetailEdited in the language of msgs.
+func (msgs Messages) ReadinessCheckD2DetailEdited(source_name string, frozen_co2e_kg string, live_co2e_kg string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ReadinessCheckD2DetailEdited(source_name, frozen_co2e_kg, live_co2e_kg))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ReadinessCheckD2DetailEdited; f != nil {
+			return f(source_name, frozen_co2e_kg, live_co2e_kg)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(source_name) + ": delivered as " + msgs.arg(frozen_co2e_kg) + " kg CO2e, now " + msgs.arg(live_co2e_kg) + " kg in the ledger."
+		case "zh-CN":
+			return source_name + "：交付时为 " + frozen_co2e_kg + " kg CO2e，账本现为 " + live_co2e_kg + " kg。"
+		}
+	}
+}
+
+// ReadinessCheckD2Title says "Delivered figure no longer matches the ledger"
+// in the language the app shows under cx.
+func ReadinessCheckD2Title(cx *core.Scope) string { return For(cx).ReadinessCheckD2Title() }
+
+// ReadinessCheckD2Title is the package's ReadinessCheckD2Title in the language of msgs.
+func (msgs Messages) ReadinessCheckD2Title() string { return msgs.text(textReadinessCheckD2Title) }
+
+// ReadinessCheckD3Detail says "{supplier_name} was due {due_date} and has not come back."
+// in the language the app shows under cx.
+func ReadinessCheckD3Detail(cx *core.Scope, supplier_name string, due_date string) string {
+	return For(cx).ReadinessCheckD3Detail(supplier_name, due_date)
+}
+
+// ReadinessCheckD3Detail is the package's ReadinessCheckD3Detail in the language of msgs.
+func (msgs Messages) ReadinessCheckD3Detail(supplier_name string, due_date string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ReadinessCheckD3Detail(supplier_name, due_date))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ReadinessCheckD3Detail; f != nil {
+			return f(supplier_name, due_date)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(supplier_name) + " was due " + msgs.arg(due_date) + " and has not come back."
+		case "zh-CN":
+			return supplier_name + " 的截止日为 " + due_date + "，仍未回收。"
+		}
+	}
+}
+
+// ReadinessCheckD3Title says "Supplier disclosure is overdue"
+// in the language the app shows under cx.
+func ReadinessCheckD3Title(cx *core.Scope) string { return For(cx).ReadinessCheckD3Title() }
+
+// ReadinessCheckD3Title is the package's ReadinessCheckD3Title in the language of msgs.
+func (msgs Messages) ReadinessCheckD3Title() string { return msgs.text(textReadinessCheckD3Title) }
+
+// ReadinessCheckN1Detail says "{source_name}: {amount} {unit} applied to a factor measured per {ef_input_unit}, with no fuel binding to convert between them."
+// in the language the app shows under cx.
+func ReadinessCheckN1Detail(cx *core.Scope, source_name string, amount string, unit string, ef_input_unit string) string {
+	return For(cx).ReadinessCheckN1Detail(source_name, amount, unit, ef_input_unit)
+}
+
+// ReadinessCheckN1Detail is the package's ReadinessCheckN1Detail in the language of msgs.
+func (msgs Messages) ReadinessCheckN1Detail(source_name string, amount string, unit string, ef_input_unit string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ReadinessCheckN1Detail(source_name, amount, unit, ef_input_unit))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ReadinessCheckN1Detail; f != nil {
+			return f(source_name, amount, unit, ef_input_unit)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(source_name) + ": " + msgs.arg(amount) + " " + msgs.arg(unit) + " applied to a factor measured per " + msgs.arg(ef_input_unit) + ", with no fuel binding to convert between them."
+		case "zh-CN":
+			return source_name + "：" + amount + " " + unit + " 用在了以 " + ef_input_unit + " 计的因子上，且没有可换算的燃料绑定。"
+		}
+	}
+}
+
+// ReadinessCheckN1Title says "Unit does not match the emission factor"
+// in the language the app shows under cx.
+func ReadinessCheckN1Title(cx *core.Scope) string { return For(cx).ReadinessCheckN1Title() }
+
+// ReadinessCheckN1Title is the package's ReadinessCheckN1Title in the language of msgs.
+func (msgs Messages) ReadinessCheckN1Title() string { return msgs.text(textReadinessCheckN1Title) }
+
+// ReadinessCheckN2Detail says "{source_name}: {amount} {unit} ({detail}); flagged beyond {ratio}x the group median."
+// in the language the app shows under cx.
+func ReadinessCheckN2Detail(cx *core.Scope, source_name string, amount string, unit string, detail string, ratio string) string {
+	return For(cx).ReadinessCheckN2Detail(source_name, amount, unit, detail, ratio)
+}
+
+// ReadinessCheckN2Detail is the package's ReadinessCheckN2Detail in the language of msgs.
+func (msgs Messages) ReadinessCheckN2Detail(source_name string, amount string, unit string, detail string, ratio string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ReadinessCheckN2Detail(source_name, amount, unit, detail, ratio))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ReadinessCheckN2Detail; f != nil {
+			return f(source_name, amount, unit, detail, ratio)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(source_name) + ": " + msgs.arg(amount) + " " + msgs.arg(unit) + " (" + msgs.arg(detail) + "); flagged beyond " + msgs.arg(ratio) + "x the group median."
+		case "zh-CN":
+			return source_name + "：" + amount + " " + unit + "（" + detail + "）；超过组内中位数 " + ratio + " 倍即标记。"
+		}
+	}
+}
+
+// ReadinessCheckN2Title says "Amount far from comparable rows"
+// in the language the app shows under cx.
+func ReadinessCheckN2Title(cx *core.Scope) string { return For(cx).ReadinessCheckN2Title() }
+
+// ReadinessCheckN2Title is the package's ReadinessCheckN2Title in the language of msgs.
+func (msgs Messages) ReadinessCheckN2Title() string { return msgs.text(textReadinessCheckN2Title) }
+
+// ReadinessCheckN3Detail says "{source_name}: {amount} {unit} on {occurred} repeats an earlier row."
+// in the language the app shows under cx.
+func ReadinessCheckN3Detail(cx *core.Scope, source_name string, amount string, unit string, occurred string) string {
+	return For(cx).ReadinessCheckN3Detail(source_name, amount, unit, occurred)
+}
+
+// ReadinessCheckN3Detail is the package's ReadinessCheckN3Detail in the language of msgs.
+func (msgs Messages) ReadinessCheckN3Detail(source_name string, amount string, unit string, occurred string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ReadinessCheckN3Detail(source_name, amount, unit, occurred))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ReadinessCheckN3Detail; f != nil {
+			return f(source_name, amount, unit, occurred)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(source_name) + ": " + msgs.arg(amount) + " " + msgs.arg(unit) + " on " + msgs.arg(occurred) + " repeats an earlier row."
+		case "zh-CN":
+			return source_name + "：" + occurred + " 的 " + amount + " " + unit + " 与更早的一行重复。"
+		}
+	}
+}
+
+// ReadinessCheckN3Title says "Possible duplicate row"
+// in the language the app shows under cx.
+func ReadinessCheckN3Title(cx *core.Scope) string { return For(cx).ReadinessCheckN3Title() }
+
+// ReadinessCheckN3Title is the package's ReadinessCheckN3Title in the language of msgs.
+func (msgs Messages) ReadinessCheckN3Title() string { return msgs.text(textReadinessCheckN3Title) }
+
+// ReadinessCheckN5Detail says "{year} uses {bases}. Totals computed on different GWP bases are not additive."
+// in the language the app shows under cx.
+func ReadinessCheckN5Detail(cx *core.Scope, year string, bases string) string {
+	return For(cx).ReadinessCheckN5Detail(year, bases)
+}
+
+// ReadinessCheckN5Detail is the package's ReadinessCheckN5Detail in the language of msgs.
+func (msgs Messages) ReadinessCheckN5Detail(year string, bases string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ReadinessCheckN5Detail(year, bases))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ReadinessCheckN5Detail; f != nil {
+			return f(year, bases)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(year) + " uses " + msgs.arg(bases) + ". Totals computed on different GWP bases are not additive."
+		case "zh-CN":
+			return year + " 年同时出现 " + bases + "。不同 GWP 口径下的合计不可相加。"
+		}
+	}
+}
+
+// ReadinessCheckN5Title says "Mixed GWP bases in one period"
+// in the language the app shows under cx.
+func ReadinessCheckN5Title(cx *core.Scope) string { return For(cx).ReadinessCheckN5Title() }
+
+// ReadinessCheckN5Title is the package's ReadinessCheckN5Title in the language of msgs.
+func (msgs Messages) ReadinessCheckN5Title() string { return msgs.text(textReadinessCheckN5Title) }
+
+// ReadinessCheckN6Detail says "{observation}"
+// in the language the app shows under cx.
+func ReadinessCheckN6Detail(cx *core.Scope, observation string) string {
+	return For(cx).ReadinessCheckN6Detail(observation)
+}
+
+// ReadinessCheckN6Detail is the package's ReadinessCheckN6Detail in the language of msgs.
+func (msgs Messages) ReadinessCheckN6Detail(observation string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ReadinessCheckN6Detail(observation))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ReadinessCheckN6Detail; f != nil {
+			return f(observation)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(observation)
+		case "zh-CN":
+			return observation
+		}
+	}
+}
+
+// ReadinessCheckN6Title says "Source classification looks inconsistent with its name"
+// in the language the app shows under cx.
+func ReadinessCheckN6Title(cx *core.Scope) string { return For(cx).ReadinessCheckN6Title() }
+
+// ReadinessCheckN6Title is the package's ReadinessCheckN6Title in the language of msgs.
+func (msgs Messages) ReadinessCheckN6Title() string { return msgs.text(textReadinessCheckN6Title) }
+
+// ReadinessCheckT1Detail says "{unevidenced_count} of {total_count} rows, {co2e_share_pct}% of this period's CO2e, have no source document or attachment."
+// in the language the app shows under cx.
+func ReadinessCheckT1Detail(cx *core.Scope, unevidenced_count string, total_count string, co2e_share_pct string) string {
+	return For(cx).ReadinessCheckT1Detail(unevidenced_count, total_count, co2e_share_pct)
+}
+
+// ReadinessCheckT1Detail is the package's ReadinessCheckT1Detail in the language of msgs.
+func (msgs Messages) ReadinessCheckT1Detail(unevidenced_count string, total_count string, co2e_share_pct string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ReadinessCheckT1Detail(unevidenced_count, total_count, co2e_share_pct))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ReadinessCheckT1Detail; f != nil {
+			return f(unevidenced_count, total_count, co2e_share_pct)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(unevidenced_count) + " of " + msgs.arg(total_count) + " rows, " + msgs.arg(co2e_share_pct) + "% of this period's CO2e, have no source document or attachment."
+		case "zh-CN":
+			return total_count + " 行中有 " + unevidenced_count + " 行没有来源单据或附件，占本期 CO2e 的 " + co2e_share_pct + "%。"
+		}
+	}
+}
+
+// ReadinessCheckT1Title says "Rows with no attached evidence"
+// in the language the app shows under cx.
+func ReadinessCheckT1Title(cx *core.Scope) string { return For(cx).ReadinessCheckT1Title() }
+
+// ReadinessCheckT1Title is the package's ReadinessCheckT1Title in the language of msgs.
+func (msgs Messages) ReadinessCheckT1Title() string { return msgs.text(textReadinessCheckT1Title) }
+
+// ReadinessCheckT2Detail says "{source_name}: created {created_at} with no corresponding audit event, so its origin cannot be established."
+// in the language the app shows under cx.
+func ReadinessCheckT2Detail(cx *core.Scope, source_name string, created_at string) string {
+	return For(cx).ReadinessCheckT2Detail(source_name, created_at)
+}
+
+// ReadinessCheckT2Detail is the package's ReadinessCheckT2Detail in the language of msgs.
+func (msgs Messages) ReadinessCheckT2Detail(source_name string, created_at string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ReadinessCheckT2Detail(source_name, created_at))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ReadinessCheckT2Detail; f != nil {
+			return f(source_name, created_at)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(source_name) + ": created " + msgs.arg(created_at) + " with no corresponding audit event, so its origin cannot be established."
+		case "zh-CN":
+			return source_name + "：创建于 " + created_at + "，但没有对应的审计事件，无法确认其来源。"
+		}
+	}
+}
+
+// ReadinessCheckT2Title says "Row has no audit trail"
+// in the language the app shows under cx.
+func ReadinessCheckT2Title(cx *core.Scope) string { return For(cx).ReadinessCheckT2Title() }
+
+// ReadinessCheckT2Title is the package's ReadinessCheckT2Title in the language of msgs.
+func (msgs Messages) ReadinessCheckT2Title() string { return msgs.text(textReadinessCheckT2Title) }
+
+// ReadinessCheckT3Detail says "{source_name}: {factor_code} is a {ef_year} factor used for {reporting_year}."
+// in the language the app shows under cx.
+func ReadinessCheckT3Detail(cx *core.Scope, source_name string, factor_code string, ef_year string, reporting_year string) string {
+	return For(cx).ReadinessCheckT3Detail(source_name, factor_code, ef_year, reporting_year)
+}
+
+// ReadinessCheckT3Detail is the package's ReadinessCheckT3Detail in the language of msgs.
+func (msgs Messages) ReadinessCheckT3Detail(source_name string, factor_code string, ef_year string, reporting_year string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ReadinessCheckT3Detail(source_name, factor_code, ef_year, reporting_year))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ReadinessCheckT3Detail; f != nil {
+			return f(source_name, factor_code, ef_year, reporting_year)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(source_name) + ": " + msgs.arg(factor_code) + " is a " + msgs.arg(ef_year) + " factor used for " + msgs.arg(reporting_year) + "."
+		case "zh-CN":
+			return source_name + "：" + factor_code + " 是 " + ef_year + " 年的因子，却用于 " + reporting_year + " 年。"
+		}
+	}
+}
+
+// ReadinessCheckT3Title says "Factor vintage is far from the reporting year"
+// in the language the app shows under cx.
+func ReadinessCheckT3Title(cx *core.Scope) string { return For(cx).ReadinessCheckT3Title() }
+
+// ReadinessCheckT3Title is the package's ReadinessCheckT3Title in the language of msgs.
+func (msgs Messages) ReadinessCheckT3Title() string { return msgs.text(textReadinessCheckT3Title) }
+
+// ReadinessCheckT4Detail says "{source_name}: {factor_code} came from {ef_source}, which has since been deleted. The number is unaffected; its provenance can no longer be shown."
+// in the language the app shows under cx.
+func ReadinessCheckT4Detail(cx *core.Scope, source_name string, factor_code string, ef_source string) string {
+	return For(cx).ReadinessCheckT4Detail(source_name, factor_code, ef_source)
+}
+
+// ReadinessCheckT4Detail is the package's ReadinessCheckT4Detail in the language of msgs.
+func (msgs Messages) ReadinessCheckT4Detail(source_name string, factor_code string, ef_source string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ReadinessCheckT4Detail(source_name, factor_code, ef_source))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ReadinessCheckT4Detail; f != nil {
+			return f(source_name, factor_code, ef_source)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(source_name) + ": " + msgs.arg(factor_code) + " came from " + msgs.arg(ef_source) + ", which has since been deleted. The number is unaffected; its provenance can no longer be shown."
+		case "zh-CN":
+			return source_name + "：" + factor_code + " 来自 " + ef_source + "，该库已删除。数字不受影响，但无法再展示其出处。"
+		}
+	}
+}
+
+// ReadinessCheckT4Title says "Factor library no longer exists"
+// in the language the app shows under cx.
+func ReadinessCheckT4Title(cx *core.Scope) string { return For(cx).ReadinessCheckT4Title() }
+
+// ReadinessCheckT4Title is the package's ReadinessCheckT4Title in the language of msgs.
+func (msgs Messages) ReadinessCheckT4Title() string { return msgs.text(textReadinessCheckT4Title) }
+
+// ReadinessCounts says "{blocker} blockers · {warning} warnings · {info} notes"
+// in the language the app shows under cx.
+func ReadinessCounts(cx *core.Scope, blocker string, warning string, info string) string {
+	return For(cx).ReadinessCounts(blocker, warning, info)
+}
+
+// ReadinessCounts is the package's ReadinessCounts in the language of msgs.
+func (msgs Messages) ReadinessCounts(blocker string, warning string, info string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ReadinessCounts(blocker, warning, info))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ReadinessCounts; f != nil {
+			return f(blocker, warning, info)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(blocker) + " blockers · " + msgs.arg(warning) + " warnings · " + msgs.arg(info) + " notes"
+		case "zh-CN":
+			return blocker + " 项阻断 · " + warning + " 项警告 · " + info + " 项提示"
+		}
+	}
+}
+
+// ReadinessDescription says "Deterministic checks over this reporting period. No AI provider required."
+// in the language the app shows under cx.
+func ReadinessDescription(cx *core.Scope) string { return For(cx).ReadinessDescription() }
+
+// ReadinessDescription is the package's ReadinessDescription in the language of msgs.
+func (msgs Messages) ReadinessDescription() string { return msgs.text(textReadinessDescription) }
+
+// ReadinessDismiss says "Dismiss"
+// in the language the app shows under cx.
+func ReadinessDismiss(cx *core.Scope) string { return For(cx).ReadinessDismiss() }
+
+// ReadinessDismiss is the package's ReadinessDismiss in the language of msgs.
+func (msgs Messages) ReadinessDismiss() string { return msgs.text(textReadinessDismiss) }
+
+// ReadinessDismissedNote says "{count} dismissed"
+// in the language the app shows under cx.
+func ReadinessDismissedNote(cx *core.Scope, count string) string {
+	return For(cx).ReadinessDismissedNote(count)
+}
+
+// ReadinessDismissedNote is the package's ReadinessDismissedNote in the language of msgs.
+func (msgs Messages) ReadinessDismissedNote(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ReadinessDismissedNote(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ReadinessDismissedNote; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " dismissed"
+		case "zh-CN":
+			return "已忽略 " + count + " 项"
+		}
+	}
+}
+
+// ReadinessHomeCardCta says "Review this period"
+// in the language the app shows under cx.
+func ReadinessHomeCardCta(cx *core.Scope) string { return For(cx).ReadinessHomeCardCta() }
+
+// ReadinessHomeCardCta is the package's ReadinessHomeCardCta in the language of msgs.
+func (msgs Messages) ReadinessHomeCardCta() string { return msgs.text(textReadinessHomeCardCta) }
+
+// ReadinessHomeCardTitle says "Readiness review"
+// in the language the app shows under cx.
+func ReadinessHomeCardTitle(cx *core.Scope) string { return For(cx).ReadinessHomeCardTitle() }
+
+// ReadinessHomeCardTitle is the package's ReadinessHomeCardTitle in the language of msgs.
+func (msgs Messages) ReadinessHomeCardTitle() string { return msgs.text(textReadinessHomeCardTitle) }
+
+// ReadinessLastChecked says "Checked {time}"
+// in the language the app shows under cx.
+func ReadinessLastChecked(cx *core.Scope, time_ string) string {
+	return For(cx).ReadinessLastChecked(time_)
+}
+
+// ReadinessLastChecked is the package's ReadinessLastChecked in the language of msgs.
+func (msgs Messages) ReadinessLastChecked(time_ string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ReadinessLastChecked(time_))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ReadinessLastChecked; f != nil {
+			return f(time_)
+		}
+		switch lang {
+		case "", "en":
+			return "Checked " + msgs.arg(time_)
+		case "zh-CN":
+			return "检查于 " + time_
+		}
+	}
+}
+
+// ReadinessNoPeriod says "Create a reporting period before running a readiness review."
+// in the language the app shows under cx.
+func ReadinessNoPeriod(cx *core.Scope) string { return For(cx).ReadinessNoPeriod() }
+
+// ReadinessNoPeriod is the package's ReadinessNoPeriod in the language of msgs.
+func (msgs Messages) ReadinessNoPeriod() string { return msgs.text(textReadinessNoPeriod) }
+
+// ReadinessOpen says "Open"
+// in the language the app shows under cx.
+func ReadinessOpen(cx *core.Scope) string { return For(cx).ReadinessOpen() }
+
+// ReadinessOpen is the package's ReadinessOpen in the language of msgs.
+func (msgs Messages) ReadinessOpen() string { return msgs.text(textReadinessOpen) }
+
+// ReadinessRerun says "Re-run"
+// in the language the app shows under cx.
+func ReadinessRerun(cx *core.Scope) string { return For(cx).ReadinessRerun() }
+
+// ReadinessRerun is the package's ReadinessRerun in the language of msgs.
+func (msgs Messages) ReadinessRerun() string { return msgs.text(textReadinessRerun) }
+
+// ReadinessReviewAgent says "Deeper review (AI)"
+// in the language the app shows under cx.
+func ReadinessReviewAgent(cx *core.Scope) string { return For(cx).ReadinessReviewAgent() }
+
+// ReadinessReviewAgent is the package's ReadinessReviewAgent in the language of msgs.
+func (msgs Messages) ReadinessReviewAgent() string { return msgs.text(textReadinessReviewAgent) }
+
+// ReadinessReviewingAgent says "Reviewing…"
+// in the language the app shows under cx.
+func ReadinessReviewingAgent(cx *core.Scope) string { return For(cx).ReadinessReviewingAgent() }
+
+// ReadinessReviewingAgent is the package's ReadinessReviewingAgent in the language of msgs.
+func (msgs Messages) ReadinessReviewingAgent() string { return msgs.text(textReadinessReviewingAgent) }
+
+// ReadinessRun says "Run review"
+// in the language the app shows under cx.
+func ReadinessRun(cx *core.Scope) string { return For(cx).ReadinessRun() }
+
+// ReadinessRun is the package's ReadinessRun in the language of msgs.
+func (msgs Messages) ReadinessRun() string { return msgs.text(textReadinessRun) }
+
+// ReadinessRunning says "Reviewing…"
+// in the language the app shows under cx.
+func ReadinessRunning(cx *core.Scope) string { return For(cx).ReadinessRunning() }
+
+// ReadinessRunning is the package's ReadinessRunning in the language of msgs.
+func (msgs Messages) ReadinessRunning() string { return msgs.text(textReadinessRunning) }
+
+// ReadinessSeverityBlocker says "Blocker"
+// in the language the app shows under cx.
+func ReadinessSeverityBlocker(cx *core.Scope) string { return For(cx).ReadinessSeverityBlocker() }
+
+// ReadinessSeverityBlocker is the package's ReadinessSeverityBlocker in the language of msgs.
+func (msgs Messages) ReadinessSeverityBlocker() string {
+	return msgs.text(textReadinessSeverityBlocker)
+}
+
+// ReadinessSeverityInfo says "For information"
+// in the language the app shows under cx.
+func ReadinessSeverityInfo(cx *core.Scope) string { return For(cx).ReadinessSeverityInfo() }
+
+// ReadinessSeverityInfo is the package's ReadinessSeverityInfo in the language of msgs.
+func (msgs Messages) ReadinessSeverityInfo() string { return msgs.text(textReadinessSeverityInfo) }
+
+// ReadinessSeverityWarning says "Warning"
+// in the language the app shows under cx.
+func ReadinessSeverityWarning(cx *core.Scope) string { return For(cx).ReadinessSeverityWarning() }
+
+// ReadinessSeverityWarning is the package's ReadinessSeverityWarning in the language of msgs.
+func (msgs Messages) ReadinessSeverityWarning() string {
+	return msgs.text(textReadinessSeverityWarning)
+}
+
+// ReadinessTitle says "Readiness review"
+// in the language the app shows under cx.
+func ReadinessTitle(cx *core.Scope) string { return For(cx).ReadinessTitle() }
+
+// ReadinessTitle is the package's ReadinessTitle in the language of msgs.
+func (msgs Messages) ReadinessTitle() string { return msgs.text(textReadinessTitle) }
+
+// RebindButton says "Rebind"
+// in the language the app shows under cx.
+func RebindButton(cx *core.Scope) string { return For(cx).RebindButton() }
+
+// RebindButton is the package's RebindButton in the language of msgs.
+func (msgs Messages) RebindButton() string { return msgs.text(textRebindButton) }
+
+// RebindCancel says "Cancel"
+// in the language the app shows under cx.
+func RebindCancel(cx *core.Scope) string { return For(cx).RebindCancel() }
+
+// RebindCancel is the package's RebindCancel in the language of msgs.
+func (msgs Messages) RebindCancel() string { return msgs.text(textRebindCancel) }
+
+// RebindConfirm says "Confirm rebind"
+// in the language the app shows under cx.
+func RebindConfirm(cx *core.Scope) string { return For(cx).RebindConfirm() }
+
+// RebindConfirm is the package's RebindConfirm in the language of msgs.
+func (msgs Messages) RebindConfirm() string { return msgs.text(textRebindConfirm) }
+
+// RebindCurrentCo2e says "Current emissions"
+// in the language the app shows under cx.
+func RebindCurrentCo2e(cx *core.Scope) string { return For(cx).RebindCurrentCo2e() }
+
+// RebindCurrentCo2e is the package's RebindCurrentCo2e in the language of msgs.
+func (msgs Messages) RebindCurrentCo2e() string { return msgs.text(textRebindCurrentCo2e) }
+
+// RebindCurrentLabel says "Current"
+// in the language the app shows under cx.
+func RebindCurrentLabel(cx *core.Scope) string { return For(cx).RebindCurrentLabel() }
+
+// RebindCurrentLabel is the package's RebindCurrentLabel in the language of msgs.
+func (msgs Messages) RebindCurrentLabel() string { return msgs.text(textRebindCurrentLabel) }
+
+// RebindDelta says "Change: {delta_signed} kg ({pct_signed}%)"
+// in the language the app shows under cx.
+func RebindDelta(cx *core.Scope, delta_signed string, pct_signed string) string {
+	return For(cx).RebindDelta(delta_signed, pct_signed)
+}
+
+// RebindDelta is the package's RebindDelta in the language of msgs.
+func (msgs Messages) RebindDelta(delta_signed string, pct_signed string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.RebindDelta(delta_signed, pct_signed))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].RebindDelta; f != nil {
+			return f(delta_signed, pct_signed)
+		}
+		switch lang {
+		case "", "en":
+			return "Change: " + msgs.arg(delta_signed) + " kg (" + msgs.arg(pct_signed) + "%)"
+		case "zh-CN":
+			return "变化: " + delta_signed + " kg (" + pct_signed + "%)"
+		}
+	}
+}
+
+// RebindDrawerHeading says "Rebind emission factor"
+// in the language the app shows under cx.
+func RebindDrawerHeading(cx *core.Scope) string { return For(cx).RebindDrawerHeading() }
+
+// RebindDrawerHeading is the package's RebindDrawerHeading in the language of msgs.
+func (msgs Messages) RebindDrawerHeading() string { return msgs.text(textRebindDrawerHeading) }
+
+// RebindErrorToast says "Rebind failed: {message}"
+// in the language the app shows under cx.
+func RebindErrorToast(cx *core.Scope, message string) string {
+	return For(cx).RebindErrorToast(message)
+}
+
+// RebindErrorToast is the package's RebindErrorToast in the language of msgs.
+func (msgs Messages) RebindErrorToast(message string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.RebindErrorToast(message))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].RebindErrorToast; f != nil {
+			return f(message)
+		}
+		switch lang {
+		case "", "en":
+			return "Rebind failed: " + msgs.arg(message)
+		case "zh-CN":
+			return "重新镶嵌失败: " + message
+		}
+	}
+}
+
+// RebindNewCo2e says "New emissions"
+// in the language the app shows under cx.
+func RebindNewCo2e(cx *core.Scope) string { return For(cx).RebindNewCo2e() }
+
+// RebindNewCo2e is the package's RebindNewCo2e in the language of msgs.
+func (msgs Messages) RebindNewCo2e() string { return msgs.text(textRebindNewCo2e) }
+
+// RebindOverrideAmountLabel says "New activity amount ({unit})"
+// in the language the app shows under cx.
+func RebindOverrideAmountLabel(cx *core.Scope, unit string) string {
+	return For(cx).RebindOverrideAmountLabel(unit)
+}
+
+// RebindOverrideAmountLabel is the package's RebindOverrideAmountLabel in the language of msgs.
+func (msgs Messages) RebindOverrideAmountLabel(unit string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.RebindOverrideAmountLabel(unit))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].RebindOverrideAmountLabel; f != nil {
+			return f(unit)
+		}
+		switch lang {
+		case "", "en":
+			return "New activity amount (" + msgs.arg(unit) + ")"
+		case "zh-CN":
+			return "新活动量（" + unit + "）"
+		}
+	}
+}
+
+// RebindOverrideAmountPlaceholder says "Amount in {unit}"
+// in the language the app shows under cx.
+func RebindOverrideAmountPlaceholder(cx *core.Scope, unit string) string {
+	return For(cx).RebindOverrideAmountPlaceholder(unit)
+}
+
+// RebindOverrideAmountPlaceholder is the package's RebindOverrideAmountPlaceholder in the language of msgs.
+func (msgs Messages) RebindOverrideAmountPlaceholder(unit string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.RebindOverrideAmountPlaceholder(unit))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].RebindOverrideAmountPlaceholder; f != nil {
+			return f(unit)
+		}
+		switch lang {
+		case "", "en":
+			return "Amount in " + msgs.arg(unit)
+		case "zh-CN":
+			return unit + " 下的数值"
+		}
+	}
+}
+
+// RebindPickerHeading says "Pick a new emission factor"
+// in the language the app shows under cx.
+func RebindPickerHeading(cx *core.Scope) string { return For(cx).RebindPickerHeading() }
+
+// RebindPickerHeading is the package's RebindPickerHeading in the language of msgs.
+func (msgs Messages) RebindPickerHeading() string { return msgs.text(textRebindPickerHeading) }
+
+// RebindPreviewHeading says "Preview"
+// in the language the app shows under cx.
+func RebindPreviewHeading(cx *core.Scope) string { return For(cx).RebindPreviewHeading() }
+
+// RebindPreviewHeading is the package's RebindPreviewHeading in the language of msgs.
+func (msgs Messages) RebindPreviewHeading() string { return msgs.text(textRebindPreviewHeading) }
+
+// RebindSuccessToast says "Rebound — new emissions {co2e} kg CO2e ({pct_signed}%)"
+// in the language the app shows under cx.
+func RebindSuccessToast(cx *core.Scope, co2e string, pct_signed string) string {
+	return For(cx).RebindSuccessToast(co2e, pct_signed)
+}
+
+// RebindSuccessToast is the package's RebindSuccessToast in the language of msgs.
+func (msgs Messages) RebindSuccessToast(co2e string, pct_signed string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.RebindSuccessToast(co2e, pct_signed))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].RebindSuccessToast; f != nil {
+			return f(co2e, pct_signed)
+		}
+		switch lang {
+		case "", "en":
+			return "Rebound — new emissions " + msgs.arg(co2e) + " kg CO2e (" + msgs.arg(pct_signed) + "%)"
+		case "zh-CN":
+			return "已重新镶嵌 — 新排放 " + co2e + " kg CO2e (" + pct_signed + "%)"
+		}
+	}
+}
+
+// RebindUnitConversion says "Unit conversion: {from_amt} {from_unit} → {to_amt} {to_unit}"
+// in the language the app shows under cx.
+func RebindUnitConversion(cx *core.Scope, from_amt string, from_unit string, to_amt string, to_unit string) string {
+	return For(cx).RebindUnitConversion(from_amt, from_unit, to_amt, to_unit)
+}
+
+// RebindUnitConversion is the package's RebindUnitConversion in the language of msgs.
+func (msgs Messages) RebindUnitConversion(from_amt string, from_unit string, to_amt string, to_unit string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.RebindUnitConversion(from_amt, from_unit, to_amt, to_unit))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].RebindUnitConversion; f != nil {
+			return f(from_amt, from_unit, to_amt, to_unit)
+		}
+		switch lang {
+		case "", "en":
+			return "Unit conversion: " + msgs.arg(from_amt) + " " + msgs.arg(from_unit) + " → " + msgs.arg(to_amt) + " " + msgs.arg(to_unit)
+		case "zh-CN":
+			return "单位换算: " + from_amt + " " + from_unit + " → " + to_amt + " " + to_unit
+		}
+	}
+}
+
+// RebindUnitCrossFamily says "Cross-unit-family change ({from} → {to}). Enter the new activity amount in {to} below — the system will not guess a conversion (e.g. heating value)."
+// in the language the app shows under cx.
+func RebindUnitCrossFamily(cx *core.Scope, from string, to string) string {
+	return For(cx).RebindUnitCrossFamily(from, to)
+}
+
+// RebindUnitCrossFamily is the package's RebindUnitCrossFamily in the language of msgs.
+func (msgs Messages) RebindUnitCrossFamily(from string, to string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.RebindUnitCrossFamily(from, to))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].RebindUnitCrossFamily; f != nil {
+			return f(from, to)
+		}
+		switch lang {
+		case "", "en":
+			return "Cross-unit-family change (" + msgs.arg(from) + " → " + msgs.arg(to) + "). Enter the new activity amount in " + msgs.arg(to) + " below — the system will not guess a conversion (e.g. heating value)."
+		case "zh-CN":
+			return "跨单位族（" + from + " → " + to + "）：系统不会替你猜换算（例如热值），请在下方手动输入新单位下的活动量。"
+		}
+	}
+}
+
+// ReportsCancelButton says "Cancel"
+// in the language the app shows under cx.
+func ReportsCancelButton(cx *core.Scope) string { return For(cx).ReportsCancelButton() }
+
+// ReportsCancelButton is the package's ReportsCancelButton in the language of msgs.
+func (msgs Messages) ReportsCancelButton() string { return msgs.text(textReportsCancelButton) }
+
+// ReportsDeliverableSuccess says "Deliverable bundle saved to {path} ({count} evidence files included)"
+// in the language the app shows under cx.
+func ReportsDeliverableSuccess(cx *core.Scope, path string, count string) string {
+	return For(cx).ReportsDeliverableSuccess(path, count)
+}
+
+// ReportsDeliverableSuccess is the package's ReportsDeliverableSuccess in the language of msgs.
+func (msgs Messages) ReportsDeliverableSuccess(path string, count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ReportsDeliverableSuccess(path, count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ReportsDeliverableSuccess; f != nil {
+			return f(path, count)
+		}
+		switch lang {
+		case "", "en":
+			return "Deliverable bundle saved to " + msgs.arg(path) + " (" + msgs.arg(count) + " evidence files included)"
+		case "zh-CN":
+			return "交付包已保存至 " + path + "（含证据文件 " + count + " 份）"
+		}
+	}
+}
+
+// ReportsDeliverableSuccessMissing says "Deliverable bundle saved to {path} — {missing} of {count} evidence files were missing on disk and are flagged in manifest.csv"
+// in the language the app shows under cx.
+func ReportsDeliverableSuccessMissing(cx *core.Scope, path string, missing string, count string) string {
+	return For(cx).ReportsDeliverableSuccessMissing(path, missing, count)
+}
+
+// ReportsDeliverableSuccessMissing is the package's ReportsDeliverableSuccessMissing in the language of msgs.
+func (msgs Messages) ReportsDeliverableSuccessMissing(path string, missing string, count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ReportsDeliverableSuccessMissing(path, missing, count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ReportsDeliverableSuccessMissing; f != nil {
+			return f(path, missing, count)
+		}
+		switch lang {
+		case "", "en":
+			return "Deliverable bundle saved to " + msgs.arg(path) + " — " + msgs.arg(missing) + " of " + msgs.arg(count) + " evidence files were missing on disk and are flagged in manifest.csv"
+		case "zh-CN":
+			return "交付包已保存至 " + path + "——" + count + " 份证据文件中 " + missing + " 份磁盘缺失，已在 manifest.csv 标注"
+		}
+	}
+}
+
+// ReportsExportBothButton says "Confirm and export (PDF + Excel)"
+// in the language the app shows under cx.
+func ReportsExportBothButton(cx *core.Scope) string { return For(cx).ReportsExportBothButton() }
+
+// ReportsExportBothButton is the package's ReportsExportBothButton in the language of msgs.
+func (msgs Messages) ReportsExportBothButton() string { return msgs.text(textReportsExportBothButton) }
+
+// ReportsExportDeliverableButton says "Export deliverable bundle (ZIP)"
+// in the language the app shows under cx.
+func ReportsExportDeliverableButton(cx *core.Scope) string {
+	return For(cx).ReportsExportDeliverableButton()
+}
+
+// ReportsExportDeliverableButton is the package's ReportsExportDeliverableButton in the language of msgs.
+func (msgs Messages) ReportsExportDeliverableButton() string {
+	return msgs.text(textReportsExportDeliverableButton)
+}
+
+// ReportsExportFailed says "Export failed: {message}"
+// in the language the app shows under cx.
+func ReportsExportFailed(cx *core.Scope, message string) string {
+	return For(cx).ReportsExportFailed(message)
+}
+
+// ReportsExportFailed is the package's ReportsExportFailed in the language of msgs.
+func (msgs Messages) ReportsExportFailed(message string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ReportsExportFailed(message))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ReportsExportFailed; f != nil {
+			return f(message)
+		}
+		switch lang {
+		case "", "en":
+			return "Export failed: " + msgs.arg(message)
+		case "zh-CN":
+			return "导出失败: " + message
+		}
+	}
+}
+
+// ReportsExportSuccess says "Exported {kind} → {path}"
+// in the language the app shows under cx.
+func ReportsExportSuccess(cx *core.Scope, kind string, path string) string {
+	return For(cx).ReportsExportSuccess(kind, path)
+}
+
+// ReportsExportSuccess is the package's ReportsExportSuccess in the language of msgs.
+func (msgs Messages) ReportsExportSuccess(kind string, path string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ReportsExportSuccess(kind, path))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ReportsExportSuccess; f != nil {
+			return f(kind, path)
+		}
+		switch lang {
+		case "", "en":
+			return "Exported " + msgs.arg(kind) + " → " + msgs.arg(path)
+		case "zh-CN":
+			return "已导出 " + kind + " → " + path
+		}
+	}
+}
+
+// ReportsExportXlsxButton says "Export Excel appendix"
+// in the language the app shows under cx.
+func ReportsExportXlsxButton(cx *core.Scope) string { return For(cx).ReportsExportXlsxButton() }
+
+// ReportsExportXlsxButton is the package's ReportsExportXlsxButton in the language of msgs.
+func (msgs Messages) ReportsExportXlsxButton() string { return msgs.text(textReportsExportXlsxButton) }
+
+// ReportsGenerateButton says "Generate report"
+// in the language the app shows under cx.
+func ReportsGenerateButton(cx *core.Scope) string { return For(cx).ReportsGenerateButton() }
+
+// ReportsGenerateButton is the package's ReportsGenerateButton in the language of msgs.
+func (msgs Messages) ReportsGenerateButton() string { return msgs.text(textReportsGenerateButton) }
+
+// ReportsGenerateFailed says "Generation failed: {message}"
+// in the language the app shows under cx.
+func ReportsGenerateFailed(cx *core.Scope, message string) string {
+	return For(cx).ReportsGenerateFailed(message)
+}
+
+// ReportsGenerateFailed is the package's ReportsGenerateFailed in the language of msgs.
+func (msgs Messages) ReportsGenerateFailed(message string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ReportsGenerateFailed(message))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ReportsGenerateFailed; f != nil {
+			return f(message)
+		}
+		switch lang {
+		case "", "en":
+			return "Generation failed: " + msgs.arg(message)
+		case "zh-CN":
+			return "生成失败: " + message
+		}
+	}
+}
+
+// ReportsKindIso says "ISO 14064-1 inventory report"
+// in the language the app shows under cx.
+func ReportsKindIso(cx *core.Scope) string { return For(cx).ReportsKindIso() }
+
+// ReportsKindIso is the package's ReportsKindIso in the language of msgs.
+func (msgs Messages) ReportsKindIso() string { return msgs.text(textReportsKindIso) }
+
+// ReportsKindLabel says "Report type"
+// in the language the app shows under cx.
+func ReportsKindLabel(cx *core.Scope) string { return For(cx).ReportsKindLabel() }
+
+// ReportsKindLabel is the package's ReportsKindLabel in the language of msgs.
+func (msgs Messages) ReportsKindLabel() string { return msgs.text(textReportsKindLabel) }
+
+// ReportsKindTcfd says "TCFD climate disclosure (four pillars)"
+// in the language the app shows under cx.
+func ReportsKindTcfd(cx *core.Scope) string { return For(cx).ReportsKindTcfd() }
+
+// ReportsKindTcfd is the package's ReportsKindTcfd in the language of msgs.
+func (msgs Messages) ReportsKindTcfd() string { return msgs.text(textReportsKindTcfd) }
+
+// ReportsLangEn says "English"
+// in the language the app shows under cx.
+func ReportsLangEn(cx *core.Scope) string { return For(cx).ReportsLangEn() }
+
+// ReportsLangEn is the package's ReportsLangEn in the language of msgs.
+func (msgs Messages) ReportsLangEn() string { return msgs.text(textReportsLangEn) }
+
+// ReportsLangLabel says "Language"
+// in the language the app shows under cx.
+func ReportsLangLabel(cx *core.Scope) string { return For(cx).ReportsLangLabel() }
+
+// ReportsLangLabel is the package's ReportsLangLabel in the language of msgs.
+func (msgs Messages) ReportsLangLabel() string { return msgs.text(textReportsLangLabel) }
+
+// ReportsLangZh says "Chinese (zh-CN)"
+// in the language the app shows under cx.
+func ReportsLangZh(cx *core.Scope) string { return For(cx).ReportsLangZh() }
+
+// ReportsLangZh is the package's ReportsLangZh in the language of msgs.
+func (msgs Messages) ReportsLangZh() string { return msgs.text(textReportsLangZh) }
+
+// ReportsListHeading says "Inventory reports"
+// in the language the app shows under cx.
+func ReportsListHeading(cx *core.Scope) string { return For(cx).ReportsListHeading() }
+
+// ReportsListHeading is the package's ReportsListHeading in the language of msgs.
+func (msgs Messages) ReportsListHeading() string { return msgs.text(textReportsListHeading) }
+
+// ReportsListSubheading says "Generate ISO 14064-1-style reports."
+// in the language the app shows under cx.
+func ReportsListSubheading(cx *core.Scope) string { return For(cx).ReportsListSubheading() }
+
+// ReportsListSubheading is the package's ReportsListSubheading in the language of msgs.
+func (msgs Messages) ReportsListSubheading() string { return msgs.text(textReportsListSubheading) }
+
+// ReportsNav says "Reports"
+// in the language the app shows under cx.
+func ReportsNav(cx *core.Scope) string { return For(cx).ReportsNav() }
+
+// ReportsNav is the package's ReportsNav in the language of msgs.
+func (msgs Messages) ReportsNav() string { return msgs.text(textReportsNav) }
+
+// ReportsNewCta says "New report"
+// in the language the app shows under cx.
+func ReportsNewCta(cx *core.Scope) string { return For(cx).ReportsNewCta() }
+
+// ReportsNewCta is the package's ReportsNewCta in the language of msgs.
+func (msgs Messages) ReportsNewCta() string { return msgs.text(textReportsNewCta) }
+
+// ReportsNoPeriods says "No reporting periods yet."
+// in the language the app shows under cx.
+func ReportsNoPeriods(cx *core.Scope) string { return For(cx).ReportsNoPeriods() }
+
+// ReportsNoPeriods is the package's ReportsNoPeriods in the language of msgs.
+func (msgs Messages) ReportsNoPeriods() string { return msgs.text(textReportsNoPeriods) }
+
+// ReportsNoProvider says "No LLM provider configured. Open Settings."
+// in the language the app shows under cx.
+func ReportsNoProvider(cx *core.Scope) string { return For(cx).ReportsNoProvider() }
+
+// ReportsNoProvider is the package's ReportsNoProvider in the language of msgs.
+func (msgs Messages) ReportsNoProvider() string { return msgs.text(textReportsNoProvider) }
+
+// ReportsProgressAssembling says "Assembling inventory data..."
+// in the language the app shows under cx.
+func ReportsProgressAssembling(cx *core.Scope) string { return For(cx).ReportsProgressAssembling() }
+
+// ReportsProgressAssembling is the package's ReportsProgressAssembling in the language of msgs.
+func (msgs Messages) ReportsProgressAssembling() string {
+	return msgs.text(textReportsProgressAssembling)
+}
+
+// ReportsProgressBoundary says "Writing organizational boundary..."
+// in the language the app shows under cx.
+func ReportsProgressBoundary(cx *core.Scope) string { return For(cx).ReportsProgressBoundary() }
+
+// ReportsProgressBoundary is the package's ReportsProgressBoundary in the language of msgs.
+func (msgs Messages) ReportsProgressBoundary() string { return msgs.text(textReportsProgressBoundary) }
+
+// ReportsProgressChanges says "Writing significant changes..."
+// in the language the app shows under cx.
+func ReportsProgressChanges(cx *core.Scope) string { return For(cx).ReportsProgressChanges() }
+
+// ReportsProgressChanges is the package's ReportsProgressChanges in the language of msgs.
+func (msgs Messages) ReportsProgressChanges() string { return msgs.text(textReportsProgressChanges) }
+
+// ReportsProgressEmissions says "Writing emissions summary..."
+// in the language the app shows under cx.
+func ReportsProgressEmissions(cx *core.Scope) string { return For(cx).ReportsProgressEmissions() }
+
+// ReportsProgressEmissions is the package's ReportsProgressEmissions in the language of msgs.
+func (msgs Messages) ReportsProgressEmissions() string {
+	return msgs.text(textReportsProgressEmissions)
+}
+
+// ReportsProgressFinalizing says "Finalizing..."
+// in the language the app shows under cx.
+func ReportsProgressFinalizing(cx *core.Scope) string { return For(cx).ReportsProgressFinalizing() }
+
+// ReportsProgressFinalizing is the package's ReportsProgressFinalizing in the language of msgs.
+func (msgs Messages) ReportsProgressFinalizing() string {
+	return msgs.text(textReportsProgressFinalizing)
+}
+
+// ReportsProgressMethodology says "Writing methodology..."
+// in the language the app shows under cx.
+func ReportsProgressMethodology(cx *core.Scope) string { return For(cx).ReportsProgressMethodology() }
+
+// ReportsProgressMethodology is the package's ReportsProgressMethodology in the language of msgs.
+func (msgs Messages) ReportsProgressMethodology() string {
+	return msgs.text(textReportsProgressMethodology)
+}
+
+// ReportsProgressObservations says "Writing notable observations..."
+// in the language the app shows under cx.
+func ReportsProgressObservations(cx *core.Scope) string { return For(cx).ReportsProgressObservations() }
+
+// ReportsProgressObservations is the package's ReportsProgressObservations in the language of msgs.
+func (msgs Messages) ReportsProgressObservations() string {
+	return msgs.text(textReportsProgressObservations)
+}
+
+// ReportsProgressReportingBoundary says "Writing reporting boundary..."
+// in the language the app shows under cx.
+func ReportsProgressReportingBoundary(cx *core.Scope) string {
+	return For(cx).ReportsProgressReportingBoundary()
+}
+
+// ReportsProgressReportingBoundary is the package's ReportsProgressReportingBoundary in the language of msgs.
+func (msgs Messages) ReportsProgressReportingBoundary() string {
+	return msgs.text(textReportsProgressReportingBoundary)
+}
+
+// ReportsRegenerateButton says "Regenerate"
+// in the language the app shows under cx.
+func ReportsRegenerateButton(cx *core.Scope) string { return For(cx).ReportsRegenerateButton() }
+
+// ReportsRegenerateButton is the package's ReportsRegenerateButton in the language of msgs.
+func (msgs Messages) ReportsRegenerateButton() string { return msgs.text(textReportsRegenerateButton) }
+
+// ReportsRegenerateWarning says "Regenerating will discard unsaved edits. Continue?"
+// in the language the app shows under cx.
+func ReportsRegenerateWarning(cx *core.Scope) string { return For(cx).ReportsRegenerateWarning() }
+
+// ReportsRegenerateWarning is the package's ReportsRegenerateWarning in the language of msgs.
+func (msgs Messages) ReportsRegenerateWarning() string {
+	return msgs.text(textReportsRegenerateWarning)
+}
+
+// ReportsSetupRequired says "Set organization profile in Settings first."
+// in the language the app shows under cx.
+func ReportsSetupRequired(cx *core.Scope) string { return For(cx).ReportsSetupRequired() }
+
+// ReportsSetupRequired is the package's ReportsSetupRequired in the language of msgs.
+func (msgs Messages) ReportsSetupRequired() string { return msgs.text(textReportsSetupRequired) }
+
+// RequiredField says "Required"
+// in the language the app shows under cx.
+func RequiredField(cx *core.Scope) string { return For(cx).RequiredField() }
+
+// RequiredField is the package's RequiredField in the language of msgs.
+func (msgs Messages) RequiredField() string { return msgs.text(textRequiredField) }
+
+// RoutingLookupButton says "Look up distance"
+// in the language the app shows under cx.
+func RoutingLookupButton(cx *core.Scope) string { return For(cx).RoutingLookupButton() }
+
+// RoutingLookupButton is the package's RoutingLookupButton in the language of msgs.
+func (msgs Messages) RoutingLookupButton() string { return msgs.text(textRoutingLookupButton) }
+
+// RoutingLookupDoneAmap says "AMap: {km} km"
+// in the language the app shows under cx.
+func RoutingLookupDoneAmap(cx *core.Scope, km string) string {
+	return For(cx).RoutingLookupDoneAmap(km)
+}
+
+// RoutingLookupDoneAmap is the package's RoutingLookupDoneAmap in the language of msgs.
+func (msgs Messages) RoutingLookupDoneAmap(km string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.RoutingLookupDoneAmap(km))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].RoutingLookupDoneAmap; f != nil {
+			return f(km)
+		}
+		switch lang {
+		case "", "en":
+			return "AMap: " + msgs.arg(km) + " km"
+		case "zh-CN":
+			return "高德：" + km + " km"
+		}
+	}
+}
+
+// RoutingLookupDoneHaversine says "Haversine: {km} km"
+// in the language the app shows under cx.
+func RoutingLookupDoneHaversine(cx *core.Scope, km string) string {
+	return For(cx).RoutingLookupDoneHaversine(km)
+}
+
+// RoutingLookupDoneHaversine is the package's RoutingLookupDoneHaversine in the language of msgs.
+func (msgs Messages) RoutingLookupDoneHaversine(km string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.RoutingLookupDoneHaversine(km))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].RoutingLookupDoneHaversine; f != nil {
+			return f(km)
+		}
+		switch lang {
+		case "", "en":
+			return "Haversine: " + msgs.arg(km) + " km"
+		case "zh-CN":
+			return "大圆距离：" + km + " km"
+		}
+	}
+}
+
+// RoutingLookupRunning says "Looking up…"
+// in the language the app shows under cx.
+func RoutingLookupRunning(cx *core.Scope) string { return For(cx).RoutingLookupRunning() }
+
+// RoutingLookupRunning is the package's RoutingLookupRunning in the language of msgs.
+func (msgs Messages) RoutingLookupRunning() string { return msgs.text(textRoutingLookupRunning) }
+
+// SettingsAboutAppName says "App"
+// in the language the app shows under cx.
+func SettingsAboutAppName(cx *core.Scope) string { return For(cx).SettingsAboutAppName() }
+
+// SettingsAboutAppName is the package's SettingsAboutAppName in the language of msgs.
+func (msgs Messages) SettingsAboutAppName() string { return msgs.text(textSettingsAboutAppName) }
+
+// SettingsAboutChrome says "Chromium"
+// in the language the app shows under cx.
+func SettingsAboutChrome(cx *core.Scope) string { return For(cx).SettingsAboutChrome() }
+
+// SettingsAboutChrome is the package's SettingsAboutChrome in the language of msgs.
+func (msgs Messages) SettingsAboutChrome() string { return msgs.text(textSettingsAboutChrome) }
+
+// SettingsAboutElectron says "Electron"
+// in the language the app shows under cx.
+func SettingsAboutElectron(cx *core.Scope) string { return For(cx).SettingsAboutElectron() }
+
+// SettingsAboutElectron is the package's SettingsAboutElectron in the language of msgs.
+func (msgs Messages) SettingsAboutElectron() string { return msgs.text(textSettingsAboutElectron) }
+
+// SettingsAboutNode says "Node"
+// in the language the app shows under cx.
+func SettingsAboutNode(cx *core.Scope) string { return For(cx).SettingsAboutNode() }
+
+// SettingsAboutNode is the package's SettingsAboutNode in the language of msgs.
+func (msgs Messages) SettingsAboutNode() string { return msgs.text(textSettingsAboutNode) }
+
+// SettingsAboutOpenDataDir says "Open data folder"
+// in the language the app shows under cx.
+func SettingsAboutOpenDataDir(cx *core.Scope) string { return For(cx).SettingsAboutOpenDataDir() }
+
+// SettingsAboutOpenDataDir is the package's SettingsAboutOpenDataDir in the language of msgs.
+func (msgs Messages) SettingsAboutOpenDataDir() string {
+	return msgs.text(textSettingsAboutOpenDataDir)
+}
+
+// SettingsAboutOpenDataDirFailed says "Could not open the data folder."
+// in the language the app shows under cx.
+func SettingsAboutOpenDataDirFailed(cx *core.Scope) string {
+	return For(cx).SettingsAboutOpenDataDirFailed()
+}
+
+// SettingsAboutOpenDataDirFailed is the package's SettingsAboutOpenDataDirFailed in the language of msgs.
+func (msgs Messages) SettingsAboutOpenDataDirFailed() string {
+	return msgs.text(textSettingsAboutOpenDataDirFailed)
+}
+
+// SettingsAboutOpenDataDirHint says "Reveals the app's data folder (sqlite database, attachments, settings)."
+// in the language the app shows under cx.
+func SettingsAboutOpenDataDirHint(cx *core.Scope) string {
+	return For(cx).SettingsAboutOpenDataDirHint()
+}
+
+// SettingsAboutOpenDataDirHint is the package's SettingsAboutOpenDataDirHint in the language of msgs.
+func (msgs Messages) SettingsAboutOpenDataDirHint() string {
+	return msgs.text(textSettingsAboutOpenDataDirHint)
+}
+
+// SettingsAboutOpenLogDir says "Open log folder"
+// in the language the app shows under cx.
+func SettingsAboutOpenLogDir(cx *core.Scope) string { return For(cx).SettingsAboutOpenLogDir() }
+
+// SettingsAboutOpenLogDir is the package's SettingsAboutOpenLogDir in the language of msgs.
+func (msgs Messages) SettingsAboutOpenLogDir() string { return msgs.text(textSettingsAboutOpenLogDir) }
+
+// SettingsAboutOpenLogDirFailed says "Could not open the log folder."
+// in the language the app shows under cx.
+func SettingsAboutOpenLogDirFailed(cx *core.Scope) string {
+	return For(cx).SettingsAboutOpenLogDirFailed()
+}
+
+// SettingsAboutOpenLogDirFailed is the package's SettingsAboutOpenLogDirFailed in the language of msgs.
+func (msgs Messages) SettingsAboutOpenLogDirFailed() string {
+	return msgs.text(textSettingsAboutOpenLogDirFailed)
+}
+
+// SettingsAboutOpenLogDirHint says "Daily log files for support. Last 14 days are kept."
+// in the language the app shows under cx.
+func SettingsAboutOpenLogDirHint(cx *core.Scope) string { return For(cx).SettingsAboutOpenLogDirHint() }
+
+// SettingsAboutOpenLogDirHint is the package's SettingsAboutOpenLogDirHint in the language of msgs.
+func (msgs Messages) SettingsAboutOpenLogDirHint() string {
+	return msgs.text(textSettingsAboutOpenLogDirHint)
+}
+
+// SettingsAboutPlatform says "Platform"
+// in the language the app shows under cx.
+func SettingsAboutPlatform(cx *core.Scope) string { return For(cx).SettingsAboutPlatform() }
+
+// SettingsAboutPlatform is the package's SettingsAboutPlatform in the language of msgs.
+func (msgs Messages) SettingsAboutPlatform() string { return msgs.text(textSettingsAboutPlatform) }
+
+// SettingsAboutSupportEmail says "support@carbonink.xyz"
+// in the language the app shows under cx.
+func SettingsAboutSupportEmail(cx *core.Scope) string { return For(cx).SettingsAboutSupportEmail() }
+
+// SettingsAboutSupportEmail is the package's SettingsAboutSupportEmail in the language of msgs.
+func (msgs Messages) SettingsAboutSupportEmail() string {
+	return msgs.text(textSettingsAboutSupportEmail)
+}
+
+// SettingsAboutSupportLabel says "Support"
+// in the language the app shows under cx.
+func SettingsAboutSupportLabel(cx *core.Scope) string { return For(cx).SettingsAboutSupportLabel() }
+
+// SettingsAboutSupportLabel is the package's SettingsAboutSupportLabel in the language of msgs.
+func (msgs Messages) SettingsAboutSupportLabel() string {
+	return msgs.text(textSettingsAboutSupportLabel)
+}
+
+// SettingsAboutUserData says "Data folder"
+// in the language the app shows under cx.
+func SettingsAboutUserData(cx *core.Scope) string { return For(cx).SettingsAboutUserData() }
+
+// SettingsAboutUserData is the package's SettingsAboutUserData in the language of msgs.
+func (msgs Messages) SettingsAboutUserData() string { return msgs.text(textSettingsAboutUserData) }
+
+// SettingsAboutVersion says "Version"
+// in the language the app shows under cx.
+func SettingsAboutVersion(cx *core.Scope) string { return For(cx).SettingsAboutVersion() }
+
+// SettingsAboutVersion is the package's SettingsAboutVersion in the language of msgs.
+func (msgs Messages) SettingsAboutVersion() string { return msgs.text(textSettingsAboutVersion) }
+
+// SettingsAboutWebsiteLabel says "Website"
+// in the language the app shows under cx.
+func SettingsAboutWebsiteLabel(cx *core.Scope) string { return For(cx).SettingsAboutWebsiteLabel() }
+
+// SettingsAboutWebsiteLabel is the package's SettingsAboutWebsiteLabel in the language of msgs.
+func (msgs Messages) SettingsAboutWebsiteLabel() string {
+	return msgs.text(textSettingsAboutWebsiteLabel)
+}
+
+// SettingsAboutWebsiteUrl says "carbonink.xyz"
+// in the language the app shows under cx.
+func SettingsAboutWebsiteUrl(cx *core.Scope) string { return For(cx).SettingsAboutWebsiteUrl() }
+
+// SettingsAboutWebsiteUrl is the package's SettingsAboutWebsiteUrl in the language of msgs.
+func (msgs Messages) SettingsAboutWebsiteUrl() string { return msgs.text(textSettingsAboutWebsiteUrl) }
+
+// SettingsAiCacheClear says "Clear AI cache"
+// in the language the app shows under cx.
+func SettingsAiCacheClear(cx *core.Scope) string { return For(cx).SettingsAiCacheClear() }
+
+// SettingsAiCacheClear is the package's SettingsAiCacheClear in the language of msgs.
+func (msgs Messages) SettingsAiCacheClear() string { return msgs.text(textSettingsAiCacheClear) }
+
+// SettingsAiCacheClearFailed says "Failed to clear AI cache"
+// in the language the app shows under cx.
+func SettingsAiCacheClearFailed(cx *core.Scope) string { return For(cx).SettingsAiCacheClearFailed() }
+
+// SettingsAiCacheClearFailed is the package's SettingsAiCacheClearFailed in the language of msgs.
+func (msgs Messages) SettingsAiCacheClearFailed() string {
+	return msgs.text(textSettingsAiCacheClearFailed)
+}
+
+// SettingsAiCacheCleared says "Cleared {count} cached result(s)."
+// in the language the app shows under cx.
+func SettingsAiCacheCleared(cx *core.Scope, count string) string {
+	return For(cx).SettingsAiCacheCleared(count)
+}
+
+// SettingsAiCacheCleared is the package's SettingsAiCacheCleared in the language of msgs.
+func (msgs Messages) SettingsAiCacheCleared(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SettingsAiCacheCleared(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SettingsAiCacheCleared; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return "Cleared " + msgs.arg(count) + " cached result(s)."
+		case "zh-CN":
+			return "已清空 " + count + " 条缓存结果。"
+		}
+	}
+}
+
+// SettingsAiCacheClearing says "Clearing…"
+// in the language the app shows under cx.
+func SettingsAiCacheClearing(cx *core.Scope) string { return For(cx).SettingsAiCacheClearing() }
+
+// SettingsAiCacheClearing is the package's SettingsAiCacheClearing in the language of msgs.
+func (msgs Messages) SettingsAiCacheClearing() string { return msgs.text(textSettingsAiCacheClearing) }
+
+// SettingsAiCacheHint says "Keeps repeat AI answers (EF matches, readiness) so re-runs don't re-pay. Safe to clear any time."
+// in the language the app shows under cx.
+func SettingsAiCacheHint(cx *core.Scope) string { return For(cx).SettingsAiCacheHint() }
+
+// SettingsAiCacheHint is the package's SettingsAiCacheHint in the language of msgs.
+func (msgs Messages) SettingsAiCacheHint() string { return msgs.text(textSettingsAiCacheHint) }
+
+// SettingsAiCacheLabel says "AI cache"
+// in the language the app shows under cx.
+func SettingsAiCacheLabel(cx *core.Scope) string { return For(cx).SettingsAiCacheLabel() }
+
+// SettingsAiCacheLabel is the package's SettingsAiCacheLabel in the language of msgs.
+func (msgs Messages) SettingsAiCacheLabel() string { return msgs.text(textSettingsAiCacheLabel) }
+
+// SettingsApikeyLabel says "API key"
+// in the language the app shows under cx.
+func SettingsApikeyLabel(cx *core.Scope) string { return For(cx).SettingsApikeyLabel() }
+
+// SettingsApikeyLabel is the package's SettingsApikeyLabel in the language of msgs.
+func (msgs Messages) SettingsApikeyLabel() string { return msgs.text(textSettingsApikeyLabel) }
+
+// SettingsApikeyReplace says "Replace"
+// in the language the app shows under cx.
+func SettingsApikeyReplace(cx *core.Scope) string { return For(cx).SettingsApikeyReplace() }
+
+// SettingsApikeyReplace is the package's SettingsApikeyReplace in the language of msgs.
+func (msgs Messages) SettingsApikeyReplace() string { return msgs.text(textSettingsApikeyReplace) }
+
+// SettingsApikeySaved says "Saved"
+// in the language the app shows under cx.
+func SettingsApikeySaved(cx *core.Scope) string { return For(cx).SettingsApikeySaved() }
+
+// SettingsApikeySaved is the package's SettingsApikeySaved in the language of msgs.
+func (msgs Messages) SettingsApikeySaved() string { return msgs.text(textSettingsApikeySaved) }
+
 // SettingsAppearance says "Appearance"
 // in the language the app shows under cx.
 func SettingsAppearance(cx *core.Scope) string { return For(cx).SettingsAppearance() }
@@ -561,54 +16987,64 @@ func SettingsAppearance(cx *core.Scope) string { return For(cx).SettingsAppearan
 // SettingsAppearance is the package's SettingsAppearance in the language of msgs.
 func (msgs Messages) SettingsAppearance() string { return msgs.text(textSettingsAppearance) }
 
-// SettingsThemeSystem says "System"
+// SettingsBaseYearLabel says "Base year"
 // in the language the app shows under cx.
-func SettingsThemeSystem(cx *core.Scope) string { return For(cx).SettingsThemeSystem() }
+func SettingsBaseYearLabel(cx *core.Scope) string { return For(cx).SettingsBaseYearLabel() }
 
-// SettingsThemeSystem is the package's SettingsThemeSystem in the language of msgs.
-func (msgs Messages) SettingsThemeSystem() string { return msgs.text(textSettingsThemeSystem) }
+// SettingsBaseYearLabel is the package's SettingsBaseYearLabel in the language of msgs.
+func (msgs Messages) SettingsBaseYearLabel() string { return msgs.text(textSettingsBaseYearLabel) }
 
-// SettingsThemeLight says "Light"
+// SettingsBaseYearNone says "(not selected)"
 // in the language the app shows under cx.
-func SettingsThemeLight(cx *core.Scope) string { return For(cx).SettingsThemeLight() }
+func SettingsBaseYearNone(cx *core.Scope) string { return For(cx).SettingsBaseYearNone() }
 
-// SettingsThemeLight is the package's SettingsThemeLight in the language of msgs.
-func (msgs Messages) SettingsThemeLight() string { return msgs.text(textSettingsThemeLight) }
+// SettingsBaseYearNone is the package's SettingsBaseYearNone in the language of msgs.
+func (msgs Messages) SettingsBaseYearNone() string { return msgs.text(textSettingsBaseYearNone) }
 
-// SettingsThemeDark says "Dark"
+// SettingsBoundaryEquityShare says "Equity share"
 // in the language the app shows under cx.
-func SettingsThemeDark(cx *core.Scope) string { return For(cx).SettingsThemeDark() }
+func SettingsBoundaryEquityShare(cx *core.Scope) string { return For(cx).SettingsBoundaryEquityShare() }
 
-// SettingsThemeDark is the package's SettingsThemeDark in the language of msgs.
-func (msgs Messages) SettingsThemeDark() string { return msgs.text(textSettingsThemeDark) }
+// SettingsBoundaryEquityShare is the package's SettingsBoundaryEquityShare in the language of msgs.
+func (msgs Messages) SettingsBoundaryEquityShare() string {
+	return msgs.text(textSettingsBoundaryEquityShare)
+}
 
-// SettingsLanguage says "Language"
+// SettingsBoundaryFinancialControl says "Financial control"
 // in the language the app shows under cx.
-func SettingsLanguage(cx *core.Scope) string { return For(cx).SettingsLanguage() }
+func SettingsBoundaryFinancialControl(cx *core.Scope) string {
+	return For(cx).SettingsBoundaryFinancialControl()
+}
 
-// SettingsLanguage is the package's SettingsLanguage in the language of msgs.
-func (msgs Messages) SettingsLanguage() string { return msgs.text(textSettingsLanguage) }
+// SettingsBoundaryFinancialControl is the package's SettingsBoundaryFinancialControl in the language of msgs.
+func (msgs Messages) SettingsBoundaryFinancialControl() string {
+	return msgs.text(textSettingsBoundaryFinancialControl)
+}
 
-// SettingsLanguageSystem says "System"
+// SettingsBoundaryLabel says "Consolidation approach"
 // in the language the app shows under cx.
-func SettingsLanguageSystem(cx *core.Scope) string { return For(cx).SettingsLanguageSystem() }
+func SettingsBoundaryLabel(cx *core.Scope) string { return For(cx).SettingsBoundaryLabel() }
 
-// SettingsLanguageSystem is the package's SettingsLanguageSystem in the language of msgs.
-func (msgs Messages) SettingsLanguageSystem() string { return msgs.text(textSettingsLanguageSystem) }
+// SettingsBoundaryLabel is the package's SettingsBoundaryLabel in the language of msgs.
+func (msgs Messages) SettingsBoundaryLabel() string { return msgs.text(textSettingsBoundaryLabel) }
 
-// SettingsLanguageEnglish says "English"
+// SettingsBoundaryOperationalControl says "Operational control"
 // in the language the app shows under cx.
-func SettingsLanguageEnglish(cx *core.Scope) string { return For(cx).SettingsLanguageEnglish() }
+func SettingsBoundaryOperationalControl(cx *core.Scope) string {
+	return For(cx).SettingsBoundaryOperationalControl()
+}
 
-// SettingsLanguageEnglish is the package's SettingsLanguageEnglish in the language of msgs.
-func (msgs Messages) SettingsLanguageEnglish() string { return msgs.text(textSettingsLanguageEnglish) }
+// SettingsBoundaryOperationalControl is the package's SettingsBoundaryOperationalControl in the language of msgs.
+func (msgs Messages) SettingsBoundaryOperationalControl() string {
+	return msgs.text(textSettingsBoundaryOperationalControl)
+}
 
-// SettingsLanguageChinese says "中文"
+// SettingsCancel says "Cancel"
 // in the language the app shows under cx.
-func SettingsLanguageChinese(cx *core.Scope) string { return For(cx).SettingsLanguageChinese() }
+func SettingsCancel(cx *core.Scope) string { return For(cx).SettingsCancel() }
 
-// SettingsLanguageChinese is the package's SettingsLanguageChinese in the language of msgs.
-func (msgs Messages) SettingsLanguageChinese() string { return msgs.text(textSettingsLanguageChinese) }
+// SettingsCancel is the package's SettingsCancel in the language of msgs.
+func (msgs Messages) SettingsCancel() string { return msgs.text(textSettingsCancel) }
 
 // SettingsCurrent says "Current: {value}"
 // in the language the app shows under cx.
@@ -632,12 +17068,1652 @@ func (msgs Messages) SettingsCurrent(value string) string {
 	}
 }
 
+// SettingsDataAutoBackupBody says "When CarbonInk launches, it makes a daily backup to the app's auto-backup folder. The last 7 are kept."
+// in the language the app shows under cx.
+func SettingsDataAutoBackupBody(cx *core.Scope) string { return For(cx).SettingsDataAutoBackupBody() }
+
+// SettingsDataAutoBackupBody is the package's SettingsDataAutoBackupBody in the language of msgs.
+func (msgs Messages) SettingsDataAutoBackupBody() string {
+	return msgs.text(textSettingsDataAutoBackupBody)
+}
+
+// SettingsDataAutoBackupHeading says "Auto-backup"
+// in the language the app shows under cx.
+func SettingsDataAutoBackupHeading(cx *core.Scope) string {
+	return For(cx).SettingsDataAutoBackupHeading()
+}
+
+// SettingsDataAutoBackupHeading is the package's SettingsDataAutoBackupHeading in the language of msgs.
+func (msgs Messages) SettingsDataAutoBackupHeading() string {
+	return msgs.text(textSettingsDataAutoBackupHeading)
+}
+
+// SettingsDataAutoBackupOpen says "Open auto-backup folder"
+// in the language the app shows under cx.
+func SettingsDataAutoBackupOpen(cx *core.Scope) string { return For(cx).SettingsDataAutoBackupOpen() }
+
+// SettingsDataAutoBackupOpen is the package's SettingsDataAutoBackupOpen in the language of msgs.
+func (msgs Messages) SettingsDataAutoBackupOpen() string {
+	return msgs.text(textSettingsDataAutoBackupOpen)
+}
+
+// SettingsDataAutoBackupOpenFailed says "Could not open the auto-backup folder."
+// in the language the app shows under cx.
+func SettingsDataAutoBackupOpenFailed(cx *core.Scope) string {
+	return For(cx).SettingsDataAutoBackupOpenFailed()
+}
+
+// SettingsDataAutoBackupOpenFailed is the package's SettingsDataAutoBackupOpenFailed in the language of msgs.
+func (msgs Messages) SettingsDataAutoBackupOpenFailed() string {
+	return msgs.text(textSettingsDataAutoBackupOpenFailed)
+}
+
+// SettingsDataAutoBackupToggleFailed says "Could not save the auto-backup setting."
+// in the language the app shows under cx.
+func SettingsDataAutoBackupToggleFailed(cx *core.Scope) string {
+	return For(cx).SettingsDataAutoBackupToggleFailed()
+}
+
+// SettingsDataAutoBackupToggleFailed is the package's SettingsDataAutoBackupToggleFailed in the language of msgs.
+func (msgs Messages) SettingsDataAutoBackupToggleFailed() string {
+	return msgs.text(textSettingsDataAutoBackupToggleFailed)
+}
+
+// SettingsDataAutoBackupToggleLabel says "Auto-backup enabled"
+// in the language the app shows under cx.
+func SettingsDataAutoBackupToggleLabel(cx *core.Scope) string {
+	return For(cx).SettingsDataAutoBackupToggleLabel()
+}
+
+// SettingsDataAutoBackupToggleLabel is the package's SettingsDataAutoBackupToggleLabel in the language of msgs.
+func (msgs Messages) SettingsDataAutoBackupToggleLabel() string {
+	return msgs.text(textSettingsDataAutoBackupToggleLabel)
+}
+
+// SettingsDataBackupBody says "Backups are a single .carbonink-backup file (a SQLite database). Attachments (PDFs) are NOT included in v1 — they can be re-uploaded after restoring."
+// in the language the app shows under cx.
+func SettingsDataBackupBody(cx *core.Scope) string { return For(cx).SettingsDataBackupBody() }
+
+// SettingsDataBackupBody is the package's SettingsDataBackupBody in the language of msgs.
+func (msgs Messages) SettingsDataBackupBody() string { return msgs.text(textSettingsDataBackupBody) }
+
+// SettingsDataBackupHeading says "Backup & restore"
+// in the language the app shows under cx.
+func SettingsDataBackupHeading(cx *core.Scope) string { return For(cx).SettingsDataBackupHeading() }
+
+// SettingsDataBackupHeading is the package's SettingsDataBackupHeading in the language of msgs.
+func (msgs Messages) SettingsDataBackupHeading() string {
+	return msgs.text(textSettingsDataBackupHeading)
+}
+
+// SettingsDataCacheBody says "Cached LLM responses (already-confirmed extractions) accumulate over time. Clearing them is safe — it does not affect activities, reports, or any user data."
+// in the language the app shows under cx.
+func SettingsDataCacheBody(cx *core.Scope) string { return For(cx).SettingsDataCacheBody() }
+
+// SettingsDataCacheBody is the package's SettingsDataCacheBody in the language of msgs.
+func (msgs Messages) SettingsDataCacheBody() string { return msgs.text(textSettingsDataCacheBody) }
+
+// SettingsDataCacheClearButton says "Clear LLM cache"
+// in the language the app shows under cx.
+func SettingsDataCacheClearButton(cx *core.Scope) string {
+	return For(cx).SettingsDataCacheClearButton()
+}
+
+// SettingsDataCacheClearButton is the package's SettingsDataCacheClearButton in the language of msgs.
+func (msgs Messages) SettingsDataCacheClearButton() string {
+	return msgs.text(textSettingsDataCacheClearButton)
+}
+
+// SettingsDataCacheClearSuccess says "Cleared {rows} entries, freed {size}."
+// in the language the app shows under cx.
+func SettingsDataCacheClearSuccess(cx *core.Scope, rows string, size string) string {
+	return For(cx).SettingsDataCacheClearSuccess(rows, size)
+}
+
+// SettingsDataCacheClearSuccess is the package's SettingsDataCacheClearSuccess in the language of msgs.
+func (msgs Messages) SettingsDataCacheClearSuccess(rows string, size string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SettingsDataCacheClearSuccess(rows, size))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SettingsDataCacheClearSuccess; f != nil {
+			return f(rows, size)
+		}
+		switch lang {
+		case "", "en":
+			return "Cleared " + msgs.arg(rows) + " entries, freed " + msgs.arg(size) + "."
+		case "zh-CN":
+			return "已清理 " + rows + " 条，释放 " + size + "。"
+		}
+	}
+}
+
+// SettingsDataCacheExtractionEmpty says "No cached LLM responses."
+// in the language the app shows under cx.
+func SettingsDataCacheExtractionEmpty(cx *core.Scope) string {
+	return For(cx).SettingsDataCacheExtractionEmpty()
+}
+
+// SettingsDataCacheExtractionEmpty is the package's SettingsDataCacheExtractionEmpty in the language of msgs.
+func (msgs Messages) SettingsDataCacheExtractionEmpty() string {
+	return msgs.text(textSettingsDataCacheExtractionEmpty)
+}
+
+// SettingsDataCacheExtractionSummary says "{count} cached LLM responses ({size})."
+// in the language the app shows under cx.
+func SettingsDataCacheExtractionSummary(cx *core.Scope, count string, size string) string {
+	return For(cx).SettingsDataCacheExtractionSummary(count, size)
+}
+
+// SettingsDataCacheExtractionSummary is the package's SettingsDataCacheExtractionSummary in the language of msgs.
+func (msgs Messages) SettingsDataCacheExtractionSummary(count string, size string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SettingsDataCacheExtractionSummary(count, size))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SettingsDataCacheExtractionSummary; f != nil {
+			return f(count, size)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " cached LLM responses (" + msgs.arg(size) + ")."
+		case "zh-CN":
+			return count + " 条 LLM 缓存（" + size + "）。"
+		}
+	}
+}
+
+// SettingsDataCacheHeading says "Cache"
+// in the language the app shows under cx.
+func SettingsDataCacheHeading(cx *core.Scope) string { return For(cx).SettingsDataCacheHeading() }
+
+// SettingsDataCacheHeading is the package's SettingsDataCacheHeading in the language of msgs.
+func (msgs Messages) SettingsDataCacheHeading() string {
+	return msgs.text(textSettingsDataCacheHeading)
+}
+
+// SettingsDataDbSize says "Database size"
+// in the language the app shows under cx.
+func SettingsDataDbSize(cx *core.Scope) string { return For(cx).SettingsDataDbSize() }
+
+// SettingsDataDbSize is the package's SettingsDataDbSize in the language of msgs.
+func (msgs Messages) SettingsDataDbSize() string { return msgs.text(textSettingsDataDbSize) }
+
 // SettingsDataDir says "Data directory"
 // in the language the app shows under cx.
 func SettingsDataDir(cx *core.Scope) string { return For(cx).SettingsDataDir() }
 
 // SettingsDataDir is the package's SettingsDataDir in the language of msgs.
 func (msgs Messages) SettingsDataDir() string { return msgs.text(textSettingsDataDir) }
+
+// SettingsDataExportButton says "Export backup"
+// in the language the app shows under cx.
+func SettingsDataExportButton(cx *core.Scope) string { return For(cx).SettingsDataExportButton() }
+
+// SettingsDataExportButton is the package's SettingsDataExportButton in the language of msgs.
+func (msgs Messages) SettingsDataExportButton() string {
+	return msgs.text(textSettingsDataExportButton)
+}
+
+// SettingsDataExportFailed says "Backup failed"
+// in the language the app shows under cx.
+func SettingsDataExportFailed(cx *core.Scope) string { return For(cx).SettingsDataExportFailed() }
+
+// SettingsDataExportFailed is the package's SettingsDataExportFailed in the language of msgs.
+func (msgs Messages) SettingsDataExportFailed() string {
+	return msgs.text(textSettingsDataExportFailed)
+}
+
+// SettingsDataExportSuccess says "Backup saved"
+// in the language the app shows under cx.
+func SettingsDataExportSuccess(cx *core.Scope) string { return For(cx).SettingsDataExportSuccess() }
+
+// SettingsDataExportSuccess is the package's SettingsDataExportSuccess in the language of msgs.
+func (msgs Messages) SettingsDataExportSuccess() string {
+	return msgs.text(textSettingsDataExportSuccess)
+}
+
+// SettingsDataImportButton says "Import backup"
+// in the language the app shows under cx.
+func SettingsDataImportButton(cx *core.Scope) string { return For(cx).SettingsDataImportButton() }
+
+// SettingsDataImportButton is the package's SettingsDataImportButton in the language of msgs.
+func (msgs Messages) SettingsDataImportButton() string {
+	return msgs.text(textSettingsDataImportButton)
+}
+
+// SettingsDataImportConfirm says "Importing will REPLACE all current data with the backup. The app will restart. Continue?"
+// in the language the app shows under cx.
+func SettingsDataImportConfirm(cx *core.Scope) string { return For(cx).SettingsDataImportConfirm() }
+
+// SettingsDataImportConfirm is the package's SettingsDataImportConfirm in the language of msgs.
+func (msgs Messages) SettingsDataImportConfirm() string {
+	return msgs.text(textSettingsDataImportConfirm)
+}
+
+// SettingsDataImportFailed says "Restore failed"
+// in the language the app shows under cx.
+func SettingsDataImportFailed(cx *core.Scope) string { return For(cx).SettingsDataImportFailed() }
+
+// SettingsDataImportFailed is the package's SettingsDataImportFailed in the language of msgs.
+func (msgs Messages) SettingsDataImportFailed() string {
+	return msgs.text(textSettingsDataImportFailed)
+}
+
+// SettingsDataImportSuccess says "Backup restored — restarting…"
+// in the language the app shows under cx.
+func SettingsDataImportSuccess(cx *core.Scope) string { return For(cx).SettingsDataImportSuccess() }
+
+// SettingsDataImportSuccess is the package's SettingsDataImportSuccess in the language of msgs.
+func (msgs Messages) SettingsDataImportSuccess() string {
+	return msgs.text(textSettingsDataImportSuccess)
+}
+
+// SettingsDataResetBody says "Deletes everything — organization, sites, activities, documents, extractions, audit log. The app will restart and run the onboarding wizard."
+// in the language the app shows under cx.
+func SettingsDataResetBody(cx *core.Scope) string { return For(cx).SettingsDataResetBody() }
+
+// SettingsDataResetBody is the package's SettingsDataResetBody in the language of msgs.
+func (msgs Messages) SettingsDataResetBody() string { return msgs.text(textSettingsDataResetBody) }
+
+// SettingsDataResetButton says "Reset all data"
+// in the language the app shows under cx.
+func SettingsDataResetButton(cx *core.Scope) string { return For(cx).SettingsDataResetButton() }
+
+// SettingsDataResetButton is the package's SettingsDataResetButton in the language of msgs.
+func (msgs Messages) SettingsDataResetButton() string { return msgs.text(textSettingsDataResetButton) }
+
+// SettingsDataResetConfirm says "Reset and restart"
+// in the language the app shows under cx.
+func SettingsDataResetConfirm(cx *core.Scope) string { return For(cx).SettingsDataResetConfirm() }
+
+// SettingsDataResetConfirm is the package's SettingsDataResetConfirm in the language of msgs.
+func (msgs Messages) SettingsDataResetConfirm() string {
+	return msgs.text(textSettingsDataResetConfirm)
+}
+
+// SettingsDataResetConfirmInput says "Type RESET to confirm"
+// in the language the app shows under cx.
+func SettingsDataResetConfirmInput(cx *core.Scope) string {
+	return For(cx).SettingsDataResetConfirmInput()
+}
+
+// SettingsDataResetConfirmInput is the package's SettingsDataResetConfirmInput in the language of msgs.
+func (msgs Messages) SettingsDataResetConfirmInput() string {
+	return msgs.text(textSettingsDataResetConfirmInput)
+}
+
+// SettingsDataResetHeading says "Reset all data"
+// in the language the app shows under cx.
+func SettingsDataResetHeading(cx *core.Scope) string { return For(cx).SettingsDataResetHeading() }
+
+// SettingsDataResetHeading is the package's SettingsDataResetHeading in the language of msgs.
+func (msgs Messages) SettingsDataResetHeading() string {
+	return msgs.text(textSettingsDataResetHeading)
+}
+
+// SettingsDataResetInflight says "Resetting — restarting…"
+// in the language the app shows under cx.
+func SettingsDataResetInflight(cx *core.Scope) string { return For(cx).SettingsDataResetInflight() }
+
+// SettingsDataResetInflight is the package's SettingsDataResetInflight in the language of msgs.
+func (msgs Messages) SettingsDataResetInflight() string {
+	return msgs.text(textSettingsDataResetInflight)
+}
+
+// SettingsGeneralGuidanceHint says "Short walkthroughs that play once, the first time you open a screen."
+// in the language the app shows under cx.
+func SettingsGeneralGuidanceHint(cx *core.Scope) string { return For(cx).SettingsGeneralGuidanceHint() }
+
+// SettingsGeneralGuidanceHint is the package's SettingsGeneralGuidanceHint in the language of msgs.
+func (msgs Messages) SettingsGeneralGuidanceHint() string {
+	return msgs.text(textSettingsGeneralGuidanceHint)
+}
+
+// SettingsGeneralGuidanceLabel says "Guided tours"
+// in the language the app shows under cx.
+func SettingsGeneralGuidanceLabel(cx *core.Scope) string {
+	return For(cx).SettingsGeneralGuidanceLabel()
+}
+
+// SettingsGeneralGuidanceLabel is the package's SettingsGeneralGuidanceLabel in the language of msgs.
+func (msgs Messages) SettingsGeneralGuidanceLabel() string {
+	return msgs.text(textSettingsGeneralGuidanceLabel)
+}
+
+// SettingsGeneralGuidanceOff says "Off"
+// in the language the app shows under cx.
+func SettingsGeneralGuidanceOff(cx *core.Scope) string { return For(cx).SettingsGeneralGuidanceOff() }
+
+// SettingsGeneralGuidanceOff is the package's SettingsGeneralGuidanceOff in the language of msgs.
+func (msgs Messages) SettingsGeneralGuidanceOff() string {
+	return msgs.text(textSettingsGeneralGuidanceOff)
+}
+
+// SettingsGeneralGuidanceOn says "On"
+// in the language the app shows under cx.
+func SettingsGeneralGuidanceOn(cx *core.Scope) string { return For(cx).SettingsGeneralGuidanceOn() }
+
+// SettingsGeneralGuidanceOn is the package's SettingsGeneralGuidanceOn in the language of msgs.
+func (msgs Messages) SettingsGeneralGuidanceOn() string {
+	return msgs.text(textSettingsGeneralGuidanceOn)
+}
+
+// SettingsGeneralGuidanceReplay says "Replay all tours"
+// in the language the app shows under cx.
+func SettingsGeneralGuidanceReplay(cx *core.Scope) string {
+	return For(cx).SettingsGeneralGuidanceReplay()
+}
+
+// SettingsGeneralGuidanceReplay is the package's SettingsGeneralGuidanceReplay in the language of msgs.
+func (msgs Messages) SettingsGeneralGuidanceReplay() string {
+	return msgs.text(textSettingsGeneralGuidanceReplay)
+}
+
+// SettingsGeneralGuidanceReplayDone says "Guided tours will play again the next time you open each screen."
+// in the language the app shows under cx.
+func SettingsGeneralGuidanceReplayDone(cx *core.Scope) string {
+	return For(cx).SettingsGeneralGuidanceReplayDone()
+}
+
+// SettingsGeneralGuidanceReplayDone is the package's SettingsGeneralGuidanceReplayDone in the language of msgs.
+func (msgs Messages) SettingsGeneralGuidanceReplayDone() string {
+	return msgs.text(textSettingsGeneralGuidanceReplayDone)
+}
+
+// SettingsGeneralLanguageEn says "English"
+// in the language the app shows under cx.
+func SettingsGeneralLanguageEn(cx *core.Scope) string { return For(cx).SettingsGeneralLanguageEn() }
+
+// SettingsGeneralLanguageEn is the package's SettingsGeneralLanguageEn in the language of msgs.
+func (msgs Messages) SettingsGeneralLanguageEn() string {
+	return msgs.text(textSettingsGeneralLanguageEn)
+}
+
+// SettingsGeneralLanguageHint says "Affects the entire app — sidebar, dialogs, exports. Reports keep their author-locale."
+// in the language the app shows under cx.
+func SettingsGeneralLanguageHint(cx *core.Scope) string { return For(cx).SettingsGeneralLanguageHint() }
+
+// SettingsGeneralLanguageHint is the package's SettingsGeneralLanguageHint in the language of msgs.
+func (msgs Messages) SettingsGeneralLanguageHint() string {
+	return msgs.text(textSettingsGeneralLanguageHint)
+}
+
+// SettingsGeneralLanguageLabel says "Display language"
+// in the language the app shows under cx.
+func SettingsGeneralLanguageLabel(cx *core.Scope) string {
+	return For(cx).SettingsGeneralLanguageLabel()
+}
+
+// SettingsGeneralLanguageLabel is the package's SettingsGeneralLanguageLabel in the language of msgs.
+func (msgs Messages) SettingsGeneralLanguageLabel() string {
+	return msgs.text(textSettingsGeneralLanguageLabel)
+}
+
+// SettingsGeneralLanguageZh says "简体中文"
+// in the language the app shows under cx.
+func SettingsGeneralLanguageZh(cx *core.Scope) string { return For(cx).SettingsGeneralLanguageZh() }
+
+// SettingsGeneralLanguageZh is the package's SettingsGeneralLanguageZh in the language of msgs.
+func (msgs Messages) SettingsGeneralLanguageZh() string {
+	return msgs.text(textSettingsGeneralLanguageZh)
+}
+
+// SettingsGeneralThemeDark says "Dark"
+// in the language the app shows under cx.
+func SettingsGeneralThemeDark(cx *core.Scope) string { return For(cx).SettingsGeneralThemeDark() }
+
+// SettingsGeneralThemeDark is the package's SettingsGeneralThemeDark in the language of msgs.
+func (msgs Messages) SettingsGeneralThemeDark() string {
+	return msgs.text(textSettingsGeneralThemeDark)
+}
+
+// SettingsGeneralThemeHint says "Follow the system, force light, or force dark."
+// in the language the app shows under cx.
+func SettingsGeneralThemeHint(cx *core.Scope) string { return For(cx).SettingsGeneralThemeHint() }
+
+// SettingsGeneralThemeHint is the package's SettingsGeneralThemeHint in the language of msgs.
+func (msgs Messages) SettingsGeneralThemeHint() string {
+	return msgs.text(textSettingsGeneralThemeHint)
+}
+
+// SettingsGeneralThemeLabel says "Appearance"
+// in the language the app shows under cx.
+func SettingsGeneralThemeLabel(cx *core.Scope) string { return For(cx).SettingsGeneralThemeLabel() }
+
+// SettingsGeneralThemeLabel is the package's SettingsGeneralThemeLabel in the language of msgs.
+func (msgs Messages) SettingsGeneralThemeLabel() string {
+	return msgs.text(textSettingsGeneralThemeLabel)
+}
+
+// SettingsGeneralThemeLight says "Light"
+// in the language the app shows under cx.
+func SettingsGeneralThemeLight(cx *core.Scope) string { return For(cx).SettingsGeneralThemeLight() }
+
+// SettingsGeneralThemeLight is the package's SettingsGeneralThemeLight in the language of msgs.
+func (msgs Messages) SettingsGeneralThemeLight() string {
+	return msgs.text(textSettingsGeneralThemeLight)
+}
+
+// SettingsGeneralThemeSystem says "System"
+// in the language the app shows under cx.
+func SettingsGeneralThemeSystem(cx *core.Scope) string { return For(cx).SettingsGeneralThemeSystem() }
+
+// SettingsGeneralThemeSystem is the package's SettingsGeneralThemeSystem in the language of msgs.
+func (msgs Messages) SettingsGeneralThemeSystem() string {
+	return msgs.text(textSettingsGeneralThemeSystem)
+}
+
+// SettingsImportOutlierBody says "During batch ledger import, a row is flagged as a suspected outlier when its amount is more than N× away from its group's median (both directions). Applies to this workspace only; warnings never block the import."
+// in the language the app shows under cx.
+func SettingsImportOutlierBody(cx *core.Scope) string { return For(cx).SettingsImportOutlierBody() }
+
+// SettingsImportOutlierBody is the package's SettingsImportOutlierBody in the language of msgs.
+func (msgs Messages) SettingsImportOutlierBody() string {
+	return msgs.text(textSettingsImportOutlierBody)
+}
+
+// SettingsImportOutlierHeading says "Batch-import anomaly detection"
+// in the language the app shows under cx.
+func SettingsImportOutlierHeading(cx *core.Scope) string {
+	return For(cx).SettingsImportOutlierHeading()
+}
+
+// SettingsImportOutlierHeading is the package's SettingsImportOutlierHeading in the language of msgs.
+func (msgs Messages) SettingsImportOutlierHeading() string {
+	return msgs.text(textSettingsImportOutlierHeading)
+}
+
+// SettingsImportOutlierInvalid says "Enter a number between 2 and 1000"
+// in the language the app shows under cx.
+func SettingsImportOutlierInvalid(cx *core.Scope) string {
+	return For(cx).SettingsImportOutlierInvalid()
+}
+
+// SettingsImportOutlierInvalid is the package's SettingsImportOutlierInvalid in the language of msgs.
+func (msgs Messages) SettingsImportOutlierInvalid() string {
+	return msgs.text(textSettingsImportOutlierInvalid)
+}
+
+// SettingsImportOutlierLabel says "Outlier multiplier (2–1000)"
+// in the language the app shows under cx.
+func SettingsImportOutlierLabel(cx *core.Scope) string { return For(cx).SettingsImportOutlierLabel() }
+
+// SettingsImportOutlierLabel is the package's SettingsImportOutlierLabel in the language of msgs.
+func (msgs Messages) SettingsImportOutlierLabel() string {
+	return msgs.text(textSettingsImportOutlierLabel)
+}
+
+// SettingsImportOutlierSaved says "Outlier multiplier saved"
+// in the language the app shows under cx.
+func SettingsImportOutlierSaved(cx *core.Scope) string { return For(cx).SettingsImportOutlierSaved() }
+
+// SettingsImportOutlierSaved is the package's SettingsImportOutlierSaved in the language of msgs.
+func (msgs Messages) SettingsImportOutlierSaved() string {
+	return msgs.text(textSettingsImportOutlierSaved)
+}
+
+// SettingsLanguage says "Language"
+// in the language the app shows under cx.
+func SettingsLanguage(cx *core.Scope) string { return For(cx).SettingsLanguage() }
+
+// SettingsLanguage is the package's SettingsLanguage in the language of msgs.
+func (msgs Messages) SettingsLanguage() string { return msgs.text(textSettingsLanguage) }
+
+// SettingsLanguageChinese says "中文"
+// in the language the app shows under cx.
+func SettingsLanguageChinese(cx *core.Scope) string { return For(cx).SettingsLanguageChinese() }
+
+// SettingsLanguageChinese is the package's SettingsLanguageChinese in the language of msgs.
+func (msgs Messages) SettingsLanguageChinese() string { return msgs.text(textSettingsLanguageChinese) }
+
+// SettingsLanguageEnglish says "English"
+// in the language the app shows under cx.
+func SettingsLanguageEnglish(cx *core.Scope) string { return For(cx).SettingsLanguageEnglish() }
+
+// SettingsLanguageEnglish is the package's SettingsLanguageEnglish in the language of msgs.
+func (msgs Messages) SettingsLanguageEnglish() string { return msgs.text(textSettingsLanguageEnglish) }
+
+// SettingsLanguageSystem says "System"
+// in the language the app shows under cx.
+func SettingsLanguageSystem(cx *core.Scope) string { return For(cx).SettingsLanguageSystem() }
+
+// SettingsLanguageSystem is the package's SettingsLanguageSystem in the language of msgs.
+func (msgs Messages) SettingsLanguageSystem() string { return msgs.text(textSettingsLanguageSystem) }
+
+// SettingsLoadFailed says "Failed to load settings"
+// in the language the app shows under cx.
+func SettingsLoadFailed(cx *core.Scope) string { return For(cx).SettingsLoadFailed() }
+
+// SettingsLoadFailed is the package's SettingsLoadFailed in the language of msgs.
+func (msgs Messages) SettingsLoadFailed() string { return msgs.text(textSettingsLoadFailed) }
+
+// SettingsMcpActionConfigure says "Configure"
+// in the language the app shows under cx.
+func SettingsMcpActionConfigure(cx *core.Scope) string { return For(cx).SettingsMcpActionConfigure() }
+
+// SettingsMcpActionConfigure is the package's SettingsMcpActionConfigure in the language of msgs.
+func (msgs Messages) SettingsMcpActionConfigure() string {
+	return msgs.text(textSettingsMcpActionConfigure)
+}
+
+// SettingsMcpActionReconfigure says "Reconfigure"
+// in the language the app shows under cx.
+func SettingsMcpActionReconfigure(cx *core.Scope) string {
+	return For(cx).SettingsMcpActionReconfigure()
+}
+
+// SettingsMcpActionReconfigure is the package's SettingsMcpActionReconfigure in the language of msgs.
+func (msgs Messages) SettingsMcpActionReconfigure() string {
+	return msgs.text(textSettingsMcpActionReconfigure)
+}
+
+// SettingsMcpActionRemove says "Remove"
+// in the language the app shows under cx.
+func SettingsMcpActionRemove(cx *core.Scope) string { return For(cx).SettingsMcpActionRemove() }
+
+// SettingsMcpActionRemove is the package's SettingsMcpActionRemove in the language of msgs.
+func (msgs Messages) SettingsMcpActionRemove() string { return msgs.text(textSettingsMcpActionRemove) }
+
+// SettingsMcpActionUnavailable says "—"
+// in the language the app shows under cx.
+func SettingsMcpActionUnavailable(cx *core.Scope) string {
+	return For(cx).SettingsMcpActionUnavailable()
+}
+
+// SettingsMcpActionUnavailable is the package's SettingsMcpActionUnavailable in the language of msgs.
+func (msgs Messages) SettingsMcpActionUnavailable() string {
+	return msgs.text(textSettingsMcpActionUnavailable)
+}
+
+// SettingsMcpActionViewPiGuide says "View setup guide"
+// in the language the app shows under cx.
+func SettingsMcpActionViewPiGuide(cx *core.Scope) string {
+	return For(cx).SettingsMcpActionViewPiGuide()
+}
+
+// SettingsMcpActionViewPiGuide is the package's SettingsMcpActionViewPiGuide in the language of msgs.
+func (msgs Messages) SettingsMcpActionViewPiGuide() string {
+	return msgs.text(textSettingsMcpActionViewPiGuide)
+}
+
+// SettingsMcpBinaryLabel says "Server binary"
+// in the language the app shows under cx.
+func SettingsMcpBinaryLabel(cx *core.Scope) string { return For(cx).SettingsMcpBinaryLabel() }
+
+// SettingsMcpBinaryLabel is the package's SettingsMcpBinaryLabel in the language of msgs.
+func (msgs Messages) SettingsMcpBinaryLabel() string { return msgs.text(textSettingsMcpBinaryLabel) }
+
+// SettingsMcpClientClaudeCode says "Claude Code"
+// in the language the app shows under cx.
+func SettingsMcpClientClaudeCode(cx *core.Scope) string { return For(cx).SettingsMcpClientClaudeCode() }
+
+// SettingsMcpClientClaudeCode is the package's SettingsMcpClientClaudeCode in the language of msgs.
+func (msgs Messages) SettingsMcpClientClaudeCode() string {
+	return msgs.text(textSettingsMcpClientClaudeCode)
+}
+
+// SettingsMcpClientClaudeDesktop says "Claude Desktop"
+// in the language the app shows under cx.
+func SettingsMcpClientClaudeDesktop(cx *core.Scope) string {
+	return For(cx).SettingsMcpClientClaudeDesktop()
+}
+
+// SettingsMcpClientClaudeDesktop is the package's SettingsMcpClientClaudeDesktop in the language of msgs.
+func (msgs Messages) SettingsMcpClientClaudeDesktop() string {
+	return msgs.text(textSettingsMcpClientClaudeDesktop)
+}
+
+// SettingsMcpClientCursor says "Cursor"
+// in the language the app shows under cx.
+func SettingsMcpClientCursor(cx *core.Scope) string { return For(cx).SettingsMcpClientCursor() }
+
+// SettingsMcpClientCursor is the package's SettingsMcpClientCursor in the language of msgs.
+func (msgs Messages) SettingsMcpClientCursor() string { return msgs.text(textSettingsMcpClientCursor) }
+
+// SettingsMcpClientPi says "Pi"
+// in the language the app shows under cx.
+func SettingsMcpClientPi(cx *core.Scope) string { return For(cx).SettingsMcpClientPi() }
+
+// SettingsMcpClientPi is the package's SettingsMcpClientPi in the language of msgs.
+func (msgs Messages) SettingsMcpClientPi() string { return msgs.text(textSettingsMcpClientPi) }
+
+// SettingsMcpConfigureFailed says "Failed to write config"
+// in the language the app shows under cx.
+func SettingsMcpConfigureFailed(cx *core.Scope) string { return For(cx).SettingsMcpConfigureFailed() }
+
+// SettingsMcpConfigureFailed is the package's SettingsMcpConfigureFailed in the language of msgs.
+func (msgs Messages) SettingsMcpConfigureFailed() string {
+	return msgs.text(textSettingsMcpConfigureFailed)
+}
+
+// SettingsMcpConfigured says "Configured {client}. Restart {client} to apply."
+// in the language the app shows under cx.
+func SettingsMcpConfigured(cx *core.Scope, client string) string {
+	return For(cx).SettingsMcpConfigured(client)
+}
+
+// SettingsMcpConfigured is the package's SettingsMcpConfigured in the language of msgs.
+func (msgs Messages) SettingsMcpConfigured(client string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SettingsMcpConfigured(client))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SettingsMcpConfigured; f != nil {
+			return f(client)
+		}
+		switch lang {
+		case "", "en":
+			return "Configured " + msgs.arg(client) + ". Restart " + msgs.arg(client) + " to apply."
+		case "zh-CN":
+			return "已配置 " + client + "。请重启 " + client + " 让改动生效。"
+		}
+	}
+}
+
+// SettingsMcpInvalidJson says "Config file is not valid JSON"
+// in the language the app shows under cx.
+func SettingsMcpInvalidJson(cx *core.Scope) string { return For(cx).SettingsMcpInvalidJson() }
+
+// SettingsMcpInvalidJson is the package's SettingsMcpInvalidJson in the language of msgs.
+func (msgs Messages) SettingsMcpInvalidJson() string { return msgs.text(textSettingsMcpInvalidJson) }
+
+// SettingsMcpMasterToggle says "Enable MCP integration"
+// in the language the app shows under cx.
+func SettingsMcpMasterToggle(cx *core.Scope) string { return For(cx).SettingsMcpMasterToggle() }
+
+// SettingsMcpMasterToggle is the package's SettingsMcpMasterToggle in the language of msgs.
+func (msgs Messages) SettingsMcpMasterToggle() string { return msgs.text(textSettingsMcpMasterToggle) }
+
+// SettingsMcpMasterToggleHelp says "When off, the buttons below are disabled. Already-configured clients keep working until you click Remove."
+// in the language the app shows under cx.
+func SettingsMcpMasterToggleHelp(cx *core.Scope) string { return For(cx).SettingsMcpMasterToggleHelp() }
+
+// SettingsMcpMasterToggleHelp is the package's SettingsMcpMasterToggleHelp in the language of msgs.
+func (msgs Messages) SettingsMcpMasterToggleHelp() string {
+	return msgs.text(textSettingsMcpMasterToggleHelp)
+}
+
+// SettingsMcpPiGuideIntro says "Pi doesn't ship a native mcpServers config yet. Use the pi-mcporter bridge extension:"
+// in the language the app shows under cx.
+func SettingsMcpPiGuideIntro(cx *core.Scope) string { return For(cx).SettingsMcpPiGuideIntro() }
+
+// SettingsMcpPiGuideIntro is the package's SettingsMcpPiGuideIntro in the language of msgs.
+func (msgs Messages) SettingsMcpPiGuideIntro() string { return msgs.text(textSettingsMcpPiGuideIntro) }
+
+// SettingsMcpPiGuideStep1 says "1. Install the bridge extension in Pi:"
+// in the language the app shows under cx.
+func SettingsMcpPiGuideStep1(cx *core.Scope) string { return For(cx).SettingsMcpPiGuideStep1() }
+
+// SettingsMcpPiGuideStep1 is the package's SettingsMcpPiGuideStep1 in the language of msgs.
+func (msgs Messages) SettingsMcpPiGuideStep1() string { return msgs.text(textSettingsMcpPiGuideStep1) }
+
+// SettingsMcpPiGuideStep2 says "2. Restart Pi. The carbonink MCP server will be auto-detected."
+// in the language the app shows under cx.
+func SettingsMcpPiGuideStep2(cx *core.Scope) string { return For(cx).SettingsMcpPiGuideStep2() }
+
+// SettingsMcpPiGuideStep2 is the package's SettingsMcpPiGuideStep2 in the language of msgs.
+func (msgs Messages) SettingsMcpPiGuideStep2() string { return msgs.text(textSettingsMcpPiGuideStep2) }
+
+// SettingsMcpPiGuideTitle says "Connect CarbonInk to Pi"
+// in the language the app shows under cx.
+func SettingsMcpPiGuideTitle(cx *core.Scope) string { return For(cx).SettingsMcpPiGuideTitle() }
+
+// SettingsMcpPiGuideTitle is the package's SettingsMcpPiGuideTitle in the language of msgs.
+func (msgs Messages) SettingsMcpPiGuideTitle() string { return msgs.text(textSettingsMcpPiGuideTitle) }
+
+// SettingsMcpRemoveFailed says "Failed to remove config"
+// in the language the app shows under cx.
+func SettingsMcpRemoveFailed(cx *core.Scope) string { return For(cx).SettingsMcpRemoveFailed() }
+
+// SettingsMcpRemoveFailed is the package's SettingsMcpRemoveFailed in the language of msgs.
+func (msgs Messages) SettingsMcpRemoveFailed() string { return msgs.text(textSettingsMcpRemoveFailed) }
+
+// SettingsMcpRemoved says "Removed CarbonInk from {client}."
+// in the language the app shows under cx.
+func SettingsMcpRemoved(cx *core.Scope, client string) string {
+	return For(cx).SettingsMcpRemoved(client)
+}
+
+// SettingsMcpRemoved is the package's SettingsMcpRemoved in the language of msgs.
+func (msgs Messages) SettingsMcpRemoved(client string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SettingsMcpRemoved(client))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SettingsMcpRemoved; f != nil {
+			return f(client)
+		}
+		switch lang {
+		case "", "en":
+			return "Removed CarbonInk from " + msgs.arg(client) + "."
+		case "zh-CN":
+			return "已从 " + client + " 中移除 CarbonInk。"
+		}
+	}
+}
+
+// SettingsMcpScriptLabel says "Server script"
+// in the language the app shows under cx.
+func SettingsMcpScriptLabel(cx *core.Scope) string { return For(cx).SettingsMcpScriptLabel() }
+
+// SettingsMcpScriptLabel is the package's SettingsMcpScriptLabel in the language of msgs.
+func (msgs Messages) SettingsMcpScriptLabel() string { return msgs.text(textSettingsMcpScriptLabel) }
+
+// SettingsMcpStatusConfigured says "Configured ✓"
+// in the language the app shows under cx.
+func SettingsMcpStatusConfigured(cx *core.Scope) string { return For(cx).SettingsMcpStatusConfigured() }
+
+// SettingsMcpStatusConfigured is the package's SettingsMcpStatusConfigured in the language of msgs.
+func (msgs Messages) SettingsMcpStatusConfigured() string {
+	return msgs.text(textSettingsMcpStatusConfigured)
+}
+
+// SettingsMcpStatusInvalidJson says "Config file is not valid JSON — open and fix manually"
+// in the language the app shows under cx.
+func SettingsMcpStatusInvalidJson(cx *core.Scope) string {
+	return For(cx).SettingsMcpStatusInvalidJson()
+}
+
+// SettingsMcpStatusInvalidJson is the package's SettingsMcpStatusInvalidJson in the language of msgs.
+func (msgs Messages) SettingsMcpStatusInvalidJson() string {
+	return msgs.text(textSettingsMcpStatusInvalidJson)
+}
+
+// SettingsMcpStatusNeedsReconfigure says "Configured but path is stale — click Reconfigure"
+// in the language the app shows under cx.
+func SettingsMcpStatusNeedsReconfigure(cx *core.Scope) string {
+	return For(cx).SettingsMcpStatusNeedsReconfigure()
+}
+
+// SettingsMcpStatusNeedsReconfigure is the package's SettingsMcpStatusNeedsReconfigure in the language of msgs.
+func (msgs Messages) SettingsMcpStatusNeedsReconfigure() string {
+	return msgs.text(textSettingsMcpStatusNeedsReconfigure)
+}
+
+// SettingsMcpStatusNotConfigured says "Detected, not configured"
+// in the language the app shows under cx.
+func SettingsMcpStatusNotConfigured(cx *core.Scope) string {
+	return For(cx).SettingsMcpStatusNotConfigured()
+}
+
+// SettingsMcpStatusNotConfigured is the package's SettingsMcpStatusNotConfigured in the language of msgs.
+func (msgs Messages) SettingsMcpStatusNotConfigured() string {
+	return msgs.text(textSettingsMcpStatusNotConfigured)
+}
+
+// SettingsMcpStatusNotInstalled says "Not detected"
+// in the language the app shows under cx.
+func SettingsMcpStatusNotInstalled(cx *core.Scope) string {
+	return For(cx).SettingsMcpStatusNotInstalled()
+}
+
+// SettingsMcpStatusNotInstalled is the package's SettingsMcpStatusNotInstalled in the language of msgs.
+func (msgs Messages) SettingsMcpStatusNotInstalled() string {
+	return msgs.text(textSettingsMcpStatusNotInstalled)
+}
+
+// SettingsMcpStepHelp says "The Skill above tells agents WHEN to query CarbonInk. The MCP configuration below tells them HOW (which server, what tools)."
+// in the language the app shows under cx.
+func SettingsMcpStepHelp(cx *core.Scope) string { return For(cx).SettingsMcpStepHelp() }
+
+// SettingsMcpStepHelp is the package's SettingsMcpStepHelp in the language of msgs.
+func (msgs Messages) SettingsMcpStepHelp() string { return msgs.text(textSettingsMcpStepHelp) }
+
+// SettingsMcpStepTitle says "Step 2 · Configure MCP Clients"
+// in the language the app shows under cx.
+func SettingsMcpStepTitle(cx *core.Scope) string { return For(cx).SettingsMcpStepTitle() }
+
+// SettingsMcpStepTitle is the package's SettingsMcpStepTitle in the language of msgs.
+func (msgs Messages) SettingsMcpStepTitle() string { return msgs.text(textSettingsMcpStepTitle) }
+
+// SettingsMcpTitle says "MCP integration"
+// in the language the app shows under cx.
+func SettingsMcpTitle(cx *core.Scope) string { return For(cx).SettingsMcpTitle() }
+
+// SettingsMcpTitle is the package's SettingsMcpTitle in the language of msgs.
+func (msgs Messages) SettingsMcpTitle() string { return msgs.text(textSettingsMcpTitle) }
+
+// SettingsModelCapabilityImage says "Image"
+// in the language the app shows under cx.
+func SettingsModelCapabilityImage(cx *core.Scope) string {
+	return For(cx).SettingsModelCapabilityImage()
+}
+
+// SettingsModelCapabilityImage is the package's SettingsModelCapabilityImage in the language of msgs.
+func (msgs Messages) SettingsModelCapabilityImage() string {
+	return msgs.text(textSettingsModelCapabilityImage)
+}
+
+// SettingsModelCapabilityReasoning says "Reasoning"
+// in the language the app shows under cx.
+func SettingsModelCapabilityReasoning(cx *core.Scope) string {
+	return For(cx).SettingsModelCapabilityReasoning()
+}
+
+// SettingsModelCapabilityReasoning is the package's SettingsModelCapabilityReasoning in the language of msgs.
+func (msgs Messages) SettingsModelCapabilityReasoning() string {
+	return msgs.text(textSettingsModelCapabilityReasoning)
+}
+
+// SettingsModelCustomHint says "Custom id: not in the bundled catalog. Test the connection before saving."
+// in the language the app shows under cx.
+func SettingsModelCustomHint(cx *core.Scope) string { return For(cx).SettingsModelCustomHint() }
+
+// SettingsModelCustomHint is the package's SettingsModelCustomHint in the language of msgs.
+func (msgs Messages) SettingsModelCustomHint() string { return msgs.text(textSettingsModelCustomHint) }
+
+// SettingsModelCustomOption says "Use \"{id}\" as a custom model id"
+// in the language the app shows under cx.
+func SettingsModelCustomOption(cx *core.Scope, id string) string {
+	return For(cx).SettingsModelCustomOption(id)
+}
+
+// SettingsModelCustomOption is the package's SettingsModelCustomOption in the language of msgs.
+func (msgs Messages) SettingsModelCustomOption(id string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SettingsModelCustomOption(id))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SettingsModelCustomOption; f != nil {
+			return f(id)
+		}
+		switch lang {
+		case "", "en":
+			return "Use \"" + msgs.arg(id) + "\" as a custom model id"
+		case "zh-CN":
+			return "使用 \"" + id + "\" 作为自定义模型 id"
+		}
+	}
+}
+
+// SettingsModelFetchFailed says "Fetch failed"
+// in the language the app shows under cx.
+func SettingsModelFetchFailed(cx *core.Scope) string { return For(cx).SettingsModelFetchFailed() }
+
+// SettingsModelFetchFailed is the package's SettingsModelFetchFailed in the language of msgs.
+func (msgs Messages) SettingsModelFetchFailed() string {
+	return msgs.text(textSettingsModelFetchFailed)
+}
+
+// SettingsModelFetchLatest says "Fetch latest"
+// in the language the app shows under cx.
+func SettingsModelFetchLatest(cx *core.Scope) string { return For(cx).SettingsModelFetchLatest() }
+
+// SettingsModelFetchLatest is the package's SettingsModelFetchLatest in the language of msgs.
+func (msgs Messages) SettingsModelFetchLatest() string {
+	return msgs.text(textSettingsModelFetchLatest)
+}
+
+// SettingsModelFetchNoKey says "Enter an API key first (or save one), then fetch."
+// in the language the app shows under cx.
+func SettingsModelFetchNoKey(cx *core.Scope) string { return For(cx).SettingsModelFetchNoKey() }
+
+// SettingsModelFetchNoKey is the package's SettingsModelFetchNoKey in the language of msgs.
+func (msgs Messages) SettingsModelFetchNoKey() string { return msgs.text(textSettingsModelFetchNoKey) }
+
+// SettingsModelFetchSuccess says "Model list updated."
+// in the language the app shows under cx.
+func SettingsModelFetchSuccess(cx *core.Scope) string { return For(cx).SettingsModelFetchSuccess() }
+
+// SettingsModelFetchSuccess is the package's SettingsModelFetchSuccess in the language of msgs.
+func (msgs Messages) SettingsModelFetchSuccess() string {
+	return msgs.text(textSettingsModelFetchSuccess)
+}
+
+// SettingsModelFetching says "Fetching…"
+// in the language the app shows under cx.
+func SettingsModelFetching(cx *core.Scope) string { return For(cx).SettingsModelFetching() }
+
+// SettingsModelFetching is the package's SettingsModelFetching in the language of msgs.
+func (msgs Messages) SettingsModelFetching() string { return msgs.text(textSettingsModelFetching) }
+
+// SettingsModelPickerPlaceholder says "Select a model…"
+// in the language the app shows under cx.
+func SettingsModelPickerPlaceholder(cx *core.Scope) string {
+	return For(cx).SettingsModelPickerPlaceholder()
+}
+
+// SettingsModelPickerPlaceholder is the package's SettingsModelPickerPlaceholder in the language of msgs.
+func (msgs Messages) SettingsModelPickerPlaceholder() string {
+	return msgs.text(textSettingsModelPickerPlaceholder)
+}
+
+// SettingsModelSearchPlaceholder says "Search models…"
+// in the language the app shows under cx.
+func SettingsModelSearchPlaceholder(cx *core.Scope) string {
+	return For(cx).SettingsModelSearchPlaceholder()
+}
+
+// SettingsModelSearchPlaceholder is the package's SettingsModelSearchPlaceholder in the language of msgs.
+func (msgs Messages) SettingsModelSearchPlaceholder() string {
+	return msgs.text(textSettingsModelSearchPlaceholder)
+}
+
+// SettingsModelStale says "List may be outdated."
+// in the language the app shows under cx.
+func SettingsModelStale(cx *core.Scope) string { return For(cx).SettingsModelStale() }
+
+// SettingsModelStale is the package's SettingsModelStale in the language of msgs.
+func (msgs Messages) SettingsModelStale() string { return msgs.text(textSettingsModelStale) }
+
+// SettingsNavLabel says "Settings categories"
+// in the language the app shows under cx.
+func SettingsNavLabel(cx *core.Scope) string { return For(cx).SettingsNavLabel() }
+
+// SettingsNavLabel is the package's SettingsNavLabel in the language of msgs.
+func (msgs Messages) SettingsNavLabel() string { return msgs.text(textSettingsNavLabel) }
+
+// SettingsOrgBasicHeading says "Company identity"
+// in the language the app shows under cx.
+func SettingsOrgBasicHeading(cx *core.Scope) string { return For(cx).SettingsOrgBasicHeading() }
+
+// SettingsOrgBasicHeading is the package's SettingsOrgBasicHeading in the language of msgs.
+func (msgs Messages) SettingsOrgBasicHeading() string { return msgs.text(textSettingsOrgBasicHeading) }
+
+// SettingsOrgProfileHeading says "Organization Profile (ISO 14064-1)"
+// in the language the app shows under cx.
+func SettingsOrgProfileHeading(cx *core.Scope) string { return For(cx).SettingsOrgProfileHeading() }
+
+// SettingsOrgProfileHeading is the package's SettingsOrgProfileHeading in the language of msgs.
+func (msgs Messages) SettingsOrgProfileHeading() string {
+	return msgs.text(textSettingsOrgProfileHeading)
+}
+
+// SettingsOrgProfileSubheading says "Used by the inventory report."
+// in the language the app shows under cx.
+func SettingsOrgProfileSubheading(cx *core.Scope) string {
+	return For(cx).SettingsOrgProfileSubheading()
+}
+
+// SettingsOrgProfileSubheading is the package's SettingsOrgProfileSubheading in the language of msgs.
+func (msgs Messages) SettingsOrgProfileSubheading() string {
+	return msgs.text(textSettingsOrgProfileSubheading)
+}
+
+// SettingsOrgReportingHeading says "Reporting profile"
+// in the language the app shows under cx.
+func SettingsOrgReportingHeading(cx *core.Scope) string { return For(cx).SettingsOrgReportingHeading() }
+
+// SettingsOrgReportingHeading is the package's SettingsOrgReportingHeading in the language of msgs.
+func (msgs Messages) SettingsOrgReportingHeading() string {
+	return msgs.text(textSettingsOrgReportingHeading)
+}
+
+// SettingsPickerNoMatch says "No matches"
+// in the language the app shows under cx.
+func SettingsPickerNoMatch(cx *core.Scope) string { return For(cx).SettingsPickerNoMatch() }
+
+// SettingsPickerNoMatch is the package's SettingsPickerNoMatch in the language of msgs.
+func (msgs Messages) SettingsPickerNoMatch() string { return msgs.text(textSettingsPickerNoMatch) }
+
+// SettingsProviderBaseUrlLabelAdvanced says "Override base URL (advanced)"
+// in the language the app shows under cx.
+func SettingsProviderBaseUrlLabelAdvanced(cx *core.Scope) string {
+	return For(cx).SettingsProviderBaseUrlLabelAdvanced()
+}
+
+// SettingsProviderBaseUrlLabelAdvanced is the package's SettingsProviderBaseUrlLabelAdvanced in the language of msgs.
+func (msgs Messages) SettingsProviderBaseUrlLabelAdvanced() string {
+	return msgs.text(textSettingsProviderBaseUrlLabelAdvanced)
+}
+
+// SettingsProviderGroupAll says "All providers"
+// in the language the app shows under cx.
+func SettingsProviderGroupAll(cx *core.Scope) string { return For(cx).SettingsProviderGroupAll() }
+
+// SettingsProviderGroupAll is the package's SettingsProviderGroupAll in the language of msgs.
+func (msgs Messages) SettingsProviderGroupAll() string {
+	return msgs.text(textSettingsProviderGroupAll)
+}
+
+// SettingsProviderGroupRecommended says "Recommended"
+// in the language the app shows under cx.
+func SettingsProviderGroupRecommended(cx *core.Scope) string {
+	return For(cx).SettingsProviderGroupRecommended()
+}
+
+// SettingsProviderGroupRecommended is the package's SettingsProviderGroupRecommended in the language of msgs.
+func (msgs Messages) SettingsProviderGroupRecommended() string {
+	return msgs.text(textSettingsProviderGroupRecommended)
+}
+
+// SettingsProviderGuidanceAccount says "Get an account"
+// in the language the app shows under cx.
+func SettingsProviderGuidanceAccount(cx *core.Scope) string {
+	return For(cx).SettingsProviderGuidanceAccount()
+}
+
+// SettingsProviderGuidanceAccount is the package's SettingsProviderGuidanceAccount in the language of msgs.
+func (msgs Messages) SettingsProviderGuidanceAccount() string {
+	return msgs.text(textSettingsProviderGuidanceAccount)
+}
+
+// SettingsProviderModelLabel says "Model"
+// in the language the app shows under cx.
+func SettingsProviderModelLabel(cx *core.Scope) string { return For(cx).SettingsProviderModelLabel() }
+
+// SettingsProviderModelLabel is the package's SettingsProviderModelLabel in the language of msgs.
+func (msgs Messages) SettingsProviderModelLabel() string {
+	return msgs.text(textSettingsProviderModelLabel)
+}
+
+// SettingsProviderPickerLabel says "Provider"
+// in the language the app shows under cx.
+func SettingsProviderPickerLabel(cx *core.Scope) string { return For(cx).SettingsProviderPickerLabel() }
+
+// SettingsProviderPickerLabel is the package's SettingsProviderPickerLabel in the language of msgs.
+func (msgs Messages) SettingsProviderPickerLabel() string {
+	return msgs.text(textSettingsProviderPickerLabel)
+}
+
+// SettingsProviderPickerPlaceholder says "Select a provider…"
+// in the language the app shows under cx.
+func SettingsProviderPickerPlaceholder(cx *core.Scope) string {
+	return For(cx).SettingsProviderPickerPlaceholder()
+}
+
+// SettingsProviderPickerPlaceholder is the package's SettingsProviderPickerPlaceholder in the language of msgs.
+func (msgs Messages) SettingsProviderPickerPlaceholder() string {
+	return msgs.text(textSettingsProviderPickerPlaceholder)
+}
+
+// SettingsProviderSearchPlaceholder says "Search providers…"
+// in the language the app shows under cx.
+func SettingsProviderSearchPlaceholder(cx *core.Scope) string {
+	return For(cx).SettingsProviderSearchPlaceholder()
+}
+
+// SettingsProviderSearchPlaceholder is the package's SettingsProviderSearchPlaceholder in the language of msgs.
+func (msgs Messages) SettingsProviderSearchPlaceholder() string {
+	return msgs.text(textSettingsProviderSearchPlaceholder)
+}
+
+// SettingsProviderUnknownWarning says "Saved provider “{provider}” is no longer recognized. Please re-select."
+// in the language the app shows under cx.
+func SettingsProviderUnknownWarning(cx *core.Scope, provider string) string {
+	return For(cx).SettingsProviderUnknownWarning(provider)
+}
+
+// SettingsProviderUnknownWarning is the package's SettingsProviderUnknownWarning in the language of msgs.
+func (msgs Messages) SettingsProviderUnknownWarning(provider string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SettingsProviderUnknownWarning(provider))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SettingsProviderUnknownWarning; f != nil {
+			return f(provider)
+		}
+		switch lang {
+		case "", "en":
+			return "Saved provider “" + msgs.arg(provider) + "” is no longer recognized. Please re-select."
+		case "zh-CN":
+			return "已保存的服务商 “" + provider + "” 已不再支持，请重新选择。"
+		}
+	}
+}
+
+// SettingsReportLogoBody says "Shown on the ISO 14064-1 and TCFD report covers. Stored per workspace — set each client's own logo. PNG/JPEG, up to 512 KB."
+// in the language the app shows under cx.
+func SettingsReportLogoBody(cx *core.Scope) string { return For(cx).SettingsReportLogoBody() }
+
+// SettingsReportLogoBody is the package's SettingsReportLogoBody in the language of msgs.
+func (msgs Messages) SettingsReportLogoBody() string { return msgs.text(textSettingsReportLogoBody) }
+
+// SettingsReportLogoClear says "Remove"
+// in the language the app shows under cx.
+func SettingsReportLogoClear(cx *core.Scope) string { return For(cx).SettingsReportLogoClear() }
+
+// SettingsReportLogoClear is the package's SettingsReportLogoClear in the language of msgs.
+func (msgs Messages) SettingsReportLogoClear() string { return msgs.text(textSettingsReportLogoClear) }
+
+// SettingsReportLogoCleared says "Report logo removed"
+// in the language the app shows under cx.
+func SettingsReportLogoCleared(cx *core.Scope) string { return For(cx).SettingsReportLogoCleared() }
+
+// SettingsReportLogoCleared is the package's SettingsReportLogoCleared in the language of msgs.
+func (msgs Messages) SettingsReportLogoCleared() string {
+	return msgs.text(textSettingsReportLogoCleared)
+}
+
+// SettingsReportLogoHeading says "Report logo"
+// in the language the app shows under cx.
+func SettingsReportLogoHeading(cx *core.Scope) string { return For(cx).SettingsReportLogoHeading() }
+
+// SettingsReportLogoHeading is the package's SettingsReportLogoHeading in the language of msgs.
+func (msgs Messages) SettingsReportLogoHeading() string {
+	return msgs.text(textSettingsReportLogoHeading)
+}
+
+// SettingsReportLogoInvalid says "Unsupported image — use PNG or JPEG"
+// in the language the app shows under cx.
+func SettingsReportLogoInvalid(cx *core.Scope) string { return For(cx).SettingsReportLogoInvalid() }
+
+// SettingsReportLogoInvalid is the package's SettingsReportLogoInvalid in the language of msgs.
+func (msgs Messages) SettingsReportLogoInvalid() string {
+	return msgs.text(textSettingsReportLogoInvalid)
+}
+
+// SettingsReportLogoPick says "Choose logo"
+// in the language the app shows under cx.
+func SettingsReportLogoPick(cx *core.Scope) string { return For(cx).SettingsReportLogoPick() }
+
+// SettingsReportLogoPick is the package's SettingsReportLogoPick in the language of msgs.
+func (msgs Messages) SettingsReportLogoPick() string { return msgs.text(textSettingsReportLogoPick) }
+
+// SettingsReportLogoReplace says "Replace"
+// in the language the app shows under cx.
+func SettingsReportLogoReplace(cx *core.Scope) string { return For(cx).SettingsReportLogoReplace() }
+
+// SettingsReportLogoReplace is the package's SettingsReportLogoReplace in the language of msgs.
+func (msgs Messages) SettingsReportLogoReplace() string {
+	return msgs.text(textSettingsReportLogoReplace)
+}
+
+// SettingsReportLogoSaved says "Report logo saved"
+// in the language the app shows under cx.
+func SettingsReportLogoSaved(cx *core.Scope) string { return For(cx).SettingsReportLogoSaved() }
+
+// SettingsReportLogoSaved is the package's SettingsReportLogoSaved in the language of msgs.
+func (msgs Messages) SettingsReportLogoSaved() string { return msgs.text(textSettingsReportLogoSaved) }
+
+// SettingsReportLogoTooLarge says "Image too large — 512 KB max"
+// in the language the app shows under cx.
+func SettingsReportLogoTooLarge(cx *core.Scope) string { return For(cx).SettingsReportLogoTooLarge() }
+
+// SettingsReportLogoTooLarge is the package's SettingsReportLogoTooLarge in the language of msgs.
+func (msgs Messages) SettingsReportLogoTooLarge() string {
+	return msgs.text(textSettingsReportLogoTooLarge)
+}
+
+// SettingsReportingProfileSave says "Save profile"
+// in the language the app shows under cx.
+func SettingsReportingProfileSave(cx *core.Scope) string {
+	return For(cx).SettingsReportingProfileSave()
+}
+
+// SettingsReportingProfileSave is the package's SettingsReportingProfileSave in the language of msgs.
+func (msgs Messages) SettingsReportingProfileSave() string {
+	return msgs.text(textSettingsReportingProfileSave)
+}
+
+// SettingsReportingProfileSaved says "Organization profile updated."
+// in the language the app shows under cx.
+func SettingsReportingProfileSaved(cx *core.Scope) string {
+	return For(cx).SettingsReportingProfileSaved()
+}
+
+// SettingsReportingProfileSaved is the package's SettingsReportingProfileSaved in the language of msgs.
+func (msgs Messages) SettingsReportingProfileSaved() string {
+	return msgs.text(textSettingsReportingProfileSaved)
+}
+
+// SettingsResponsibleNameLabel says "Responsible person — name"
+// in the language the app shows under cx.
+func SettingsResponsibleNameLabel(cx *core.Scope) string {
+	return For(cx).SettingsResponsibleNameLabel()
+}
+
+// SettingsResponsibleNameLabel is the package's SettingsResponsibleNameLabel in the language of msgs.
+func (msgs Messages) SettingsResponsibleNameLabel() string {
+	return msgs.text(textSettingsResponsibleNameLabel)
+}
+
+// SettingsResponsibleRoleLabel says "Responsible person — role"
+// in the language the app shows under cx.
+func SettingsResponsibleRoleLabel(cx *core.Scope) string {
+	return For(cx).SettingsResponsibleRoleLabel()
+}
+
+// SettingsResponsibleRoleLabel is the package's SettingsResponsibleRoleLabel in the language of msgs.
+func (msgs Messages) SettingsResponsibleRoleLabel() string {
+	return msgs.text(textSettingsResponsibleRoleLabel)
+}
+
+// SettingsSave says "Save"
+// in the language the app shows under cx.
+func SettingsSave(cx *core.Scope) string { return For(cx).SettingsSave() }
+
+// SettingsSave is the package's SettingsSave in the language of msgs.
+func (msgs Messages) SettingsSave() string { return msgs.text(textSettingsSave) }
+
+// SettingsSaveFailed says "Failed to save settings"
+// in the language the app shows under cx.
+func SettingsSaveFailed(cx *core.Scope) string { return For(cx).SettingsSaveFailed() }
+
+// SettingsSaveFailed is the package's SettingsSaveFailed in the language of msgs.
+func (msgs Messages) SettingsSaveFailed() string { return msgs.text(textSettingsSaveFailed) }
+
+// SettingsSaveSuccess says "Settings saved"
+// in the language the app shows under cx.
+func SettingsSaveSuccess(cx *core.Scope) string { return For(cx).SettingsSaveSuccess() }
+
+// SettingsSaveSuccess is the package's SettingsSaveSuccess in the language of msgs.
+func (msgs Messages) SettingsSaveSuccess() string { return msgs.text(textSettingsSaveSuccess) }
+
+// SettingsSaving says "Saving…"
+// in the language the app shows under cx.
+func SettingsSaving(cx *core.Scope) string { return For(cx).SettingsSaving() }
+
+// SettingsSaving is the package's SettingsSaving in the language of msgs.
+func (msgs Messages) SettingsSaving() string { return msgs.text(textSettingsSaving) }
+
+// SettingsSectionAbout says "About"
+// in the language the app shows under cx.
+func SettingsSectionAbout(cx *core.Scope) string { return For(cx).SettingsSectionAbout() }
+
+// SettingsSectionAbout is the package's SettingsSectionAbout in the language of msgs.
+func (msgs Messages) SettingsSectionAbout() string { return msgs.text(textSettingsSectionAbout) }
+
+// SettingsSectionAboutDescription says "Version, runtime info, and support links."
+// in the language the app shows under cx.
+func SettingsSectionAboutDescription(cx *core.Scope) string {
+	return For(cx).SettingsSectionAboutDescription()
+}
+
+// SettingsSectionAboutDescription is the package's SettingsSectionAboutDescription in the language of msgs.
+func (msgs Messages) SettingsSectionAboutDescription() string {
+	return msgs.text(textSettingsSectionAboutDescription)
+}
+
+// SettingsSectionAi says "AI provider"
+// in the language the app shows under cx.
+func SettingsSectionAi(cx *core.Scope) string { return For(cx).SettingsSectionAi() }
+
+// SettingsSectionAi is the package's SettingsSectionAi in the language of msgs.
+func (msgs Messages) SettingsSectionAi() string { return msgs.text(textSettingsSectionAi) }
+
+// SettingsSectionAiDescription says "Configure the LLM provider and API key. Document extraction, questionnaire auto-answer, and report narrative all rely on this."
+// in the language the app shows under cx.
+func SettingsSectionAiDescription(cx *core.Scope) string {
+	return For(cx).SettingsSectionAiDescription()
+}
+
+// SettingsSectionAiDescription is the package's SettingsSectionAiDescription in the language of msgs.
+func (msgs Messages) SettingsSectionAiDescription() string {
+	return msgs.text(textSettingsSectionAiDescription)
+}
+
+// SettingsSectionAmap says "AMap routing"
+// in the language the app shows under cx.
+func SettingsSectionAmap(cx *core.Scope) string { return For(cx).SettingsSectionAmap() }
+
+// SettingsSectionAmap is the package's SettingsSectionAmap in the language of msgs.
+func (msgs Messages) SettingsSectionAmap() string { return msgs.text(textSettingsSectionAmap) }
+
+// SettingsSectionAmapDescription says "Used by the distance lookup on travel + freight activities (optional)."
+// in the language the app shows under cx.
+func SettingsSectionAmapDescription(cx *core.Scope) string {
+	return For(cx).SettingsSectionAmapDescription()
+}
+
+// SettingsSectionAmapDescription is the package's SettingsSectionAmapDescription in the language of msgs.
+func (msgs Messages) SettingsSectionAmapDescription() string {
+	return msgs.text(textSettingsSectionAmapDescription)
+}
+
+// SettingsSectionData says "Data"
+// in the language the app shows under cx.
+func SettingsSectionData(cx *core.Scope) string { return For(cx).SettingsSectionData() }
+
+// SettingsSectionData is the package's SettingsSectionData in the language of msgs.
+func (msgs Messages) SettingsSectionData() string { return msgs.text(textSettingsSectionData) }
+
+// SettingsSectionDataDescription says "Backup, restore, reset, and cache cleanup."
+// in the language the app shows under cx.
+func SettingsSectionDataDescription(cx *core.Scope) string {
+	return For(cx).SettingsSectionDataDescription()
+}
+
+// SettingsSectionDataDescription is the package's SettingsSectionDataDescription in the language of msgs.
+func (msgs Messages) SettingsSectionDataDescription() string {
+	return msgs.text(textSettingsSectionDataDescription)
+}
+
+// SettingsSectionEfLibrary says "EF libraries"
+// in the language the app shows under cx.
+func SettingsSectionEfLibrary(cx *core.Scope) string { return For(cx).SettingsSectionEfLibrary() }
+
+// SettingsSectionEfLibrary is the package's SettingsSectionEfLibrary in the language of msgs.
+func (msgs Messages) SettingsSectionEfLibrary() string {
+	return msgs.text(textSettingsSectionEfLibrary)
+}
+
+// SettingsSectionEfLibraryDescription says "Import and manage your own emission-factor libraries"
+// in the language the app shows under cx.
+func SettingsSectionEfLibraryDescription(cx *core.Scope) string {
+	return For(cx).SettingsSectionEfLibraryDescription()
+}
+
+// SettingsSectionEfLibraryDescription is the package's SettingsSectionEfLibraryDescription in the language of msgs.
+func (msgs Messages) SettingsSectionEfLibraryDescription() string {
+	return msgs.text(textSettingsSectionEfLibraryDescription)
+}
+
+// SettingsSectionGeneral says "General"
+// in the language the app shows under cx.
+func SettingsSectionGeneral(cx *core.Scope) string { return For(cx).SettingsSectionGeneral() }
+
+// SettingsSectionGeneral is the package's SettingsSectionGeneral in the language of msgs.
+func (msgs Messages) SettingsSectionGeneral() string { return msgs.text(textSettingsSectionGeneral) }
+
+// SettingsSectionGeneralDescription says "Language, display, and other preferences that apply across the whole app."
+// in the language the app shows under cx.
+func SettingsSectionGeneralDescription(cx *core.Scope) string {
+	return For(cx).SettingsSectionGeneralDescription()
+}
+
+// SettingsSectionGeneralDescription is the package's SettingsSectionGeneralDescription in the language of msgs.
+func (msgs Messages) SettingsSectionGeneralDescription() string {
+	return msgs.text(textSettingsSectionGeneralDescription)
+}
+
+// SettingsSectionMcp says "MCP server"
+// in the language the app shows under cx.
+func SettingsSectionMcp(cx *core.Scope) string { return For(cx).SettingsSectionMcp() }
+
+// SettingsSectionMcp is the package's SettingsSectionMcp in the language of msgs.
+func (msgs Messages) SettingsSectionMcp() string { return msgs.text(textSettingsSectionMcp) }
+
+// SettingsSectionMcpDescription says "Integrate CarbonInk into Claude Desktop — query sources and activities directly from chat."
+// in the language the app shows under cx.
+func SettingsSectionMcpDescription(cx *core.Scope) string {
+	return For(cx).SettingsSectionMcpDescription()
+}
+
+// SettingsSectionMcpDescription is the package's SettingsSectionMcpDescription in the language of msgs.
+func (msgs Messages) SettingsSectionMcpDescription() string {
+	return msgs.text(textSettingsSectionMcpDescription)
+}
+
+// SettingsSectionOrg says "Organization"
+// in the language the app shows under cx.
+func SettingsSectionOrg(cx *core.Scope) string { return For(cx).SettingsSectionOrg() }
+
+// SettingsSectionOrg is the package's SettingsSectionOrg in the language of msgs.
+func (msgs Messages) SettingsSectionOrg() string { return msgs.text(textSettingsSectionOrg) }
+
+// SettingsSectionOrgDescription says "Metadata required by the ISO 14064-1 report: boundary, responsible person, base year."
+// in the language the app shows under cx.
+func SettingsSectionOrgDescription(cx *core.Scope) string {
+	return For(cx).SettingsSectionOrgDescription()
+}
+
+// SettingsSectionOrgDescription is the package's SettingsSectionOrgDescription in the language of msgs.
+func (msgs Messages) SettingsSectionOrgDescription() string {
+	return msgs.text(textSettingsSectionOrgDescription)
+}
+
+// SettingsSectionUpdates says "Software updates"
+// in the language the app shows under cx.
+func SettingsSectionUpdates(cx *core.Scope) string { return For(cx).SettingsSectionUpdates() }
+
+// SettingsSectionUpdates is the package's SettingsSectionUpdates in the language of msgs.
+func (msgs Messages) SettingsSectionUpdates() string { return msgs.text(textSettingsSectionUpdates) }
+
+// SettingsSectionUpdatesDescription says "View current version and download new releases."
+// in the language the app shows under cx.
+func SettingsSectionUpdatesDescription(cx *core.Scope) string {
+	return For(cx).SettingsSectionUpdatesDescription()
+}
+
+// SettingsSectionUpdatesDescription is the package's SettingsSectionUpdatesDescription in the language of msgs.
+func (msgs Messages) SettingsSectionUpdatesDescription() string {
+	return msgs.text(textSettingsSectionUpdatesDescription)
+}
+
+// SettingsSectionWorkspaces says "Workspaces"
+// in the language the app shows under cx.
+func SettingsSectionWorkspaces(cx *core.Scope) string { return For(cx).SettingsSectionWorkspaces() }
+
+// SettingsSectionWorkspaces is the package's SettingsSectionWorkspaces in the language of msgs.
+func (msgs Messages) SettingsSectionWorkspaces() string {
+	return msgs.text(textSettingsSectionWorkspaces)
+}
+
+// SettingsSectionWorkspacesDescription says "One database file per client"
+// in the language the app shows under cx.
+func SettingsSectionWorkspacesDescription(cx *core.Scope) string {
+	return For(cx).SettingsSectionWorkspacesDescription()
+}
+
+// SettingsSectionWorkspacesDescription is the package's SettingsSectionWorkspacesDescription in the language of msgs.
+func (msgs Messages) SettingsSectionWorkspacesDescription() string {
+	return msgs.text(textSettingsSectionWorkspacesDescription)
+}
+
+// SettingsSkillActionInstall says "Install"
+// in the language the app shows under cx.
+func SettingsSkillActionInstall(cx *core.Scope) string { return For(cx).SettingsSkillActionInstall() }
+
+// SettingsSkillActionInstall is the package's SettingsSkillActionInstall in the language of msgs.
+func (msgs Messages) SettingsSkillActionInstall() string {
+	return msgs.text(textSettingsSkillActionInstall)
+}
+
+// SettingsSkillActionRemove says "Remove"
+// in the language the app shows under cx.
+func SettingsSkillActionRemove(cx *core.Scope) string { return For(cx).SettingsSkillActionRemove() }
+
+// SettingsSkillActionRemove is the package's SettingsSkillActionRemove in the language of msgs.
+func (msgs Messages) SettingsSkillActionRemove() string {
+	return msgs.text(textSettingsSkillActionRemove)
+}
+
+// SettingsSkillActionUpdate says "Update"
+// in the language the app shows under cx.
+func SettingsSkillActionUpdate(cx *core.Scope) string { return For(cx).SettingsSkillActionUpdate() }
+
+// SettingsSkillActionUpdate is the package's SettingsSkillActionUpdate in the language of msgs.
+func (msgs Messages) SettingsSkillActionUpdate() string {
+	return msgs.text(textSettingsSkillActionUpdate)
+}
+
+// SettingsSkillInstallFailed says "Skill operation failed"
+// in the language the app shows under cx.
+func SettingsSkillInstallFailed(cx *core.Scope) string { return For(cx).SettingsSkillInstallFailed() }
+
+// SettingsSkillInstallFailed is the package's SettingsSkillInstallFailed in the language of msgs.
+func (msgs Messages) SettingsSkillInstallFailed() string {
+	return msgs.text(textSettingsSkillInstallFailed)
+}
+
+// SettingsSkillInstalled says "Installed Skill — synced to {count} host(s). Restart your AI agent to use it."
+// in the language the app shows under cx.
+func SettingsSkillInstalled(cx *core.Scope, count string) string {
+	return For(cx).SettingsSkillInstalled(count)
+}
+
+// SettingsSkillInstalled is the package's SettingsSkillInstalled in the language of msgs.
+func (msgs Messages) SettingsSkillInstalled(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SettingsSkillInstalled(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SettingsSkillInstalled; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return "Installed Skill — synced to " + msgs.arg(count) + " host(s). Restart your AI agent to use it."
+		case "zh-CN":
+			return "已安装 Skill — 同步到 " + count + " 个 host。请重启 AI agent 让 skill 生效。"
+		}
+	}
+}
+
+// SettingsSkillLoading says "Detecting…"
+// in the language the app shows under cx.
+func SettingsSkillLoading(cx *core.Scope) string { return For(cx).SettingsSkillLoading() }
+
+// SettingsSkillLoading is the package's SettingsSkillLoading in the language of msgs.
+func (msgs Messages) SettingsSkillLoading() string { return msgs.text(textSettingsSkillLoading) }
+
+// SettingsSkillNoHosts says "no agent hosts detected (only ~/.agents/skills/)"
+// in the language the app shows under cx.
+func SettingsSkillNoHosts(cx *core.Scope) string { return For(cx).SettingsSkillNoHosts() }
+
+// SettingsSkillNoHosts is the package's SettingsSkillNoHosts in the language of msgs.
+func (msgs Messages) SettingsSkillNoHosts() string { return msgs.text(textSettingsSkillNoHosts) }
+
+// SettingsSkillRemoved says "Skill removed."
+// in the language the app shows under cx.
+func SettingsSkillRemoved(cx *core.Scope) string { return For(cx).SettingsSkillRemoved() }
+
+// SettingsSkillRemoved is the package's SettingsSkillRemoved in the language of msgs.
+func (msgs Messages) SettingsSkillRemoved() string { return msgs.text(textSettingsSkillRemoved) }
+
+// SettingsSkillStatusInstalled says "Installed ✓ — synced to {count} host(s)"
+// in the language the app shows under cx.
+func SettingsSkillStatusInstalled(cx *core.Scope, count string) string {
+	return For(cx).SettingsSkillStatusInstalled(count)
+}
+
+// SettingsSkillStatusInstalled is the package's SettingsSkillStatusInstalled in the language of msgs.
+func (msgs Messages) SettingsSkillStatusInstalled(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SettingsSkillStatusInstalled(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SettingsSkillStatusInstalled; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return "Installed ✓ — synced to " + msgs.arg(count) + " host(s)"
+		case "zh-CN":
+			return "已安装 ✓ — 已同步到 " + count + " 个 host"
+		}
+	}
+}
+
+// SettingsSkillStatusNotInstalled says "Not installed"
+// in the language the app shows under cx.
+func SettingsSkillStatusNotInstalled(cx *core.Scope) string {
+	return For(cx).SettingsSkillStatusNotInstalled()
+}
+
+// SettingsSkillStatusNotInstalled is the package's SettingsSkillStatusNotInstalled in the language of msgs.
+func (msgs Messages) SettingsSkillStatusNotInstalled() string {
+	return msgs.text(textSettingsSkillStatusNotInstalled)
+}
+
+// SettingsSkillStatusOutdated says "Installed — update available"
+// in the language the app shows under cx.
+func SettingsSkillStatusOutdated(cx *core.Scope) string { return For(cx).SettingsSkillStatusOutdated() }
+
+// SettingsSkillStatusOutdated is the package's SettingsSkillStatusOutdated in the language of msgs.
+func (msgs Messages) SettingsSkillStatusOutdated() string {
+	return msgs.text(textSettingsSkillStatusOutdated)
+}
+
+// SettingsSkillStepHelp says "Lets AI agents know when to query your CarbonInk data. One copy goes to ~/.agents/skills/; symlinks are created for each detected agent host."
+// in the language the app shows under cx.
+func SettingsSkillStepHelp(cx *core.Scope) string { return For(cx).SettingsSkillStepHelp() }
+
+// SettingsSkillStepHelp is the package's SettingsSkillStepHelp in the language of msgs.
+func (msgs Messages) SettingsSkillStepHelp() string { return msgs.text(textSettingsSkillStepHelp) }
+
+// SettingsSkillStepTitle says "Step 1 · Install Agent Skill"
+// in the language the app shows under cx.
+func SettingsSkillStepTitle(cx *core.Scope) string { return For(cx).SettingsSkillStepTitle() }
+
+// SettingsSkillStepTitle is the package's SettingsSkillStepTitle in the language of msgs.
+func (msgs Messages) SettingsSkillStepTitle() string { return msgs.text(textSettingsSkillStepTitle) }
+
+// SettingsSkillUpdated says "Skill updated."
+// in the language the app shows under cx.
+func SettingsSkillUpdated(cx *core.Scope) string { return For(cx).SettingsSkillUpdated() }
+
+// SettingsSkillUpdated is the package's SettingsSkillUpdated in the language of msgs.
+func (msgs Messages) SettingsSkillUpdated() string { return msgs.text(textSettingsSkillUpdated) }
+
+// SettingsSkillWillInstallTo says "Will sync to: {hosts}"
+// in the language the app shows under cx.
+func SettingsSkillWillInstallTo(cx *core.Scope, hosts string) string {
+	return For(cx).SettingsSkillWillInstallTo(hosts)
+}
+
+// SettingsSkillWillInstallTo is the package's SettingsSkillWillInstallTo in the language of msgs.
+func (msgs Messages) SettingsSkillWillInstallTo(hosts string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SettingsSkillWillInstallTo(hosts))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SettingsSkillWillInstallTo; f != nil {
+			return f(hosts)
+		}
+		switch lang {
+		case "", "en":
+			return "Will sync to: " + msgs.arg(hosts)
+		case "zh-CN":
+			return "将同步到: " + hosts
+		}
+	}
+}
+
+// SettingsTestConnection says "Test connection"
+// in the language the app shows under cx.
+func SettingsTestConnection(cx *core.Scope) string { return For(cx).SettingsTestConnection() }
+
+// SettingsTestConnection is the package's SettingsTestConnection in the language of msgs.
+func (msgs Messages) SettingsTestConnection() string { return msgs.text(textSettingsTestConnection) }
+
+// SettingsTestFailed says "Connection failed"
+// in the language the app shows under cx.
+func SettingsTestFailed(cx *core.Scope) string { return For(cx).SettingsTestFailed() }
+
+// SettingsTestFailed is the package's SettingsTestFailed in the language of msgs.
+func (msgs Messages) SettingsTestFailed() string { return msgs.text(textSettingsTestFailed) }
+
+// SettingsTestSuccess says "Connection successful"
+// in the language the app shows under cx.
+func SettingsTestSuccess(cx *core.Scope) string { return For(cx).SettingsTestSuccess() }
+
+// SettingsTestSuccess is the package's SettingsTestSuccess in the language of msgs.
+func (msgs Messages) SettingsTestSuccess() string { return msgs.text(textSettingsTestSuccess) }
+
+// SettingsTesting says "Testing…"
+// in the language the app shows under cx.
+func SettingsTesting(cx *core.Scope) string { return For(cx).SettingsTesting() }
+
+// SettingsTesting is the package's SettingsTesting in the language of msgs.
+func (msgs Messages) SettingsTesting() string { return msgs.text(textSettingsTesting) }
+
+// SettingsThemeDark says "Dark"
+// in the language the app shows under cx.
+func SettingsThemeDark(cx *core.Scope) string { return For(cx).SettingsThemeDark() }
+
+// SettingsThemeDark is the package's SettingsThemeDark in the language of msgs.
+func (msgs Messages) SettingsThemeDark() string { return msgs.text(textSettingsThemeDark) }
+
+// SettingsThemeLight says "Light"
+// in the language the app shows under cx.
+func SettingsThemeLight(cx *core.Scope) string { return For(cx).SettingsThemeLight() }
+
+// SettingsThemeLight is the package's SettingsThemeLight in the language of msgs.
+func (msgs Messages) SettingsThemeLight() string { return msgs.text(textSettingsThemeLight) }
+
+// SettingsThemeSystem says "System"
+// in the language the app shows under cx.
+func SettingsThemeSystem(cx *core.Scope) string { return For(cx).SettingsThemeSystem() }
+
+// SettingsThemeSystem is the package's SettingsThemeSystem in the language of msgs.
+func (msgs Messages) SettingsThemeSystem() string { return msgs.text(textSettingsThemeSystem) }
+
+// SettingsTitle says "Settings"
+// in the language the app shows under cx.
+func SettingsTitle(cx *core.Scope) string { return For(cx).SettingsTitle() }
+
+// SettingsTitle is the package's SettingsTitle in the language of msgs.
+func (msgs Messages) SettingsTitle() string { return msgs.text(textSettingsTitle) }
+
+// SettingsWindowNote says "The window frame is saved when you quit."
+// in the language the app shows under cx.
+func SettingsWindowNote(cx *core.Scope) string { return For(cx).SettingsWindowNote() }
+
+// SettingsWindowNote is the package's SettingsWindowNote in the language of msgs.
+func (msgs Messages) SettingsWindowNote() string { return msgs.text(textSettingsWindowNote) }
 
 // SettingsWorkspace says "Workspace"
 // in the language the app shows under cx.
@@ -646,9 +18722,1174 @@ func SettingsWorkspace(cx *core.Scope) string { return For(cx).SettingsWorkspace
 // SettingsWorkspace is the package's SettingsWorkspace in the language of msgs.
 func (msgs Messages) SettingsWorkspace() string { return msgs.text(textSettingsWorkspace) }
 
-// SettingsWindowNote says "The window frame is saved when you quit."
+// SidebarMcpLabelAvailable says "MCP"
 // in the language the app shows under cx.
-func SettingsWindowNote(cx *core.Scope) string { return For(cx).SettingsWindowNote() }
+func SidebarMcpLabelAvailable(cx *core.Scope) string { return For(cx).SidebarMcpLabelAvailable() }
 
-// SettingsWindowNote is the package's SettingsWindowNote in the language of msgs.
-func (msgs Messages) SettingsWindowNote() string { return msgs.text(textSettingsWindowNote) }
+// SidebarMcpLabelAvailable is the package's SidebarMcpLabelAvailable in the language of msgs.
+func (msgs Messages) SidebarMcpLabelAvailable() string {
+	return msgs.text(textSidebarMcpLabelAvailable)
+}
+
+// SidebarMcpLabelNotBuilt says "MCP · Not built"
+// in the language the app shows under cx.
+func SidebarMcpLabelNotBuilt(cx *core.Scope) string { return For(cx).SidebarMcpLabelNotBuilt() }
+
+// SidebarMcpLabelNotBuilt is the package's SidebarMcpLabelNotBuilt in the language of msgs.
+func (msgs Messages) SidebarMcpLabelNotBuilt() string { return msgs.text(textSidebarMcpLabelNotBuilt) }
+
+// SidebarMcpLabelPending says "MCP · Not configured"
+// in the language the app shows under cx.
+func SidebarMcpLabelPending(cx *core.Scope) string { return For(cx).SidebarMcpLabelPending() }
+
+// SidebarMcpLabelPending is the package's SidebarMcpLabelPending in the language of msgs.
+func (msgs Messages) SidebarMcpLabelPending() string { return msgs.text(textSidebarMcpLabelPending) }
+
+// SortLabel says "Sort"
+// in the language the app shows under cx.
+func SortLabel(cx *core.Scope) string { return For(cx).SortLabel() }
+
+// SortLabel is the package's SortLabel in the language of msgs.
+func (msgs Messages) SortLabel() string { return msgs.text(textSortLabel) }
+
+// SourceEditActiveLabel says "Active"
+// in the language the app shows under cx.
+func SourceEditActiveLabel(cx *core.Scope) string { return For(cx).SourceEditActiveLabel() }
+
+// SourceEditActiveLabel is the package's SourceEditActiveLabel in the language of msgs.
+func (msgs Messages) SourceEditActiveLabel() string { return msgs.text(textSourceEditActiveLabel) }
+
+// SourceEditCancel says "Cancel"
+// in the language the app shows under cx.
+func SourceEditCancel(cx *core.Scope) string { return For(cx).SourceEditCancel() }
+
+// SourceEditCancel is the package's SourceEditCancel in the language of msgs.
+func (msgs Messages) SourceEditCancel() string { return msgs.text(textSourceEditCancel) }
+
+// SourceEditFailed says "Update failed"
+// in the language the app shows under cx.
+func SourceEditFailed(cx *core.Scope) string { return For(cx).SourceEditFailed() }
+
+// SourceEditFailed is the package's SourceEditFailed in the language of msgs.
+func (msgs Messages) SourceEditFailed() string { return msgs.text(textSourceEditFailed) }
+
+// SourceEditSave says "Save"
+// in the language the app shows under cx.
+func SourceEditSave(cx *core.Scope) string { return For(cx).SourceEditSave() }
+
+// SourceEditSave is the package's SourceEditSave in the language of msgs.
+func (msgs Messages) SourceEditSave() string { return msgs.text(textSourceEditSave) }
+
+// SourceEditSuccess says "Source updated"
+// in the language the app shows under cx.
+func SourceEditSuccess(cx *core.Scope) string { return For(cx).SourceEditSuccess() }
+
+// SourceEditSuccess is the package's SourceEditSuccess in the language of msgs.
+func (msgs Messages) SourceEditSuccess() string { return msgs.text(textSourceEditSuccess) }
+
+// SourceEditTitle says "Edit emission source"
+// in the language the app shows under cx.
+func SourceEditTitle(cx *core.Scope) string { return For(cx).SourceEditTitle() }
+
+// SourceEditTitle is the package's SourceEditTitle in the language of msgs.
+func (msgs Messages) SourceEditTitle() string { return msgs.text(textSourceEditTitle) }
+
+// SourcesActiveNo says "No"
+// in the language the app shows under cx.
+func SourcesActiveNo(cx *core.Scope) string { return For(cx).SourcesActiveNo() }
+
+// SourcesActiveNo is the package's SourcesActiveNo in the language of msgs.
+func (msgs Messages) SourcesActiveNo() string { return msgs.text(textSourcesActiveNo) }
+
+// SourcesActiveYes says "Yes"
+// in the language the app shows under cx.
+func SourcesActiveYes(cx *core.Scope) string { return For(cx).SourcesActiveYes() }
+
+// SourcesActiveYes is the package's SourcesActiveYes in the language of msgs.
+func (msgs Messages) SourcesActiveYes() string { return msgs.text(textSourcesActiveYes) }
+
+// SourcesAddButton says "Add Source"
+// in the language the app shows under cx.
+func SourcesAddButton(cx *core.Scope) string { return For(cx).SourcesAddButton() }
+
+// SourcesAddButton is the package's SourcesAddButton in the language of msgs.
+func (msgs Messages) SourcesAddButton() string { return msgs.text(textSourcesAddButton) }
+
+// SourcesCancelButton says "Cancel"
+// in the language the app shows under cx.
+func SourcesCancelButton(cx *core.Scope) string { return For(cx).SourcesCancelButton() }
+
+// SourcesCancelButton is the package's SourcesCancelButton in the language of msgs.
+func (msgs Messages) SourcesCancelButton() string { return msgs.text(textSourcesCancelButton) }
+
+// SourcesCatalogAdd says "Add"
+// in the language the app shows under cx.
+func SourcesCatalogAdd(cx *core.Scope) string { return For(cx).SourcesCatalogAdd() }
+
+// SourcesCatalogAdd is the package's SourcesCatalogAdd in the language of msgs.
+func (msgs Messages) SourcesCatalogAdd() string { return msgs.text(textSourcesCatalogAdd) }
+
+// SourcesCatalogAddFailed says "Add failed"
+// in the language the app shows under cx.
+func SourcesCatalogAddFailed(cx *core.Scope) string { return For(cx).SourcesCatalogAddFailed() }
+
+// SourcesCatalogAddFailed is the package's SourcesCatalogAddFailed in the language of msgs.
+func (msgs Messages) SourcesCatalogAddFailed() string { return msgs.text(textSourcesCatalogAddFailed) }
+
+// SourcesCatalogAddSuccess says "Added to your sources"
+// in the language the app shows under cx.
+func SourcesCatalogAddSuccess(cx *core.Scope) string { return For(cx).SourcesCatalogAddSuccess() }
+
+// SourcesCatalogAddSuccess is the package's SourcesCatalogAddSuccess in the language of msgs.
+func (msgs Messages) SourcesCatalogAddSuccess() string {
+	return msgs.text(textSourcesCatalogAddSuccess)
+}
+
+// SourcesCatalogAdded says "Added"
+// in the language the app shows under cx.
+func SourcesCatalogAdded(cx *core.Scope) string { return For(cx).SourcesCatalogAdded() }
+
+// SourcesCatalogAdded is the package's SourcesCatalogAdded in the language of msgs.
+func (msgs Messages) SourcesCatalogAdded() string { return msgs.text(textSourcesCatalogAdded) }
+
+// SourcesCatalogBatchAdd says "Add {count}"
+// in the language the app shows under cx.
+func SourcesCatalogBatchAdd(cx *core.Scope, count string) string {
+	return For(cx).SourcesCatalogBatchAdd(count)
+}
+
+// SourcesCatalogBatchAdd is the package's SourcesCatalogBatchAdd in the language of msgs.
+func (msgs Messages) SourcesCatalogBatchAdd(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SourcesCatalogBatchAdd(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SourcesCatalogBatchAdd; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return "Add " + msgs.arg(count)
+		case "zh-CN":
+			return "添加 " + count + " 项"
+		}
+	}
+}
+
+// SourcesCatalogBatchAddFailed says "Batch add failed"
+// in the language the app shows under cx.
+func SourcesCatalogBatchAddFailed(cx *core.Scope) string {
+	return For(cx).SourcesCatalogBatchAddFailed()
+}
+
+// SourcesCatalogBatchAddFailed is the package's SourcesCatalogBatchAddFailed in the language of msgs.
+func (msgs Messages) SourcesCatalogBatchAddFailed() string {
+	return msgs.text(textSourcesCatalogBatchAddFailed)
+}
+
+// SourcesCatalogBatchAddPending says "Adding…"
+// in the language the app shows under cx.
+func SourcesCatalogBatchAddPending(cx *core.Scope) string {
+	return For(cx).SourcesCatalogBatchAddPending()
+}
+
+// SourcesCatalogBatchAddPending is the package's SourcesCatalogBatchAddPending in the language of msgs.
+func (msgs Messages) SourcesCatalogBatchAddPending() string {
+	return msgs.text(textSourcesCatalogBatchAddPending)
+}
+
+// SourcesCatalogBatchAddSuccess says "Added {count} emission sources"
+// in the language the app shows under cx.
+func SourcesCatalogBatchAddSuccess(cx *core.Scope, count string) string {
+	return For(cx).SourcesCatalogBatchAddSuccess(count)
+}
+
+// SourcesCatalogBatchAddSuccess is the package's SourcesCatalogBatchAddSuccess in the language of msgs.
+func (msgs Messages) SourcesCatalogBatchAddSuccess(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SourcesCatalogBatchAddSuccess(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SourcesCatalogBatchAddSuccess; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return "Added " + msgs.arg(count) + " emission sources"
+		case "zh-CN":
+			return "已加入 " + count + " 个排放源"
+		}
+	}
+}
+
+// SourcesCatalogButton says "Add from catalog"
+// in the language the app shows under cx.
+func SourcesCatalogButton(cx *core.Scope) string { return For(cx).SourcesCatalogButton() }
+
+// SourcesCatalogButton is the package's SourcesCatalogButton in the language of msgs.
+func (msgs Messages) SourcesCatalogButton() string { return msgs.text(textSourcesCatalogButton) }
+
+// SourcesCatalogCategoryAll says "All categories"
+// in the language the app shows under cx.
+func SourcesCatalogCategoryAll(cx *core.Scope) string { return For(cx).SourcesCatalogCategoryAll() }
+
+// SourcesCatalogCategoryAll is the package's SourcesCatalogCategoryAll in the language of msgs.
+func (msgs Messages) SourcesCatalogCategoryAll() string {
+	return msgs.text(textSourcesCatalogCategoryAll)
+}
+
+// SourcesCatalogDeselectAll says "Clear selection"
+// in the language the app shows under cx.
+func SourcesCatalogDeselectAll(cx *core.Scope) string { return For(cx).SourcesCatalogDeselectAll() }
+
+// SourcesCatalogDeselectAll is the package's SourcesCatalogDeselectAll in the language of msgs.
+func (msgs Messages) SourcesCatalogDeselectAll() string {
+	return msgs.text(textSourcesCatalogDeselectAll)
+}
+
+// SourcesCatalogEmpty says "Catalog is empty."
+// in the language the app shows under cx.
+func SourcesCatalogEmpty(cx *core.Scope) string { return For(cx).SourcesCatalogEmpty() }
+
+// SourcesCatalogEmpty is the package's SourcesCatalogEmpty in the language of msgs.
+func (msgs Messages) SourcesCatalogEmpty() string { return msgs.text(textSourcesCatalogEmpty) }
+
+// SourcesCatalogNoResults says "No matching emission sources"
+// in the language the app shows under cx.
+func SourcesCatalogNoResults(cx *core.Scope) string { return For(cx).SourcesCatalogNoResults() }
+
+// SourcesCatalogNoResults is the package's SourcesCatalogNoResults in the language of msgs.
+func (msgs Messages) SourcesCatalogNoResults() string { return msgs.text(textSourcesCatalogNoResults) }
+
+// SourcesCatalogNoSite says "Create a site first."
+// in the language the app shows under cx.
+func SourcesCatalogNoSite(cx *core.Scope) string { return For(cx).SourcesCatalogNoSite() }
+
+// SourcesCatalogNoSite is the package's SourcesCatalogNoSite in the language of msgs.
+func (msgs Messages) SourcesCatalogNoSite() string { return msgs.text(textSourcesCatalogNoSite) }
+
+// SourcesCatalogScope1 says "Scope 1 — Direct emissions"
+// in the language the app shows under cx.
+func SourcesCatalogScope1(cx *core.Scope) string { return For(cx).SourcesCatalogScope1() }
+
+// SourcesCatalogScope1 is the package's SourcesCatalogScope1 in the language of msgs.
+func (msgs Messages) SourcesCatalogScope1() string { return msgs.text(textSourcesCatalogScope1) }
+
+// SourcesCatalogScope1Short says "Scope 1"
+// in the language the app shows under cx.
+func SourcesCatalogScope1Short(cx *core.Scope) string { return For(cx).SourcesCatalogScope1Short() }
+
+// SourcesCatalogScope1Short is the package's SourcesCatalogScope1Short in the language of msgs.
+func (msgs Messages) SourcesCatalogScope1Short() string {
+	return msgs.text(textSourcesCatalogScope1Short)
+}
+
+// SourcesCatalogScope2 says "Scope 2 — Energy indirect emissions"
+// in the language the app shows under cx.
+func SourcesCatalogScope2(cx *core.Scope) string { return For(cx).SourcesCatalogScope2() }
+
+// SourcesCatalogScope2 is the package's SourcesCatalogScope2 in the language of msgs.
+func (msgs Messages) SourcesCatalogScope2() string { return msgs.text(textSourcesCatalogScope2) }
+
+// SourcesCatalogScope2Short says "Scope 2"
+// in the language the app shows under cx.
+func SourcesCatalogScope2Short(cx *core.Scope) string { return For(cx).SourcesCatalogScope2Short() }
+
+// SourcesCatalogScope2Short is the package's SourcesCatalogScope2Short in the language of msgs.
+func (msgs Messages) SourcesCatalogScope2Short() string {
+	return msgs.text(textSourcesCatalogScope2Short)
+}
+
+// SourcesCatalogScope3 says "Scope 3 — Other indirect emissions"
+// in the language the app shows under cx.
+func SourcesCatalogScope3(cx *core.Scope) string { return For(cx).SourcesCatalogScope3() }
+
+// SourcesCatalogScope3 is the package's SourcesCatalogScope3 in the language of msgs.
+func (msgs Messages) SourcesCatalogScope3() string { return msgs.text(textSourcesCatalogScope3) }
+
+// SourcesCatalogScope3Short says "Scope 3"
+// in the language the app shows under cx.
+func SourcesCatalogScope3Short(cx *core.Scope) string { return For(cx).SourcesCatalogScope3Short() }
+
+// SourcesCatalogScope3Short is the package's SourcesCatalogScope3Short in the language of msgs.
+func (msgs Messages) SourcesCatalogScope3Short() string {
+	return msgs.text(textSourcesCatalogScope3Short)
+}
+
+// SourcesCatalogScopeAll says "All"
+// in the language the app shows under cx.
+func SourcesCatalogScopeAll(cx *core.Scope) string { return For(cx).SourcesCatalogScopeAll() }
+
+// SourcesCatalogScopeAll is the package's SourcesCatalogScopeAll in the language of msgs.
+func (msgs Messages) SourcesCatalogScopeAll() string { return msgs.text(textSourcesCatalogScopeAll) }
+
+// SourcesCatalogSearchPlaceholder says "Search by name, category, or source"
+// in the language the app shows under cx.
+func SourcesCatalogSearchPlaceholder(cx *core.Scope) string {
+	return For(cx).SourcesCatalogSearchPlaceholder()
+}
+
+// SourcesCatalogSearchPlaceholder is the package's SourcesCatalogSearchPlaceholder in the language of msgs.
+func (msgs Messages) SourcesCatalogSearchPlaceholder() string {
+	return msgs.text(textSourcesCatalogSearchPlaceholder)
+}
+
+// SourcesCatalogSelectAll says "Select all {count}"
+// in the language the app shows under cx.
+func SourcesCatalogSelectAll(cx *core.Scope, count string) string {
+	return For(cx).SourcesCatalogSelectAll(count)
+}
+
+// SourcesCatalogSelectAll is the package's SourcesCatalogSelectAll in the language of msgs.
+func (msgs Messages) SourcesCatalogSelectAll(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SourcesCatalogSelectAll(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SourcesCatalogSelectAll; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return "Select all " + msgs.arg(count)
+		case "zh-CN":
+			return "全选当前 " + count + " 项"
+		}
+	}
+}
+
+// SourcesCatalogSelectedCount says "{count} selected"
+// in the language the app shows under cx.
+func SourcesCatalogSelectedCount(cx *core.Scope, count string) string {
+	return For(cx).SourcesCatalogSelectedCount(count)
+}
+
+// SourcesCatalogSelectedCount is the package's SourcesCatalogSelectedCount in the language of msgs.
+func (msgs Messages) SourcesCatalogSelectedCount(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SourcesCatalogSelectedCount(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SourcesCatalogSelectedCount; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " selected"
+		case "zh-CN":
+			return "已选 " + count + " 项"
+		}
+	}
+}
+
+// SourcesCatalogTitle says "Emission source catalog"
+// in the language the app shows under cx.
+func SourcesCatalogTitle(cx *core.Scope) string { return For(cx).SourcesCatalogTitle() }
+
+// SourcesCatalogTitle is the package's SourcesCatalogTitle in the language of msgs.
+func (msgs Messages) SourcesCatalogTitle() string { return msgs.text(textSourcesCatalogTitle) }
+
+// SourcesCreateFailed says "Failed to create source"
+// in the language the app shows under cx.
+func SourcesCreateFailed(cx *core.Scope) string { return For(cx).SourcesCreateFailed() }
+
+// SourcesCreateFailed is the package's SourcesCreateFailed in the language of msgs.
+func (msgs Messages) SourcesCreateFailed() string { return msgs.text(textSourcesCreateFailed) }
+
+// SourcesEmptyBody says "Emission sources are the skeleton of the inventory — every activity row hangs off one. Start from the catalog to get scope, category and emission factor filled in for you, or define one by hand."
+// in the language the app shows under cx.
+func SourcesEmptyBody(cx *core.Scope) string { return For(cx).SourcesEmptyBody() }
+
+// SourcesEmptyBody is the package's SourcesEmptyBody in the language of msgs.
+func (msgs Messages) SourcesEmptyBody() string { return msgs.text(textSourcesEmptyBody) }
+
+// SourcesEmptyTitle says "No emission sources yet"
+// in the language the app shows under cx.
+func SourcesEmptyTitle(cx *core.Scope) string { return For(cx).SourcesEmptyTitle() }
+
+// SourcesEmptyTitle is the package's SourcesEmptyTitle in the language of msgs.
+func (msgs Messages) SourcesEmptyTitle() string { return msgs.text(textSourcesEmptyTitle) }
+
+// SourcesFilterClear says "Clear filters"
+// in the language the app shows under cx.
+func SourcesFilterClear(cx *core.Scope) string { return For(cx).SourcesFilterClear() }
+
+// SourcesFilterClear is the package's SourcesFilterClear in the language of msgs.
+func (msgs Messages) SourcesFilterClear() string { return msgs.text(textSourcesFilterClear) }
+
+// SourcesFilterEmpty says "No matching sources"
+// in the language the app shows under cx.
+func SourcesFilterEmpty(cx *core.Scope) string { return For(cx).SourcesFilterEmpty() }
+
+// SourcesFilterEmpty is the package's SourcesFilterEmpty in the language of msgs.
+func (msgs Messages) SourcesFilterEmpty() string { return msgs.text(textSourcesFilterEmpty) }
+
+// SourcesFormCategory says "Category (optional)"
+// in the language the app shows under cx.
+func SourcesFormCategory(cx *core.Scope) string { return For(cx).SourcesFormCategory() }
+
+// SourcesFormCategory is the package's SourcesFormCategory in the language of msgs.
+func (msgs Messages) SourcesFormCategory() string { return msgs.text(textSourcesFormCategory) }
+
+// SourcesFormCategoryCustom says "Use custom value “{query}”"
+// in the language the app shows under cx.
+func SourcesFormCategoryCustom(cx *core.Scope, query string) string {
+	return For(cx).SourcesFormCategoryCustom(query)
+}
+
+// SourcesFormCategoryCustom is the package's SourcesFormCategoryCustom in the language of msgs.
+func (msgs Messages) SourcesFormCategoryCustom(query string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SourcesFormCategoryCustom(query))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SourcesFormCategoryCustom; f != nil {
+			return f(query)
+		}
+		switch lang {
+		case "", "en":
+			return "Use custom value “" + msgs.arg(query) + "”"
+		case "zh-CN":
+			return "使用自定义值「" + query + "」"
+		}
+	}
+}
+
+// SourcesFormCategoryEmpty says "No matching category"
+// in the language the app shows under cx.
+func SourcesFormCategoryEmpty(cx *core.Scope) string { return For(cx).SourcesFormCategoryEmpty() }
+
+// SourcesFormCategoryEmpty is the package's SourcesFormCategoryEmpty in the language of msgs.
+func (msgs Messages) SourcesFormCategoryEmpty() string {
+	return msgs.text(textSourcesFormCategoryEmpty)
+}
+
+// SourcesFormCategoryGroupCurrent says "Current value"
+// in the language the app shows under cx.
+func SourcesFormCategoryGroupCurrent(cx *core.Scope) string {
+	return For(cx).SourcesFormCategoryGroupCurrent()
+}
+
+// SourcesFormCategoryGroupCurrent is the package's SourcesFormCategoryGroupCurrent in the language of msgs.
+func (msgs Messages) SourcesFormCategoryGroupCurrent() string {
+	return msgs.text(textSourcesFormCategoryGroupCurrent)
+}
+
+// SourcesFormCategoryGroupDownstream says "Downstream (3.9–3.15)"
+// in the language the app shows under cx.
+func SourcesFormCategoryGroupDownstream(cx *core.Scope) string {
+	return For(cx).SourcesFormCategoryGroupDownstream()
+}
+
+// SourcesFormCategoryGroupDownstream is the package's SourcesFormCategoryGroupDownstream in the language of msgs.
+func (msgs Messages) SourcesFormCategoryGroupDownstream() string {
+	return msgs.text(textSourcesFormCategoryGroupDownstream)
+}
+
+// SourcesFormCategoryGroupUpstream says "Upstream (3.1–3.8)"
+// in the language the app shows under cx.
+func SourcesFormCategoryGroupUpstream(cx *core.Scope) string {
+	return For(cx).SourcesFormCategoryGroupUpstream()
+}
+
+// SourcesFormCategoryGroupUpstream is the package's SourcesFormCategoryGroupUpstream in the language of msgs.
+func (msgs Messages) SourcesFormCategoryGroupUpstream() string {
+	return msgs.text(textSourcesFormCategoryGroupUpstream)
+}
+
+// SourcesFormCategoryHint says "GHG Protocol category. Determines which emission factors are suggested."
+// in the language the app shows under cx.
+func SourcesFormCategoryHint(cx *core.Scope) string { return For(cx).SourcesFormCategoryHint() }
+
+// SourcesFormCategoryHint is the package's SourcesFormCategoryHint in the language of msgs.
+func (msgs Messages) SourcesFormCategoryHint() string { return msgs.text(textSourcesFormCategoryHint) }
+
+// SourcesFormCategoryNone says "Not set"
+// in the language the app shows under cx.
+func SourcesFormCategoryNone(cx *core.Scope) string { return For(cx).SourcesFormCategoryNone() }
+
+// SourcesFormCategoryNone is the package's SourcesFormCategoryNone in the language of msgs.
+func (msgs Messages) SourcesFormCategoryNone() string { return msgs.text(textSourcesFormCategoryNone) }
+
+// SourcesFormCategoryNonstandard says "Non-standard"
+// in the language the app shows under cx.
+func SourcesFormCategoryNonstandard(cx *core.Scope) string {
+	return For(cx).SourcesFormCategoryNonstandard()
+}
+
+// SourcesFormCategoryNonstandard is the package's SourcesFormCategoryNonstandard in the language of msgs.
+func (msgs Messages) SourcesFormCategoryNonstandard() string {
+	return msgs.text(textSourcesFormCategoryNonstandard)
+}
+
+// SourcesFormCategoryPlaceholder says "Select a category…"
+// in the language the app shows under cx.
+func SourcesFormCategoryPlaceholder(cx *core.Scope) string {
+	return For(cx).SourcesFormCategoryPlaceholder()
+}
+
+// SourcesFormCategoryPlaceholder is the package's SourcesFormCategoryPlaceholder in the language of msgs.
+func (msgs Messages) SourcesFormCategoryPlaceholder() string {
+	return msgs.text(textSourcesFormCategoryPlaceholder)
+}
+
+// SourcesFormCategorySearch says "Search categories…"
+// in the language the app shows under cx.
+func SourcesFormCategorySearch(cx *core.Scope) string { return For(cx).SourcesFormCategorySearch() }
+
+// SourcesFormCategorySearch is the package's SourcesFormCategorySearch in the language of msgs.
+func (msgs Messages) SourcesFormCategorySearch() string {
+	return msgs.text(textSourcesFormCategorySearch)
+}
+
+// SourcesFormName says "Name"
+// in the language the app shows under cx.
+func SourcesFormName(cx *core.Scope) string { return For(cx).SourcesFormName() }
+
+// SourcesFormName is the package's SourcesFormName in the language of msgs.
+func (msgs Messages) SourcesFormName() string { return msgs.text(textSourcesFormName) }
+
+// SourcesFormScope says "Scope"
+// in the language the app shows under cx.
+func SourcesFormScope(cx *core.Scope) string { return For(cx).SourcesFormScope() }
+
+// SourcesFormScope is the package's SourcesFormScope in the language of msgs.
+func (msgs Messages) SourcesFormScope() string { return msgs.text(textSourcesFormScope) }
+
+// SourcesFormScope1 says "Scope 1 — direct emissions"
+// in the language the app shows under cx.
+func SourcesFormScope1(cx *core.Scope) string { return For(cx).SourcesFormScope1() }
+
+// SourcesFormScope1 is the package's SourcesFormScope1 in the language of msgs.
+func (msgs Messages) SourcesFormScope1() string { return msgs.text(textSourcesFormScope1) }
+
+// SourcesFormScope2 says "Scope 2 — purchased energy"
+// in the language the app shows under cx.
+func SourcesFormScope2(cx *core.Scope) string { return For(cx).SourcesFormScope2() }
+
+// SourcesFormScope2 is the package's SourcesFormScope2 in the language of msgs.
+func (msgs Messages) SourcesFormScope2() string { return msgs.text(textSourcesFormScope2) }
+
+// SourcesFormScope3 says "Scope 3 — value chain"
+// in the language the app shows under cx.
+func SourcesFormScope3(cx *core.Scope) string { return For(cx).SourcesFormScope3() }
+
+// SourcesFormScope3 is the package's SourcesFormScope3 in the language of msgs.
+func (msgs Messages) SourcesFormScope3() string { return msgs.text(textSourcesFormScope3) }
+
+// SourcesFormSite says "Site"
+// in the language the app shows under cx.
+func SourcesFormSite(cx *core.Scope) string { return For(cx).SourcesFormSite() }
+
+// SourcesFormSite is the package's SourcesFormSite in the language of msgs.
+func (msgs Messages) SourcesFormSite() string { return msgs.text(textSourcesFormSite) }
+
+// SourcesFormSubmit says "Create source"
+// in the language the app shows under cx.
+func SourcesFormSubmit(cx *core.Scope) string { return For(cx).SourcesFormSubmit() }
+
+// SourcesFormSubmit is the package's SourcesFormSubmit in the language of msgs.
+func (msgs Messages) SourcesFormSubmit() string { return msgs.text(textSourcesFormSubmit) }
+
+// SourcesFormSubmitting says "Creating…"
+// in the language the app shows under cx.
+func SourcesFormSubmitting(cx *core.Scope) string { return For(cx).SourcesFormSubmitting() }
+
+// SourcesFormSubmitting is the package's SourcesFormSubmitting in the language of msgs.
+func (msgs Messages) SourcesFormSubmitting() string { return msgs.text(textSourcesFormSubmitting) }
+
+// SourcesFromCatalog says "From {origin}"
+// in the language the app shows under cx.
+func SourcesFromCatalog(cx *core.Scope, origin string) string {
+	return For(cx).SourcesFromCatalog(origin)
+}
+
+// SourcesFromCatalog is the package's SourcesFromCatalog in the language of msgs.
+func (msgs Messages) SourcesFromCatalog(origin string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SourcesFromCatalog(origin))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SourcesFromCatalog; f != nil {
+			return f(origin)
+		}
+		switch lang {
+		case "", "en":
+			return "From " + msgs.arg(origin)
+		case "zh-CN":
+			return "来自 " + origin
+		}
+	}
+}
+
+// SourcesInactiveChip says "Inactive"
+// in the language the app shows under cx.
+func SourcesInactiveChip(cx *core.Scope) string { return For(cx).SourcesInactiveChip() }
+
+// SourcesInactiveChip is the package's SourcesInactiveChip in the language of msgs.
+func (msgs Messages) SourcesInactiveChip() string { return msgs.text(textSourcesInactiveChip) }
+
+// SourcesLoadFailed says "Failed to load sources"
+// in the language the app shows under cx.
+func SourcesLoadFailed(cx *core.Scope) string { return For(cx).SourcesLoadFailed() }
+
+// SourcesLoadFailed is the package's SourcesLoadFailed in the language of msgs.
+func (msgs Messages) SourcesLoadFailed() string { return msgs.text(textSourcesLoadFailed) }
+
+// SourcesSearchPlaceholder says "Search by name, category, or GHG path"
+// in the language the app shows under cx.
+func SourcesSearchPlaceholder(cx *core.Scope) string { return For(cx).SourcesSearchPlaceholder() }
+
+// SourcesSearchPlaceholder is the package's SourcesSearchPlaceholder in the language of msgs.
+func (msgs Messages) SourcesSearchPlaceholder() string {
+	return msgs.text(textSourcesSearchPlaceholder)
+}
+
+// SourcesStatsActivityCount says "{count} activities"
+// in the language the app shows under cx.
+func SourcesStatsActivityCount(cx *core.Scope, count string) string {
+	return For(cx).SourcesStatsActivityCount(count)
+}
+
+// SourcesStatsActivityCount is the package's SourcesStatsActivityCount in the language of msgs.
+func (msgs Messages) SourcesStatsActivityCount(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SourcesStatsActivityCount(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SourcesStatsActivityCount; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " activities"
+		case "zh-CN":
+			return count + " 条活动"
+		}
+	}
+}
+
+// SourcesStatsLast says "last {date}"
+// in the language the app shows under cx.
+func SourcesStatsLast(cx *core.Scope, date string) string { return For(cx).SourcesStatsLast(date) }
+
+// SourcesStatsLast is the package's SourcesStatsLast in the language of msgs.
+func (msgs Messages) SourcesStatsLast(date string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SourcesStatsLast(date))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SourcesStatsLast; f != nil {
+			return f(date)
+		}
+		switch lang {
+		case "", "en":
+			return "last " + msgs.arg(date)
+		case "zh-CN":
+			return "最近 " + date
+		}
+	}
+}
+
+// SourcesStatsTotal says "{value} CO₂e total"
+// in the language the app shows under cx.
+func SourcesStatsTotal(cx *core.Scope, value string) string { return For(cx).SourcesStatsTotal(value) }
+
+// SourcesStatsTotal is the package's SourcesStatsTotal in the language of msgs.
+func (msgs Messages) SourcesStatsTotal(value string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SourcesStatsTotal(value))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SourcesStatsTotal; f != nil {
+			return f(value)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(value) + " CO₂e total"
+		case "zh-CN":
+			return "累计 " + value + " CO₂e"
+		}
+	}
+}
+
+// SourcesStatsUnused says "Not used yet"
+// in the language the app shows under cx.
+func SourcesStatsUnused(cx *core.Scope) string { return For(cx).SourcesStatsUnused() }
+
+// SourcesStatsUnused is the package's SourcesStatsUnused in the language of msgs.
+func (msgs Messages) SourcesStatsUnused() string { return msgs.text(textSourcesStatsUnused) }
+
+// SourcesTableActive says "Active"
+// in the language the app shows under cx.
+func SourcesTableActive(cx *core.Scope) string { return For(cx).SourcesTableActive() }
+
+// SourcesTableActive is the package's SourcesTableActive in the language of msgs.
+func (msgs Messages) SourcesTableActive() string { return msgs.text(textSourcesTableActive) }
+
+// SourcesTableCategory says "Category"
+// in the language the app shows under cx.
+func SourcesTableCategory(cx *core.Scope) string { return For(cx).SourcesTableCategory() }
+
+// SourcesTableCategory is the package's SourcesTableCategory in the language of msgs.
+func (msgs Messages) SourcesTableCategory() string { return msgs.text(textSourcesTableCategory) }
+
+// SourcesTableName says "Name"
+// in the language the app shows under cx.
+func SourcesTableName(cx *core.Scope) string { return For(cx).SourcesTableName() }
+
+// SourcesTableName is the package's SourcesTableName in the language of msgs.
+func (msgs Messages) SourcesTableName() string { return msgs.text(textSourcesTableName) }
+
+// SourcesTableScope says "Scope"
+// in the language the app shows under cx.
+func SourcesTableScope(cx *core.Scope) string { return For(cx).SourcesTableScope() }
+
+// SourcesTableScope is the package's SourcesTableScope in the language of msgs.
+func (msgs Messages) SourcesTableScope() string { return msgs.text(textSourcesTableScope) }
+
+// SupplierEmailOptionalLabel says "Supplier email (optional, used for reminders)"
+// in the language the app shows under cx.
+func SupplierEmailOptionalLabel(cx *core.Scope) string { return For(cx).SupplierEmailOptionalLabel() }
+
+// SupplierEmailOptionalLabel is the package's SupplierEmailOptionalLabel in the language of msgs.
+func (msgs Messages) SupplierEmailOptionalLabel() string {
+	return msgs.text(textSupplierEmailOptionalLabel)
+}
+
+// TopbarBack says "Go back"
+// in the language the app shows under cx.
+func TopbarBack(cx *core.Scope) string { return For(cx).TopbarBack() }
+
+// TopbarBack is the package's TopbarBack in the language of msgs.
+func (msgs Messages) TopbarBack() string { return msgs.text(textTopbarBack) }
+
+// TopbarDetail says "Detail"
+// in the language the app shows under cx.
+func TopbarDetail(cx *core.Scope) string { return For(cx).TopbarDetail() }
+
+// TopbarDetail is the package's TopbarDetail in the language of msgs.
+func (msgs Messages) TopbarDetail() string { return msgs.text(textTopbarDetail) }
+
+// TopbarForward says "Go forward"
+// in the language the app shows under cx.
+func TopbarForward(cx *core.Scope) string { return For(cx).TopbarForward() }
+
+// TopbarForward is the package's TopbarForward in the language of msgs.
+func (msgs Messages) TopbarForward() string { return msgs.text(textTopbarForward) }
+
+// Undo says "Undo"
+// in the language the app shows under cx.
+func Undo(cx *core.Scope) string { return For(cx).Undo() }
+
+// Undo is the package's Undo in the language of msgs.
+func (msgs Messages) Undo() string { return msgs.text(textUndo) }
+
+// UndoFailed says "Could not undo the last action."
+// in the language the app shows under cx.
+func UndoFailed(cx *core.Scope) string { return For(cx).UndoFailed() }
+
+// UndoFailed is the package's UndoFailed in the language of msgs.
+func (msgs Messages) UndoFailed() string { return msgs.text(textUndoFailed) }
+
+// UnitKgCo2e says "kg CO2e"
+// in the language the app shows under cx.
+func UnitKgCo2e(cx *core.Scope) string { return For(cx).UnitKgCo2e() }
+
+// UnitKgCo2e is the package's UnitKgCo2e in the language of msgs.
+func (msgs Messages) UnitKgCo2e() string { return msgs.text(textUnitKgCo2e) }
+
+// UpdaterCheckButton says "Check for Updates"
+// in the language the app shows under cx.
+func UpdaterCheckButton(cx *core.Scope) string { return For(cx).UpdaterCheckButton() }
+
+// UpdaterCheckButton is the package's UpdaterCheckButton in the language of msgs.
+func (msgs Messages) UpdaterCheckButton() string { return msgs.text(textUpdaterCheckButton) }
+
+// UpdaterCurrentVersion says "Current version: {version}"
+// in the language the app shows under cx.
+func UpdaterCurrentVersion(cx *core.Scope, version string) string {
+	return For(cx).UpdaterCurrentVersion(version)
+}
+
+// UpdaterCurrentVersion is the package's UpdaterCurrentVersion in the language of msgs.
+func (msgs Messages) UpdaterCurrentVersion(version string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.UpdaterCurrentVersion(version))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].UpdaterCurrentVersion; f != nil {
+			return f(version)
+		}
+		switch lang {
+		case "", "en":
+			return "Current version: " + msgs.arg(version)
+		case "zh-CN":
+			return "当前版本：" + version
+		}
+	}
+}
+
+// UpdaterDownloadButton says "Open Download Page"
+// in the language the app shows under cx.
+func UpdaterDownloadButton(cx *core.Scope) string { return For(cx).UpdaterDownloadButton() }
+
+// UpdaterDownloadButton is the package's UpdaterDownloadButton in the language of msgs.
+func (msgs Messages) UpdaterDownloadButton() string { return msgs.text(textUpdaterDownloadButton) }
+
+// UpdaterDownloadUrl says "carbonink.xyz/download"
+// in the language the app shows under cx.
+func UpdaterDownloadUrl(cx *core.Scope) string { return For(cx).UpdaterDownloadUrl() }
+
+// UpdaterDownloadUrl is the package's UpdaterDownloadUrl in the language of msgs.
+func (msgs Messages) UpdaterDownloadUrl() string { return msgs.text(textUpdaterDownloadUrl) }
+
+// UpdaterInstallButton says "Restart & Update"
+// in the language the app shows under cx.
+func UpdaterInstallButton(cx *core.Scope) string { return For(cx).UpdaterInstallButton() }
+
+// UpdaterInstallButton is the package's UpdaterInstallButton in the language of msgs.
+func (msgs Messages) UpdaterInstallButton() string { return msgs.text(textUpdaterInstallButton) }
+
+// UpdaterSectionHeading says "Software Updates"
+// in the language the app shows under cx.
+func UpdaterSectionHeading(cx *core.Scope) string { return For(cx).UpdaterSectionHeading() }
+
+// UpdaterSectionHeading is the package's UpdaterSectionHeading in the language of msgs.
+func (msgs Messages) UpdaterSectionHeading() string { return msgs.text(textUpdaterSectionHeading) }
+
+// UpdaterSectionSubheading says "Keep CarbonInk up to date for the latest features and fixes."
+// in the language the app shows under cx.
+func UpdaterSectionSubheading(cx *core.Scope) string { return For(cx).UpdaterSectionSubheading() }
+
+// UpdaterSectionSubheading is the package's UpdaterSectionSubheading in the language of msgs.
+func (msgs Messages) UpdaterSectionSubheading() string {
+	return msgs.text(textUpdaterSectionSubheading)
+}
+
+// UpdaterStatusAvailable says "Version {version} is available."
+// in the language the app shows under cx.
+func UpdaterStatusAvailable(cx *core.Scope, version string) string {
+	return For(cx).UpdaterStatusAvailable(version)
+}
+
+// UpdaterStatusAvailable is the package's UpdaterStatusAvailable in the language of msgs.
+func (msgs Messages) UpdaterStatusAvailable(version string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.UpdaterStatusAvailable(version))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].UpdaterStatusAvailable; f != nil {
+			return f(version)
+		}
+		switch lang {
+		case "", "en":
+			return "Version " + msgs.arg(version) + " is available."
+		case "zh-CN":
+			return "版本 " + version + " 可用。"
+		}
+	}
+}
+
+// UpdaterStatusAvailableManual says "Version {version} is available. Automatic install isn't supported on macOS yet — download it from the website to update."
+// in the language the app shows under cx.
+func UpdaterStatusAvailableManual(cx *core.Scope, version string) string {
+	return For(cx).UpdaterStatusAvailableManual(version)
+}
+
+// UpdaterStatusAvailableManual is the package's UpdaterStatusAvailableManual in the language of msgs.
+func (msgs Messages) UpdaterStatusAvailableManual(version string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.UpdaterStatusAvailableManual(version))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].UpdaterStatusAvailableManual; f != nil {
+			return f(version)
+		}
+		switch lang {
+		case "", "en":
+			return "Version " + msgs.arg(version) + " is available. Automatic install isn't supported on macOS yet — download it from the website to update."
+		case "zh-CN":
+			return "版本 " + version + " 已发布。macOS 暂不支持自动安装——请前往官网下载更新。"
+		}
+	}
+}
+
+// UpdaterStatusChecking says "Checking for updates..."
+// in the language the app shows under cx.
+func UpdaterStatusChecking(cx *core.Scope) string { return For(cx).UpdaterStatusChecking() }
+
+// UpdaterStatusChecking is the package's UpdaterStatusChecking in the language of msgs.
+func (msgs Messages) UpdaterStatusChecking() string { return msgs.text(textUpdaterStatusChecking) }
+
+// UpdaterStatusDownloaded says "Version {version} is ready to install. It will be applied on next restart."
+// in the language the app shows under cx.
+func UpdaterStatusDownloaded(cx *core.Scope, version string) string {
+	return For(cx).UpdaterStatusDownloaded(version)
+}
+
+// UpdaterStatusDownloaded is the package's UpdaterStatusDownloaded in the language of msgs.
+func (msgs Messages) UpdaterStatusDownloaded(version string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.UpdaterStatusDownloaded(version))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].UpdaterStatusDownloaded; f != nil {
+			return f(version)
+		}
+		switch lang {
+		case "", "en":
+			return "Version " + msgs.arg(version) + " is ready to install. It will be applied on next restart."
+		case "zh-CN":
+			return "版本 " + version + " 已准备就绪，将在下次重启时安装。"
+		}
+	}
+}
+
+// UpdaterStatusDownloading says "Downloading update... {percent}%"
+// in the language the app shows under cx.
+func UpdaterStatusDownloading(cx *core.Scope, percent string) string {
+	return For(cx).UpdaterStatusDownloading(percent)
+}
+
+// UpdaterStatusDownloading is the package's UpdaterStatusDownloading in the language of msgs.
+func (msgs Messages) UpdaterStatusDownloading(percent string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.UpdaterStatusDownloading(percent))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].UpdaterStatusDownloading; f != nil {
+			return f(percent)
+		}
+		switch lang {
+		case "", "en":
+			return "Downloading update... " + msgs.arg(percent) + "%"
+		case "zh-CN":
+			return "正在下载更新... " + percent + "%"
+		}
+	}
+}
+
+// UpdaterStatusError says "Update check failed: {message}"
+// in the language the app shows under cx.
+func UpdaterStatusError(cx *core.Scope, message string) string {
+	return For(cx).UpdaterStatusError(message)
+}
+
+// UpdaterStatusError is the package's UpdaterStatusError in the language of msgs.
+func (msgs Messages) UpdaterStatusError(message string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.UpdaterStatusError(message))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].UpdaterStatusError; f != nil {
+			return f(message)
+		}
+		switch lang {
+		case "", "en":
+			return "Update check failed: " + msgs.arg(message)
+		case "zh-CN":
+			return "检查更新失败：" + message
+		}
+	}
+}
+
+// UpdaterStatusIdle says "No update check performed yet."
+// in the language the app shows under cx.
+func UpdaterStatusIdle(cx *core.Scope) string { return For(cx).UpdaterStatusIdle() }
+
+// UpdaterStatusIdle is the package's UpdaterStatusIdle in the language of msgs.
+func (msgs Messages) UpdaterStatusIdle() string { return msgs.text(textUpdaterStatusIdle) }
+
+// UpdaterStatusNotAvailable says "You are running the latest version."
+// in the language the app shows under cx.
+func UpdaterStatusNotAvailable(cx *core.Scope) string { return For(cx).UpdaterStatusNotAvailable() }
+
+// UpdaterStatusNotAvailable is the package's UpdaterStatusNotAvailable in the language of msgs.
+func (msgs Messages) UpdaterStatusNotAvailable() string {
+	return msgs.text(textUpdaterStatusNotAvailable)
+}
+
+// WorkspaceActive says "Active workspace"
+// in the language the app shows under cx.
+func WorkspaceActive(cx *core.Scope) string { return For(cx).WorkspaceActive() }
+
+// WorkspaceActive is the package's WorkspaceActive in the language of msgs.
+func (msgs Messages) WorkspaceActive() string { return msgs.text(textWorkspaceActive) }
+
+// WorkspaceActiveBadge says "Active"
+// in the language the app shows under cx.
+func WorkspaceActiveBadge(cx *core.Scope) string { return For(cx).WorkspaceActiveBadge() }
+
+// WorkspaceActiveBadge is the package's WorkspaceActiveBadge in the language of msgs.
+func (msgs Messages) WorkspaceActiveBadge() string { return msgs.text(textWorkspaceActiveBadge) }
+
+// WorkspaceBody says "Each workspace is its own local database file — client data stays physically separate. Switching reloads the app."
+// in the language the app shows under cx.
+func WorkspaceBody(cx *core.Scope) string { return For(cx).WorkspaceBody() }
+
+// WorkspaceBody is the package's WorkspaceBody in the language of msgs.
+func (msgs Messages) WorkspaceBody() string { return msgs.text(textWorkspaceBody) }
+
+// WorkspaceCreateButton says "New workspace"
+// in the language the app shows under cx.
+func WorkspaceCreateButton(cx *core.Scope) string { return For(cx).WorkspaceCreateButton() }
+
+// WorkspaceCreateButton is the package's WorkspaceCreateButton in the language of msgs.
+func (msgs Messages) WorkspaceCreateButton() string { return msgs.text(textWorkspaceCreateButton) }
+
+// WorkspaceCreatePlaceholder says "New workspace name (e.g. client name)"
+// in the language the app shows under cx.
+func WorkspaceCreatePlaceholder(cx *core.Scope) string { return For(cx).WorkspaceCreatePlaceholder() }
+
+// WorkspaceCreatePlaceholder is the package's WorkspaceCreatePlaceholder in the language of msgs.
+func (msgs Messages) WorkspaceCreatePlaceholder() string {
+	return msgs.text(textWorkspaceCreatePlaceholder)
+}
+
+// WorkspaceCreatedAt says "Created {date}"
+// in the language the app shows under cx.
+func WorkspaceCreatedAt(cx *core.Scope, date string) string { return For(cx).WorkspaceCreatedAt(date) }
+
+// WorkspaceCreatedAt is the package's WorkspaceCreatedAt in the language of msgs.
+func (msgs Messages) WorkspaceCreatedAt(date string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.WorkspaceCreatedAt(date))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].WorkspaceCreatedAt; f != nil {
+			return f(date)
+		}
+		switch lang {
+		case "", "en":
+			return "Created " + msgs.arg(date)
+		case "zh-CN":
+			return "创建于 " + date
+		}
+	}
+}
+
+// WorkspaceCreatedToast says "Workspace created — press Switch to open it"
+// in the language the app shows under cx.
+func WorkspaceCreatedToast(cx *core.Scope) string { return For(cx).WorkspaceCreatedToast() }
+
+// WorkspaceCreatedToast is the package's WorkspaceCreatedToast in the language of msgs.
+func (msgs Messages) WorkspaceCreatedToast() string { return msgs.text(textWorkspaceCreatedToast) }
+
+// WorkspaceDeleteButton says "Delete"
+// in the language the app shows under cx.
+func WorkspaceDeleteButton(cx *core.Scope) string { return For(cx).WorkspaceDeleteButton() }
+
+// WorkspaceDeleteButton is the package's WorkspaceDeleteButton in the language of msgs.
+func (msgs Messages) WorkspaceDeleteButton() string { return msgs.text(textWorkspaceDeleteButton) }
+
+// WorkspaceDeleteConfirm says "Delete \"{name}\"? Its database file is archived (renamed .deleted-*), not destroyed."
+// in the language the app shows under cx.
+func WorkspaceDeleteConfirm(cx *core.Scope, name string) string {
+	return For(cx).WorkspaceDeleteConfirm(name)
+}
+
+// WorkspaceDeleteConfirm is the package's WorkspaceDeleteConfirm in the language of msgs.
+func (msgs Messages) WorkspaceDeleteConfirm(name string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.WorkspaceDeleteConfirm(name))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].WorkspaceDeleteConfirm; f != nil {
+			return f(name)
+		}
+		switch lang {
+		case "", "en":
+			return "Delete \"" + msgs.arg(name) + "\"? Its database file is archived (renamed .deleted-*), not destroyed."
+		case "zh-CN":
+			return "删除「" + name + "」？数据库文件会归档保留（重命名为 .deleted-*），不会销毁。"
+		}
+	}
+}
+
+// WorkspaceDeleteFailed says "Cannot delete — switch to another workspace first"
+// in the language the app shows under cx.
+func WorkspaceDeleteFailed(cx *core.Scope) string { return For(cx).WorkspaceDeleteFailed() }
+
+// WorkspaceDeleteFailed is the package's WorkspaceDeleteFailed in the language of msgs.
+func (msgs Messages) WorkspaceDeleteFailed() string { return msgs.text(textWorkspaceDeleteFailed) }
+
+// WorkspaceDeletedToast says "Workspace removed — database file archived"
+// in the language the app shows under cx.
+func WorkspaceDeletedToast(cx *core.Scope) string { return For(cx).WorkspaceDeletedToast() }
+
+// WorkspaceDeletedToast is the package's WorkspaceDeletedToast in the language of msgs.
+func (msgs Messages) WorkspaceDeletedToast() string { return msgs.text(textWorkspaceDeletedToast) }
+
+// WorkspaceHeading says "Client workspaces"
+// in the language the app shows under cx.
+func WorkspaceHeading(cx *core.Scope) string { return For(cx).WorkspaceHeading() }
+
+// WorkspaceHeading is the package's WorkspaceHeading in the language of msgs.
+func (msgs Messages) WorkspaceHeading() string { return msgs.text(textWorkspaceHeading) }
+
+// WorkspaceInvalidName says "Name must be 1–60 characters"
+// in the language the app shows under cx.
+func WorkspaceInvalidName(cx *core.Scope) string { return For(cx).WorkspaceInvalidName() }
+
+// WorkspaceInvalidName is the package's WorkspaceInvalidName in the language of msgs.
+func (msgs Messages) WorkspaceInvalidName() string { return msgs.text(textWorkspaceInvalidName) }
+
+// WorkspaceRenameButton says "Rename"
+// in the language the app shows under cx.
+func WorkspaceRenameButton(cx *core.Scope) string { return For(cx).WorkspaceRenameButton() }
+
+// WorkspaceRenameButton is the package's WorkspaceRenameButton in the language of msgs.
+func (msgs Messages) WorkspaceRenameButton() string { return msgs.text(textWorkspaceRenameButton) }
+
+// WorkspaceRenameCancel says "Cancel"
+// in the language the app shows under cx.
+func WorkspaceRenameCancel(cx *core.Scope) string { return For(cx).WorkspaceRenameCancel() }
+
+// WorkspaceRenameCancel is the package's WorkspaceRenameCancel in the language of msgs.
+func (msgs Messages) WorkspaceRenameCancel() string { return msgs.text(textWorkspaceRenameCancel) }
+
+// WorkspaceRenameSave says "Save"
+// in the language the app shows under cx.
+func WorkspaceRenameSave(cx *core.Scope) string { return For(cx).WorkspaceRenameSave() }
+
+// WorkspaceRenameSave is the package's WorkspaceRenameSave in the language of msgs.
+func (msgs Messages) WorkspaceRenameSave() string { return msgs.text(textWorkspaceRenameSave) }
+
+// WorkspaceSwitchButton says "Switch"
+// in the language the app shows under cx.
+func WorkspaceSwitchButton(cx *core.Scope) string { return For(cx).WorkspaceSwitchButton() }
+
+// WorkspaceSwitchButton is the package's WorkspaceSwitchButton in the language of msgs.
+func (msgs Messages) WorkspaceSwitchButton() string { return msgs.text(textWorkspaceSwitchButton) }
+
+// WorkspaceSwitchConfirm says "Switch to \"{name}\"? The app will reload."
+// in the language the app shows under cx.
+func WorkspaceSwitchConfirm(cx *core.Scope, name string) string {
+	return For(cx).WorkspaceSwitchConfirm(name)
+}
+
+// WorkspaceSwitchConfirm is the package's WorkspaceSwitchConfirm in the language of msgs.
+func (msgs Messages) WorkspaceSwitchConfirm(name string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.WorkspaceSwitchConfirm(name))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].WorkspaceSwitchConfirm; f != nil {
+			return f(name)
+		}
+		switch lang {
+		case "", "en":
+			return "Switch to \"" + msgs.arg(name) + "\"? The app will reload."
+		case "zh-CN":
+			return "切换到「" + name + "」？应用将重新加载。"
+		}
+	}
+}
+
+// WorkspaceSwitchFailed says "Switch failed"
+// in the language the app shows under cx.
+func WorkspaceSwitchFailed(cx *core.Scope) string { return For(cx).WorkspaceSwitchFailed() }
+
+// WorkspaceSwitchFailed is the package's WorkspaceSwitchFailed in the language of msgs.
+func (msgs Messages) WorkspaceSwitchFailed() string { return msgs.text(textWorkspaceSwitchFailed) }
