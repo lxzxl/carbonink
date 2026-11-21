@@ -162,6 +162,49 @@ func TestServiceCreatesQuestionsAndReusesAnswers(t *testing.T) {
 	}
 }
 
+func TestWriteAnswersKeepsWorkbookAndMarksDrafts(t *testing.T) {
+	out, written, drafts, err := WriteAnswers(testWorkbook(t), []AnswerCell{
+		{Ref: "Data!B2", Value: "120000"},
+		{Ref: "Data!B3", Value: "transition plan", Draft: true},
+		{Ref: "Missing!B2", Value: "ignored"},
+		{Ref: "Data!B4", Value: "3.5", Draft: true},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if written != 3 || drafts != 2 {
+		t.Fatalf("written = %d, drafts = %d", written, drafts)
+	}
+	f, err := excelize.OpenReader(bytes.NewReader(out))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	if index, err := f.GetSheetIndex("Intro"); err != nil || index < 0 {
+		t.Fatal("original sheet was lost")
+	}
+	if value, err := f.GetCellValue("Data", "B2"); err != nil || value != "120000" {
+		t.Fatalf("B2 = %q, %v", value, err)
+	}
+	if value, err := f.GetCellValue("Data", "B3"); err != nil || value != "transition plan" {
+		t.Fatalf("B3 = %q, %v", value, err)
+	}
+	comments, err := f.GetComments("Data")
+	if err != nil {
+		t.Fatal(err)
+	}
+	noted := map[string]string{}
+	for _, comment := range comments {
+		noted[comment.Cell] = comment.Text
+	}
+	if noted["B3"] != "draft" || noted["B4"] != "draft" {
+		t.Fatalf("comments = %v", noted)
+	}
+	if _, _, _, err := WriteAnswers(nil, nil); err == nil {
+		t.Error("empty workbook accepted")
+	}
+}
+
 type fakeExtractor struct {
 	reply string
 	err   error

@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"io"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -514,6 +515,94 @@ func (d *questionnaireDetail) finalizeAll(s *Session, cx *core.Scope,
 	_ = dataRefresh(s, dataRev)
 }
 
+// exportXLSX writes every positioned answer back into the original workbook
+// and marks the questionnaire exported once the save succeeds.
+func (d *questionnaireDetail) exportXLSX(s *Session, cx *core.Scope,
+	dataRev *core.Signal[int]) {
+	if d.id == "" {
+		return
+	}
+	ctx := context.Background()
+	q, err := s.db.QuestionnaireByID(ctx, d.id)
+	if err != nil || q == nil {
+		d.failed.Set(true)
+		d.message.Set(locales.AnswerExportFailed(cx))
+		return
+	}
+	document, err := s.db.DocumentByID(ctx, q.DocumentID)
+	if err != nil || document == nil {
+		d.failed.Set(true)
+		d.message.Set(locales.AnswerExportFailed(cx))
+		return
+	}
+	original, err := os.ReadFile(store.ResolveDocumentPath(document.StoragePath, s.dataDir))
+	if err != nil {
+		d.failed.Set(true)
+		d.message.Set(locales.AnswerExportFailed(cx) + ": " + err.Error())
+		return
+	}
+	questions, err := s.db.ListQuestions(ctx, d.id)
+	if err != nil {
+		d.failed.Set(true)
+		d.message.Set(locales.AnswerExportFailed(cx))
+		return
+	}
+	position := make(map[string]string, len(questions))
+	for _, question := range questions {
+		if question.Position != "" {
+			position[question.ID] = question.Position
+		}
+	}
+	answers, err := s.db.ListAnswers(ctx, d.id)
+	if err != nil {
+		d.failed.Set(true)
+		d.message.Set(locales.AnswerExportFailed(cx))
+		return
+	}
+	cells := make([]questionnaire.AnswerCell, 0, len(answers))
+	for _, answer := range answers {
+		ref := position[answer.QuestionID]
+		if ref == "" {
+			continue
+		}
+		cells = append(cells, questionnaire.AnswerCell{Ref: ref, Value: answer.Value,
+			Draft: answer.FinalizedAt == ""})
+	}
+	out, written, drafts, err := questionnaire.WriteAnswers(original, cells)
+	if err != nil {
+		d.failed.Set(true)
+		d.message.Set(locales.AnswerExportFailed(cx) + ": " + err.Error())
+		return
+	}
+	base := document.Filename
+	if strings.HasSuffix(strings.ToLower(base), ".xlsx") {
+		base = base[:len(base)-len(".xlsx")]
+	}
+	name := base + "_filled.xlsx"
+	d.message.Set(locales.AnswerExportRunning(cx))
+	cx.SaveFile(core.SaveOptions{Name: name, MIME: questionnaire.WorkbookMIME, Data: out},
+		func(saved bool, _ string, err error) {
+			if err != nil {
+				d.failed.Set(true)
+				d.message.Set(locales.AnswerExportFailed(cx) + ": " + err.Error())
+				return
+			}
+			if !saved {
+				d.message.Set("")
+				return
+			}
+			if err := s.db.MarkQuestionnaireExported(context.Background(), d.id); err != nil {
+				d.failed.Set(true)
+				d.message.Set(locales.AnswerExportFailed(cx) + ": " + err.Error())
+				return
+			}
+			d.failed.Set(false)
+			d.status.Set(store.QuestionnaireExported)
+			d.message.Set(locales.AnswerExportDone(cx, strconv.Itoa(written), strconv.Itoa(drafts)))
+			_ = dataRefresh(s, dataRev)
+		})
+}
+
 func (d *questionnaireDetail) dialog(cx *core.Scope, s *Session,
 	dataRev *core.Signal[int]) core.Node {
 	dialog := func(cx *core.Scope) core.Node {
@@ -640,6 +729,9 @@ func (d *questionnaireDetail) dialog(cx *core.Scope, s *Session,
 		footer := []core.Node{
 			ui.Button{Text: locales.QuestionnairesDetailClose(cx), Variant: ui.ButtonSecondary,
 				OnPress: func() { d.open.Set(false) }, TestID: "questionnaires-detail-close"},
+			ui.Button{Text: locales.AnswerExportButton(cx), Variant: ui.ButtonSecondary,
+				OnPress: func() { d.exportXLSX(s, cx, dataRev) }, Busy: d.busy.Get,
+				TestID: "questionnaires-export-xlsx"},
 			ui.Button{Text: locales.QuestionnairesFinalizeButton(cx),
 				OnPress: func() { d.finalizeAll(s, cx, dataRev) }, Busy: d.busy.Get,
 				TestID: "questionnaires-finalize-all"},

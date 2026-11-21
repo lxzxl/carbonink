@@ -158,6 +158,7 @@ activityImportWarningsHeading: Warnings (won't block)
 answerDraft: Draft
 answerExportButton: Export to Excel
 answerExportDone: '{written} answers written ({drafts} drafts).'
+answerExportFailed: Could not export the workbook
 answerExportRunning: Exporting…
 answerFinalized: Finalized
 answerFinalizedHint: Finalized. Unfinalize to edit.

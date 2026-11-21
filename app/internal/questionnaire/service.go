@@ -13,6 +13,9 @@ import (
 
 const xlsxMIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
+// WorkbookMIME is the media type of a customer .xlsx.
+const WorkbookMIME = xlsxMIME
+
 // ErrNotConfigured means no LLM provider is available for question extraction.
 var ErrNotConfigured = errors.New("questionnaire: no LLM provider is configured")
 

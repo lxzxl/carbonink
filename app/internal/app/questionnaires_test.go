@@ -91,9 +91,22 @@ func TestImportQuestionnaireAndEditAnswers(t *testing.T) {
 	ui.WaitFor("text:1 of 2 answered", 3*time.Second)
 	ui.Press("id:questionnaires-finalize-all")
 	ui.WaitFor("text:2025 · Finalized", 5*time.Second)
+	exportPath := filepath.Join(t.TempDir(), "filled.xlsx")
+	ui.SaveFile = func(core.SaveRequest) string { return exportPath }
+	ui.Press("id:questionnaires-export-xlsx")
+	ui.WaitFor("text:1 answers written (0 drafts).", 5*time.Second)
+	ui.WaitFor("text:2025 · Exported", 3*time.Second)
 	ui.Press("id:questionnaires-detail-close")
 	ui.WaitForGone("id:questionnaires-detail-dialog", 3*time.Second)
-	ui.WaitFor("text:Finalized", 3*time.Second)
+	ui.WaitFor("text:Exported", 3*time.Second)
+	exported, err := excelize.OpenFile(exportPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer exported.Close()
+	if value, err := exported.GetCellValue("Data", "B2"); err != nil || value != "120000" {
+		t.Fatalf("exported B2 = %q, %v", value, err)
+	}
 
 	ctx := context.Background()
 	check, err := store.Open(ctx, dbPath)
@@ -121,7 +134,7 @@ func TestImportQuestionnaireAndEditAnswers(t *testing.T) {
 		&value, &unit, &source, &status); err != nil {
 		t.Fatal(err)
 	}
-	if value != "120000" || unit != "kWh" || source != "manual" || status != "finalized" {
+	if value != "120000" || unit != "kWh" || source != "manual" || status != "exported" {
 		t.Fatalf("answer = %q %q %q, questionnaire = %q", value, unit, source, status)
 	}
 }

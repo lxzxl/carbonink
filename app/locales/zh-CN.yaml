@@ -157,6 +157,7 @@ activityImportWarningsHeading: 警告（不阻断导入）
 answerDraft: 草稿
 answerExportButton: 导出 Excel
 answerExportDone: 已写入 {written} 条答案（其中 {drafts} 条草稿）。
+answerExportFailed: 导出 Excel 失败
 answerExportRunning: 导出中…
 answerFinalized: 已定稿
 answerFinalizedHint: 已定稿。如需修改请先撤销定稿。

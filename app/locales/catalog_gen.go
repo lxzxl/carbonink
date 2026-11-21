@@ -500,6 +500,7 @@ const (
 	textActivityImportWarningsHeading
 	textAnswerDraft
 	textAnswerExportButton
+	textAnswerExportFailed
 	textAnswerExportRunning
 	textAnswerFinalized
 	textAnswerFinalizedHint
@@ -1698,6 +1699,7 @@ var keyOfText = [numTexts]string{
 	"activityImportWarningsHeading",
 	"answerDraft",
 	"answerExportButton",
+	"answerExportFailed",
 	"answerExportRunning",
 	"answerFinalized",
 	"answerFinalizedHint",
@@ -2894,6 +2896,7 @@ var textsEn = i18n.NewTexts(""+
 	"Warnings (won't block)"+
 	"Draft"+
 	"Export to Excel"+
+	"Could not export the workbook"+
 	"Exporting…"+
 	"Finalized"+
 	"Finalized. Unfinalize to edit."+
@@ -4087,6 +4090,7 @@ var textsEn = i18n.NewTexts(""+
 		22,
 		5,
 		15,
+		29,
 		12,
 		9,
 		30,
@@ -5283,6 +5287,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"警告（不阻断导入）"+
 	"草稿"+
 	"导出 Excel"+
+	"导出 Excel 失败"+
 	"导出中…"+
 	"已定稿"+
 	"已定稿。如需修改请先撤销定稿。"+
@@ -6476,6 +6481,7 @@ var textsZhCN = i18n.NewTexts(""+
 		27,
 		6,
 		12,
+		19,
 		12,
 		9,
 		45,
@@ -9675,6 +9681,13 @@ func (msgs Messages) AnswerExportDone(written string, drafts string) string {
 		}
 	}
 }
+
+// AnswerExportFailed says "Could not export the workbook"
+// in the language the app shows under cx.
+func AnswerExportFailed(cx *core.Scope) string { return For(cx).AnswerExportFailed() }
+
+// AnswerExportFailed is the package's AnswerExportFailed in the language of msgs.
+func (msgs Messages) AnswerExportFailed() string { return msgs.text(textAnswerExportFailed) }
 
 // AnswerExportRunning says "Exporting…"
 // in the language the app shows under cx.

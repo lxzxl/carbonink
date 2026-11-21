@@ -145,6 +145,7 @@
   "answer_draft": "Draft",
   "answer_export_button": "Export to Excel",
   "answer_export_done": "{written} answers written ({drafts} drafts).",
+  "answer_export_failed": "Could not export the workbook",
   "answer_export_running": "Exporting…",
   "answer_finalized": "Finalized",
   "answer_finalized_hint": "Finalized. Unfinalize to edit.",

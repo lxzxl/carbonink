@@ -145,6 +145,7 @@
   "answer_draft": "草稿",
   "answer_export_button": "导出 Excel",
   "answer_export_done": "已写入 {written} 条答案（其中 {drafts} 条草稿）。",
+  "answer_export_failed": "导出 Excel 失败",
   "answer_export_running": "导出中…",
   "answer_finalized": "已定稿",
   "answer_finalized_hint": "已定稿。如需修改请先撤销定稿。",
