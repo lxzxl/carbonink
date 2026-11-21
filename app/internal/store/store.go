@@ -54,6 +54,7 @@ type Activity struct {
 	ComputedAt        string
 	FuelCode          string
 	Notes             string
+	ExtractionID      string
 	Scope             int
 }
 

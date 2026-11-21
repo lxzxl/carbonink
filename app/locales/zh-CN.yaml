@@ -179,6 +179,7 @@ auditEmptyStateBody: 在你确认抽取、定稿答案或重新镶嵌排放因�
 auditEmptyStateHeading: 暂无审计事件
 auditEventKindActivityDataCreated: 创建活动数据
 auditEventKindActivityDataDeleted: 删除活动数据
+auditEventKindActivityDataUpdated: 更新活动数据
 auditEventKindActivityRebindEf: 重新镶嵌排放因子
 auditEventKindEvidenceAttached: 挂载证据
 auditEventKindEvidenceRemoved: 移除证据
@@ -257,6 +258,7 @@ dataDeleteActivity: 删除活动数据
 dataDeleteActivityBody: 该台账行将被删除；审计日志会保留其只追加记录。
 dataDeleteActivityTitle: 删除这条活动数据？
 dataDeleteFailed: 删除失败。
+dataEditActivity: 编辑活动数据
 dataEditProfile: 编辑资料
 dataEditSource: 编辑排放源
 dataNewActivity: 新增活动数据

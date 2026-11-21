@@ -180,6 +180,7 @@ auditEmptyStateBody: Events are recorded as you confirm extractions, finalize an
 auditEmptyStateHeading: No audit events yet
 auditEventKindActivityDataCreated: Activity data created
 auditEventKindActivityDataDeleted: Activity data deleted
+auditEventKindActivityDataUpdated: Activity data updated
 auditEventKindActivityRebindEf: Rebind emission factor
 auditEventKindEvidenceAttached: Evidence attached
 auditEventKindEvidenceRemoved: Evidence removed
@@ -258,6 +259,7 @@ dataDeleteActivity: Delete activity
 dataDeleteActivityBody: The ledger row will be removed. The audit log keeps its append-only record.
 dataDeleteActivityTitle: Delete this activity?
 dataDeleteFailed: Could not delete.
+dataEditActivity: Edit activity
 dataEditProfile: Edit profile
 dataEditSource: Edit emission source
 dataNewActivity: New activity

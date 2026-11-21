@@ -45,7 +45,8 @@ const activitySelect = `SELECT a.id, a.site_id,
 		a.emission_source_id, es.name, a.reporting_period_id,
 		a.occurred_at_start, a.occurred_at_end, a.amount, a.unit,
 		a.ef_factor_code, a.ef_year, a.ef_source, a.ef_geography, a.ef_dataset_version,
-		a.computed_co2e_kg, a.computed_at, coalesce(a.fuel_code, ''), coalesce(a.notes, ''), es.scope
+		a.computed_co2e_kg, a.computed_at, coalesce(a.fuel_code, ''), coalesce(a.notes, ''), es.scope,
+		coalesce(a.extraction_id, '')
 	FROM activity_data a
 	JOIN site ON site.id = a.site_id
 	JOIN emission_source es ON es.id = a.emission_source_id`
@@ -169,7 +170,7 @@ func (s *Store) CreateActivity(ctx context.Context, in ActivityInput) (*Activity
 		"reporting_period_id": periodID,
 		"amount":              in.Amount,
 		"unit":                unit,
-		"ef":                  in.EF,
+		"ef":                  auditEF(in.EF),
 		"computed_co2e_kg":    computed,
 		"fuel_code":           emptyToNil(fuelCode),
 		"provenance":          provenance(extractionID),
@@ -185,6 +186,150 @@ func (s *Store) CreateActivity(ctx context.Context, in ActivityInput) (*Activity
 		return nil, err
 	}
 	return created, nil
+}
+
+// UpdateActivity replaces a ledger row's editable fields, pins the selected
+// factor, recomputes CO2e, and writes an audit event. Free-text notes stay out
+// of the audit payload.
+func (s *Store) UpdateActivity(ctx context.Context, id string, in ActivityInput) (*Activity, error) {
+	sourceID := strings.TrimSpace(in.EmissionSourceID)
+	periodID := strings.TrimSpace(in.ReportingPeriodID)
+	unit := strings.TrimSpace(in.Unit)
+	startText := strings.TrimSpace(in.OccurredAtStart)
+	endText := strings.TrimSpace(in.OccurredAtEnd)
+	fuelCode := strings.TrimSpace(in.FuelCode)
+	notes := strings.TrimSpace(in.Notes)
+	extractionID := strings.TrimSpace(in.ExtractionID)
+	if sourceID == "" || periodID == "" {
+		return nil, errors.New("emission source and reporting period are required")
+	}
+	if !validFinite(in.Amount) || in.Amount <= 0 {
+		return nil, errors.New("amount must be a positive number")
+	}
+	if unit == "" {
+		return nil, errors.New("unit is required")
+	}
+	if len([]rune(unit)) > 50 || len([]rune(fuelCode)) > 100 || len([]rune(extractionID)) > 100 {
+		return nil, errors.New("unit or reference is too long")
+	}
+	if len([]rune(notes)) > 2000 {
+		return nil, errors.New("notes are too long")
+	}
+	start, err := parseActivityTime(startText)
+	if err != nil {
+		return nil, fmt.Errorf("start date: %w", err)
+	}
+	end, err := parseActivityTime(endText)
+	if err != nil {
+		return nil, fmt.Errorf("end date: %w", err)
+	}
+	if end.Before(start) {
+		return nil, errors.New("end date cannot be before start date")
+	}
+	if err := validateEFKey(in.EF); err != nil {
+		return nil, err
+	}
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	current, err := activityByID(ctx, tx, id)
+	if err != nil {
+		return nil, err
+	}
+	if current == nil {
+		return nil, fmt.Errorf("activity not found: %s", id)
+	}
+
+	var siteID string
+	var active int
+	err = tx.QueryRowContext(ctx, `SELECT site_id, is_active FROM emission_source WHERE id = ?`, sourceID).
+		Scan(&siteID, &active)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, fmt.Errorf("emission source not found: %s", sourceID)
+	}
+	if err != nil {
+		return nil, err
+	}
+	if active != 1 {
+		return nil, fmt.Errorf("emission source is inactive: %s", sourceID)
+	}
+	var periodExists int
+	if err := tx.QueryRowContext(ctx, `SELECT count(*) FROM reporting_period WHERE id = ?`, periodID).
+		Scan(&periodExists); err != nil {
+		return nil, err
+	}
+	if periodExists == 0 {
+		return nil, fmt.Errorf("reporting period not found: %s", periodID)
+	}
+	ef, err := emissionFactorByKey(ctx, tx, in.EF)
+	if err != nil {
+		return nil, err
+	}
+	if ef == nil {
+		return nil, fmt.Errorf("emission factor not found: %s/%d/%s/%s/%s",
+			in.EF.FactorCode, in.EF.Year, in.EF.Source, in.EF.Geography, in.EF.DatasetVersion)
+	}
+	if err := pinEmissionFactor(ctx, tx, ef); err != nil {
+		return nil, err
+	}
+	amountInEFUnit, err := convertAmount(ctx, tx, in.Amount, unit, ef.InputUnit, fuelCode)
+	if err != nil {
+		return nil, err
+	}
+	computed := amountInEFUnit * ef.CO2eKgPerUnit
+	if ef.CH4KgPerUnit != nil {
+		computed += amountInEFUnit * *ef.CH4KgPerUnit * gwpCH4
+	}
+	if ef.N2OKgPerUnit != nil {
+		computed += amountInEFUnit * *ef.N2OKgPerUnit * gwpN2O
+	}
+	ts := now()
+	if _, err := tx.ExecContext(ctx, `UPDATE activity_data SET
+			site_id = ?, emission_source_id = ?, reporting_period_id = ?,
+			occurred_at_start = ?, occurred_at_end = ?, amount = ?, unit = ?,
+			ef_factor_code = ?, ef_year = ?, ef_source = ?, ef_geography = ?, ef_dataset_version = ?,
+			computed_co2e_kg = ?, computed_at = ?, fuel_code = ?, extraction_id = ?, notes = ?, updated_at = ?
+		WHERE id = ?`,
+		siteID, sourceID, periodID, startText, endText, in.Amount, unit,
+		ef.FactorCode, ef.Year, ef.Source, ef.Geography, ef.DatasetVersion,
+		computed, ts, nullIfEmpty(fuelCode), nullIfEmpty(extractionID), nullIfEmpty(notes), ts, id); err != nil {
+		return nil, err
+	}
+	oldEF := EmissionFactorKey{
+		FactorCode: current.EFFactorCode, Year: current.EFYear, Source: current.EFSource,
+		Geography: current.EFGeography, DatasetVersion: current.EFDatasetVersion,
+	}
+	kind := "activity_data.updated"
+	if oldEF != in.EF {
+		kind = "activity_rebind_ef"
+	}
+	if err := writeAudit(ctx, tx, kind, ts, map[string]any{
+		"activity_id":          id,
+		"old_ef":               auditEF(oldEF),
+		"new_ef":               auditEF(in.EF),
+		"old_amount":           current.Amount,
+		"old_unit":             current.Unit,
+		"old_computed_co2e_kg": current.CO2eKg,
+		"new_amount":           in.Amount,
+		"new_unit":             unit,
+		"new_computed_co2e_kg": computed,
+		"emission_source_id":   sourceID,
+		"reporting_period_id":  periodID,
+		"fuel_code":            emptyToNil(fuelCode),
+	}); err != nil {
+		return nil, err
+	}
+	updated, err := activityByID(ctx, tx, id)
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return updated, nil
 }
 
 // ActivityByID reads one ledger row.
@@ -279,7 +424,8 @@ func scanActivity(row rowScanner) (Activity, error) {
 	var a Activity
 	err := row.Scan(&a.ID, &a.SiteID, &a.Site, &a.EmissionSourceID, &a.Source, &a.ReportingPeriodID,
 		&a.OccurredAt, &a.OccurredAtEnd, &a.Amount, &a.Unit, &a.EFFactorCode, &a.EFYear, &a.EFSource,
-		&a.EFGeography, &a.EFDatasetVersion, &a.CO2eKg, &a.ComputedAt, &a.FuelCode, &a.Notes, &a.Scope)
+		&a.EFGeography, &a.EFDatasetVersion, &a.CO2eKg, &a.ComputedAt, &a.FuelCode, &a.Notes, &a.Scope,
+		&a.ExtractionID)
 	return a, err
 }
 
@@ -512,6 +658,16 @@ func provenance(extractionID string) string {
 		return "manual"
 	}
 	return "extraction"
+}
+
+func auditEF(key EmissionFactorKey) map[string]any {
+	return map[string]any{
+		"factor_code":     key.FactorCode,
+		"year":            key.Year,
+		"source":          key.Source,
+		"geography":       key.Geography,
+		"dataset_version": key.DatasetVersion,
+	}
 }
 
 func roundForStorage(v float64) float64 { return math.Round(v*1e12) / 1e12 }

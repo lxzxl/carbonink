@@ -224,6 +224,62 @@ func TestCreateActivityCrossFamilyFuelConversion(t *testing.T) {
 	}
 }
 
+func TestUpdateActivityRecomputesAndAuditsRebind(t *testing.T) {
+	s, ctx := openFixture(t)
+	_, site, period := onboard(t, s, ctx)
+	src, err := s.CreateSource(ctx, SourceInput{
+		SiteID: site.ID, Name: "Purchased electricity", Scope: 2, Category: "electricity.grid",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	national := findFactor(t, s, ctx, EFFilter{Scope: 2, Category: "electricity.grid", Search: "national"})
+	east := findFactor(t, s, ctx, EFFilter{Scope: 2, Category: "electricity.grid", Search: "east"})
+	activity, err := s.CreateActivity(ctx, ActivityInput{
+		EmissionSourceID: src.ID, ReportingPeriodID: period.ID,
+		OccurredAtStart: "2025-01-01", OccurredAtEnd: "2025-01-31",
+		Amount: 100, Unit: "kWh", EF: keyOf(national), Notes: "private note",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	updated, err := s.UpdateActivity(ctx, activity.ID, ActivityInput{
+		EmissionSourceID: src.ID, ReportingPeriodID: period.ID,
+		OccurredAtStart: "2025-02-01", OccurredAtEnd: "2025-02-28",
+		Amount: 200, Unit: "kWh", EF: keyOf(national), Notes: "changed private note",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if math.Abs(updated.CO2eKg-114.06) > 0.0001 || updated.OccurredAt != "2025-02-01" {
+		t.Fatalf("updated activity = %+v", updated)
+	}
+	rebound, err := s.UpdateActivity(ctx, activity.ID, ActivityInput{
+		EmissionSourceID: src.ID, ReportingPeriodID: period.ID,
+		OccurredAtStart: "2025-02-01", OccurredAtEnd: "2025-02-28",
+		Amount: 200, Unit: "kWh", EF: keyOf(east),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if math.Abs(rebound.CO2eKg-111.72) > 0.0001 || rebound.EFFactorCode != east.FactorCode {
+		t.Fatalf("rebound activity = %+v", rebound)
+	}
+	events, err := s.AuditEvents(ctx, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(events) != 3 || events[0].Kind != "activity_rebind_ef" ||
+		events[1].Kind != "activity_data.updated" || events[2].Kind != "activity_data.created" {
+		t.Fatalf("audit kinds = %+v", events)
+	}
+	for _, event := range events {
+		if strings.Contains(event.Payload, "private note") {
+			t.Fatalf("notes leaked into %s: %s", event.Kind, event.Payload)
+		}
+	}
+}
+
 func TestCreateActivityRejectsBadInputWithoutPartialWrites(t *testing.T) {
 	s, ctx := openFixture(t)
 	_, site, period := onboard(t, s, ctx)

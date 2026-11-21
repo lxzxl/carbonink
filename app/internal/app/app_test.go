@@ -73,6 +73,27 @@ func TestCreateActivityThroughUI(t *testing.T) {
 	ui.WaitFor("text:100.00", 3*time.Second)
 }
 
+// TestEditActivityThroughUI selects a ledger row, edits its amount and
+// rebinds its emission factor, then proves the audit log records the change.
+func TestEditActivityThroughUI(t *testing.T) {
+	t.Setenv("CARBONINK_TEST_DB", fixtureDB(t))
+	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
+		nsgotest.Environment(core.Environment{Locale: "en-US"}))
+	ui.WaitFor("id:activities-table", 5*time.Second)
+	ui.Press("id:data-table-hit")
+	ui.Key("down")
+	ui.Press("id:activity-edit")
+	ui.WaitFor("id:activity-edit-dialog", 2*time.Second)
+	ui.Clear("id:activity-edit-amount")
+	ui.Type("id:activity-edit-amount", "480")
+	ui.Press("id:activity-edit-ef")
+	ui.Press("id:activity-edit-ef-0")
+	ui.Press("id:activity-edit-save")
+	ui.WaitFor("text:268.13", 3*time.Second)
+	ui.Press("id:nav:audit")
+	ui.WaitFor("text:Rebind emission factor", 3*time.Second)
+}
+
 // TestCreateSourceThroughUI proves the Sources page can create a source and
 // then show it in the list.
 func TestCreateSourceThroughUI(t *testing.T) {

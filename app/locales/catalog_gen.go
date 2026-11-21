@@ -501,6 +501,7 @@ const (
 	textAuditEmptyStateHeading
 	textAuditEventKindActivityDataCreated
 	textAuditEventKindActivityDataDeleted
+	textAuditEventKindActivityDataUpdated
 	textAuditEventKindActivityRebindEf
 	textAuditEventKindEvidenceAttached
 	textAuditEventKindEvidenceRemoved
@@ -574,6 +575,7 @@ const (
 	textDataDeleteActivityBody
 	textDataDeleteActivityTitle
 	textDataDeleteFailed
+	textDataEditActivity
 	textDataEditProfile
 	textDataEditSource
 	textDataNewActivity
@@ -1647,6 +1649,7 @@ var keyOfText = [numTexts]string{
 	"auditEmptyStateHeading",
 	"auditEventKindActivityDataCreated",
 	"auditEventKindActivityDataDeleted",
+	"auditEventKindActivityDataUpdated",
 	"auditEventKindActivityRebindEf",
 	"auditEventKindEvidenceAttached",
 	"auditEventKindEvidenceRemoved",
@@ -1720,6 +1723,7 @@ var keyOfText = [numTexts]string{
 	"dataDeleteActivityBody",
 	"dataDeleteActivityTitle",
 	"dataDeleteFailed",
+	"dataEditActivity",
 	"dataEditProfile",
 	"dataEditSource",
 	"dataNewActivity",
@@ -2791,6 +2795,7 @@ var textsEn = i18n.NewTexts(""+
 	"No audit events yet"+
 	"Activity data created"+
 	"Activity data deleted"+
+	"Activity data updated"+
 	"Rebind emission factor"+
 	"Evidence attached"+
 	"Evidence removed"+
@@ -2864,6 +2869,7 @@ var textsEn = i18n.NewTexts(""+
 	"The ledger row will be removed. The audit log keeps its append-only record."+
 	"Delete this activity?"+
 	"Could not delete."+
+	"Edit activity"+
 	"Edit profile"+
 	"Edit emission source"+
 	"New activity"+
@@ -3932,6 +3938,7 @@ var textsEn = i18n.NewTexts(""+
 		19,
 		21,
 		21,
+		21,
 		22,
 		17,
 		16,
@@ -4005,6 +4012,7 @@ var textsEn = i18n.NewTexts(""+
 		75,
 		21,
 		17,
+		13,
 		12,
 		20,
 		12,
@@ -5076,6 +5084,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"暂无审计事件"+
 	"创建活动数据"+
 	"删除活动数据"+
+	"更新活动数据"+
 	"重新镶嵌排放因子"+
 	"挂载证据"+
 	"移除证据"+
@@ -5149,6 +5158,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"该台账行将被删除；审计日志会保留其只追加记录。"+
 	"删除这条活动数据？"+
 	"删除失败。"+
+	"编辑活动数据"+
 	"编辑资料"+
 	"编辑排放源"+
 	"新增活动数据"+
@@ -6217,6 +6227,7 @@ var textsZhCN = i18n.NewTexts(""+
 		18,
 		18,
 		18,
+		18,
 		24,
 		12,
 		12,
@@ -6290,6 +6301,7 @@ var textsZhCN = i18n.NewTexts(""+
 		69,
 		27,
 		15,
+		18,
 		12,
 		15,
 		18,
@@ -9487,6 +9499,17 @@ func (msgs Messages) AuditEventKindActivityDataDeleted() string {
 	return msgs.text(textAuditEventKindActivityDataDeleted)
 }
 
+// AuditEventKindActivityDataUpdated says "Activity data updated"
+// in the language the app shows under cx.
+func AuditEventKindActivityDataUpdated(cx *core.Scope) string {
+	return For(cx).AuditEventKindActivityDataUpdated()
+}
+
+// AuditEventKindActivityDataUpdated is the package's AuditEventKindActivityDataUpdated in the language of msgs.
+func (msgs Messages) AuditEventKindActivityDataUpdated() string {
+	return msgs.text(textAuditEventKindActivityDataUpdated)
+}
+
 // AuditEventKindActivityRebindEf says "Rebind emission factor"
 // in the language the app shows under cx.
 func AuditEventKindActivityRebindEf(cx *core.Scope) string {
@@ -10155,6 +10178,13 @@ func DataDeleteFailed(cx *core.Scope) string { return For(cx).DataDeleteFailed()
 
 // DataDeleteFailed is the package's DataDeleteFailed in the language of msgs.
 func (msgs Messages) DataDeleteFailed() string { return msgs.text(textDataDeleteFailed) }
+
+// DataEditActivity says "Edit activity"
+// in the language the app shows under cx.
+func DataEditActivity(cx *core.Scope) string { return For(cx).DataEditActivity() }
+
+// DataEditActivity is the package's DataEditActivity in the language of msgs.
+func (msgs Messages) DataEditActivity() string { return msgs.text(textDataEditActivity) }
 
 // DataEditProfile says "Edit profile"
 // in the language the app shows under cx.

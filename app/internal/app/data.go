@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -682,6 +683,21 @@ func (s *Session) sourceDialog(cx *core.Scope, src *store.EmissionSource, dataRe
 // activityDialog returns the activity form trigger and dialog. It loads EF
 // candidates from the selected source's scope and category.
 func (s *Session) activityDialog(cx *core.Scope, dataRev *core.Signal[int]) core.Node {
+	return s.activityFormDialog(cx, dataRev, func() *store.Activity { return nil },
+		locales.DataAddActivity, locales.DataCreate, "activity-add", "activity", nil)
+}
+
+func (s *Session) editActivityDialog(cx *core.Scope, selectedID *core.Signal[string],
+	dataRev *core.Signal[int]) core.Node {
+	return s.activityFormDialog(cx, dataRev, func() *store.Activity {
+		return s.activityByID(selectedID.Get())
+	}, locales.DataEditActivity, locales.DataSave, "activity-edit", "activity-edit",
+		func() bool { return selectedID.Get() == "" })
+}
+
+func (s *Session) activityFormDialog(cx *core.Scope, dataRev *core.Signal[int],
+	initial func() *store.Activity, triggerLabel func(*core.Scope) string,
+	saveLabel func(*core.Scope) string, triggerID string, prefix string, disabled func() bool) core.Node {
 	open := core.NewSignal(cx, false)
 	sourceID := core.NewSignal(cx, "")
 	periodID := core.NewSignal(cx, "")
@@ -710,6 +726,29 @@ func (s *Session) activityDialog(cx *core.Scope, dataRev *core.Signal[int]) core
 				status.Set(err.Error())
 				return
 			}
+			current := initial()
+			if current != nil {
+				want := dataEFKeyFromActivity(*current)
+				found := false
+				for i := range factors {
+					if dataEFKey(factors[i]) == want {
+						found = true
+						break
+					}
+				}
+				if !found {
+					ef, err := s.db.EmissionFactorByKey(context.Background(), store.EmissionFactorKey{
+						FactorCode: current.EFFactorCode, Year: current.EFYear, Source: current.EFSource,
+						Geography: current.EFGeography, DatasetVersion: current.EFDatasetVersion,
+					})
+					if err == nil && ef != nil {
+						factors = append(factors, *ef)
+					}
+				}
+				efOptions.Set(factors)
+				efKey.Set(want)
+				return
+			}
 			efOptions.Set(factors)
 			if len(factors) > 0 {
 				efKey.Set(dataEFKey(factors[0]))
@@ -719,6 +758,20 @@ func (s *Session) activityDialog(cx *core.Scope, dataRev *core.Signal[int]) core
 	}
 	show := func() {
 		status.Set("")
+		current := initial()
+		if current != nil {
+			sourceID.Set(current.EmissionSourceID)
+			periodID.Set(current.ReportingPeriodID)
+			start.Set(current.OccurredAt)
+			end.Set(current.OccurredAtEnd)
+			amount.Set(strconv.FormatFloat(current.Amount, 'f', -1, 64))
+			unit.Set(current.Unit)
+			fuel.Set(current.FuelCode)
+			notes.Set(current.Notes)
+			loadEFs(current.EmissionSourceID)
+			open.Set(true)
+			return
+		}
 		sourceID.Set("")
 		for _, src := range s.sources {
 			if src.IsActive {
@@ -764,7 +817,7 @@ func (s *Session) activityDialog(cx *core.Scope, dataRev *core.Signal[int]) core
 			return
 		}
 		busy.Set(true)
-		_, err = s.db.CreateActivity(context.Background(), store.ActivityInput{
+		input := store.ActivityInput{
 			EmissionSourceID: sourceID.Get(), ReportingPeriodID: periodID.Get(),
 			OccurredAtStart: start.Get(), OccurredAtEnd: end.Get(), Amount: value, Unit: unit.Get(),
 			EF: store.EmissionFactorKey{
@@ -772,7 +825,14 @@ func (s *Session) activityDialog(cx *core.Scope, dataRev *core.Signal[int]) core
 				Geography: selected.Geography, DatasetVersion: selected.DatasetVersion,
 			},
 			FuelCode: fuel.Get(), Notes: notes.Get(),
-		})
+		}
+		current := initial()
+		if current == nil {
+			_, err = s.db.CreateActivity(context.Background(), input)
+		} else {
+			input.ExtractionID = current.ExtractionID
+			_, err = s.db.UpdateActivity(context.Background(), current.ID, input)
+		}
 		busy.Set(false)
 		if err != nil {
 			status.Set(err.Error())
@@ -807,57 +867,70 @@ func (s *Session) activityDialog(cx *core.Scope, dataRev *core.Signal[int]) core
 				StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)}
 		}
 		return ui.Select[string]{Options: options, Value: efKey.Get, OnChange: efKey.Set,
-			Label: locales.ActivitiesFormEf(cx), TestID: "activity-ef", Searchable: true,
+			Label: locales.ActivitiesFormEf(cx), TestID: prefix + "-ef", Searchable: true,
 			SearchPlaceholder: locales.ActivitiesSearchPlaceholder(cx)}
 	}
 
 	return core.View{Children: []core.Node{
-		ui.Button{Text: locales.DataAddActivity(cx), Variant: ui.ButtonSecondary, OnPress: show, TestID: "activity-add"},
-		dataDialog(cx, open, locales.DataNewActivity(cx), []core.Node{
+		ui.Button{Text: triggerLabel(cx), Variant: ui.ButtonSecondary, OnPress: show,
+			Disabled: disabled, TestID: triggerID},
+		dataDialog(cx, open, triggerLabel(cx), []core.Node{
 			dataField(cx, locales.ActivitiesFormSource(cx),
 				ui.Select[string]{Options: sourceOptions, Value: sourceID.Get,
 					OnChange:    func(v string) { sourceID.Set(v); loadEFs(v) },
 					Placeholder: locales.ActivitiesFormSourcePlaceholder(cx),
-					Label:       locales.ActivitiesFormSource(cx), TestID: "activity-source"}),
+					Label:       locales.ActivitiesFormSource(cx), TestID: prefix + "-source"}),
 			dataField(cx, locales.ActivitiesFormPeriod(cx),
 				ui.Select[string]{Options: periodOptions, Value: periodID.Get, OnChange: periodID.Set,
 					Placeholder: locales.ActivitiesFormPeriodPlaceholder(cx),
-					Label:       locales.ActivitiesFormPeriod(cx), TestID: "activity-period"}),
+					Label:       locales.ActivitiesFormPeriod(cx), TestID: prefix + "-period"}),
 			core.View{Style: core.Style{Direction: core.Row, Gap: 8}, Children: []core.Node{
 				core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{dataField(cx,
 					locales.ActivitiesFormOccurredStart(cx),
-					ui.Input{Value: start.Get, OnChange: start.Set, TestID: "activity-start"})}},
+					ui.Input{Value: start.Get, OnChange: start.Set, TestID: prefix + "-start"})}},
 				core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{dataField(cx,
 					locales.ActivitiesFormOccurredEnd(cx),
-					ui.Input{Value: end.Get, OnChange: end.Set, TestID: "activity-end"})}},
+					ui.Input{Value: end.Get, OnChange: end.Set, TestID: prefix + "-end"})}},
 			}},
 			core.View{Style: core.Style{Direction: core.Row, Gap: 8}, Children: []core.Node{
 				core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{dataField(cx,
 					locales.ActivitiesFormAmount(cx),
-					ui.Input{Value: amount.Get, OnChange: amount.Set, TestID: "activity-amount"})}},
+					ui.Input{Value: amount.Get, OnChange: amount.Set, TestID: prefix + "-amount"})}},
 				core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{dataField(cx,
 					locales.ActivitiesFormUnit(cx),
 					ui.Input{Value: unit.Get, OnChange: unit.Set,
-						Placeholder: locales.ActivitiesFormUnitPlaceholder(cx), TestID: "activity-unit"})}},
+						Placeholder: locales.ActivitiesFormUnitPlaceholder(cx), TestID: prefix + "-unit"})}},
 			}},
 			core.Dynamic(efSelect),
 			core.View{Style: core.Style{Direction: core.Row, Gap: 8}, Children: []core.Node{
 				core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{dataField(cx,
 					locales.ActivitiesFormFuel(cx),
 					ui.Input{Value: fuel.Get, OnChange: fuel.Set,
-						Placeholder: locales.ActivitiesFormFuelNone(cx), TestID: "activity-fuel"})}},
+						Placeholder: locales.ActivitiesFormFuelNone(cx), TestID: prefix + "-fuel"})}},
 				core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{dataField(cx,
 					locales.ActivitiesFormNotes(cx),
-					ui.Input{Value: notes.Get, OnChange: notes.Set, TestID: "activity-notes"})}},
+					ui.Input{Value: notes.Get, OnChange: notes.Set, TestID: prefix + "-notes"})}},
 			}},
 			core.Text{Content: locales.ActivitiesFormFuelHint(cx), Style: core.Style{FontSize: 11},
 				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 			dataError(cx, status),
 		}, []core.Node{
-			dataCancelButton(cx, open, "activity-cancel"),
-			ui.Button{Text: locales.DataCreate(cx), Busy: busy.Get, OnPress: save, TestID: "activity-save"},
-		}, "activity-dialog"),
+			dataCancelButton(cx, open, prefix+"-cancel"),
+			ui.Button{Text: saveLabel(cx), Busy: busy.Get, OnPress: save, TestID: prefix + "-save"},
+		}, prefix+"-dialog"),
 	}}
+}
+
+func (s *Session) activityByID(id string) *store.Activity {
+	if id == "" {
+		return nil
+	}
+	for i := range s.activities {
+		if s.activities[i].ID == id {
+			return &s.activities[i]
+		}
+	}
+	return nil
 }
 
 func (s *Session) deleteActivityButton(cx *core.Scope, selectedID *core.Signal[string],
@@ -900,10 +973,124 @@ func dataEFKey(ef store.EmissionFactor) string {
 	return fmt.Sprintf("%s\x1f%d\x1f%s\x1f%s\x1f%s", ef.FactorCode, ef.Year, ef.Source, ef.Geography, ef.DatasetVersion)
 }
 
+func dataEFKeyFromActivity(a store.Activity) string {
+	return dataEFKey(store.EmissionFactor{
+		FactorCode: a.EFFactorCode, Year: a.EFYear, Source: a.EFSource,
+		Geography: a.EFGeography, DatasetVersion: a.EFDatasetVersion,
+	})
+}
+
 func dataEFLabel(ef store.EmissionFactor) string {
 	name := ef.NameEN
 	if name == "" {
 		name = ef.NameZH
 	}
 	return fmt.Sprintf("%s · %s · %s", name, ef.InputUnit, ef.FactorCode)
+}
+
+// auditScreen lists the append-only audit trail. Payloads are formatted for
+// reading but never interpreted as instructions; the store already keeps
+// free-text notes out of them.
+func (s *Session) auditScreen(cx *core.Scope, dataRev *core.Signal[int]) core.Node {
+	if s.organization == nil {
+		return s.onboardingScreen(cx, dataRev)
+	}
+	return core.Scroll{
+		Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
+		Children: []core.Node{core.View{
+			Style: core.Style{Padding: core.All(16), Gap: 12, MaxWidth: core.Pt(980), AlignSelf: core.AlignStretch},
+			Children: []core.Node{core.Dynamic(func(cx *core.Scope) core.Node {
+				_ = dataRev.Get()
+				return s.auditBody(cx)
+			})},
+		}},
+	}
+}
+
+func (s *Session) auditBody(cx *core.Scope) core.Node {
+	events, err := s.db.AuditEvents(context.Background(), 500)
+	rows := make([]core.Node, 0, len(events)+1)
+	if err != nil {
+		rows = append(rows, core.Text{Content: err.Error(), Style: core.Style{FontSize: 12},
+			StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)})
+	}
+	for _, event := range events {
+		payload := dataAuditPayload(event.Payload)
+		children := []core.Node{
+			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8}, Children: []core.Node{
+				ui.Badge{Text: dataAuditKind(cx, event.Kind), Variant: ui.BadgeNeutral},
+				core.Text{Content: event.OccurredAt, Style: core.Style{FontSize: 11},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
+			}},
+		}
+		if payload != "" {
+			children = append(children, core.Text{Content: payload,
+				Style:     core.Style{FontSize: 11, FontFamily: core.FontMonospace},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 12})
+		}
+		rows = append(rows, core.View{
+			Style: core.Style{Gap: 4, Padding: core.Symmetric(9, 0),
+				Borders: core.Edges{Bottom: 1}},
+			StyleFunc: func() core.Style { return core.Style{BorderColor: ui.ColorsOf(cx).Line()} },
+			Children:  children,
+		})
+	}
+	if len(events) == 0 && err == nil {
+		rows = append(rows, core.View{Style: core.Style{Padding: core.All(24), Gap: 6, AlignItems: core.AlignCenter},
+			Children: []core.Node{
+				core.Text{Content: locales.AuditEmptyStateHeading(cx),
+					Style: core.Style{FontSize: 15, FontWeight: ui.Semibold}},
+				core.Text{Content: locales.AuditEmptyStateBody(cx), Style: core.Style{FontSize: 12},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
+			}})
+	}
+	return dataCard(cx,
+		dataHeading(cx, locales.AuditHeading(cx), locales.AuditSubheading(cx)),
+		core.View{Style: core.Style{Gap: 0}, Children: rows},
+	)
+}
+
+func dataAuditKind(cx *core.Scope, kind string) string {
+	switch kind {
+	case "activity_data.created":
+		return locales.AuditEventKindActivityDataCreated(cx)
+	case "activity_data.updated":
+		return locales.AuditEventKindActivityDataUpdated(cx)
+	case "activity_data.deleted":
+		return locales.AuditEventKindActivityDataDeleted(cx)
+	case "activity_rebind_ef":
+		return locales.AuditEventKindActivityRebindEf(cx)
+	case "evidence.attached":
+		return locales.AuditEventKindEvidenceAttached(cx)
+	case "evidence.removed":
+		return locales.AuditEventKindEvidenceRemoved(cx)
+	default:
+		return locales.AuditUnknownEventKind(cx, kind)
+	}
+}
+
+// dataAuditPayload pretty-prints a stored JSON payload and caps its length so
+// one large event cannot push the rest of the log off screen.
+func dataAuditPayload(payload string) string {
+	trimmed := strings.TrimSpace(payload)
+	if trimmed == "" {
+		return ""
+	}
+	var value any
+	if err := json.Unmarshal([]byte(trimmed), &value); err != nil {
+		return dataTruncate(trimmed, 700)
+	}
+	pretty, err := json.MarshalIndent(value, "", "  ")
+	if err != nil {
+		return dataTruncate(trimmed, 700)
+	}
+	return dataTruncate(string(pretty), 700)
+}
+
+func dataTruncate(text string, limit int) string {
+	runes := []rune(text)
+	if len(runes) <= limit {
+		return text
+	}
+	return string(runes[:limit]) + "…"
 }

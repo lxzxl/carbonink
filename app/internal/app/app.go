@@ -35,6 +35,7 @@ const (
 	ScreenSources    Screen = "sources"
 	ScreenDocuments  Screen = "documents"
 	ScreenReports    Screen = "reports"
+	ScreenAudit      Screen = "audit"
 	ScreenSettings   Screen = "settings"
 )
 
@@ -176,6 +177,7 @@ var screens = []screenInfo{
 	{ScreenSources, locales.NavSources, lucide.Building},
 	{ScreenDocuments, locales.NavDocuments, lucide.Files},
 	{ScreenReports, locales.NavReports, lucide.ChartColumn},
+	{ScreenAudit, locales.AuditNav, lucide.ScrollText},
 	{ScreenSettings, locales.NavSettings, lucide.Settings},
 }
 
@@ -236,12 +238,14 @@ func (s *Session) view(cx *core.Scope) core.Node {
 			Then: func(cx *core.Scope) core.Node { return s.dashboardScreen(cx, dataRev) }},
 		core.Show{When: func() bool { return active.Get() == ScreenSources },
 			Then: func(cx *core.Scope) core.Node { return s.sourcesScreen(cx, dataRev) }},
+		core.Show{When: func() bool { return active.Get() == ScreenAudit },
+			Then: func(cx *core.Scope) core.Node { return s.auditScreen(cx, dataRev) }},
 		core.Show{When: func() bool { return active.Get() == ScreenSettings },
 			Then: func(cx *core.Scope) core.Node { return s.settingsScreen(cx) }},
 		core.Show{When: func() bool {
 			id := active.Get()
 			return id != ScreenActivities && id != ScreenDashboard &&
-				id != ScreenSources && id != ScreenSettings
+				id != ScreenSources && id != ScreenAudit && id != ScreenSettings
 		},
 			Then: func(cx *core.Scope) core.Node { return placeholder(cx) }},
 		s.commandDialog(cx, paletteOpen, active),
@@ -266,6 +270,8 @@ func (s *Session) view(cx *core.Scope) core.Node {
 						return locales.WorkspaceActive(cx) + " · " + s.workspace.Name
 					case ScreenSources:
 						return locales.DataSourcesCount(cx, strconv.Itoa(len(s.sources)))
+					case ScreenAudit:
+						return locales.AuditSubheading(cx)
 					}
 					return ""
 				}, Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
@@ -368,6 +374,7 @@ func (s *Session) activitiesScreen(cx *core.Scope, dataRev *core.Signal[int]) co
 				}, Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 				core.View{Style: core.Style{FlexGrow: 1}},
 				s.activityDialog(cx, dataRev),
+				s.editActivityDialog(cx, selectedID, dataRev),
 				s.deleteActivityButton(cx, selectedID, dataRev),
 			}},
 			core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)}, Children: []core.Node{

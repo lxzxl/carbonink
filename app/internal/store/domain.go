@@ -541,15 +541,23 @@ func (s *Store) EmissionFactorByKey(ctx context.Context, key EmissionFactorKey) 
 }
 
 func emissionFactorByKey(ctx context.Context, q queryer, key EmissionFactorKey) (*EmissionFactor, error) {
-	row := q.QueryRowContext(ctx, `SELECT factor_code, year, source, geography, dataset_version,
+	const columns = `factor_code, year, source, geography, dataset_version,
 			scope, coalesce(category, ''), coalesce(ghg_protocol_path, ''), input_unit, co2e_kg_per_unit,
 			ch4_kg_per_unit, n2o_kg_per_unit, gwp_basis, coalesce(name_zh, ''), coalesce(name_en, ''),
-			coalesce(citation_url, '')
-		FROM emission_factor WHERE factor_code = ? AND year = ? AND source = ? AND geography = ?
-			AND dataset_version = ?`, key.FactorCode, key.Year, key.Source, key.Geography, key.DatasetVersion)
+			coalesce(citation_url, '')`
+	const match = `factor_code = ? AND year = ? AND source = ? AND geography = ? AND dataset_version = ?`
+	args := []any{key.FactorCode, key.Year, key.Source, key.Geography, key.DatasetVersion}
+	row := q.QueryRowContext(ctx, `SELECT `+columns+` FROM emission_factor WHERE `+match, args...)
 	ef, err := scanEmissionFactor(row)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, nil
+		// A ledger row may keep a factor that has since left the catalog. The
+		// pinned snapshot is the immutable copy the calculation used, so edits
+		// and rebinds can still resolve it.
+		row = q.QueryRowContext(ctx, `SELECT `+columns+` FROM pinned_emission_factor WHERE `+match, args...)
+		ef, err = scanEmissionFactor(row)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
 	}
 	if err != nil {
 		return nil, err
