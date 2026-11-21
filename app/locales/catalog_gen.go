@@ -1134,6 +1134,7 @@ const (
 	textQuestionnairePdfSourceSummary
 	textQuestionnairePdfTocHeading
 	textQuestionnairePdfUnanswered
+	textQuestionnairePdfUnspecified
 	textQuestionnairesAnswerSaveFailed
 	textQuestionnairesAnswerSaved
 	textQuestionnairesDetailAnswerPending
@@ -2334,6 +2335,7 @@ var keyOfText = [numTexts]string{
 	"questionnairePdfSourceSummary",
 	"questionnairePdfTocHeading",
 	"questionnairePdfUnanswered",
+	"questionnairePdfUnspecified",
 	"questionnairesAnswerSaveFailed",
 	"questionnairesAnswerSaved",
 	"questionnairesDetailAnswerPending",
@@ -3532,6 +3534,7 @@ var textsEn = i18n.NewTexts(""+
 	"Source"+
 	"Table of contents"+
 	"(Unanswered)"+
+	"Unspecified"+
 	"Could not save the answer"+
 	"Answer saved"+
 	"Phase 2.2b will generate answers here."+
@@ -4727,6 +4730,7 @@ var textsEn = i18n.NewTexts(""+
 		6,
 		17,
 		12,
+		11,
 		25,
 		12,
 		38,
@@ -5925,6 +5929,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"来源"+
 	"目录"+
 	"(未答)"+
+	"未指定"+
 	"保存答案失败"+
 	"答案已保存"+
 	"Phase 2.2b 将在此处生成答案。"+
@@ -7120,6 +7125,7 @@ var textsZhCN = i18n.NewTexts(""+
 		6,
 		6,
 		8,
+		9,
 		18,
 		15,
 		38,
@@ -16406,6 +16412,15 @@ func QuestionnairePdfUnanswered(cx *core.Scope) string { return For(cx).Question
 // QuestionnairePdfUnanswered is the package's QuestionnairePdfUnanswered in the language of msgs.
 func (msgs Messages) QuestionnairePdfUnanswered() string {
 	return msgs.text(textQuestionnairePdfUnanswered)
+}
+
+// QuestionnairePdfUnspecified says "Unspecified"
+// in the language the app shows under cx.
+func QuestionnairePdfUnspecified(cx *core.Scope) string { return For(cx).QuestionnairePdfUnspecified() }
+
+// QuestionnairePdfUnspecified is the package's QuestionnairePdfUnspecified in the language of msgs.
+func (msgs Messages) QuestionnairePdfUnspecified() string {
+	return msgs.text(textQuestionnairePdfUnspecified)
 }
 
 // QuestionnairesAnswerProgress says "{answered} of {count} answered"

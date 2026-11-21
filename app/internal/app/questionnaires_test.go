@@ -9,10 +9,12 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"app.carbonink.desktop/internal/docview"
 	"app.carbonink.desktop/internal/store"
 
 	"github.com/nsgo-dev/nsgo/core"
@@ -113,6 +115,14 @@ func TestImportQuestionnaireAndEditAnswers(t *testing.T) {
 	ui.Press("id:questionnaires-export-xlsx")
 	ui.WaitFor("text:1 answers written (0 drafts).", 5*time.Second)
 	ui.WaitFor("text:2025 · Exported", 3*time.Second)
+	pdfPath := filepath.Join(t.TempDir(), "filled.pdf")
+	ui.SaveFile = func(core.SaveRequest) string { return pdfPath }
+	ui.Press("id:questionnaires-export-pdf")
+	ui.WaitFor("id:questionnaires-pdf-dialog", 3*time.Second)
+	ui.Press("id:questionnaires-pdf-export")
+	ui.WaitFor("text:Exported PDF → "+pdfPath, 15*time.Second)
+	ui.Press("id:questionnaires-pdf-cancel")
+	ui.WaitForGone("id:questionnaires-pdf-dialog", 3*time.Second)
 	ui.Press("id:questionnaires-detail-close")
 	ui.WaitForGone("id:questionnaires-detail-dialog", 3*time.Second)
 	ui.WaitFor("text:Exported", 3*time.Second)
@@ -123,6 +133,19 @@ func TestImportQuestionnaireAndEditAnswers(t *testing.T) {
 	defer exported.Close()
 	if value, err := exported.GetCellValue("Data", "B2"); err != nil || value != "120000" {
 		t.Fatalf("exported B2 = %q, %v", value, err)
+	}
+	pdfBytes, err := os.ReadFile(pdfPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pdfText, _, err := docview.PDFText(pdfBytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(pdfText, "ACME Ltd") ||
+		!strings.Contains(pdfText, "Annual electricity use") ||
+		!strings.Contains(pdfText, "120000") {
+		t.Fatalf("PDF text = %s", pdfText)
 	}
 
 	ctx := context.Background()

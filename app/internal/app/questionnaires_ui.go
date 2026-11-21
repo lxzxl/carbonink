@@ -10,11 +10,13 @@ import (
 	"time"
 
 	"app.carbonink.desktop/internal/answer"
+	"app.carbonink.desktop/internal/pdfgen"
 	"app.carbonink.desktop/internal/questionnaire"
 	"app.carbonink.desktop/internal/store"
 	"app.carbonink.desktop/locales"
 
 	"github.com/nsgo-dev/nsgo/core"
+	"github.com/nsgo-dev/nsgo/i18n"
 	"github.com/nsgo-dev/nsgo/ui"
 )
 
@@ -57,6 +59,11 @@ type questionnaireDetail struct {
 	selectedAnswered  *core.Signal[bool]
 	value             *core.Signal[string]
 	unit              *core.Signal[string]
+	pdfOpen           *core.Signal[bool]
+	pdfLang           *core.Signal[string]
+	pdfBusy           *core.Signal[bool]
+	pdfStatus         *core.Signal[string]
+	pdfFailed         *core.Signal[bool]
 
 	id        string
 	db        *store.Store
@@ -164,6 +171,7 @@ func (s *Session) questionnairesScreen(cx *core.Scope, dataRev *core.Signal[int]
 			screenStatus.Set(message)
 		}),
 		detail.dialog(cx, s, dataRev),
+		detail.pdfDialog(cx, s),
 	}}
 }
 
@@ -201,6 +209,11 @@ func newQuestionnaireDetail(cx *core.Scope, db *store.Store) *questionnaireDetai
 		selectedAnswered:  core.NewSignal(cx, false),
 		value:             core.NewSignal(cx, ""),
 		unit:              core.NewSignal(cx, ""),
+		pdfOpen:           core.NewSignal(cx, false),
+		pdfLang:           core.NewSignal(cx, "en"),
+		pdfBusy:           core.NewSignal(cx, false),
+		pdfStatus:         core.NewSignal(cx, ""),
+		pdfFailed:         core.NewSignal(cx, false),
 		db:                db,
 	}
 }
@@ -720,6 +733,176 @@ func (d *questionnaireDetail) exportXLSX(s *Session, cx *core.Scope,
 		})
 }
 
+func (d *questionnaireDetail) openPDFDialog(cx *core.Scope) {
+	d.pdfLang.Set("en")
+	if strings.HasPrefix(strings.ToLower(i18n.Language(cx)), "zh") {
+		d.pdfLang.Set("zh-CN")
+	}
+	d.pdfStatus.Set("")
+	d.pdfFailed.Set(false)
+	d.pdfBusy.Set(false)
+	d.pdfOpen.Set(true)
+}
+
+// exportPDF assembles and draws the questionnaire, then hands the bytes to the
+// save dialog on the UI thread.
+func (d *questionnaireDetail) exportPDF(s *Session, cx *core.Scope) {
+	if d.id == "" {
+		return
+	}
+	id := d.id
+	lang := d.pdfLang.Get()
+	labels := pdfLabelsFor(lang)
+	d.pdfBusy.Set(true)
+	d.pdfFailed.Set(false)
+	d.pdfStatus.Set(locales.QuestionnaireExportPdfPending(cx))
+	go func() {
+		out, name, err := s.renderQuestionnairePDF(context.Background(), id, lang, labels)
+		s.scope.Post(func() {
+			d.pdfBusy.Set(false)
+			if err != nil {
+				d.pdfFailed.Set(true)
+				d.pdfStatus.Set(locales.QuestionnaireExportPdfFailed(cx, err.Error()))
+				return
+			}
+			cx.SaveFile(core.SaveOptions{Name: name, MIME: "application/pdf", Data: out},
+				func(saved bool, path string, err error) {
+					if err != nil {
+						d.pdfFailed.Set(true)
+						d.pdfStatus.Set(locales.QuestionnaireExportPdfFailed(cx, err.Error()))
+						return
+					}
+					if !saved {
+						d.pdfStatus.Set("")
+						return
+					}
+					d.pdfFailed.Set(false)
+					d.pdfStatus.Set(locales.QuestionnaireExportPdfSuccess(cx, path))
+				})
+		})
+	}()
+}
+
+// renderQuestionnairePDF loads one questionnaire and draws it with the
+// requested export language's labels.
+func (s *Session) renderQuestionnairePDF(ctx context.Context, id string,
+	lang string, labels pdfgen.Labels) ([]byte, string, error) {
+	q, err := s.db.QuestionnaireByID(ctx, id)
+	if err != nil {
+		return nil, "", err
+	}
+	if q == nil {
+		return nil, "", errors.New("questionnaire not found")
+	}
+	questions, err := s.db.ListQuestions(ctx, id)
+	if err != nil {
+		return nil, "", err
+	}
+	document, err := s.db.DocumentByID(ctx, q.DocumentID)
+	if err != nil {
+		return nil, "", err
+	}
+	documentName := ""
+	if document != nil {
+		documentName = document.Filename
+	}
+	data := pdfgen.Questionnaire{CustomerName: q.CustomerName, ReportingYear: q.ReportingYear,
+		DocumentName: documentName, DueDate: q.DueDate}
+	for _, question := range questions {
+		item := pdfgen.Question{ID: question.ID, Position: question.Position,
+			RawText: question.RawText, NormalizedText: question.NormalizedText,
+			Kind: question.QuestionKind, ExpectedUnit: question.ExpectedUnit}
+		if question.Answered() {
+			item.Answer = &pdfgen.Answer{Value: question.AnswerValue, Unit: question.AnswerUnit,
+				FinalizedAt:   question.AnswerFinalizedAt,
+				SourceSummary: question.AnswerSourceSummary}
+		}
+		data.Questions = append(data.Questions, item)
+	}
+	out, err := pdfgen.RenderQuestionnaire(data, labels)
+	if err != nil {
+		return nil, "", err
+	}
+	return out, pdfSlug(q.CustomerName) + "-questionnaire-" + strconv.Itoa(q.ReportingYear) +
+		"-" + lang + ".pdf", nil
+}
+
+func pdfLabelsFor(lang string) pdfgen.Labels {
+	msgs := locales.In(lang)
+	return pdfgen.Labels{
+		DueDate:     msgs.QuestionnairePdfCoverDueDate(),
+		GeneratedAt: msgs.QuestionnairePdfCoverGeneratedAt(),
+		Draft:       msgs.QuestionnairePdfDraft(),
+		Finalized:   msgs.QuestionnairePdfFinalized(),
+		Source:      msgs.QuestionnairePdfSourceSummary(),
+		TOC:         msgs.QuestionnairePdfTocHeading(),
+		Unanswered:  msgs.QuestionnairePdfUnanswered(),
+		Unspecified: msgs.QuestionnairePdfUnspecified(),
+		Kinds: map[string]string{
+			"numerical":   msgs.QuestionnairesDetailNumerical(),
+			"categorical": msgs.QuestionnairesDetailCategorical(),
+			"narrative":   msgs.QuestionnairesDetailNarrative(),
+		},
+	}
+}
+
+func pdfSlug(name string) string {
+	var b strings.Builder
+	lastDash := false
+	for _, r := range strings.ToLower(name) {
+		switch {
+		case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
+			b.WriteRune(r)
+			lastDash = false
+		case !lastDash && b.Len() > 0:
+			b.WriteByte('-')
+			lastDash = true
+		}
+		if b.Len() >= 40 {
+			break
+		}
+	}
+	slug := strings.Trim(b.String(), "-")
+	if slug == "" {
+		return "questionnaire"
+	}
+	return slug
+}
+
+func (d *questionnaireDetail) pdfDialog(cx *core.Scope, s *Session) core.Node {
+	options := []ui.Option[string]{
+		{Value: "en", Label: locales.QuestionnaireExportPdfLangEn(cx)},
+		{Value: "zh-CN", Label: locales.QuestionnaireExportPdfLangZh(cx)},
+	}
+	body := []core.Node{
+		core.Text{Content: locales.QuestionnaireExportPdfDialogSubheading(cx),
+			Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+		dataField(cx, locales.QuestionnaireExportPdfLangLabel(cx),
+			ui.Select[string]{Options: options, Value: d.pdfLang.Get,
+				OnChange: d.pdfLang.Set, Label: locales.QuestionnaireExportPdfLangLabel(cx),
+				TestID: "questionnaires-pdf-lang"}),
+		core.Show{When: func() bool { return d.pdfStatus.Get() != "" },
+			Then: func(cx *core.Scope) core.Node {
+				return core.Text{ContentFunc: func() string { return d.pdfStatus.Get() },
+					Style: core.Style{FontSize: 12}, StyleFunc: func() core.Style {
+						if d.pdfFailed.Get() {
+							return ui.Colored(ui.ColorsOf(cx).Danger)()
+						}
+						return ui.Colored(ui.ColorsOf(cx).Muted)()
+					}}
+			}},
+	}
+	footer := []core.Node{
+		ui.Button{Text: locales.QuestionnaireExportPdfCancel(cx), Variant: ui.ButtonSecondary,
+			OnPress: func() { d.pdfOpen.Set(false) }, TestID: "questionnaires-pdf-cancel"},
+		ui.Button{Text: locales.QuestionnaireExportPdfConfirm(cx),
+			OnPress: func() { d.exportPDF(s, cx) }, Busy: d.pdfBusy.Get,
+			TestID: "questionnaires-pdf-export"},
+	}
+	return dataDialog(cx, d.pdfOpen, locales.QuestionnaireExportPdfDialogHeading(cx), body,
+		footer, "questionnaires-pdf-dialog")
+}
+
 func (d *questionnaireDetail) dialog(cx *core.Scope, s *Session,
 	dataRev *core.Signal[int]) core.Node {
 	dialog := func(cx *core.Scope) core.Node {
@@ -857,6 +1040,8 @@ func (d *questionnaireDetail) dialog(cx *core.Scope, s *Session,
 			ui.Button{Text: locales.AnswerExportButton(cx), Variant: ui.ButtonSecondary,
 				OnPress: func() { d.exportXLSX(s, cx, dataRev) }, Busy: d.busy.Get,
 				TestID: "questionnaires-export-xlsx"},
+			ui.Button{Text: locales.QuestionnaireExportPdfButton(cx), Variant: ui.ButtonSecondary,
+				OnPress: func() { d.openPDFDialog(cx) }, TestID: "questionnaires-export-pdf"},
 			ui.Button{Text: locales.QuestionnairesFinalizeButton(cx),
 				OnPress: func() { d.finalizeAll(s, cx, dataRev) }, Busy: d.busy.Get,
 				TestID: "questionnaires-finalize-all"},

@@ -859,6 +859,7 @@ questionnairePdfFinalized: 已定稿
 questionnairePdfSourceSummary: 来源
 questionnairePdfTocHeading: 目录
 questionnairePdfUnanswered: (未答)
+questionnairePdfUnspecified: 未指定
 questionnairesAnswerProgress: 已答 {answered} / {count}
 questionnairesAnswerSaveFailed: 保存答案失败
 questionnairesAnswerSaved: 答案已保存
