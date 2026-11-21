@@ -32,6 +32,30 @@ type documentPreview struct {
 	rev    *core.Signal[int]
 }
 
+type documentDetail struct {
+	open     *core.Signal[bool]
+	doc      *core.Signal[store.Document]
+	rev      *core.Signal[int]
+	status   *core.Signal[string]
+	failed   *core.Signal[bool]
+	busy     *core.Signal[bool]
+	evidence []store.DocumentEvidence
+	total    int
+	text     string
+	pages    int
+}
+
+func newDocumentDetail(cx *core.Scope) *documentDetail {
+	return &documentDetail{
+		open:   core.NewSignal(cx, false),
+		doc:    core.NewSignal(cx, store.Document{}),
+		rev:    core.NewSignal(cx, 0),
+		status: core.NewSignal(cx, ""),
+		failed: core.NewSignal(cx, false),
+		busy:   core.NewSignal(cx, false),
+	}
+}
+
 func newDocumentPreview(cx *core.Scope) *documentPreview {
 	return &documentPreview{
 		open:   core.NewSignal(cx, false),
@@ -50,6 +74,7 @@ func (s *Session) documentsScreen(cx *core.Scope, dataRev *core.Signal[int]) cor
 	status := core.NewSignal(cx, "")
 	statusFailed := core.NewSignal(cx, false)
 	preview := newDocumentPreview(cx)
+	detail := newDocumentDetail(cx)
 	return core.View{
 		Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
 		Children: []core.Node{
@@ -59,20 +84,22 @@ func (s *Session) documentsScreen(cx *core.Scope, dataRev *core.Signal[int]) cor
 					Style: core.Style{Padding: core.All(16), Gap: 12, MaxWidth: core.Pt(980), AlignSelf: core.AlignStretch},
 					Children: []core.Node{core.Dynamic(func(cx *core.Scope) core.Node {
 						_ = dataRev.Get()
-						return s.documentsBody(cx, dataRev, status, statusFailed, preview)
+						return s.documentsBody(cx, dataRev, status, statusFailed, preview, detail)
 					})},
 				}},
 			},
 			s.documentPreviewDialog(cx, preview),
+			s.documentDetailDialog(cx, detail),
 		},
 	}
 }
 
 func (s *Session) documentsBody(cx *core.Scope, dataRev *core.Signal[int],
-	status *core.Signal[string], statusFailed *core.Signal[bool], preview *documentPreview) core.Node {
+	status *core.Signal[string], statusFailed *core.Signal[bool], preview *documentPreview,
+	detail *documentDetail) core.Node {
 	rows := make([]core.Node, 0, len(s.documents))
 	for i := range s.documents {
-		rows = append(rows, s.documentRow(cx, s.documents[i], status, statusFailed, preview))
+		rows = append(rows, s.documentRow(cx, s.documents[i], status, statusFailed, preview, detail))
 	}
 	if len(rows) == 0 {
 		rows = append(rows, core.View{
@@ -123,12 +150,16 @@ func (s *Session) documentsBody(cx *core.Scope, dataRev *core.Signal[int],
 }
 
 func (s *Session) documentRow(cx *core.Scope, document store.Document,
-	status *core.Signal[string], statusFailed *core.Signal[bool], preview *documentPreview) core.Node {
+	status *core.Signal[string], statusFailed *core.Signal[bool], preview *documentPreview,
+	detail *documentDetail) core.Node {
 	meta := documentKind(document.MIMEType) + " · " + documentSize(document.SizeBytes)
 	if date := documentDate(document.UploadedAt); date != "" {
 		meta += " · " + locales.DocumentsReviewUploadedOn(cx, date)
 	}
 	actions := []core.Node{}
+	actions = append(actions, ui.Button{Text: locales.DocumentsDetailButton(cx), Variant: ui.ButtonGhost,
+		OnPress: func() { s.openDocumentDetail(cx, detail, document) },
+		TestID:  "documents-detail-" + document.ID})
 	if documentPreviewable(document.MIMEType) {
 		actions = append(actions, ui.Button{Text: locales.DocumentsPreviewButton(cx), Variant: ui.ButtonGhost,
 			OnPress: func() { s.openDocumentPreview(cx, preview, document) },
@@ -304,6 +335,229 @@ func documentPreviewable(mimeType string) bool {
 	default:
 		return false
 	}
+}
+
+func (s *Session) openDocumentDetail(cx *core.Scope, detail *documentDetail, document store.Document) {
+	detail.doc.Set(document)
+	detail.evidence = nil
+	detail.total = 0
+	detail.text = ""
+	detail.pages = 0
+	detail.status.Set("")
+	detail.failed.Set(false)
+	detail.busy.Set(document.MIMEType == "application/pdf")
+	detail.open.Set(true)
+
+	evidence, total, err := s.db.DocumentEvidence(context.Background(), document.ID, 50)
+	if err != nil {
+		detail.status.Set(locales.DocumentsDetailLoadFailed(cx) + ": " + err.Error())
+		detail.failed.Set(true)
+	} else {
+		detail.evidence, detail.total = evidence, total
+	}
+	detail.rev.Set(detail.rev.Get() + 1)
+	if document.MIMEType == "application/pdf" {
+		s.loadDocumentText(cx, detail)
+	}
+}
+
+func (s *Session) loadDocumentText(cx *core.Scope, detail *documentDetail) {
+	document := detail.doc.Get()
+	path := store.ResolveDocumentPath(document.StoragePath, s.dataDir)
+	failedPrefix := locales.DocumentsDetailTextFailed(cx)
+	go func() {
+		data, err := os.ReadFile(path)
+		text := ""
+		pages := 0
+		if err == nil {
+			text, pages, err = docview.PDFText(data)
+		}
+		cx.Post(func() {
+			if !detail.open.Get() || detail.doc.Get().ID != document.ID {
+				return
+			}
+			detail.busy.Set(false)
+			if err != nil {
+				detail.status.Set(failedPrefix + ": " + err.Error())
+				detail.failed.Set(true)
+			} else {
+				detail.text, detail.pages = text, pages
+			}
+			detail.rev.Set(detail.rev.Get() + 1)
+		})
+	}()
+}
+
+func (s *Session) documentDetailDialog(cx *core.Scope, detail *documentDetail) core.Node {
+	return ui.Dialog{
+		Open: detail.open.Get,
+		OnOpenChange: func(open bool, _ base.Reason) {
+			detail.open.Set(open)
+			if !open {
+				detail.busy.Set(false)
+			}
+		},
+		TitleFunc: func() string { return detail.doc.Get().Filename },
+		Children: []core.Node{core.Dynamic(func(cx *core.Scope) core.Node {
+			_ = detail.rev.Get()
+			return s.documentDetailBody(cx, detail)
+		})},
+		Footer: []core.Node{core.Dynamic(func(cx *core.Scope) core.Node {
+			document := detail.doc.Get()
+			return core.View{Style: core.Style{Direction: core.Row, JustifyContent: core.JustifyEnd, Gap: 8},
+				Children: []core.Node{
+					ui.Button{Text: locales.DocumentsOpenRow(cx), Variant: ui.ButtonSecondary,
+						OnPress: func() { s.openDocument(cx, document, detail.status, detail.failed) }},
+					ui.Button{Text: locales.DocumentsPreviewClose(cx), Variant: ui.ButtonSecondary,
+						OnPress: func() {
+							detail.busy.Set(false)
+							detail.open.Set(false)
+						}, TestID: "documents-detail-close"},
+				}}
+		})},
+		TestID: "documents-detail-dialog",
+		Style:  core.Style{Width: core.Pt(760)},
+	}
+}
+
+func (s *Session) documentDetailBody(cx *core.Scope, detail *documentDetail) core.Node {
+	document := detail.doc.Get()
+	metaRows := []core.Node{
+		documentDetailField(cx, locales.DocumentsDetailKind(cx), documentKind(document.MIMEType), false),
+		documentDetailField(cx, locales.DocumentsDetailSize(cx), documentSize(document.SizeBytes), false),
+		documentDetailField(cx, locales.DocumentsTableUploaded(cx), documentDate(document.UploadedAt), false),
+		documentDetailField(cx, locales.DocumentsDetailSha(cx), document.SHA256, true),
+	}
+	if document.UploadedBy != "" {
+		metaRows = append(metaRows,
+			documentDetailField(cx, locales.DocumentsDetailUploadedBy(cx), document.UploadedBy, false))
+	}
+
+	evidenceRows := []core.Node{}
+	for i, item := range detail.evidence {
+		date := item.OccurredAt
+		if len(date) >= 10 {
+			date = date[:10]
+		}
+		meta := date + " · " + item.SourceName
+		if item.SiteName != "" {
+			meta += " · " + item.SiteName
+		}
+		meta += " · " + commaFloat(item.Amount) + " " + item.Unit +
+			" · " + commaFloat(item.CO2eKg) + " kgCO2e"
+		evidenceRows = append(evidenceRows, core.View{
+			TestID: "documents-detail-evidence-" + strconv.Itoa(i),
+			Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8,
+				Padding: core.Symmetric(6, 0), Borders: core.Edges{Bottom: 1}},
+			StyleFunc: func() core.Style { return core.Style{BorderColor: ui.ColorsOf(cx).Line()} },
+			Children: []core.Node{
+				core.Text{Content: meta, Style: core.Style{FontSize: 12}, MaxLines: 1,
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+				core.View{Style: core.Style{FlexGrow: 1}},
+				ui.Badge{Text: dataScopeLabel(cx, item.Scope), Variant: ui.BadgeNeutral},
+			},
+		})
+	}
+	if len(evidenceRows) == 0 {
+		evidenceRows = append(evidenceRows, core.Text{ContentFunc: func() string {
+			return locales.DocumentsDetailEvidenceEmpty(cx)
+		}, Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
+	} else if detail.total > len(detail.evidence) {
+		evidenceRows = append(evidenceRows, core.Text{ContentFunc: func() string {
+			return locales.DocumentsShowingLatest(cx, strconv.Itoa(len(detail.evidence)),
+				strconv.Itoa(detail.total))
+		}, Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
+	}
+
+	textChildren := []core.Node{}
+	switch {
+	case document.MIMEType != "application/pdf":
+		textChildren = append(textChildren, core.Text{ContentFunc: func() string {
+			return locales.DocumentsDetailTextUnsupported(cx)
+		}, Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
+	case detail.busy.Get():
+		textChildren = append(textChildren, core.Text{ContentFunc: func() string {
+			return locales.DocumentsDetailTextLoading(cx)
+		}, Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
+	case strings.TrimSpace(detail.text) == "":
+		textChildren = append(textChildren, core.Text{ContentFunc: func() string {
+			return locales.DocumentsDetailTextEmpty(cx)
+		}, Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
+	default:
+		textChildren = append(textChildren,
+			core.Text{Content: truncateRunes(detail.text, 20000),
+				Style: core.Style{FontSize: 11, FontFamily: "monospace"}},
+			ui.Button{Text: locales.DocumentsDetailCopy(cx), Variant: ui.ButtonSecondary,
+				OnPress: func() {
+					cx.SetClipboard(detail.text)
+					detail.status.Set(locales.DocumentsDetailCopied(cx))
+					detail.failed.Set(false)
+					detail.rev.Set(detail.rev.Get() + 1)
+				}, TestID: "documents-detail-copy"},
+		)
+	}
+
+	status := core.Show{When: func() bool { return detail.status.Get() != "" },
+		Then: func(cx *core.Scope) core.Node {
+			return core.Text{ContentFunc: func() string { return detail.status.Get() },
+				Style: core.Style{FontSize: 12},
+				StyleFunc: func() core.Style {
+					if detail.failed.Get() {
+						return ui.Colored(ui.ColorsOf(cx).Danger)()
+					}
+					return ui.Colored(ui.ColorsOf(cx).Muted)()
+				}}
+		}}
+
+	return core.Scroll{
+		Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0), MaxHeight: core.Pt(560)},
+		Children: []core.Node{core.View{Style: core.Style{Gap: 12}, Children: []core.Node{
+			dataCard(cx,
+				dataHeading(cx, locales.DocumentsDetailMetadata(cx), ""),
+				core.View{Style: core.Style{Gap: 6}, Children: metaRows},
+				status,
+			),
+			dataCard(cx,
+				dataHeading(cx, locales.DocumentsDetailEvidence(cx),
+					locales.DocumentsDetailEvidenceCount(cx, strconv.Itoa(detail.total))),
+				core.View{Style: core.Style{Gap: 0}, Children: evidenceRows},
+			),
+			dataCard(cx,
+				core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8}, Children: []core.Node{
+					dataHeading(cx, locales.DocumentsDetailText(cx), ""),
+					core.View{Style: core.Style{FlexGrow: 1}},
+					core.Show{When: func() bool { return detail.pages > 0 },
+						Then: func(cx *core.Scope) core.Node {
+							return ui.Badge{Text: locales.DocumentsDetailPages(cx, strconv.Itoa(detail.pages)),
+								Variant: ui.BadgeNeutral}
+						}},
+				}},
+				core.View{Style: core.Style{Gap: 8}, Children: textChildren},
+			),
+		}}},
+	}
+}
+
+func documentDetailField(cx *core.Scope, label string, value string, monospace bool) core.Node {
+	style := core.Style{FontSize: 12}
+	if monospace {
+		style.FontFamily = "monospace"
+		style.FontSize = 11
+	}
+	return core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8}, Children: []core.Node{
+		core.Text{Content: label, Style: core.Style{FontSize: 11}, MaxLines: 1,
+			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+		core.View{Style: core.Style{FlexGrow: 1}},
+		core.Text{Content: value, Style: style, MaxLines: 2},
+	}}
+}
+
+func truncateRunes(value string, limit int) string {
+	runes := []rune(value)
+	if len(runes) <= limit {
+		return value
+	}
+	return string(runes[:limit]) + "…"
 }
 
 func (s *Session) uploadDocuments(cx *core.Scope, dataRev *core.Signal[int],

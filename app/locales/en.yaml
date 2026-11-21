@@ -305,6 +305,24 @@ documentsBatchReasonClassifyFailed: could not auto-classify — open it and pick
 documentsBatchReasonError: recognition error
 documentsBatchSummaryToast: 'Batch recognition done: {ok} ok · {failed} failed'
 documentsCount: 'Files: {count}'
+documentsDetailButton: Details
+documentsDetailCopied: Copied
+documentsDetailCopy: Copy text
+documentsDetailEvidence: Linked activities
+documentsDetailEvidenceCount: '{count} linked'
+documentsDetailEvidenceEmpty: No activities are linked to this file yet.
+documentsDetailKind: Type
+documentsDetailLoadFailed: Could not load document details
+documentsDetailMetadata: File details
+documentsDetailPages: '{count} pages'
+documentsDetailSha: SHA-256
+documentsDetailSize: Size
+documentsDetailText: Extracted text
+documentsDetailTextEmpty: No text layer found.
+documentsDetailTextFailed: Could not extract text
+documentsDetailTextLoading: Extracting text…
+documentsDetailTextUnsupported: Text extraction is available for PDFs.
+documentsDetailUploadedBy: Uploaded by
 documentsEmpty: No documents yet. Drop a PDF above to get started.
 documentsEmptyBody: Upload bills, invoices, or evidence to keep them with this workspace.
 documentsEmptyTitle: No documents yet

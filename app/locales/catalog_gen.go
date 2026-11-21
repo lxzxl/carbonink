@@ -74,6 +74,8 @@ var Parameters = map[string][]string{
 	"DocumentsBatchProgress":                  {"done", "total"},
 	"DocumentsBatchSummaryToast":              {"ok", "failed"},
 	"DocumentsCount":                          {"count"},
+	"DocumentsDetailEvidenceCount":            {"count"},
+	"DocumentsDetailPages":                    {"count"},
 	"DocumentsPreviewPage":                    {"page", "total"},
 	"DocumentsReviewUploadedOn":               {"date"},
 	"DocumentsShowingLatest":                  {"shown", "total"},
@@ -229,6 +231,8 @@ type Translation struct {
 	DocumentsBatchProgress                  func(done string, total string) string
 	DocumentsBatchSummaryToast              func(ok string, failed string) string
 	DocumentsCount                          func(count string) string
+	DocumentsDetailEvidenceCount            func(count string) string
+	DocumentsDetailPages                    func(count string) string
 	DocumentsPreviewPage                    func(page string, total string) string
 	DocumentsReviewUploadedOn               func(date string) string
 	DocumentsShowingLatest                  func(shown string, total string) string
@@ -620,6 +624,22 @@ const (
 	textDocumentsBatchFailuresHeading
 	textDocumentsBatchReasonClassifyFailed
 	textDocumentsBatchReasonError
+	textDocumentsDetailButton
+	textDocumentsDetailCopied
+	textDocumentsDetailCopy
+	textDocumentsDetailEvidence
+	textDocumentsDetailEvidenceEmpty
+	textDocumentsDetailKind
+	textDocumentsDetailLoadFailed
+	textDocumentsDetailMetadata
+	textDocumentsDetailSha
+	textDocumentsDetailSize
+	textDocumentsDetailText
+	textDocumentsDetailTextEmpty
+	textDocumentsDetailTextFailed
+	textDocumentsDetailTextLoading
+	textDocumentsDetailTextUnsupported
+	textDocumentsDetailUploadedBy
 	textDocumentsEmpty
 	textDocumentsEmptyBody
 	textDocumentsEmptyTitle
@@ -1783,6 +1803,22 @@ var keyOfText = [numTexts]string{
 	"documentsBatchFailuresHeading",
 	"documentsBatchReasonClassifyFailed",
 	"documentsBatchReasonError",
+	"documentsDetailButton",
+	"documentsDetailCopied",
+	"documentsDetailCopy",
+	"documentsDetailEvidence",
+	"documentsDetailEvidenceEmpty",
+	"documentsDetailKind",
+	"documentsDetailLoadFailed",
+	"documentsDetailMetadata",
+	"documentsDetailSha",
+	"documentsDetailSize",
+	"documentsDetailText",
+	"documentsDetailTextEmpty",
+	"documentsDetailTextFailed",
+	"documentsDetailTextLoading",
+	"documentsDetailTextUnsupported",
+	"documentsDetailUploadedBy",
 	"documentsEmpty",
 	"documentsEmptyBody",
 	"documentsEmptyTitle",
@@ -2944,6 +2980,22 @@ var textsEn = i18n.NewTexts(""+
 	"Failed documents"+
 	"could not auto-classify — open it and pick a stage"+
 	"recognition error"+
+	"Details"+
+	"Copied"+
+	"Copy text"+
+	"Linked activities"+
+	"No activities are linked to this file yet."+
+	"Type"+
+	"Could not load document details"+
+	"File details"+
+	"SHA-256"+
+	"Size"+
+	"Extracted text"+
+	"No text layer found."+
+	"Could not extract text"+
+	"Extracting text…"+
+	"Text extraction is available for PDFs."+
+	"Uploaded by"+
 	"No documents yet. Drop a PDF above to get started."+
 	"Upload bills, invoices, or evidence to keep them with this workspace."+
 	"No documents yet"+
@@ -4102,6 +4154,22 @@ var textsEn = i18n.NewTexts(""+
 		16,
 		52,
 		17,
+		7,
+		6,
+		9,
+		17,
+		42,
+		4,
+		31,
+		12,
+		7,
+		4,
+		14,
+		20,
+		22,
+		18,
+		38,
+		11,
 		50,
 		69,
 		16,
@@ -5263,6 +5331,22 @@ var textsZhCN = i18n.NewTexts(""+
 	"识别失败的文档"+
 	"无法自动识别类型——打开文档手动选择"+
 	"识别出错"+
+	"详情"+
+	"已复制"+
+	"复制文本"+
+	"关联活动"+
+	"这个文件还没有关联活动。"+
+	"类型"+
+	"无法加载文档详情"+
+	"文件信息"+
+	"SHA-256"+
+	"大小"+
+	"提取文本"+
+	"没有找到文本层。"+
+	"无法提取文本"+
+	"正在提取文本…"+
+	"仅 PDF 支持文本提取。"+
+	"上传者"+
 	"还没有文档。把 PDF 拖到上方开始。"+
 	"上传账单、发票或凭证，把它们保存在当前工作区。"+
 	"还没有文档"+
@@ -6421,6 +6505,22 @@ var textsZhCN = i18n.NewTexts(""+
 		21,
 		54,
 		12,
+		6,
+		9,
+		12,
+		12,
+		36,
+		6,
+		24,
+		12,
+		7,
+		6,
+		12,
+		24,
+		18,
+		21,
+		29,
+		9,
 		47,
 		69,
 		15,
@@ -7457,6 +7557,12 @@ func Supply(lang string, t Translation) {
 	}
 	if t.DocumentsCount != nil {
 		s.DocumentsCount = t.DocumentsCount
+	}
+	if t.DocumentsDetailEvidenceCount != nil {
+		s.DocumentsDetailEvidenceCount = t.DocumentsDetailEvidenceCount
+	}
+	if t.DocumentsDetailPages != nil {
+		s.DocumentsDetailPages = t.DocumentsDetailPages
 	}
 	if t.DocumentsPreviewPage != nil {
 		s.DocumentsPreviewPage = t.DocumentsPreviewPage
@@ -10780,6 +10886,184 @@ func (msgs Messages) DocumentsCount(count string) string {
 			return "文件：" + count
 		}
 	}
+}
+
+// DocumentsDetailButton says "Details"
+// in the language the app shows under cx.
+func DocumentsDetailButton(cx *core.Scope) string { return For(cx).DocumentsDetailButton() }
+
+// DocumentsDetailButton is the package's DocumentsDetailButton in the language of msgs.
+func (msgs Messages) DocumentsDetailButton() string { return msgs.text(textDocumentsDetailButton) }
+
+// DocumentsDetailCopied says "Copied"
+// in the language the app shows under cx.
+func DocumentsDetailCopied(cx *core.Scope) string { return For(cx).DocumentsDetailCopied() }
+
+// DocumentsDetailCopied is the package's DocumentsDetailCopied in the language of msgs.
+func (msgs Messages) DocumentsDetailCopied() string { return msgs.text(textDocumentsDetailCopied) }
+
+// DocumentsDetailCopy says "Copy text"
+// in the language the app shows under cx.
+func DocumentsDetailCopy(cx *core.Scope) string { return For(cx).DocumentsDetailCopy() }
+
+// DocumentsDetailCopy is the package's DocumentsDetailCopy in the language of msgs.
+func (msgs Messages) DocumentsDetailCopy() string { return msgs.text(textDocumentsDetailCopy) }
+
+// DocumentsDetailEvidence says "Linked activities"
+// in the language the app shows under cx.
+func DocumentsDetailEvidence(cx *core.Scope) string { return For(cx).DocumentsDetailEvidence() }
+
+// DocumentsDetailEvidence is the package's DocumentsDetailEvidence in the language of msgs.
+func (msgs Messages) DocumentsDetailEvidence() string { return msgs.text(textDocumentsDetailEvidence) }
+
+// DocumentsDetailEvidenceCount says "{count} linked"
+// in the language the app shows under cx.
+func DocumentsDetailEvidenceCount(cx *core.Scope, count string) string {
+	return For(cx).DocumentsDetailEvidenceCount(count)
+}
+
+// DocumentsDetailEvidenceCount is the package's DocumentsDetailEvidenceCount in the language of msgs.
+func (msgs Messages) DocumentsDetailEvidenceCount(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.DocumentsDetailEvidenceCount(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].DocumentsDetailEvidenceCount; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " linked"
+		case "zh-CN":
+			return "已关联 " + count + " 条"
+		}
+	}
+}
+
+// DocumentsDetailEvidenceEmpty says "No activities are linked to this file yet."
+// in the language the app shows under cx.
+func DocumentsDetailEvidenceEmpty(cx *core.Scope) string {
+	return For(cx).DocumentsDetailEvidenceEmpty()
+}
+
+// DocumentsDetailEvidenceEmpty is the package's DocumentsDetailEvidenceEmpty in the language of msgs.
+func (msgs Messages) DocumentsDetailEvidenceEmpty() string {
+	return msgs.text(textDocumentsDetailEvidenceEmpty)
+}
+
+// DocumentsDetailKind says "Type"
+// in the language the app shows under cx.
+func DocumentsDetailKind(cx *core.Scope) string { return For(cx).DocumentsDetailKind() }
+
+// DocumentsDetailKind is the package's DocumentsDetailKind in the language of msgs.
+func (msgs Messages) DocumentsDetailKind() string { return msgs.text(textDocumentsDetailKind) }
+
+// DocumentsDetailLoadFailed says "Could not load document details"
+// in the language the app shows under cx.
+func DocumentsDetailLoadFailed(cx *core.Scope) string { return For(cx).DocumentsDetailLoadFailed() }
+
+// DocumentsDetailLoadFailed is the package's DocumentsDetailLoadFailed in the language of msgs.
+func (msgs Messages) DocumentsDetailLoadFailed() string {
+	return msgs.text(textDocumentsDetailLoadFailed)
+}
+
+// DocumentsDetailMetadata says "File details"
+// in the language the app shows under cx.
+func DocumentsDetailMetadata(cx *core.Scope) string { return For(cx).DocumentsDetailMetadata() }
+
+// DocumentsDetailMetadata is the package's DocumentsDetailMetadata in the language of msgs.
+func (msgs Messages) DocumentsDetailMetadata() string { return msgs.text(textDocumentsDetailMetadata) }
+
+// DocumentsDetailPages says "{count} pages"
+// in the language the app shows under cx.
+func DocumentsDetailPages(cx *core.Scope, count string) string {
+	return For(cx).DocumentsDetailPages(count)
+}
+
+// DocumentsDetailPages is the package's DocumentsDetailPages in the language of msgs.
+func (msgs Messages) DocumentsDetailPages(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.DocumentsDetailPages(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].DocumentsDetailPages; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " pages"
+		case "zh-CN":
+			return count + " 页"
+		}
+	}
+}
+
+// DocumentsDetailSha says "SHA-256"
+// in the language the app shows under cx.
+func DocumentsDetailSha(cx *core.Scope) string { return For(cx).DocumentsDetailSha() }
+
+// DocumentsDetailSha is the package's DocumentsDetailSha in the language of msgs.
+func (msgs Messages) DocumentsDetailSha() string { return msgs.text(textDocumentsDetailSha) }
+
+// DocumentsDetailSize says "Size"
+// in the language the app shows under cx.
+func DocumentsDetailSize(cx *core.Scope) string { return For(cx).DocumentsDetailSize() }
+
+// DocumentsDetailSize is the package's DocumentsDetailSize in the language of msgs.
+func (msgs Messages) DocumentsDetailSize() string { return msgs.text(textDocumentsDetailSize) }
+
+// DocumentsDetailText says "Extracted text"
+// in the language the app shows under cx.
+func DocumentsDetailText(cx *core.Scope) string { return For(cx).DocumentsDetailText() }
+
+// DocumentsDetailText is the package's DocumentsDetailText in the language of msgs.
+func (msgs Messages) DocumentsDetailText() string { return msgs.text(textDocumentsDetailText) }
+
+// DocumentsDetailTextEmpty says "No text layer found."
+// in the language the app shows under cx.
+func DocumentsDetailTextEmpty(cx *core.Scope) string { return For(cx).DocumentsDetailTextEmpty() }
+
+// DocumentsDetailTextEmpty is the package's DocumentsDetailTextEmpty in the language of msgs.
+func (msgs Messages) DocumentsDetailTextEmpty() string {
+	return msgs.text(textDocumentsDetailTextEmpty)
+}
+
+// DocumentsDetailTextFailed says "Could not extract text"
+// in the language the app shows under cx.
+func DocumentsDetailTextFailed(cx *core.Scope) string { return For(cx).DocumentsDetailTextFailed() }
+
+// DocumentsDetailTextFailed is the package's DocumentsDetailTextFailed in the language of msgs.
+func (msgs Messages) DocumentsDetailTextFailed() string {
+	return msgs.text(textDocumentsDetailTextFailed)
+}
+
+// DocumentsDetailTextLoading says "Extracting text…"
+// in the language the app shows under cx.
+func DocumentsDetailTextLoading(cx *core.Scope) string { return For(cx).DocumentsDetailTextLoading() }
+
+// DocumentsDetailTextLoading is the package's DocumentsDetailTextLoading in the language of msgs.
+func (msgs Messages) DocumentsDetailTextLoading() string {
+	return msgs.text(textDocumentsDetailTextLoading)
+}
+
+// DocumentsDetailTextUnsupported says "Text extraction is available for PDFs."
+// in the language the app shows under cx.
+func DocumentsDetailTextUnsupported(cx *core.Scope) string {
+	return For(cx).DocumentsDetailTextUnsupported()
+}
+
+// DocumentsDetailTextUnsupported is the package's DocumentsDetailTextUnsupported in the language of msgs.
+func (msgs Messages) DocumentsDetailTextUnsupported() string {
+	return msgs.text(textDocumentsDetailTextUnsupported)
+}
+
+// DocumentsDetailUploadedBy says "Uploaded by"
+// in the language the app shows under cx.
+func DocumentsDetailUploadedBy(cx *core.Scope) string { return For(cx).DocumentsDetailUploadedBy() }
+
+// DocumentsDetailUploadedBy is the package's DocumentsDetailUploadedBy in the language of msgs.
+func (msgs Messages) DocumentsDetailUploadedBy() string {
+	return msgs.text(textDocumentsDetailUploadedBy)
 }
 
 // DocumentsEmpty says "No documents yet. Drop a PDF above to get started."

@@ -45,6 +45,18 @@ type DocumentInput struct {
 	UploadedBy string
 }
 
+// DocumentEvidence is one activity linked to a document.
+type DocumentEvidence struct {
+	ActivityID string
+	OccurredAt string
+	SiteName   string
+	SourceName string
+	Amount     float64
+	Unit       string
+	CO2eKg     float64
+	Scope      int
+}
+
 // SaveDocument writes the file under dataDir/documents/<sha prefix>/ and
 // records it. The same bytes always resolve to the same row; reused reports
 // that the row already existed.
@@ -139,6 +151,42 @@ func (s *Store) ListDocuments(ctx context.Context, limit, offset int) ([]Documen
 			return nil, 0, err
 		}
 		out = append(out, document)
+	}
+	return out, total, rows.Err()
+}
+
+// DocumentEvidence returns the activities this document backs, newest first.
+func (s *Store) DocumentEvidence(ctx context.Context, documentID string, limit int) ([]DocumentEvidence, int, error) {
+	if limit <= 0 || limit > 500 {
+		limit = 100
+	}
+	var total int
+	if err := s.db.QueryRowContext(ctx,
+		`SELECT count(*) FROM evidence_attachment WHERE document_id = ?`, documentID).
+		Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	rows, err := s.db.QueryContext(ctx, `SELECT a.id, a.occurred_at_start,
+			coalesce(nullif(site.name_zh, ''), nullif(site.name_en, ''), ''),
+			es.name, a.amount, a.unit, a.computed_co2e_kg, es.scope
+		FROM evidence_attachment ea
+		JOIN activity_data a ON a.id = ea.activity_data_id
+		JOIN emission_source es ON es.id = a.emission_source_id
+		JOIN site ON site.id = a.site_id
+		WHERE ea.document_id = ?
+		ORDER BY a.occurred_at_start DESC, a.id DESC LIMIT ?`, documentID, limit)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	out := make([]DocumentEvidence, 0, limit)
+	for rows.Next() {
+		var item DocumentEvidence
+		if err := rows.Scan(&item.ActivityID, &item.OccurredAt, &item.SiteName, &item.SourceName,
+			&item.Amount, &item.Unit, &item.CO2eKg, &item.Scope); err != nil {
+			return nil, 0, err
+		}
+		out = append(out, item)
 	}
 	return out, total, rows.Err()
 }

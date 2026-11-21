@@ -202,6 +202,18 @@ func TestCreateActivityPinsComputesAuditsAndDeletes(t *testing.T) {
 	if evidence != 1 {
 		t.Fatalf("evidence attachments = %d, want 1", evidence)
 	}
+	linked, linkedTotal, err := s.DocumentEvidence(ctx, document.ID, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if linkedTotal != 1 || len(linked) != 1 {
+		t.Fatalf("document evidence = %d/%d", len(linked), linkedTotal)
+	}
+	if linked[0].ActivityID != activity.ID || linked[0].SourceName != src.Name ||
+		linked[0].SiteName != site.NameZH || linked[0].Scope != 2 ||
+		math.Abs(linked[0].CO2eKg-57.03) > 0.0001 {
+		t.Fatalf("linked activity = %+v", linked[0])
+	}
 	summary, err := s.Summary(ctx, org.ID)
 	if err != nil || summary.Activities != 1 {
 		t.Fatalf("summary = %+v, %v", summary, err)
@@ -220,6 +232,9 @@ func TestCreateActivityPinsComputesAuditsAndDeletes(t *testing.T) {
 	}
 	if evidence != 0 {
 		t.Fatalf("evidence after delete = %d, want 0", evidence)
+	}
+	if _, linkedTotal, err = s.DocumentEvidence(ctx, document.ID, 10); err != nil || linkedTotal != 0 {
+		t.Fatalf("document evidence after delete = %d, %v", linkedTotal, err)
 	}
 	events, err = s.AuditEvents(ctx, 10)
 	if err != nil || len(events) != 2 || events[0].Kind != "activity_data.deleted" {

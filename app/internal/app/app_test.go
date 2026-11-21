@@ -153,6 +153,15 @@ func TestImportActivitiesThroughUI(t *testing.T) {
 		t.Errorf("archived ledger = %d, evidence links = %d across %d documents",
 			documents, links, distinctDocuments)
 	}
+
+	ui.Press("id:nav:documents")
+	ui.WaitFor("text:ledger.csv", 3*time.Second)
+	ui.Press("text:Details")
+	ui.WaitFor("id:documents-detail-dialog", 3*time.Second)
+	ui.WaitFor("text:2 linked", 3*time.Second)
+	ui.WaitFor("id:documents-detail-evidence-1", 3*time.Second)
+	ui.WaitFor("text:Text extraction is available for PDFs.", 3*time.Second)
+	ui.Press("id:documents-detail-close")
 }
 
 // TestImportActivitiesWithManualMapping starts from a ledger whose headers
@@ -487,6 +496,12 @@ func TestUploadDocumentsThroughUI(t *testing.T) {
 	ui.Press("id:documents-upload")
 	ui.WaitFor("text:bill.pdf", 5*time.Second)
 	ui.WaitFor("text:Uploaded 2 · 0 failed", 3*time.Second)
+	ui.Press("text:Details")
+	ui.WaitFor("id:documents-detail-dialog", 3*time.Second)
+	ui.WaitFor("text:Test content for Phase 1c pdfToImages.", 10*time.Second)
+	ui.WaitFor("text:2 pages", 3*time.Second)
+	ui.WaitFor("text:No activities are linked to this file yet.", 3*time.Second)
+	ui.Press("id:documents-detail-close")
 	ui.Press("text:Preview")
 	ui.WaitFor("id:documents-preview-dialog", 5*time.Second)
 	ui.WaitFor("text:Page 1 of 2", 10*time.Second)
