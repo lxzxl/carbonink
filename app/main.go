@@ -3,7 +3,10 @@
 package main
 
 import (
+	"os"
+
 	"app.carbonink.desktop/internal/app"
+	"app.carbonink.desktop/internal/mcp"
 	"app.carbonink.desktop/internal/platform"
 	"app.carbonink.desktop/internal/prefs"
 
@@ -15,6 +18,10 @@ import (
 func Root(cx *core.Scope) core.Node { return app.Root(cx) }
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "--mcp" {
+		mcp.Main()
+		return
+	}
 	opts := []nsgo.Option{nsgo.WindowSize(1280, 820)}
 	dataDir := platform.DataDir("app.carbonink.desktop.beta")
 	if settings, err := prefs.Load(prefs.Path(dataDir)); err == nil {

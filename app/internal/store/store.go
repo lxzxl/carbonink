@@ -80,6 +80,28 @@ func Open(ctx context.Context, path string) (*Store, error) {
 	return &Store{db: db, path: path}, nil
 }
 
+// OpenReadOnly opens a workspace without taking the write lock or scheduling
+// maintenance. The MCP helper process reads through this handle while the
+// desktop app keeps writing.
+func OpenReadOnly(ctx context.Context, path string) (*Store, error) {
+	if _, err := os.Stat(path); err != nil {
+		return nil, fmt.Errorf("open %s: %w", path, err)
+	}
+	u := &url.URL{Scheme: "file", Path: path}
+	q := u.Query()
+	q.Set("mode", "ro")
+	q.Add("_pragma", "busy_timeout(5000)")
+	q.Add("_pragma", "foreign_keys(1)")
+	u.RawQuery = q.Encode()
+	db, err := driver.Open(u.String(), fts5.Register)
+	if err != nil {
+		return nil, fmt.Errorf("open %s: %w", path, err)
+	}
+	db.SetMaxOpenConns(2)
+	db.SetMaxIdleConns(2)
+	return &Store{db: db, path: path}, nil
+}
+
 // Close releases the database.
 func (s *Store) Close() error { return s.db.Close() }
 

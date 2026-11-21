@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"time"
 
+	"app.carbonink.desktop/internal/agentbridge"
 	"app.carbonink.desktop/internal/backup"
 	"app.carbonink.desktop/internal/platform"
 	"app.carbonink.desktop/internal/prefs"
@@ -65,6 +66,8 @@ type Session struct {
 	batch            *batchExtraction
 	imported         bool
 	dataDir          string
+	dataRev          *core.Signal[int]
+	bridge           *agentbridge.Server
 	prefsPath        string
 	settings         prefs.Settings
 	log              *platform.Logger
@@ -86,7 +89,10 @@ func Root(cx *core.Scope) core.Node {
 	}
 	applyAppearance(cx, s.settings.Theme)
 	notifyOverdueInbound(cx, s)
+	s.dataRev = core.NewSignal(cx, 0)
+	s.startBridge(cx)
 	cx.OnQuit(func(context.Context) {
+		s.stopBridge()
 		f := desktop.Frame(cx)
 		s.settings.Window = &prefs.Window{
 			X: float32(f.X), Y: float32(f.Y), Width: float32(f.Width), Height: float32(f.Height),
@@ -229,7 +235,7 @@ func (s *Session) view(cx *core.Scope) core.Node {
 	active := core.NewSignal(cx, start)
 	open := core.NewSignal(cx, true)
 	paletteOpen := core.NewSignal(cx, false)
-	dataRev := core.NewSignal(cx, 0)
+	dataRev := s.dataRev
 	cx.OnKey("mod+k", func() { paletteOpen.Set(true) })
 	cx.OnNotificationPress(func(id string) {
 		if id == overdueNotificationID {
