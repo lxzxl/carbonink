@@ -55,6 +55,8 @@ type documentDetail struct {
 	total         int
 	text          string
 	pages         int
+	// guide is the extraction tour, set by the screen that hosts the dialog.
+	guide *guidance
 }
 
 // documentFilters is the 1.x list filter state: filename search, status chip,
@@ -109,6 +111,7 @@ func (s *Session) documentsScreen(cx *core.Scope, dataRev *core.Signal[int]) cor
 	preview := newDocumentPreview(cx)
 	filters := newDocumentFilters(cx)
 	detail := newDocumentDetail(cx, dataRev)
+	detail.guide = newGuidance(cx, s, "extraction")
 	extractionForm := s.newActivityForm(cx, dataRev,
 		func() *store.Activity { return nil },
 		func() *activityPrefill { return detail.prefill },
@@ -1103,6 +1106,7 @@ func (s *Session) documentDetailBody(cx *core.Scope, detail *documentDetail) cor
 				core.View{Style: core.Style{Gap: 6}, Children: metaRows},
 				status,
 			),
+			detail.guide.node(s, func() bool { return detail.extraction.Get() != nil }),
 			s.documentExtractionCard(cx, detail),
 			dataCard(cx,
 				dataHeading(cx, locales.DocumentsDetailEvidence(cx),

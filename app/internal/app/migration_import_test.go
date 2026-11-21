@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"reflect"
 	"testing"
 
 	"app.carbonink.desktop/internal/prefs"
@@ -60,7 +61,7 @@ func TestAdoptLegacyProvider(t *testing.T) {
 			if adopted := adoptLegacyProvider(ctx, db, &got); adopted != tc.adopted {
 				t.Fatalf("adopted = %v, want %v", adopted, tc.adopted)
 			}
-			if got != tc.want {
+			if !reflect.DeepEqual(got, tc.want) {
 				t.Fatalf("settings = %+v, want %+v", got, tc.want)
 			}
 		})

@@ -820,10 +820,15 @@ func (s *Session) activityDialog(cx *core.Scope, dataRev *core.Signal[int]) core
 
 func (s *Session) editActivityDialog(cx *core.Scope, selectedID *core.Signal[string],
 	dataRev *core.Signal[int]) core.Node {
-	return s.activityFormDialog(cx, dataRev, func() *store.Activity {
+	form := s.newActivityForm(cx, dataRev, func() *store.Activity {
 		return s.activityByID(selectedID.Get())
-	}, locales.DataEditActivity, locales.DataSave, "activity-edit", "activity-edit",
-		func() bool { return selectedID.Get() == "" })
+	}, nil, locales.DataEditActivity, locales.DataSave, "activity-edit", nil)
+	form.guide = newGuidance(cx, s, "ef-rebind")
+	return core.View{Children: []core.Node{
+		ui.Button{Text: locales.DataEditActivity(cx), Variant: ui.ButtonSecondary, OnPress: form.show,
+			Disabled: func() bool { return selectedID.Get() == "" }, TestID: "activity-edit"},
+		form.dialog,
+	}}
 }
 
 // activityPrefill is a one-shot seed for a new activity, used when confirming
@@ -846,6 +851,8 @@ type activityForm struct {
 	open   *core.Signal[bool]
 	show   func()
 	dialog core.Node
+	// guide is the rebind tour; only the edit dialog sets it.
+	guide *guidance
 }
 
 func (s *Session) activityFormDialog(cx *core.Scope, dataRev *core.Signal[int],
@@ -1071,54 +1078,58 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 			SearchPlaceholder: locales.ActivitiesSearchPlaceholder(cx)}
 	}
 
-	return &activityForm{
-		open: open,
-		show: show,
-		dialog: dataDialog(cx, open, title(cx), []core.Node{
-			dataField(cx, locales.ActivitiesFormSource(cx),
-				ui.Select[string]{Options: sourceOptions, Value: sourceID.Get,
-					OnChange:    func(v string) { sourceID.Set(v); loadEFs(v) },
-					Placeholder: locales.ActivitiesFormSourcePlaceholder(cx),
-					Label:       locales.ActivitiesFormSource(cx), TestID: prefix + "-source"}),
-			dataField(cx, locales.ActivitiesFormPeriod(cx),
-				ui.Select[string]{Options: periodOptions, Value: periodID.Get, OnChange: periodID.Set,
-					Placeholder: locales.ActivitiesFormPeriodPlaceholder(cx),
-					Label:       locales.ActivitiesFormPeriod(cx), TestID: prefix + "-period"}),
-			core.View{Style: core.Style{Direction: core.Row, Gap: 8}, Children: []core.Node{
-				core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{dataField(cx,
-					locales.ActivitiesFormOccurredStart(cx),
-					ui.Input{Value: start.Get, OnChange: start.Set, TestID: prefix + "-start"})}},
-				core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{dataField(cx,
-					locales.ActivitiesFormOccurredEnd(cx),
-					ui.Input{Value: end.Get, OnChange: end.Set, TestID: prefix + "-end"})}},
-			}},
-			core.View{Style: core.Style{Direction: core.Row, Gap: 8}, Children: []core.Node{
-				core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{dataField(cx,
-					locales.ActivitiesFormAmount(cx),
-					ui.Input{Value: amount.Get, OnChange: amount.Set, TestID: prefix + "-amount"})}},
-				core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{dataField(cx,
-					locales.ActivitiesFormUnit(cx),
-					ui.Input{Value: unit.Get, OnChange: unit.Set,
-						Placeholder: locales.ActivitiesFormUnitPlaceholder(cx), TestID: prefix + "-unit"})}},
-			}},
-			core.Dynamic(efSelect),
-			core.View{Style: core.Style{Direction: core.Row, Gap: 8}, Children: []core.Node{
-				core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{dataField(cx,
-					locales.ActivitiesFormFuel(cx),
-					ui.Input{Value: fuel.Get, OnChange: fuel.Set,
-						Placeholder: locales.ActivitiesFormFuelNone(cx), TestID: prefix + "-fuel"})}},
-				core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{dataField(cx,
-					locales.ActivitiesFormNotes(cx),
-					ui.Input{Value: notes.Get, OnChange: notes.Set, TestID: prefix + "-notes"})}},
-			}},
-			core.Text{Content: locales.ActivitiesFormFuelHint(cx), Style: core.Style{FontSize: 11},
-				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-			dataError(cx, status),
-		}, []core.Node{
-			dataCancelButton(cx, open, prefix+"-cancel"),
-			ui.Button{Text: saveLabel(cx), Busy: busy.Get, OnPress: save, TestID: prefix + "-save"},
-		}, prefix+"-dialog"),
-	}
+	form := &activityForm{open: open, show: show}
+	form.dialog = dataDialog(cx, open, title(cx), []core.Node{
+		core.Dynamic(func(cx *core.Scope) core.Node {
+			if form.guide == nil {
+				return core.View{}
+			}
+			return form.guide.node(s, func() bool { return true })
+		}),
+		dataField(cx, locales.ActivitiesFormSource(cx),
+			ui.Select[string]{Options: sourceOptions, Value: sourceID.Get,
+				OnChange:    func(v string) { sourceID.Set(v); loadEFs(v) },
+				Placeholder: locales.ActivitiesFormSourcePlaceholder(cx),
+				Label:       locales.ActivitiesFormSource(cx), TestID: prefix + "-source"}),
+		dataField(cx, locales.ActivitiesFormPeriod(cx),
+			ui.Select[string]{Options: periodOptions, Value: periodID.Get, OnChange: periodID.Set,
+				Placeholder: locales.ActivitiesFormPeriodPlaceholder(cx),
+				Label:       locales.ActivitiesFormPeriod(cx), TestID: prefix + "-period"}),
+		core.View{Style: core.Style{Direction: core.Row, Gap: 8}, Children: []core.Node{
+			core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{dataField(cx,
+				locales.ActivitiesFormOccurredStart(cx),
+				ui.Input{Value: start.Get, OnChange: start.Set, TestID: prefix + "-start"})}},
+			core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{dataField(cx,
+				locales.ActivitiesFormOccurredEnd(cx),
+				ui.Input{Value: end.Get, OnChange: end.Set, TestID: prefix + "-end"})}},
+		}},
+		core.View{Style: core.Style{Direction: core.Row, Gap: 8}, Children: []core.Node{
+			core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{dataField(cx,
+				locales.ActivitiesFormAmount(cx),
+				ui.Input{Value: amount.Get, OnChange: amount.Set, TestID: prefix + "-amount"})}},
+			core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{dataField(cx,
+				locales.ActivitiesFormUnit(cx),
+				ui.Input{Value: unit.Get, OnChange: unit.Set,
+					Placeholder: locales.ActivitiesFormUnitPlaceholder(cx), TestID: prefix + "-unit"})}},
+		}},
+		core.Dynamic(efSelect),
+		core.View{Style: core.Style{Direction: core.Row, Gap: 8}, Children: []core.Node{
+			core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{dataField(cx,
+				locales.ActivitiesFormFuel(cx),
+				ui.Input{Value: fuel.Get, OnChange: fuel.Set,
+					Placeholder: locales.ActivitiesFormFuelNone(cx), TestID: prefix + "-fuel"})}},
+			core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{dataField(cx,
+				locales.ActivitiesFormNotes(cx),
+				ui.Input{Value: notes.Get, OnChange: notes.Set, TestID: prefix + "-notes"})}},
+		}},
+		core.Text{Content: locales.ActivitiesFormFuelHint(cx), Style: core.Style{FontSize: 11},
+			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+		dataError(cx, status),
+	}, []core.Node{
+		dataCancelButton(cx, open, prefix+"-cancel"),
+		ui.Button{Text: saveLabel(cx), Busy: busy.Get, OnPress: save, TestID: prefix + "-save"},
+	}, prefix+"-dialog")
+	return form
 }
 
 func (s *Session) activityByID(id string) *store.Activity {

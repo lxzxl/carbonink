@@ -25,6 +25,11 @@ type Settings struct {
 	LLMBaseURL string `json:"llmBaseURL,omitempty"`
 	// LLMModel is the model id sent in each request.
 	LLMModel string `json:"llmModel,omitempty"`
+	// GuidanceSeen lists the tours the user finished or skipped.
+	GuidanceSeen []string `json:"guidanceSeen,omitempty"`
+	// GuidanceDisabled turns the in-app tours off; false (the zero value)
+	// keeps the default on.
+	GuidanceDisabled bool `json:"guidanceDisabled,omitempty"`
 	// Window is the last main-window frame, nil before the first quit.
 	Window *Window `json:"window,omitempty"`
 }

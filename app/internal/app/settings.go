@@ -29,6 +29,8 @@ func (s *Session) settingsScreen(cx *core.Scope) core.Node {
 	theme := core.NewSignal(cx, s.settings.Theme)
 	locale := core.NewSignal(cx, s.settings.Locale)
 	status := core.NewSignal(cx, "")
+	guidanceOn := core.NewSignal(cx, !s.settings.GuidanceDisabled)
+	guidanceStatus := core.NewSignal(cx, "")
 
 	persist := func() {
 		s.settings.Theme = theme.Get()
@@ -48,6 +50,13 @@ func (s *Session) settingsScreen(cx *core.Scope) core.Node {
 		locale.Set(v)
 		cx.SetLocale(v)
 		persist()
+	}
+	setGuidance := func(on bool) {
+		guidanceOn.Set(on)
+		s.settings.GuidanceDisabled = !on
+		if err := prefs.Save(s.prefsPath, s.settings); err != nil {
+			guidanceStatus.Set("save failed: " + err.Error())
+		}
 	}
 
 	// The labels are functions, not strings: cx.SetLocale re-renders the text
@@ -128,6 +137,29 @@ func (s *Session) settingsScreen(cx *core.Scope) core.Node {
 					),
 					core.Text{ContentFunc: func() string { return locales.SettingsCurrent(cx, currentLocale()) },
 						Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+				),
+				card(
+					row(locales.SettingsGeneralGuidanceLabel,
+						ui.Switch{Checked: guidanceOn.Get, OnChange: setGuidance,
+							Label:  locales.SettingsGeneralGuidanceLabel(cx),
+							TestID: "settings-guidance-toggle"}),
+					core.Text{ContentFunc: func() string { return locales.SettingsGeneralGuidanceHint(cx) },
+						Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
+					core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8},
+						Children: []core.Node{
+							ui.Button{Text: locales.SettingsGeneralGuidanceReplay(cx),
+								Variant: ui.ButtonSecondary,
+								OnPress: func() {
+									s.resetGuidance()
+									guidanceStatus.Set(locales.SettingsGeneralGuidanceReplayDone(cx))
+								}, TestID: "settings-guidance-replay"},
+						}},
+					core.Show{When: func() bool { return guidanceStatus.Get() != "" },
+						Then: func(cx *core.Scope) core.Node {
+							return core.Text{ContentFunc: func() string { return guidanceStatus.Get() },
+								Style:     core.Style{FontSize: 12},
+								StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)}
+						}},
 				),
 				s.aiProviderCard(cx),
 				s.agentIntegrationCard(cx),

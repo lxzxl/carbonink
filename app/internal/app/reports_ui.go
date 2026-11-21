@@ -46,6 +46,7 @@ func (s *Session) reportsScreen(cx *core.Scope, dataRev *core.Signal[int]) core.
 	if len(s.periods) > 0 {
 		state.period.Set(s.periods[len(s.periods)-1].ID)
 	}
+	guide := newGuidance(cx, s, "report-export")
 
 	// Switching the period or kind retires the preview: it belonged to the
 	// previous selection, and exporting it under the new one would mislead.
@@ -282,6 +283,7 @@ func (s *Session) reportsScreen(cx *core.Scope, dataRev *core.Signal[int]) core.
 			add(locales.ReportsPillarMetrics(cx), generated.TCFD.MetricsTargets)
 		}
 		return core.View{Style: core.Style{Gap: 12}, Children: []core.Node{
+			guide.node(s, func() bool { return true }),
 			dataCard(cx,
 				core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 12},
 					Children: []core.Node{

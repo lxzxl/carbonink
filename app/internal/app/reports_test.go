@@ -79,6 +79,9 @@ func TestGenerateAndExportReportThroughUI(t *testing.T) {
 	ui.Press("id:reports-generate")
 	ui.WaitFor("text:"+boundary, 15*time.Second)
 	ui.WaitFor("text:Total CO2e", 3*time.Second)
+	ui.WaitFor("id:guidance-report-export", 3*time.Second)
+	ui.Press("id:guidance-report-export-next")
+	ui.WaitFor("text:Export PDF and Excel", 2*time.Second)
 
 	ui.Press("id:reports-export-both")
 	ui.WaitFor("text:Exported Excel → "+xlsxPath, 10*time.Second)

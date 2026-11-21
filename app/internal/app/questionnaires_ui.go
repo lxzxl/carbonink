@@ -68,6 +68,8 @@ type questionnaireDetail struct {
 	id        string
 	db        *store.Store
 	questions []store.Question
+	// guide is the answer-review tour, set by the screen that hosts the dialog.
+	guide *guidance
 }
 
 func (s *Session) questionnairesScreen(cx *core.Scope, dataRev *core.Signal[int]) core.Node {
@@ -79,6 +81,8 @@ func (s *Session) questionnairesScreen(cx *core.Scope, dataRev *core.Signal[int]
 	screenFailed := core.NewSignal(cx, false)
 	wizard := newQuestionnaireWizard(cx, s)
 	detail := newQuestionnaireDetail(cx, s.db)
+	listGuide := newGuidance(cx, s, "questionnaires")
+	detail.guide = newGuidance(cx, s, "answer-review")
 
 	rows := func() []store.Questionnaire {
 		_ = dataRev.Get()
@@ -154,6 +158,7 @@ func (s *Session) questionnairesScreen(cx *core.Scope, dataRev *core.Signal[int]
 				ui.Button{Text: locales.QuestionnairesNewButton(cx), OnPress: wizard.show,
 					TestID: "questionnaires-new"},
 			}},
+		listGuide.node(s, func() bool { return true }),
 		core.Show{When: func() bool { return screenStatus.Get() != "" },
 			Then: func(cx *core.Scope) core.Node {
 				return core.Text{ContentFunc: func() string { return screenStatus.Get() },
@@ -1034,6 +1039,9 @@ func (d *questionnaireDetail) dialog(cx *core.Scope, s *Session,
 			core.Scroll{Style: core.Style{MaxHeight: core.Pt(360)},
 				Children: []core.Node{core.View{Style: core.Style{Gap: 0}, Children: list}}},
 			dataCard(cx, editor...),
+		}
+		if d.guide != nil {
+			body = append([]core.Node{d.guide.node(s, func() bool { return true })}, body...)
 		}
 		footer := []core.Node{
 			ui.Button{Text: locales.QuestionnairesDetailClose(cx), Variant: ui.ButtonSecondary,
