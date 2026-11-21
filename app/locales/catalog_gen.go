@@ -1325,17 +1325,25 @@ const (
 	textRequiredField
 	textRoutingLookupButton
 	textRoutingLookupRunning
+	textSettingsAboutAppId
 	textSettingsAboutAppName
 	textSettingsAboutChrome
+	textSettingsAboutCopied
+	textSettingsAboutCopy
+	textSettingsAboutDevelopment
 	textSettingsAboutElectron
 	textSettingsAboutNode
+	textSettingsAboutNsgo
 	textSettingsAboutOpenDataDir
 	textSettingsAboutOpenDataDirFailed
 	textSettingsAboutOpenDataDirHint
 	textSettingsAboutOpenLogDir
 	textSettingsAboutOpenLogDirFailed
 	textSettingsAboutOpenLogDirHint
+	textSettingsAboutOpenWebsite
+	textSettingsAboutOpenWebsiteFailed
 	textSettingsAboutPlatform
+	textSettingsAboutRuntime
 	textSettingsAboutSupportEmail
 	textSettingsAboutSupportLabel
 	textSettingsAboutUserData
@@ -2639,17 +2647,25 @@ var keyOfText = [numTexts]string{
 	"requiredField",
 	"routingLookupButton",
 	"routingLookupRunning",
+	"settingsAboutAppId",
 	"settingsAboutAppName",
 	"settingsAboutChrome",
+	"settingsAboutCopied",
+	"settingsAboutCopy",
+	"settingsAboutDevelopment",
 	"settingsAboutElectron",
 	"settingsAboutNode",
+	"settingsAboutNsgo",
 	"settingsAboutOpenDataDir",
 	"settingsAboutOpenDataDirFailed",
 	"settingsAboutOpenDataDirHint",
 	"settingsAboutOpenLogDir",
 	"settingsAboutOpenLogDirFailed",
 	"settingsAboutOpenLogDirHint",
+	"settingsAboutOpenWebsite",
+	"settingsAboutOpenWebsiteFailed",
 	"settingsAboutPlatform",
+	"settingsAboutRuntime",
 	"settingsAboutSupportEmail",
 	"settingsAboutSupportLabel",
 	"settingsAboutUserData",
@@ -3951,17 +3967,25 @@ var textsEn = i18n.NewTexts(""+
 	"Required"+
 	"Look up distance"+
 	"Looking up…"+
+	"App ID"+
 	"App"+
 	"Chromium"+
+	"Copied to clipboard"+
+	"Copy"+
+	"Development"+
 	"Electron"+
 	"Node"+
+	"NSGo"+
 	"Open data folder"+
 	"Could not open the data folder."+
 	"Reveals the app's data folder (sqlite database, attachments, settings)."+
 	"Open log folder"+
 	"Could not open the log folder."+
 	"Daily log files for support. Last 14 days are kept."+
+	"Open website"+
+	"Could not open the website."+
 	"Platform"+
+	"Runtime"+
 	"support@carbonink.xyz"+
 	"Support"+
 	"Data folder"+
@@ -5260,9 +5284,14 @@ var textsEn = i18n.NewTexts(""+
 		8,
 		16,
 		13,
+		6,
 		3,
 		8,
+		19,
+		4,
+		11,
 		8,
+		4,
 		4,
 		16,
 		31,
@@ -5270,7 +5299,10 @@ var textsEn = i18n.NewTexts(""+
 		15,
 		30,
 		51,
+		12,
+		27,
 		8,
+		7,
 		21,
 		7,
 		11,
@@ -6572,17 +6604,25 @@ var textsZhCN = i18n.NewTexts(""+
 	"必填"+
 	"查询距离"+
 	"查询中…"+
+	"应用 ID"+
 	"应用"+
 	"Chromium"+
+	"已复制到剪贴板"+
+	"复制"+
+	"开发版"+
 	"Electron"+
 	"Node"+
+	"NSGo"+
 	"打开数据目录"+
 	"无法打开数据目录。"+
 	"在文件管理器里显示 app 的数据目录（SQLite 数据库、附件、设置）。"+
 	"打开日志目录"+
 	"无法打开日志目录。"+
 	"按天滚动的日志文件，留存 14 天，便于客服排错。"+
+	"打开官网"+
+	"无法打开官网。"+
 	"平台"+
+	"运行时"+
 	"support@carbonink.xyz"+
 	"技术支持"+
 	"数据目录"+
@@ -7881,9 +7921,14 @@ var textsZhCN = i18n.NewTexts(""+
 		6,
 		12,
 		12,
+		9,
 		6,
 		8,
+		21,
+		6,
+		9,
 		8,
+		4,
 		4,
 		18,
 		27,
@@ -7891,7 +7936,10 @@ var textsZhCN = i18n.NewTexts(""+
 		18,
 		27,
 		67,
+		12,
+		21,
 		6,
+		9,
 		21,
 		12,
 		12,
@@ -19353,6 +19401,13 @@ func RoutingLookupRunning(cx *core.Scope) string { return For(cx).RoutingLookupR
 // RoutingLookupRunning is the package's RoutingLookupRunning in the language of msgs.
 func (msgs Messages) RoutingLookupRunning() string { return msgs.text(textRoutingLookupRunning) }
 
+// SettingsAboutAppId says "App ID"
+// in the language the app shows under cx.
+func SettingsAboutAppId(cx *core.Scope) string { return For(cx).SettingsAboutAppId() }
+
+// SettingsAboutAppId is the package's SettingsAboutAppId in the language of msgs.
+func (msgs Messages) SettingsAboutAppId() string { return msgs.text(textSettingsAboutAppId) }
+
 // SettingsAboutAppName says "App"
 // in the language the app shows under cx.
 func SettingsAboutAppName(cx *core.Scope) string { return For(cx).SettingsAboutAppName() }
@@ -19367,6 +19422,29 @@ func SettingsAboutChrome(cx *core.Scope) string { return For(cx).SettingsAboutCh
 // SettingsAboutChrome is the package's SettingsAboutChrome in the language of msgs.
 func (msgs Messages) SettingsAboutChrome() string { return msgs.text(textSettingsAboutChrome) }
 
+// SettingsAboutCopied says "Copied to clipboard"
+// in the language the app shows under cx.
+func SettingsAboutCopied(cx *core.Scope) string { return For(cx).SettingsAboutCopied() }
+
+// SettingsAboutCopied is the package's SettingsAboutCopied in the language of msgs.
+func (msgs Messages) SettingsAboutCopied() string { return msgs.text(textSettingsAboutCopied) }
+
+// SettingsAboutCopy says "Copy"
+// in the language the app shows under cx.
+func SettingsAboutCopy(cx *core.Scope) string { return For(cx).SettingsAboutCopy() }
+
+// SettingsAboutCopy is the package's SettingsAboutCopy in the language of msgs.
+func (msgs Messages) SettingsAboutCopy() string { return msgs.text(textSettingsAboutCopy) }
+
+// SettingsAboutDevelopment says "Development"
+// in the language the app shows under cx.
+func SettingsAboutDevelopment(cx *core.Scope) string { return For(cx).SettingsAboutDevelopment() }
+
+// SettingsAboutDevelopment is the package's SettingsAboutDevelopment in the language of msgs.
+func (msgs Messages) SettingsAboutDevelopment() string {
+	return msgs.text(textSettingsAboutDevelopment)
+}
+
 // SettingsAboutElectron says "Electron"
 // in the language the app shows under cx.
 func SettingsAboutElectron(cx *core.Scope) string { return For(cx).SettingsAboutElectron() }
@@ -19380,6 +19458,13 @@ func SettingsAboutNode(cx *core.Scope) string { return For(cx).SettingsAboutNode
 
 // SettingsAboutNode is the package's SettingsAboutNode in the language of msgs.
 func (msgs Messages) SettingsAboutNode() string { return msgs.text(textSettingsAboutNode) }
+
+// SettingsAboutNsgo says "NSGo"
+// in the language the app shows under cx.
+func SettingsAboutNsgo(cx *core.Scope) string { return For(cx).SettingsAboutNsgo() }
+
+// SettingsAboutNsgo is the package's SettingsAboutNsgo in the language of msgs.
+func (msgs Messages) SettingsAboutNsgo() string { return msgs.text(textSettingsAboutNsgo) }
 
 // SettingsAboutOpenDataDir says "Open data folder"
 // in the language the app shows under cx.
@@ -19439,12 +19524,39 @@ func (msgs Messages) SettingsAboutOpenLogDirHint() string {
 	return msgs.text(textSettingsAboutOpenLogDirHint)
 }
 
+// SettingsAboutOpenWebsite says "Open website"
+// in the language the app shows under cx.
+func SettingsAboutOpenWebsite(cx *core.Scope) string { return For(cx).SettingsAboutOpenWebsite() }
+
+// SettingsAboutOpenWebsite is the package's SettingsAboutOpenWebsite in the language of msgs.
+func (msgs Messages) SettingsAboutOpenWebsite() string {
+	return msgs.text(textSettingsAboutOpenWebsite)
+}
+
+// SettingsAboutOpenWebsiteFailed says "Could not open the website."
+// in the language the app shows under cx.
+func SettingsAboutOpenWebsiteFailed(cx *core.Scope) string {
+	return For(cx).SettingsAboutOpenWebsiteFailed()
+}
+
+// SettingsAboutOpenWebsiteFailed is the package's SettingsAboutOpenWebsiteFailed in the language of msgs.
+func (msgs Messages) SettingsAboutOpenWebsiteFailed() string {
+	return msgs.text(textSettingsAboutOpenWebsiteFailed)
+}
+
 // SettingsAboutPlatform says "Platform"
 // in the language the app shows under cx.
 func SettingsAboutPlatform(cx *core.Scope) string { return For(cx).SettingsAboutPlatform() }
 
 // SettingsAboutPlatform is the package's SettingsAboutPlatform in the language of msgs.
 func (msgs Messages) SettingsAboutPlatform() string { return msgs.text(textSettingsAboutPlatform) }
+
+// SettingsAboutRuntime says "Runtime"
+// in the language the app shows under cx.
+func SettingsAboutRuntime(cx *core.Scope) string { return For(cx).SettingsAboutRuntime() }
+
+// SettingsAboutRuntime is the package's SettingsAboutRuntime in the language of msgs.
+func (msgs Messages) SettingsAboutRuntime() string { return msgs.text(textSettingsAboutRuntime) }
 
 // SettingsAboutSupportEmail says "support@carbonink.xyz"
 // in the language the app shows under cx.

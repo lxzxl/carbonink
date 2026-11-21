@@ -1041,17 +1041,25 @@ routingLookupButton: Look up distance
 routingLookupDoneAmap: 'AMap: {km} km'
 routingLookupDoneHaversine: 'Haversine: {km} km'
 routingLookupRunning: Looking up…
+settingsAboutAppId: App ID
 settingsAboutAppName: App
 settingsAboutChrome: Chromium
+settingsAboutCopied: Copied to clipboard
+settingsAboutCopy: Copy
+settingsAboutDevelopment: Development
 settingsAboutElectron: Electron
 settingsAboutNode: Node
+settingsAboutNsgo: NSGo
 settingsAboutOpenDataDir: Open data folder
 settingsAboutOpenDataDirFailed: Could not open the data folder.
 settingsAboutOpenDataDirHint: Reveals the app's data folder (sqlite database, attachments, settings).
 settingsAboutOpenLogDir: Open log folder
 settingsAboutOpenLogDirFailed: Could not open the log folder.
 settingsAboutOpenLogDirHint: Daily log files for support. Last 14 days are kept.
+settingsAboutOpenWebsite: Open website
+settingsAboutOpenWebsiteFailed: Could not open the website.
 settingsAboutPlatform: Platform
+settingsAboutRuntime: Runtime
 settingsAboutSupportEmail: support@carbonink.xyz
 settingsAboutSupportLabel: Support
 settingsAboutUserData: Data folder

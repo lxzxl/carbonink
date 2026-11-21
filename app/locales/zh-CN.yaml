@@ -1040,17 +1040,25 @@ routingLookupButton: 查询距离
 routingLookupDoneAmap: 高德：{km} km
 routingLookupDoneHaversine: 大圆距离：{km} km
 routingLookupRunning: 查询中…
+settingsAboutAppId: 应用 ID
 settingsAboutAppName: 应用
 settingsAboutChrome: Chromium
+settingsAboutCopied: 已复制到剪贴板
+settingsAboutCopy: 复制
+settingsAboutDevelopment: 开发版
 settingsAboutElectron: Electron
 settingsAboutNode: Node
+settingsAboutNsgo: NSGo
 settingsAboutOpenDataDir: 打开数据目录
 settingsAboutOpenDataDirFailed: 无法打开数据目录。
 settingsAboutOpenDataDirHint: 在文件管理器里显示 app 的数据目录（SQLite 数据库、附件、设置）。
 settingsAboutOpenLogDir: 打开日志目录
 settingsAboutOpenLogDirFailed: 无法打开日志目录。
 settingsAboutOpenLogDirHint: 按天滚动的日志文件，留存 14 天，便于客服排错。
+settingsAboutOpenWebsite: 打开官网
+settingsAboutOpenWebsiteFailed: 无法打开官网。
 settingsAboutPlatform: 平台
+settingsAboutRuntime: 运行时
 settingsAboutSupportEmail: support@carbonink.xyz
 settingsAboutSupportLabel: 技术支持
 settingsAboutUserData: 数据目录

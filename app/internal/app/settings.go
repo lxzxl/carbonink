@@ -180,6 +180,7 @@ func (s *Session) settingsScreen(cx *core.Scope) core.Node {
 								Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)}
 						}},
 				),
+				s.aboutCard(cx),
 			},
 		}},
 	}
