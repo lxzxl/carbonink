@@ -776,6 +776,7 @@ lineageSourceDocument: 来源单据
 lineageSourceInbound: 供应商披露
 lineageSourceManual: 手工录入
 lineageSourceManualHint: 手工填写的数据——可在下方挂载佐证材料
+lineageSourceTier: 第 {tier} 级
 loading: 加载中…
 navActivities: 活动数据
 navDashboard: 仪表盘

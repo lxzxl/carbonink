@@ -46,7 +46,8 @@ const activitySelect = `SELECT a.id, a.site_id,
 		a.emission_source_id, es.name, a.reporting_period_id,
 		a.occurred_at_start, a.occurred_at_end, a.amount, a.unit,
 		a.ef_factor_code, a.ef_year, a.ef_source, a.ef_geography, a.ef_dataset_version,
-		a.computed_co2e_kg, a.computed_at, coalesce(a.fuel_code, ''), coalesce(a.notes, ''), es.scope,
+		a.computed_co2e_kg, a.computed_at, coalesce(a.fuel_code, ''), coalesce(a.notes, ''),
+		coalesce(a.inbound_question_id, ''), coalesce(a.inbound_tier, 0), es.scope,
 		coalesce(a.extraction_id, '')
 	FROM activity_data a
 	JOIN site ON site.id = a.site_id
@@ -489,6 +490,53 @@ func (s *Store) AuditEvents(ctx context.Context, limit int) ([]AuditEvent, error
 	return s.QueryAuditEvents(ctx, AuditQuery{Limit: limit})
 }
 
+// AuditEventsForRecord returns the timeline of events whose payload references
+// the activity and/or answer. The payload has no entity columns, so the paths
+// are fixed per event kind, mirroring 1.x's RECORD_PATHS registry.
+func (s *Store) AuditEventsForRecord(ctx context.Context, activityID, answerID string, limit int) ([]AuditEvent, error) {
+	activityID = strings.TrimSpace(activityID)
+	answerID = strings.TrimSpace(answerID)
+	if activityID == "" && answerID == "" {
+		return nil, nil
+	}
+	if limit <= 0 || limit > 5000 {
+		limit = 500
+	}
+	var clauses []string
+	var args []any
+	if activityID != "" {
+		clauses = append(clauses, `(event_kind IN ('activity_rebind_ef',
+			'activity_data.created', 'activity_data.deleted',
+			'evidence.attached', 'evidence.removed')
+			AND json_extract(payload, '$.activity_id') = ?)`)
+		args = append(args, activityID)
+	}
+	if answerID != "" {
+		clauses = append(clauses, `(event_kind IN ('evidence.attached', 'evidence.removed')
+			AND json_extract(payload, '$.answer_id') = ?)`)
+		args = append(args, answerID)
+	}
+	args = append(args, limit)
+	rows, err := s.db.QueryContext(ctx, `SELECT id, event_kind, payload, occurred_at
+		FROM audit_event
+		WHERE `+strings.Join(clauses, " OR ")+`
+		ORDER BY occurred_at DESC, id DESC
+		LIMIT ?`, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []AuditEvent
+	for rows.Next() {
+		var event AuditEvent
+		if err := rows.Scan(&event.ID, &event.Kind, &event.Payload, &event.OccurredAt); err != nil {
+			return nil, err
+		}
+		out = append(out, event)
+	}
+	return out, rows.Err()
+}
+
 // AuditQuery filters the append-only log. Since and Until are date-only
 // (YYYY-MM-DD); BeforeTime/BeforeID form a keyset cursor for older pages.
 type AuditQuery struct {
@@ -551,8 +599,8 @@ func scanActivity(row rowScanner) (Activity, error) {
 	var a Activity
 	err := row.Scan(&a.ID, &a.SiteID, &a.Site, &a.EmissionSourceID, &a.Source, &a.ReportingPeriodID,
 		&a.OccurredAt, &a.OccurredAtEnd, &a.Amount, &a.Unit, &a.EFFactorCode, &a.EFYear, &a.EFSource,
-		&a.EFGeography, &a.EFDatasetVersion, &a.CO2eKg, &a.ComputedAt, &a.FuelCode, &a.Notes, &a.Scope,
-		&a.ExtractionID)
+		&a.EFGeography, &a.EFDatasetVersion, &a.CO2eKg, &a.ComputedAt, &a.FuelCode, &a.Notes,
+		&a.InboundQuestionID, &a.InboundTier, &a.Scope, &a.ExtractionID)
 	return a, err
 }
 

@@ -564,6 +564,19 @@ func (s *Store) AnswerByQuestion(ctx context.Context, questionID string) (*Answe
 	return &a, nil
 }
 
+// AnswerByID reads one answer by its own id.
+func (s *Store) AnswerByID(ctx context.Context, id string) (*Answer, error) {
+	row := s.db.QueryRowContext(ctx, answerSelect+` WHERE a.id = ?`, id)
+	a, err := scanAnswer(row)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &a, nil
+}
+
 // ListAnswers returns every answer of a questionnaire in question order.
 func (s *Store) ListAnswers(ctx context.Context, questionnaireID string) ([]Answer, error) {
 	rows, err := s.db.QueryContext(ctx, answerSelect+`

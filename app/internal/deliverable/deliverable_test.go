@@ -57,7 +57,11 @@ func testDB(t *testing.T) *store.Store {
 func addDocument(t *testing.T, db *store.Store, id, name string, data []byte,
 	dir string) string {
 	t.Helper()
-	path := filepath.Join(dir, name)
+	relative := filepath.Join("documents", name)
+	path := filepath.Join(dir, relative)
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
 	if err := os.WriteFile(path, data, 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +69,7 @@ func addDocument(t *testing.T, db *store.Store, id, name string, data []byte,
 	if _, err := db.DB().ExecContext(context.Background(), `INSERT INTO document
 			(id, sha256, filename, mime_type, size_bytes, storage_path, uploaded_at)
 		VALUES (?, ?, ?, 'application/pdf', ?, ?, '2025-01-15T00:00:00Z')`,
-		id, hex.EncodeToString(digest[:]), name, len(data), path); err != nil {
+		id, hex.EncodeToString(digest[:]), name, len(data), relative); err != nil {
 		t.Fatal(err)
 	}
 	return path
@@ -108,6 +112,7 @@ func TestBuildIncludesEvidenceAndManifest(t *testing.T) {
 			}},
 		},
 		OutPath: out,
+		DataDir: dir,
 	})
 	if err != nil {
 		t.Fatal(err)

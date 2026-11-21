@@ -466,6 +466,7 @@ func (s *Session) activitiesScreen(cx *core.Scope, dataRev *core.Signal[int]) co
 	sortBy := core.NewSignal(cx, datatable.Sort{Key: "date", Descending: true})
 	selected := core.NewSignal(cx, datatable.NoTableSelection)
 	selectedID := core.NewSignal(cx, "")
+	lineagePanel := newLineagePanel(cx)
 	rows := func() []store.Activity {
 		_ = dataRev.Get()
 		sortRows(s.activities, sortBy.Get())
@@ -505,6 +506,12 @@ func (s *Session) activitiesScreen(cx *core.Scope, dataRev *core.Signal[int]) co
 				s.activityImportDialog(cx, dataRev),
 				s.editActivityDialog(cx, selectedID, dataRev),
 				s.deleteActivityButton(cx, selectedID, dataRev),
+				ui.Button{Text: locales.LineageOpenButton(cx), Variant: ui.ButtonSecondary,
+					Disabled: func() bool { return selectedID.Get() == "" },
+					OnPress: func() {
+						lineagePanel.show(cx, s, "activity_data", selectedID.Get())
+					}, TestID: "activity-lineage"},
+				lineagePanel.dialog(cx, s),
 			}},
 			core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)}, Children: []core.Node{
 				datatable.DataTable{

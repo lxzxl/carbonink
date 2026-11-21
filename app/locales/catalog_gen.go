@@ -122,6 +122,7 @@ var Parameters = map[string][]string{
 	"InboundWarningCount":                     {"count"},
 	"LineageEfPinnedAt":                       {"date"},
 	"LineageSnapshotRevision":                 {"revision", "date"},
+	"LineageSourceTier":                       {"tier"},
 	"OnboardingEyebrow":                       {"current", "total"},
 	"QuestionnaireExportPdfFailed":            {"message"},
 	"QuestionnaireExportPdfSuccess":           {"path"},
@@ -310,6 +311,7 @@ type Translation struct {
 	InboundWarningCount                     func(count string) string
 	LineageEfPinnedAt                       func(date string) string
 	LineageSnapshotRevision                 func(revision string, date string) string
+	LineageSourceTier                       func(tier string) string
 	OnboardingEyebrow                       func(current string, total string) string
 	QuestionnaireExportPdfFailed            func(message string) string
 	QuestionnaireExportPdfSuccess           func(path string) string
@@ -8676,6 +8678,9 @@ func Supply(lang string, t Translation) {
 	if t.LineageSnapshotRevision != nil {
 		s.LineageSnapshotRevision = t.LineageSnapshotRevision
 	}
+	if t.LineageSourceTier != nil {
+		s.LineageSourceTier = t.LineageSourceTier
+	}
 	if t.OnboardingEyebrow != nil {
 		s.OnboardingEyebrow = t.OnboardingEyebrow
 	}
@@ -16554,6 +16559,28 @@ func LineageSourceManualHint(cx *core.Scope) string { return For(cx).LineageSour
 
 // LineageSourceManualHint is the package's LineageSourceManualHint in the language of msgs.
 func (msgs Messages) LineageSourceManualHint() string { return msgs.text(textLineageSourceManualHint) }
+
+// LineageSourceTier says "Tier {tier}"
+// in the language the app shows under cx.
+func LineageSourceTier(cx *core.Scope, tier string) string { return For(cx).LineageSourceTier(tier) }
+
+// LineageSourceTier is the package's LineageSourceTier in the language of msgs.
+func (msgs Messages) LineageSourceTier(tier string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.LineageSourceTier(tier))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].LineageSourceTier; f != nil {
+			return f(tier)
+		}
+		switch lang {
+		case "", "en":
+			return "Tier " + msgs.arg(tier)
+		case "zh-CN":
+			return "第 " + tier + " 级"
+		}
+	}
+}
 
 // Loading says "Loading…"
 // in the language the app shows under cx.

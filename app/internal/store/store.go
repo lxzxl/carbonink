@@ -55,6 +55,8 @@ type Activity struct {
 	FuelCode          string
 	Notes             string
 	ExtractionID      string
+	InboundQuestionID string
+	InboundTier       int
 	Scope             int
 }
 

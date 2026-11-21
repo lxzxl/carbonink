@@ -777,6 +777,7 @@ lineageSourceDocument: Source document
 lineageSourceInbound: Supplier disclosure
 lineageSourceManual: Manual entry
 lineageSourceManualHint: Entered by hand — attach evidence below to back it up
+lineageSourceTier: Tier {tier}
 loading: Loading…
 navActivities: Activities
 navDashboard: Dashboard

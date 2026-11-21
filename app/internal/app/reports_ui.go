@@ -248,6 +248,7 @@ func (s *Session) reportsScreen(cx *core.Scope, dataRev *core.Signal[int],
 						Name: base + ".xlsx", Bytes: xlsxBytes,
 					},
 					Readiness: readinessSheet, OutPath: path,
+					DataDir: s.dataDir,
 				})
 			}
 			s.scope.Post(func() {

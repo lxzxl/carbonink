@@ -54,6 +54,7 @@ type questionnaireDetail struct {
 	busy     *core.Signal[bool]
 
 	selectedID        *core.Signal[string]
+	selectedAnswerID  *core.Signal[string]
 	selectedTitle     *core.Signal[string]
 	selectedFinalized *core.Signal[bool]
 	selectedAnswered  *core.Signal[bool]
@@ -64,6 +65,7 @@ type questionnaireDetail struct {
 	pdfBusy           *core.Signal[bool]
 	pdfStatus         *core.Signal[string]
 	pdfFailed         *core.Signal[bool]
+	lineage           *lineagePanel
 
 	id        string
 	db        *store.Store
@@ -213,6 +215,7 @@ func newQuestionnaireDetail(cx *core.Scope, db *store.Store) *questionnaireDetai
 		failed:            core.NewSignal(cx, false),
 		busy:              core.NewSignal(cx, false),
 		selectedID:        core.NewSignal(cx, ""),
+		selectedAnswerID:  core.NewSignal(cx, ""),
 		selectedTitle:     core.NewSignal(cx, ""),
 		selectedFinalized: core.NewSignal(cx, false),
 		selectedAnswered:  core.NewSignal(cx, false),
@@ -223,6 +226,7 @@ func newQuestionnaireDetail(cx *core.Scope, db *store.Store) *questionnaireDetai
 		pdfBusy:           core.NewSignal(cx, false),
 		pdfStatus:         core.NewSignal(cx, ""),
 		pdfFailed:         core.NewSignal(cx, false),
+		lineage:           newLineagePanel(cx),
 		db:                db,
 	}
 }
@@ -435,6 +439,7 @@ func (d *questionnaireDetail) show(cx *core.Scope, q store.Questionnaire) {
 	d.message.Set("")
 	d.failed.Set(false)
 	d.selectedID.Set("")
+	d.selectedAnswerID.Set("")
 	d.selectedTitle.Set("")
 	d.value.Set("")
 	d.unit.Set("")
@@ -462,6 +467,7 @@ func (d *questionnaireDetail) selectQuestion(index int) {
 	}
 	q := d.questions[index]
 	d.selectedID.Set(q.ID)
+	d.selectedAnswerID.Set(q.AnswerID)
 	d.selectedTitle.Set(q.RawText)
 	d.value.Set(q.AnswerValue)
 	d.unit.Set(firstNonEmpty(q.AnswerUnit, q.ExpectedUnit))
@@ -483,6 +489,7 @@ func (d *questionnaireDetail) syncSelected() {
 		}
 		d.value.Set(q.AnswerValue)
 		d.unit.Set(firstNonEmpty(q.AnswerUnit, q.ExpectedUnit))
+		d.selectedAnswerID.Set(q.AnswerID)
 		d.selectedFinalized.Set(q.AnswerFinalizedAt != "")
 		d.selectedAnswered.Set(q.Answered())
 		return
@@ -1009,6 +1016,13 @@ func (d *questionnaireDetail) dialog(cx *core.Scope, s *Session,
 					OnPress: func() { d.save(s, cx, dataRev, true) }, Busy: d.busy.Get,
 					TestID: "questionnaires-answer-finalize"})
 			}
+			if d.selectedAnswered.Get() {
+				actions = append(actions, ui.Button{Text: locales.LineageOpenButton(cx),
+					Variant: ui.ButtonSecondary,
+					OnPress: func() {
+						d.lineage.show(cx, s, "answer", d.selectedAnswerID.Get())
+					}, TestID: "answer-lineage"})
+			}
 			editor = append(editor, core.View{Style: core.Style{Direction: core.Row, Gap: 8},
 				Children: actions})
 		}
@@ -1039,6 +1053,7 @@ func (d *questionnaireDetail) dialog(cx *core.Scope, s *Session,
 			core.Scroll{Style: core.Style{MaxHeight: core.Pt(360)},
 				Children: []core.Node{core.View{Style: core.Style{Gap: 0}, Children: list}}},
 			dataCard(cx, editor...),
+			d.lineage.dialog(cx, s),
 		}
 		if d.guide != nil {
 			body = append([]core.Node{d.guide.node(s, func() bool { return true })}, body...)

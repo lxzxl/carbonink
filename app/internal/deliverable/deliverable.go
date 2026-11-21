@@ -61,6 +61,8 @@ type Input struct {
 	Appendix   NamedBytes
 	Readiness  *Readiness
 	OutPath    string
+	// DataDir resolves the document table's relative storage paths.
+	DataDir string
 }
 
 // Result reports how many evidence rows were found and how many had no file.
@@ -146,7 +148,7 @@ func Build(ctx context.Context, db *store.Store, in Input) (Result, error) {
 			ActivityNo: number, ActivityID: row.ActivityID,
 			SourceName: sourceName[row.ActivityID], OriginalFilename: row.Filename,
 		}
-		source, err := os.Open(row.StoragePath)
+		source, err := os.Open(store.ResolveDocumentPath(row.StoragePath, in.DataDir))
 		if err != nil {
 			result.EvidenceMissing++
 			common.Status = "missing"
