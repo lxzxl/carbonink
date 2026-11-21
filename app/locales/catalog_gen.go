@@ -44,6 +44,7 @@ func For(cx *core.Scope) Messages {
 // (tsx.RegisterMessages).
 var Parameters = map[string][]string{
 	"ActivitiesCount":                         {"count"},
+	"ActivitiesDropDone":                      {"filename"},
 	"ActivitiesFromDocument":                  {"filename"},
 	"ActivityImportColumnN":                   {"n"},
 	"ActivityImportGroupRowsTotal":            {"count", "total", "unit"},
@@ -233,6 +234,7 @@ var Parameters = map[string][]string{
 type Translation struct {
 	Texts                                   map[string]string
 	ActivitiesCount                         func(count int) string
+	ActivitiesDropDone                      func(filename string) string
 	ActivitiesFromDocument                  func(filename string) string
 	ActivityImportColumnN                   func(n string) string
 	ActivityImportGroupRowsTotal            func(count string, total string, unit string) string
@@ -424,6 +426,11 @@ const (
 	textActivitiesCreateSuccess
 	textActivitiesEmpty
 	textActivitiesEmptyBody
+	textActivitiesDropHint
+	textActivitiesDropPdfOnly
+	textActivitiesDropPick
+	textActivitiesDropUnsupported
+	textActivitiesDropWorking
 	textActivitiesEmptyNoSourcesBody
 	textActivitiesEmptyNoSourcesCta
 	textActivitiesEmptyNoSourcesTitle
@@ -455,6 +462,10 @@ const (
 	textActivitiesFromLedgerImport
 	textActivitiesFromSupplierDisclosure
 	textActivitiesLoadFailed
+	textActivitiesRecommendEmpty
+	textActivitiesRecommendFailed
+	textActivitiesRecommendHeading
+	textActivitiesRecommendLoading
 	textActivitiesSearchPlaceholder
 	textActivitiesSortCo2eAsc
 	textActivitiesSortCo2eDesc
@@ -1759,6 +1770,11 @@ var keyOfText = [numTexts]string{
 	"activitiesCreateSuccess",
 	"activitiesEmpty",
 	"activitiesEmptyBody",
+	"activitiesDropHint",
+	"activitiesDropPdfOnly",
+	"activitiesDropPick",
+	"activitiesDropUnsupported",
+	"activitiesDropWorking",
 	"activitiesEmptyNoSourcesBody",
 	"activitiesEmptyNoSourcesCta",
 	"activitiesEmptyNoSourcesTitle",
@@ -1790,6 +1806,10 @@ var keyOfText = [numTexts]string{
 	"activitiesFromLedgerImport",
 	"activitiesFromSupplierDisclosure",
 	"activitiesLoadFailed",
+	"activitiesRecommendEmpty",
+	"activitiesRecommendFailed",
+	"activitiesRecommendHeading",
+	"activitiesRecommendLoading",
 	"activitiesSearchPlaceholder",
 	"activitiesSortCo2eAsc",
 	"activitiesSortCo2eDesc",
@@ -3092,6 +3112,11 @@ var textsEn = i18n.NewTexts(""+
 	"Activity recorded"+
 	"No activity data yet."+
 	"Record the consumption behind each source — a meter reading, a fuel receipt, a trip. Drop in a PDF and the fields get filled in for you."+
+	"Drop a bill or receipt here, or choose a PDF — CarbonInk reads it and fills this form."+
+	"Only PDF documents can be read here."+
+	"Choose PDF"+
+	"This document type cannot prefill an activity."+
+	"Reading the document…"+
 	"Activity data hangs off an emission source, and this organization has none yet. Set one up and you can start recording consumption here."+
 	"Set up emission sources"+
 	"Add an emission source first"+
@@ -3123,6 +3148,10 @@ var textsEn = i18n.NewTexts(""+
 	"Ledger import"+
 	"From supplier disclosure"+
 	"Failed to load activities"+
+	"The model did not return a recommendation; the full list below still applies."+
+	"Could not rank factors; the full list below still applies."+
+	"Recommended factors"+
+	"Ranking the closest factors…"+
 	"Search source, unit, or EF"+
 	"CO₂e low → high"+
 	"CO₂e high → low"+
@@ -4422,6 +4451,11 @@ var textsEn = i18n.NewTexts(""+
 		17,
 		21,
 		138,
+		88,
+		36,
+		10,
+		46,
+		23,
 		136,
 		23,
 		28,
@@ -4453,6 +4487,10 @@ var textsEn = i18n.NewTexts(""+
 		13,
 		24,
 		25,
+		77,
+		58,
+		19,
+		30,
 		26,
 		19,
 		19,
@@ -5755,6 +5793,11 @@ var textsZhCN = i18n.NewTexts(""+
 	"活动数据已记录"+
 	"还没有活动数据。"+
 	"记录每个排放源背后的实际用量——一次抄表、一张加油发票、一趟差旅。上传 PDF 还能自动填好表单。"+
+	"把账单或票据拖到这里，或选择一个 PDF；CarbonInk 会自动识别并填入表单。"+
+	"这里只支持读取 PDF 文件。"+
+	"选择 PDF"+
+	"这类单据不能用来预填活动数据。"+
+	"正在读取单据…"+
 	"活动数据要挂在排放源下面，而当前组织还没有任何排放源。建好第一个之后，就可以在这里录入用量了。"+
 	"去建立排放源"+
 	"请先建立排放源"+
@@ -5786,6 +5829,10 @@ var textsZhCN = i18n.NewTexts(""+
 	"台账导入"+
 	"来自供应商披露"+
 	"加载活动数据失败"+
+	"模型没有返回推荐；仍可从下方完整列表选择。"+
+	"推荐排序失败；仍可从下方完整列表选择。"+
+	"推荐排放因子"+
+	"正在排序最接近的因子…"+
 	"搜索排放源、单位或 EF"+
 	"CO₂e 少到多"+
 	"CO₂e 多到少"+
@@ -7085,6 +7132,11 @@ var textsZhCN = i18n.NewTexts(""+
 		21,
 		24,
 		137,
+		98,
+		35,
+		10,
+		45,
+		21,
 		141,
 		18,
 		21,
@@ -7116,6 +7168,10 @@ var textsZhCN = i18n.NewTexts(""+
 		12,
 		21,
 		24,
+		63,
+		57,
+		18,
+		33,
 		30,
 		16,
 		16,
@@ -8468,6 +8524,9 @@ func Supply(lang string, t Translation) {
 	if t.ActivitiesCount != nil {
 		s.ActivitiesCount = t.ActivitiesCount
 	}
+	if t.ActivitiesDropDone != nil {
+		s.ActivitiesDropDone = t.ActivitiesDropDone
+	}
 	if t.ActivitiesFromDocument != nil {
 		s.ActivitiesFromDocument = t.ActivitiesFromDocument
 	}
@@ -9080,6 +9139,67 @@ func ActivitiesEmptyBody(cx *core.Scope) string { return For(cx).ActivitiesEmpty
 // ActivitiesEmptyBody is the package's ActivitiesEmptyBody in the language of msgs.
 func (msgs Messages) ActivitiesEmptyBody() string { return msgs.text(textActivitiesEmptyBody) }
 
+// ActivitiesDropDone says "Filled from {filename}"
+// in the language the app shows under cx.
+func ActivitiesDropDone(cx *core.Scope, filename string) string {
+	return For(cx).ActivitiesDropDone(filename)
+}
+
+// ActivitiesDropDone is the package's ActivitiesDropDone in the language of msgs.
+func (msgs Messages) ActivitiesDropDone(filename string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ActivitiesDropDone(filename))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ActivitiesDropDone; f != nil {
+			return f(filename)
+		}
+		switch lang {
+		case "", "en":
+			return "Filled from " + msgs.arg(filename)
+		case "zh-CN":
+			return "已根据 " + filename + " 填入"
+		}
+	}
+}
+
+// ActivitiesDropHint says "Drop a bill or receipt here, or choose a PDF — CarbonInk reads it and fills this form."
+// in the language the app shows under cx.
+func ActivitiesDropHint(cx *core.Scope) string { return For(cx).ActivitiesDropHint() }
+
+// ActivitiesDropHint is the package's ActivitiesDropHint in the language of msgs.
+func (msgs Messages) ActivitiesDropHint() string { return msgs.text(textActivitiesDropHint) }
+
+// ActivitiesDropPdfOnly says "Only PDF documents can be read here."
+// in the language the app shows under cx.
+func ActivitiesDropPdfOnly(cx *core.Scope) string { return For(cx).ActivitiesDropPdfOnly() }
+
+// ActivitiesDropPdfOnly is the package's ActivitiesDropPdfOnly in the language of msgs.
+func (msgs Messages) ActivitiesDropPdfOnly() string { return msgs.text(textActivitiesDropPdfOnly) }
+
+// ActivitiesDropPick says "Choose PDF"
+// in the language the app shows under cx.
+func ActivitiesDropPick(cx *core.Scope) string { return For(cx).ActivitiesDropPick() }
+
+// ActivitiesDropPick is the package's ActivitiesDropPick in the language of msgs.
+func (msgs Messages) ActivitiesDropPick() string { return msgs.text(textActivitiesDropPick) }
+
+// ActivitiesDropUnsupported says "This document type cannot prefill an activity."
+// in the language the app shows under cx.
+func ActivitiesDropUnsupported(cx *core.Scope) string { return For(cx).ActivitiesDropUnsupported() }
+
+// ActivitiesDropUnsupported is the package's ActivitiesDropUnsupported in the language of msgs.
+func (msgs Messages) ActivitiesDropUnsupported() string {
+	return msgs.text(textActivitiesDropUnsupported)
+}
+
+// ActivitiesDropWorking says "Reading the document…"
+// in the language the app shows under cx.
+func ActivitiesDropWorking(cx *core.Scope) string { return For(cx).ActivitiesDropWorking() }
+
+// ActivitiesDropWorking is the package's ActivitiesDropWorking in the language of msgs.
+func (msgs Messages) ActivitiesDropWorking() string { return msgs.text(textActivitiesDropWorking) }
+
 // ActivitiesEmptyNoSourcesBody says "Activity data hangs off an emission source, and this organization has none yet. Set one up and you can start recording consumption here."
 // in the language the app shows under cx.
 func ActivitiesEmptyNoSourcesBody(cx *core.Scope) string {
@@ -9360,6 +9480,42 @@ func ActivitiesLoadFailed(cx *core.Scope) string { return For(cx).ActivitiesLoad
 
 // ActivitiesLoadFailed is the package's ActivitiesLoadFailed in the language of msgs.
 func (msgs Messages) ActivitiesLoadFailed() string { return msgs.text(textActivitiesLoadFailed) }
+
+// ActivitiesRecommendEmpty says "The model did not return a recommendation; the full list below still applies."
+// in the language the app shows under cx.
+func ActivitiesRecommendEmpty(cx *core.Scope) string { return For(cx).ActivitiesRecommendEmpty() }
+
+// ActivitiesRecommendEmpty is the package's ActivitiesRecommendEmpty in the language of msgs.
+func (msgs Messages) ActivitiesRecommendEmpty() string {
+	return msgs.text(textActivitiesRecommendEmpty)
+}
+
+// ActivitiesRecommendFailed says "Could not rank factors; the full list below still applies."
+// in the language the app shows under cx.
+func ActivitiesRecommendFailed(cx *core.Scope) string { return For(cx).ActivitiesRecommendFailed() }
+
+// ActivitiesRecommendFailed is the package's ActivitiesRecommendFailed in the language of msgs.
+func (msgs Messages) ActivitiesRecommendFailed() string {
+	return msgs.text(textActivitiesRecommendFailed)
+}
+
+// ActivitiesRecommendHeading says "Recommended factors"
+// in the language the app shows under cx.
+func ActivitiesRecommendHeading(cx *core.Scope) string { return For(cx).ActivitiesRecommendHeading() }
+
+// ActivitiesRecommendHeading is the package's ActivitiesRecommendHeading in the language of msgs.
+func (msgs Messages) ActivitiesRecommendHeading() string {
+	return msgs.text(textActivitiesRecommendHeading)
+}
+
+// ActivitiesRecommendLoading says "Ranking the closest factors…"
+// in the language the app shows under cx.
+func ActivitiesRecommendLoading(cx *core.Scope) string { return For(cx).ActivitiesRecommendLoading() }
+
+// ActivitiesRecommendLoading is the package's ActivitiesRecommendLoading in the language of msgs.
+func (msgs Messages) ActivitiesRecommendLoading() string {
+	return msgs.text(textActivitiesRecommendLoading)
+}
 
 // ActivitiesSearchPlaceholder says "Search source, unit, or EF"
 // in the language the app shows under cx.

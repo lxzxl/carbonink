@@ -7,10 +7,13 @@ import (
 	"strings"
 
 	"app.carbonink.desktop/internal/activityimport"
+	"app.carbonink.desktop/internal/efmatch"
 	"app.carbonink.desktop/internal/store"
 	"app.carbonink.desktop/locales"
 
 	"github.com/nsgo-dev/nsgo/core"
+	"github.com/nsgo-dev/nsgo/i18n"
+	"github.com/nsgo-dev/nsgo/icons/lucide"
 	"github.com/nsgo-dev/nsgo/ui"
 )
 
@@ -50,6 +53,11 @@ type importWizard struct {
 	efOptions    map[string][]store.EmissionFactor
 	efKeys       map[string]*core.Signal[string]
 	fuels        map[string]*core.Signal[string]
+	recs         map[string][]efmatch.Recommendation
+	recBusy      map[string]bool
+	recStatus    map[string]string
+	// recGen invalidates in-flight recommendations when the wizard restarts.
+	recGen int
 
 	failures []store.ImportFailure
 }
@@ -76,6 +84,9 @@ func (s *Session) activityImportDialog(cx *core.Scope, dataRev *core.Signal[int]
 		efOptions:       map[string][]store.EmissionFactor{},
 		efKeys:          map[string]*core.Signal[string]{},
 		fuels:           map[string]*core.Signal[string]{},
+		recs:            map[string][]efmatch.Recommendation{},
+		recBusy:         map[string]bool{},
+		recStatus:       map[string]string{},
 	}
 	reset := func() {
 		w.grid = nil
@@ -89,6 +100,10 @@ func (s *Session) activityImportDialog(cx *core.Scope, dataRev *core.Signal[int]
 		w.efOptions = map[string][]store.EmissionFactor{}
 		w.efKeys = map[string]*core.Signal[string]{}
 		w.fuels = map[string]*core.Signal[string]{}
+		w.recs = map[string][]efmatch.Recommendation{}
+		w.recBusy = map[string]bool{}
+		w.recStatus = map[string]string{}
+		w.recGen++
 		w.failures = nil
 		w.creatorName.Set("")
 		w.creatorStatus.Set("")
@@ -542,6 +557,70 @@ func (s *Session) importGroupsBody(cx *core.Scope, w *importWizard) core.Node {
 				Label: locales.ActivitiesFormEf(cx), TestID: "activity-import-ef-" + strconv.Itoa(i),
 				Searchable: true, SearchPlaceholder: locales.ActivitiesSearchPlaceholder(cx)}
 		}
+		selectRec := func(ef store.EmissionFactor) {
+			key := dataEFKey(ef)
+			found := false
+			for _, item := range w.efOptions[group.Key] {
+				if dataEFKey(item) == key {
+					found = true
+					break
+				}
+			}
+			if !found {
+				w.efOptions[group.Key] = append(w.efOptions[group.Key], ef)
+			}
+			if efSig != nil {
+				efSig.Set(key)
+			}
+			w.rev.Set(w.rev.Get() + 1)
+		}
+		var recommendNodes []core.Node
+		if w.recBusy[group.Key] {
+			recommendNodes = append(recommendNodes, core.Text{
+				Content: locales.ActivitiesRecommendLoading(cx), Style: core.Style{FontSize: 11},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
+		}
+		if recStatus := w.recStatus[group.Key]; recStatus != "" {
+			recommendNodes = append(recommendNodes, core.Text{Content: recStatus,
+				Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3})
+		}
+		if recs := w.recs[group.Key]; len(recs) > 0 {
+			recommendNodes = append(recommendNodes, core.Text{
+				Content: locales.ActivitiesRecommendHeading(cx),
+				Style:   core.Style{FontSize: 11, FontWeight: ui.Semibold}})
+			for j := range recs {
+				index, at := i, j
+				item := recs[j]
+				name := item.EF.NameEN
+				if name == "" {
+					name = item.EF.NameZH
+				}
+				if name == "" {
+					name = item.EF.FactorCode
+				}
+				recommendNodes = append(recommendNodes, core.View{
+					Role: core.RoleButton,
+					OnPress: func(core.PressEvent) {
+						selectRec(item.EF)
+					},
+					TestID: "activity-import-ef-recommend-" + strconv.Itoa(index) + "-" + strconv.Itoa(at),
+					Style: core.Style{Direction: core.Row, AlignItems: core.AlignStart, Gap: 6,
+						Padding: core.All(6), CornerRadius: 6},
+					StyleFunc: func() core.Style {
+						return core.Style{Background: ui.ColorsOf(cx).Raised()}
+					},
+					Children: []core.Node{
+						ui.Icon(lucide.Star, 12, ui.ColorsOf(cx).Accent),
+						core.View{Style: core.Style{Gap: 1, FlexGrow: 1}, Children: []core.Node{
+							core.Text{Content: name + " · " + commaFloat(item.EF.CO2eKgPerUnit) +
+								" kgCO2e/" + item.EF.InputUnit, Style: core.Style{FontSize: 11}, MaxLines: 1},
+							core.Text{Content: item.Reasoning, Style: core.Style{FontSize: 10},
+								StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2},
+						}},
+					},
+				})
+			}
+		}
 		rows = append(rows, core.View{Style: core.Style{Gap: 4, Padding: core.Symmetric(9, 0),
 			Borders: core.Edges{Bottom: 1}},
 			StyleFunc: func() core.Style { return core.Style{BorderColor: ui.ColorsOf(cx).Line()} },
@@ -557,6 +636,7 @@ func (s *Session) importGroupsBody(cx *core.Scope, w *importWizard) core.Node {
 					locales.ActivityImportGroupRowsTotal(cx, strconv.Itoa(group.RowCount),
 						commaFloat(group.AmountTotal), group.Unit),
 					Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
+				core.View{Style: core.Style{Gap: 4}, Children: recommendNodes},
 				core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8}, Children: []core.Node{
 					core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{efPicker}},
 					core.View{Style: core.Style{Width: core.Pt(160)}, Children: []core.Node{
@@ -675,6 +755,10 @@ func (s *Session) importPrepareGroups(cx *core.Scope, w *importWizard) {
 	w.efOptions = make(map[string][]store.EmissionFactor, len(w.groups))
 	w.efKeys = make(map[string]*core.Signal[string], len(w.groups))
 	w.fuels = make(map[string]*core.Signal[string], len(w.groups))
+	w.recs = make(map[string][]efmatch.Recommendation, len(w.groups))
+	w.recBusy = make(map[string]bool, len(w.groups))
+	w.recStatus = make(map[string]string, len(w.groups))
+	w.recGen++
 	for _, group := range w.groups {
 		options := s.importEFOptions(group.SourceID)
 		w.efOptions[group.Key] = options
@@ -684,6 +768,49 @@ func (s *Session) importPrepareGroups(cx *core.Scope, w *importWizard) {
 		}
 		w.efKeys[group.Key] = key
 		w.fuels[group.Key] = core.NewSignal(cx, "")
+	}
+	s.importRecommendGroups(cx, w)
+}
+
+// importRecommendGroups asks the model for each group's top factors. It runs
+// once per prepared group; a group without a provider keeps the plain select.
+func (s *Session) importRecommendGroups(cx *core.Scope, w *importWizard) {
+	provider := s.llmProvider(cx)
+	if !provider.Configured() {
+		return
+	}
+	language := i18n.Language(cx)
+	gen := w.recGen
+	for _, group := range w.groups {
+		sourceRow := s.sourceByID(group.SourceID)
+		if sourceRow == nil {
+			continue
+		}
+		group := group
+		source := *sourceRow
+		w.recBusy[group.Key] = true
+		go func() {
+			service := &efmatch.Service{Store: s.db, Provider: provider, Language: language,
+				NewClient: newExtractor}
+			result, err := service.RecommendText(context.Background(), group.Description,
+				group.Unit, source)
+			s.scope.Post(func() {
+				if w.recGen != gen {
+					return
+				}
+				w.recBusy[group.Key] = false
+				if err != nil {
+					w.recStatus[group.Key] = locales.ActivitiesRecommendFailed(cx)
+					w.rev.Set(w.rev.Get() + 1)
+					return
+				}
+				w.recs[group.Key] = result.Recommended
+				if len(result.Recommended) == 0 {
+					w.recStatus[group.Key] = locales.ActivitiesRecommendEmpty(cx)
+				}
+				w.rev.Set(w.rev.Get() + 1)
+			})
+		}()
 	}
 }
 

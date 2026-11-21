@@ -11,6 +11,12 @@ activitiesCreateSuccess: 活动数据已记录
 activitiesEmpty: 还没有活动数据。
 activitiesEmptyBody: 记录每个排放源背后的实际用量——一次抄表、一张加油发票、一趟差旅。上传 PDF 还能自动填好表单。
 activitiesEmptyNoSourcesBody: 活动数据要挂在排放源下面，而当前组织还没有任何排放源。建好第一个之后，就可以在这里录入用量了。
+activitiesDropDone: 已根据 {filename} 填入
+activitiesDropHint: 把账单或票据拖到这里，或选择一个 PDF；CarbonInk 会自动识别并填入表单。
+activitiesDropPdfOnly: 这里只支持读取 PDF 文件。
+activitiesDropPick: 选择 PDF
+activitiesDropUnsupported: 这类单据不能用来预填活动数据。
+activitiesDropWorking: 正在读取单据…
 activitiesEmptyNoSourcesCta: 去建立排放源
 activitiesEmptyNoSourcesTitle: 请先建立排放源
 activitiesEmptyTitle: 还没有活动数据
@@ -42,6 +48,10 @@ activitiesFromDocument: 来自文档：{filename}
 activitiesFromLedgerImport: 台账导入
 activitiesFromSupplierDisclosure: 来自供应商披露
 activitiesLoadFailed: 加载活动数据失败
+activitiesRecommendEmpty: 模型没有返回推荐；仍可从下方完整列表选择。
+activitiesRecommendFailed: 推荐排序失败；仍可从下方完整列表选择。
+activitiesRecommendHeading: 推荐排放因子
+activitiesRecommendLoading: 正在排序最接近的因子…
 activitiesSearchPlaceholder: 搜索排放源、单位或 EF
 activitiesSortCo2eAsc: CO₂e 少到多
 activitiesSortCo2eDesc: CO₂e 多到少

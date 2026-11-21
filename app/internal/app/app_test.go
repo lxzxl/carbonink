@@ -738,7 +738,10 @@ func TestRunDocumentExtractionThroughUI(t *testing.T) {
 	}
 	var calls atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		calls.Add(1)
+		body, _ := io.ReadAll(r.Body)
+		if strings.Contains(string(body), `"save_extraction"`) {
+			calls.Add(1)
+		}
 		w.Header().Set("Content-Type", "text/event-stream")
 		fmt.Fprintf(w, "data: %s\n\n", fmt.Sprintf(
 			`{"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","type":"function","function":{"name":"save_extraction","arguments":%s}}]}}]}`,
@@ -784,7 +787,7 @@ func TestRunDocumentExtractionThroughUI(t *testing.T) {
 	ui.WaitForGone("id:documents-detail-dialog", 3*time.Second)
 	ui.WaitFor("text:Confirmed", 3*time.Second)
 	if calls.Load() != 1 {
-		t.Errorf("model calls = %d, want 1", calls.Load())
+		t.Errorf("extraction model calls = %d, want 1", calls.Load())
 	}
 
 	ctx := context.Background()

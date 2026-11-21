@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"app.carbonink.desktop/internal/categories"
+	"app.carbonink.desktop/internal/efmatch"
+	"app.carbonink.desktop/internal/extraction"
 	"app.carbonink.desktop/internal/presets"
 	"app.carbonink.desktop/internal/routing"
 	"app.carbonink.desktop/internal/store"
@@ -943,7 +945,7 @@ func (s *Session) editActivityDialog(cx *core.Scope, selectedID *core.Signal[str
 	dataRev *core.Signal[int]) core.Node {
 	form := s.newActivityForm(cx, dataRev, func() *store.Activity {
 		return s.activityByID(selectedID.Get())
-	}, nil, locales.DataEditActivity, locales.DataSave, "activity-edit", nil)
+	}, nil, locales.DataEditActivity, locales.DataSave, "activity-edit", nil, false)
 	form.guide = newGuidance(cx, s, "ef-rebind")
 	return core.View{Children: []core.Node{
 		ui.Button{Text: locales.DataEditActivity(cx), Variant: ui.ButtonSecondary, OnPress: form.show,
@@ -979,6 +981,8 @@ type activityForm struct {
 	open   *core.Signal[bool]
 	show   func()
 	dialog core.Node
+	// applySeed fills the open form from an extraction, as the dropzone does.
+	applySeed func(*activityPrefill)
 	// guide is the rebind tour; only the edit dialog sets it.
 	guide *guidance
 }
@@ -987,7 +991,8 @@ func (s *Session) activityFormDialog(cx *core.Scope, dataRev *core.Signal[int],
 	initial func() *store.Activity, triggerLabel func(*core.Scope) string,
 	saveLabel func(*core.Scope) string, triggerID string, prefix string,
 	disabled func() bool) core.Node {
-	form := s.newActivityForm(cx, dataRev, initial, nil, triggerLabel, saveLabel, prefix, nil)
+	form := s.newActivityForm(cx, dataRev, initial, nil, triggerLabel, saveLabel, prefix, nil,
+		initial() == nil)
 	return core.View{Children: []core.Node{
 		ui.Button{Text: triggerLabel(cx), Variant: ui.ButtonSecondary, OnPress: form.show,
 			Disabled: disabled, TestID: triggerID},
@@ -997,11 +1002,12 @@ func (s *Session) activityFormDialog(cx *core.Scope, dataRev *core.Signal[int],
 
 // newActivityForm builds the form and returns its open handle so a screen can
 // present it from another dialog. prefill, when non-nil, seeds a new row;
-// onSaved replaces the default data refresh.
+// onSaved replaces the default data refresh. withDropzone adds the 1.x
+// upload-and-extract affordance to a plain add form.
 func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 	initial func() *store.Activity, prefill func() *activityPrefill,
 	title func(*core.Scope) string, saveLabel func(*core.Scope) string,
-	prefix string, onSaved func()) *activityForm {
+	prefix string, onSaved func(), withDropzone bool) *activityForm {
 	open := core.NewSignal(cx, false)
 	sourceID := core.NewSignal(cx, "")
 	periodID := core.NewSignal(cx, "")
@@ -1015,6 +1021,10 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 	status := core.NewSignal(cx, "")
 	busy := core.NewSignal(cx, false)
 	efOptions := core.NewSignalFunc(cx, []store.EmissionFactor(nil), nil)
+	recs := core.NewSignalFunc(cx, []efmatch.Recommendation(nil), nil)
+	recBusy := core.NewSignal(cx, false)
+	recStatus := core.NewSignal(cx, "")
+	recKey := core.NewSignal(cx, "")
 	routingOrigin := core.NewSignal(cx, "")
 	routingDestination := core.NewSignal(cx, "")
 	routingStage := core.NewSignal(cx, "")
@@ -1067,8 +1077,84 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 			return
 		}
 	}
+	loadRecs := func(seed *activityPrefill) {
+		if seed == nil || seed.ExtractionID == "" {
+			recs.Set(nil)
+			recStatus.Set("")
+			recKey.Set("")
+			recBusy.Set(false)
+			return
+		}
+		source := s.sourceByID(seed.SourceID)
+		provider := s.llmProvider(cx)
+		if source == nil || !provider.Configured() {
+			recs.Set(nil)
+			recStatus.Set("")
+			recKey.Set("")
+			return
+		}
+		key := seed.ExtractionID + "\x1f" + seed.SourceID
+		if recKey.Get() == key {
+			return
+		}
+		recs.Set(nil)
+		recStatus.Set("")
+		recKey.Set(key)
+		recBusy.Set(true)
+		language := i18n.Language(cx)
+		go func() {
+			service := &efmatch.Service{Store: s.db, Provider: provider, Language: language,
+				NewClient: newExtractor}
+			result, err := service.Recommend(context.Background(), seed.ExtractionID, *source)
+			s.scope.Post(func() {
+				if recKey.Get() != key {
+					return
+				}
+				recBusy.Set(false)
+				if err != nil {
+					recStatus.Set(locales.ActivitiesRecommendFailed(cx))
+					return
+				}
+				recs.Set(result.Recommended)
+				if len(result.Recommended) == 0 {
+					recStatus.Set(locales.ActivitiesRecommendEmpty(cx))
+				}
+			})
+		}()
+	}
+	var dropped *activityPrefill
+	seedFn := prefill
+	if seedFn == nil {
+		seedFn = func() *activityPrefill { return dropped }
+	}
+	applySeed := func(seed *activityPrefill) {
+		if seed == nil {
+			return
+		}
+		sourceID.Set(seed.SourceID)
+		periodID.Set(seed.PeriodID)
+		start.Set(seed.Start)
+		end.Set(seed.End)
+		amount.Set(strconv.FormatFloat(seed.Amount, 'f', -1, 64))
+		unit.Set(seed.Unit)
+		fuel.Set(seed.FuelCode)
+		notes.Set(seed.Notes)
+		routingOrigin.Set(seed.RoutingOrigin)
+		routingDestination.Set(seed.RoutingDestination)
+		routingStage.Set(seed.RoutingStage)
+		travelMode.Set(seed.TravelMode)
+		routingResult.Set("")
+		routingFailed.Set(false)
+		loadEFs(seed.SourceID)
+		loadRecs(seed)
+		open.Set(true)
+	}
 	show := func() {
 		status.Set("")
+		recs.Set(nil)
+		recStatus.Set("")
+		recBusy.Set(false)
+		recKey.Set("")
 		current := initial()
 		if current != nil {
 			sourceID.Set(current.EmissionSourceID)
@@ -1091,22 +1177,7 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 		}
 		if prefill != nil {
 			if seed := prefill(); seed != nil {
-				sourceID.Set(seed.SourceID)
-				periodID.Set(seed.PeriodID)
-				start.Set(seed.Start)
-				end.Set(seed.End)
-				amount.Set(strconv.FormatFloat(seed.Amount, 'f', -1, 64))
-				unit.Set(seed.Unit)
-				fuel.Set(seed.FuelCode)
-				notes.Set(seed.Notes)
-				routingOrigin.Set(seed.RoutingOrigin)
-				routingDestination.Set(seed.RoutingDestination)
-				routingStage.Set(seed.RoutingStage)
-				travelMode.Set(seed.TravelMode)
-				routingResult.Set("")
-				routingFailed.Set(false)
-				loadEFs(seed.SourceID)
-				open.Set(true)
+				applySeed(seed)
 				return
 			}
 		}
@@ -1178,10 +1249,7 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 		}
 		var extractionBefore *store.Extraction
 		if current == nil {
-			var seed *activityPrefill
-			if prefill != nil {
-				seed = prefill()
-			}
+			seed := seedFn()
 			if seed != nil {
 				input.ExtractionID = seed.ExtractionID
 				input.EvidenceDocumentID = seed.EvidenceDocumentID
@@ -1249,8 +1317,198 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 			Label: locales.ActivitiesFormEf(cx), TestID: prefix + "-ef", Searchable: true,
 			SearchPlaceholder: locales.ActivitiesSearchPlaceholder(cx)}
 	}
+	selectRec := func(ef store.EmissionFactor) {
+		key := dataEFKey(ef)
+		found := false
+		for _, item := range efOptions.Get() {
+			if dataEFKey(item) == key {
+				found = true
+				break
+			}
+		}
+		if !found {
+			next := append(append([]store.EmissionFactor(nil), efOptions.Get()...), ef)
+			efOptions.Set(next)
+		}
+		efKey.Set(key)
+	}
+	recommendations := core.Dynamic(func(cx *core.Scope) core.Node {
+		list := recs.Get()
+		if !recBusy.Get() && len(list) == 0 && recStatus.Get() == "" {
+			return core.View{}
+		}
+		children := []core.Node{
+			core.Text{Content: locales.ActivitiesRecommendHeading(cx),
+				Style: core.Style{FontSize: 12, FontWeight: ui.Semibold}},
+		}
+		if recBusy.Get() {
+			children = append(children, core.Text{Content: locales.ActivitiesRecommendLoading(cx),
+				Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2})
+		}
+		if recStatus.Get() != "" {
+			children = append(children, core.Text{Content: recStatus.Get(),
+				Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3})
+		}
+		for i := range list {
+			index := i
+			item := list[i]
+			name := item.EF.NameEN
+			if name == "" {
+				name = item.EF.NameZH
+			}
+			if name == "" {
+				name = item.EF.FactorCode
+			}
+			children = append(children, core.View{
+				Role: core.RoleButton,
+				OnPress: func(core.PressEvent) {
+					selectRec(item.EF)
+				},
+				TestID: fmt.Sprintf("%s-ef-recommend-%d", prefix, index),
+				Style: core.Style{Direction: core.Row, AlignItems: core.AlignStart, Gap: 8,
+					Padding: core.All(8), CornerRadius: 6},
+				StyleFunc: func() core.Style {
+					return core.Style{Background: ui.ColorsOf(cx).Raised()}
+				},
+				Children: []core.Node{
+					ui.Icon(lucide.Star, 13, ui.ColorsOf(cx).Accent),
+					core.View{Style: core.Style{Gap: 2, FlexGrow: 1}, Children: []core.Node{
+						core.Text{Content: name + " · " + commaFloat(item.EF.CO2eKgPerUnit) + " kgCO2e/" +
+							item.EF.InputUnit, Style: core.Style{FontSize: 12}, MaxLines: 1},
+						core.Text{Content: item.Reasoning, Style: core.Style{FontSize: 11},
+							StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2},
+					}},
+				},
+			})
+		}
+		return core.View{Style: core.Style{Gap: 6, Padding: core.All(10), CornerRadius: 8,
+			BorderWidth: 1}, StyleFunc: func() core.Style {
+			return core.Style{Background: ui.ColorsOf(cx).Inset(),
+				BorderColor: ui.ColorsOf(cx).Accent()}
+		}, Children: children}
+	})
 
-	form := &activityForm{open: open, show: show}
+	dropzone := core.Node(core.View{})
+	if withDropzone {
+		dropStatus := core.NewSignal(cx, "")
+		dropFailed := core.NewSignal(cx, false)
+		dropBusy := core.NewSignal(cx, false)
+		dropHover := core.NewSignal(cx, false)
+		runFile := func(file core.File) {
+			if dropBusy.Get() {
+				return
+			}
+			if !strings.HasSuffix(strings.ToLower(file.Name), ".pdf") {
+				dropFailed.Set(true)
+				dropStatus.Set(locales.ActivitiesDropPdfOnly(cx))
+				return
+			}
+			provider := s.llmProvider(cx)
+			if !provider.Configured() {
+				dropFailed.Set(true)
+				dropStatus.Set(locales.DocumentsExtractionNotConfigured(cx))
+				return
+			}
+			dropBusy.Set(true)
+			dropFailed.Set(false)
+			dropStatus.Set(locales.ActivitiesDropWorking(cx))
+			go func() {
+				document, err := s.saveUploadedDocument(file)
+				var row *store.Extraction
+				if err == nil {
+					service := &extraction.Service{Store: s.db, DataDir: s.dataDir,
+						Provider: provider, NewClient: newExtractor}
+					row, _, err = service.ClassifyAndRun(context.Background(), document.ID)
+				}
+				s.scope.Post(func() {
+					dropBusy.Set(false)
+					if document != nil {
+						_ = dataRefresh(s, dataRev)
+					}
+					if err != nil {
+						dropFailed.Set(true)
+						dropStatus.Set(extractionErrorText(cx, err))
+						return
+					}
+					seed := s.extractionPrefill(*document, row)
+					if seed == nil {
+						dropFailed.Set(true)
+						dropStatus.Set(locales.ActivitiesDropUnsupported(cx))
+						return
+					}
+					dropped = seed
+					applySeed(seed)
+					dropFailed.Set(false)
+					dropStatus.Set(locales.ActivitiesDropDone(cx, document.Filename))
+				})
+			}()
+		}
+		pick := func() {
+			cx.PickFiles(core.PickFilesOptions{
+				Types:  []string{".pdf"},
+				Title:  locales.ActivitiesDropPick(cx),
+				Button: locales.ActivitiesDropPick(cx),
+			}, func(files []core.File, err error) {
+				if err != nil {
+					dropFailed.Set(true)
+					dropStatus.Set(err.Error())
+					return
+				}
+				if len(files) == 0 {
+					return
+				}
+				runFile(files[0])
+			})
+		}
+		dropzone = core.View{
+			TestID: "activity-dropzone",
+			OnFileDrop: func(uris []string) {
+				if len(uris) == 0 {
+					return
+				}
+				file, err := core.FileFromURL(uris[0])
+				if err != nil {
+					dropFailed.Set(true)
+					dropStatus.Set(err.Error())
+					return
+				}
+				runFile(file)
+			},
+			OnFileDragEnter: func() { dropHover.Set(true) },
+			OnFileDragLeave: func() { dropHover.Set(false) },
+			Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 10,
+				Padding: core.All(12), CornerRadius: 8, BorderWidth: 1, BorderStyle: core.BorderDashed},
+			StyleFunc: func() core.Style {
+				colors := ui.ColorsOf(cx)
+				style := core.Style{Background: colors.Inset(), BorderColor: colors.Border()}
+				if dropHover.Get() {
+					style.BorderColor = colors.Accent()
+				}
+				return style
+			},
+			Children: []core.Node{
+				ui.Icon(lucide.CloudUpload, 16, ui.ColorsOf(cx).Muted),
+				core.View{Style: core.Style{Gap: 2, FlexGrow: 1}, Children: []core.Node{
+					core.Text{ContentFunc: func() string { return locales.ActivitiesDropHint(cx) },
+						Style: core.Style{FontSize: 12}},
+					core.Show{When: func() bool { return dropStatus.Get() != "" },
+						Then: func(cx *core.Scope) core.Node {
+							return core.Text{ContentFunc: func() string { return dropStatus.Get() },
+								Style: core.Style{FontSize: 11}, MaxLines: 2, StyleFunc: func() core.Style {
+									if dropFailed.Get() {
+										return ui.Colored(ui.ColorsOf(cx).Danger)()
+									}
+									return ui.Colored(ui.ColorsOf(cx).Muted)()
+								}}
+						}},
+				}},
+				ui.Button{Text: locales.ActivitiesDropPick(cx), Variant: ui.ButtonSecondary,
+					Busy: dropBusy.Get, OnPress: pick, TestID: "activity-drop-pick"},
+			},
+		}
+	}
+
+	form := &activityForm{open: open, show: show, applySeed: applySeed}
 	form.dialog = dataDialog(cx, open, title(cx), []core.Node{
 		core.Dynamic(func(cx *core.Scope) core.Node {
 			if form.guide == nil {
@@ -1258,6 +1516,7 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 			}
 			return form.guide.node(s, func() bool { return true })
 		}),
+		dropzone,
 		dataField(cx, locales.ActivitiesFormSource(cx),
 			ui.Select[string]{Options: sourceOptions, Value: sourceID.Get,
 				OnChange:    func(v string) { sourceID.Set(v); loadEFs(v) },
@@ -1333,6 +1592,7 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 						}},
 				}}
 		}},
+		recommendations,
 		core.Dynamic(efSelect),
 		core.View{Style: core.Style{Direction: core.Row, Gap: 8}, Children: []core.Node{
 			core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{dataField(cx,
@@ -1379,6 +1639,18 @@ func (s *Session) activityByID(id string) *store.Activity {
 	for i := range s.activities {
 		if s.activities[i].ID == id {
 			return &s.activities[i]
+		}
+	}
+	return nil
+}
+
+func (s *Session) sourceByID(id string) *store.EmissionSource {
+	if id == "" {
+		return nil
+	}
+	for i := range s.sources {
+		if s.sources[i].ID == id {
+			return &s.sources[i]
 		}
 	}
 	return nil

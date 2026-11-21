@@ -117,10 +117,24 @@ func (s *Session) documentsScreen(cx *core.Scope, dataRev *core.Signal[int]) cor
 		func() *activityPrefill { return detail.prefill },
 		locales.DocumentsReviewConfirm, locales.DocumentsReviewConfirm,
 		"documents-extraction-activity",
-		func() { s.afterExtractionActivity(cx, detail) })
+		func() { s.afterExtractionActivity(cx, detail) }, false)
 	detail.openForm = extractionForm.show
 	return core.View{
-		Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
+		TestID: "documents-drop",
+		Style:  core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
+		OnFileDrop: func(uris []string) {
+			files := make([]core.File, 0, len(uris))
+			for _, uri := range uris {
+				file, err := core.FileFromURL(uri)
+				if err != nil {
+					status.Set(locales.DocumentsUploadFailed(cx) + ": " + err.Error())
+					statusFailed.Set(true)
+					continue
+				}
+				files = append(files, file)
+			}
+			s.uploadFiles(cx, dataRev, status, statusFailed, files)
+		},
 		Children: []core.Node{
 			core.Scroll{
 				Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
@@ -1192,48 +1206,63 @@ func (s *Session) uploadDocuments(cx *core.Scope, dataRev *core.Signal[int],
 		if len(files) == 0 {
 			return
 		}
-		ok, failed := 0, 0
-		for _, file := range files {
-			if err := s.saveUploadedDocument(file); err != nil {
-				failed++
-				s.log.Warn("document upload failed", "file", file.Name, "err", err)
-				continue
-			}
-			ok++
-		}
-		if err := dataRefresh(s, dataRev); err != nil {
-			status.Set(locales.DocumentsUploadFailed(cx) + ": " + err.Error())
-			statusFailed.Set(true)
-			return
-		}
-		status.Set(locales.DocumentsUploadSummary(cx, strconv.Itoa(ok), strconv.Itoa(failed)))
-		statusFailed.Set(failed > 0)
+		s.uploadFiles(cx, dataRev, status, statusFailed, files)
 	})
 }
 
-func (s *Session) saveUploadedDocument(file core.File) error {
+// uploadFiles saves a picker or drop batch and reports the outcome.
+func (s *Session) uploadFiles(cx *core.Scope, dataRev *core.Signal[int],
+	status *core.Signal[string], statusFailed *core.Signal[bool], files []core.File) {
+	if len(files) == 0 {
+		return
+	}
+	ok, failed := s.saveUploadedFiles(files)
+	if err := dataRefresh(s, dataRev); err != nil {
+		status.Set(locales.DocumentsUploadFailed(cx) + ": " + err.Error())
+		statusFailed.Set(true)
+		return
+	}
+	status.Set(locales.DocumentsUploadSummary(cx, strconv.Itoa(ok), strconv.Itoa(failed)))
+	statusFailed.Set(failed > 0)
+}
+
+// saveUploadedFiles writes a batch and returns how many succeeded and failed.
+func (s *Session) saveUploadedFiles(files []core.File) (int, int) {
+	ok, failed := 0, 0
+	for _, file := range files {
+		if _, err := s.saveUploadedDocument(file); err != nil {
+			failed++
+			s.log.Warn("document upload failed", "file", file.Name, "err", err)
+			continue
+		}
+		ok++
+	}
+	return ok, failed
+}
+
+func (s *Session) saveUploadedDocument(file core.File) (*store.Document, error) {
 	if file.Size > store.MaxDocumentBytes {
-		return fmt.Errorf("document exceeds %d bytes", store.MaxDocumentBytes)
+		return nil, fmt.Errorf("document exceeds %d bytes", store.MaxDocumentBytes)
 	}
 	reader, err := file.Open()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer reader.Close()
 	data, err := io.ReadAll(io.LimitReader(reader, store.MaxDocumentBytes+1))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	mimeType := uploadedDocumentMIME(file)
 	if mimeType == "" {
-		return fmt.Errorf("unsupported document type")
+		return nil, fmt.Errorf("unsupported document type")
 	}
-	_, _, err = s.db.SaveDocument(context.Background(), store.DocumentInput{
+	document, _, err := s.db.SaveDocument(context.Background(), store.DocumentInput{
 		Filename: file.Name,
 		MIMEType: mimeType,
 		Data:     data,
 	}, s.dataDir)
-	return err
+	return document, err
 }
 
 func (s *Session) openDocument(cx *core.Scope, document store.Document,

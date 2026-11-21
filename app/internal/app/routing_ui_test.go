@@ -64,7 +64,7 @@ func routingFormRoot(seed *activityPrefill, session **Session) func(*core.Scope)
 		rev := core.NewSignal(cx, 0)
 		form := s.newActivityForm(cx, rev, func() *store.Activity { return nil },
 			func() *activityPrefill { return seed },
-			locales.DataAddActivity, locales.DataCreate, "test-activity", nil)
+			locales.DataAddActivity, locales.DataCreate, "test-activity", nil, false)
 		return core.View{Children: []core.Node{
 			ui.Button{Text: "Open", OnPress: form.show, TestID: "open-activity"},
 			form.dialog,

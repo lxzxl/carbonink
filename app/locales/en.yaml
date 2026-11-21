@@ -11,6 +11,12 @@ activitiesCreateFailed: Failed to create activity
 activitiesCreateSuccess: Activity recorded
 activitiesEmpty: No activity data yet.
 activitiesEmptyBody: Record the consumption behind each source — a meter reading, a fuel receipt, a trip. Drop in a PDF and the fields get filled in for you.
+activitiesDropDone: Filled from {filename}
+activitiesDropHint: Drop a bill or receipt here, or choose a PDF — CarbonInk reads it and fills this form.
+activitiesDropPdfOnly: Only PDF documents can be read here.
+activitiesDropPick: Choose PDF
+activitiesDropUnsupported: This document type cannot prefill an activity.
+activitiesDropWorking: Reading the document…
 activitiesEmptyNoSourcesBody: Activity data hangs off an emission source, and this organization has none yet. Set one up and you can start recording consumption here.
 activitiesEmptyNoSourcesCta: Set up emission sources
 activitiesEmptyNoSourcesTitle: Add an emission source first
@@ -43,6 +49,10 @@ activitiesFromDocument: From {filename}
 activitiesFromLedgerImport: Ledger import
 activitiesFromSupplierDisclosure: From supplier disclosure
 activitiesLoadFailed: Failed to load activities
+activitiesRecommendEmpty: The model did not return a recommendation; the full list below still applies.
+activitiesRecommendFailed: Could not rank factors; the full list below still applies.
+activitiesRecommendHeading: Recommended factors
+activitiesRecommendLoading: Ranking the closest factors…
 activitiesSearchPlaceholder: Search source, unit, or EF
 activitiesSortCo2eAsc: CO₂e low → high
 activitiesSortCo2eDesc: CO₂e high → low
