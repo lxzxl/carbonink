@@ -1132,6 +1132,12 @@ settingsThemeLight: Light
 settingsThemeSystem: System
 settingsTitle: Settings
 settingsWindowNote: The window frame is saved when you quit.
+
+commandSearch: Search commands
+commandGoTo: Go to
+commandFiles: Files
+commandRevealData: Reveal data directory
+commandRevealWorkspace: Reveal workspace database
 settingsWorkspace: Workspace
 sidebarMcpLabelAvailable: MCP
 sidebarMcpLabelNotBuilt: MCP · Not built

@@ -114,7 +114,7 @@ jobs:
         run: go vet ./...
 
       - name: Test pure-Go packages
-        run: go test ./internal/llm ./internal/platform ./internal/store ./internal/workspace ./internal/spike
+        run: go test ./internal/backup ./internal/llm ./internal/platform ./internal/prefs ./internal/store ./internal/workspace ./internal/spike
 
       - name: Cross-compile the Linux backend
         run: go build ./...

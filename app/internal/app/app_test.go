@@ -46,6 +46,18 @@ func TestSettingsSwitchThemeAndLanguage(t *testing.T) {
 	ui.WaitFor("text:活动数据", 2*time.Second)
 }
 
+// TestCommandPalette opens the palette, searches, and runs a screen command.
+func TestCommandPalette(t *testing.T) {
+	t.Setenv("CARBONINK_TEST_DB", fixtureDB(t))
+	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
+		nsgotest.Environment(core.Environment{Locale: "en-US"}))
+	ui.Press("id:open-command-palette")
+	ui.WaitFor("id:command-palette", 2*time.Second)
+	ui.Type("id:command-palette >> role:textbox", "settings")
+	ui.Key("enter")
+	ui.WaitFor("text:Appearance", 2*time.Second)
+}
+
 func fixtureDB(t *testing.T) string {
 	t.Helper()
 	ctx := context.Background()

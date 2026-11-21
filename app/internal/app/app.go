@@ -10,7 +10,9 @@ import (
 	"path/filepath"
 	"sort"
 	"strconv"
+	"time"
 
+	"app.carbonink.desktop/internal/backup"
 	"app.carbonink.desktop/internal/platform"
 	"app.carbonink.desktop/internal/prefs"
 	"app.carbonink.desktop/internal/store"
@@ -45,15 +47,20 @@ type Session struct {
 	imported   bool
 	prefsPath  string
 	settings   prefs.Settings
+	log        *platform.Logger
 }
 
 // Root opens the active workspace and returns the shell. It is the app's
 // first screen.
 func Root(cx *core.Scope) core.Node {
-	s, err := open(cx)
+	log := platform.NewLogger(cx.LogsDir())
+	s, err := open(cx, log)
 	if err != nil {
+		log.Error("open workspace failed", "err", err)
+		_ = log.Close()
 		return errorView(cx, err)
 	}
+	log.Info("workspace ready", "name", s.workspace.Name, "file", s.workspace.File, "imported", s.imported)
 	if s.settings.Locale != "" {
 		cx.SetLocale(s.settings.Locale)
 	}
@@ -64,14 +71,16 @@ func Root(cx *core.Scope) core.Node {
 			X: float32(f.X), Y: float32(f.Y), Width: float32(f.Width), Height: float32(f.Height),
 		}
 		_ = prefs.Save(s.prefsPath, s.settings)
+		log.Info("quit", "window", fmt.Sprintf("%.0fx%.0f", f.Width, f.Height))
+		_ = log.Close()
 		_ = s.db.Close()
 	})
 	return s.view(cx)
 }
 
-func open(cx *core.Scope) (*Session, error) {
+func open(cx *core.Scope, log *platform.Logger) (*Session, error) {
 	ctx := context.Background()
-	s := &Session{}
+	s := &Session{log: log}
 	s.prefsPath = prefs.Path(cx.DataDir())
 	if settings, err := prefs.Load(s.prefsPath); err == nil {
 		s.settings = settings
@@ -100,14 +109,22 @@ func open(cx *core.Scope) (*Session, error) {
 		return nil, err
 	}
 	s.db = db
-	if _, err := db.Migrate(ctx); err != nil {
+	applied, err := db.Migrate(ctx)
+	if err != nil {
 		db.Close()
 		return nil, fmt.Errorf("migrate %s: %w", path, err)
 	}
+	log.Info("migrations applied", "count", applied)
 	s.activities, err = db.Activities(ctx, 5000)
 	if err != nil {
 		db.Close()
 		return nil, fmt.Errorf("read activities: %w", err)
+	}
+	log.Info("activities loaded", "count", len(s.activities))
+	if dest, err := backup.Run(ctx, db, cx.DataDir(), s.workspace.ID, time.Now()); err != nil {
+		log.Warn("auto backup failed", "err", err)
+	} else if dest != "" {
+		log.Info("auto backup", "path", dest)
 	}
 	return s, nil
 }
@@ -130,6 +147,8 @@ var screens = []screenInfo{
 func (s *Session) view(cx *core.Scope) core.Node {
 	active := core.NewSignal(cx, ScreenActivities)
 	open := core.NewSignal(cx, true)
+	paletteOpen := core.NewSignal(cx, false)
+	cx.OnKey("mod+k", func() { paletteOpen.Set(true) })
 
 	byID := func(id Screen) screenInfo {
 		for _, sc := range screens {
@@ -146,6 +165,9 @@ func (s *Session) view(cx *core.Scope) core.Node {
 				Style: core.Style{FontSize: 15, FontWeight: ui.Bold}},
 			core.Text{ContentFunc: func() string { return locales.WorkspaceActive(cx) + " · " + s.workspace.Name },
 				Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
+		}},
+		core.View{Style: core.Style{Padding: core.Symmetric(0, 10)}, Children: []core.Node{
+			paletteButton(cx, func() { paletteOpen.Set(true) }),
 		}},
 		navSection(cx, locales.NavOverview),
 	}
@@ -177,6 +199,7 @@ func (s *Session) view(cx *core.Scope) core.Node {
 			return id != ScreenActivities && id != ScreenSettings
 		},
 			Then: func(cx *core.Scope) core.Node { return placeholder(cx) }},
+		s.commandDialog(cx, paletteOpen, active),
 	}
 
 	return ui.SidebarShell{

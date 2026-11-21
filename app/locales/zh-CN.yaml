@@ -1131,6 +1131,12 @@ settingsThemeLight: 浅色
 settingsThemeSystem: 跟随系统
 settingsTitle: 设置
 settingsWindowNote: 退出时会保存窗口位置与大小。
+
+commandSearch: 搜索命令
+commandGoTo: 前往
+commandFiles: 文件
+commandRevealData: 打开数据目录
+commandRevealWorkspace: 打开账套数据库
 settingsWorkspace: 账套
 sidebarMcpLabelAvailable: MCP
 sidebarMcpLabelNotBuilt: MCP·未构建

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/fs"
 	"net/url"
+	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -176,6 +177,26 @@ func (s *Store) ActivityCount(ctx context.Context) (int, error) {
 	var n int
 	err := s.db.QueryRowContext(ctx, `SELECT count(*) FROM activity_data`).Scan(&n)
 	return n, err
+}
+
+// Backup writes a consistent snapshot to dest with VACUUM INTO. The
+// destination must not exist; the snapshot includes every table, index and
+// FTS shadow table.
+func (s *Store) Backup(ctx context.Context, dest string) error {
+	if err := os.MkdirAll(filepath.Dir(dest), 0o700); err != nil {
+		return err
+	}
+	if _, err := os.Stat(dest); err == nil {
+		return fmt.Errorf("backup %s already exists", dest)
+	}
+	q := `VACUUM INTO '` + strings.ReplaceAll(dest, "'", "''") + `'`
+	if _, err := s.db.ExecContext(ctx, q); err != nil {
+		return fmt.Errorf("vacuum into %s: %w", dest, err)
+	}
+	if err := os.Chmod(dest, 0o600); err != nil {
+		return fmt.Errorf("chmod backup: %w", err)
+	}
+	return nil
 }
 
 type migration struct {

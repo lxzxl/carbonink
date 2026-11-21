@@ -1335,6 +1335,11 @@ const (
 	textSettingsThemeSystem
 	textSettingsTitle
 	textSettingsWindowNote
+	textCommandSearch
+	textCommandGoTo
+	textCommandFiles
+	textCommandRevealData
+	textCommandRevealWorkspace
 	textSettingsWorkspace
 	textSidebarMcpLabelAvailable
 	textSidebarMcpLabelNotBuilt
@@ -2440,6 +2445,11 @@ var keyOfText = [numTexts]string{
 	"settingsThemeSystem",
 	"settingsTitle",
 	"settingsWindowNote",
+	"commandSearch",
+	"commandGoTo",
+	"commandFiles",
+	"commandRevealData",
+	"commandRevealWorkspace",
 	"settingsWorkspace",
 	"sidebarMcpLabelAvailable",
 	"sidebarMcpLabelNotBuilt",
@@ -3543,6 +3553,11 @@ var textsEn = i18n.NewTexts(""+
 	"System"+
 	"Settings"+
 	"The window frame is saved when you quit."+
+	"Search commands"+
+	"Go to"+
+	"Files"+
+	"Reveal data directory"+
+	"Reveal workspace database"+
 	"Workspace"+
 	"MCP"+
 	"MCP · Not built"+
@@ -4643,6 +4658,11 @@ var textsEn = i18n.NewTexts(""+
 		6,
 		8,
 		40,
+		15,
+		5,
+		5,
+		21,
+		25,
 		9,
 		3,
 		16,
@@ -5746,6 +5766,11 @@ var textsZhCN = i18n.NewTexts(""+
 	"跟随系统"+
 	"设置"+
 	"退出时会保存窗口位置与大小。"+
+	"搜索命令"+
+	"前往"+
+	"文件"+
+	"打开数据目录"+
+	"打开账套数据库"+
 	"账套"+
 	"MCP"+
 	"MCP·未构建"+
@@ -6846,6 +6871,11 @@ var textsZhCN = i18n.NewTexts(""+
 		12,
 		6,
 		42,
+		12,
+		6,
+		6,
+		18,
+		21,
 		6,
 		3,
 		14,
@@ -18714,6 +18744,41 @@ func SettingsWindowNote(cx *core.Scope) string { return For(cx).SettingsWindowNo
 
 // SettingsWindowNote is the package's SettingsWindowNote in the language of msgs.
 func (msgs Messages) SettingsWindowNote() string { return msgs.text(textSettingsWindowNote) }
+
+// CommandSearch says "Search commands"
+// in the language the app shows under cx.
+func CommandSearch(cx *core.Scope) string { return For(cx).CommandSearch() }
+
+// CommandSearch is the package's CommandSearch in the language of msgs.
+func (msgs Messages) CommandSearch() string { return msgs.text(textCommandSearch) }
+
+// CommandGoTo says "Go to"
+// in the language the app shows under cx.
+func CommandGoTo(cx *core.Scope) string { return For(cx).CommandGoTo() }
+
+// CommandGoTo is the package's CommandGoTo in the language of msgs.
+func (msgs Messages) CommandGoTo() string { return msgs.text(textCommandGoTo) }
+
+// CommandFiles says "Files"
+// in the language the app shows under cx.
+func CommandFiles(cx *core.Scope) string { return For(cx).CommandFiles() }
+
+// CommandFiles is the package's CommandFiles in the language of msgs.
+func (msgs Messages) CommandFiles() string { return msgs.text(textCommandFiles) }
+
+// CommandRevealData says "Reveal data directory"
+// in the language the app shows under cx.
+func CommandRevealData(cx *core.Scope) string { return For(cx).CommandRevealData() }
+
+// CommandRevealData is the package's CommandRevealData in the language of msgs.
+func (msgs Messages) CommandRevealData() string { return msgs.text(textCommandRevealData) }
+
+// CommandRevealWorkspace says "Reveal workspace database"
+// in the language the app shows under cx.
+func CommandRevealWorkspace(cx *core.Scope) string { return For(cx).CommandRevealWorkspace() }
+
+// CommandRevealWorkspace is the package's CommandRevealWorkspace in the language of msgs.
+func (msgs Messages) CommandRevealWorkspace() string { return msgs.text(textCommandRevealWorkspace) }
 
 // SettingsWorkspace says "Workspace"
 // in the language the app shows under cx.

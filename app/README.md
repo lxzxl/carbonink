@@ -32,6 +32,8 @@ Root shortcuts: `pnpm app:dev`, `pnpm app:test`, `pnpm app:build`.
 | `internal/app` | Shell, navigation, activity table |
 | `internal/workspace` | `workspaces.json`, active workspace, legacy import |
 | `internal/store` | SQLite open, migrations, activity queries |
+| `internal/backup` | Daily `VACUUM INTO` snapshots, 7 per workspace |
+| `internal/prefs` | Theme, language, window frame (`settings.json`) |
 | `internal/platform` | Legacy Electron path discovery |
 | `locales/` | NSGo ICU catalogs (`en`, `zh-CN`) + generated Go |
 | `internal/spike` | Phase 0 harness, kept as reference; not wired into the app |
@@ -55,6 +57,10 @@ CarbonInk 1.x before the first 2.0 launch so the copied database is consistent.
 `CARBONINK_TEST_DB` opens one database directly and skips the registry; the
 headless UI test uses it for a fixture workspace.
 
+Logs are JSON lines in `cx.LogsDir()` (`~/Library/Logs/app.carbonink.desktop.beta`
+on macOS), rotated at 5 MB. On startup the app keeps at most seven daily
+snapshots under `<data>/auto-backups/<workspace_id>/`, using the 1.x file name.
+
 ## Phase 1 status
 
 - Workspace registry, active workspace, one-time legacy import: done
@@ -63,7 +69,9 @@ headless UI test uses it for a fixture workspace.
 - NSGo catalogs with en + zh-CN, including all 1,206 Electron keys
   (`go run ./cmd/genlocales`): done
 - Theme switch, locale switch, window-frame restore: done
-- Command palette, signing/notarization, update appcast: pending
+- Command palette (`mod+k`) with screen and file commands: done
+- JSON logging and daily auto-backup: done
+- Signing/notarization and the update appcast: pending
 
 ## Phase 0 results (2026-11-19, macOS 15.8.3 arm64)
 
