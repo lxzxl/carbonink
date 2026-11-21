@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -126,6 +127,49 @@ func TestImportActivitiesThroughUI(t *testing.T) {
 	ui.Press("id:activity-import-done")
 	ui.WaitFor("text:5.59", 3*time.Second)
 	ui.WaitFor("text:11.17", 3*time.Second)
+}
+
+// TestImportActivitiesWithManualMapping starts from a ledger whose headers
+// auto-map only partially, remaps the remaining columns, and imports the row.
+func TestImportActivitiesWithManualMapping(t *testing.T) {
+	t.Setenv("CARBONINK_TEST_DB", fixtureDB(t))
+	csvPath := filepath.Join(t.TempDir(), "ledger.csv")
+	const ledger = "Facility,Memo,Qty,UOM,When\n" +
+		"外购电力,Office power,10,kWh,2025-03-01\n"
+	if err := os.WriteFile(csvPath, []byte(ledger), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
+		nsgotest.Environment(core.Environment{Locale: "en-US"}))
+	ui.PickFiles = func(core.FilesRequest) []core.File {
+		return []core.File{{Name: "ledger.csv", Path: csvPath}}
+	}
+	ui.WaitFor("id:activities-table", 5*time.Second)
+	ui.Press("id:activity-import")
+	ui.WaitFor("id:activity-import-dialog", 2*time.Second)
+	ui.Press("id:activity-import-pick")
+	ui.WaitFor("text:1 data rows", 3*time.Second)
+	ui.WaitFor("text:0 valid", 2*time.Second)
+
+	remap := func(field string, option int) {
+		ui.Press("id:activity-import-map-" + field)
+		selector := "id:activity-import-map-" + field + "-" + strconv.Itoa(option)
+		ui.WaitFor(selector, 2*time.Second)
+		ui.Press(selector)
+	}
+	remap("description", 2)
+	remap("unit", 4)
+	remap("occurred_at_start", 5)
+	ui.WaitFor("text:1 valid", 3*time.Second)
+
+	ui.Press("id:activity-import-next")
+	ui.WaitFor("text:Confirm emission factors by group", 3*time.Second)
+	ui.Press("id:activity-import-ef-0")
+	ui.Press("id:activity-import-ef-0-0")
+	ui.Press("id:activity-import-run")
+	ui.WaitFor("text:1 rows imported", 3*time.Second)
+	ui.Press("id:activity-import-done")
+	ui.WaitFor("text:5.59", 3*time.Second)
 }
 
 // TestImportEFLibraryThroughUI downloads the template, imports a factor

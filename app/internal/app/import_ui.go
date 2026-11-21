@@ -119,10 +119,13 @@ func (s *Session) activityImportDialog(cx *core.Scope, dataRev *core.Signal[int]
 		ui.Button{Text: locales.ActivityImportButton(cx), Variant: ui.ButtonSecondary,
 			OnPress: show, TestID: "activity-import"},
 		dataDialogSized(cx, open, title, []core.Node{
-			core.Dynamic(func(cx *core.Scope) core.Node {
-				_ = w.rev.Get()
-				return s.importBody(cx, w, pick)
-			}),
+			core.Scroll{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0),
+				MaxHeight: core.Pt(560)}, Children: []core.Node{
+				core.Dynamic(func(cx *core.Scope) core.Node {
+					_ = w.rev.Get()
+					return s.importBody(cx, w, pick)
+				}),
+			}},
 		}, []core.Node{
 			core.Dynamic(func(cx *core.Scope) core.Node {
 				_ = w.rev.Get()
@@ -195,7 +198,7 @@ func (s *Session) importPickBody(cx *core.Scope, w *importWizard, pick func()) c
 				Label:       locales.ActivityImportPeriodLabel(cx), TestID: "activity-import-period"}),
 		core.Text{Content: locales.ActivityImportPeriodHint(cx), Style: core.Style{FontSize: 11},
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
-		importMappingCard(cx, w),
+		s.importMappingCard(cx, w),
 		importSourcesCard(cx, s, w),
 		importIssuesCard(cx, w),
 		dataError(cx, w.status),
@@ -203,26 +206,76 @@ func (s *Session) importPickBody(cx *core.Scope, w *importWizard, pick func()) c
 	return core.View{Style: core.Style{Gap: 12}, Children: children}
 }
 
-func importMappingCard(cx *core.Scope, w *importWizard) core.Node {
+func (s *Session) importMappingCard(cx *core.Scope, w *importWizard) core.Node {
+	change := func(field activityimport.Field, col int) {
+		if w.grid == nil {
+			return
+		}
+		if col < 0 {
+			delete(w.mapping, field)
+		} else {
+			w.mapping[field] = col
+		}
+		w.valid = activityimport.Validate(w.grid.Rows, w.mapping,
+			s.importPeriodBounds(w.periodID.Get()))
+		w.sourceIDs = s.importSourceSignals(cx, w.valid)
+		w.groups = nil
+		w.outliers = nil
+		w.efOptions = map[string][]store.EmissionFactor{}
+		w.efKeys = map[string]*core.Signal[string]{}
+		w.fuels = map[string]*core.Signal[string]{}
+		w.rev.Set(w.rev.Get() + 1)
+	}
+	columnOptions := func() []ui.Option[string] {
+		options := make([]ui.Option[string], 0, len(w.grid.Headers)+1)
+		options = append(options, ui.Option[string]{Value: "",
+			Label: locales.ActivityImportUnmapped(cx)})
+		for col, header := range w.grid.Headers {
+			label := header
+			if strings.TrimSpace(label) == "" {
+				label = locales.ActivityImportColumnN(cx, strconv.Itoa(col+1))
+			}
+			options = append(options, ui.Option[string]{Value: strconv.Itoa(col), Label: label})
+		}
+		return options
+	}()
 	rows := make([]core.Node, 0, len(activityimport.AllFields))
 	for _, field := range activityimport.AllFields {
-		value := locales.ActivityImportUnmapped(cx)
-		missing := false
+		value := ""
 		if col, ok := w.mapping[field]; ok && col >= 0 && col < len(w.grid.Headers) {
-			value = w.grid.Headers[col]
-		} else {
-			missing = containsField(activityimport.RequiredFields, field)
+			value = strconv.Itoa(col)
+		}
+		labelChildren := []core.Node{
+			core.Text{Content: importFieldLabel(cx, field),
+				Style: core.Style{FontSize: 12, FontWeight: ui.Semibold}},
+		}
+		if containsField(activityimport.RequiredFields, field) {
+			labelChildren = append(labelChildren, core.Text{Content: "*",
+				Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)})
 		}
 		children := []core.Node{
-			core.Text{Content: importFieldLabel(cx, field), Style: core.Style{FontSize: 12, FontWeight: ui.Semibold}},
-			core.Text{Content: value, Style: core.Style{FontSize: 12},
-				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+			core.View{Style: core.Style{FlexGrow: 1, Direction: core.Row, AlignItems: core.AlignCenter, Gap: 4},
+				Children: labelChildren},
+			core.View{Style: core.Style{Width: core.Pt(240)}, Children: []core.Node{
+				ui.Select[string]{Options: columnOptions, Value: func() string { return value },
+					Placeholder: locales.ActivityImportUnmapped(cx),
+					Label:       importFieldLabel(cx, field),
+					TestID:      "activity-import-map-" + string(field),
+					OnChange: func(next string) {
+						if next == "" {
+							change(field, -1)
+							return
+						}
+						col, err := strconv.Atoi(next)
+						if err != nil {
+							return
+						}
+						change(field, col)
+					}},
+			}},
 		}
-		if missing {
-			children = append(children, core.Text{Content: locales.ActivityImportRequired(cx),
-				Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)})
-		}
-		rows = append(rows, core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8},
+		rows = append(rows, core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 10,
+			Padding: core.Symmetric(4, 0)},
 			Children: children})
 	}
 	return dataCard(cx,
