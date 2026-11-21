@@ -1191,6 +1191,15 @@ settingsMcpStatusNotInstalled: Not detected
 settingsMcpStepHelp: The Skill above tells agents WHEN to query CarbonInk. The MCP configuration below tells them HOW (which server, what tools).
 settingsMcpStepTitle: Step 2 · Configure MCP Clients
 settingsMcpTitle: MCP integration
+settingsMigrationAvailable: A CarbonInk 1.x data folder was found. Its workspaces are imported the first time the new app starts.
+settingsMigrationBackups: The 1.x files are copied, never moved. Backups and attachments are copied too, and the originals stay where they are.
+settingsMigrationCurrentPath: 'Current data folder: {path}'
+settingsMigrationImported: Imported from CarbonInk 1.x — this workspace now lives in the new data folder.
+settingsMigrationLegacyPath: 'CarbonInk 1.x data folder: {path}'
+settingsMigrationNone: No CarbonInk 1.x data folder was found on this computer.
+settingsMigrationRevealCurrent: Reveal current folder
+settingsMigrationRevealLegacy: Reveal 1.x folder
+settingsMigrationTitle: Migration from CarbonInk 1.x
 settingsModelCapabilityImage: Image
 settingsModelCapabilityReasoning: Reasoning
 settingsModelCustomHint: 'Custom id: not in the bundled catalog. Test the connection before saving.'

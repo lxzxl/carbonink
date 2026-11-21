@@ -1190,6 +1190,15 @@ settingsMcpStatusNotInstalled: 未检测到
 settingsMcpStepHelp: 上方的 Skill 告诉 agent **何时**该查询碳墨；下方的 MCP 配置告诉它**如何**查（用哪个 server、有哪些工具）。
 settingsMcpStepTitle: 步骤 2 · 配置 MCP 客户端
 settingsMcpTitle: MCP 集成
+settingsMigrationAvailable: 检测到 CarbonInk 1.x 数据目录，新版首次启动时已自动导入其中的账套。
+settingsMigrationBackups: 1.x 的文件是复制而不是移动，自动备份和附件一并复制，原文件仍保留在原处。
+settingsMigrationCurrentPath: 当前数据目录：{path}
+settingsMigrationImported: 已从 CarbonInk 1.x 导入——这个账套现在存放在新的数据目录中。
+settingsMigrationLegacyPath: CarbonInk 1.x 数据目录：{path}
+settingsMigrationNone: 这台电脑上没有找到 CarbonInk 1.x 数据目录。
+settingsMigrationRevealCurrent: 打开当前目录
+settingsMigrationRevealLegacy: 打开 1.x 目录
+settingsMigrationTitle: 从 CarbonInk 1.x 迁移
 settingsModelCapabilityImage: 图像
 settingsModelCapabilityReasoning: 推理
 settingsModelCustomHint: 自定义 id：不在内置目录中，保存前请先测试连接。

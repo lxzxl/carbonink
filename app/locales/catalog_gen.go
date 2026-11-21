@@ -176,6 +176,8 @@ var Parameters = map[string][]string{
 	"SettingsDataCacheExtractionSummary":      {"count", "size"},
 	"SettingsMcpConfigured":                   {"client"},
 	"SettingsMcpRemoved":                      {"client"},
+	"SettingsMigrationCurrentPath":            {"path"},
+	"SettingsMigrationLegacyPath":             {"path"},
 	"SettingsModelCustomOption":               {"id"},
 	"SettingsModelFetchFailed":                {"message"},
 	"SettingsProviderUnknownWarning":          {"provider"},
@@ -361,6 +363,8 @@ type Translation struct {
 	SettingsDataCacheExtractionSummary      func(count string, size string) string
 	SettingsMcpConfigured                   func(client string) string
 	SettingsMcpRemoved                      func(client string) string
+	SettingsMigrationCurrentPath            func(path string) string
+	SettingsMigrationLegacyPath             func(path string) string
 	SettingsModelCustomOption               func(id string) string
 	SettingsModelFetchFailed                func(message string) string
 	SettingsProviderUnknownWarning          func(provider string) string
@@ -1458,6 +1462,13 @@ const (
 	textSettingsMcpStepHelp
 	textSettingsMcpStepTitle
 	textSettingsMcpTitle
+	textSettingsMigrationAvailable
+	textSettingsMigrationBackups
+	textSettingsMigrationImported
+	textSettingsMigrationNone
+	textSettingsMigrationRevealCurrent
+	textSettingsMigrationRevealLegacy
+	textSettingsMigrationTitle
 	textSettingsModelCapabilityImage
 	textSettingsModelCapabilityReasoning
 	textSettingsModelCustomHint
@@ -2764,6 +2775,13 @@ var keyOfText = [numTexts]string{
 	"settingsMcpStepHelp",
 	"settingsMcpStepTitle",
 	"settingsMcpTitle",
+	"settingsMigrationAvailable",
+	"settingsMigrationBackups",
+	"settingsMigrationImported",
+	"settingsMigrationNone",
+	"settingsMigrationRevealCurrent",
+	"settingsMigrationRevealLegacy",
+	"settingsMigrationTitle",
 	"settingsModelCapabilityImage",
 	"settingsModelCapabilityReasoning",
 	"settingsModelCustomHint",
@@ -4068,6 +4086,13 @@ var textsEn = i18n.NewTexts(""+
 	"The Skill above tells agents WHEN to query CarbonInk. The MCP configuration below tells them HOW (which server, what tools)."+
 	"Step 2 · Configure MCP Clients"+
 	"MCP integration"+
+	"A CarbonInk 1.x data folder was found. Its workspaces are imported the first time the new app starts."+
+	"The 1.x files are copied, never moved. Backups and attachments are copied too, and the originals stay where they are."+
+	"Imported from CarbonInk 1.x — this workspace now lives in the new data folder."+
+	"No CarbonInk 1.x data folder was found on this computer."+
+	"Reveal current folder"+
+	"Reveal 1.x folder"+
+	"Migration from CarbonInk 1.x"+
 	"Image"+
 	"Reasoning"+
 	"Custom id: not in the bundled catalog. Test the connection before saving."+
@@ -5369,6 +5394,13 @@ var textsEn = i18n.NewTexts(""+
 		124,
 		31,
 		15,
+		101,
+		117,
+		80,
+		56,
+		21,
+		17,
+		28,
 		5,
 		9,
 		73,
@@ -6673,6 +6705,13 @@ var textsZhCN = i18n.NewTexts(""+
 	"上方的 Skill 告诉 agent **何时**该查询碳墨；下方的 MCP 配置告诉它**如何**查（用哪个 server、有哪些工具）。"+
 	"步骤 2 · 配置 MCP 客户端"+
 	"MCP 集成"+
+	"检测到 CarbonInk 1.x 数据目录，新版首次启动时已自动导入其中的账套。"+
+	"1.x 的文件是复制而不是移动，自动备份和附件一并复制，原文件仍保留在原处。"+
+	"已从 CarbonInk 1.x 导入——这个账套现在存放在新的数据目录中。"+
+	"这台电脑上没有找到 CarbonInk 1.x 数据目录。"+
+	"打开当前目录"+
+	"打开 1.x 目录"+
+	"从 CarbonInk 1.x 迁移"+
 	"图像"+
 	"推理"+
 	"自定义 id：不在内置目录中，保存前请先测试连接。"+
@@ -7974,6 +8013,13 @@ var textsZhCN = i18n.NewTexts(""+
 		142,
 		32,
 		10,
+		93,
+		106,
+		84,
+		57,
+		18,
+		17,
+		24,
 		6,
 		6,
 		69,
@@ -8681,6 +8727,12 @@ func Supply(lang string, t Translation) {
 	}
 	if t.SettingsMcpRemoved != nil {
 		s.SettingsMcpRemoved = t.SettingsMcpRemoved
+	}
+	if t.SettingsMigrationCurrentPath != nil {
+		s.SettingsMigrationCurrentPath = t.SettingsMigrationCurrentPath
+	}
+	if t.SettingsMigrationLegacyPath != nil {
+		s.SettingsMigrationLegacyPath = t.SettingsMigrationLegacyPath
 	}
 	if t.SettingsModelCustomOption != nil {
 		s.SettingsModelCustomOption = t.SettingsModelCustomOption
@@ -20671,6 +20723,117 @@ func SettingsMcpTitle(cx *core.Scope) string { return For(cx).SettingsMcpTitle()
 
 // SettingsMcpTitle is the package's SettingsMcpTitle in the language of msgs.
 func (msgs Messages) SettingsMcpTitle() string { return msgs.text(textSettingsMcpTitle) }
+
+// SettingsMigrationAvailable says "A CarbonInk 1.x data folder was found. Its workspaces are imported the first time the new app starts."
+// in the language the app shows under cx.
+func SettingsMigrationAvailable(cx *core.Scope) string { return For(cx).SettingsMigrationAvailable() }
+
+// SettingsMigrationAvailable is the package's SettingsMigrationAvailable in the language of msgs.
+func (msgs Messages) SettingsMigrationAvailable() string {
+	return msgs.text(textSettingsMigrationAvailable)
+}
+
+// SettingsMigrationBackups says "The 1.x files are copied, never moved. Backups and attachments are copied too, and the originals stay where they are."
+// in the language the app shows under cx.
+func SettingsMigrationBackups(cx *core.Scope) string { return For(cx).SettingsMigrationBackups() }
+
+// SettingsMigrationBackups is the package's SettingsMigrationBackups in the language of msgs.
+func (msgs Messages) SettingsMigrationBackups() string {
+	return msgs.text(textSettingsMigrationBackups)
+}
+
+// SettingsMigrationCurrentPath says "Current data folder: {path}"
+// in the language the app shows under cx.
+func SettingsMigrationCurrentPath(cx *core.Scope, path string) string {
+	return For(cx).SettingsMigrationCurrentPath(path)
+}
+
+// SettingsMigrationCurrentPath is the package's SettingsMigrationCurrentPath in the language of msgs.
+func (msgs Messages) SettingsMigrationCurrentPath(path string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SettingsMigrationCurrentPath(path))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SettingsMigrationCurrentPath; f != nil {
+			return f(path)
+		}
+		switch lang {
+		case "", "en":
+			return "Current data folder: " + msgs.arg(path)
+		case "zh-CN":
+			return "当前数据目录：" + path
+		}
+	}
+}
+
+// SettingsMigrationImported says "Imported from CarbonInk 1.x — this workspace now lives in the new data folder."
+// in the language the app shows under cx.
+func SettingsMigrationImported(cx *core.Scope) string { return For(cx).SettingsMigrationImported() }
+
+// SettingsMigrationImported is the package's SettingsMigrationImported in the language of msgs.
+func (msgs Messages) SettingsMigrationImported() string {
+	return msgs.text(textSettingsMigrationImported)
+}
+
+// SettingsMigrationLegacyPath says "CarbonInk 1.x data folder: {path}"
+// in the language the app shows under cx.
+func SettingsMigrationLegacyPath(cx *core.Scope, path string) string {
+	return For(cx).SettingsMigrationLegacyPath(path)
+}
+
+// SettingsMigrationLegacyPath is the package's SettingsMigrationLegacyPath in the language of msgs.
+func (msgs Messages) SettingsMigrationLegacyPath(path string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SettingsMigrationLegacyPath(path))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SettingsMigrationLegacyPath; f != nil {
+			return f(path)
+		}
+		switch lang {
+		case "", "en":
+			return "CarbonInk 1.x data folder: " + msgs.arg(path)
+		case "zh-CN":
+			return "CarbonInk 1.x 数据目录：" + path
+		}
+	}
+}
+
+// SettingsMigrationNone says "No CarbonInk 1.x data folder was found on this computer."
+// in the language the app shows under cx.
+func SettingsMigrationNone(cx *core.Scope) string { return For(cx).SettingsMigrationNone() }
+
+// SettingsMigrationNone is the package's SettingsMigrationNone in the language of msgs.
+func (msgs Messages) SettingsMigrationNone() string { return msgs.text(textSettingsMigrationNone) }
+
+// SettingsMigrationRevealCurrent says "Reveal current folder"
+// in the language the app shows under cx.
+func SettingsMigrationRevealCurrent(cx *core.Scope) string {
+	return For(cx).SettingsMigrationRevealCurrent()
+}
+
+// SettingsMigrationRevealCurrent is the package's SettingsMigrationRevealCurrent in the language of msgs.
+func (msgs Messages) SettingsMigrationRevealCurrent() string {
+	return msgs.text(textSettingsMigrationRevealCurrent)
+}
+
+// SettingsMigrationRevealLegacy says "Reveal 1.x folder"
+// in the language the app shows under cx.
+func SettingsMigrationRevealLegacy(cx *core.Scope) string {
+	return For(cx).SettingsMigrationRevealLegacy()
+}
+
+// SettingsMigrationRevealLegacy is the package's SettingsMigrationRevealLegacy in the language of msgs.
+func (msgs Messages) SettingsMigrationRevealLegacy() string {
+	return msgs.text(textSettingsMigrationRevealLegacy)
+}
+
+// SettingsMigrationTitle says "Migration from CarbonInk 1.x"
+// in the language the app shows under cx.
+func SettingsMigrationTitle(cx *core.Scope) string { return For(cx).SettingsMigrationTitle() }
+
+// SettingsMigrationTitle is the package's SettingsMigrationTitle in the language of msgs.
+func (msgs Messages) SettingsMigrationTitle() string { return msgs.text(textSettingsMigrationTitle) }
 
 // SettingsModelCapabilityImage says "Image"
 // in the language the app shows under cx.
