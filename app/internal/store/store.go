@@ -35,14 +35,26 @@ type Store struct {
 
 // Activity is one ledger row joined with the names its screen shows.
 type Activity struct {
-	ID         string
-	Site       string
-	Source     string
-	OccurredAt string
-	Amount     float64
-	Unit       string
-	CO2eKg     float64
-	Scope      int
+	ID                string
+	SiteID            string
+	Site              string
+	EmissionSourceID  string
+	Source            string
+	ReportingPeriodID string
+	OccurredAt        string
+	OccurredAtEnd     string
+	Amount            float64
+	Unit              string
+	EFFactorCode      string
+	EFYear            int
+	EFSource          string
+	EFGeography       string
+	EFDatasetVersion  string
+	CO2eKg            float64
+	ComputedAt        string
+	FuelCode          string
+	Notes             string
+	Scope             int
 }
 
 // Open opens path, registers FTS5 on every connection, and puts the database
@@ -142,29 +154,17 @@ func (s *Store) Activities(ctx context.Context, limit int) ([]Activity, error) {
 	if limit <= 0 {
 		limit = 100
 	}
-	rows, err := s.db.QueryContext(ctx, `
-		SELECT a.id,
-		       coalesce(nullif(s.name_zh, ''), nullif(s.name_en, ''), ''),
-		       es.name,
-		       a.occurred_at_start,
-		       a.amount,
-		       a.unit,
-		       a.computed_co2e_kg,
-		       es.scope
-		  FROM activity_data a
-		  JOIN site s            ON s.id = a.site_id
-		  JOIN emission_source es ON es.id = a.emission_source_id
-		 ORDER BY a.occurred_at_start DESC, a.id
-		 LIMIT ?`, limit)
+	rows, err := s.db.QueryContext(ctx, activitySelect+`
+		ORDER BY a.occurred_at_start DESC, a.id
+		LIMIT ?`, limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	var out []Activity
 	for rows.Next() {
-		var a Activity
-		if err := rows.Scan(&a.ID, &a.Site, &a.Source, &a.OccurredAt,
-			&a.Amount, &a.Unit, &a.CO2eKg, &a.Scope); err != nil {
+		a, err := scanActivity(rows)
+		if err != nil {
 			return nil, err
 		}
 		out = append(out, a)
