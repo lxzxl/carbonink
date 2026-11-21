@@ -41,11 +41,15 @@ type importWizard struct {
 	creatorStatus   *core.Signal[string]
 	creatorBusy     *core.Signal[bool]
 
-	groups    []activityimport.Group
-	outliers  []activityimport.Issue
-	efOptions map[string][]store.EmissionFactor
-	efKeys    map[string]*core.Signal[string]
-	fuels     map[string]*core.Signal[string]
+	groups   []activityimport.Group
+	outliers []activityimport.Issue
+	// outlierRatio is the per-workspace multiplier Settings exposes; it is
+	// fixed for one wizard run so a save elsewhere cannot shift warnings
+	// under the user.
+	outlierRatio float64
+	efOptions    map[string][]store.EmissionFactor
+	efKeys       map[string]*core.Signal[string]
+	fuels        map[string]*core.Signal[string]
 
 	failures []store.ImportFailure
 }
@@ -61,6 +65,7 @@ func (s *Session) activityImportDialog(cx *core.Scope, dataRev *core.Signal[int]
 		busy:            core.NewSignal(cx, false),
 		periodID:        core.NewSignal(cx, ""),
 		dataRev:         dataRev,
+		outlierRatio:    importOutlierRatio(context.Background(), s.db),
 		sourceIDs:       map[string]*core.Signal[string]{},
 		creatorName:     core.NewSignal(cx, ""),
 		creatorScope:    core.NewSignal(cx, 1),
@@ -663,7 +668,7 @@ func (s *Session) importPrepareGroups(cx *core.Scope, w *importWizard) {
 		return id
 	}
 	w.groups = activityimport.BuildGroups(resolved, nameOf)
-	w.outliers = activityimport.DetectOutliers(resolved, activityimport.OutlierRatio)
+	w.outliers = activityimport.DetectOutliers(resolved, w.outlierRatio)
 	w.efOptions = make(map[string][]store.EmissionFactor, len(w.groups))
 	w.efKeys = make(map[string]*core.Signal[string], len(w.groups))
 	w.fuels = make(map[string]*core.Signal[string], len(w.groups))

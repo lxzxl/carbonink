@@ -12,14 +12,17 @@ import (
 
 // Organization is the single organization a workspace belongs to.
 type Organization struct {
-	ID           string
-	NameZH       string
-	NameEN       string
-	Industry     string
-	CountryCode  string
-	BoundaryKind string
-	CreatedAt    string
-	UpdatedAt    string
+	ID               string
+	NameZH           string
+	NameEN           string
+	Industry         string
+	CountryCode      string
+	BoundaryKind     string
+	Responsible      string
+	ResponsibleRole  string
+	BaseYearPeriodID string
+	CreatedAt        string
+	UpdatedAt        string
 }
 
 // Site is one physical location in the organization.
@@ -103,11 +106,14 @@ type OnboardingInput struct {
 
 // OrganizationInput is the editable organization profile.
 type OrganizationInput struct {
-	NameZH       string
-	NameEN       string
-	Industry     string
-	CountryCode  string
-	BoundaryKind string
+	NameZH           string
+	NameEN           string
+	Industry         string
+	CountryCode      string
+	BoundaryKind     string
+	Responsible      string
+	ResponsibleRole  string
+	BaseYearPeriodID string
 }
 
 // SiteInput is the editable site profile.
@@ -165,21 +171,26 @@ type Summary struct {
 // onboarding.
 func (s *Store) CurrentOrganization(ctx context.Context) (*Organization, error) {
 	return organizationByQuery(ctx, s.db, `SELECT id, coalesce(name_zh, ''), coalesce(name_en, ''),
-		coalesce(industry, ''), country_code, boundary_kind, created_at, updated_at
+		coalesce(industry, ''), country_code, boundary_kind,
+		coalesce(responsible_person_name, ''), coalesce(responsible_person_role, ''),
+		coalesce(base_year_period_id, ''), created_at, updated_at
 		FROM organization ORDER BY created_at ASC, id ASC LIMIT 1`)
 }
 
 // OrganizationByID reads one organization.
 func (s *Store) OrganizationByID(ctx context.Context, id string) (*Organization, error) {
 	return organizationByQuery(ctx, s.db, `SELECT id, coalesce(name_zh, ''), coalesce(name_en, ''),
-		coalesce(industry, ''), country_code, boundary_kind, created_at, updated_at
+		coalesce(industry, ''), country_code, boundary_kind,
+		coalesce(responsible_person_name, ''), coalesce(responsible_person_role, ''),
+		coalesce(base_year_period_id, ''), created_at, updated_at
 		FROM organization WHERE id = ?`, id)
 }
 
 func organizationByQuery(ctx context.Context, q queryer, query string, args ...any) (*Organization, error) {
 	var o Organization
 	err := q.QueryRowContext(ctx, query, args...).Scan(&o.ID, &o.NameZH, &o.NameEN, &o.Industry,
-		&o.CountryCode, &o.BoundaryKind, &o.CreatedAt, &o.UpdatedAt)
+		&o.CountryCode, &o.BoundaryKind, &o.Responsible, &o.ResponsibleRole,
+		&o.BaseYearPeriodID, &o.CreatedAt, &o.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -243,9 +254,12 @@ func (s *Store) UpdateOrganization(ctx context.Context, id string, in Organizati
 		return err
 	}
 	result, err := s.db.ExecContext(ctx, `UPDATE organization
-		SET name_zh = ?, name_en = ?, industry = ?, country_code = ?, boundary_kind = ?, updated_at = ?
+		SET name_zh = ?, name_en = ?, industry = ?, country_code = ?, boundary_kind = ?,
+		    responsible_person_name = ?, responsible_person_role = ?, base_year_period_id = ?,
+		    updated_at = ?
 		WHERE id = ?`, nullIfEmpty(org.NameZH), nullIfEmpty(org.NameEN), nullIfEmpty(org.Industry),
-		org.CountryCode, org.BoundaryKind, now(), id)
+		org.CountryCode, org.BoundaryKind, nullIfEmpty(org.Responsible),
+		nullIfEmpty(org.ResponsibleRole), nullIfEmpty(org.BaseYearPeriodID), now(), id)
 	if err != nil {
 		return err
 	}
@@ -650,11 +664,14 @@ func (s *Store) Summary(ctx context.Context, organizationID string) (Summary, er
 
 func normalizeOrganization(in OrganizationInput) (OrganizationInput, error) {
 	out := OrganizationInput{
-		NameZH:       strings.TrimSpace(in.NameZH),
-		NameEN:       strings.TrimSpace(in.NameEN),
-		Industry:     strings.TrimSpace(in.Industry),
-		CountryCode:  strings.ToUpper(strings.TrimSpace(in.CountryCode)),
-		BoundaryKind: strings.TrimSpace(in.BoundaryKind),
+		NameZH:           strings.TrimSpace(in.NameZH),
+		NameEN:           strings.TrimSpace(in.NameEN),
+		Industry:         strings.TrimSpace(in.Industry),
+		CountryCode:      strings.ToUpper(strings.TrimSpace(in.CountryCode)),
+		BoundaryKind:     strings.TrimSpace(in.BoundaryKind),
+		Responsible:      strings.TrimSpace(in.Responsible),
+		ResponsibleRole:  strings.TrimSpace(in.ResponsibleRole),
+		BaseYearPeriodID: strings.TrimSpace(in.BaseYearPeriodID),
 	}
 	if out.NameZH == "" && out.NameEN == "" {
 		return out, errors.New("organization name is required")
@@ -668,8 +685,13 @@ func normalizeOrganization(in OrganizationInput) (OrganizationInput, error) {
 	if len(out.CountryCode) < 2 || len(out.CountryCode) > 3 {
 		return out, errors.New("country code must be 2 or 3 letters")
 	}
-	if out.BoundaryKind != "equity_share" && out.BoundaryKind != "operational_control" {
-		return out, errors.New("boundary must be equity_share or operational_control")
+	if len([]rune(out.Responsible)) > 255 || len([]rune(out.ResponsibleRole)) > 100 {
+		return out, errors.New("responsible person is too long")
+	}
+	switch out.BoundaryKind {
+	case "equity_share", "financial_control", "operational_control":
+	default:
+		return out, errors.New("boundary must be equity_share, financial_control or operational_control")
 	}
 	return out, nil
 }
@@ -678,14 +700,18 @@ func insertOrganization(ctx context.Context, q queryer, in OrganizationInput) (*
 	id := newID()
 	ts := now()
 	_, err := q.ExecContext(ctx, `INSERT INTO organization
-		(id, singleton_key, name_zh, name_en, industry, country_code, boundary_kind, created_at, updated_at)
-		VALUES (?, 1, ?, ?, ?, ?, ?, ?, ?)`, id, nullIfEmpty(in.NameZH), nullIfEmpty(in.NameEN),
-		nullIfEmpty(in.Industry), in.CountryCode, in.BoundaryKind, ts, ts)
+		(id, singleton_key, name_zh, name_en, industry, country_code, boundary_kind,
+		 responsible_person_name, responsible_person_role, base_year_period_id, created_at, updated_at)
+		VALUES (?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, id, nullIfEmpty(in.NameZH), nullIfEmpty(in.NameEN),
+		nullIfEmpty(in.Industry), in.CountryCode, in.BoundaryKind, nullIfEmpty(in.Responsible),
+		nullIfEmpty(in.ResponsibleRole), nullIfEmpty(in.BaseYearPeriodID), ts, ts)
 	if err != nil {
 		return nil, err
 	}
 	return &Organization{ID: id, NameZH: in.NameZH, NameEN: in.NameEN, Industry: in.Industry,
-		CountryCode: in.CountryCode, BoundaryKind: in.BoundaryKind, CreatedAt: ts, UpdatedAt: ts}, nil
+		CountryCode: in.CountryCode, BoundaryKind: in.BoundaryKind, Responsible: in.Responsible,
+		ResponsibleRole: in.ResponsibleRole, BaseYearPeriodID: in.BaseYearPeriodID,
+		CreatedAt: ts, UpdatedAt: ts}, nil
 }
 
 func normalizeSite(in SiteInput) (SiteInput, error) {

@@ -141,6 +141,48 @@ func TestDomainCRUD(t *testing.T) {
 	}
 }
 
+func TestOrganizationReportingProfile(t *testing.T) {
+	s, ctx := openFixture(t)
+	org, _, period := onboard(t, s, ctx)
+	if err := s.UpdateOrganization(ctx, org.ID, OrganizationInput{
+		NameZH: "测试组织", NameEN: "Test Org", Industry: "manufacturing",
+		CountryCode: "CN", BoundaryKind: "financial_control",
+		Responsible: "Li Wei", ResponsibleRole: "EHS Manager",
+		BaseYearPeriodID: period.ID,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.CurrentOrganization(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.BoundaryKind != "financial_control" || got.Responsible != "Li Wei" ||
+		got.ResponsibleRole != "EHS Manager" || got.BaseYearPeriodID != period.ID {
+		t.Fatalf("organization = %+v", got)
+	}
+
+	// Clearing the base year must persist as NULL, not an empty string.
+	if err := s.UpdateOrganization(ctx, org.ID, OrganizationInput{
+		NameZH: "测试组织", NameEN: "Test Org", Industry: "manufacturing",
+		CountryCode: "CN", BoundaryKind: "operational_control",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	got, err = s.CurrentOrganization(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Responsible != "" || got.ResponsibleRole != "" || got.BaseYearPeriodID != "" {
+		t.Fatalf("cleared organization = %+v", got)
+	}
+
+	if err := s.UpdateOrganization(ctx, org.ID, OrganizationInput{
+		NameZH: "测试组织", CountryCode: "CN", BoundaryKind: "not_a_boundary",
+	}); err == nil {
+		t.Fatal("UpdateOrganization accepted an unknown boundary")
+	}
+}
+
 func TestCreateActivityPinsComputesAuditsAndDeletes(t *testing.T) {
 	s, ctx := openFixture(t)
 	org, site, period := onboard(t, s, ctx)

@@ -93,12 +93,16 @@ func dataBoundaryOptions(cx *core.Scope) []ui.Option[string] {
 	return []ui.Option[string]{
 		{Value: "operational_control", Label: locales.OnboardingStepBoundaryOperationalControl(cx)},
 		{Value: "equity_share", Label: locales.OnboardingStepBoundaryEquityShare(cx)},
+		{Value: "financial_control", Label: locales.SettingsBoundaryFinancialControl(cx)},
 	}
 }
 
 func dataBoundaryLabel(cx *core.Scope, value string) string {
-	if value == "equity_share" {
+	switch value {
+	case "equity_share":
 		return locales.OnboardingStepBoundaryEquityShare(cx)
+	case "financial_control":
+		return locales.SettingsBoundaryFinancialControl(cx)
 	}
 	return locales.OnboardingStepBoundaryOperationalControl(cx)
 }
