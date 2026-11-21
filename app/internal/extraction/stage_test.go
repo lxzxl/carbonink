@@ -16,10 +16,24 @@ const validTravel = `{"doc_type":"travel","supplier_name":"中国铁路","mode":
 	"travel_class":"二等座","distance_km":null,"flight_or_train_no":"G102",
 	"vehicle_plate":null,"amount_yuan":553,"ticket_no":"E123456789","confidence":"high"}`
 
+const validFuelReceipt = `{"doc_type":"fuel_receipt","supplier_name":"中国石化北京加油站",
+	"fuel_type":"92#汽油","fuel_category":"gasoline","volume_l":38.5,
+	"unit_price_yuan":7.85,"amount_yuan":302.23,"occurred_at":"2026-04-15",
+	"license_plate":"京A12345","confidence":"high"}`
+
+const validFreight = `{"doc_type":"freight","supplier_name":"顺丰速运","mode":"road",
+	"vehicle_class":"冷链车","weight_kg":1250,"volume_m3":4.5,"distance_km":null,
+	"origin":"广州市番禺区","destination":"上海市浦东新区","tracking_no":"SF1234567890",
+	"amount_yuan":2680,"occurred_at":"2026-05-08","confidence":"high"}`
+
+const validPurchase = `{"doc_type":"purchase","supplier_name":"宝山钢铁股份有限公司",
+	"item_description":"热轧钢板 5mm","category":"raw_material","quantity_kg":7500,
+	"amount_yuan":48650,"occurred_at":"2026-04-22","invoice_no":"12345678","confidence":"medium"}`
+
 func TestRegistry(t *testing.T) {
 	list := List()
-	if len(list) < 2 {
-		t.Fatalf("stages = %d, want at least 2", len(list))
+	if len(list) != 5 {
+		t.Fatalf("stages = %d, want 5", len(list))
 	}
 	ids := make([]string, 0, len(list))
 	for _, stage := range list {
@@ -31,7 +45,8 @@ func TestRegistry(t *testing.T) {
 			t.Errorf("%s is missing identity fields", stage.ID)
 		}
 	}
-	if ids[0] != "china_utility.v1" || ids[1] != "travel.v1" {
+	want := []string{"china_utility.v1", "freight.v1", "fuel_receipt.v1", "purchase.v1", "travel.v1"}
+	if strings.Join(ids, ",") != strings.Join(want, ",") {
 		t.Fatalf("stage order = %v", ids)
 	}
 	if _, ok := Get("missing.v1"); ok {
@@ -57,6 +72,44 @@ func TestStageSchemas(t *testing.T) {
 				`{"doc_type":"china_utility","supplier_name":"x","account_no":null,
 					"amount_kwh":"1","amount_yuan":null,"period_start":"","period_end":"",
 					"confidence":"high"}`,
+			},
+		},
+		{
+			id:   "fuel_receipt.v1",
+			good: validFuelReceipt,
+			bad: []string{
+				`{"doc_type":"fuel_receipt","supplier_name":"x","fuel_type":"92#",
+					"fuel_category":"kerosene","volume_l":1,"unit_price_yuan":null,
+					"amount_yuan":1,"occurred_at":"","license_plate":null,"confidence":"high"}`,
+				`{"doc_type":"fuel_receipt","supplier_name":"x","fuel_type":"92#",
+					"fuel_category":"gasoline","volume_l":1,"unit_price_yuan":null,
+					"amount_yuan":1,"occurred_at":"","confidence":"high"}`,
+			},
+		},
+		{
+			id:   "freight.v1",
+			good: validFreight,
+			bad: []string{
+				`{"doc_type":"freight","supplier_name":"x","mode":"ship","vehicle_class":null,
+					"weight_kg":1,"volume_m3":null,"distance_km":null,"origin":"a",
+					"destination":"b","tracking_no":null,"amount_yuan":1,
+					"occurred_at":"","confidence":"high"}`,
+				`{"doc_type":"freight","supplier_name":"x","mode":"road","vehicle_class":null,
+					"weight_kg":1,"volume_m3":null,"distance_km":"far","origin":"a",
+					"destination":"b","tracking_no":null,"amount_yuan":1,
+					"occurred_at":"","confidence":"high"}`,
+			},
+		},
+		{
+			id:   "purchase.v1",
+			good: validPurchase,
+			bad: []string{
+				`{"doc_type":"purchase","supplier_name":"x","item_description":"steel",
+					"category":"steel","quantity_kg":null,"amount_yuan":1,
+					"occurred_at":"","invoice_no":null,"confidence":"high"}`,
+				`{"doc_type":"purchase","supplier_name":"x","item_description":"steel",
+					"category":"raw_material","quantity_kg":"7500","amount_yuan":1,
+					"occurred_at":"","invoice_no":null,"confidence":"high"}`,
 			},
 		},
 		{
@@ -100,6 +153,21 @@ func TestPromptsCarryRules(t *testing.T) {
 			id:       "china_utility.v1",
 			needles:  []string{"<bill>", "应收合计", "户号", "Return EXACTLY ONE JSON object"},
 			document: "国网电费 500 度",
+		},
+		{
+			id:       "fuel_receipt.v1",
+			needles:  []string{"<receipt>", "fuel_category", "92#汽油", "Return EXACTLY ONE JSON object"},
+			document: "中国石化 92#汽油 38.5L",
+		},
+		{
+			id:       "freight.v1",
+			needles:  []string{"<receipt>", "distance_km", "中欧班列", "Return EXACTLY ONE JSON object"},
+			document: "顺丰 广州 → 上海 1250kg",
+		},
+		{
+			id:       "purchase.v1",
+			needles:  []string{"<invoice>", "价税合计", "raw_material", "Return EXACTLY ONE JSON object"},
+			document: "宝钢 热轧钢板 7500kg",
 		},
 		{
 			id:       "travel.v1",
