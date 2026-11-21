@@ -42,18 +42,21 @@ const (
 // Session is one open workspace: the registry entry, the database, and the
 // rows the first screen shows.
 type Session struct {
-	workspace    workspace.Workspace
-	db           *store.Store
-	organization *store.Organization
-	sites        []store.Site
-	periods      []store.ReportingPeriod
-	sources      []store.EmissionSource
-	summary      store.Summary
-	activities   []store.Activity
-	imported     bool
-	prefsPath    string
-	settings     prefs.Settings
-	log          *platform.Logger
+	workspace     workspace.Workspace
+	db            *store.Store
+	organization  *store.Organization
+	sites         []store.Site
+	periods       []store.ReportingPeriod
+	sources       []store.EmissionSource
+	summary       store.Summary
+	activities    []store.Activity
+	documents     []store.Document
+	documentTotal int
+	imported      bool
+	dataDir       string
+	prefsPath     string
+	settings      prefs.Settings
+	log           *platform.Logger
 }
 
 // Root opens the active workspace and returns the shell. It is the app's
@@ -86,7 +89,7 @@ func Root(cx *core.Scope) core.Node {
 
 func open(cx *core.Scope, log *platform.Logger) (*Session, error) {
 	ctx := context.Background()
-	s := &Session{log: log}
+	s := &Session{log: log, dataDir: cx.DataDir()}
 	s.prefsPath = prefs.Path(cx.DataDir())
 	if settings, err := prefs.Load(s.prefsPath); err == nil {
 		s.settings = settings
@@ -138,6 +141,11 @@ func open(cx *core.Scope, log *platform.Logger) (*Session, error) {
 // reload refreshes the records every Phase 2 screen reads. It is called at
 // startup and after each write, so the views never need their own caches.
 func (s *Session) reload(ctx context.Context) error {
+	documents, documentTotal, err := s.db.ListDocuments(ctx, 200, 0)
+	if err != nil {
+		return err
+	}
+	s.documents, s.documentTotal = documents, documentTotal
 	org, err := s.db.CurrentOrganization(ctx)
 	if err != nil {
 		return err
@@ -238,6 +246,8 @@ func (s *Session) view(cx *core.Scope) core.Node {
 			Then: func(cx *core.Scope) core.Node { return s.dashboardScreen(cx, dataRev) }},
 		core.Show{When: func() bool { return active.Get() == ScreenSources },
 			Then: func(cx *core.Scope) core.Node { return s.sourcesScreen(cx, dataRev) }},
+		core.Show{When: func() bool { return active.Get() == ScreenDocuments },
+			Then: func(cx *core.Scope) core.Node { return s.documentsScreen(cx, dataRev) }},
 		core.Show{When: func() bool { return active.Get() == ScreenAudit },
 			Then: func(cx *core.Scope) core.Node { return s.auditScreen(cx, dataRev) }},
 		core.Show{When: func() bool { return active.Get() == ScreenSettings },
@@ -245,7 +255,8 @@ func (s *Session) view(cx *core.Scope) core.Node {
 		core.Show{When: func() bool {
 			id := active.Get()
 			return id != ScreenActivities && id != ScreenDashboard &&
-				id != ScreenSources && id != ScreenAudit && id != ScreenSettings
+				id != ScreenSources && id != ScreenDocuments &&
+				id != ScreenAudit && id != ScreenSettings
 		},
 			Then: func(cx *core.Scope) core.Node { return placeholder(cx) }},
 		s.commandDialog(cx, paletteOpen, active),
@@ -270,6 +281,8 @@ func (s *Session) view(cx *core.Scope) core.Node {
 						return locales.WorkspaceActive(cx) + " · " + s.workspace.Name
 					case ScreenSources:
 						return locales.DataSourcesCount(cx, strconv.Itoa(len(s.sources)))
+					case ScreenDocuments:
+						return locales.DocumentsCount(cx, strconv.Itoa(s.documentTotal))
 					case ScreenAudit:
 						return locales.AuditSubheading(cx)
 					}

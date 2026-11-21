@@ -73,7 +73,10 @@ var Parameters = map[string][]string{
 	"DocumentsBatchHint":                      {"count"},
 	"DocumentsBatchProgress":                  {"done", "total"},
 	"DocumentsBatchSummaryToast":              {"ok", "failed"},
+	"DocumentsCount":                          {"count"},
 	"DocumentsReviewUploadedOn":               {"date"},
+	"DocumentsShowingLatest":                  {"shown", "total"},
+	"DocumentsUploadSummary":                  {"ok", "failed"},
 	"EfImportColumnN":                         {"n"},
 	"EfImportMoreIssues":                      {"count"},
 	"EfImportReplaceBody":                     {"name"},
@@ -224,7 +227,10 @@ type Translation struct {
 	DocumentsBatchHint                      func(count string) string
 	DocumentsBatchProgress                  func(done string, total string) string
 	DocumentsBatchSummaryToast              func(ok string, failed string) string
+	DocumentsCount                          func(count string) string
 	DocumentsReviewUploadedOn               func(date string) string
+	DocumentsShowingLatest                  func(shown string, total string) string
+	DocumentsUploadSummary                  func(ok string, failed string) string
 	EfImportColumnN                         func(n string) string
 	EfImportMoreIssues                      func(count string) string
 	EfImportReplaceBody                     func(name string) string
@@ -610,6 +616,8 @@ const (
 	textDocumentsBatchReasonClassifyFailed
 	textDocumentsBatchReasonError
 	textDocumentsEmpty
+	textDocumentsEmptyBody
+	textDocumentsEmptyTitle
 	textDocumentsExtracting
 	textDocumentsExtractingVision
 	textDocumentsExtractionDone
@@ -623,6 +631,7 @@ const (
 	textDocumentsFilterStatusAll
 	textDocumentsLoadFailed
 	textDocumentsNext
+	textDocumentsOpenFailed
 	textDocumentsOpenRow
 	textDocumentsPlaceholder
 	textDocumentsPrev
@@ -714,9 +723,11 @@ const (
 	textDocumentsUploadDone
 	textDocumentsUploadFailed
 	textDocumentsUploadHint
+	textDocumentsUploadNone
 	textDocumentsUploadPdfOnly
 	textDocumentsUploadPickStage
 	textDocumentsUploadSuccess
+	textDocumentsUploadTypesHint
 	textDocumentsUploading
 	textDocumentsVisionUnsupported
 	textEfImportCancelButton
@@ -1761,6 +1772,8 @@ var keyOfText = [numTexts]string{
 	"documentsBatchReasonClassifyFailed",
 	"documentsBatchReasonError",
 	"documentsEmpty",
+	"documentsEmptyBody",
+	"documentsEmptyTitle",
 	"documentsExtracting",
 	"documentsExtractingVision",
 	"documentsExtractionDone",
@@ -1774,6 +1787,7 @@ var keyOfText = [numTexts]string{
 	"documentsFilterStatusAll",
 	"documentsLoadFailed",
 	"documentsNext",
+	"documentsOpenFailed",
 	"documentsOpenRow",
 	"documentsPlaceholder",
 	"documentsPrev",
@@ -1865,9 +1879,11 @@ var keyOfText = [numTexts]string{
 	"documentsUploadDone",
 	"documentsUploadFailed",
 	"documentsUploadHint",
+	"documentsUploadNone",
 	"documentsUploadPdfOnly",
 	"documentsUploadPickStage",
 	"documentsUploadSuccess",
+	"documentsUploadTypesHint",
 	"documentsUploading",
 	"documentsVisionUnsupported",
 	"efImportCancelButton",
@@ -2910,6 +2926,8 @@ var textsEn = i18n.NewTexts(""+
 	"could not auto-classify — open it and pick a stage"+
 	"recognition error"+
 	"No documents yet. Drop a PDF above to get started."+
+	"Upload bills, invoices, or evidence to keep them with this workspace."+
+	"No documents yet"+
 	"Extracting…"+
 	"Recognizing image (longer wait)…"+
 	"Extraction ready for review"+
@@ -2923,6 +2941,7 @@ var textsEn = i18n.NewTexts(""+
 	"All statuses"+
 	"Failed to load documents"+
 	"Next"+
+	"Could not open the file"+
 	"Open"+
 	"Document upload + extraction lands in Phase 1b Task 14."+
 	"Previous"+
@@ -3014,9 +3033,11 @@ var textsEn = i18n.NewTexts(""+
 	"Done"+
 	"Upload failed"+
 	"Drop one or more PDFs here, or click to browse"+
+	"No supported files were selected"+
 	"Only PDF files are supported."+
 	"Document type"+
 	"Document uploaded"+
+	"PDF, XLSX, PNG, JPEG or WebP · up to 50 MB each"+
 	"Uploading…"+
 	"Selected model can't read images"+
 	"Cancel"+
@@ -4056,6 +4077,8 @@ var textsEn = i18n.NewTexts(""+
 		52,
 		17,
 		50,
+		69,
+		16,
 		13,
 		34,
 		27,
@@ -4069,6 +4092,7 @@ var textsEn = i18n.NewTexts(""+
 		12,
 		24,
 		4,
+		23,
 		4,
 		55,
 		8,
@@ -4160,9 +4184,11 @@ var textsEn = i18n.NewTexts(""+
 		4,
 		13,
 		46,
+		32,
 		29,
 		13,
 		17,
+		48,
 		12,
 		32,
 		6,
@@ -5205,6 +5231,8 @@ var textsZhCN = i18n.NewTexts(""+
 	"无法自动识别类型——打开文档手动选择"+
 	"识别出错"+
 	"还没有文档。把 PDF 拖到上方开始。"+
+	"上传账单、发票或凭证，把它们保存在当前工作区。"+
+	"还没有文档"+
 	"正在抽取…"+
 	"正在识别图像（需要更长时间）…"+
 	"抽取完成，待审核"+
@@ -5218,6 +5246,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"全部状态"+
 	"加载文档失败"+
 	"下一份"+
+	"无法打开文件"+
 	"打开"+
 	"文档上传和抽取功能在 Phase 1b Task 14 落地。"+
 	"上一份"+
@@ -5309,9 +5338,11 @@ var textsZhCN = i18n.NewTexts(""+
 	"完成"+
 	"上传失败"+
 	"把 PDF 拖到这里（可多选），或点击选择文件"+
+	"没有选择受支持的文件"+
 	"只支持 PDF 文件。"+
 	"单据类型"+
 	"文档已上传"+
+	"PDF、XLSX、PNG、JPEG 或 WebP · 单个文件最大 50 MB"+
 	"上传中…"+
 	"当前模型不支持读取图片"+
 	"取消"+
@@ -6351,6 +6382,8 @@ var textsZhCN = i18n.NewTexts(""+
 		54,
 		12,
 		47,
+		69,
+		15,
 		15,
 		45,
 		24,
@@ -6364,6 +6397,7 @@ var textsZhCN = i18n.NewTexts(""+
 		12,
 		18,
 		9,
+		18,
 		6,
 		57,
 		9,
@@ -6455,9 +6489,11 @@ var textsZhCN = i18n.NewTexts(""+
 		6,
 		12,
 		59,
+		30,
 		23,
 		12,
 		15,
+		60,
 		12,
 		33,
 		6,
@@ -7375,8 +7411,17 @@ func Supply(lang string, t Translation) {
 	if t.DocumentsBatchSummaryToast != nil {
 		s.DocumentsBatchSummaryToast = t.DocumentsBatchSummaryToast
 	}
+	if t.DocumentsCount != nil {
+		s.DocumentsCount = t.DocumentsCount
+	}
 	if t.DocumentsReviewUploadedOn != nil {
 		s.DocumentsReviewUploadedOn = t.DocumentsReviewUploadedOn
+	}
+	if t.DocumentsShowingLatest != nil {
+		s.DocumentsShowingLatest = t.DocumentsShowingLatest
+	}
+	if t.DocumentsUploadSummary != nil {
+		s.DocumentsUploadSummary = t.DocumentsUploadSummary
 	}
 	if t.EfImportColumnN != nil {
 		s.EfImportColumnN = t.EfImportColumnN
@@ -10637,12 +10682,48 @@ func (msgs Messages) DocumentsBatchSummaryToast(ok string, failed string) string
 	}
 }
 
+// DocumentsCount says "Files: {count}"
+// in the language the app shows under cx.
+func DocumentsCount(cx *core.Scope, count string) string { return For(cx).DocumentsCount(count) }
+
+// DocumentsCount is the package's DocumentsCount in the language of msgs.
+func (msgs Messages) DocumentsCount(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.DocumentsCount(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].DocumentsCount; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return "Files: " + msgs.arg(count)
+		case "zh-CN":
+			return "文件：" + count
+		}
+	}
+}
+
 // DocumentsEmpty says "No documents yet. Drop a PDF above to get started."
 // in the language the app shows under cx.
 func DocumentsEmpty(cx *core.Scope) string { return For(cx).DocumentsEmpty() }
 
 // DocumentsEmpty is the package's DocumentsEmpty in the language of msgs.
 func (msgs Messages) DocumentsEmpty() string { return msgs.text(textDocumentsEmpty) }
+
+// DocumentsEmptyBody says "Upload bills, invoices, or evidence to keep them with this workspace."
+// in the language the app shows under cx.
+func DocumentsEmptyBody(cx *core.Scope) string { return For(cx).DocumentsEmptyBody() }
+
+// DocumentsEmptyBody is the package's DocumentsEmptyBody in the language of msgs.
+func (msgs Messages) DocumentsEmptyBody() string { return msgs.text(textDocumentsEmptyBody) }
+
+// DocumentsEmptyTitle says "No documents yet"
+// in the language the app shows under cx.
+func DocumentsEmptyTitle(cx *core.Scope) string { return For(cx).DocumentsEmptyTitle() }
+
+// DocumentsEmptyTitle is the package's DocumentsEmptyTitle in the language of msgs.
+func (msgs Messages) DocumentsEmptyTitle() string { return msgs.text(textDocumentsEmptyTitle) }
 
 // DocumentsExtracting says "Extracting…"
 // in the language the app shows under cx.
@@ -10748,6 +10829,13 @@ func DocumentsNext(cx *core.Scope) string { return For(cx).DocumentsNext() }
 
 // DocumentsNext is the package's DocumentsNext in the language of msgs.
 func (msgs Messages) DocumentsNext() string { return msgs.text(textDocumentsNext) }
+
+// DocumentsOpenFailed says "Could not open the file"
+// in the language the app shows under cx.
+func DocumentsOpenFailed(cx *core.Scope) string { return For(cx).DocumentsOpenFailed() }
+
+// DocumentsOpenFailed is the package's DocumentsOpenFailed in the language of msgs.
+func (msgs Messages) DocumentsOpenFailed() string { return msgs.text(textDocumentsOpenFailed) }
 
 // DocumentsOpenRow says "Open"
 // in the language the app shows under cx.
@@ -11510,6 +11598,30 @@ func (msgs Messages) DocumentsSearchPlaceholder() string {
 	return msgs.text(textDocumentsSearchPlaceholder)
 }
 
+// DocumentsShowingLatest says "Showing the latest {shown} of {total}"
+// in the language the app shows under cx.
+func DocumentsShowingLatest(cx *core.Scope, shown string, total string) string {
+	return For(cx).DocumentsShowingLatest(shown, total)
+}
+
+// DocumentsShowingLatest is the package's DocumentsShowingLatest in the language of msgs.
+func (msgs Messages) DocumentsShowingLatest(shown string, total string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.DocumentsShowingLatest(shown, total))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].DocumentsShowingLatest; f != nil {
+			return f(shown, total)
+		}
+		switch lang {
+		case "", "en":
+			return "Showing the latest " + msgs.arg(shown) + " of " + msgs.arg(total)
+		case "zh-CN":
+			return "仅显示最近 " + shown + " 个，共 " + total + " 个"
+		}
+	}
+}
+
 // DocumentsSortFilename says "Filename A→Z"
 // in the language the app shows under cx.
 func DocumentsSortFilename(cx *core.Scope) string { return For(cx).DocumentsSortFilename() }
@@ -11640,6 +11752,13 @@ func DocumentsUploadHint(cx *core.Scope) string { return For(cx).DocumentsUpload
 // DocumentsUploadHint is the package's DocumentsUploadHint in the language of msgs.
 func (msgs Messages) DocumentsUploadHint() string { return msgs.text(textDocumentsUploadHint) }
 
+// DocumentsUploadNone says "No supported files were selected"
+// in the language the app shows under cx.
+func DocumentsUploadNone(cx *core.Scope) string { return For(cx).DocumentsUploadNone() }
+
+// DocumentsUploadNone is the package's DocumentsUploadNone in the language of msgs.
+func (msgs Messages) DocumentsUploadNone() string { return msgs.text(textDocumentsUploadNone) }
+
 // DocumentsUploadPdfOnly says "Only PDF files are supported."
 // in the language the app shows under cx.
 func DocumentsUploadPdfOnly(cx *core.Scope) string { return For(cx).DocumentsUploadPdfOnly() }
@@ -11662,6 +11781,39 @@ func DocumentsUploadSuccess(cx *core.Scope) string { return For(cx).DocumentsUpl
 
 // DocumentsUploadSuccess is the package's DocumentsUploadSuccess in the language of msgs.
 func (msgs Messages) DocumentsUploadSuccess() string { return msgs.text(textDocumentsUploadSuccess) }
+
+// DocumentsUploadSummary says "Uploaded {ok} · {failed} failed"
+// in the language the app shows under cx.
+func DocumentsUploadSummary(cx *core.Scope, ok string, failed string) string {
+	return For(cx).DocumentsUploadSummary(ok, failed)
+}
+
+// DocumentsUploadSummary is the package's DocumentsUploadSummary in the language of msgs.
+func (msgs Messages) DocumentsUploadSummary(ok string, failed string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.DocumentsUploadSummary(ok, failed))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].DocumentsUploadSummary; f != nil {
+			return f(ok, failed)
+		}
+		switch lang {
+		case "", "en":
+			return "Uploaded " + msgs.arg(ok) + " · " + msgs.arg(failed) + " failed"
+		case "zh-CN":
+			return "已上传 " + ok + " 个 · " + failed + " 个失败"
+		}
+	}
+}
+
+// DocumentsUploadTypesHint says "PDF, XLSX, PNG, JPEG or WebP · up to 50 MB each"
+// in the language the app shows under cx.
+func DocumentsUploadTypesHint(cx *core.Scope) string { return For(cx).DocumentsUploadTypesHint() }
+
+// DocumentsUploadTypesHint is the package's DocumentsUploadTypesHint in the language of msgs.
+func (msgs Messages) DocumentsUploadTypesHint() string {
+	return msgs.text(textDocumentsUploadTypesHint)
+}
 
 // DocumentsUploading says "Uploading…"
 // in the language the app shows under cx.

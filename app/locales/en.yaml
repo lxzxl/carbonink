@@ -301,7 +301,10 @@ documentsBatchProgress: Recognizing {done}/{total}
 documentsBatchReasonClassifyFailed: could not auto-classify — open it and pick a stage
 documentsBatchReasonError: recognition error
 documentsBatchSummaryToast: 'Batch recognition done: {ok} ok · {failed} failed'
+documentsCount: 'Files: {count}'
 documentsEmpty: No documents yet. Drop a PDF above to get started.
+documentsEmptyBody: Upload bills, invoices, or evidence to keep them with this workspace.
+documentsEmptyTitle: No documents yet
 documentsExtracting: Extracting…
 documentsExtractingVision: Recognizing image (longer wait)…
 documentsExtractionDone: Extraction ready for review
@@ -315,6 +318,7 @@ documentsFilterEmpty: No matching documents
 documentsFilterStatusAll: All statuses
 documentsLoadFailed: Failed to load documents
 documentsNext: Next
+documentsOpenFailed: Could not open the file
 documentsOpenRow: Open
 documentsPlaceholder: Document upload + extraction lands in Phase 1b Task 14.
 documentsPrev: Previous
@@ -389,6 +393,7 @@ documentsReviewUploadedOn: Uploaded {date}
 documentsReviewViewActivitiesLink: Go to Activities →
 documentsReviewViewActivityLink: View in activities list →
 documentsSearchPlaceholder: Search by filename
+documentsShowingLatest: Showing the latest {shown} of {total}
 documentsSortFilename: Filename A→Z
 documentsSortOldest: Oldest first
 documentsSortRecent: Most recent
@@ -407,9 +412,12 @@ documentsUploadCollapse: Hide upload
 documentsUploadDone: Done
 documentsUploadFailed: Upload failed
 documentsUploadHint: Drop one or more PDFs here, or click to browse
+documentsUploadNone: No supported files were selected
 documentsUploadPdfOnly: Only PDF files are supported.
 documentsUploadPickStage: Document type
 documentsUploadSuccess: Document uploaded
+documentsUploadSummary: Uploaded {ok} · {failed} failed
+documentsUploadTypesHint: PDF, XLSX, PNG, JPEG or WebP · up to 50 MB each
 documentsUploading: Uploading…
 documentsVisionUnsupported: Selected model can't read images
 efImportCancelButton: Cancel

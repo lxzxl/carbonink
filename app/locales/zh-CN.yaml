@@ -300,7 +300,10 @@ documentsBatchProgress: 识别中 {done}/{total}
 documentsBatchReasonClassifyFailed: 无法自动识别类型——打开文档手动选择
 documentsBatchReasonError: 识别出错
 documentsBatchSummaryToast: 批量识别完成：成功 {ok} · 失败 {failed}
+documentsCount: 文件：{count}
 documentsEmpty: 还没有文档。把 PDF 拖到上方开始。
+documentsEmptyBody: 上传账单、发票或凭证，把它们保存在当前工作区。
+documentsEmptyTitle: 还没有文档
 documentsExtracting: 正在抽取…
 documentsExtractingVision: 正在识别图像（需要更长时间）…
 documentsExtractionDone: 抽取完成，待审核
@@ -314,6 +317,7 @@ documentsFilterEmpty: 未找到匹配的文档
 documentsFilterStatusAll: 全部状态
 documentsLoadFailed: 加载文档失败
 documentsNext: 下一份
+documentsOpenFailed: 无法打开文件
 documentsOpenRow: 打开
 documentsPlaceholder: 文档上传和抽取功能在 Phase 1b Task 14 落地。
 documentsPrev: 上一份
@@ -388,6 +392,7 @@ documentsReviewUploadedOn: 上传于 {date}
 documentsReviewViewActivitiesLink: 前往活动数据 →
 documentsReviewViewActivityLink: 在活动列表中查看 →
 documentsSearchPlaceholder: 搜索文件名
+documentsShowingLatest: 仅显示最近 {shown} 个，共 {total} 个
 documentsSortFilename: 文件名 A→Z
 documentsSortOldest: 最早上传
 documentsSortRecent: 最近上传
@@ -406,9 +411,12 @@ documentsUploadCollapse: 收起上传
 documentsUploadDone: 完成
 documentsUploadFailed: 上传失败
 documentsUploadHint: 把 PDF 拖到这里（可多选），或点击选择文件
+documentsUploadNone: 没有选择受支持的文件
 documentsUploadPdfOnly: 只支持 PDF 文件。
 documentsUploadPickStage: 单据类型
 documentsUploadSuccess: 文档已上传
+documentsUploadSummary: 已上传 {ok} 个 · {failed} 个失败
+documentsUploadTypesHint: PDF、XLSX、PNG、JPEG 或 WebP · 单个文件最大 50 MB
 documentsUploading: 上传中…
 documentsVisionUnsupported: 当前模型不支持读取图片
 efImportCancelButton: 取消

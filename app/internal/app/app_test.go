@@ -433,6 +433,55 @@ func TestCreateSourceWithCustomCategory(t *testing.T) {
 	}
 }
 
+// TestUploadDocumentsThroughUI picks the same PDF twice and proves the
+// Documents screen lists it once while the store keeps a content-addressed
+// copy under the app's data directory.
+func TestUploadDocumentsThroughUI(t *testing.T) {
+	dbPath := fixtureDB(t)
+	t.Setenv("CARBONINK_TEST_DB", dbPath)
+	pdfPath := filepath.Join(t.TempDir(), "bill.pdf")
+	if err := os.WriteFile(pdfPath, []byte("%PDF-1.7\nbill\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
+		nsgotest.Environment(core.Environment{Locale: "en-US"}))
+	ui.PickFiles = func(core.FilesRequest) []core.File {
+		return []core.File{
+			{Name: "bill.pdf", Path: pdfPath},
+			{Name: "bill-copy.pdf", Path: pdfPath},
+		}
+	}
+	ui.Press("id:nav:documents")
+	ui.WaitFor("id:documents-upload", 3*time.Second)
+	ui.WaitFor("text:No documents yet", 2*time.Second)
+	ui.Press("id:documents-upload")
+	ui.WaitFor("text:bill.pdf", 5*time.Second)
+	ui.WaitFor("text:Uploaded 2 · 0 failed", 3*time.Second)
+
+	ctx := context.Background()
+	check, err := store.Open(ctx, dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer check.Close()
+	var count int
+	var storagePath, sha string
+	if err := check.DB().QueryRowContext(ctx,
+		`SELECT COUNT(*), MIN(storage_path), MIN(sha256) FROM document`).
+		Scan(&count, &storagePath, &sha); err != nil {
+		t.Fatal(err)
+	}
+	if count != 1 {
+		t.Errorf("documents = %d, want 1", count)
+	}
+	if !strings.HasPrefix(storagePath, "documents/") || !strings.HasSuffix(storagePath, ".pdf") {
+		t.Errorf("storage path = %q", storagePath)
+	}
+	if len(sha) != 64 {
+		t.Errorf("sha256 = %q", sha)
+	}
+}
+
 func fixtureDB(t *testing.T) string {
 	t.Helper()
 	ctx := context.Background()
