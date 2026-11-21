@@ -30,13 +30,14 @@ import (
 type Screen string
 
 const (
-	ScreenDashboard  Screen = "dashboard"
-	ScreenActivities Screen = "activities"
-	ScreenSources    Screen = "sources"
-	ScreenDocuments  Screen = "documents"
-	ScreenReports    Screen = "reports"
-	ScreenAudit      Screen = "audit"
-	ScreenSettings   Screen = "settings"
+	ScreenDashboard      Screen = "dashboard"
+	ScreenActivities     Screen = "activities"
+	ScreenSources        Screen = "sources"
+	ScreenDocuments      Screen = "documents"
+	ScreenQuestionnaires Screen = "questionnaires"
+	ScreenReports        Screen = "reports"
+	ScreenAudit          Screen = "audit"
+	ScreenSettings       Screen = "settings"
 )
 
 // Session is one open workspace: the registry entry, the database, and the
@@ -44,17 +45,18 @@ const (
 type Session struct {
 	// scope is the app root scope; background work posts UI updates here so
 	// they survive the screen that started them.
-	scope         *core.Scope
-	workspace     workspace.Workspace
-	db            *store.Store
-	organization  *store.Organization
-	sites         []store.Site
-	periods       []store.ReportingPeriod
-	sources       []store.EmissionSource
-	summary       store.Summary
-	activities    []store.Activity
-	documents     []store.Document
-	documentTotal int
+	scope          *core.Scope
+	workspace      workspace.Workspace
+	db             *store.Store
+	organization   *store.Organization
+	sites          []store.Site
+	periods        []store.ReportingPeriod
+	sources        []store.EmissionSource
+	summary        store.Summary
+	activities     []store.Activity
+	documents      []store.Document
+	documentTotal  int
+	questionnaires []store.Questionnaire
 	// extractionStatus is keyed by document id; documents without a row
 	// have no extraction yet.
 	extractionStatus map[string]store.ExtractionDocumentStatus
@@ -153,6 +155,11 @@ func (s *Session) reload(ctx context.Context) error {
 		return err
 	}
 	s.documents, s.documentTotal = documents, documentTotal
+	questionnaires, err := s.db.ListQuestionnaires(ctx)
+	if err != nil {
+		return err
+	}
+	s.questionnaires = questionnaires
 	statuses, err := s.db.ExtractionStatusByDocument(ctx)
 	if err != nil {
 		return err
@@ -199,6 +206,7 @@ var screens = []screenInfo{
 	{ScreenActivities, locales.NavActivities, lucide.Table},
 	{ScreenSources, locales.NavSources, lucide.Building},
 	{ScreenDocuments, locales.NavDocuments, lucide.Files},
+	{ScreenQuestionnaires, locales.NavDisclosureFilings, lucide.ClipboardList},
 	{ScreenReports, locales.NavReports, lucide.ChartColumn},
 	{ScreenAudit, locales.AuditNav, lucide.ScrollText},
 	{ScreenSettings, locales.NavSettings, lucide.Settings},
@@ -263,6 +271,8 @@ func (s *Session) view(cx *core.Scope) core.Node {
 			Then: func(cx *core.Scope) core.Node { return s.sourcesScreen(cx, dataRev) }},
 		core.Show{When: func() bool { return active.Get() == ScreenDocuments },
 			Then: func(cx *core.Scope) core.Node { return s.documentsScreen(cx, dataRev) }},
+		core.Show{When: func() bool { return active.Get() == ScreenQuestionnaires },
+			Then: func(cx *core.Scope) core.Node { return s.questionnairesScreen(cx, dataRev) }},
 		core.Show{When: func() bool { return active.Get() == ScreenAudit },
 			Then: func(cx *core.Scope) core.Node { return s.auditScreen(cx, dataRev) }},
 		core.Show{When: func() bool { return active.Get() == ScreenSettings },
@@ -270,7 +280,7 @@ func (s *Session) view(cx *core.Scope) core.Node {
 		core.Show{When: func() bool {
 			id := active.Get()
 			return id != ScreenActivities && id != ScreenDashboard &&
-				id != ScreenSources && id != ScreenDocuments &&
+				id != ScreenSources && id != ScreenDocuments && id != ScreenQuestionnaires &&
 				id != ScreenAudit && id != ScreenSettings
 		},
 			Then: func(cx *core.Scope) core.Node { return placeholder(cx) }},
@@ -298,6 +308,8 @@ func (s *Session) view(cx *core.Scope) core.Node {
 						return locales.DataSourcesCount(cx, strconv.Itoa(len(s.sources)))
 					case ScreenDocuments:
 						return locales.DocumentsCount(cx, strconv.Itoa(s.documentTotal))
+					case ScreenQuestionnaires:
+						return locales.QuestionnairesListCount(cx, strconv.Itoa(s.outboundQuestionnaires()))
 					case ScreenAudit:
 						return locales.AuditSubheading(cx)
 					}

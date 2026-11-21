@@ -154,6 +154,7 @@ activityImportSummaryWarnings: '{count} 条警告'
 activityImportTitle: 批量导入活动数据
 activityImportUnmapped: — 未映射 —
 activityImportWarningsHeading: 警告（不阻断导入）
+answerDraft: 草稿
 answerExportButton: 导出 Excel
 answerExportDone: 已写入 {written} 条答案（其中 {drafts} 条草稿）。
 answerExportRunning: 导出中…
@@ -856,22 +857,32 @@ questionnairePdfFinalized: 已定稿
 questionnairePdfSourceSummary: 来源
 questionnairePdfTocHeading: 目录
 questionnairePdfUnanswered: (未答)
+questionnairesAnswerProgress: 已答 {answered} / {count}
+questionnairesAnswerSaveFailed: 保存答案失败
+questionnairesAnswerSaved: 答案已保存
 questionnairesDetailAnswerPending: Phase 2.2b 将在此处生成答案。
 questionnairesDetailBack: ← 返回披露填报列表
+questionnairesDetailCategorical: 短答
+questionnairesDetailClose: 关闭
 questionnairesDetailInventoryEmptyBody: 需要先在活动数据中录入该年度的电、油、运费等记录，AI 才能生成有依据的答案。
 questionnairesDetailInventoryEmptyCta: 去录入活动数据 →
 questionnairesDetailInventoryEmptyTitle: '{year} 年度暂无活动数据'
 questionnairesDetailKind: 题型
+questionnairesDetailNarrative: 叙述
 questionnairesDetailNotFound: 披露填报不存在
+questionnairesDetailNumerical: 数值
 questionnairesDetailPosition: 单元格
 questionnairesDetailQuestion: 题目
+questionnairesDetailSelect: 选择一道题，编辑它的答案。
 questionnairesDetailUnit: 单位
 questionnairesEmpty: 还没有披露填报
 questionnairesFilterClear: 清除筛选
 questionnairesFilterEmpty: 未找到匹配的披露填报
 questionnairesFilterStatusAll: 全部状态
 questionnairesFinalizeButton: 确认全部答案
+questionnairesListCount: '{count} 份问卷'
 questionnairesNewButton: 新建披露填报
+questionnairesQuestionCount: '{count} 道题'
 questionnairesSearchPlaceholder: 搜索客户名称
 questionnairesSortCustomer: 客户 A→Z
 questionnairesSortDue: 截止日期

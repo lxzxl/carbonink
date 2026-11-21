@@ -155,6 +155,7 @@ activityImportSummaryWarnings: '{count} warnings'
 activityImportTitle: Batch import activity data
 activityImportUnmapped: — Not mapped —
 activityImportWarningsHeading: Warnings (won't block)
+answerDraft: Draft
 answerExportButton: Export to Excel
 answerExportDone: '{written} answers written ({drafts} drafts).'
 answerExportRunning: Exporting…
@@ -857,22 +858,32 @@ questionnairePdfFinalized: Finalized
 questionnairePdfSourceSummary: Source
 questionnairePdfTocHeading: Table of contents
 questionnairePdfUnanswered: (Unanswered)
+questionnairesAnswerProgress: '{answered} of {count} answered'
+questionnairesAnswerSaveFailed: Could not save the answer
+questionnairesAnswerSaved: Answer saved
 questionnairesDetailAnswerPending: Phase 2.2b will generate answers here.
 questionnairesDetailBack: ← Disclosure filings
+questionnairesDetailCategorical: Short answer
+questionnairesDetailClose: Close
 questionnairesDetailInventoryEmptyBody: Record electricity, fuel, freight, etc. for that year first so the AI has a basis to draft answers from.
 questionnairesDetailInventoryEmptyCta: Add activity data →
 questionnairesDetailInventoryEmptyTitle: No activity data for {year} yet
 questionnairesDetailKind: Type
+questionnairesDetailNarrative: Narrative
 questionnairesDetailNotFound: Disclosure filing not found
+questionnairesDetailNumerical: Numeric
 questionnairesDetailPosition: Cell
 questionnairesDetailQuestion: Question
+questionnairesDetailSelect: Pick a question to edit its answer.
 questionnairesDetailUnit: Unit
 questionnairesEmpty: No disclosure filings yet
 questionnairesFilterClear: Clear filters
 questionnairesFilterEmpty: No matching disclosure filings
 questionnairesFilterStatusAll: All statuses
 questionnairesFinalizeButton: Finalize answers
+questionnairesListCount: '{count} questionnaires'
 questionnairesNewButton: New disclosure filing
+questionnairesQuestionCount: '{count} questions'
 questionnairesSearchPlaceholder: Search customer name
 questionnairesSortCustomer: Customer A→Z
 questionnairesSortDue: Due date

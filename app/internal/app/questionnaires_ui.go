@@ -1,0 +1,681 @@
+package app
+
+import (
+	"context"
+	"io"
+	"strconv"
+	"strings"
+	"time"
+
+	"app.carbonink.desktop/internal/questionnaire"
+	"app.carbonink.desktop/internal/store"
+	"app.carbonink.desktop/locales"
+
+	"github.com/nsgo-dev/nsgo/core"
+	"github.com/nsgo-dev/nsgo/ui"
+)
+
+// questionnaireFilters mirrors the 1.x outbound list: newest first, customer
+// search, and the outbound status vocabulary.
+type questionnaireFilters struct {
+	search *core.Signal[string]
+	status *core.Signal[string]
+}
+
+type questionnaireWizard struct {
+	open     *core.Signal[bool]
+	customer *core.Signal[string]
+	year     *core.Signal[string]
+	due      *core.Signal[string]
+	filename *core.Signal[string]
+	status   *core.Signal[string]
+	failed   *core.Signal[bool]
+	busy     *core.Signal[bool]
+	data     []byte
+}
+
+// questionnaireDetail is the answer-editing state for one questionnaire. The
+// question slice is plain data guarded by rev; the editor keeps one selected
+// question so the signal set stays fixed regardless of question count.
+type questionnaireDetail struct {
+	open     *core.Signal[bool]
+	rev      *core.Signal[int]
+	customer *core.Signal[string]
+	year     *core.Signal[int]
+	status   *core.Signal[string]
+	due      *core.Signal[string]
+	message  *core.Signal[string]
+	failed   *core.Signal[bool]
+	busy     *core.Signal[bool]
+
+	selectedID        *core.Signal[string]
+	selectedTitle     *core.Signal[string]
+	selectedFinalized *core.Signal[bool]
+	value             *core.Signal[string]
+	unit              *core.Signal[string]
+
+	id        string
+	db        *store.Store
+	questions []store.Question
+}
+
+func (s *Session) questionnairesScreen(cx *core.Scope, dataRev *core.Signal[int]) core.Node {
+	filters := &questionnaireFilters{
+		search: core.NewSignal(cx, ""),
+		status: core.NewSignal(cx, ""),
+	}
+	screenStatus := core.NewSignal(cx, "")
+	screenFailed := core.NewSignal(cx, false)
+	wizard := newQuestionnaireWizard(cx, s)
+	detail := newQuestionnaireDetail(cx, s.db)
+
+	rows := func() []store.Questionnaire {
+		_ = dataRev.Get()
+		query := strings.ToLower(strings.TrimSpace(filters.search.Get()))
+		status := filters.status.Get()
+		out := make([]store.Questionnaire, 0, len(s.questionnaires))
+		for _, q := range s.questionnaires {
+			if q.Direction != "outbound" {
+				continue
+			}
+			if status != "" && q.Status != status {
+				continue
+			}
+			if query != "" && !strings.Contains(strings.ToLower(q.CustomerName), query) {
+				continue
+			}
+			out = append(out, q)
+		}
+		return out
+	}
+
+	statusOptions := []ui.Option[string]{
+		{Value: "", Label: locales.QuestionnairesFilterStatusAll(cx)},
+		{Value: store.QuestionnaireParsing, Label: locales.QuestionnairesStatusParsing(cx)},
+		{Value: store.QuestionnaireMapping, Label: locales.QuestionnairesStatusMapping(cx)},
+		{Value: store.QuestionnaireAnswering, Label: locales.QuestionnairesStatusAnswering(cx)},
+		{Value: store.QuestionnaireFinalized, Label: locales.QuestionnairesStatusFinalized(cx)},
+		{Value: store.QuestionnaireExported, Label: locales.QuestionnairesStatusExported(cx)},
+	}
+
+	list := core.Dynamic(func(cx *core.Scope) core.Node {
+		_ = dataRev.Get()
+		_ = filters.search.Get()
+		_ = filters.status.Get()
+		visible := rows()
+		if len(visible) == 0 {
+			return core.View{Style: core.Style{FlexGrow: 1, AlignItems: core.AlignCenter,
+				JustifyContent: core.JustifyCenter, Padding: core.All(24)},
+				Children: []core.Node{
+					core.Text{Content: locales.QuestionnairesEmpty(cx),
+						Style: core.Style{FontSize: 13}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+				}}
+		}
+		nodes := make([]core.Node, 0, len(visible))
+		for _, q := range visible {
+			q := q
+			nodes = append(nodes, questionnaireListRow(cx, q, func() { detail.show(cx, q) }))
+		}
+		return core.Scroll{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
+			Children: []core.Node{core.View{Style: core.Style{Gap: 0}, Children: nodes}}}
+	})
+
+	return core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0),
+		Padding: core.All(16), Gap: 10}, Children: []core.Node{
+		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8},
+			Children: []core.Node{
+				core.Text{ContentFunc: func() string {
+					return locales.QuestionnairesListCount(cx, strconv.Itoa(len(rows())))
+				}, Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}},
+				core.View{Style: core.Style{FlexGrow: 1}},
+				ui.Input{Value: filters.search.Get, Placeholder: locales.QuestionnairesSearchPlaceholder(cx),
+					OnChange: func(v string) { filters.search.Set(v) },
+					TestID:   "questionnaires-search", Style: core.Style{Width: core.Pt(220)}},
+				ui.Select[string]{Options: statusOptions, Value: filters.status.Get,
+					OnChange: func(v string) { filters.status.Set(v) },
+					Label:    locales.QuestionnairesTableStatus(cx),
+					TestID:   "questionnaires-filter-status",
+					Style:    core.Style{Width: core.Pt(150)}},
+				ui.Button{Text: locales.QuestionnairesNewButton(cx), OnPress: wizard.show,
+					TestID: "questionnaires-new"},
+			}},
+		core.Show{When: func() bool { return screenStatus.Get() != "" },
+			Then: func(cx *core.Scope) core.Node {
+				return core.Text{ContentFunc: func() string { return screenStatus.Get() },
+					Style: core.Style{FontSize: 12},
+					StyleFunc: func() core.Style {
+						if screenFailed.Get() {
+							return ui.Colored(ui.ColorsOf(cx).Danger)()
+						}
+						return ui.Colored(ui.ColorsOf(cx).Muted)()
+					}}
+			}},
+		list,
+		wizard.dialog(cx, s, dataRev, func(r *questionnaire.CreateResult) {
+			screenFailed.Set(false)
+			screenStatus.Set(locales.QuestionnairesWizardSuccessWithReused(cx,
+				strconv.Itoa(r.QuestionCount), strconv.Itoa(r.ReusedCount)))
+		}, func(message string) {
+			screenFailed.Set(true)
+			screenStatus.Set(message)
+		}),
+		detail.dialog(cx, s, dataRev),
+	}}
+}
+
+func newQuestionnaireWizard(cx *core.Scope, s *Session) *questionnaireWizard {
+	year := time.Now().UTC().Year()
+	if len(s.periods) > 0 {
+		year = s.periods[0].Year
+	}
+	return &questionnaireWizard{
+		open:     core.NewSignal(cx, false),
+		customer: core.NewSignal(cx, ""),
+		year:     core.NewSignal(cx, strconv.Itoa(year)),
+		due:      core.NewSignal(cx, ""),
+		filename: core.NewSignal(cx, ""),
+		status:   core.NewSignal(cx, ""),
+		failed:   core.NewSignal(cx, false),
+		busy:     core.NewSignal(cx, false),
+	}
+}
+
+func newQuestionnaireDetail(cx *core.Scope, db *store.Store) *questionnaireDetail {
+	return &questionnaireDetail{
+		open:              core.NewSignal(cx, false),
+		rev:               core.NewSignal(cx, 0),
+		customer:          core.NewSignal(cx, ""),
+		year:              core.NewSignal(cx, 0),
+		status:            core.NewSignal(cx, ""),
+		due:               core.NewSignal(cx, ""),
+		message:           core.NewSignal(cx, ""),
+		failed:            core.NewSignal(cx, false),
+		busy:              core.NewSignal(cx, false),
+		selectedID:        core.NewSignal(cx, ""),
+		selectedTitle:     core.NewSignal(cx, ""),
+		selectedFinalized: core.NewSignal(cx, false),
+		value:             core.NewSignal(cx, ""),
+		unit:              core.NewSignal(cx, ""),
+		db:                db,
+	}
+}
+
+func questionnaireListRow(cx *core.Scope, q store.Questionnaire, onPress func()) core.Node {
+	return core.View{TestID: "questionnaires-row-" + q.ID, Role: core.RoleButton,
+		OnPress: func(core.PressEvent) { onPress() },
+		Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 12,
+			Padding: core.Symmetric(10, 8), CornerRadius: 6, Borders: core.Edges{Bottom: 1}},
+		StyleFunc: func() core.Style { return core.Style{BorderColor: ui.ColorsOf(cx).Line()} },
+		Children: []core.Node{
+			core.View{Style: core.Style{Gap: 2, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
+				Children: []core.Node{
+					core.Text{Content: q.CustomerName, Style: core.Style{FontSize: 13,
+						FontWeight: ui.Semibold}, MaxLines: 1},
+					core.Text{Content: strconv.Itoa(q.ReportingYear) + " · " +
+						locales.QuestionnairesQuestionCount(cx, strconv.Itoa(q.QuestionCount)),
+						Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted),
+						MaxLines: 1},
+				}},
+			ui.Badge{Text: questionnaireStatusLabel(cx, q.Status),
+				Variant: questionnaireStatusVariant(q.Status)},
+			core.Text{Content: q.DueDate, Style: core.Style{FontSize: 11},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint), MaxLines: 1},
+		}}
+}
+
+func questionnaireStatusLabel(cx *core.Scope, status string) string {
+	switch status {
+	case store.QuestionnaireParsing:
+		return locales.QuestionnairesStatusParsing(cx)
+	case store.QuestionnaireAnswering:
+		return locales.QuestionnairesStatusAnswering(cx)
+	case store.QuestionnaireFinalized:
+		return locales.QuestionnairesStatusFinalized(cx)
+	case store.QuestionnaireExported:
+		return locales.QuestionnairesStatusExported(cx)
+	default:
+		return locales.QuestionnairesStatusMapping(cx)
+	}
+}
+
+func questionnaireStatusVariant(status string) ui.BadgeVariant {
+	switch status {
+	case store.QuestionnaireFinalized, store.QuestionnaireExported:
+		return ui.BadgeAccent
+	case store.QuestionnaireAnswering:
+		return ui.BadgeInfo
+	default:
+		return ui.BadgeNeutral
+	}
+}
+
+func (w *questionnaireWizard) show() {
+	w.status.Set("")
+	w.failed.Set(false)
+	w.busy.Set(false)
+	w.filename.Set("")
+	w.data = nil
+	w.open.Set(true)
+}
+
+func (w *questionnaireWizard) dialog(cx *core.Scope, s *Session, dataRev *core.Signal[int],
+	onDone func(*questionnaire.CreateResult), onFailed func(string)) core.Node {
+	pick := func() {
+		cx.PickFiles(core.PickFilesOptions{
+			Multiple: false,
+			Types:    []string{".xlsx"},
+			Title:    locales.QuestionnairesNewButton(cx),
+			Button:   locales.QuestionnairesWizardFileChoose(cx),
+		}, func(files []core.File, err error) {
+			if err != nil {
+				w.failed.Set(true)
+				w.status.Set(err.Error())
+				return
+			}
+			if len(files) == 0 {
+				return
+			}
+			file := files[0]
+			if file.Size > questionnaire.MaxWorkbookBytes {
+				w.failed.Set(true)
+				w.status.Set(locales.QuestionnairesWizardFailed(cx))
+				return
+			}
+			reader, err := file.Open()
+			if err != nil {
+				w.failed.Set(true)
+				w.status.Set(err.Error())
+				return
+			}
+			data, err := io.ReadAll(io.LimitReader(reader, questionnaire.MaxWorkbookBytes+1))
+			_ = reader.Close()
+			if err != nil {
+				w.failed.Set(true)
+				w.status.Set(err.Error())
+				return
+			}
+			w.data = data
+			w.filename.Set(file.Name)
+			w.failed.Set(false)
+			w.status.Set("")
+		})
+	}
+
+	submit := func() {
+		name := strings.TrimSpace(w.customer.Get())
+		year, err := strconv.Atoi(strings.TrimSpace(w.year.Get()))
+		if name == "" || len(w.data) == 0 || err != nil {
+			w.failed.Set(true)
+			w.status.Set(locales.QuestionnairesWizardHintRequired(cx))
+			return
+		}
+		provider := s.llmProvider(cx)
+		if !provider.Configured() {
+			w.failed.Set(true)
+			w.status.Set(locales.QuestionnairesWizardFailed(cx) + ": " +
+				questionnaire.ErrNotConfigured.Error())
+			return
+		}
+		data := w.data
+		filename := w.filename.Get()
+		due := strings.TrimSpace(w.due.Get())
+		w.busy.Set(true)
+		w.failed.Set(false)
+		w.status.Set(locales.QuestionnairesWizardParsing(cx))
+		go func() {
+			service := &questionnaire.Service{Store: s.db, DataDir: s.dataDir,
+				Provider: provider, NewClient: newExtractor}
+			result, err := service.Create(context.Background(), questionnaire.CreateRequest{
+				CustomerName: name, ReportingYear: year, DueDate: due,
+				Filename: filename, Data: data,
+			})
+			s.scope.Post(func() {
+				w.busy.Set(false)
+				if err != nil {
+					s.log.Warn("questionnaire import failed", "customer", name, "err", err)
+					w.failed.Set(true)
+					w.status.Set(locales.QuestionnairesWizardFailed(cx) + ": " + err.Error())
+					return
+				}
+				if err := dataRefresh(s, dataRev); err != nil {
+					w.failed.Set(true)
+					w.status.Set(err.Error())
+					return
+				}
+				w.open.Set(false)
+				w.customer.Set("")
+				w.due.Set("")
+				w.data = nil
+				w.filename.Set("")
+				onDone(result)
+			})
+		}()
+	}
+
+	footer := []core.Node{
+		dataCancelButton(cx, w.open, "questionnaires-wizard-cancel"),
+		ui.Button{Text: locales.QuestionnairesWizardUpload(cx), OnPress: submit,
+			Busy: w.busy.Get, TestID: "questionnaires-wizard-submit"},
+	}
+	body := []core.Node{
+		dataField(cx, locales.QuestionnairesWizardCustomer(cx),
+			ui.Input{Value: w.customer.Get, Placeholder: locales.QuestionnairesWizardCustomer(cx),
+				OnChange: w.customer.Set, TestID: "questionnaires-wizard-customer"}),
+		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignEnd, Gap: 8},
+			Children: []core.Node{
+				dataField(cx, locales.QuestionnairesWizardYear(cx),
+					ui.Input{Value: w.year.Get, OnChange: w.year.Set,
+						TestID: "questionnaires-wizard-year"}),
+				dataField(cx, locales.QuestionnairesWizardDue(cx),
+					ui.Input{Value: w.due.Get, OnChange: w.due.Set,
+						TestID: "questionnaires-wizard-due"}),
+			}},
+		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8},
+			Children: []core.Node{
+				ui.Button{Text: locales.QuestionnairesWizardFileChoose(cx), Variant: ui.ButtonSecondary,
+					OnPress: pick, TestID: "questionnaires-wizard-file"},
+				core.Text{ContentFunc: func() string {
+					if w.filename.Get() == "" {
+						return ""
+					}
+					return locales.QuestionnairesWizardFileChosen(cx, w.filename.Get())
+				}, Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted),
+					MaxLines: 1},
+			}},
+		core.Show{When: func() bool { return w.status.Get() != "" },
+			Then: func(cx *core.Scope) core.Node {
+				return core.Text{ContentFunc: func() string { return w.status.Get() },
+					Style: core.Style{FontSize: 12},
+					StyleFunc: func() core.Style {
+						if w.failed.Get() {
+							return ui.Colored(ui.ColorsOf(cx).Danger)()
+						}
+						return ui.Colored(ui.ColorsOf(cx).Muted)()
+					}}
+			}},
+	}
+	return dataDialogSized(cx, w.open, locales.QuestionnairesWizardTitle(cx), body, footer,
+		"questionnaires-wizard-dialog", 600)
+}
+
+// show loads one questionnaire and opens the detail dialog.
+func (d *questionnaireDetail) show(cx *core.Scope, q store.Questionnaire) {
+	d.id = q.ID
+	d.customer.Set(q.CustomerName)
+	d.year.Set(q.ReportingYear)
+	d.status.Set(q.Status)
+	d.due.Set(q.DueDate)
+	d.message.Set("")
+	d.failed.Set(false)
+	d.selectedID.Set("")
+	d.selectedTitle.Set("")
+	d.value.Set("")
+	d.unit.Set("")
+	d.selectedFinalized.Set(false)
+	if err := d.load(); err != nil {
+		d.failed.Set(true)
+		d.message.Set(err.Error())
+	}
+	d.open.Set(true)
+}
+
+func (d *questionnaireDetail) load() error {
+	questions, err := d.db.ListQuestions(context.Background(), d.id)
+	if err != nil {
+		return err
+	}
+	d.questions = questions
+	d.rev.Set(d.rev.Get() + 1)
+	return nil
+}
+
+func (d *questionnaireDetail) selectQuestion(index int) {
+	if index < 0 || index >= len(d.questions) {
+		return
+	}
+	q := d.questions[index]
+	d.selectedID.Set(q.ID)
+	d.selectedTitle.Set(q.RawText)
+	d.value.Set(q.AnswerValue)
+	d.unit.Set(firstNonEmpty(q.AnswerUnit, q.ExpectedUnit))
+	d.selectedFinalized.Set(q.AnswerFinalizedAt != "")
+	d.message.Set("")
+	d.failed.Set(false)
+}
+
+func (d *questionnaireDetail) save(s *Session, cx *core.Scope, dataRev *core.Signal[int],
+	finalize bool) {
+	id := d.selectedID.Get()
+	if id == "" {
+		return
+	}
+	d.busy.Set(true)
+	answer, err := s.db.SaveAnswer(context.Background(), store.SaveAnswerInput{
+		QuestionID: id, Value: d.value.Get(), Unit: strings.TrimSpace(d.unit.Get()),
+		Finalize: finalize,
+	})
+	d.busy.Set(false)
+	if err != nil {
+		d.failed.Set(true)
+		d.message.Set(locales.QuestionnairesAnswerSaveFailed(cx) + ": " + err.Error())
+		return
+	}
+	d.failed.Set(false)
+	d.message.Set(locales.QuestionnairesAnswerSaved(cx))
+	d.selectedFinalized.Set(answer.FinalizedAt != "")
+	if err := d.load(); err != nil {
+		d.failed.Set(true)
+		d.message.Set(err.Error())
+	}
+	if err := dataRefresh(s, dataRev); err != nil {
+		d.failed.Set(true)
+		d.message.Set(err.Error())
+	}
+}
+
+func (d *questionnaireDetail) unfinalize(s *Session, cx *core.Scope) {
+	id := d.selectedID.Get()
+	if id == "" {
+		return
+	}
+	d.busy.Set(true)
+	answer, err := s.db.UnfinalizeAnswer(context.Background(), id)
+	d.busy.Set(false)
+	if err != nil {
+		d.failed.Set(true)
+		d.message.Set(err.Error())
+		return
+	}
+	d.failed.Set(false)
+	d.message.Set(locales.QuestionnairesAnswerSaved(cx))
+	d.selectedFinalized.Set(answer.FinalizedAt != "")
+	_ = d.load()
+}
+
+func (d *questionnaireDetail) finalizeAll(s *Session, cx *core.Scope,
+	dataRev *core.Signal[int]) {
+	if d.id == "" {
+		return
+	}
+	d.busy.Set(true)
+	err := s.db.FinalizeQuestionnaire(context.Background(), d.id)
+	d.busy.Set(false)
+	if err != nil {
+		d.failed.Set(true)
+		d.message.Set(err.Error())
+		return
+	}
+	d.failed.Set(false)
+	d.message.Set(locales.QuestionnairesAnswerSaved(cx))
+	if q, err := s.db.QuestionnaireByID(context.Background(), d.id); err == nil && q != nil {
+		d.status.Set(q.Status)
+	}
+	_ = d.load()
+	_ = dataRefresh(s, dataRev)
+}
+
+func (d *questionnaireDetail) dialog(cx *core.Scope, s *Session,
+	dataRev *core.Signal[int]) core.Node {
+	dialog := func(cx *core.Scope) core.Node {
+		_ = d.rev.Get()
+		answered := 0
+		for _, q := range d.questions {
+			if q.Answered() {
+				answered++
+			}
+		}
+		list := make([]core.Node, 0, len(d.questions))
+		for i, q := range d.questions {
+			i, q := i, q
+			answer := q.AnswerValue
+			if strings.TrimSpace(answer) == "" {
+				answer = locales.AnswerNotGenerated(cx)
+			}
+			badge := ui.Badge{Text: locales.AnswerDraft(cx), Variant: ui.BadgeNeutral}
+			if q.AnswerFinalizedAt != "" {
+				badge = ui.Badge{Text: locales.AnswerFinalized(cx), Variant: ui.BadgeAccent}
+			} else if !q.Answered() {
+				badge = ui.Badge{Text: locales.QuestionnairesStatusMapping(cx), Variant: ui.BadgeNeutral}
+			}
+			list = append(list, core.View{TestID: "questionnaires-question-" + strconv.Itoa(i),
+				Role:    core.RoleButton,
+				OnPress: func(core.PressEvent) { d.selectQuestion(i) },
+				Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 10,
+					Padding: core.Symmetric(8, 6)},
+				StyleFunc: func() core.Style {
+					style := core.Style{BorderColor: ui.ColorsOf(cx).Line()}
+					if d.selectedID.Get() == q.ID {
+						style.Background = ui.Alpha(ui.ColorsOf(cx).Accent(), 0.10)
+					}
+					return style
+				},
+				Children: []core.Node{
+					core.Text{Content: firstNonEmpty(q.Position, "—"), Style: core.Style{
+						FontSize: 11, Width: core.Pt(110)}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint),
+						MaxLines: 1},
+					core.View{Style: core.Style{Gap: 2, FlexGrow: 1, FlexShrink: 1,
+						MinWidth: core.Pt(0)}, Children: []core.Node{
+						core.Text{Content: firstNonEmpty(q.RawText, q.NormalizedText),
+							Style: core.Style{FontSize: 12}, MaxLines: 2},
+						core.Text{Content: answer, Style: core.Style{FontSize: 11},
+							StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
+					}},
+					core.Text{Content: questionnaireKindLabel(cx, q.QuestionKind),
+						Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted),
+						MaxLines: 1},
+					badge,
+				}})
+		}
+		if len(list) == 0 {
+			list = append(list, core.Text{Content: locales.QuestionnairesEmpty(cx),
+				Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
+		}
+
+		editor := []core.Node{
+			core.Text{ContentFunc: func() string {
+				if d.selectedID.Get() == "" {
+					return locales.QuestionnairesDetailSelect(cx)
+				}
+				return d.selectedTitle.Get()
+			}, Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}, MaxLines: 3},
+		}
+		if d.selectedID.Get() != "" {
+			editor = append(editor, core.View{Style: core.Style{Direction: core.Row,
+				AlignItems: core.AlignEnd, Gap: 8}, Children: []core.Node{
+				core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{
+					dataField(cx, locales.AnswerValue(cx),
+						ui.Input{Value: d.value.Get, OnChange: d.value.Set, Multiline: true,
+							TestID: "questionnaires-answer-value"})}},
+				core.View{Style: core.Style{Width: core.Pt(110)}, Children: []core.Node{
+					dataField(cx, locales.AnswerUnit(cx),
+						ui.Input{Value: d.unit.Get, OnChange: d.unit.Set,
+							TestID: "questionnaires-answer-unit"})}},
+			}})
+			actions := []core.Node{
+				ui.Button{Text: locales.AnswerSave(cx), Variant: ui.ButtonSecondary,
+					OnPress: func() { d.save(s, cx, dataRev, false) }, Busy: d.busy.Get,
+					TestID: "questionnaires-answer-save"},
+			}
+			if d.selectedFinalized.Get() {
+				actions = append(actions, ui.Button{Text: locales.AnswerUnfinalize(cx),
+					Variant: ui.ButtonSecondary,
+					OnPress: func() { d.unfinalize(s, cx) }, Busy: d.busy.Get,
+					TestID: "questionnaires-answer-unfinalize"})
+			} else {
+				actions = append(actions, ui.Button{Text: locales.AnswerSaveFinalize(cx),
+					OnPress: func() { d.save(s, cx, dataRev, true) }, Busy: d.busy.Get,
+					TestID: "questionnaires-answer-finalize"})
+			}
+			editor = append(editor, core.View{Style: core.Style{Direction: core.Row, Gap: 8},
+				Children: actions})
+		}
+		if d.message.Get() != "" {
+			editor = append(editor, core.Text{ContentFunc: func() string { return d.message.Get() },
+				Style: core.Style{FontSize: 12}, StyleFunc: func() core.Style {
+					if d.failed.Get() {
+						return ui.Colored(ui.ColorsOf(cx).Danger)()
+					}
+					return ui.Colored(ui.ColorsOf(cx).Muted)()
+				}})
+		}
+
+		body := []core.Node{
+			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8},
+				Children: []core.Node{
+					core.Text{ContentFunc: func() string {
+						return strconv.Itoa(d.year.Get()) + " · " +
+							questionnaireStatusLabel(cx, d.status.Get())
+					}, Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+					core.Text{ContentFunc: func() string { return d.due.Get() },
+						Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
+					core.View{Style: core.Style{FlexGrow: 1}},
+					core.Text{Content: locales.QuestionnairesAnswerProgress(cx,
+						strconv.Itoa(answered), strconv.Itoa(len(d.questions))),
+						Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+				}},
+			core.Scroll{Style: core.Style{MaxHeight: core.Pt(360)},
+				Children: []core.Node{core.View{Style: core.Style{Gap: 0}, Children: list}}},
+			dataCard(cx, editor...),
+		}
+		footer := []core.Node{
+			ui.Button{Text: locales.QuestionnairesDetailClose(cx), Variant: ui.ButtonSecondary,
+				OnPress: func() { d.open.Set(false) }, TestID: "questionnaires-detail-close"},
+			ui.Button{Text: locales.QuestionnairesFinalizeButton(cx),
+				OnPress: func() { d.finalizeAll(s, cx, dataRev) }, Busy: d.busy.Get,
+				TestID: "questionnaires-finalize-all"},
+		}
+		return dataDialogSized(cx, d.open, d.customer.Get(), body, footer,
+			"questionnaires-detail-dialog", 860)
+	}
+	return core.Dynamic(dialog)
+}
+
+func questionnaireKindLabel(cx *core.Scope, kind string) string {
+	switch kind {
+	case "numerical":
+		return locales.QuestionnairesDetailNumerical(cx)
+	case "narrative":
+		return locales.QuestionnairesDetailNarrative(cx)
+	default:
+		return locales.QuestionnairesDetailCategorical(cx)
+	}
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+func (s *Session) outboundQuestionnaires() int {
+	count := 0
+	for _, q := range s.questionnaires {
+		if q.Direction == "outbound" {
+			count++
+		}
+	}
+	return count
+}

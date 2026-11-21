@@ -125,7 +125,10 @@ var Parameters = map[string][]string{
 	"OnboardingEyebrow":                       {"current", "total"},
 	"QuestionnaireExportPdfFailed":            {"message"},
 	"QuestionnaireExportPdfSuccess":           {"path"},
+	"QuestionnairesAnswerProgress":            {"answered", "count"},
 	"QuestionnairesDetailInventoryEmptyTitle": {"year"},
+	"QuestionnairesListCount":                 {"count"},
+	"QuestionnairesQuestionCount":             {"count"},
 	"QuestionnairesWizardFileChosen":          {"filename"},
 	"QuestionnairesWizardSuccess":             {"count"},
 	"QuestionnairesWizardSuccessWithReused":   {"count", "reused"},
@@ -283,7 +286,10 @@ type Translation struct {
 	OnboardingEyebrow                       func(current string, total string) string
 	QuestionnaireExportPdfFailed            func(message string) string
 	QuestionnaireExportPdfSuccess           func(path string) string
+	QuestionnairesAnswerProgress            func(answered string, count string) string
 	QuestionnairesDetailInventoryEmptyTitle func(year string) string
+	QuestionnairesListCount                 func(count string) string
+	QuestionnairesQuestionCount             func(count string) string
 	QuestionnairesWizardFileChosen          func(filename string) string
 	QuestionnairesWizardSuccess             func(count string) string
 	QuestionnairesWizardSuccessWithReused   func(count string, reused string) string
@@ -492,6 +498,7 @@ const (
 	textActivityImportTitle
 	textActivityImportUnmapped
 	textActivityImportWarningsHeading
+	textAnswerDraft
 	textAnswerExportButton
 	textAnswerExportRunning
 	textAnswerFinalized
@@ -1125,14 +1132,21 @@ const (
 	textQuestionnairePdfSourceSummary
 	textQuestionnairePdfTocHeading
 	textQuestionnairePdfUnanswered
+	textQuestionnairesAnswerSaveFailed
+	textQuestionnairesAnswerSaved
 	textQuestionnairesDetailAnswerPending
 	textQuestionnairesDetailBack
+	textQuestionnairesDetailCategorical
+	textQuestionnairesDetailClose
 	textQuestionnairesDetailInventoryEmptyBody
 	textQuestionnairesDetailInventoryEmptyCta
 	textQuestionnairesDetailKind
+	textQuestionnairesDetailNarrative
 	textQuestionnairesDetailNotFound
+	textQuestionnairesDetailNumerical
 	textQuestionnairesDetailPosition
 	textQuestionnairesDetailQuestion
+	textQuestionnairesDetailSelect
 	textQuestionnairesDetailUnit
 	textQuestionnairesEmpty
 	textQuestionnairesFilterClear
@@ -1682,6 +1696,7 @@ var keyOfText = [numTexts]string{
 	"activityImportTitle",
 	"activityImportUnmapped",
 	"activityImportWarningsHeading",
+	"answerDraft",
 	"answerExportButton",
 	"answerExportRunning",
 	"answerFinalized",
@@ -2315,14 +2330,21 @@ var keyOfText = [numTexts]string{
 	"questionnairePdfSourceSummary",
 	"questionnairePdfTocHeading",
 	"questionnairePdfUnanswered",
+	"questionnairesAnswerSaveFailed",
+	"questionnairesAnswerSaved",
 	"questionnairesDetailAnswerPending",
 	"questionnairesDetailBack",
+	"questionnairesDetailCategorical",
+	"questionnairesDetailClose",
 	"questionnairesDetailInventoryEmptyBody",
 	"questionnairesDetailInventoryEmptyCta",
 	"questionnairesDetailKind",
+	"questionnairesDetailNarrative",
 	"questionnairesDetailNotFound",
+	"questionnairesDetailNumerical",
 	"questionnairesDetailPosition",
 	"questionnairesDetailQuestion",
+	"questionnairesDetailSelect",
 	"questionnairesDetailUnit",
 	"questionnairesEmpty",
 	"questionnairesFilterClear",
@@ -2870,6 +2892,7 @@ var textsEn = i18n.NewTexts(""+
 	"Batch import activity data"+
 	"— Not mapped —"+
 	"Warnings (won't block)"+
+	"Draft"+
 	"Export to Excel"+
 	"Exporting…"+
 	"Finalized"+
@@ -3503,14 +3526,21 @@ var textsEn = i18n.NewTexts(""+
 	"Source"+
 	"Table of contents"+
 	"(Unanswered)"+
+	"Could not save the answer"+
+	"Answer saved"+
 	"Phase 2.2b will generate answers here."+
 	"← Disclosure filings"+
+	"Short answer"+
+	"Close"+
 	"Record electricity, fuel, freight, etc. for that year first so the AI has a basis to draft answers from."+
 	"Add activity data →"+
 	"Type"+
+	"Narrative"+
 	"Disclosure filing not found"+
+	"Numeric"+
 	"Cell"+
 	"Question"+
+	"Pick a question to edit its answer."+
 	"Unit"+
 	"No disclosure filings yet"+
 	"Clear filters"+
@@ -4055,6 +4085,7 @@ var textsEn = i18n.NewTexts(""+
 		26,
 		18,
 		22,
+		5,
 		15,
 		12,
 		9,
@@ -4688,14 +4719,21 @@ var textsEn = i18n.NewTexts(""+
 		6,
 		17,
 		12,
+		25,
+		12,
 		38,
 		22,
+		12,
+		5,
 		104,
 		21,
 		4,
+		9,
 		27,
+		7,
 		4,
 		8,
+		35,
 		4,
 		25,
 		13,
@@ -5243,6 +5281,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"批量导入活动数据"+
 	"— 未映射 —"+
 	"警告（不阻断导入）"+
+	"草稿"+
 	"导出 Excel"+
 	"导出中…"+
 	"已定稿"+
@@ -5876,14 +5915,21 @@ var textsZhCN = i18n.NewTexts(""+
 	"来源"+
 	"目录"+
 	"(未答)"+
+	"保存答案失败"+
+	"答案已保存"+
 	"Phase 2.2b 将在此处生成答案。"+
 	"← 返回披露填报列表"+
+	"短答"+
+	"关闭"+
 	"需要先在活动数据中录入该年度的电、油、运费等记录，AI 才能生成有依据的答案。"+
 	"去录入活动数据 →"+
 	"题型"+
+	"叙述"+
 	"披露填报不存在"+
+	"数值"+
 	"单元格"+
 	"题目"+
+	"选择一道题，编辑它的答案。"+
 	"单位"+
 	"还没有披露填报"+
 	"清除筛选"+
@@ -6428,6 +6474,7 @@ var textsZhCN = i18n.NewTexts(""+
 		24,
 		17,
 		27,
+		6,
 		12,
 		12,
 		9,
@@ -7061,14 +7108,21 @@ var textsZhCN = i18n.NewTexts(""+
 		6,
 		6,
 		8,
+		18,
+		15,
 		38,
 		28,
+		6,
+		6,
 		111,
 		25,
 		6,
+		6,
 		21,
+		6,
 		9,
 		6,
+		39,
 		6,
 		21,
 		12,
@@ -7779,8 +7833,17 @@ func Supply(lang string, t Translation) {
 	if t.QuestionnaireExportPdfSuccess != nil {
 		s.QuestionnaireExportPdfSuccess = t.QuestionnaireExportPdfSuccess
 	}
+	if t.QuestionnairesAnswerProgress != nil {
+		s.QuestionnairesAnswerProgress = t.QuestionnairesAnswerProgress
+	}
 	if t.QuestionnairesDetailInventoryEmptyTitle != nil {
 		s.QuestionnairesDetailInventoryEmptyTitle = t.QuestionnairesDetailInventoryEmptyTitle
+	}
+	if t.QuestionnairesListCount != nil {
+		s.QuestionnairesListCount = t.QuestionnairesListCount
+	}
+	if t.QuestionnairesQuestionCount != nil {
+		s.QuestionnairesQuestionCount = t.QuestionnairesQuestionCount
 	}
 	if t.QuestionnairesWizardFileChosen != nil {
 		s.QuestionnairesWizardFileChosen = t.QuestionnairesWizardFileChosen
@@ -9574,6 +9637,13 @@ func ActivityImportWarningsHeading(cx *core.Scope) string {
 func (msgs Messages) ActivityImportWarningsHeading() string {
 	return msgs.text(textActivityImportWarningsHeading)
 }
+
+// AnswerDraft says "Draft"
+// in the language the app shows under cx.
+func AnswerDraft(cx *core.Scope) string { return For(cx).AnswerDraft() }
+
+// AnswerDraft is the package's AnswerDraft in the language of msgs.
+func (msgs Messages) AnswerDraft() string { return msgs.text(textAnswerDraft) }
 
 // AnswerExportButton says "Export to Excel"
 // in the language the app shows under cx.
@@ -16312,6 +16382,50 @@ func (msgs Messages) QuestionnairePdfUnanswered() string {
 	return msgs.text(textQuestionnairePdfUnanswered)
 }
 
+// QuestionnairesAnswerProgress says "{answered} of {count} answered"
+// in the language the app shows under cx.
+func QuestionnairesAnswerProgress(cx *core.Scope, answered string, count string) string {
+	return For(cx).QuestionnairesAnswerProgress(answered, count)
+}
+
+// QuestionnairesAnswerProgress is the package's QuestionnairesAnswerProgress in the language of msgs.
+func (msgs Messages) QuestionnairesAnswerProgress(answered string, count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.QuestionnairesAnswerProgress(answered, count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].QuestionnairesAnswerProgress; f != nil {
+			return f(answered, count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(answered) + " of " + msgs.arg(count) + " answered"
+		case "zh-CN":
+			return "已答 " + answered + " / " + count
+		}
+	}
+}
+
+// QuestionnairesAnswerSaveFailed says "Could not save the answer"
+// in the language the app shows under cx.
+func QuestionnairesAnswerSaveFailed(cx *core.Scope) string {
+	return For(cx).QuestionnairesAnswerSaveFailed()
+}
+
+// QuestionnairesAnswerSaveFailed is the package's QuestionnairesAnswerSaveFailed in the language of msgs.
+func (msgs Messages) QuestionnairesAnswerSaveFailed() string {
+	return msgs.text(textQuestionnairesAnswerSaveFailed)
+}
+
+// QuestionnairesAnswerSaved says "Answer saved"
+// in the language the app shows under cx.
+func QuestionnairesAnswerSaved(cx *core.Scope) string { return For(cx).QuestionnairesAnswerSaved() }
+
+// QuestionnairesAnswerSaved is the package's QuestionnairesAnswerSaved in the language of msgs.
+func (msgs Messages) QuestionnairesAnswerSaved() string {
+	return msgs.text(textQuestionnairesAnswerSaved)
+}
+
 // QuestionnairesDetailAnswerPending says "Phase 2.2b will generate answers here."
 // in the language the app shows under cx.
 func QuestionnairesDetailAnswerPending(cx *core.Scope) string {
@@ -16330,6 +16444,26 @@ func QuestionnairesDetailBack(cx *core.Scope) string { return For(cx).Questionna
 // QuestionnairesDetailBack is the package's QuestionnairesDetailBack in the language of msgs.
 func (msgs Messages) QuestionnairesDetailBack() string {
 	return msgs.text(textQuestionnairesDetailBack)
+}
+
+// QuestionnairesDetailCategorical says "Short answer"
+// in the language the app shows under cx.
+func QuestionnairesDetailCategorical(cx *core.Scope) string {
+	return For(cx).QuestionnairesDetailCategorical()
+}
+
+// QuestionnairesDetailCategorical is the package's QuestionnairesDetailCategorical in the language of msgs.
+func (msgs Messages) QuestionnairesDetailCategorical() string {
+	return msgs.text(textQuestionnairesDetailCategorical)
+}
+
+// QuestionnairesDetailClose says "Close"
+// in the language the app shows under cx.
+func QuestionnairesDetailClose(cx *core.Scope) string { return For(cx).QuestionnairesDetailClose() }
+
+// QuestionnairesDetailClose is the package's QuestionnairesDetailClose in the language of msgs.
+func (msgs Messages) QuestionnairesDetailClose() string {
+	return msgs.text(textQuestionnairesDetailClose)
 }
 
 // QuestionnairesDetailInventoryEmptyBody says "Record electricity, fuel, freight, etc. for that year first so the AI has a basis to draft answers from."
@@ -16387,6 +16521,17 @@ func (msgs Messages) QuestionnairesDetailKind() string {
 	return msgs.text(textQuestionnairesDetailKind)
 }
 
+// QuestionnairesDetailNarrative says "Narrative"
+// in the language the app shows under cx.
+func QuestionnairesDetailNarrative(cx *core.Scope) string {
+	return For(cx).QuestionnairesDetailNarrative()
+}
+
+// QuestionnairesDetailNarrative is the package's QuestionnairesDetailNarrative in the language of msgs.
+func (msgs Messages) QuestionnairesDetailNarrative() string {
+	return msgs.text(textQuestionnairesDetailNarrative)
+}
+
 // QuestionnairesDetailNotFound says "Disclosure filing not found"
 // in the language the app shows under cx.
 func QuestionnairesDetailNotFound(cx *core.Scope) string {
@@ -16396,6 +16541,17 @@ func QuestionnairesDetailNotFound(cx *core.Scope) string {
 // QuestionnairesDetailNotFound is the package's QuestionnairesDetailNotFound in the language of msgs.
 func (msgs Messages) QuestionnairesDetailNotFound() string {
 	return msgs.text(textQuestionnairesDetailNotFound)
+}
+
+// QuestionnairesDetailNumerical says "Numeric"
+// in the language the app shows under cx.
+func QuestionnairesDetailNumerical(cx *core.Scope) string {
+	return For(cx).QuestionnairesDetailNumerical()
+}
+
+// QuestionnairesDetailNumerical is the package's QuestionnairesDetailNumerical in the language of msgs.
+func (msgs Messages) QuestionnairesDetailNumerical() string {
+	return msgs.text(textQuestionnairesDetailNumerical)
 }
 
 // QuestionnairesDetailPosition says "Cell"
@@ -16418,6 +16574,15 @@ func QuestionnairesDetailQuestion(cx *core.Scope) string {
 // QuestionnairesDetailQuestion is the package's QuestionnairesDetailQuestion in the language of msgs.
 func (msgs Messages) QuestionnairesDetailQuestion() string {
 	return msgs.text(textQuestionnairesDetailQuestion)
+}
+
+// QuestionnairesDetailSelect says "Pick a question to edit its answer."
+// in the language the app shows under cx.
+func QuestionnairesDetailSelect(cx *core.Scope) string { return For(cx).QuestionnairesDetailSelect() }
+
+// QuestionnairesDetailSelect is the package's QuestionnairesDetailSelect in the language of msgs.
+func (msgs Messages) QuestionnairesDetailSelect() string {
+	return msgs.text(textQuestionnairesDetailSelect)
 }
 
 // QuestionnairesDetailUnit says "Unit"
@@ -16476,12 +16641,60 @@ func (msgs Messages) QuestionnairesFinalizeButton() string {
 	return msgs.text(textQuestionnairesFinalizeButton)
 }
 
+// QuestionnairesListCount says "{count} questionnaires"
+// in the language the app shows under cx.
+func QuestionnairesListCount(cx *core.Scope, count string) string {
+	return For(cx).QuestionnairesListCount(count)
+}
+
+// QuestionnairesListCount is the package's QuestionnairesListCount in the language of msgs.
+func (msgs Messages) QuestionnairesListCount(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.QuestionnairesListCount(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].QuestionnairesListCount; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " questionnaires"
+		case "zh-CN":
+			return count + " 份问卷"
+		}
+	}
+}
+
 // QuestionnairesNewButton says "New disclosure filing"
 // in the language the app shows under cx.
 func QuestionnairesNewButton(cx *core.Scope) string { return For(cx).QuestionnairesNewButton() }
 
 // QuestionnairesNewButton is the package's QuestionnairesNewButton in the language of msgs.
 func (msgs Messages) QuestionnairesNewButton() string { return msgs.text(textQuestionnairesNewButton) }
+
+// QuestionnairesQuestionCount says "{count} questions"
+// in the language the app shows under cx.
+func QuestionnairesQuestionCount(cx *core.Scope, count string) string {
+	return For(cx).QuestionnairesQuestionCount(count)
+}
+
+// QuestionnairesQuestionCount is the package's QuestionnairesQuestionCount in the language of msgs.
+func (msgs Messages) QuestionnairesQuestionCount(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.QuestionnairesQuestionCount(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].QuestionnairesQuestionCount; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " questions"
+		case "zh-CN":
+			return count + " 道题"
+		}
+	}
+}
 
 // QuestionnairesSearchPlaceholder says "Search customer name"
 // in the language the app shows under cx.
