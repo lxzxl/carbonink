@@ -1,9 +1,10 @@
-name: Release
+name: Release Electron
 
-# Unsigned, open-source release pipeline.
+# Unsigned, open-source Electron release pipeline.
 #
-# Tag push (v*) → build mac (arm64 + x64 .dmg) + win (x64 .exe) installers on
-# CI runners → attach to a GitHub Release. The marketing site's /download/*
+# Tag push (v1.*) → build mac (arm64 + x64 .dmg) + win (x64 .exe) installers
+# on CI runners → attach to a GitHub Release. Electron is frozen at 1.x;
+# release-nsgo.yml owns v2 and later. The marketing site's /download/*
 # endpoints resolve the latest release asset at request time (see
 # cloud/web/src/lib/latest-download.ts), so a fresh release is picked up with
 # no site rebuild.
@@ -18,7 +19,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - 'v1.*'
 
 permissions:
   contents: write

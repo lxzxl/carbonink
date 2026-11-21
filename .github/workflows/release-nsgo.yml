@@ -1,0 +1,78 @@
+name: Release NSGo
+
+# NSGo owns v2 and later. The Electron pipeline stays on v1 tags.
+#
+# One macOS runner builds every desktop installer: Go cross-compiles the
+# Windows executable, and NSIS compiles the setup program. The update key
+# signs the appcasts for Sparkle and WinSparkle. The release is uploaded as a
+# draft so Windows and first-run import QA finish before it goes live.
+
+on:
+  push:
+    tags:
+      - 'v2.*'
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: app/go.mod
+          cache-dependency-path: app/go.sum
+
+      - name: Install NSIS
+        # The Windows installer is built on this Mac, as the NSGo docs
+        # prescribe; without makensis the build only leaves the .nsi script.
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+        run: brew install makensis
+
+      - name: Build installers and appcasts
+        working-directory: app
+        env:
+          NSGO_UPDATES_KEY: ${{ secrets.NSGO_UPDATES_KEY }}
+        run: |
+          if [ -z "$NSGO_UPDATES_KEY" ]; then
+            echo "::error::NSGO_UPDATES_KEY is not configured."
+            exit 1
+          fi
+          go tool nsgo build \
+            -target macos_arm64,macos_x64,windows_x64 \
+            -version "${GITHUB_REF_NAME#v}" \
+            -channel direct
+
+      - name: Verify release assets
+        working-directory: app
+        run: |
+          for f in \
+            dist/releases/carbonink-*-macos-arm64.dmg \
+            dist/releases/carbonink-*-macos-x64.dmg \
+            dist/releases/carbonink-*-windows-x64-setup.exe \
+            dist/releases/appcast-macos_arm64.xml \
+            dist/releases/appcast-macos_x64.xml \
+            dist/releases/appcast-windows_x64.xml; do
+            if [ ! -f "$f" ]; then
+              echo "::error::missing release asset: $f"
+              exit 1
+            fi
+          done
+
+      - name: Upload draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          generate_release_notes: true
+          files: |
+            app/dist/releases/*.dmg
+            app/dist/releases/*-setup.exe
+            app/dist/releases/*.sha256
+            app/dist/releases/appcast-*.xml
