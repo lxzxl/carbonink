@@ -22,6 +22,7 @@ activitiesEmptyNoSourcesTitle: 请先建立排放源
 activitiesEmptyTitle: 还没有活动数据
 activitiesFilterClear: 清除筛选
 activitiesFilterEmpty: 未找到匹配的活动
+activitiesPeriodAll: 全部报告期
 activitiesFormAmount: 数量
 activitiesFormEf: 排放因子
 activitiesFormEfLoading: 正在加载排放因子…

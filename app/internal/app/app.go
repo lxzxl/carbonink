@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"time"
 
@@ -21,7 +20,6 @@ import (
 	"app.carbonink.desktop/internal/workspace"
 	"app.carbonink.desktop/locales"
 
-	"github.com/nsgo-dev/nsgo/base/datatable"
 	"github.com/nsgo-dev/nsgo/core"
 	"github.com/nsgo-dev/nsgo/desktop"
 	"github.com/nsgo-dev/nsgo/icons/lucide"
@@ -80,6 +78,13 @@ type Session struct {
 	// pendingActivity is a cross-screen jump target; the activities table
 	// consumes it on its next build and clears it.
 	pendingActivity string
+	// pendingNewActivity and pendingSourceCatalog open those dialogs when
+	// the dashboard's getting-started CTA lands on their screen.
+	pendingNewActivity   bool
+	pendingSourceCatalog bool
+	// pendingSupplierDisclosure opens an inbound disclosure when an activity
+	// row's provenance link sends the user to the supplier-disclosures screen.
+	pendingSupplierDisclosure string
 }
 
 // Root opens the active workspace and returns the shell. It is the app's
@@ -268,7 +273,7 @@ func (s *Session) reload(ctx context.Context) error {
 			}
 		}
 	}
-	s.activities, err = s.db.Activities(ctx, 5000)
+	s.activities, err = s.db.Activities(ctx, 0)
 	return err
 }
 
@@ -360,7 +365,7 @@ func (s *Session) view(cx *core.Scope) core.Node {
 
 	content := []core.Node{
 		core.Show{When: func() bool { return active.Get() == ScreenActivities },
-			Then: func(cx *core.Scope) core.Node { return s.activitiesScreen(cx, dataRev) }},
+			Then: func(cx *core.Scope) core.Node { return s.activitiesScreen(cx, dataRev, active) }},
 		core.Show{When: func() bool { return active.Get() == ScreenDashboard },
 			Then: func(cx *core.Scope) core.Node { return s.dashboardScreen(cx, dataRev, active) }},
 		core.Show{When: func() bool { return active.Get() == ScreenSources },
@@ -483,160 +488,6 @@ func errorView(cx *core.Scope, err error) core.Node {
 			core.Text{Content: err.Error(), Style: core.Style{FontSize: 12},
 				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 		}}
-}
-
-func (s *Session) activitiesScreen(cx *core.Scope, dataRev *core.Signal[int]) core.Node {
-	sortBy := core.NewSignal(cx, datatable.Sort{Key: "date", Descending: true})
-	initialSelection := datatable.NoTableSelection
-	initialID := ""
-	if jump := s.pendingActivity; jump != "" {
-		s.pendingActivity = ""
-		all := s.activities
-		sortRows(all, sortBy.Get())
-		for i := range all {
-			if all[i].ID == jump {
-				initialSelection = datatable.Selection{Row: i, Column: -1}
-				initialID = jump
-				break
-			}
-		}
-	}
-	selected := core.NewSignal(cx, initialSelection)
-	selectedID := core.NewSignal(cx, initialID)
-	lineagePanel := newLineagePanel(cx)
-	rows := func() []store.Activity {
-		_ = dataRev.Get()
-		sortRows(s.activities, sortBy.Get())
-		return s.activities
-	}
-
-	columns := func() []datatable.Column {
-		return []datatable.Column{
-			{Key: "date", Title: locales.ColDate(cx), Width: 104, Sortable: true},
-			{Key: "site", Title: locales.ColSite(cx), Width: 140, Sortable: true},
-			{Key: "source", Title: locales.ColSource(cx), Width: 240, Sortable: true},
-			{Key: "amount", Title: locales.ColAmount(cx), Width: 110, Align: datatable.AlignEndColumn, Sortable: true},
-			{Key: "unit", Title: locales.ColUnit(cx), Width: 70},
-			{Key: "co2e", Title: locales.ColCO2e(cx), Width: 130, Align: datatable.AlignEndColumn, Sortable: true},
-			{Key: "scope", Title: locales.ColScope(cx), Width: 70, Align: datatable.AlignCenterColumn},
-		}
-	}
-
-	return core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0), Padding: core.All(16), Gap: 10},
-		Children: []core.Node{
-			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8}, Children: []core.Node{
-				core.Text{ContentFunc: func() string { return locales.ActivitiesCount(cx, len(rows())) },
-					Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}},
-				core.Text{ContentFunc: func() string {
-					sp := sortBy.Get()
-					if sp.Key == "" {
-						return ""
-					}
-					dir := "ascending"
-					if sp.Descending {
-						dir = "descending"
-					}
-					return "· " + sp.Key + " " + dir
-				}, Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-				core.View{Style: core.Style{FlexGrow: 1}},
-				s.activityDialog(cx, dataRev),
-				s.activityImportDialog(cx, dataRev),
-				s.editActivityDialog(cx, selectedID, dataRev),
-				s.deleteActivityButton(cx, selectedID, dataRev),
-				ui.Button{Text: locales.LineageOpenButton(cx), Variant: ui.ButtonSecondary,
-					Disabled: func() bool { return selectedID.Get() == "" },
-					OnPress: func() {
-						lineagePanel.show(cx, s, "activity_data", selectedID.Get())
-					}, TestID: "activity-lineage"},
-				lineagePanel.dialog(cx, s),
-			}},
-			core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)}, Children: []core.Node{
-				datatable.DataTable{
-					TestID: "activities-table", Label: locales.ActivitiesTitle(cx),
-					Columns:  columns,
-					RowCount: func() int { return len(rows()) },
-					Text: func(row, col int) string {
-						rows := rows()
-						if row < 0 || row >= len(rows) {
-							return ""
-						}
-						return activityCell(rows[row], col)
-					},
-					RowHeight: 30, FontSize: 13, NoRowHeader: true,
-					Stripe: func() bool { return true },
-					Sort:   sortBy.Get,
-					StyleFunc: func() core.Style {
-						return core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0), CornerRadius: 8,
-							BorderWidth: 1, BorderColor: ui.ColorsOf(cx).Border(), Background: ui.ColorsOf(cx).Surface()}
-					},
-					OnSortChange: func(next datatable.Sort) {
-						sortBy.Set(next)
-						sortRows(s.activities, next)
-						dataRev.Set(dataRev.Get() + 1)
-					},
-					OnSelectionChange: func(sel datatable.Selection) {
-						selected.Set(sel)
-						all := rows()
-						if sel.Row >= 0 && sel.Row < len(all) {
-							selectedID.Set(all[sel.Row].ID)
-						} else {
-							selectedID.Set("")
-						}
-					},
-					Selection: selected.Get,
-					Empty: core.View{Style: core.Style{FlexGrow: 1, AlignItems: core.AlignCenter, JustifyContent: core.JustifyCenter},
-						Children: []core.Node{
-							core.Text{ContentFunc: func() string { return locales.ActivitiesEmpty(cx) },
-								Style: core.Style{FontSize: 13}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-						}},
-				},
-			}},
-		}}
-}
-
-func activityCell(a store.Activity, col int) string {
-	switch col {
-	case 0:
-		if len(a.OccurredAt) >= 10 {
-			return a.OccurredAt[:10]
-		}
-		return a.OccurredAt
-	case 1:
-		return a.Site
-	case 2:
-		return a.Source
-	case 3:
-		return commaFloat(a.Amount)
-	case 4:
-		return a.Unit
-	case 5:
-		return commaFloat(a.CO2eKg)
-	default:
-		return strconv.Itoa(a.Scope)
-	}
-}
-
-func sortRows(rows []store.Activity, s datatable.Sort) {
-	less := func(i, j int) bool {
-		switch s.Key {
-		case "site":
-			return rows[i].Site < rows[j].Site
-		case "source":
-			return rows[i].Source < rows[j].Source
-		case "amount":
-			return rows[i].Amount < rows[j].Amount
-		case "co2e":
-			return rows[i].CO2eKg < rows[j].CO2eKg
-		default:
-			return rows[i].OccurredAt < rows[j].OccurredAt
-		}
-	}
-	sort.SliceStable(rows, func(i, j int) bool {
-		if s.Descending {
-			return less(j, i)
-		}
-		return less(i, j)
-	})
 }
 
 func commaFloat(v float64) string {

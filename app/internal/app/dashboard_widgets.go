@@ -96,6 +96,34 @@ func (s *Session) dashboardWidgets(cx *core.Scope, active *core.Signal[Screen]) 
 	}
 }
 
+// readinessHomeCard is the 1.x dashboard's entry point to the readiness
+// review. It is a link, not a live count: running the sweep writes an audit
+// event, so visiting the dashboard must not trigger it.
+func (s *Session) readinessHomeCard(cx *core.Scope, active *core.Signal[Screen]) core.Node {
+	if s.totals.TotalKg == 0 || len(s.periods) == 0 {
+		return core.View{}
+	}
+	return core.View{TestID: "dashboard-readiness", Children: []core.Node{
+		dataCard(cx,
+			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 12},
+				Children: []core.Node{
+					core.View{Style: core.Style{Gap: 3, FlexGrow: 1, FlexShrink: 1,
+						MinWidth: core.Pt(0)}, Children: []core.Node{
+						core.Text{Content: locales.ReadinessHomeCardTitle(cx),
+							Style:    core.Style{FontSize: 13, FontWeight: ui.Semibold},
+							MaxLines: 1},
+						core.Text{Content: locales.ReadinessDescription(cx),
+							Style:     core.Style{FontSize: 12, FlexShrink: 1, MinWidth: core.Pt(0)},
+							StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2},
+					}},
+					ui.Button{Text: locales.ReadinessHomeCardCta(cx), Variant: ui.ButtonSecondary,
+						OnPress: func() { active.Set(ScreenReports) },
+						TestID:  "dashboard-readiness-open"},
+				}},
+		),
+	}}
+}
+
 func (s *Session) monthlyTrendCard(cx *core.Scope, activities []store.Activity) core.Node {
 	buckets := buildMonthBuckets(activities, time.Now())
 	maxTotal := 0.0
@@ -146,7 +174,9 @@ func (s *Session) recentActivitiesCard(cx *core.Scope, activities []store.Activi
 	recent := recentActivities(activities)
 	children := []core.Node{
 		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8}, Children: []core.Node{
-			dataHeading(cx, locales.DashboardRecentActivities(cx), ""),
+			core.Text{Content: locales.DashboardRecentActivities(cx),
+				Style:    core.Style{FontSize: 14, FontWeight: ui.Semibold, FlexShrink: 1, MinWidth: core.Pt(0)},
+				MaxLines: 1},
 			core.View{Style: core.Style{FlexGrow: 1}},
 			ui.Button{Text: locales.DashboardWidgetViewAll(cx), Variant: ui.ButtonGhost, Size: ui.SizeSmall,
 				OnPress: func() { active.Set(ScreenActivities) }, TestID: "dashboard-recent-view-all"},
@@ -167,18 +197,29 @@ func (s *Session) recentActivitiesCard(cx *core.Scope, activities []store.Activi
 				Padding: core.Symmetric(7, 0), Borders: core.Edges{Bottom: 1}},
 			StyleFunc: func() core.Style { return core.Style{BorderColor: ui.ColorsOf(cx).Line()} },
 			Children: []core.Node{
-				core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{
-					core.Text{Content: activity.Source, Style: core.Style{FontSize: 12, FontWeight: ui.Medium},
+				core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)}, Children: []core.Node{
+					core.Text{Content: activity.Source,
+						Style: core.Style{FontSize: 12, FontWeight: ui.Medium,
+							FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
 						MaxLines: 1},
 				}},
-				core.Text{Content: activity.OccurredAtEnd, Style: core.Style{FontSize: 11},
-					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+				core.Text{Content: activityEndDate(activity), Style: core.Style{FontSize: 11},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
 				core.View{Style: core.Style{Width: core.Pt(12)}},
 				core.Text{Content: commaFloat(activity.CO2eKg) + " " + locales.UnitKgCo2e(cx),
-					Style: core.Style{FontSize: 12, FontWeight: ui.Medium}},
+					Style: core.Style{FontSize: 12, FontWeight: ui.Medium, FlexShrink: 0}, MaxLines: 1},
 			},
 		})
 	}
 	children = append(children, core.View{Style: core.Style{Gap: 0}, Children: rows})
 	return core.View{TestID: "dashboard-recent", Children: []core.Node{dataCard(cx, children...)}}
+}
+
+// activityEndDate is the dashboard's date: 1.x shows occurred_at_end there,
+// while the ledger list shows the start date.
+func activityEndDate(activity store.Activity) string {
+	if len(activity.OccurredAtEnd) >= 10 {
+		return activity.OccurredAtEnd[:10]
+	}
+	return activity.OccurredAtEnd
 }

@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -72,4 +73,56 @@ func TestAuditRebindCardStructuresPayload(t *testing.T) {
 	ui.Press("id:audit-rebind-activity-evt")
 	ui.WaitFor("id:activities-table", 3*time.Second)
 	ui.WaitUntil(3*time.Second, func() bool { return ui.Enabled("id:activity-edit") })
+}
+
+// TestActivityDeepLinkScrollsToRow proves the audit card's activity button
+// lands on the right row even when it is far down a long ledger.
+func TestActivityDeepLinkScrollsToRow(t *testing.T) {
+	dbPath := fixtureDB(t)
+	ctx := context.Background()
+	s, err := store.Open(ctx, dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 30; i++ {
+		date := fmt.Sprintf("2025-03-%02d", i%28+1)
+		if _, err := s.DB().ExecContext(ctx,
+			`INSERT INTO activity_data (id, site_id, emission_source_id, reporting_period_id,
+			 occurred_at_start, occurred_at_end, amount, unit,
+			 ef_factor_code, ef_year, ef_source, ef_geography, ef_dataset_version,
+			 computed_co2e_kg, computed_at, created_at, updated_at)
+			 VALUES (?, 'site', 'src', 'period', ?, ?, 10, 'kWh',
+			 'ef', 2024, 'MEE', 'CN', '2024', 5, '2025-01-15T00:00:00Z',
+			 '2025-01-15T00:00:00Z', '2025-01-15T00:00:00Z')`,
+			fmt.Sprintf("deep-%02d", i), date, date); err != nil {
+			s.Close()
+			t.Fatal(err)
+		}
+	}
+	if _, err := s.DB().ExecContext(ctx, `INSERT INTO audit_event
+		(id, event_kind, payload, occurred_at) VALUES ('deep-event', 'activity_rebind_ef', ?, ?)`,
+		`{"activity_id":"act","old_ef":{"factor_code":"ef","year":2024,"source":"MEE","geography":"CN","dataset_version":"2024"},`+
+			`"new_ef":{"factor_code":"ef","year":2024,"source":"MEE","geography":"CN","dataset_version":"2024"},`+
+			`"old_amount":240,"old_unit":"kWh","old_computed_co2e_kg":120,`+
+			`"new_amount":240,"new_unit":"kWh","new_computed_co2e_kg":120,`+
+			`"emission_source_id":"src","reporting_period_id":"period","fuel_code":null}`,
+		"2025-04-01T00:00:00Z"); err != nil {
+		s.Close()
+		t.Fatal(err)
+	}
+	if err := s.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Setenv("CARBONINK_TEST_DB", dbPath)
+	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
+		nsgotest.Environment(core.Environment{Locale: "en-US"}))
+	ui.Press("id:nav:audit")
+	ui.WaitFor("id:audit-rebind-deep-event", 3*time.Second)
+	ui.Press("id:audit-rebind-activity-deep-event")
+	ui.WaitFor("id:activities-table", 3*time.Second)
+	ui.WaitUntil(3*time.Second, func() bool {
+		table := ui.Find("id:activities-table")
+		return len(table.Children) > 0 && table.Children[0].Offset.Y > 0
+	})
 }

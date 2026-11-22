@@ -32,17 +32,18 @@ func TestMain(m *testing.M) {
 	nsgotest.Main(m)
 }
 
-// TestActivitiesFromWorkspace opens a fixture workspace and proves the table
+// TestActivitiesFromWorkspace opens a fixture workspace and proves the list
 // renders its row, not placeholder data.
 func TestActivitiesFromWorkspace(t *testing.T) {
 	t.Setenv("CARBONINK_TEST_DB", fixtureDB(t))
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}))
 	ui.WaitFor("id:activities-table", 5*time.Second)
-	ui.WaitFor("text:上海工厂", 2*time.Second)
 	ui.WaitFor("text:外购电力", 2*time.Second)
 	ui.WaitFor("text:240.00", 2*time.Second)
 	ui.WaitFor("text:120.00", 2*time.Second)
+	ui.WaitFor("text:ef (MEE · 2024 · CN)", 2*time.Second)
+	ui.WaitFor("text:Entered manually", 2*time.Second)
 }
 
 // TestSettingsSwitchThemeAndLanguage proves the settings screen persists a
@@ -141,7 +142,34 @@ func TestGettingStartedCardLeadsToSources(t *testing.T) {
 	ui.WaitForGone("id:dashboard-start-activities", time.Second)
 
 	ui.Press("id:dashboard-start-sources")
-	ui.WaitFor("id:source-add", 5*time.Second)
+	ui.WaitFor("id:source-catalog-dialog", 5*time.Second)
+	ui.Press("id:source-catalog-cancel")
+}
+
+// TestGettingStartedCardOpensTheActivityForm proves the second checklist step
+// lands on Activities with the add form already open, as 1.x did.
+func TestGettingStartedCardOpensTheActivityForm(t *testing.T) {
+	dbPath := fixtureDB(t)
+	s, err := store.Open(context.Background(), dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.DB().ExecContext(context.Background(), `DELETE FROM activity_data`); err != nil {
+		s.Close()
+		t.Fatal(err)
+	}
+	if err := s.Close(); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("CARBONINK_TEST_DB", dbPath)
+
+	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
+		nsgotest.Environment(core.Environment{Locale: "en-US"}))
+	ui.WaitFor("id:activities-empty-add", 5*time.Second)
+	ui.Press("id:nav:dashboard")
+	ui.WaitFor("id:dashboard-start-activities", 3*time.Second)
+	ui.Press("id:dashboard-start-activities")
+	ui.WaitFor("id:activity-dialog", 3*time.Second)
 }
 
 // TestEditActivityThroughUI selects a ledger row, edits its amount and
@@ -151,8 +179,7 @@ func TestEditActivityThroughUI(t *testing.T) {
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}))
 	ui.WaitFor("id:activities-table", 5*time.Second)
-	ui.Press("id:data-table-hit")
-	ui.Key("down")
+	ui.Press("text:外购电力")
 	ui.Press("id:activity-edit")
 	ui.WaitFor("id:activity-edit-dialog", 2*time.Second)
 	ui.WaitFor("id:guidance-ef-rebind", 3*time.Second)

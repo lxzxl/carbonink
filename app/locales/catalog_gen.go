@@ -437,6 +437,7 @@ const (
 	textActivitiesEmptyTitle
 	textActivitiesFilterClear
 	textActivitiesFilterEmpty
+	textActivitiesPeriodAll
 	textActivitiesFormAmount
 	textActivitiesFormEf
 	textActivitiesFormEfLoading
@@ -1781,6 +1782,7 @@ var keyOfText = [numTexts]string{
 	"activitiesEmptyTitle",
 	"activitiesFilterClear",
 	"activitiesFilterEmpty",
+	"activitiesPeriodAll",
 	"activitiesFormAmount",
 	"activitiesFormEf",
 	"activitiesFormEfLoading",
@@ -3123,6 +3125,7 @@ var textsEn = i18n.NewTexts(""+
 	"No activity data yet"+
 	"Clear filters"+
 	"No matching activities"+
+	"All periods"+
 	"Amount"+
 	"Emission factor"+
 	"Loading emission factors…"+
@@ -4462,6 +4465,7 @@ var textsEn = i18n.NewTexts(""+
 		20,
 		13,
 		22,
+		11,
 		6,
 		15,
 		27,
@@ -5804,6 +5808,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"还没有活动数据"+
 	"清除筛选"+
 	"未找到匹配的活动"+
+	"全部报告期"+
 	"数量"+
 	"排放因子"+
 	"正在加载排放因子…"+
@@ -7143,6 +7148,7 @@ var textsZhCN = i18n.NewTexts(""+
 		21,
 		12,
 		24,
+		15,
 		6,
 		12,
 		27,
@@ -9251,6 +9257,13 @@ func ActivitiesFilterEmpty(cx *core.Scope) string { return For(cx).ActivitiesFil
 
 // ActivitiesFilterEmpty is the package's ActivitiesFilterEmpty in the language of msgs.
 func (msgs Messages) ActivitiesFilterEmpty() string { return msgs.text(textActivitiesFilterEmpty) }
+
+// ActivitiesPeriodAll says "All periods"
+// in the language the app shows under cx.
+func ActivitiesPeriodAll(cx *core.Scope) string { return For(cx).ActivitiesPeriodAll() }
+
+// ActivitiesPeriodAll is the package's ActivitiesPeriodAll in the language of msgs.
+func (msgs Messages) ActivitiesPeriodAll() string { return msgs.text(textActivitiesPeriodAll) }
 
 // ActivitiesFormAmount says "Amount"
 // in the language the app shows under cx.

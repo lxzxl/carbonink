@@ -48,10 +48,21 @@ const activitySelect = `SELECT a.id, a.site_id,
 		a.ef_factor_code, a.ef_year, a.ef_source, a.ef_geography, a.ef_dataset_version,
 		a.computed_co2e_kg, a.computed_at, coalesce(a.fuel_code, ''), coalesce(a.notes, ''),
 		coalesce(a.inbound_question_id, ''), coalesce(a.inbound_tier, 0), es.scope,
-		coalesce(a.extraction_id, '')
+		coalesce(a.extraction_id, ''), coalesce(ex.document_id, ''), coalesce(doc.filename, ''),
+		coalesce(iq.questionnaire_id, ''), coalesce(customer.name, ''),
+		EXISTS(
+			SELECT 1 FROM evidence_attachment ea
+			JOIN document ledger ON ledger.id = ea.document_id
+			WHERE ea.activity_data_id = a.id AND ledger.doc_type = 'activity_import'
+		)
 	FROM activity_data a
 	JOIN site ON site.id = a.site_id
-	JOIN emission_source es ON es.id = a.emission_source_id`
+	JOIN emission_source es ON es.id = a.emission_source_id
+	LEFT JOIN extraction ex ON ex.id = a.extraction_id
+	LEFT JOIN document doc ON doc.id = ex.document_id
+	LEFT JOIN question iq ON iq.id = a.inbound_question_id
+	LEFT JOIN questionnaire iqn ON iqn.id = iq.questionnaire_id
+	LEFT JOIN customer ON customer.id = iqn.customer_id`
 
 // CreateActivity writes a validated ledger row and its audit event.
 func (s *Store) CreateActivity(ctx context.Context, in ActivityInput) (*Activity, error) {
@@ -600,7 +611,9 @@ func scanActivity(row rowScanner) (Activity, error) {
 	err := row.Scan(&a.ID, &a.SiteID, &a.Site, &a.EmissionSourceID, &a.Source, &a.ReportingPeriodID,
 		&a.OccurredAt, &a.OccurredAtEnd, &a.Amount, &a.Unit, &a.EFFactorCode, &a.EFYear, &a.EFSource,
 		&a.EFGeography, &a.EFDatasetVersion, &a.CO2eKg, &a.ComputedAt, &a.FuelCode, &a.Notes,
-		&a.InboundQuestionID, &a.InboundTier, &a.Scope, &a.ExtractionID)
+		&a.InboundQuestionID, &a.InboundTier, &a.Scope, &a.ExtractionID,
+		&a.SourceDocumentID, &a.SourceDocumentFilename, &a.InboundQuestionnaireID,
+		&a.InboundSupplierName, &a.FromLedgerImport)
 	return a, err
 }
 

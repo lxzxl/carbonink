@@ -14,6 +14,25 @@ import (
 	"github.com/nsgo-dev/nsgo/nsgotest"
 )
 
+func TestDataYearPeriodUsesTheLatestActivePeriod(t *testing.T) {
+	periods := []store.ReportingPeriod{
+		{ID: "2024", Year: 2024, IsActive: true},
+		{ID: "2025", Year: 2025, IsActive: true},
+		{ID: "2026", Year: 2026},
+	}
+	if got := dataYearPeriod(periods); got == nil || got.ID != "2025" {
+		t.Fatalf("dataYearPeriod = %+v, want the latest active period 2025", got)
+	}
+	periods[0].IsActive = false
+	periods[1].IsActive = false
+	if got := dataYearPeriod(periods); got == nil || got.ID != "2026" {
+		t.Fatalf("dataYearPeriod = %+v, want the latest period 2026", got)
+	}
+	if got := dataYearPeriod(nil); got != nil {
+		t.Fatalf("dataYearPeriod(nil) = %+v, want nil", got)
+	}
+}
+
 // TestDataExportWritesAValidBackup saves through the real SaveFile path and
 // checks the saved file is a CarbonInk database.
 func TestDataExportWritesAValidBackup(t *testing.T) {

@@ -93,6 +93,16 @@ func (s *Session) supplierDisclosuresScreen(cx *core.Scope, dataRev *core.Signal
 	screenFailed := core.NewSignal(cx, false)
 	wizard := newSupplierWizard(cx, s)
 	detail := newSupplierDetail(cx, s.db)
+	if id := s.pendingSupplierDisclosure; id != "" {
+		s.pendingSupplierDisclosure = ""
+		for _, q := range s.questionnaires {
+			if q.ID != id {
+				continue
+			}
+			s.scope.Post(func() { detail.show(cx, s, dataRev, q) })
+			break
+		}
+	}
 
 	rows := func() []store.Questionnaire {
 		_ = dataRev.Get()
@@ -202,7 +212,7 @@ func supplierDisclosureRow(cx *core.Scope, q store.Questionnaire, overdue bool,
 		core.View{Style: core.Style{Gap: 2, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
 			Children: []core.Node{
 				core.Text{Content: q.CustomerName, Style: core.Style{FontSize: 13,
-					FontWeight: ui.Semibold}, MaxLines: 1},
+					FontWeight: ui.Semibold, FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 1},
 				core.Text{Content: meta, Style: core.Style{FontSize: 11},
 					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
 			}},

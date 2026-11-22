@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -91,6 +92,11 @@ func TestDashboardShowsTrendAndRecentActivities(t *testing.T) {
 	ui.WaitFor("text:外购电力", 3*time.Second)
 	ui.WaitFor("text:120.00 kg CO2e", 3*time.Second)
 
+	ui.WaitFor("id:dashboard-readiness", 3*time.Second)
+	ui.Press("id:dashboard-readiness-open")
+	ui.WaitFor("id:reports-kind", 3*time.Second)
+	ui.Press("id:nav:dashboard")
+
 	ui.Press("id:dashboard-recent-view-all")
 	ui.WaitFor("id:activities-table", 3*time.Second)
 }
@@ -121,5 +127,71 @@ func TestDashboardWidgetsHideWithoutEmissions(t *testing.T) {
 	}
 	if rows := ui.Query("id:dashboard-recent"); len(rows) != 0 {
 		t.Errorf("recent activities showed without data: %d views", len(rows))
+	}
+}
+
+func TestDashboardRecentActivityTruncatesLongSource(t *testing.T) {
+	dbPath := fixtureDB(t)
+	longName := strings.Repeat("超长排放源名称", 20)
+	s, err := store.Open(context.Background(), dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	today := time.Now().Format("2006-01-02")
+	if _, err := s.DB().ExecContext(context.Background(),
+		`UPDATE emission_source SET name = ? WHERE id = 'src'`, longName); err != nil {
+		s.Close()
+		t.Fatal(err)
+	}
+	if _, err := s.DB().ExecContext(context.Background(),
+		`UPDATE activity_data SET occurred_at_start = ?, occurred_at_end = ?`, today, today); err != nil {
+		s.Close()
+		t.Fatal(err)
+	}
+	if err := s.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Setenv("CARBONINK_TEST_DB", dbPath)
+	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
+		nsgotest.Environment(core.Environment{Locale: "en-US"}))
+	ui.WaitFor("id:activities-table", 5*time.Second)
+	ui.Press("id:nav:dashboard")
+	ui.WaitFor("id:dashboard-recent", 5*time.Second)
+
+	source := ui.Find("id:dashboard-recent >> text:" + longName)
+	if source.MaxLines != 1 {
+		t.Fatalf("source MaxLines = %d, want 1", source.MaxLines)
+	}
+	if parent := source.Parent; parent != nil &&
+		source.Frame.Origin.X+source.Frame.Size.Width > parent.Frame.Size.Width+1 {
+		t.Fatalf("source overflows its row: source width %v, row width %v",
+			source.Frame.Size.Width, parent.Frame.Size.Width)
+	}
+}
+
+func TestDashboardRecentActivityShowsTheEndDate(t *testing.T) {
+	dbPath := fixtureDB(t)
+	s, err := store.Open(context.Background(), dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.DB().ExecContext(context.Background(),
+		`UPDATE activity_data SET occurred_at_start = '2025-01-05', occurred_at_end = '2025-03-20'`); err != nil {
+		s.Close()
+		t.Fatal(err)
+	}
+	if err := s.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Setenv("CARBONINK_TEST_DB", dbPath)
+	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
+		nsgotest.Environment(core.Environment{Locale: "en-US"}))
+	ui.WaitFor("id:activities-table", 5*time.Second)
+	ui.Press("id:nav:dashboard")
+	ui.WaitFor("id:dashboard-recent >> text:2025-03-20", 3*time.Second)
+	if ui.Exists("id:dashboard-recent >> text:2025-01-05") {
+		t.Fatal("dashboard shows the start date; 1.x shows the end date")
 	}
 }

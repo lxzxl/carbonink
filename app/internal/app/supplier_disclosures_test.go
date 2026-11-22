@@ -126,16 +126,22 @@ func TestSupplierDisclosureLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var ingested bool
+	var ingestedID, ingestedQuestionnaireID string
 	for _, activity := range activities {
 		if activity.CO2eKg == 43000 && activity.Unit == "kgCO2e" &&
 			strings.Contains(activity.Notes, "Fresh Steel") {
-			ingested = true
+			ingestedID = activity.ID
+			ingestedQuestionnaireID = activity.InboundQuestionnaireID
 		}
 	}
-	if !ingested {
+	if ingestedID == "" || ingestedQuestionnaireID == "" {
 		t.Fatalf("activities = %+v", activities)
 	}
+	ui.Press("id:nav:activities")
+	ui.WaitFor("id:activity-supplier-"+ingestedID, 5*time.Second)
+	ui.Press("id:activity-supplier-" + ingestedID)
+	ui.WaitFor("id:supplier-disclosures-detail-dialog", 5*time.Second)
+	ui.WaitFor(`id:supplier-disclosures-detail-dialog >> text:"Fresh Steel · 2025"`, 3*time.Second)
 	var audited int
 	if err := check.DB().QueryRowContext(ctx,
 		`SELECT count(*) FROM audit_event WHERE event_kind = 'inbound_questionnaire.ingested'`).

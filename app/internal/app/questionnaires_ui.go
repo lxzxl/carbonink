@@ -241,7 +241,7 @@ func questionnaireListRow(cx *core.Scope, q store.Questionnaire, onPress func())
 			core.View{Style: core.Style{Gap: 2, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
 				Children: []core.Node{
 					core.Text{Content: q.CustomerName, Style: core.Style{FontSize: 13,
-						FontWeight: ui.Semibold}, MaxLines: 1},
+						FontWeight: ui.Semibold, FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 1},
 					core.Text{Content: strconv.Itoa(q.ReportingYear) + " · " +
 						locales.QuestionnairesQuestionCount(cx, strconv.Itoa(q.QuestionCount)),
 						Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted),

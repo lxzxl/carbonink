@@ -36,6 +36,12 @@ type sourceCatalog struct {
 }
 
 func (s *Session) sourceCatalogDialog(cx *core.Scope, dataRev *core.Signal[int]) core.Node {
+	node, _ := s.sourceCatalogDialogWithShow(cx, dataRev)
+	return node
+}
+
+func (s *Session) sourceCatalogDialogWithShow(cx *core.Scope,
+	dataRev *core.Signal[int]) (core.Node, func()) {
 	c := &sourceCatalog{
 		open:     core.NewSignal(cx, false),
 		rev:      core.NewSignal(cx, 0),
@@ -158,6 +164,7 @@ func (s *Session) sourceCatalogDialog(cx *core.Scope, dataRev *core.Signal[int])
 					dataField(cx, locales.SourcesFormScope(cx),
 						ui.Select[int]{Options: scopeOptions, Value: c.scope.Get,
 							OnChange: func(scope int) {
+								c.category.Set("")
 								c.scope.Set(scope)
 								c.limit = catalogPageSize
 								c.rev.Set(c.rev.Get() + 1)
@@ -183,7 +190,7 @@ func (s *Session) sourceCatalogDialog(cx *core.Scope, dataRev *core.Signal[int])
 			}},
 			dataError(cx, c.status),
 		}, footer, "source-catalog-dialog", 780),
-	}}
+	}}, show
 }
 
 func (c *sourceCatalog) filtered() []presets.Preset {

@@ -23,6 +23,7 @@ activitiesEmptyNoSourcesTitle: Add an emission source first
 activitiesEmptyTitle: No activity data yet
 activitiesFilterClear: Clear filters
 activitiesFilterEmpty: No matching activities
+activitiesPeriodAll: All periods
 activitiesFormAmount: Amount
 activitiesFormEf: Emission factor
 activitiesFormEfLoading: Loading emission factors…

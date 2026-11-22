@@ -19,8 +19,7 @@ func TestUndoAndRedoActivityMutations(t *testing.T) {
 	ui.WaitFor("id:activities-table", 5*time.Second)
 
 	// Delete, undo, redo.
-	ui.Press("id:data-table-hit")
-	ui.Key("down")
+	ui.Press("text:外购电力")
 	ui.Press("id:activity-delete")
 	ui.WaitFor("id:activity-delete-dialog", 2*time.Second)
 	ui.Press("id:activity-delete-confirm")
@@ -50,8 +49,7 @@ func TestUndoAndRedoActivityUpdate(t *testing.T) {
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}))
 	ui.WaitFor("id:activities-table", 5*time.Second)
-	ui.Press("id:data-table-hit")
-	ui.Key("down")
+	ui.Press("text:外购电力")
 	ui.Press("id:activity-edit")
 	ui.WaitFor("id:activity-edit-dialog", 2*time.Second)
 	ui.WaitFor("id:guidance-ef-rebind", 2*time.Second)

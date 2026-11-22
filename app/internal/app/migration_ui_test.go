@@ -55,7 +55,7 @@ func TestMigrationCardFromLegacyWorkspace(t *testing.T) {
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}))
 	ui.WaitFor("id:activities-table", 5*time.Second)
-	ui.WaitFor("text:上海工厂", 3*time.Second)
+	ui.WaitFor("text:外购电力", 3*time.Second)
 
 	ui.Press("id:nav:settings")
 	ui.WaitFor("text:Migration from CarbonInk 1.x", 5*time.Second)

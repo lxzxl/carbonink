@@ -29,7 +29,7 @@ Root shortcuts: `pnpm app:dev`, `pnpm app:test`, `pnpm app:build`.
 | Path | What |
 | --- | --- |
 | `main.go` | `nsgo.Run` entry point |
-| `internal/app` | Shell, navigation, activity table |
+| `internal/app` | Shell, navigation, activity list |
 | `internal/workspace` | `workspaces.json`, active workspace, legacy import |
 | `internal/store` | SQLite open, migrations, activity queries |
 | `internal/backup` | Daily `VACUUM INTO` snapshots, 7 per workspace |
@@ -70,7 +70,8 @@ until the 2.0 appcast is hosted.
 
 - Workspace registry, active workspace, one-time legacy import: done
 - SQLite (cgo-free, FTS5, JSON1, WAL) and the 22 Electron migrations: done
-- Real activity ledger (5,000 rows) with sort/resize/scroll: done
+- Real activity ledger with search, scope/period filters, sort, provenance,
+  row actions, and virtual scrolling: done
 - NSGo catalogs with en + zh-CN, including all 1,206 Electron keys
   (`go run ./cmd/genlocales`): done
 - Theme switch, locale switch, window-frame restore: done

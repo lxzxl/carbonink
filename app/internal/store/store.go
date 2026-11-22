@@ -35,29 +35,34 @@ type Store struct {
 
 // Activity is one ledger row joined with the names its screen shows.
 type Activity struct {
-	ID                string
-	SiteID            string
-	Site              string
-	EmissionSourceID  string
-	Source            string
-	ReportingPeriodID string
-	OccurredAt        string
-	OccurredAtEnd     string
-	Amount            float64
-	Unit              string
-	EFFactorCode      string
-	EFYear            int
-	EFSource          string
-	EFGeography       string
-	EFDatasetVersion  string
-	CO2eKg            float64
-	ComputedAt        string
-	FuelCode          string
-	Notes             string
-	ExtractionID      string
-	InboundQuestionID string
-	InboundTier       int
-	Scope             int
+	ID                     string
+	SiteID                 string
+	Site                   string
+	EmissionSourceID       string
+	Source                 string
+	ReportingPeriodID      string
+	OccurredAt             string
+	OccurredAtEnd          string
+	Amount                 float64
+	Unit                   string
+	EFFactorCode           string
+	EFYear                 int
+	EFSource               string
+	EFGeography            string
+	EFDatasetVersion       string
+	CO2eKg                 float64
+	ComputedAt             string
+	FuelCode               string
+	Notes                  string
+	ExtractionID           string
+	SourceDocumentID       string
+	SourceDocumentFilename string
+	InboundQuestionID      string
+	InboundQuestionnaireID string
+	InboundSupplierName    string
+	FromLedgerImport       bool
+	InboundTier            int
+	Scope                  int
 }
 
 // Open opens path, registers FTS5 on every connection, and puts the database
@@ -174,14 +179,17 @@ func (s *Store) SchemaVersion(ctx context.Context) (int, error) {
 	return version, err
 }
 
-// Activities returns the newest rows, joined with site and source names.
+// Activities returns the newest rows, joined with site and source names. A
+// limit of zero returns every row.
 func (s *Store) Activities(ctx context.Context, limit int) ([]Activity, error) {
-	if limit <= 0 {
-		limit = 100
+	query := activitySelect + `
+		ORDER BY a.occurred_at_start DESC, a.id`
+	args := []any{}
+	if limit > 0 {
+		query += ` LIMIT ?`
+		args = append(args, limit)
 	}
-	rows, err := s.db.QueryContext(ctx, activitySelect+`
-		ORDER BY a.occurred_at_start DESC, a.id
-		LIMIT ?`, limit)
+	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}

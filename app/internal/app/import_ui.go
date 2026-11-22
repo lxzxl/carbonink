@@ -64,6 +64,20 @@ type importWizard struct {
 
 // activityImportDialog is the Activities toolbar's batch-import entry.
 func (s *Session) activityImportDialog(cx *core.Scope, dataRev *core.Signal[int]) core.Node {
+	node, _ := s.activityImportDialogWithShow(cx, dataRev)
+	return node
+}
+
+func (s *Session) activityImportDialogWithShow(cx *core.Scope,
+	dataRev *core.Signal[int]) (core.Node, func()) {
+	trigger, dialog, show := s.activityImportDialogPartsWithShow(cx, dataRev)
+	return core.View{Children: []core.Node{trigger, dialog}}, show
+}
+
+// activityImportDialogPartsWithShow separates the toolbar trigger from the
+// wizard so the activities empty state can open the same mounted dialog.
+func (s *Session) activityImportDialogPartsWithShow(cx *core.Scope,
+	dataRev *core.Signal[int]) (core.Node, core.Node, func()) {
 	open := core.NewSignal(cx, false)
 	w := &importWizard{
 		step:            core.NewSignal(cx, 0),
@@ -163,24 +177,23 @@ func (s *Session) activityImportDialog(cx *core.Scope, dataRev *core.Signal[int]
 	}
 
 	title := locales.ActivityImportTitle(cx)
-	return core.View{Children: []core.Node{
-		ui.Button{Text: locales.ActivityImportButton(cx), Variant: ui.ButtonSecondary,
-			OnPress: show, TestID: "activity-import"},
-		dataDialogSized(cx, open, title, []core.Node{
-			core.Scroll{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0),
-				MaxHeight: core.Pt(560)}, Children: []core.Node{
-				core.Dynamic(func(cx *core.Scope) core.Node {
-					_ = w.rev.Get()
-					return s.importBody(cx, w, pick)
-				}),
-			}},
-		}, []core.Node{
+	trigger := ui.Button{Text: locales.ActivityImportButton(cx), Variant: ui.ButtonSecondary,
+		OnPress: show, TestID: "activity-import"}
+	dialog := dataDialogSized(cx, open, title, []core.Node{
+		core.Scroll{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0),
+			MaxHeight: core.Pt(560)}, Children: []core.Node{
 			core.Dynamic(func(cx *core.Scope) core.Node {
 				_ = w.rev.Get()
-				return s.importFooter(cx, w, dataRev, open)
+				return s.importBody(cx, w, pick)
 			}),
-		}, "activity-import-dialog", 760),
-	}}
+		}},
+	}, []core.Node{
+		core.Dynamic(func(cx *core.Scope) core.Node {
+			_ = w.rev.Get()
+			return s.importFooter(cx, w, dataRev, open)
+		}),
+	}, "activity-import-dialog", 760)
+	return trigger, dialog, show
 }
 
 func (s *Session) importBody(cx *core.Scope, w *importWizard, pick func()) core.Node {
