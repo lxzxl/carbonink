@@ -68,6 +68,9 @@ func TestCommandPalette(t *testing.T) {
 		nsgotest.Environment(core.Environment{Locale: "en-US"}))
 	ui.Press("id:open-command-palette")
 	ui.WaitFor("id:command-palette", 2*time.Second)
+	ui.Type("id:command-palette >> role:textbox", "export")
+	ui.WaitFor("text:Export activities as CSV", 2*time.Second)
+	ui.Clear("id:command-palette >> role:textbox")
 	ui.Type("id:command-palette >> role:textbox", "settings")
 	ui.Key("enter")
 	ui.WaitFor("text:Appearance", 2*time.Second)
@@ -105,6 +108,22 @@ func TestCreateActivityThroughUI(t *testing.T) {
 	ui.WaitFor("id:dashboard-total >> text:"+commaFloat(totals.TotalKg), 3*time.Second)
 	ui.WaitFor("id:dashboard-scope2 >> text:"+commaFloat(totals.Scope2Kg), 3*time.Second)
 	ui.WaitFor("id:dashboard-total >> text:Total CO2e", 3*time.Second)
+}
+
+// TestActivityDialogReturnSubmits proves Return in a text field runs the
+// dialog's primary action instead of only blurring the field.
+func TestActivityDialogReturnSubmits(t *testing.T) {
+	t.Setenv("CARBONINK_TEST_DB", fixtureDB(t))
+	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
+		nsgotest.Environment(core.Environment{Locale: "en-US"}))
+	ui.WaitFor("id:activities-table", 5*time.Second)
+	ui.Press("id:activity-add")
+	ui.WaitFor("id:activity-dialog", 2*time.Second)
+	ui.Type("id:activity-amount", "12")
+	ui.Type("id:activity-unit", "kWh")
+	ui.Key("enter")
+	ui.WaitForGone("id:activity-dialog", 3*time.Second)
+	ui.WaitFor("text:12.00", 3*time.Second)
 }
 
 // TestGettingStartedCardLeadsToSources proves a freshly onboarded workspace

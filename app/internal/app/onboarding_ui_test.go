@@ -62,3 +62,55 @@ func TestOnboardingCollectsIndustryAndSiteAddress(t *testing.T) {
 		t.Errorf("site address = %q", sites[0].Address)
 	}
 }
+
+// TestOnboardingRequiresOneNameAndAValidYear holds Finish disabled until the
+// form can actually create an organization, site, and reporting period.
+func TestOnboardingRequiresOneNameAndAValidYear(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "empty.sqlite")
+	ctx := context.Background()
+	s, err := store.Open(ctx, dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Migrate(ctx); err != nil {
+		s.Close()
+		t.Fatal(err)
+	}
+	if err := s.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Setenv("CARBONINK_TEST_DB", dbPath)
+	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
+		nsgotest.Environment(core.Environment{Locale: "en-US"}))
+
+	ui.WaitFor("id:onboarding-org-zh", 3*time.Second)
+	if !ui.Exists("text:At least one language is required.") {
+		t.Fatal("the onboarding form does not explain the name requirement")
+	}
+	if ui.Enabled("id:onboarding-submit") {
+		t.Fatal("Finish is enabled before any name is filled")
+	}
+
+	ui.Type("id:onboarding-org-zh", "测试制造有限公司")
+	if ui.Enabled("id:onboarding-submit") {
+		t.Fatal("Finish is enabled before the site has a name")
+	}
+
+	ui.Type("id:onboarding-site-zh", "苏州工厂")
+	if !ui.Enabled("id:onboarding-submit") {
+		t.Fatal("Finish is disabled with both names and the default year")
+	}
+
+	ui.Clear("id:onboarding-year")
+	ui.Type("id:onboarding-year", "1999")
+	if ui.Enabled("id:onboarding-submit") {
+		t.Fatal("Finish is enabled with an out-of-range year")
+	}
+
+	ui.Clear("id:onboarding-year")
+	ui.Type("id:onboarding-year", "2026")
+	if !ui.Enabled("id:onboarding-submit") {
+		t.Fatal("Finish is disabled after a valid year")
+	}
+}

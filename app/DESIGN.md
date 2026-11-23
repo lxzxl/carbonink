@@ -461,6 +461,9 @@ system never uses a 2–3 pt colored stripe, a left accent bar, or a heavy divid
 - **Required fields:** mark them with `*` and state the rule once near the top
   (`* Required`). The primary action stays disabled and a one-line hint names
   what is still missing; do not fail silently after a press.
+- **Alternative names:** when either language satisfies a field, mark the
+  primary language and add “At least one language is required” under the pair;
+  never put `*` on both fields and accept only one.
 - **Review rows:** a generated question or summary may wrap to two lines; never
   truncate it with runes or an ellipsis that hides the ask.
 

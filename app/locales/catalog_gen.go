@@ -1164,6 +1164,7 @@ const (
 	textOnboardingCreating
 	textOnboardingFinish
 	textOnboardingNext
+	textOnboardingNameHint
 	textOnboardingRequired
 	textOnboardingRequiredNote
 	textOnboardingStepAiBody
@@ -2531,6 +2532,7 @@ var keyOfText = [numTexts]string{
 	"onboardingCreating",
 	"onboardingFinish",
 	"onboardingNext",
+	"onboardingNameHint",
 	"onboardingRequired",
 	"onboardingRequiredNote",
 	"onboardingStepAiBody",
@@ -3896,6 +3898,7 @@ var textsEn = i18n.NewTexts(""+
 	"Creating organization…"+
 	"Finish"+
 	"Next"+
+	"At least one language is required."+
 	"Add a company name, a site name, and a reporting year between 2020 and 2030 to finish."+
 	"* Required"+
 	"CarbonInk needs an AI provider to parse documents and answer questionnaires. You can configure this later in Settings; skipping is fine for now."+
@@ -5258,6 +5261,7 @@ var textsEn = i18n.NewTexts(""+
 		24,
 		6,
 		4,
+		34,
 		86,
 		10,
 		144,
@@ -6623,6 +6627,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"正在创建组织…"+
 	"完成"+
 	"下一步"+
+	"至少填写一种语言的名称。"+
 	"填写公司名称、Site 名称，并确认 2020–2030 之间的报告年度后才能完成。"+
 	"* 必填"+
 	"碳墨 需要 AI 提供方解析文档和回答问卷。可以稍后在设置里配置；现在跳过也可以。"+
@@ -7985,6 +7990,7 @@ var textsZhCN = i18n.NewTexts(""+
 		21,
 		6,
 		9,
+		36,
 		96,
 		8,
 		113,
@@ -17231,6 +17237,13 @@ func OnboardingNext(cx *core.Scope) string { return For(cx).OnboardingNext() }
 
 // OnboardingNext is the package's OnboardingNext in the language of msgs.
 func (msgs Messages) OnboardingNext() string { return msgs.text(textOnboardingNext) }
+
+// OnboardingNameHint says "At least one language is required."
+// in the language the app shows under cx.
+func OnboardingNameHint(cx *core.Scope) string { return For(cx).OnboardingNameHint() }
+
+// OnboardingNameHint is the package's OnboardingNameHint in the language of msgs.
+func (msgs Messages) OnboardingNameHint() string { return msgs.text(textOnboardingNameHint) }
 
 // OnboardingRequired says "Add a company name, a site name, and a reporting year between 2020 and 2030 to finish."
 // in the language the app shows under cx.

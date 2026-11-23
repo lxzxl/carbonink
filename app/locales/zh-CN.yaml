@@ -827,6 +827,7 @@ onboardingCreating: 正在创建组织…
 onboardingEyebrow: 第 {current} 步 / 共 {total} 步
 onboardingFinish: 完成
 onboardingNext: 下一步
+onboardingNameHint: 至少填写一种语言的名称。
 onboardingRequired: 填写公司名称、Site 名称，并确认 2020–2030 之间的报告年度后才能完成。
 onboardingRequiredNote: '* 必填'
 onboardingStepAiBody: 碳墨 需要 AI 提供方解析文档和回答问卷。可以稍后在设置里配置；现在跳过也可以。

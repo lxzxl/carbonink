@@ -828,6 +828,7 @@ onboardingCreating: Creating organization…
 onboardingEyebrow: Step {current} of {total}
 onboardingFinish: Finish
 onboardingNext: Next
+onboardingNameHint: At least one language is required.
 onboardingRequired: Add a company name, a site name, and a reporting year between 2020 and 2030 to finish.
 onboardingRequiredNote: '* Required'
 onboardingStepAiBody: CarbonInk needs an AI provider to parse documents and answer questionnaires. You can configure this later in Settings; skipping is fine for now.
