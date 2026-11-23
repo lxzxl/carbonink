@@ -1167,7 +1167,6 @@ func (s *Session) editableActivityDialog(cx *core.Scope, selectedID *core.Signal
 	form := s.newActivityForm(cx, dataRev, func() *store.Activity {
 		return s.activityByID(selectedID.Get())
 	}, nil, locales.DataEditActivity, locales.DataSave, "activity-edit", nil, false)
-	form.guide = newGuidance(cx, s, "ef-rebind")
 	return core.View{Children: []core.Node{
 		ui.Button{Text: locales.DataEditActivity(cx), Variant: ui.ButtonSecondary, OnPress: form.show,
 			Disabled: func() bool { return selectedID.Get() == "" }, TestID: "activity-edit"},
@@ -1204,8 +1203,6 @@ type activityForm struct {
 	dialog core.Node
 	// applySeed fills the open form from an extraction, as the dropzone does.
 	applySeed func(*activityPrefill)
-	// guide is the rebind tour; only the edit dialog sets it.
-	guide *guidance
 }
 
 func (s *Session) activityFormDialogWithShow(cx *core.Scope, dataRev *core.Signal[int],
@@ -1531,17 +1528,25 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 				Label: strconv.Itoa(period.Year)})
 		}
 	}
+	sourceWideOptions := make([]wideOption, 0, len(sourceOptions))
+	for _, option := range sourceOptions {
+		sourceWideOptions = append(sourceWideOptions, wideOption{Value: option.Value, Label: option.Label})
+	}
+	periodWideOptions := make([]wideOption, 0, len(periodOptions))
+	for _, option := range periodOptions {
+		periodWideOptions = append(periodWideOptions, wideOption{Value: option.Value, Label: option.Label})
+	}
 	efSelect := func(cx *core.Scope) core.Node {
-		options := make([]ui.Option[string], 0, len(efOptions.Get()))
+		options := make([]wideOption, 0, len(efOptions.Get()))
 		for _, ef := range efOptions.Get() {
-			options = append(options, ui.Option[string]{Value: dataEFKey(ef),
-				Label: dataEFLabel(ef)})
+			options = append(options, wideOption{Value: dataEFKey(ef),
+				Label: dataEFName(cx, ef), Detail: dataEFDetail(ef)})
 		}
 		if len(options) == 0 {
 			return core.Text{Content: locales.ActivitiesFormEfNone(cx), Style: core.Style{FontSize: 12},
 				StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)}
 		}
-		return ui.Select[string]{Options: options, Value: efKey.Get, OnChange: efKey.Set,
+		return wideSelect{Options: options, Value: efKey.Get, OnChange: efKey.Set,
 			Label: locales.ActivitiesFormEf(cx), TestID: prefix + "-ef", Searchable: true,
 			SearchPlaceholder: locales.ActivitiesSearchPlaceholder(cx)}
 	}
@@ -1738,20 +1743,14 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 
 	form := &activityForm{open: open, show: show, applySeed: applySeed}
 	form.dialog = dataDialog(cx, open, title(cx), []core.Node{
-		core.Dynamic(func(cx *core.Scope) core.Node {
-			if form.guide == nil {
-				return core.View{}
-			}
-			return form.guide.node(s, func() bool { return true })
-		}),
 		dropzone,
 		dataField(cx, locales.ActivitiesFormSource(cx),
-			ui.Select[string]{Options: sourceOptions, Value: sourceID.Get,
+			wideSelect{Options: sourceWideOptions, Value: sourceID.Get,
 				OnChange:    func(v string) { sourceID.Set(v); loadEFs(v) },
 				Placeholder: locales.ActivitiesFormSourcePlaceholder(cx),
 				Label:       locales.ActivitiesFormSource(cx), TestID: prefix + "-source"}),
 		dataField(cx, locales.ActivitiesFormPeriod(cx),
-			ui.Select[string]{Options: periodOptions, Value: periodID.Get, OnChange: periodID.Set,
+			wideSelect{Options: periodWideOptions, Value: periodID.Get, OnChange: periodID.Set,
 				Placeholder: locales.ActivitiesFormPeriodPlaceholder(cx),
 				Label:       locales.ActivitiesFormPeriod(cx), TestID: prefix + "-period"}),
 		core.View{Style: core.Style{Direction: core.Row, Gap: 8}, Children: []core.Node{
@@ -1954,12 +1953,24 @@ func dataEFKeyFromActivity(a store.Activity) string {
 	})
 }
 
-func dataEFLabel(ef store.EmissionFactor) string {
-	name := ef.NameEN
-	if name == "" {
-		name = ef.NameZH
+func dataEFName(cx *core.Scope, ef store.EmissionFactor) string {
+	preferred, fallback := ef.NameEN, ef.NameZH
+	if strings.HasPrefix(strings.ToLower(i18n.Language(cx)), "zh") {
+		preferred, fallback = ef.NameZH, ef.NameEN
 	}
-	return fmt.Sprintf("%s · %s · %s", name, ef.InputUnit, ef.FactorCode)
+	if preferred != "" {
+		return preferred
+	}
+	if fallback != "" {
+		return fallback
+	}
+	return ef.FactorCode
+}
+
+func dataEFDetail(ef store.EmissionFactor) string {
+	return fmt.Sprintf("%s · %s %d · %s · %s kgCO2e/%s · %s", ef.FactorCode,
+		ef.Source, ef.Year, ef.Geography, commaFloat(ef.CO2eKgPerUnit), ef.InputUnit,
+		ef.DatasetVersion)
 }
 
 // auditScreen lists the append-only audit trail. Payloads are formatted for

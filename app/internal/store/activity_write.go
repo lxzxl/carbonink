@@ -33,6 +33,20 @@ type ActivityInput struct {
 	EvidenceDocumentID string
 }
 
+// EmissionCO2eKg computes an activity's emissions from an amount already in
+// the factor's input unit. It is exported so previews use the same CH4/N2O
+// arithmetic as the write path.
+func EmissionCO2eKg(amount float64, ef EmissionFactor) float64 {
+	computed := amount * ef.CO2eKgPerUnit
+	if ef.CH4KgPerUnit != nil {
+		computed += amount * *ef.CH4KgPerUnit * gwpCH4
+	}
+	if ef.N2OKgPerUnit != nil {
+		computed += amount * *ef.N2OKgPerUnit * gwpN2O
+	}
+	return computed
+}
+
 // AuditEvent is one append-only audit row.
 type AuditEvent struct {
 	ID         string
@@ -181,13 +195,7 @@ func insertActivity(ctx context.Context, q queryer, in ActivityInput) (string, e
 	if err != nil {
 		return "", err
 	}
-	computed := amountInEFUnit * ef.CO2eKgPerUnit
-	if ef.CH4KgPerUnit != nil {
-		computed += amountInEFUnit * *ef.CH4KgPerUnit * gwpCH4
-	}
-	if ef.N2OKgPerUnit != nil {
-		computed += amountInEFUnit * *ef.N2OKgPerUnit * gwpN2O
-	}
+	computed := EmissionCO2eKg(amountInEFUnit, *ef)
 
 	id := newID()
 	ts := now()
@@ -372,13 +380,7 @@ func (s *Store) UpdateActivity(ctx context.Context, id string, in ActivityInput)
 	if err != nil {
 		return nil, err
 	}
-	computed := amountInEFUnit * ef.CO2eKgPerUnit
-	if ef.CH4KgPerUnit != nil {
-		computed += amountInEFUnit * *ef.CH4KgPerUnit * gwpCH4
-	}
-	if ef.N2OKgPerUnit != nil {
-		computed += amountInEFUnit * *ef.N2OKgPerUnit * gwpN2O
-	}
+	computed := EmissionCO2eKg(amountInEFUnit, *ef)
 	ts := now()
 	if _, err := tx.ExecContext(ctx, `UPDATE activity_data SET
 			site_id = ?, emission_source_id = ?, reporting_period_id = ?,
@@ -669,6 +671,12 @@ func convertAmount(ctx context.Context, q queryer, amount float64, from, to, fue
 		return convertWithFuel(ctx, q, amount, from, to, fuelCode)
 	}
 	return convertUnit(ctx, q, amount, from, to)
+}
+
+// ConvertAmount converts amount from one unit to another, using the fuel's
+// density and heating value when the units are in different families.
+func (s *Store) ConvertAmount(ctx context.Context, amount float64, from, to, fuelCode string) (float64, error) {
+	return convertAmount(ctx, s.db, amount, from, to, fuelCode)
 }
 
 func convertUnit(ctx context.Context, q queryer, amount float64, from, to string) (float64, error) {

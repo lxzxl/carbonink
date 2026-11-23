@@ -22,6 +22,10 @@ func TestActivityLineagePanelAndEvidence(t *testing.T) {
 	ui.Press("text:外购电力")
 	ui.Press("id:activity-lineage")
 	ui.WaitFor("id:lineage-dialog", 3*time.Second)
+	drawer := ui.Find("id:lineage-dialog")
+	if drawer == nil || drawer.Frame.Size.Width < 400 || drawer.Frame.Origin.X < 700 {
+		t.Fatalf("lineage panel is not a right-side drawer: %+v", drawer)
+	}
 	ui.WaitFor("id:lineage-source-manual", 2*time.Second)
 	ui.WaitFor("text:Manual entry", 2*time.Second)
 	ui.WaitFor("id:lineage-pinned-ef", 2*time.Second)

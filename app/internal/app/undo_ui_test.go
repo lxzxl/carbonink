@@ -52,8 +52,6 @@ func TestUndoAndRedoActivityUpdate(t *testing.T) {
 	ui.Press("text:外购电力")
 	ui.Press("id:activity-edit")
 	ui.WaitFor("id:activity-edit-dialog", 2*time.Second)
-	ui.WaitFor("id:guidance-ef-rebind", 2*time.Second)
-	ui.Press("id:guidance-ef-rebind-skip")
 	ui.Clear("id:activity-edit-amount")
 	ui.Type("id:activity-edit-amount", "500")
 	ui.Press("id:activity-edit-save")

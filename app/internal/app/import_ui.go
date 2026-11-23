@@ -348,12 +348,12 @@ func (s *Session) importMappingCard(cx *core.Scope, w *importWizard) core.Node {
 }
 
 func importSourcesCard(cx *core.Scope, s *Session, w *importWizard) core.Node {
-	options := make([]ui.Option[string], 0, len(s.sources)+1)
-	options = append(options, ui.Option[string]{Value: "",
+	options := make([]wideOption, 0, len(s.sources)+1)
+	options = append(options, wideOption{Value: "",
 		Label: locales.ActivityImportSourceUnresolved(cx)})
 	for _, src := range s.sources {
 		if src.IsActive {
-			options = append(options, ui.Option[string]{Value: src.ID,
+			options = append(options, wideOption{Value: src.ID,
 				Label: src.Name + " · " + dataScopeLabel(cx, src.Scope)})
 		}
 	}
@@ -391,13 +391,14 @@ func importSourcesCard(cx *core.Scope, s *Session, w *importWizard) core.Node {
 						core.Text{Content: status, Style: core.Style{FontSize: 11},
 							StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
 						core.View{Style: core.Style{Width: core.Pt(280)}, Children: []core.Node{
-							ui.Select[string]{Options: options, Value: sig.Get, OnChange: func(next string) {
+							wideSelect{Options: options, Value: sig.Get, OnChange: func(next string) {
 								sig.Set(next)
 								s.importPrepareGroups(cx, w)
 								w.rev.Set(w.rev.Get() + 1)
 							},
 								Placeholder: locales.ActivityImportSourceSelectPlaceholder(cx),
-								Label:       name, TestID: "activity-import-source-" + name},
+								Label:       name, TestID: "activity-import-source-" + name,
+								Width: 280, PopupWidth: 420},
 						}},
 					}},
 			}}
@@ -557,16 +558,17 @@ func (s *Session) importGroupsBody(cx *core.Scope, w *importWizard) core.Node {
 		if value != "" {
 			status = locales.ActivityImportGroupStatusConfirmed(cx)
 		}
-		options := make([]ui.Option[string], 0, len(w.efOptions[group.Key]))
+		options := make([]wideOption, 0, len(w.efOptions[group.Key]))
 		for _, ef := range w.efOptions[group.Key] {
-			options = append(options, ui.Option[string]{Value: dataEFKey(ef), Label: dataEFLabel(ef)})
+			options = append(options, wideOption{Value: dataEFKey(ef),
+				Label: dataEFName(cx, ef), Detail: dataEFDetail(ef)})
 		}
 		var efPicker core.Node
 		if len(options) == 0 {
 			efPicker = core.Text{Content: locales.ActivitiesFormEfNone(cx),
 				Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)}
 		} else {
-			efPicker = ui.Select[string]{Options: options, Value: efSig.Get, OnChange: efSig.Set,
+			efPicker = wideSelect{Options: options, Value: efSig.Get, OnChange: efSig.Set,
 				Label: locales.ActivitiesFormEf(cx), TestID: "activity-import-ef-" + strconv.Itoa(i),
 				Searchable: true, SearchPlaceholder: locales.ActivitiesSearchPlaceholder(cx)}
 		}

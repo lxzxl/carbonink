@@ -179,7 +179,8 @@ func (s *Session) activitiesScreen(cx *core.Scope, dataRev *core.Signal[int],
 	}
 
 	lineagePanel := newLineagePanel(cx)
-	editDialog, showEdit := s.editableActivityDialog(cx, selectedID, dataRev)
+	rebindPanel := newRebindPanel(cx, s, dataRev)
+	editDialog, _ := s.editableActivityDialog(cx, selectedID, dataRev)
 	addTrigger, addDialog, showAdd := s.activityDialogPartsWithShow(cx, dataRev)
 	importTrigger, importDialog, showImport := s.activityImportDialogPartsWithShow(cx, dataRev)
 	if s.pendingNewActivity {
@@ -258,6 +259,7 @@ func (s *Session) activitiesScreen(cx *core.Scope, dataRev *core.Signal[int],
 		addDialog,
 		importDialog,
 		editDialog,
+		rebindPanel.drawer(cx, s),
 		s.deleteActivityButton(cx, selectedID, dataRev),
 		ui.Button{Text: locales.LineageOpenButton(cx), Variant: ui.ButtonSecondary,
 			Disabled: func() bool { return selectedActivity() == "" },
@@ -414,7 +416,11 @@ func (s *Session) activitiesScreen(cx *core.Scope, dataRev *core.Signal[int],
 						})
 					}},
 				ui.Button{Text: locales.RebindButton(cx), Variant: ui.ButtonGhost, Size: ui.SizeSmall,
-					OnPress: func() { rowAction(showEdit) }},
+					OnPress: func() {
+						rowAction(func() {
+							rebindPanel.show(cx, s, selectedActivity())
+						})
+					}, TestID: "activity-rebind"},
 			}},
 		}
 		return core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignStart, Gap: 10,
@@ -522,7 +528,7 @@ func (s *Session) activitiesScreen(cx *core.Scope, dataRev *core.Signal[int],
 				return core.Style{Borders: core.Edges{Bottom: 1}, BorderColor: ui.ColorsOf(cx).Line()}
 			},
 		},
-		lineagePanel.dialog(cx, s),
+		lineagePanel.drawer(cx, s),
 		s.documentPreviewDialog(cx, preview),
 	}}
 }

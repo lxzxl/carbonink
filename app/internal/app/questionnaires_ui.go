@@ -1067,7 +1067,7 @@ func (d *questionnaireDetail) dialog(cx *core.Scope, s *Session,
 			core.Scroll{Style: core.Style{MaxHeight: core.Pt(360)},
 				Children: []core.Node{core.View{Style: core.Style{Gap: 0}, Children: list}}},
 			dataCard(cx, editor...),
-			d.lineage.dialog(cx, s),
+			d.lineage.drawer(cx, s),
 		}
 		if d.guide != nil {
 			body = append([]core.Node{d.guide.node(s, func() bool { return true })}, body...)

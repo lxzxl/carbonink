@@ -13,7 +13,6 @@ import (
 	"app.carbonink.desktop/internal/store"
 	"app.carbonink.desktop/locales"
 
-	"github.com/nsgo-dev/nsgo/base"
 	"github.com/nsgo-dev/nsgo/core"
 	"github.com/nsgo-dev/nsgo/ui"
 )
@@ -40,8 +39,7 @@ func (v *lineageView) evidence() []store.EvidenceAttachment {
 }
 
 // lineagePanel is the NSGo counterpart of 1.x's right-side lineage drawer.
-// It is a dialog because NSGo has no side-drawer primitive; the chain still
-// reads top-to-bottom as source → record → pinned EF → downstream.
+// The chain reads top-to-bottom as source → record → pinned EF → downstream.
 type lineagePanel struct {
 	open    *core.Signal[bool]
 	entity  *core.Signal[string]
@@ -126,54 +124,33 @@ func (p *lineagePanel) load(s *Session) {
 	p.rev.Set(p.rev.Get() + 1)
 }
 
-func (p *lineagePanel) dialog(cx *core.Scope, s *Session) core.Node {
-	return ui.Dialog{
-		Open: p.open.Get,
-		OnOpenChange: func(open bool, _ base.Reason) {
-			p.open.Set(open)
-			if !open {
-				p.preview.Set("")
-				p.frame.Set(nil)
-			}
-		},
-		Title: locales.LineageDrawerTitle(cx),
-		Children: []core.Node{core.Dynamic(func(cx *core.Scope) core.Node {
-			_ = p.rev.Get()
-			if p.status.Get() != "" && p.view.Get() == nil {
-				return core.Text{Content: p.status.Get(), Style: core.Style{FontSize: 12},
-					StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)}
-			}
-			view := p.view.Get()
-			if view == nil {
-				return core.Text{Content: locales.Loading(cx), Style: core.Style{FontSize: 12},
-					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)}
-			}
-			sections := []core.Node{
-				lineageSection(cx, locales.LineageSectionChain(cx),
-					lineageChain(cx, view)),
-				p.evidenceSection(cx, s, view),
-				lineageSection(cx, locales.LineageSectionHistory(cx),
-					lineageHistory(cx, view.history)),
-			}
-			if p.status.Get() != "" {
-				sections = append(sections, core.Text{Content: p.status.Get(),
-					Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)})
-			}
-			return core.Scroll{
-				Style: core.Style{MaxHeight: core.Pt(600), Gap: 16},
-				Children: []core.Node{core.View{Style: core.Style{Gap: 16},
-					Children: sections}},
-			}
-		})},
-		Footer: []core.Node{
-			ui.Button{Text: locales.LineageDrawerClose(cx), Variant: ui.ButtonSecondary,
-				OnPress: func() { p.open.Set(false) }, TestID: "lineage-close"},
-			ui.Button{Text: locales.EvidenceAddButton(cx), Busy: p.busy.Get,
-				OnPress: func() { p.addEvidence(cx, s) }, TestID: "lineage-evidence-add"},
-		},
-		TestID: "lineage-dialog",
-		Style:  core.Style{Width: core.Pt(720)},
-	}
+func (p *lineagePanel) drawer(cx *core.Scope, s *Session) core.Node {
+	body := []core.Node{core.Dynamic(func(cx *core.Scope) core.Node {
+		_ = p.rev.Get()
+		if p.status.Get() != "" && p.view.Get() == nil {
+			return core.Text{Content: p.status.Get(), Style: core.Style{FontSize: 12},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)}
+		}
+		view := p.view.Get()
+		if view == nil {
+			return core.Text{Content: locales.Loading(cx), Style: core.Style{FontSize: 12},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)}
+		}
+		sections := []core.Node{
+			lineageSection(cx, locales.LineageSectionChain(cx),
+				lineageChain(cx, view)),
+			p.evidenceSection(cx, s, view),
+			lineageSection(cx, locales.LineageSectionHistory(cx),
+				lineageHistory(cx, view.history)),
+		}
+		if p.status.Get() != "" {
+			sections = append(sections, core.Text{Content: p.status.Get(),
+				Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)})
+		}
+		return core.View{Style: core.Style{Gap: 16}, Children: sections}
+	})}
+	return sideDrawer(cx, p.open, locales.LineageDrawerTitle(cx), 480, body, nil,
+		"lineage-dialog", locales.LineageDrawerClose(cx))
 }
 
 func lineageSection(cx *core.Scope, title string, children ...core.Node) core.Node {
@@ -411,6 +388,9 @@ func (p *lineagePanel) evidenceSection(cx *core.Scope, s *Session,
 				Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
 		}
 	}
+	children = append(children, ui.Button{Text: locales.EvidenceAddButton(cx),
+		Variant: ui.ButtonSecondary, Busy: p.busy.Get,
+		OnPress: func() { p.addEvidence(cx, s) }, TestID: "lineage-evidence-add"})
 	return lineageSection(cx, locales.LineageSectionEvidence(cx), children...)
 }
 
