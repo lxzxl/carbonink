@@ -80,8 +80,9 @@ type Session struct {
 	pendingActivity string
 	// pendingNewActivity and pendingSourceCatalog open those dialogs when
 	// the dashboard's getting-started CTA lands on their screen.
-	pendingNewActivity   bool
-	pendingSourceCatalog bool
+	pendingNewActivity      bool
+	pendingImportActivities bool
+	pendingSourceCatalog    bool
 	// pendingSupplierDisclosure opens an inbound disclosure when an activity
 	// row's provenance link sends the user to the supplier-disclosures screen.
 	pendingSupplierDisclosure string

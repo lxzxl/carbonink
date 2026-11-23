@@ -109,8 +109,14 @@ func (s *Session) agentIntegrationCard(cx *core.Scope) core.Node {
 		if skill.Installed {
 			skillAction = locales.SettingsAgentUpdate(cx)
 		}
+		skillVariant := ui.BadgeNeutral
+		if skill.NeedsUpdate {
+			skillVariant = ui.BadgeWarn
+		} else if skill.Installed {
+			skillVariant = ui.BadgeAccent
+		}
 		skillButtons := []core.Node{
-			ui.Button{Text: skillAction, OnPress: func() {
+			ui.Button{Text: skillAction, Variant: ui.ButtonSecondary, OnPress: func() {
 				run(locales.SettingsAgentSkillDone(cx), func(home, _ string) error {
 					if _, err := agentskill.Install(home); err != nil {
 						return err
@@ -132,23 +138,45 @@ func (s *Session) agentIntegrationCard(cx *core.Scope) core.Node {
 					}, Busy: busy.Get, TestID: "agent-skill-remove"})
 		}
 
-		rows := []core.Node{core.View{Style: core.Style{Gap: 2}, Children: []core.Node{
-			core.Text{Content: locales.SettingsAgentSkill(cx),
-				Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}},
-			core.Text{Content: skillLabel, Style: core.Style{FontSize: 12},
-				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-			core.View{Style: core.Style{Direction: core.Row, Gap: 6}, Children: skillButtons},
-		}}}
+		row := func(name, label, detail string, variant ui.BadgeVariant, buttons []core.Node) core.Node {
+			heading := []core.Node{
+				core.Text{Content: name, Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}},
+			}
+			if label != "" {
+				heading = append(heading, ui.Badge{Text: label, Variant: variant})
+			}
+			children := []core.Node{
+				core.View{Style: core.Style{Gap: 2, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
+					Children: []core.Node{
+						core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+							Wrap: core.Wrap, Gap: 6}, Children: heading},
+						core.Text{Content: detail, Style: core.Style{FontSize: 12},
+							StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2},
+					}},
+			}
+			if len(buttons) > 0 {
+				children = append(children, core.View{Style: core.Style{Direction: core.Row,
+					AlignItems: core.AlignCenter, Wrap: core.Wrap, Gap: 6}, Children: buttons})
+			}
+			return core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+				Wrap: core.Wrap, Gap: 8}, Children: children}
+		}
+
+		rows := []core.Node{row(locales.SettingsAgentSkill(cx), skillLabel,
+			locales.SettingsSkillStepHelp(cx), skillVariant, skillButtons)}
 
 		for _, client := range clients {
 			client := client
 			label := locales.SettingsAgentNotInstalled(cx)
+			variant := ui.BadgeNeutral
 			if client.Installed {
 				switch {
 				case client.Configured && client.NeedsUpdate:
 					label = locales.SettingsAgentSkillUpdate(cx)
+					variant = ui.BadgeWarn
 				case client.Configured:
 					label = locales.SettingsAgentConfigured(cx)
+					variant = ui.BadgeAccent
 				default:
 					label = locales.SettingsAgentNotConfigured(cx)
 				}
@@ -159,7 +187,7 @@ func (s *Session) agentIntegrationCard(cx *core.Scope) core.Node {
 				if client.Configured {
 					configureLabel = locales.SettingsAgentUpdate(cx)
 				}
-				buttons = append(buttons, ui.Button{Text: configureLabel,
+				buttons = append(buttons, ui.Button{Text: configureLabel, Variant: ui.ButtonSecondary,
 					OnPress: func() {
 						run(locales.SettingsAgentClientConfigured(cx,
 							mcpClientLabel(cx, client.Client)), func(home, configDir string) error {
@@ -184,13 +212,7 @@ func (s *Session) agentIntegrationCard(cx *core.Scope) core.Node {
 						}, Busy: busy.Get, TestID: "agent-remove-" + string(client.Client)})
 				}
 			}
-			rows = append(rows, core.View{Style: core.Style{Gap: 2}, Children: []core.Node{
-				core.Text{Content: mcpClientLabel(cx, client.Client),
-					Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}},
-				core.Text{Content: label, Style: core.Style{FontSize: 12},
-					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-				core.View{Style: core.Style{Direction: core.Row, Gap: 6}, Children: buttons},
-			}})
+			rows = append(rows, row(mcpClientLabel(cx, client.Client), label, "", variant, buttons))
 		}
 
 		return card(

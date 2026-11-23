@@ -237,8 +237,11 @@ colScope: 范围
 colSite: 场所
 colSource: 排放源
 colUnit: 单位
+commandActions: 操作
+commandExportActivities: 导出活动数据 CSV
 commandFiles: 文件
 commandGoTo: 前往
+commandHints: ↑↓ 移动 · ↵ 选择 · Esc 关闭
 commandRevealData: 打开数据目录
 commandRevealWorkspace: 打开账套数据库
 commandSearch: 搜索命令
@@ -246,6 +249,7 @@ dashboardInventoryBody: 目前没有排放数据。
 dashboardInventoryTitle: 排放清单仪表盘
 dashboardMonthlyTrend: 月度排放趋势
 dashboardNoDataForChart: 录入活动数据后，按月汇总会显示在这里。
+dashboardTrendNote: 按活动日期区间天数分摊到各月。
 dashboardRecentActivities: 最近活动
 dashboardRecentEmpty: 暂无活动数据
 dashboardScope1: 范围 1
@@ -823,6 +827,8 @@ onboardingCreating: 正在创建组织…
 onboardingEyebrow: 第 {current} 步 / 共 {total} 步
 onboardingFinish: 完成
 onboardingNext: 下一步
+onboardingRequired: 填写公司名称、Site 名称，并确认 2020–2030 之间的报告年度后才能完成。
+onboardingRequiredNote: '* 必填'
 onboardingStepAiBody: 碳墨 需要 AI 提供方解析文档和回答问卷。可以稍后在设置里配置；现在跳过也可以。
 onboardingStepAiByot: 我有 API key（向导完成后到设置里填）
 onboardingStepAiSkip: 稍后在设置里配置
@@ -1240,8 +1246,10 @@ settingsMcpTitle: MCP 集成
 settingsMigrationAvailable: 检测到 CarbonInk 1.x 数据目录，新版首次启动时已自动导入其中的账套。
 settingsMigrationBackups: 1.x 的文件是复制而不是移动，自动备份和附件一并复制，原文件仍保留在原处。
 settingsMigrationCurrentPath: 当前数据目录：{path}
+settingsMigrationCurrentLabel: 当前数据目录
 settingsMigrationImported: 已从 CarbonInk 1.x 导入——这个账套现在存放在新的数据目录中。
 settingsMigrationLegacyPath: CarbonInk 1.x 数据目录：{path}
+settingsMigrationLegacyLabel: CarbonInk 1.x 数据目录
 settingsMigrationNone: 这台电脑上没有找到 CarbonInk 1.x 数据目录。
 settingsMigrationProviderImported: 已从 1.x 导入 AI 提供商设置。请在上方 AI 提供商中重新输入 API 密钥，以便继续使用文档提取。
 settingsMigrationRevealCurrent: 打开当前目录

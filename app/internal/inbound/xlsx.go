@@ -65,7 +65,7 @@ func RenderBlank(o RenderOptions) ([]byte, error) {
 		if len(questions) == 0 {
 			continue
 		}
-		if err := renderQuestionSheet(f, sheet, questions, wrap, bold); err != nil {
+		if err := renderQuestionSheet(f, sheet, questions, wrap, bold, o.PeriodYear); err != nil {
 			return nil, err
 		}
 	}
@@ -136,7 +136,8 @@ func renderCover(f *excelize.File, o RenderOptions, wrap int) error {
 	return f.SetCellValue(coverSheet, "Z1", o.SupplierName)
 }
 
-func renderQuestionSheet(f *excelize.File, sheet string, questions []Question, wrap, bold int) error {
+func renderQuestionSheet(f *excelize.File, sheet string, questions []Question, wrap, bold int,
+	periodYear int) error {
 	if _, err := f.NewSheet(sheet); err != nil {
 		return err
 	}
@@ -170,7 +171,13 @@ func renderQuestionSheet(f *excelize.File, sheet string, questions []Question, w
 		if err != nil {
 			return err
 		}
-		text := q.RawZH + "\n\n" + q.RawEN
+		zh, en := q.RawZH, q.RawEN
+		if periodYear > 0 {
+			year := strconv.Itoa(periodYear)
+			zh = strings.ReplaceAll(zh, "{{period_year}}", year)
+			en = strings.ReplaceAll(en, "{{period_year}}", year)
+		}
+		text := zh + "\n\n" + en
 		if err := f.SetCellValue(sheet, name, text); err != nil {
 			return err
 		}

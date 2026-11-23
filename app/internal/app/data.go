@@ -70,6 +70,18 @@ func dataHeaderRow(cx *core.Scope, heading core.Node, actions ...core.Node) core
 // dataColumns places fields side by side, and stacks them when the window
 // is too narrow for two readable columns.
 func dataColumns(cx *core.Scope, gap core.Points, children ...core.Node) core.Node {
+	columns := make([]core.Node, 0, len(children))
+	for _, child := range children {
+		columns = append(columns, core.View{
+			StyleFunc: func() core.Style {
+				if cx.Env().Window().Width < 900 {
+					return core.Style{}
+				}
+				return core.Style{FlexGrow: 1, FlexShrink: 1, FlexBasis: core.Pt(0), MinWidth: core.Pt(0)}
+			},
+			Children: []core.Node{child},
+		})
+	}
 	return core.View{
 		StyleFunc: func() core.Style {
 			if cx.Env().Window().Width < 900 {
@@ -77,7 +89,7 @@ func dataColumns(cx *core.Scope, gap core.Points, children ...core.Node) core.No
 			}
 			return core.Style{Direction: core.Row, Gap: gap}
 		},
-		Children: children,
+		Children: columns,
 	}
 }
 
@@ -112,12 +124,32 @@ func countPhrase(n int, one, many func() string) string {
 	return many()
 }
 
-func dataField(cx *core.Scope, label string, input core.Node) core.Node {
+// dataField stacks a label over a control. A submit function makes a text
+// field submit the form on Return.
+func dataField(cx *core.Scope, label string, input core.Node, onSubmit ...func()) core.Node {
+	if len(onSubmit) > 0 {
+		input = dataEnterToSubmit(input, onSubmit[0])
+	}
 	return core.View{Style: core.Style{Gap: 4}, Children: []core.Node{
 		core.Text{Content: label, Style: core.Style{FontSize: 12, FontWeight: ui.Semibold},
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 		namedNode(input, func() string { return label }),
 	}}
+}
+
+// dataEnterToSubmit makes Return in a text field run the dialog's default
+// action instead of blurring the field.
+func dataEnterToSubmit(input core.Node, submit func()) core.Node {
+	if submit == nil {
+		return input
+	}
+	in, ok := input.(ui.Input)
+	if !ok {
+		return input
+	}
+	in.OnSubmit = func(string) { submit() }
+	in.SubmitBehavior = core.SubmitBehaviorSubmit
+	return in
 }
 
 func dataError(cx *core.Scope, message *core.Signal[string]) core.Node {
@@ -129,23 +161,71 @@ func dataError(cx *core.Scope, message *core.Signal[string]) core.Node {
 }
 
 func dataDialog(cx *core.Scope, open *core.Signal[bool], title string, children []core.Node,
-	footer []core.Node, testID string) core.Node {
-	return dataDialogSized(cx, open, title, children, footer, testID, 520)
+	footer []core.Node, testID string, onConfirm ...func()) core.Node {
+	return dataDialogSized(cx, open, title, children, footer, testID, 520, onConfirm...)
 }
 
 func dataDialogSized(cx *core.Scope, open *core.Signal[bool], title string, children []core.Node,
-	footer []core.Node, testID string, width core.Points) core.Node {
+	footer []core.Node, testID string, width core.Points, onConfirm ...func()) core.Node {
+	var confirm func()
+	if len(onConfirm) > 0 {
+		confirm = onConfirm[0]
+	}
 	return ui.Dialog{
 		Open: open.Get,
 		OnOpenChange: func(v bool, _ base.Reason) {
 			open.Set(v)
 		},
-		Title:    title,
-		Children: children,
-		Footer:   footer,
-		TestID:   testID,
-		Style:    core.Style{Width: core.Pt(width)},
+		Title: title,
+		// The popup is capped to the window. Keeping the form in its own
+		// scroll view lets the title and footer stay put while it scrolls.
+		Children: []core.Node{core.Scroll{
+			Style:    core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
+			Children: children,
+		}},
+		Footer:    footer,
+		OnConfirm: confirm,
+		TestID:    testID,
+		Style:     core.Style{Width: core.Pt(width)},
 	}
+}
+
+// dataPath shows a filesystem path as a code block, so the eye can tell it
+// apart from the prose that explains it.
+func dataPath(cx *core.Scope, label, value string) core.Node {
+	return core.View{Style: core.Style{Gap: 3}, Children: []core.Node{
+		core.Text{Content: label, Style: core.Style{FontSize: 11, FontWeight: ui.Semibold},
+			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+		core.View{
+			Style: core.Style{Padding: core.Symmetric(6, 8), CornerRadius: 6, BorderWidth: 1},
+			StyleFunc: func() core.Style {
+				return core.Style{Background: ui.ColorsOf(cx).Inset(),
+					BorderColor: ui.ColorsOf(cx).Line()}
+			},
+			Children: []core.Node{core.Text{Content: value,
+				Style:     core.Style{FontSize: 11, FontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)}},
+		},
+	}}
+}
+
+// dataFormSection groups related onboarding fields under a numbered heading.
+func dataFormSection(cx *core.Scope, step, title, body string, children ...core.Node) core.Node {
+	heading := []core.Node{
+		core.Text{Content: step, Style: core.Style{FontSize: 10, FontWeight: ui.Bold,
+			FontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"},
+			StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
+		core.Text{Content: title, Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}},
+	}
+	head := []core.Node{core.View{Style: core.Style{Direction: core.Row,
+		AlignItems: core.AlignCenter, Gap: 8}, Children: heading}}
+	if body != "" {
+		head = append(head, core.Text{Content: body, Style: core.Style{FontSize: 12},
+			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3})
+	}
+	return core.View{Style: core.Style{Gap: 10, Padding: core.Edges{Top: 12},
+		Borders: core.Edges{Top: 1}, BorderColor: ui.ColorsOf(cx).Line()},
+		Children: append(head, children...)}
 }
 
 func dataRefresh(s *Session, rev *core.Signal[int]) error {
@@ -275,6 +355,7 @@ func sourceCategoryFields(cx *core.Scope, testID string, scope *core.Signal[int]
 					},
 					Label:  locales.SourcesFormCategory(cx),
 					TestID: testID + "-category-select",
+					Style:  core.Style{Width: core.Pct(100)},
 				}
 			})),
 		core.Dynamic(func(cx *core.Scope) core.Node {
@@ -585,8 +666,10 @@ func (s *Session) onboardingScreen(cx *core.Scope, dataRev *core.Signal[int]) co
 
 	submit := func() {
 		y, err := strconv.Atoi(strings.TrimSpace(year.Get()))
-		if err != nil {
-			status.Set(locales.OnboardingCompleteFailed(cx))
+		orgName := strings.TrimSpace(nameZH.Get() + nameEN.Get())
+		siteName := strings.TrimSpace(siteZH.Get() + siteEN.Get())
+		if orgName == "" || siteName == "" || err != nil || y < 2020 || y > 2030 {
+			status.Set(locales.OnboardingRequired(cx))
 			return
 		}
 		busy.Set(true)
@@ -609,41 +692,70 @@ func (s *Session) onboardingScreen(cx *core.Scope, dataRev *core.Signal[int]) co
 		}
 	}
 
+	canFinish := func() bool {
+		y, err := strconv.Atoi(strings.TrimSpace(year.Get()))
+		return strings.TrimSpace(nameZH.Get()+nameEN.Get()) != "" &&
+			strings.TrimSpace(siteZH.Get()+siteEN.Get()) != "" &&
+			err == nil && y >= 2020 && y <= 2030
+	}
+	required := func(label string) string { return label + " *" }
+
 	return core.Scroll{
 		Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
 		Children: []core.Node{core.View{
-			Style: core.Style{Padding: core.All(16), Gap: 12, MaxWidth: core.Pt(680), AlignSelf: core.AlignStretch},
+			Style: core.Style{Padding: core.All(16), Gap: 12, Width: core.Pct(100),
+				MaxWidth: core.Pt(680), AlignSelf: core.AlignCenter},
 			Children: []core.Node{dataCard(cx,
 				core.Text{Content: locales.DataOnboardingTitle(cx), Style: core.Style{FontSize: 20, FontWeight: ui.Bold}},
 				core.Text{Content: locales.DataOnboardingBody(cx), Style: core.Style{FontSize: 13},
 					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-				dataField(cx, locales.OnboardingStepCompanyNameZh(cx),
-					ui.Input{Value: nameZH.Get, OnChange: nameZH.Set, TestID: "onboarding-org-zh"}),
-				dataField(cx, locales.OnboardingStepCompanyNameEn(cx),
-					ui.Input{Value: nameEN.Get, OnChange: nameEN.Set, TestID: "onboarding-org-en"}),
-				dataField(cx, locales.OnboardingStepCompanyIndustry(cx),
-					ui.Input{Value: industry.Get, OnChange: industry.Set,
-						Placeholder: locales.OnboardingStepCompanyIndustryPlaceholder(cx),
-						TestID:      "onboarding-org-industry"}),
-				dataField(cx, locales.OnboardingStepCompanyCountry(cx),
-					ui.Input{Value: country.Get, OnChange: country.Set, TestID: "onboarding-org-country"}),
-				dataField(cx, locales.OnboardingStepBoundaryTitle(cx),
-					ui.Select[string]{Options: dataBoundaryOptions(cx), Value: boundary.Get, OnChange: boundary.Set,
-						Label: locales.OnboardingStepBoundaryTitle(cx), TestID: "onboarding-boundary"}),
-				dataField(cx, locales.OnboardingStepSiteNameZh(cx),
-					ui.Input{Value: siteZH.Get, OnChange: siteZH.Set, TestID: "onboarding-site-zh"}),
-				dataField(cx, locales.OnboardingStepSiteNameEn(cx),
-					ui.Input{Value: siteEN.Get, OnChange: siteEN.Set, TestID: "onboarding-site-en"}),
-				dataField(cx, locales.OnboardingStepSiteAddress(cx),
-					ui.Input{Value: siteAddress.Get, OnChange: siteAddress.Set, TestID: "onboarding-site-address"}),
-				dataField(cx, locales.OnboardingStepSiteCountry(cx),
-					ui.Input{Value: siteCountry.Get, OnChange: siteCountry.Set, TestID: "onboarding-site-country"}),
-				dataField(cx, locales.OnboardingStepYearTitle(cx),
-					ui.Input{Value: year.Get, OnChange: year.Set, TestID: "onboarding-year"}),
+				core.Text{Content: locales.OnboardingRequiredNote(cx), Style: core.Style{FontSize: 11},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
+				dataFormSection(cx, "01", locales.OnboardingStepCompanyTitle(cx),
+					locales.OnboardingStepCompanySubtitle(cx),
+					dataColumns(cx, 10,
+						dataField(cx, required(locales.OnboardingStepCompanyNameZh(cx)),
+							ui.Input{Value: nameZH.Get, OnChange: nameZH.Set, TestID: "onboarding-org-zh"}, submit),
+						dataField(cx, required(locales.OnboardingStepCompanyNameEn(cx)),
+							ui.Input{Value: nameEN.Get, OnChange: nameEN.Set, TestID: "onboarding-org-en"}, submit)),
+					dataColumns(cx, 10,
+						dataField(cx, locales.OnboardingStepCompanyIndustry(cx),
+							ui.Input{Value: industry.Get, OnChange: industry.Set,
+								Placeholder: locales.OnboardingStepCompanyIndustryPlaceholder(cx),
+								TestID:      "onboarding-org-industry"}, submit),
+						dataField(cx, locales.OnboardingStepCompanyCountry(cx),
+							ui.Input{Value: country.Get, OnChange: country.Set, TestID: "onboarding-org-country"}, submit)),
+					dataField(cx, locales.OnboardingStepBoundaryTitle(cx),
+						ui.Select[string]{Options: dataBoundaryOptions(cx), Value: boundary.Get, OnChange: boundary.Set,
+							Label: locales.OnboardingStepBoundaryTitle(cx), TestID: "onboarding-boundary",
+							Style: core.Style{Width: core.Pct(100)}})),
+				dataFormSection(cx, "02", locales.OnboardingStepSiteTitle(cx),
+					locales.OnboardingStepSiteSubtitle(cx),
+					dataColumns(cx, 10,
+						dataField(cx, required(locales.OnboardingStepSiteNameZh(cx)),
+							ui.Input{Value: siteZH.Get, OnChange: siteZH.Set, TestID: "onboarding-site-zh"}, submit),
+						dataField(cx, required(locales.OnboardingStepSiteNameEn(cx)),
+							ui.Input{Value: siteEN.Get, OnChange: siteEN.Set, TestID: "onboarding-site-en"}, submit)),
+					dataColumns(cx, 10,
+						dataField(cx, locales.OnboardingStepSiteAddress(cx),
+							ui.Input{Value: siteAddress.Get, OnChange: siteAddress.Set, TestID: "onboarding-site-address"}, submit),
+						dataField(cx, locales.OnboardingStepSiteCountry(cx),
+							ui.Input{Value: siteCountry.Get, OnChange: siteCountry.Set, TestID: "onboarding-site-country"}, submit))),
+				dataFormSection(cx, "03", locales.OnboardingStepYearTitle(cx),
+					locales.OnboardingStepYearSubtitle(cx),
+					dataField(cx, required(locales.OnboardingStepYearTitle(cx)),
+						ui.Input{Value: year.Get, OnChange: year.Set, TestID: "onboarding-year"}, submit)),
 				dataError(cx, status),
-				core.View{Style: core.Style{Direction: core.Row, JustifyContent: core.JustifyEnd}, Children: []core.Node{
-					ui.Button{Text: locales.OnboardingFinish(cx), Busy: busy.Get, OnPress: submit, TestID: "onboarding-submit"},
-				}},
+				core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Wrap: core.Wrap, Gap: 10},
+					Children: []core.Node{
+						core.Show{When: func() bool { return !canFinish() }, Then: func(cx *core.Scope) core.Node {
+							return core.Text{Content: locales.OnboardingRequired(cx), Style: core.Style{FontSize: 11},
+								StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2}
+						}},
+						core.View{Style: core.Style{FlexGrow: 1}},
+						ui.Button{Text: locales.OnboardingFinish(cx), Busy: busy.Get, Disabled: func() bool { return !canFinish() },
+							OnPress: submit, TestID: "onboarding-submit"},
+					}},
 			)},
 		}},
 	}
@@ -670,6 +782,9 @@ func (s *Session) organizationDialog(cx *core.Scope, dataRev *core.Signal[int]) 
 		open.Set(true)
 	}
 	save := func() {
+		if busy.Get() {
+			return
+		}
 		if s.organization == nil {
 			return
 		}
@@ -690,21 +805,22 @@ func (s *Session) organizationDialog(cx *core.Scope, dataRev *core.Signal[int]) 
 		ui.Button{Text: locales.DataEditProfile(cx), Variant: ui.ButtonSecondary, OnPress: show, TestID: "organization-edit"},
 		dataDialog(cx, open, locales.DataOrgProfile(cx), []core.Node{
 			dataField(cx, locales.OnboardingStepCompanyNameZh(cx),
-				ui.Input{Value: zh.Get, OnChange: zh.Set, TestID: "organization-zh"}),
+				ui.Input{Value: zh.Get, OnChange: zh.Set, TestID: "organization-zh"}, save),
 			dataField(cx, locales.OnboardingStepCompanyNameEn(cx),
-				ui.Input{Value: en.Get, OnChange: en.Set, TestID: "organization-en"}),
+				ui.Input{Value: en.Get, OnChange: en.Set, TestID: "organization-en"}, save),
 			dataField(cx, locales.OnboardingStepCompanyIndustry(cx),
-				ui.Input{Value: industry.Get, OnChange: industry.Set, TestID: "organization-industry"}),
+				ui.Input{Value: industry.Get, OnChange: industry.Set, TestID: "organization-industry"}, save),
 			dataField(cx, locales.OnboardingStepCompanyCountry(cx),
-				ui.Input{Value: country.Get, OnChange: country.Set, TestID: "organization-country"}),
+				ui.Input{Value: country.Get, OnChange: country.Set, TestID: "organization-country"}, save),
 			dataField(cx, locales.OnboardingStepBoundaryTitle(cx),
 				ui.Select[string]{Options: dataBoundaryOptions(cx), Value: boundary.Get, OnChange: boundary.Set,
-					Label: locales.OnboardingStepBoundaryTitle(cx), TestID: "organization-boundary"}),
+					Label: locales.OnboardingStepBoundaryTitle(cx), TestID: "organization-boundary",
+					Style: core.Style{Width: core.Pct(100)}}),
 			dataError(cx, status),
 		}, []core.Node{
 			dataCancelButton(cx, open, "organization-cancel"),
 			ui.Button{Text: locales.DataSave(cx), Busy: busy.Get, OnPress: save, TestID: "organization-save"},
-		}, "organization-dialog"),
+		}, "organization-dialog", save),
 	}}
 }
 
@@ -725,6 +841,9 @@ func (s *Session) siteDialog(cx *core.Scope, dataRev *core.Signal[int]) core.Nod
 		open.Set(true)
 	}
 	save := func() {
+		if busy.Get() {
+			return
+		}
 		if s.organization == nil {
 			return
 		}
@@ -745,18 +864,18 @@ func (s *Session) siteDialog(cx *core.Scope, dataRev *core.Signal[int]) core.Nod
 		ui.Button{Text: locales.DataAddSite(cx), Variant: ui.ButtonSecondary, OnPress: show, TestID: "site-add"},
 		dataDialog(cx, open, locales.DataNewSite(cx), []core.Node{
 			dataField(cx, locales.OnboardingStepSiteNameZh(cx),
-				ui.Input{Value: zh.Get, OnChange: zh.Set, TestID: "site-zh"}),
+				ui.Input{Value: zh.Get, OnChange: zh.Set, TestID: "site-zh"}, save),
 			dataField(cx, locales.OnboardingStepSiteNameEn(cx),
-				ui.Input{Value: en.Get, OnChange: en.Set, TestID: "site-en"}),
+				ui.Input{Value: en.Get, OnChange: en.Set, TestID: "site-en"}, save),
 			dataField(cx, locales.OnboardingStepSiteAddress(cx),
-				ui.Input{Value: address.Get, OnChange: address.Set, TestID: "site-address"}),
+				ui.Input{Value: address.Get, OnChange: address.Set, TestID: "site-address"}, save),
 			dataField(cx, locales.OnboardingStepSiteCountry(cx),
-				ui.Input{Value: country.Get, OnChange: country.Set, TestID: "site-country"}),
+				ui.Input{Value: country.Get, OnChange: country.Set, TestID: "site-country"}, save),
 			dataError(cx, status),
 		}, []core.Node{
 			dataCancelButton(cx, open, "site-cancel"),
 			ui.Button{Text: locales.DataCreate(cx), Busy: busy.Get, OnPress: save, TestID: "site-save"},
-		}, "site-dialog"),
+		}, "site-dialog", save),
 	}}
 }
 
@@ -771,6 +890,9 @@ func (s *Session) periodDialog(cx *core.Scope, dataRev *core.Signal[int]) core.N
 		open.Set(true)
 	}
 	save := func() {
+		if busy.Get() {
+			return
+		}
 		if s.organization == nil {
 			return
 		}
@@ -795,12 +917,12 @@ func (s *Session) periodDialog(cx *core.Scope, dataRev *core.Signal[int]) core.N
 		ui.Button{Text: locales.DataAddPeriod(cx), Variant: ui.ButtonSecondary, OnPress: show, TestID: "period-add"},
 		dataDialog(cx, open, locales.DataNewPeriod(cx), []core.Node{
 			dataField(cx, locales.OnboardingStepYearTitle(cx),
-				ui.Input{Value: year.Get, OnChange: year.Set, TestID: "period-year"}),
+				ui.Input{Value: year.Get, OnChange: year.Set, TestID: "period-year"}, save),
 			dataError(cx, status),
 		}, []core.Node{
 			dataCancelButton(cx, open, "period-cancel"),
 			ui.Button{Text: locales.DataCreate(cx), Busy: busy.Get, OnPress: save, TestID: "period-save"},
-		}, "period-dialog"),
+		}, "period-dialog", save),
 	}}
 }
 
@@ -1115,6 +1237,9 @@ func (s *Session) sourceDialog(cx *core.Scope, src *store.EmissionSource, dataRe
 		open.Set(true)
 	}
 	save := func() {
+		if busy.Get() {
+			return
+		}
 		if siteID.Get() == "" {
 			status.Set(locales.SourcesCatalogNoSite(cx))
 			return
@@ -1176,13 +1301,15 @@ func (s *Session) sourceDialog(cx *core.Scope, src *store.EmissionSource, dataRe
 		ui.Button{Text: label(cx), Variant: variant, OnPress: show, TestID: testID},
 		dataDialog(cx, open, title(cx), []core.Node{
 			dataField(cx, locales.SourcesFormName(cx),
-				ui.Input{Value: name.Get, OnChange: name.Set, TestID: testID + "-name"}),
+				ui.Input{Value: name.Get, OnChange: name.Set, TestID: testID + "-name"}, save),
 			dataField(cx, locales.SourcesFormSite(cx),
 				ui.Select[string]{Options: siteOptions, Value: siteID.Get, OnChange: siteID.Set,
-					Label: locales.SourcesFormSite(cx), TestID: testID + "-site"}),
+					Label: locales.SourcesFormSite(cx), TestID: testID + "-site",
+					Style: core.Style{Width: core.Pct(100)}}),
 			dataField(cx, locales.SourcesFormScope(cx),
 				ui.Select[int]{Options: dataScopeOptions(cx), Value: scope.Get, OnChange: scope.Set,
-					Label: locales.SourcesFormScope(cx), TestID: testID + "-scope"}),
+					Label: locales.SourcesFormScope(cx), TestID: testID + "-scope",
+					Style: core.Style{Width: core.Pct(100)}}),
 			sourceCategoryFields(cx, testID, scope, categoryCode, category, path, customCategory),
 			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8}, Children: []core.Node{
 				ui.Switch{Checked: active.Get, OnChange: active.Set, Label: locales.SourceEditActiveLabel(cx),
@@ -1193,7 +1320,7 @@ func (s *Session) sourceDialog(cx *core.Scope, src *store.EmissionSource, dataRe
 		}, []core.Node{
 			dataCancelButton(cx, open, testID+"-cancel"),
 			ui.Button{Text: locales.DataSave(cx), Busy: busy.Get, OnPress: save, TestID: testID + "-save"},
-		}, testID+"-dialog"),
+		}, testID+"-dialog", save),
 	}}
 }
 
@@ -1501,6 +1628,9 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 		open.Set(true)
 	}
 	save := func() {
+		if busy.Get() {
+			return
+		}
 		if sourceID.Get() == "" || periodID.Get() == "" {
 			status.Set(locales.DataRequired(cx))
 			return
@@ -1666,7 +1796,10 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 				Style: core.Style{Direction: core.Row, AlignItems: core.AlignStart, Gap: 8,
 					Padding: core.All(8), CornerRadius: 6},
 				StyleFunc: func() core.Style {
-					return core.Style{Background: ui.ColorsOf(cx).Raised()}
+					colors := ui.ColorsOf(cx)
+					return core.Style{Background: colors.Raised(),
+						Hover:        &core.Style{Background: colors.Hover()},
+						FocusVisible: ui.FocusRing(cx, -2)}
 				},
 				Children: []core.Node{
 					ui.Icon(lucide.Star, 13, ui.ColorsOf(cx).Accent),
@@ -1786,22 +1919,24 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 			},
 			Children: []core.Node{
 				ui.Icon(lucide.CloudUpload, 16, ui.ColorsOf(cx).Muted),
-				core.View{Style: core.Style{Gap: 2, FlexGrow: 1}, Children: []core.Node{
-					core.Text{ContentFunc: func() string { return locales.ActivitiesDropHint(cx) },
-						Style: core.Style{FontSize: 12}},
-					core.Show{When: func() bool { return dropStatus.Get() != "" },
-						Then: func(cx *core.Scope) core.Node {
-							return core.Text{ContentFunc: func() string { return dropStatus.Get() },
-								Style: core.Style{FontSize: 11}, MaxLines: 2, StyleFunc: func() core.Style {
-									if dropFailed.Get() {
-										return ui.Colored(ui.ColorsOf(cx).Danger)()
-									}
-									return ui.Colored(ui.ColorsOf(cx).Muted)()
-								}}
-						}},
-				}},
+				core.View{Style: core.Style{Gap: 2, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
+					Children: []core.Node{
+						core.Text{ContentFunc: func() string { return locales.ActivitiesDropHint(cx) },
+							Style: core.Style{FontSize: 12, FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 2},
+						core.Show{When: func() bool { return dropStatus.Get() != "" },
+							Then: func(cx *core.Scope) core.Node {
+								return core.Text{ContentFunc: func() string { return dropStatus.Get() },
+									Style: core.Style{FontSize: 11}, MaxLines: 2, StyleFunc: func() core.Style {
+										if dropFailed.Get() {
+											return ui.Colored(ui.ColorsOf(cx).Danger)()
+										}
+										return ui.Colored(ui.ColorsOf(cx).Muted)()
+									}}
+							}},
+					}},
 				ui.Button{Text: locales.ActivitiesDropPick(cx), Variant: ui.ButtonSecondary,
-					Busy: dropBusy.Get, OnPress: pick, TestID: "activity-drop-pick"},
+					Busy: dropBusy.Get, OnPress: pick, TestID: "activity-drop-pick",
+					Style: core.Style{FlexShrink: 0}},
 			},
 		}
 	}
@@ -1820,15 +1955,15 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 				Label:       locales.ActivitiesFormPeriod(cx), TestID: prefix + "-period"}),
 		dataColumns(cx, 8,
 			dataField(cx, locales.ActivitiesFormOccurredStart(cx),
-				ui.Input{Value: start.Get, OnChange: start.Set, TestID: prefix + "-start"}),
+				ui.Input{Value: start.Get, OnChange: start.Set, TestID: prefix + "-start"}, save),
 			dataField(cx, locales.ActivitiesFormOccurredEnd(cx),
-				ui.Input{Value: end.Get, OnChange: end.Set, TestID: prefix + "-end"})),
+				ui.Input{Value: end.Get, OnChange: end.Set, TestID: prefix + "-end"}, save)),
 		dataColumns(cx, 8,
 			dataField(cx, locales.ActivitiesFormAmount(cx),
-				ui.Input{Value: amount.Get, OnChange: amount.Set, TestID: prefix + "-amount"}),
+				ui.Input{Value: amount.Get, OnChange: amount.Set, TestID: prefix + "-amount"}, save),
 			dataField(cx, locales.ActivitiesFormUnit(cx),
 				ui.Input{Value: unit.Get, OnChange: unit.Set,
-					Placeholder: locales.ActivitiesFormUnitPlaceholder(cx), TestID: prefix + "-unit"})),
+					Placeholder: locales.ActivitiesFormUnitPlaceholder(cx), TestID: prefix + "-unit"}, save)),
 		core.Show{When: func() bool {
 			return routingStage.Get() != "" && routingOrigin.Get() != "" && routingDestination.Get() != ""
 		}, Then: func(cx *core.Scope) core.Node {
@@ -1879,20 +2014,20 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 				}}
 		}},
 		recommendations,
-		core.Dynamic(efSelect),
+		dataField(cx, locales.ActivitiesFormEf(cx), core.Dynamic(efSelect)),
 		dataColumns(cx, 8,
 			dataField(cx, locales.ActivitiesFormFuel(cx),
 				ui.Input{Value: fuel.Get, OnChange: fuel.Set,
-					Placeholder: locales.ActivitiesFormFuelNone(cx), TestID: prefix + "-fuel"}),
+					Placeholder: locales.ActivitiesFormFuelNone(cx), TestID: prefix + "-fuel"}, save),
 			dataField(cx, locales.ActivitiesFormNotes(cx),
-				ui.Input{Value: notes.Get, OnChange: notes.Set, TestID: prefix + "-notes"})),
+				ui.Input{Value: notes.Get, OnChange: notes.Set, TestID: prefix + "-notes"}, save)),
 		core.Text{Content: locales.ActivitiesFormFuelHint(cx), Style: core.Style{FontSize: 11},
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 		dataError(cx, status),
 	}, []core.Node{
 		dataCancelButton(cx, open, prefix+"-cancel"),
 		ui.Button{Text: saveLabel(cx), Busy: busy.Get, OnPress: save, TestID: prefix + "-save"},
-	}, prefix+"-dialog")
+	}, prefix+"-dialog", save)
 	return form
 }
 

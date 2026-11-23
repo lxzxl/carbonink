@@ -254,26 +254,21 @@ func newQuestionnaireDetail(cx *core.Scope, db *store.Store) *questionnaireDetai
 }
 
 func questionnaireListRow(cx *core.Scope, q store.Questionnaire, onPress func()) core.Node {
-	return core.View{TestID: "questionnaires-row-" + q.ID, Role: core.RoleButton,
-		OnPress: func(core.PressEvent) { onPress() },
-		Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 12,
-			Padding: core.Symmetric(10, 8), CornerRadius: 6, Borders: core.Edges{Bottom: 1}},
-		StyleFunc: func() core.Style { return core.Style{BorderColor: ui.ColorsOf(cx).Line()} },
-		Children: []core.Node{
-			core.View{Style: core.Style{Gap: 2, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
-				Children: []core.Node{
-					core.Text{Content: q.CustomerName, Style: core.Style{FontSize: 13,
-						FontWeight: ui.Semibold, FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 1},
-					core.Text{Content: strconv.Itoa(q.ReportingYear) + " · " +
-						locales.QuestionnairesQuestionCount(cx, strconv.Itoa(q.QuestionCount)),
-						Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted),
-						MaxLines: 1},
-				}},
-			ui.Badge{Text: questionnaireStatusLabel(cx, q.Status),
-				Variant: questionnaireStatusVariant(q.Status)},
-			core.Text{Content: q.DueDate, Style: core.Style{FontSize: 11},
-				StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint), MaxLines: 1},
-		}}
+	return dataClickableRow(cx, "questionnaires-row-"+q.ID, onPress,
+		core.View{Style: core.Style{Gap: 2, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
+			Children: []core.Node{
+				core.Text{Content: q.CustomerName, Style: core.Style{FontSize: 13,
+					FontWeight: ui.Semibold, FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 1},
+				core.Text{Content: strconv.Itoa(q.ReportingYear) + " · " +
+					locales.QuestionnairesQuestionCount(cx, strconv.Itoa(q.QuestionCount)),
+					Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted),
+					MaxLines: 1},
+			}},
+		ui.Badge{Text: questionnaireStatusLabel(cx, q.Status),
+			Variant: questionnaireStatusVariant(q.Status)},
+		core.Text{Content: q.DueDate, Style: core.Style{FontSize: 11},
+			StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint), MaxLines: 1},
+	)
 }
 
 func questionnaireStatusLabel(cx *core.Scope, status string) string {
@@ -355,6 +350,9 @@ func (w *questionnaireWizard) dialog(cx *core.Scope, s *Session, dataRev *core.S
 	}
 
 	submit := func() {
+		if w.busy.Get() {
+			return
+		}
 		name := strings.TrimSpace(w.customer.Get())
 		year, err := strconv.Atoi(strings.TrimSpace(w.year.Get()))
 		if name == "" || len(w.data) == 0 || err != nil {
@@ -413,16 +411,15 @@ func (w *questionnaireWizard) dialog(cx *core.Scope, s *Session, dataRev *core.S
 	body := []core.Node{
 		dataField(cx, locales.QuestionnairesWizardCustomer(cx),
 			ui.Input{Value: w.customer.Get, Placeholder: locales.QuestionnairesWizardCustomer(cx),
-				OnChange: w.customer.Set, TestID: "questionnaires-wizard-customer"}),
-		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignEnd, Gap: 8},
-			Children: []core.Node{
-				dataField(cx, locales.QuestionnairesWizardYear(cx),
-					ui.Input{Value: w.year.Get, OnChange: w.year.Set,
-						TestID: "questionnaires-wizard-year"}),
-				dataField(cx, locales.QuestionnairesWizardDue(cx),
-					ui.Input{Value: w.due.Get, OnChange: w.due.Set,
-						TestID: "questionnaires-wizard-due"}),
-			}},
+				OnChange: w.customer.Set, TestID: "questionnaires-wizard-customer"}, submit),
+		dataColumns(cx, 8,
+			dataField(cx, locales.QuestionnairesWizardYear(cx),
+				ui.Input{Value: w.year.Get, OnChange: w.year.Set,
+					TestID: "questionnaires-wizard-year"}, submit),
+			dataField(cx, locales.QuestionnairesWizardDue(cx),
+				ui.Input{Value: w.due.Get, OnChange: w.due.Set,
+					TestID: "questionnaires-wizard-due"}, submit),
+		),
 		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8},
 			Children: []core.Node{
 				ui.Button{Text: locales.QuestionnairesWizardFileChoose(cx), Variant: ui.ButtonSecondary,
@@ -448,7 +445,7 @@ func (w *questionnaireWizard) dialog(cx *core.Scope, s *Session, dataRev *core.S
 			}},
 	}
 	return dataDialogSized(cx, w.open, locales.QuestionnairesWizardTitle(cx), body, footer,
-		"questionnaires-wizard-dialog", 600)
+		"questionnaires-wizard-dialog", 600, submit)
 }
 
 // show loads one questionnaire and opens the detail dialog.

@@ -622,7 +622,10 @@ func (s *Session) importGroupsBody(cx *core.Scope, w *importWizard) core.Node {
 					Style: core.Style{Direction: core.Row, AlignItems: core.AlignStart, Gap: 6,
 						Padding: core.All(6), CornerRadius: 6},
 					StyleFunc: func() core.Style {
-						return core.Style{Background: ui.ColorsOf(cx).Raised()}
+						colors := ui.ColorsOf(cx)
+						return core.Style{Background: colors.Raised(),
+							Hover:        &core.Style{Background: colors.Hover()},
+							FocusVisible: ui.FocusRing(cx, -2)}
 					},
 					Children: []core.Node{
 						ui.Icon(lucide.Star, 12, ui.ColorsOf(cx).Accent),

@@ -50,7 +50,7 @@ activitiesFormSourcePlaceholder: Select a source…
 activitiesFormSubmit: Record activity
 activitiesFormSubmitting: Recording…
 activitiesFormUnit: Unit
-activitiesFormUnitPlaceholder: e.g. kWh, L, kg, t, 度, 公里
+activitiesFormUnitPlaceholder: e.g. kWh, L, kg, t, km
 activitiesFromDocument: From {filename}
 activitiesFromLedgerImport: Ledger import
 activitiesFromSupplierDisclosure: From supplier disclosure
@@ -238,8 +238,11 @@ colScope: Scope
 colSite: Site
 colSource: Source
 colUnit: Unit
+commandActions: Actions
+commandExportActivities: Export activities as CSV
 commandFiles: Files
 commandGoTo: Go to
+commandHints: ↑↓ Navigate · ↵ Select · Esc Close
 commandRevealData: Reveal data directory
 commandRevealWorkspace: Reveal workspace database
 commandSearch: Search commands
@@ -247,6 +250,7 @@ dashboardInventoryBody: No emission data yet.
 dashboardInventoryTitle: Inventory Dashboard
 dashboardMonthlyTrend: Monthly emissions
 dashboardNoDataForChart: Once activities are recorded, monthly totals appear here.
+dashboardTrendNote: Apportioned by days across each activity's date range.
 dashboardRecentActivities: Recent activities
 dashboardRecentEmpty: No activities yet
 dashboardScope1: Scope 1
@@ -824,6 +828,8 @@ onboardingCreating: Creating organization…
 onboardingEyebrow: Step {current} of {total}
 onboardingFinish: Finish
 onboardingNext: Next
+onboardingRequired: Add a company name, a site name, and a reporting year between 2020 and 2030 to finish.
+onboardingRequiredNote: '* Required'
 onboardingStepAiBody: CarbonInk needs an AI provider to parse documents and answer questionnaires. You can configure this later in Settings; skipping is fine for now.
 onboardingStepAiByot: I have an API key (configure in Settings after onboarding)
 onboardingStepAiSkip: Skip for now (configure later in Settings)
@@ -1241,8 +1247,10 @@ settingsMcpTitle: MCP integration
 settingsMigrationAvailable: A CarbonInk 1.x data folder was found. Its workspaces are imported the first time the new app starts.
 settingsMigrationBackups: The 1.x files are copied, never moved. Backups and attachments are copied too, and the originals stay where they are.
 settingsMigrationCurrentPath: 'Current data folder: {path}'
+settingsMigrationCurrentLabel: Current data folder
 settingsMigrationImported: Imported from CarbonInk 1.x — this workspace now lives in the new data folder.
 settingsMigrationLegacyPath: 'CarbonInk 1.x data folder: {path}'
+settingsMigrationLegacyLabel: CarbonInk 1.x data folder
 settingsMigrationNone: No CarbonInk 1.x data folder was found on this computer.
 settingsMigrationProviderImported: The AI provider setting was imported from 1.x. Re-enter the API key in AI provider above to keep using document extraction.
 settingsMigrationRevealCurrent: Reveal current folder

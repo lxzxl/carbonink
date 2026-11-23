@@ -48,6 +48,9 @@ func (s *Session) workspacesCard(cx *core.Scope) core.Node {
 	}
 
 	create := func() {
+		if createBusy.Get() {
+			return
+		}
 		createBusy.Set(true)
 		_, err := s.workspaces.Create(createName.Get())
 		createBusy.Set(false)
@@ -63,6 +66,9 @@ func (s *Session) workspacesCard(cx *core.Scope) core.Node {
 		}
 	}
 	rename := func() {
+		if renameBusy.Get() {
+			return
+		}
 		renameBusy.Set(true)
 		err := s.workspaces.Rename(renameID.Get(), renameName.Get())
 		renameBusy.Set(false)
@@ -79,6 +85,9 @@ func (s *Session) workspacesCard(cx *core.Scope) core.Node {
 		reload()
 	}
 	remove := func() {
+		if deleteBusy.Get() {
+			return
+		}
 		deleteBusy.Set(true)
 		_, err := s.workspaces.Remove(deleteID.Get())
 		deleteBusy.Set(false)
@@ -179,7 +188,7 @@ func (s *Session) workspacesCard(cx *core.Scope) core.Node {
 		dataHeaderRow(cx,
 			dataField(cx, locales.WorkspaceCreateButton(cx),
 				ui.Input{Value: createName.Get, OnChange: createName.Set,
-					Placeholder: locales.WorkspaceCreatePlaceholder(cx), TestID: "workspace-create-input"}),
+					Placeholder: locales.WorkspaceCreatePlaceholder(cx), TestID: "workspace-create-input"}, create),
 			ui.Button{Text: locales.WorkspaceCreateButton(cx), Busy: createBusy.Get, OnPress: create,
 				TestID: "workspace-create-button"},
 		),
@@ -196,13 +205,13 @@ func (s *Session) workspacesCard(cx *core.Scope) core.Node {
 			}},
 		dataDialog(cx, renameOpen, locales.WorkspaceRenameButton(cx), []core.Node{
 			dataField(cx, locales.WorkspaceRenameButton(cx),
-				ui.Input{Value: renameName.Get, OnChange: renameName.Set, TestID: "workspace-rename-input"}),
+				ui.Input{Value: renameName.Get, OnChange: renameName.Set, TestID: "workspace-rename-input"}, rename),
 			dataError(cx, renameStatus),
 		}, []core.Node{
 			dataCancelButton(cx, renameOpen, "workspace-rename-cancel"),
 			ui.Button{Text: locales.WorkspaceRenameSave(cx), Busy: renameBusy.Get, OnPress: rename,
 				TestID: "workspace-rename-save"},
-		}, "workspace-rename-dialog"),
+		}, "workspace-rename-dialog", rename),
 		dataDialog(cx, switchOpen, locales.WorkspaceSwitchButton(cx), []core.Node{
 			core.Text{ContentFunc: func() string {
 				return locales.WorkspaceSwitchConfirm(cx, switchName.Get())

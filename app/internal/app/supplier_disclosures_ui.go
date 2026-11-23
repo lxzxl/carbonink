@@ -244,12 +244,7 @@ func supplierDisclosureRow(cx *core.Scope, q store.Questionnaire, overdue bool,
 		children = append(children, ui.Badge{Text: locales.SupplierDisclosuresOverdue(cx),
 			Variant: ui.BadgeDanger})
 	}
-	return core.View{TestID: "supplier-disclosures-row-" + q.ID, Role: core.RoleButton,
-		OnPress: func(core.PressEvent) { onPress() },
-		Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 12,
-			Padding: core.Symmetric(10, 8), CornerRadius: 6, Borders: core.Edges{Bottom: 1}},
-		StyleFunc: func() core.Style { return core.Style{BorderColor: ui.ColorsOf(cx).Line()} },
-		Children:  children}
+	return dataClickableRow(cx, "supplier-disclosures-row-"+q.ID, onPress, children...)
 }
 
 func supplierStatusLabel(cx *core.Scope, status string) string {
@@ -325,6 +320,9 @@ func (w *supplierWizard) dialog(cx *core.Scope, s *Session, dataRev *core.Signal
 	}
 
 	submit := func() {
+		if w.busy.Get() {
+			return
+		}
 		year, err := strconv.Atoi(strings.TrimSpace(w.year.Get()))
 		if err != nil {
 			w.failed.Set(true)
@@ -396,7 +394,7 @@ func (w *supplierWizard) dialog(cx *core.Scope, s *Session, dataRev *core.Signal
 		index, check := index, check
 		tq := inbound.Cat1.Questions[index]
 		checkRows = append(checkRows, ui.Checkbox{
-			Text:     supplierQuestionLabel(cx, tq),
+			Text:     supplierQuestionLabel(cx, tq, w.year.Get()),
 			Checked:  check.on.Get,
 			OnChange: func(on bool) { check.on.Set(on) },
 			TestID:   "supplier-disclosures-wizard-check-" + tq.Position,
@@ -415,19 +413,18 @@ func (w *supplierWizard) dialog(cx *core.Scope, s *Session, dataRev *core.Signal
 					}
 				},
 				Label:  locales.SupplierDisclosuresWizardSupplier(cx),
-				TestID: "supplier-disclosures-wizard-supplier"}),
-		core.View{Style: core.Style{Direction: core.Row, Gap: 8, AlignItems: core.AlignEnd},
-			Children: []core.Node{
-				dataField(cx, locales.SupplierDisclosuresWizardNewSupplier(cx),
-					ui.Input{Value: w.name.Get,
-						Placeholder: locales.SupplierDisclosuresWizardNewSupplierPlaceholder(cx),
-						OnChange:    w.name.Set, TestID: "supplier-disclosures-wizard-name"}),
-				dataField(cx, locales.SupplierDisclosuresWizardEmail(cx),
-					ui.Input{Value: w.email.Get, Placeholder: "buyer@example.com",
-						OnChange: w.email.Set, TestID: "supplier-disclosures-wizard-email"}),
-			}},
+				TestID: "supplier-disclosures-wizard-supplier",
+				Style:  core.Style{Width: core.Pct(100)}}),
+		dataColumns(cx, 8,
+			dataField(cx, locales.SupplierDisclosuresWizardNewSupplier(cx),
+				ui.Input{Value: w.name.Get,
+					Placeholder: locales.SupplierDisclosuresWizardNewSupplierPlaceholder(cx),
+					OnChange:    w.name.Set, TestID: "supplier-disclosures-wizard-name"}, submit),
+			dataField(cx, locales.SupplierDisclosuresWizardEmail(cx),
+				ui.Input{Value: w.email.Get, Placeholder: "buyer@example.com",
+					OnChange: w.email.Set, TestID: "supplier-disclosures-wizard-email"}, submit)),
 		dataField(cx, locales.SupplierDisclosuresWizardYear(cx),
-			supplierYearInput(cx, w, yearOptions)),
+			supplierYearInput(cx, w, yearOptions), submit),
 		dataField(cx, locales.SupplierDisclosuresWizardQuestions(cx),
 			core.View{Style: core.Style{Gap: 4}, Children: checkRows}),
 		core.Show{When: func() bool { return w.status.Get() != "" },
@@ -447,7 +444,7 @@ func (w *supplierWizard) dialog(cx *core.Scope, s *Session, dataRev *core.Signal
 			Busy: w.busy.Get, TestID: "supplier-disclosures-wizard-submit"},
 	}
 	return dataDialogSized(cx, w.open, locales.SupplierDisclosuresWizardTitle(cx), body, footer,
-		"supplier-disclosures-wizard-dialog", 640)
+		"supplier-disclosures-wizard-dialog", 640, submit)
 }
 
 func supplierYearInput(cx *core.Scope, w *supplierWizard,
@@ -458,19 +455,30 @@ func supplierYearInput(cx *core.Scope, w *supplierWizard,
 	}
 	return ui.Select[string]{Options: options, Value: w.year.Get,
 		OnChange: w.year.Set, Label: locales.SupplierDisclosuresWizardYear(cx),
-		TestID: "supplier-disclosures-wizard-year"}
+		TestID: "supplier-disclosures-wizard-year", Style: core.Style{Width: core.Pct(100)}}
 }
 
-func supplierQuestionLabel(cx *core.Scope, q inbound.Question) string {
+// supplierQuestionLabel shows the question in the reader's language and
+// fills the period placeholder with the year this wizard will record.
+func supplierQuestionLabel(cx *core.Scope, q inbound.Question, year string) string {
 	prefix := q.Position + " · "
 	if q.Tier > 0 {
 		prefix += locales.SupplierDisclosuresDetailTier(cx, strconv.Itoa(q.Tier)) + " · "
 	}
-	text := q.RawZH
-	if len([]rune(text)) > 46 {
-		text = string([]rune(text)[:46]) + "…"
+	return prefix + supplierQuestionText(cx.Env().Locale(), q, year)
+}
+
+// supplierQuestionText picks the question in the reader's language and fills
+// the period placeholder with the year this wizard will record.
+func supplierQuestionText(locale string, q inbound.Question, year string) string {
+	text := q.RawEN
+	if strings.HasPrefix(strings.ToLower(locale), "zh") && q.RawZH != "" {
+		text = q.RawZH
 	}
-	return prefix + text
+	if year != "" {
+		text = strings.ReplaceAll(text, "{{period_year}}", year)
+	}
+	return text
 }
 
 func newSupplierDetail(cx *core.Scope, db *store.Store) *supplierDetail {
@@ -865,7 +873,7 @@ func (d *supplierDetail) reviewDialog(cx *core.Scope, s *Session,
 					func(on bool) {
 						d.accepted[answer.QuestionID] = on
 						d.reviewRev.Set(d.reviewRev.Get() + 1)
-					}))
+					}, strconv.Itoa(d.year.Get())))
 			}
 			return core.Scroll{Style: core.Style{FlexGrow: 1, FlexShrink: 1,
 				MinHeight: core.Pt(0), MaxHeight: core.Pt(340)},
@@ -967,7 +975,7 @@ func (d *supplierDetail) tierTwoReady(byPosition map[string]inbound.PreviewAnswe
 }
 
 func supplierReviewRow(cx *core.Scope, index int, answer inbound.PreviewAnswer,
-	accepted map[string]bool, onToggle func(bool)) core.Node {
+	accepted map[string]bool, onToggle func(bool), year string) core.Node {
 	value := answer.Raw
 	if answer.IsNumeric {
 		value = strconv.FormatFloat(answer.Number, 'f', -1, 64)
@@ -980,11 +988,7 @@ func supplierReviewRow(cx *core.Scope, index int, answer inbound.PreviewAnswer,
 	}
 	text := answer.Position
 	if q, ok := inbound.Cat1.QuestionByPosition(answer.Position); ok {
-		label := q.RawZH
-		if len([]rune(label)) > 40 {
-			label = string([]rune(label)[:40]) + "…"
-		}
-		text = answer.Position + " · " + label
+		text = supplierQuestionLabel(cx, q, year)
 	}
 	return core.View{TestID: "supplier-disclosures-review-row-" + strconv.Itoa(index),
 		Style: core.Style{Direction: core.Row, Gap: 8, AlignItems: core.AlignCenter,
@@ -995,7 +999,7 @@ func supplierReviewRow(cx *core.Scope, index int, answer inbound.PreviewAnswer,
 				OnChange: onToggle, TestID: "supplier-disclosures-review-accept-" + answer.Position},
 			core.View{Style: core.Style{Gap: 1, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
 				Children: []core.Node{
-					core.Text{Content: text, Style: core.Style{FontSize: 12}, MaxLines: 1},
+					core.Text{Content: text, Style: core.Style{FontSize: 12}, MaxLines: 2},
 					core.Text{Content: value, Style: core.Style{FontSize: 12,
 						FontWeight: ui.Semibold}, MaxLines: 1},
 				}},
@@ -1075,7 +1079,7 @@ func (d *supplierDetail) remindDialog(cx *core.Scope, s *Session,
 	body := []core.Node{
 		dataField(cx, locales.SupplierDisclosuresDetailEmail(cx),
 			ui.Input{Value: d.email.Get, Placeholder: "buyer@example.com",
-				OnChange: d.email.Set, TestID: "supplier-disclosures-remind-email"}),
+				OnChange: d.email.Set, TestID: "supplier-disclosures-remind-email"}, send),
 		core.Text{Content: locales.SupplierDisclosuresDetailRemindBody(cx),
 			Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 	}
@@ -1087,7 +1091,7 @@ func (d *supplierDetail) remindDialog(cx *core.Scope, s *Session,
 			TestID: "supplier-disclosures-remind-send"},
 	}
 	return dataDialog(cx, d.remindOpen, locales.SupplierDisclosuresDetailRemind(cx), body, footer,
-		"supplier-disclosures-remind-dialog")
+		"supplier-disclosures-remind-dialog", send)
 }
 
 func reminderMailto(cx *core.Scope, s *Session, email, supplier string, year int,

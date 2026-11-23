@@ -637,8 +637,11 @@ const (
 	textColSite
 	textColSource
 	textColUnit
+	textCommandActions
+	textCommandExportActivities
 	textCommandFiles
 	textCommandGoTo
+	textCommandHints
 	textCommandRevealData
 	textCommandRevealWorkspace
 	textCommandSearch
@@ -646,6 +649,7 @@ const (
 	textDashboardInventoryTitle
 	textDashboardMonthlyTrend
 	textDashboardNoDataForChart
+	textDashboardTrendNote
 	textDashboardRecentActivities
 	textDashboardRecentEmpty
 	textDashboardScope1
@@ -1160,6 +1164,8 @@ const (
 	textOnboardingCreating
 	textOnboardingFinish
 	textOnboardingNext
+	textOnboardingRequired
+	textOnboardingRequiredNote
 	textOnboardingStepAiBody
 	textOnboardingStepAiByot
 	textOnboardingStepAiSkip
@@ -1517,7 +1523,9 @@ const (
 	textSettingsMcpTitle
 	textSettingsMigrationAvailable
 	textSettingsMigrationBackups
+	textSettingsMigrationCurrentLabel
 	textSettingsMigrationImported
+	textSettingsMigrationLegacyLabel
 	textSettingsMigrationNone
 	textSettingsMigrationProviderImported
 	textSettingsMigrationRevealCurrent
@@ -1996,8 +2004,11 @@ var keyOfText = [numTexts]string{
 	"colSite",
 	"colSource",
 	"colUnit",
+	"commandActions",
+	"commandExportActivities",
 	"commandFiles",
 	"commandGoTo",
+	"commandHints",
 	"commandRevealData",
 	"commandRevealWorkspace",
 	"commandSearch",
@@ -2005,6 +2016,7 @@ var keyOfText = [numTexts]string{
 	"dashboardInventoryTitle",
 	"dashboardMonthlyTrend",
 	"dashboardNoDataForChart",
+	"dashboardTrendNote",
 	"dashboardRecentActivities",
 	"dashboardRecentEmpty",
 	"dashboardScope1",
@@ -2519,6 +2531,8 @@ var keyOfText = [numTexts]string{
 	"onboardingCreating",
 	"onboardingFinish",
 	"onboardingNext",
+	"onboardingRequired",
+	"onboardingRequiredNote",
 	"onboardingStepAiBody",
 	"onboardingStepAiByot",
 	"onboardingStepAiSkip",
@@ -2876,7 +2890,9 @@ var keyOfText = [numTexts]string{
 	"settingsMcpTitle",
 	"settingsMigrationAvailable",
 	"settingsMigrationBackups",
+	"settingsMigrationCurrentLabel",
 	"settingsMigrationImported",
+	"settingsMigrationLegacyLabel",
 	"settingsMigrationNone",
 	"settingsMigrationProviderImported",
 	"settingsMigrationRevealCurrent",
@@ -3185,7 +3201,7 @@ var textsEn = i18n.NewTexts(""+
 	"Record activity"+
 	"Recording…"+
 	"Unit"+
-	"e.g. kWh, L, kg, t, 度, 公里"+
+	"e.g. kWh, L, kg, t, km"+
 	"Ledger import"+
 	"From supplier disclosure"+
 	"Failed to load activities"+
@@ -3353,8 +3369,11 @@ var textsEn = i18n.NewTexts(""+
 	"Site"+
 	"Source"+
 	"Unit"+
+	"Actions"+
+	"Export activities as CSV"+
 	"Files"+
 	"Go to"+
+	"↑↓ Navigate · ↵ Select · Esc Close"+
 	"Reveal data directory"+
 	"Reveal workspace database"+
 	"Search commands"+
@@ -3362,6 +3381,7 @@ var textsEn = i18n.NewTexts(""+
 	"Inventory Dashboard"+
 	"Monthly emissions"+
 	"Once activities are recorded, monthly totals appear here."+
+	"Apportioned by days across each activity's date range."+
 	"Recent activities"+
 	"No activities yet"+
 	"Scope 1"+
@@ -3876,6 +3896,8 @@ var textsEn = i18n.NewTexts(""+
 	"Creating organization…"+
 	"Finish"+
 	"Next"+
+	"Add a company name, a site name, and a reporting year between 2020 and 2030 to finish."+
+	"* Required"+
 	"CarbonInk needs an AI provider to parse documents and answer questionnaires. You can configure this later in Settings; skipping is fine for now."+
 	"I have an API key (configure in Settings after onboarding)"+
 	"Skip for now (configure later in Settings)"+
@@ -4233,7 +4255,9 @@ var textsEn = i18n.NewTexts(""+
 	"MCP integration"+
 	"A CarbonInk 1.x data folder was found. Its workspaces are imported the first time the new app starts."+
 	"The 1.x files are copied, never moved. Backups and attachments are copied too, and the originals stay where they are."+
+	"Current data folder"+
 	"Imported from CarbonInk 1.x — this workspace now lives in the new data folder."+
+	"CarbonInk 1.x data folder"+
 	"No CarbonInk 1.x data folder was found on this computer."+
 	"The AI provider setting was imported from 1.x. Re-enter the API key in AI provider above to keep using document extraction."+
 	"Reveal current folder"+
@@ -4539,7 +4563,7 @@ var textsEn = i18n.NewTexts(""+
 		15,
 		12,
 		4,
-		31,
+		22,
 		13,
 		24,
 		25,
@@ -4707,8 +4731,11 @@ var textsEn = i18n.NewTexts(""+
 		4,
 		6,
 		4,
+		7,
+		24,
 		5,
 		5,
+		42,
 		21,
 		25,
 		15,
@@ -4716,6 +4743,7 @@ var textsEn = i18n.NewTexts(""+
 		19,
 		17,
 		57,
+		54,
 		17,
 		17,
 		7,
@@ -5230,6 +5258,8 @@ var textsEn = i18n.NewTexts(""+
 		24,
 		6,
 		4,
+		86,
+		10,
 		144,
 		58,
 		42,
@@ -5587,7 +5617,9 @@ var textsEn = i18n.NewTexts(""+
 		15,
 		101,
 		117,
+		19,
 		80,
+		25,
 		56,
 		123,
 		21,
@@ -6064,8 +6096,11 @@ var textsZhCN = i18n.NewTexts(""+
 	"场所"+
 	"排放源"+
 	"单位"+
+	"操作"+
+	"导出活动数据 CSV"+
 	"文件"+
 	"前往"+
+	"↑↓ 移动 · ↵ 选择 · Esc 关闭"+
 	"打开数据目录"+
 	"打开账套数据库"+
 	"搜索命令"+
@@ -6073,6 +6108,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"排放清单仪表盘"+
 	"月度排放趋势"+
 	"录入活动数据后，按月汇总会显示在这里。"+
+	"按活动日期区间天数分摊到各月。"+
 	"最近活动"+
 	"暂无活动数据"+
 	"范围 1"+
@@ -6587,6 +6623,8 @@ var textsZhCN = i18n.NewTexts(""+
 	"正在创建组织…"+
 	"完成"+
 	"下一步"+
+	"填写公司名称、Site 名称，并确认 2020–2030 之间的报告年度后才能完成。"+
+	"* 必填"+
 	"碳墨 需要 AI 提供方解析文档和回答问卷。可以稍后在设置里配置；现在跳过也可以。"+
 	"我有 API key（向导完成后到设置里填）"+
 	"稍后在设置里配置"+
@@ -6944,7 +6982,9 @@ var textsZhCN = i18n.NewTexts(""+
 	"MCP 集成"+
 	"检测到 CarbonInk 1.x 数据目录，新版首次启动时已自动导入其中的账套。"+
 	"1.x 的文件是复制而不是移动，自动备份和附件一并复制，原文件仍保留在原处。"+
+	"当前数据目录"+
 	"已从 CarbonInk 1.x 导入——这个账套现在存放在新的数据目录中。"+
+	"CarbonInk 1.x 数据目录"+
 	"这台电脑上没有找到 CarbonInk 1.x 数据目录。"+
 	"已从 1.x 导入 AI 提供商设置。请在上方 AI 提供商中重新输入 API 密钥，以便继续使用文档提取。"+
 	"打开当前目录"+
@@ -7419,7 +7459,10 @@ var textsZhCN = i18n.NewTexts(""+
 		9,
 		6,
 		6,
+		22,
 		6,
+		6,
+		41,
 		18,
 		21,
 		12,
@@ -7427,6 +7470,7 @@ var textsZhCN = i18n.NewTexts(""+
 		21,
 		18,
 		57,
+		45,
 		12,
 		18,
 		8,
@@ -7941,6 +7985,8 @@ var textsZhCN = i18n.NewTexts(""+
 		21,
 		6,
 		9,
+		96,
+		8,
 		113,
 		50,
 		24,
@@ -8298,7 +8344,9 @@ var textsZhCN = i18n.NewTexts(""+
 		10,
 		93,
 		106,
+		18,
 		84,
+		26,
 		57,
 		126,
 		18,
@@ -9563,7 +9611,7 @@ func ActivitiesFormUnit(cx *core.Scope) string { return For(cx).ActivitiesFormUn
 // ActivitiesFormUnit is the package's ActivitiesFormUnit in the language of msgs.
 func (msgs Messages) ActivitiesFormUnit() string { return msgs.text(textActivitiesFormUnit) }
 
-// ActivitiesFormUnitPlaceholder says "e.g. kWh, L, kg, t, 度, 公里"
+// ActivitiesFormUnitPlaceholder says "e.g. kWh, L, kg, t, km"
 // in the language the app shows under cx.
 func ActivitiesFormUnitPlaceholder(cx *core.Scope) string {
 	return For(cx).ActivitiesFormUnitPlaceholder()
@@ -11503,6 +11551,20 @@ func ColUnit(cx *core.Scope) string { return For(cx).ColUnit() }
 // ColUnit is the package's ColUnit in the language of msgs.
 func (msgs Messages) ColUnit() string { return msgs.text(textColUnit) }
 
+// CommandActions says "Actions"
+// in the language the app shows under cx.
+func CommandActions(cx *core.Scope) string { return For(cx).CommandActions() }
+
+// CommandActions is the package's CommandActions in the language of msgs.
+func (msgs Messages) CommandActions() string { return msgs.text(textCommandActions) }
+
+// CommandExportActivities says "Export activities as CSV"
+// in the language the app shows under cx.
+func CommandExportActivities(cx *core.Scope) string { return For(cx).CommandExportActivities() }
+
+// CommandExportActivities is the package's CommandExportActivities in the language of msgs.
+func (msgs Messages) CommandExportActivities() string { return msgs.text(textCommandExportActivities) }
+
 // CommandFiles says "Files"
 // in the language the app shows under cx.
 func CommandFiles(cx *core.Scope) string { return For(cx).CommandFiles() }
@@ -11516,6 +11578,13 @@ func CommandGoTo(cx *core.Scope) string { return For(cx).CommandGoTo() }
 
 // CommandGoTo is the package's CommandGoTo in the language of msgs.
 func (msgs Messages) CommandGoTo() string { return msgs.text(textCommandGoTo) }
+
+// CommandHints says "↑↓ Navigate · ↵ Select · Esc Close"
+// in the language the app shows under cx.
+func CommandHints(cx *core.Scope) string { return For(cx).CommandHints() }
+
+// CommandHints is the package's CommandHints in the language of msgs.
+func (msgs Messages) CommandHints() string { return msgs.text(textCommandHints) }
 
 // CommandRevealData says "Reveal data directory"
 // in the language the app shows under cx.
@@ -11565,6 +11634,13 @@ func DashboardNoDataForChart(cx *core.Scope) string { return For(cx).DashboardNo
 
 // DashboardNoDataForChart is the package's DashboardNoDataForChart in the language of msgs.
 func (msgs Messages) DashboardNoDataForChart() string { return msgs.text(textDashboardNoDataForChart) }
+
+// DashboardTrendNote says "Apportioned by days across each activity's date range."
+// in the language the app shows under cx.
+func DashboardTrendNote(cx *core.Scope) string { return For(cx).DashboardTrendNote() }
+
+// DashboardTrendNote is the package's DashboardTrendNote in the language of msgs.
+func (msgs Messages) DashboardTrendNote() string { return msgs.text(textDashboardTrendNote) }
 
 // DashboardRecentActivities says "Recent activities"
 // in the language the app shows under cx.
@@ -17156,6 +17232,20 @@ func OnboardingNext(cx *core.Scope) string { return For(cx).OnboardingNext() }
 // OnboardingNext is the package's OnboardingNext in the language of msgs.
 func (msgs Messages) OnboardingNext() string { return msgs.text(textOnboardingNext) }
 
+// OnboardingRequired says "Add a company name, a site name, and a reporting year between 2020 and 2030 to finish."
+// in the language the app shows under cx.
+func OnboardingRequired(cx *core.Scope) string { return For(cx).OnboardingRequired() }
+
+// OnboardingRequired is the package's OnboardingRequired in the language of msgs.
+func (msgs Messages) OnboardingRequired() string { return msgs.text(textOnboardingRequired) }
+
+// OnboardingRequiredNote says "* Required"
+// in the language the app shows under cx.
+func OnboardingRequiredNote(cx *core.Scope) string { return For(cx).OnboardingRequiredNote() }
+
+// OnboardingRequiredNote is the package's OnboardingRequiredNote in the language of msgs.
+func (msgs Messages) OnboardingRequiredNote() string { return msgs.text(textOnboardingRequiredNote) }
+
 // OnboardingStepAiBody says "CarbonInk needs an AI provider to parse documents and answer questionnaires. You can configure this later in Settings; skipping is fine for now."
 // in the language the app shows under cx.
 func OnboardingStepAiBody(cx *core.Scope) string { return For(cx).OnboardingStepAiBody() }
@@ -21507,6 +21597,17 @@ func (msgs Messages) SettingsMigrationCurrentPath(path string) string {
 	}
 }
 
+// SettingsMigrationCurrentLabel says "Current data folder"
+// in the language the app shows under cx.
+func SettingsMigrationCurrentLabel(cx *core.Scope) string {
+	return For(cx).SettingsMigrationCurrentLabel()
+}
+
+// SettingsMigrationCurrentLabel is the package's SettingsMigrationCurrentLabel in the language of msgs.
+func (msgs Messages) SettingsMigrationCurrentLabel() string {
+	return msgs.text(textSettingsMigrationCurrentLabel)
+}
+
 // SettingsMigrationImported says "Imported from CarbonInk 1.x — this workspace now lives in the new data folder."
 // in the language the app shows under cx.
 func SettingsMigrationImported(cx *core.Scope) string { return For(cx).SettingsMigrationImported() }
@@ -21538,6 +21639,17 @@ func (msgs Messages) SettingsMigrationLegacyPath(path string) string {
 			return "CarbonInk 1.x 数据目录：" + path
 		}
 	}
+}
+
+// SettingsMigrationLegacyLabel says "CarbonInk 1.x data folder"
+// in the language the app shows under cx.
+func SettingsMigrationLegacyLabel(cx *core.Scope) string {
+	return For(cx).SettingsMigrationLegacyLabel()
+}
+
+// SettingsMigrationLegacyLabel is the package's SettingsMigrationLegacyLabel in the language of msgs.
+func (msgs Messages) SettingsMigrationLegacyLabel() string {
+	return msgs.text(textSettingsMigrationLegacyLabel)
 }
 
 // SettingsMigrationNone says "No CarbonInk 1.x data folder was found on this computer."

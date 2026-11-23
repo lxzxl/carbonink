@@ -187,6 +187,10 @@ func (s *Session) activitiesScreen(cx *core.Scope, dataRev *core.Signal[int],
 		s.pendingNewActivity = false
 		s.scope.Post(showAdd)
 	}
+	if s.pendingImportActivities {
+		s.pendingImportActivities = false
+		s.scope.Post(showImport)
+	}
 	preview := newDocumentPreview(cx)
 	listRef := &core.Ref{}
 	openPreview := func(id string) {

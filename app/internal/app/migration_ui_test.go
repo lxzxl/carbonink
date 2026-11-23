@@ -69,7 +69,7 @@ func TestMigrationCardFromLegacyWorkspace(t *testing.T) {
 		t.Fatalf("base URL field = %q, want the DeepSeek preset", got)
 	}
 	ui.WaitFor("text:The AI provider setting was imported from 1.x", 3*time.Second)
-	ui.WaitFor("text:CarbonInk 1.x data folder:", 3*time.Second)
+	ui.WaitFor("text:CarbonInk 1.x data folder", 3*time.Second)
 
 	// Entering the key is the one manual step; the reminder goes away with it.
 	ui.Type("id:settings-llm-key", "sk-test-12345")

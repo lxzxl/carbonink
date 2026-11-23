@@ -41,6 +41,30 @@ func TestBuildMonthBucketsWindowAndSums(t *testing.T) {
 	}
 }
 
+func TestBuildMonthBucketsApportionsDateRanges(t *testing.T) {
+	activities := []store.Activity{
+		{OccurredAt: "2026-01-01", OccurredAtEnd: "2026-12-31", CO2eKg: 365},
+		{OccurredAt: "2026-03-16", OccurredAtEnd: "2026-04-15", CO2eKg: 62},
+		{OccurredAt: "2026-01-10", CO2eKg: 10},
+	}
+	buckets := buildMonthBuckets(activities, 2026)
+	for i, bucket := range buckets {
+		want := float64(time.Date(2026, time.Month(i+2), 0, 0, 0, 0, 0, time.UTC).Day())
+		if i == 2 {
+			want += 32
+		}
+		if i == 3 {
+			want += 30
+		}
+		if i == 0 {
+			want += 10
+		}
+		if got := bucket.total; got != want {
+			t.Errorf("%s total = %v, want %v", bucket.label, got, want)
+		}
+	}
+}
+
 func TestRecentActivitiesNewestFive(t *testing.T) {
 	activities := []store.Activity{
 		{ID: "a", OccurredAtEnd: "2026-01-01"},

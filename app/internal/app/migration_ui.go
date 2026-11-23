@@ -25,13 +25,10 @@ func (s *Session) migrationCard(cx *core.Scope) core.Node {
 			Style: core.Style{FontSize: 14, FontWeight: ui.Semibold}},
 		core.Text{Content: status, Style: core.Style{FontSize: 12},
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-		core.Text{Content: locales.SettingsMigrationCurrentPath(cx, cx.DataDir()),
-			Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
+		dataPath(cx, locales.SettingsMigrationCurrentLabel(cx), cx.DataDir()),
 	}
 	if legacy != "" {
-		children = append(children, core.Text{
-			Content: locales.SettingsMigrationLegacyPath(cx, legacy),
-			Style:   core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)})
+		children = append(children, dataPath(cx, locales.SettingsMigrationLegacyLabel(cx), legacy))
 	}
 	buttons := []core.Node{
 		ui.Button{Text: locales.SettingsMigrationRevealCurrent(cx), Variant: ui.ButtonSecondary,

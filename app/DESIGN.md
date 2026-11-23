@@ -407,6 +407,9 @@ system never uses a 2–3 pt colored stripe, a left accent bar, or a heavy divid
 - **Separation:** a 1 pt Rule Line between rows inside a card; never zebra
   stripes.
 - **Selection / Hover:** a quiet ink tint, never the accent fill.
+- **Pressable rows:** a row that opens a detail is a button: it gains the same
+  quiet hover tint and a focus-visible ring inset by 2 pt, so pointer and
+  keyboard users both see it is actionable.
 - **Figures:** tabular numerals, right-aligned for magnitudes; units and factor
   codes set one step quieter or in mono.
 - **Empty / no-match:** the list frame keeps its hairline and corner; the
@@ -417,7 +420,10 @@ system never uses a 2–3 pt colored stripe, a left accent bar, or a heavy divid
 ### Data Display
 - **Monthly trend:** the twelve bars are the reporting period's calendar year,
   January through December. A period's chart never mixes in months from
-  another year, and months with no activity read as a 2 pt baseline tick.
+  another year, and months with no activity read as a 2 pt baseline tick. An
+  activity that spans dates is apportioned by day across those months, so a
+  year-long entry reads as a flat line rather than a single spike; the card
+  subtitle states the method.
 - **Dashboard statistics:** tiles are fixed-basis (130–150 pt) and wrap into a
   2 × 2 grid below 900 pt; a total never shrinks into a wrapped numeral.
 
@@ -432,9 +438,39 @@ system never uses a 2–3 pt colored stripe, a left accent bar, or a heavy divid
 ### Dialogs & Sheets
 - **Dialog:** 440 pt wide, 20 pt padding, 12 pt gaps, 16 pt radius, hairline rim,
   dialog shadow, 40% scrim. Actions sit in the footer, secondary first.
+- **Long forms:** the body scrolls inside its own view while the title and
+  footer stay pinned, so a 480 pt-tall window still reaches every field and
+  the primary action never scrolls away.
+- **Keyboard:** Return submits the dialog's primary action; each single-line
+  text field opts in with `dataEnterToSubmit`. Multi-line text and focused
+  buttons keep Return for themselves. Escape cancels.
+- **Field pairs:** related fields share a row above 900 pt and stack below it;
+  each column grows equally, so inputs and selects fill their half instead of
+  sitting at intrinsic width.
+- **Selection footers:** a multi-select catalog keeps its count (`0 selected`)
+  at the left edge and Cancel / Add at the right, so the number and the action
+  never trade places.
 - **Sheet / drawer:** 320 pt wide, 16 pt radius on the side that meets the app,
   16 pt padding; used for rebinding and detail work that should not lose the
   list behind it.
+
+### Onboarding & Wizards
+- **Sections:** multi-part forms number their sections (`01`, `02`, `03`) in
+  mono at 10 pt, with a 13/600 title and one line of purpose; a hairline rule
+  separates sections.
+- **Required fields:** mark them with `*` and state the rule once near the top
+  (`* Required`). The primary action stays disabled and a one-line hint names
+  what is still missing; do not fail silently after a press.
+- **Review rows:** a generated question or summary may wrap to two lines; never
+  truncate it with runes or an ellipsis that hides the ask.
+
+### Command Palette
+- **Frame:** a bare 640 pt dialog holding the command list and a hint footer
+  (`↑↓ Navigate · ↵ Select · Esc Close`); the list takes the remaining height
+  and scrolls.
+- **Content:** navigation commands first, then a separate Actions group (new
+  activity, import, export CSV, add source), then Files. Each item carries an
+  icon and a group label.
 
 ## Do's and Don'ts
 
@@ -450,6 +486,8 @@ system never uses a 2–3 pt colored stripe, a left accent bar, or a heavy divid
 - **Do** reserve the filled accent button for the one action the screen exists
   for; pair it with outline or secondary actions.
 - **Do** use tabular numerals for quantities and mono for factor codes and IDs.
+- **Do** show filesystem paths in a boxed mono block with a quiet caption, not
+  inline in a sentence, so long paths are readable and distinguishable.
 - **Do** wrap long explanatory copy inside its card; a one-line helper that
   runs past the card edge is clipped and unreadable.
 - **Do** check both zh-CN and en at 640 pt, 1280 pt, and a wide window: CJK

@@ -3,6 +3,7 @@ package app
 import (
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"app.carbonink.desktop/internal/store"
@@ -18,8 +19,10 @@ type monthBucket struct {
 	total float64
 }
 
-// buildMonthBuckets sums activities into the reporting period's twelve
-// calendar months. Activities outside that year are ignored.
+// buildMonthBuckets spreads each activity's emissions across the days it
+// covers, then sums those day shares into the reporting period's twelve
+// calendar months. A year-long activity therefore shows in every month
+// instead of landing in whichever month its end date falls.
 func buildMonthBuckets(activities []store.Activity, year int) []monthBucket {
 	buckets := make([]monthBucket, 0, 12)
 	index := make(map[string]int, 12)
@@ -30,14 +33,65 @@ func buildMonthBuckets(activities []store.Activity, year int) []monthBucket {
 		buckets = append(buckets, monthBucket{label: label, short: strconv.Itoa(month)})
 	}
 	for _, activity := range activities {
-		if len(activity.OccurredAtEnd) < 7 {
+		start, end, ok := activityDateRange(activity)
+		if !ok {
 			continue
 		}
-		if i, ok := index[activity.OccurredAtEnd[:7]]; ok {
-			buckets[i].total += activity.CO2eKg
+		totalDays := int(end.Sub(start).Hours()/24) + 1
+		if totalDays <= 0 {
+			continue
+		}
+		for month := time.Date(start.Year(), start.Month(), 1, 0, 0, 0, 0, time.UTC); !month.After(end); month = month.AddDate(0, 1, 0) {
+			monthEnd := month.AddDate(0, 1, 0).AddDate(0, 0, -1)
+			from := start
+			if month.After(from) {
+				from = month
+			}
+			to := end
+			if monthEnd.Before(to) {
+				to = monthEnd
+			}
+			if to.Before(from) {
+				continue
+			}
+			i, inYear := index[month.Format("2006-01")]
+			if !inYear {
+				continue
+			}
+			days := int(to.Sub(from).Hours()/24) + 1
+			buckets[i].total += activity.CO2eKg * float64(days) / float64(totalDays)
 		}
 	}
 	return buckets
+}
+
+// activityDateRange reads the start and end dates, falling back to whichever
+// one the row has. Bad dates are ignored rather than counted in one month.
+func activityDateRange(activity store.Activity) (time.Time, time.Time, bool) {
+	start, startOK := parseActivityDate(activity.OccurredAt)
+	end, endOK := parseActivityDate(activity.OccurredAtEnd)
+	switch {
+	case startOK && endOK:
+	case startOK:
+		end = start
+	case endOK:
+		start = end
+	default:
+		return time.Time{}, time.Time{}, false
+	}
+	if end.Before(start) {
+		start, end = end, start
+	}
+	return start, end, true
+}
+
+func parseActivityDate(value string) (time.Time, bool) {
+	value = strings.TrimSpace(value)
+	if len(value) < 10 {
+		return time.Time{}, false
+	}
+	parsed, err := time.Parse("2006-01-02", value[:10])
+	return parsed, err == nil
 }
 
 // recentActivities returns the five newest rows by their end date, newest
@@ -137,7 +191,8 @@ func (s *Session) monthlyTrendCard(cx *core.Scope, activities []store.Activity, 
 		maxTotal = max(maxTotal, bucket.total)
 	}
 
-	children := []core.Node{dataHeading(cx, locales.DashboardMonthlyTrend(cx), "")}
+	children := []core.Node{dataHeading(cx, locales.DashboardMonthlyTrend(cx),
+		locales.DashboardTrendNote(cx))}
 	if maxTotal == 0 {
 		children = append(children,
 			core.Text{Content: locales.DashboardNoDataForChart(cx), Style: core.Style{FontSize: 12},

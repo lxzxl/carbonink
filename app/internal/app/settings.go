@@ -135,7 +135,8 @@ func (s *Session) settingsScreen(cx *core.Scope) core.Node {
 	}
 
 	return core.Scroll{
-		Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
+		TestID: "settings-scroll",
+		Style:  core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
 		Children: []core.Node{core.View{
 			Style: core.Style{Padding: core.All(16), Gap: 12, MaxWidth: core.Pt(720), AlignSelf: core.AlignStretch},
 			Children: []core.Node{
@@ -202,11 +203,11 @@ func (s *Session) settingsScreen(cx *core.Scope) core.Node {
 				group(locales.SettingsGroupAbout),
 				card(
 					core.Text{ContentFunc: func() string {
-						return locales.SettingsWorkspace(cx) + ": " + s.workspace.Name + " · " + s.workspace.File
+						return locales.SettingsWorkspace(cx) + ": " + s.workspace.Name
 					},
 						Style: core.Style{FontSize: 12}},
-					core.Text{ContentFunc: func() string { return locales.SettingsDataDir(cx) + ": " + cx.DataDir() },
-						Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+					dataPath(cx, locales.SettingsWorkspace(cx), s.workspace.File),
+					dataPath(cx, locales.SettingsDataDir(cx), cx.DataDir()),
 					core.Text{ContentFunc: func() string { return locales.SettingsWindowNote(cx) },
 						Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 					core.Show{When: func() bool { return status.Get() != "" },

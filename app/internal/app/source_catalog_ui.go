@@ -69,6 +69,9 @@ func (s *Session) sourceCatalogDialogWithShow(cx *core.Scope,
 		c.open.Set(true)
 	}
 	add := func() {
+		if c.busy.Get() {
+			return
+		}
 		chosen := c.selected
 		if len(chosen) == 0 {
 			return
@@ -138,50 +141,51 @@ func (s *Session) sourceCatalogDialogWithShow(cx *core.Scope,
 			Value: category, Label: presets.CategoryLabel(category, i18n.Language(cx))})
 	}
 
-	footer := []core.Node{
-		dataCancelButton(cx, c.open, "source-catalog-cancel"),
-		core.Dynamic(func(cx *core.Scope) core.Node {
-			_ = c.rev.Get()
-			return core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8},
-				Children: []core.Node{
-					core.Text{Content: locales.SourcesCatalogSelectedCount(cx,
-						strconv.Itoa(len(c.selected))), Style: core.Style{FontSize: 12},
-						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-					ui.Button{Text: locales.SourcesCatalogAdd(cx),
-						Disabled: func() bool { return len(c.selected) == 0 }, Busy: c.busy.Get,
-						OnPress: add, TestID: "source-catalog-add"},
-				}}
-		}),
-	}
+	footer := []core.Node{core.Dynamic(func(cx *core.Scope) core.Node {
+		_ = c.rev.Get()
+		return core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+			Wrap: core.Wrap, Gap: 8, Width: core.Pct(100)},
+			Children: []core.Node{
+				core.Text{Content: locales.SourcesCatalogSelectedCount(cx,
+					strconv.Itoa(len(c.selected))), Style: core.Style{FontSize: 12},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+				core.View{Style: core.Style{FlexGrow: 1}},
+				dataCancelButton(cx, c.open, "source-catalog-cancel"),
+				ui.Button{Text: locales.SourcesCatalogAdd(cx),
+					Disabled: func() bool { return len(c.selected) == 0 }, Busy: c.busy.Get,
+					OnPress: add, TestID: "source-catalog-add"},
+			}}
+	})}
 
 	return core.View{Children: []core.Node{
 		ui.Button{Text: locales.SourcesCatalogButton(cx), Variant: ui.ButtonSecondary,
 			OnPress: show, TestID: "source-catalog"},
 		dataDialogSized(cx, c.open, locales.SourcesCatalogTitle(cx), []core.Node{
 			search,
-			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignEnd, Gap: 8},
-				Children: []core.Node{
-					dataField(cx, locales.SourcesFormScope(cx),
-						ui.Select[int]{Options: scopeOptions, Value: c.scope.Get,
-							OnChange: func(scope int) {
-								c.category.Set("")
-								c.scope.Set(scope)
-								c.limit = catalogPageSize
-								c.rev.Set(c.rev.Get() + 1)
-							},
-							Label: locales.SourcesFormScope(cx), TestID: "source-catalog-scope"}),
-					dataField(cx, locales.SourcesFormCategory(cx),
-						ui.Select[string]{Options: categoryOptions, Value: c.category.Get,
-							OnChange: func(category string) {
-								c.category.Set(category)
-								c.limit = catalogPageSize
-								c.rev.Set(c.rev.Get() + 1)
-							},
-							Label: locales.SourcesFormCategory(cx), Searchable: true,
-							SearchPlaceholder: locales.SourcesFormCategorySearch(cx),
-							Empty:             locales.SourcesFormCategoryEmpty(cx),
-							TestID:            "source-catalog-category"}),
-				}},
+			dataColumns(cx, 8,
+				dataField(cx, locales.SourcesFormScope(cx),
+					ui.Select[int]{Options: scopeOptions, Value: c.scope.Get,
+						OnChange: func(scope int) {
+							c.category.Set("")
+							c.scope.Set(scope)
+							c.limit = catalogPageSize
+							c.rev.Set(c.rev.Get() + 1)
+						},
+						Label: locales.SourcesFormScope(cx), TestID: "source-catalog-scope",
+						Style: core.Style{Width: core.Pct(100)}}),
+				dataField(cx, locales.SourcesFormCategory(cx),
+					ui.Select[string]{Options: categoryOptions, Value: c.category.Get,
+						OnChange: func(category string) {
+							c.category.Set(category)
+							c.limit = catalogPageSize
+							c.rev.Set(c.rev.Get() + 1)
+						},
+						Label: locales.SourcesFormCategory(cx), Searchable: true,
+						SearchPlaceholder: locales.SourcesFormCategorySearch(cx),
+						Empty:             locales.SourcesFormCategoryEmpty(cx),
+						TestID:            "source-catalog-category",
+						Style:             core.Style{Width: core.Pct(100)}}),
+			),
 			core.Scroll{Style: core.Style{MaxHeight: core.Pt(460)}, Children: []core.Node{
 				core.Dynamic(func(cx *core.Scope) core.Node {
 					_ = c.rev.Get()
@@ -189,7 +193,7 @@ func (s *Session) sourceCatalogDialogWithShow(cx *core.Scope,
 				}),
 			}},
 			dataError(cx, c.status),
-		}, footer, "source-catalog-dialog", 780),
+		}, footer, "source-catalog-dialog", 780, add),
 	}}, show
 }
 

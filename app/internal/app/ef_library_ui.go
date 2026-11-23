@@ -297,6 +297,9 @@ func (s *Session) efImportDialog(cx *core.Scope, dataRev *core.Signal[int]) core
 			})
 	}
 	importLibrary := func() {
+		if w.busy.Get() {
+			return
+		}
 		name := strings.TrimSpace(w.name.Get())
 		if name == "" || len([]rune(name)) > 50 || hasControlChars(name) {
 			w.status.Set(locales.EfImportErrorInvalidName(cx))
@@ -336,7 +339,7 @@ func (s *Session) efImportDialog(cx *core.Scope, dataRev *core.Signal[int]) core
 				MaxHeight: core.Pt(560)}, Children: []core.Node{
 				core.Dynamic(func(cx *core.Scope) core.Node {
 					_ = w.rev.Get()
-					return s.efImportBody(cx, w, pick)
+					return s.efImportBody(cx, w, pick, importLibrary)
 				}),
 			}},
 		}, []core.Node{
@@ -349,7 +352,7 @@ func (s *Session) efImportDialog(cx *core.Scope, dataRev *core.Signal[int]) core
 							OnPress: importLibrary, TestID: "ef-import-run"},
 					}}
 			}),
-		}, "ef-import-dialog", 760),
+		}, "ef-import-dialog", 760, importLibrary),
 	}}
 }
 
@@ -361,22 +364,18 @@ func efImportActionLabel(cx *core.Scope, w *efWizard) string {
 	return locales.EfImportImportButton(cx)
 }
 
-func (s *Session) efImportBody(cx *core.Scope, w *efWizard, pick func()) core.Node {
+func (s *Session) efImportBody(cx *core.Scope, w *efWizard, pick, submit func()) core.Node {
 	children := []core.Node{
 		core.Text{Content: locales.EfImportDescription(cx), Style: core.Style{FontSize: 13},
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-		core.View{Style: core.Style{Direction: core.Row, Gap: 8}, Children: []core.Node{
-			core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{
-				dataField(cx, locales.EfImportNameLabel(cx),
-					ui.Input{Value: w.name.Get, OnChange: w.name.Set,
-						Placeholder: locales.EfImportNamePlaceholder(cx), TestID: "ef-import-name"}),
-			}},
-			core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{
-				dataField(cx, locales.EfImportVersionLabel(cx),
-					ui.Input{Value: w.version.Get, OnChange: w.version.Set,
-						Placeholder: locales.EfImportVersionPlaceholder(cx), TestID: "ef-import-version"}),
-			}},
-		}},
+		dataColumns(cx, 8,
+			dataField(cx, locales.EfImportNameLabel(cx),
+				ui.Input{Value: w.name.Get, OnChange: w.name.Set,
+					Placeholder: locales.EfImportNamePlaceholder(cx), TestID: "ef-import-name"}, submit),
+			dataField(cx, locales.EfImportVersionLabel(cx),
+				ui.Input{Value: w.version.Get, OnChange: w.version.Set,
+					Placeholder: locales.EfImportVersionPlaceholder(cx), TestID: "ef-import-version"}, submit),
+		),
 		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8}, Children: []core.Node{
 			ui.Button{Text: locales.EfImportPickButton(cx), Variant: ui.ButtonSecondary,
 				OnPress: pick, TestID: "ef-import-pick"},
