@@ -171,9 +171,16 @@ func (s *Session) readinessSection(cx *core.Scope, period *core.Signal[string],
 		for _, finding := range shown {
 			finding := finding
 			rows = append(rows, core.View{
-				Style: core.Style{Direction: core.Row, AlignItems: core.AlignStart, Gap: 10,
-					Padding: core.Symmetric(9, 0), Borders: core.Edges{Bottom: 1}},
-				StyleFunc: func() core.Style { return core.Style{BorderColor: ui.ColorsOf(cx).Line()} },
+				StyleFunc: func() core.Style {
+					style := core.Style{Gap: 6, Padding: core.Symmetric(9, 0),
+						Borders: core.Edges{Bottom: 1}, BorderColor: ui.ColorsOf(cx).Line()}
+					if cx.Env().Window().Width >= 900 {
+						style.Direction = core.Row
+						style.AlignItems = core.AlignStart
+						style.Gap = 10
+					}
+					return style
+				},
 				Children: []core.Node{
 					ui.Badge{TextFunc: func() string { return readinessSeverityLabel(cx, finding.Severity) },
 						VariantFunc: func() ui.BadgeVariant {
@@ -217,27 +224,35 @@ func (s *Session) readinessSection(cx *core.Scope, period *core.Signal[string],
 	}
 
 	node := dataCard(cx,
-		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignStart, Gap: 12},
+		core.View{StyleFunc: func() core.Style {
+			if cx.Env().Window().Width < 900 {
+				return core.Style{Gap: 10}
+			}
+			return core.Style{Direction: core.Row, AlignItems: core.AlignStart, Gap: 12}
+		},
 			Children: []core.Node{
 				core.View{Style: core.Style{FlexGrow: 1, FlexBasis: core.Pt(0), Gap: 2}, Children: []core.Node{
 					core.Text{Content: locales.ReadinessTitle(cx),
 						Style: core.Style{FontSize: 14, FontWeight: ui.Semibold}},
 					core.Text{Content: locales.ReadinessDescription(cx),
-						Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted),
-						MaxLines: 2},
+						Style:     core.Style{FontSize: 12},
+						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 				}},
-				core.Show{When: func() bool { return report.Get() == nil },
-					Then: func(cx *core.Scope) core.Node {
-						return button(locales.ReadinessRun)
-					}},
-				core.Show{When: func() bool { return report.Get() != nil },
-					Then: func(cx *core.Scope) core.Node {
-						return button(locales.ReadinessRerun)
-					}},
-				ui.Button{Text: locales.ReadinessReviewAgent(cx), Variant: ui.ButtonGhost,
-					Busy:     agentBusy.Get,
-					Disabled: func() bool { return report.Get() == nil || agentBusy.Get() },
-					OnPress:  review, TestID: "readiness-review-agent"},
+				core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+					Wrap: core.Wrap, Gap: 6}, Children: []core.Node{
+					core.Show{When: func() bool { return report.Get() == nil },
+						Then: func(cx *core.Scope) core.Node {
+							return button(locales.ReadinessRun)
+						}},
+					core.Show{When: func() bool { return report.Get() != nil },
+						Then: func(cx *core.Scope) core.Node {
+							return button(locales.ReadinessRerun)
+						}},
+					ui.Button{Text: locales.ReadinessReviewAgent(cx), Variant: ui.ButtonGhost,
+						Busy:     agentBusy.Get,
+						Disabled: func() bool { return report.Get() == nil || agentBusy.Get() },
+						OnPress:  review, TestID: "readiness-review-agent"},
+				}},
 			}},
 		core.Show{When: func() bool { return status.Get() != "" },
 			Then: func(cx *core.Scope) core.Node {

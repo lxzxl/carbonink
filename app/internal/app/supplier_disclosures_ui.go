@@ -138,13 +138,27 @@ func (s *Session) supplierDisclosuresScreen(cx *core.Scope, dataRev *core.Signal
 		_ = filters.search.Get()
 		_ = filters.status.Get()
 		visible := rows()
+		total := 0
+		for _, q := range s.questionnaires {
+			if q.Direction == "inbound" {
+				total++
+			}
+		}
 		if len(visible) == 0 {
-			return core.View{Style: core.Style{FlexGrow: 1, AlignItems: core.AlignCenter,
-				JustifyContent: core.JustifyCenter, Padding: core.All(24)},
-				Children: []core.Node{
-					core.Text{Content: locales.SupplierDisclosuresEmpty(cx),
-						Style: core.Style{FontSize: 13}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-				}}
+			empty := dataEmptyState(cx, locales.SupplierDisclosuresEmpty(cx),
+				locales.SupplierDisclosuresEmptyBody(cx),
+				ui.Button{Text: locales.SupplierDisclosuresNewButton(cx), OnPress: wizard.show,
+					TestID: "supplier-disclosures-empty-new"})
+			if total > 0 {
+				empty = dataEmptyState(cx, locales.InboundListNoMatch(cx), "",
+					ui.Button{Text: locales.InboundClearFilters(cx), Variant: ui.ButtonGhost,
+						OnPress: func() {
+							filters.search.Set("")
+							filters.status.Set("")
+						}, TestID: "supplier-disclosures-filter-clear"})
+			}
+			return core.View{Style: core.Style{FlexGrow: 1, JustifyContent: core.JustifyCenter},
+				Children: []core.Node{empty}}
 		}
 		nodes := make([]core.Node, 0, len(visible))
 		for _, q := range visible {
@@ -159,12 +173,18 @@ func (s *Session) supplierDisclosuresScreen(cx *core.Scope, dataRev *core.Signal
 
 	return core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0),
 		Padding: core.All(16), Gap: 10}, Children: []core.Node{
-		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8},
-			Children: []core.Node{
-				core.Text{ContentFunc: func() string {
-					return locales.SupplierDisclosuresCount(cx, strconv.Itoa(len(rows())))
-				}, Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}},
-				core.View{Style: core.Style{FlexGrow: 1}},
+		dataHeaderRow(cx,
+			core.Text{ContentFunc: func() string {
+				n := len(rows())
+				return countPhrase(n,
+					func() string {
+						return locales.SupplierDisclosuresCountOne(cx, strconv.Itoa(n))
+					},
+					func() string {
+						return locales.SupplierDisclosuresCount(cx, strconv.Itoa(n))
+					})
+			}, Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}},
+			[]core.Node{
 				ui.Input{Value: filters.search.Get, Placeholder: locales.SupplierDisclosuresSearchPlaceholder(cx),
 					OnChange: func(v string) { filters.search.Set(v) },
 					TestID:   "supplier-disclosures-search", Style: core.Style{Width: core.Pt(220)}},
@@ -175,7 +195,7 @@ func (s *Session) supplierDisclosuresScreen(cx *core.Scope, dataRev *core.Signal
 					Style:    core.Style{Width: core.Pt(150)}},
 				ui.Button{Text: locales.SupplierDisclosuresNewButton(cx), OnPress: wizard.show,
 					TestID: "supplier-disclosures-new"},
-			}},
+			}...),
 		core.Show{When: func() bool { return screenStatus.Get() != "" },
 			Then: func(cx *core.Scope) core.Node {
 				return core.Text{ContentFunc: func() string { return screenStatus.Get() },
@@ -186,7 +206,9 @@ func (s *Session) supplierDisclosuresScreen(cx *core.Scope, dataRev *core.Signal
 						return ui.Colored(ui.ColorsOf(cx).Muted)()
 					}}
 			}},
-		list,
+		core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0),
+			CornerRadius: 8, BorderWidth: 1, BorderColor: ui.ColorsOf(cx).Border(),
+			Background: ui.ColorsOf(cx).Surface()}, Children: []core.Node{list}},
 		wizard.dialog(cx, s, dataRev, func(count int) {
 			screenFailed.Set(false)
 			screenStatus.Set(locales.SupplierDisclosuresWizardCreated(cx, strconv.Itoa(count)))

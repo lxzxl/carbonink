@@ -19,11 +19,9 @@ import (
 // efLibraryBody lists user-imported factor libraries and their import entry.
 func (s *Session) efLibraryBody(cx *core.Scope, dataRev *core.Signal[int]) core.Node {
 	return dataCard(cx,
-		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8}, Children: []core.Node{
+		dataHeaderRow(cx,
 			dataHeading(cx, locales.EfLibraryGroupHeading(cx), locales.EfLibraryGroupBody(cx)),
-			core.View{Style: core.Style{FlexGrow: 1}},
-			s.efImportDialog(cx, dataRev),
-		}},
+			s.efImportDialog(cx, dataRev)),
 		core.Dynamic(func(cx *core.Scope) core.Node {
 			_ = dataRev.Get()
 			return s.efLibraryList(cx, dataRev)

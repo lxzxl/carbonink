@@ -61,26 +61,39 @@ func (s *Session) settingsScreen(cx *core.Scope) core.Node {
 
 	// The labels are functions, not strings: cx.SetLocale re-renders the text
 	// without remounting the screen.
-	button := func(label func(*core.Scope) string, onPress func()) core.Node {
+	button := func(label func(*core.Scope) string, selected func() bool, onPress func()) core.Node {
 		return core.View{
-			Role: core.RoleButton,
+			Role:     core.RoleButton,
+			Selected: selected,
 			OnPress: func(core.PressEvent) {
 				onPress()
 			},
 			Style: core.Style{Height: core.Pt(28), Padding: core.Symmetric(0, 10), CornerRadius: 6,
 				BorderWidth: 1, Direction: core.Row, AlignItems: core.AlignCenter},
 			StyleFunc: func() core.Style {
+				if selected() {
+					return core.Style{
+						Background:  selectionTint(cx),
+						BorderColor: ui.Alpha(ui.ColorsOf(cx).Accent(), 0.7),
+					}
+				}
 				return core.Style{Background: ui.ColorsOf(cx).Surface(), BorderColor: ui.ColorsOf(cx).Border()}
 			},
 			Children: []core.Node{core.Text{ContentFunc: func() string { return label(cx) },
-				Style: core.Style{FontSize: 12}}},
+				Style: core.Style{FontSize: 12},
+				StyleFunc: func() core.Style {
+					if selected() {
+						return core.Style{Color: accentInk(cx)(), FontWeight: ui.Semibold}
+					}
+					return core.Style{}
+				}}},
 		}
 	}
 	row := func(label func(*core.Scope) string, buttons ...core.Node) core.Node {
 		return core.View{Style: core.Style{Gap: 8}, Children: []core.Node{
 			core.Text{ContentFunc: func() string { return label(cx) },
 				Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}},
-			core.View{Style: core.Style{Direction: core.Row, Gap: 6}, Children: buttons},
+			core.View{Style: core.Style{Direction: core.Row, Wrap: core.Wrap, Gap: 6}, Children: buttons},
 		}}
 	}
 
@@ -114,26 +127,39 @@ func (s *Session) settingsScreen(cx *core.Scope) core.Node {
 			Children: children,
 		}
 	}
+	group := func(label func(*core.Scope) string) core.Node {
+		return core.Text{ContentFunc: func() string { return label(cx) },
+			Style: core.Style{FontSize: 11, FontWeight: ui.Semibold,
+				Padding: core.Edges{Top: 8, Left: 2}},
+			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)}
+	}
 
 	return core.Scroll{
 		Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
 		Children: []core.Node{core.View{
 			Style: core.Style{Padding: core.All(16), Gap: 12, MaxWidth: core.Pt(720), AlignSelf: core.AlignStretch},
 			Children: []core.Node{
+				group(locales.SettingsGroupGeneral),
 				card(
 					row(locales.SettingsAppearance,
-						button(locales.SettingsThemeSystem, func() { setTheme("") }),
-						button(locales.SettingsThemeLight, func() { setTheme("light") }),
-						button(locales.SettingsThemeDark, func() { setTheme("dark") }),
+						button(locales.SettingsThemeSystem, func() bool { return theme.Get() == "" },
+							func() { setTheme("") }),
+						button(locales.SettingsThemeLight, func() bool { return theme.Get() == "light" },
+							func() { setTheme("light") }),
+						button(locales.SettingsThemeDark, func() bool { return theme.Get() == "dark" },
+							func() { setTheme("dark") }),
 					),
 					core.Text{ContentFunc: func() string { return locales.SettingsCurrent(cx, currentTheme()) },
 						Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 				),
 				card(
 					row(locales.SettingsLanguage,
-						button(locales.SettingsLanguageSystem, func() { setLocale("") }),
-						button(locales.SettingsLanguageEnglish, func() { setLocale("en") }),
-						button(locales.SettingsLanguageChinese, func() { setLocale("zh-CN") }),
+						button(locales.SettingsLanguageSystem, func() bool { return locale.Get() == "" },
+							func() { setLocale("") }),
+						button(locales.SettingsLanguageEnglish, func() bool { return locale.Get() == "en" },
+							func() { setLocale("en") }),
+						button(locales.SettingsLanguageChinese, func() bool { return locale.Get() == "zh-CN" },
+							func() { setLocale("zh-CN") }),
 					),
 					core.Text{ContentFunc: func() string { return locales.SettingsCurrent(cx, currentLocale()) },
 						Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
@@ -161,14 +187,19 @@ func (s *Session) settingsScreen(cx *core.Scope) core.Node {
 								StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)}
 						}},
 				),
+				group(locales.SettingsGroupOrganization),
 				s.workspacesCard(cx),
 				s.organizationProfileCard(cx),
+				s.reportLogoCard(cx),
+				group(locales.SettingsGroupIntegrations),
 				s.amapKeyCard(cx),
 				s.aiProviderCard(cx),
 				s.agentIntegrationCard(cx),
+				group(locales.SettingsGroupData),
+				s.importSettingsCard(cx),
 				s.migrationCard(cx),
-				s.reportLogoCard(cx),
 				s.dataCard(cx),
+				group(locales.SettingsGroupAbout),
 				card(
 					core.Text{ContentFunc: func() string {
 						return locales.SettingsWorkspace(cx) + ": " + s.workspace.Name + " · " + s.workspace.File
@@ -313,7 +344,7 @@ func (s *Session) aiProviderCard(cx *core.Scope) core.Node {
 			Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}},
 		core.Text{ContentFunc: func() string { return locales.SettingsSectionAiDescription(cx) },
 			Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
-		core.View{Style: core.Style{Direction: core.Row, Gap: 8}, Children: []core.Node{
+		dataColumns(cx, 8,
 			field(locales.SettingsProviderPickerLabel,
 				ui.Select[string]{Options: options, Value: provider.Get,
 					OnChange: func(value string) {
@@ -325,13 +356,19 @@ func (s *Session) aiProviderCard(cx *core.Scope) core.Node {
 							model.Set(item.Model)
 						}
 					},
-					Label: locales.SettingsProviderPickerLabel(cx), TestID: "settings-llm-provider"}),
+					Label: locales.SettingsProviderPickerLabel(cx), TestID: "settings-llm-provider",
+					Style: core.Style{Width: core.Pct(100)}}),
 			field(locales.SettingsProviderModelLabel,
 				ui.Input{Value: model.Get, OnChange: model.Set, TestID: "settings-llm-model"}),
-		}},
+		),
 		core.Text{ContentFunc: func() string { return providerGuidance(cx, provider.Get()) },
 			Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2},
-		core.View{Style: core.Style{Direction: core.Row, Gap: 8, AlignItems: core.AlignEnd},
+		core.View{StyleFunc: func() core.Style {
+			if cx.Env().Window().Width < 900 {
+				return core.Style{Gap: 8}
+			}
+			return core.Style{Direction: core.Row, Gap: 8, AlignItems: core.AlignEnd}
+		},
 			Children: []core.Node{
 				core.View{Style: core.Style{Gap: 4, FlexGrow: 1}, Children: []core.Node{
 					core.Text{ContentFunc: func() string { return locales.SettingsModelSuggestedLabel(cx) },
@@ -366,7 +403,7 @@ func (s *Session) aiProviderCard(cx *core.Scope) core.Node {
 			Then: func(cx *core.Scope) core.Node {
 				return core.Text{Content: locales.SettingsMigrationProviderImported(cx),
 					Style:     core.Style{FontSize: 12},
-					StyleFunc: ui.Colored(ui.ColorsOf(cx).Accent)}
+					StyleFunc: ui.Colored(accentInk(cx))}
 			}},
 		field(locales.SettingsApikeyLabel,
 			ui.Input{Value: key.Get, OnChange: key.Set, Masked: true,

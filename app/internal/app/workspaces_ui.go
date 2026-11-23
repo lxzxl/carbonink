@@ -147,9 +147,16 @@ func (s *Session) workspacesCard(cx *core.Scope) core.Node {
 			}
 			rows = append(rows, core.View{
 				TestID: "workspace-row-" + index,
-				Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8,
-					Padding: core.Symmetric(8, 0), Borders: core.Edges{Bottom: 1}},
-				StyleFunc: func() core.Style { return core.Style{BorderColor: ui.ColorsOf(cx).Line()} },
+				StyleFunc: func() core.Style {
+					style := core.Style{Gap: 6, Padding: core.Symmetric(8, 0),
+						Borders: core.Edges{Bottom: 1}, BorderColor: ui.ColorsOf(cx).Line()}
+					if cx.Env().Window().Width >= 900 {
+						style.Direction = core.Row
+						style.AlignItems = core.AlignCenter
+						style.Gap = 8
+					}
+					return style
+				},
 				Children: []core.Node{
 					core.View{Style: core.Style{FlexGrow: 1, Gap: 2}, Children: []core.Node{
 						core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 6},
@@ -159,7 +166,7 @@ func (s *Session) workspacesCard(cx *core.Scope) core.Node {
 						core.Text{Content: locales.WorkspaceCreatedAt(cx, created), Style: core.Style{FontSize: 11},
 							StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
 					}},
-					core.View{Style: core.Style{Direction: core.Row, Gap: 4}, Children: buttons},
+					core.View{Style: core.Style{Direction: core.Row, Wrap: core.Wrap, Gap: 4}, Children: buttons},
 				},
 			})
 		}
@@ -169,15 +176,13 @@ func (s *Session) workspacesCard(cx *core.Scope) core.Node {
 	return dataCard(cx,
 		dataHeading(cx, locales.WorkspaceHeading(cx), locales.WorkspaceBody(cx)),
 		list,
-		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignEnd, Gap: 8}, Children: []core.Node{
-			core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{
-				dataField(cx, locales.WorkspaceCreateButton(cx),
-					ui.Input{Value: createName.Get, OnChange: createName.Set,
-						Placeholder: locales.WorkspaceCreatePlaceholder(cx), TestID: "workspace-create-input"}),
-			}},
+		dataHeaderRow(cx,
+			dataField(cx, locales.WorkspaceCreateButton(cx),
+				ui.Input{Value: createName.Get, OnChange: createName.Set,
+					Placeholder: locales.WorkspaceCreatePlaceholder(cx), TestID: "workspace-create-input"}),
 			ui.Button{Text: locales.WorkspaceCreateButton(cx), Busy: createBusy.Get, OnPress: create,
 				TestID: "workspace-create-button"},
-		}},
+		),
 		core.Show{When: func() bool { return status.Get() != "" },
 			Then: func(cx *core.Scope) core.Node {
 				return core.Text{ContentFunc: func() string { return status.Get() },

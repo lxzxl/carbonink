@@ -44,6 +44,7 @@ func For(cx *core.Scope) Messages {
 // (tsx.RegisterMessages).
 var Parameters = map[string][]string{
 	"ActivitiesCount":                         {"count"},
+	"ActivitiesCountOne":                      {"count"},
 	"ActivitiesDropDone":                      {"filename"},
 	"ActivitiesFromDocument":                  {"filename"},
 	"ActivityImportColumnN":                   {"n"},
@@ -69,6 +70,7 @@ var Parameters = map[string][]string{
 	"DataPeriodsCount":                        {"count"},
 	"DataSitesCount":                          {"count"},
 	"DataSourcesCount":                        {"count"},
+	"DataSourcesCountOne":                     {"count"},
 	"DocumentsBatchButton":                    {"count"},
 	"DocumentsBatchCanceledToast":             {"done", "total"},
 	"DocumentsBatchHint":                      {"count"},
@@ -130,6 +132,7 @@ var Parameters = map[string][]string{
 	"QuestionnairesAnswerProgress":            {"answered", "count"},
 	"QuestionnairesDetailInventoryEmptyTitle": {"year"},
 	"QuestionnairesListCount":                 {"count"},
+	"QuestionnairesListCountOne":              {"count"},
 	"QuestionnairesQuestionCount":             {"count"},
 	"QuestionnairesWizardFileChosen":          {"filename"},
 	"QuestionnairesWizardSuccess":             {"count"},
@@ -195,9 +198,11 @@ var Parameters = map[string][]string{
 	"SourcesFormCategoryCustom":               {"query"},
 	"SourcesFromCatalog":                      {"origin"},
 	"SourcesStatsActivityCount":               {"count"},
+	"SourcesStatsActivityCountOne":            {"count"},
 	"SourcesStatsLast":                        {"date"},
 	"SourcesStatsTotal":                       {"value"},
 	"SupplierDisclosuresCount":                {"count"},
+	"SupplierDisclosuresCountOne":             {"count"},
 	"SupplierDisclosuresDetailExportFailed":   {"message"},
 	"SupplierDisclosuresDetailExportSuccess":  {"path"},
 	"SupplierDisclosuresDetailImportFailed":   {"message"},
@@ -234,6 +239,7 @@ var Parameters = map[string][]string{
 type Translation struct {
 	Texts                                   map[string]string
 	ActivitiesCount                         func(count int) string
+	ActivitiesCountOne                      func(count int) string
 	ActivitiesDropDone                      func(filename string) string
 	ActivitiesFromDocument                  func(filename string) string
 	ActivityImportColumnN                   func(n string) string
@@ -259,6 +265,7 @@ type Translation struct {
 	DataPeriodsCount                        func(count string) string
 	DataSitesCount                          func(count string) string
 	DataSourcesCount                        func(count string) string
+	DataSourcesCountOne                     func(count string) string
 	DocumentsBatchButton                    func(count string) string
 	DocumentsBatchCanceledToast             func(done string, total string) string
 	DocumentsBatchHint                      func(count string) string
@@ -320,6 +327,7 @@ type Translation struct {
 	QuestionnairesAnswerProgress            func(answered string, count string) string
 	QuestionnairesDetailInventoryEmptyTitle func(year string) string
 	QuestionnairesListCount                 func(count string) string
+	QuestionnairesListCountOne              func(count string) string
 	QuestionnairesQuestionCount             func(count string) string
 	QuestionnairesWizardFileChosen          func(filename string) string
 	QuestionnairesWizardSuccess             func(count string) string
@@ -385,9 +393,11 @@ type Translation struct {
 	SourcesFormCategoryCustom               func(query string) string
 	SourcesFromCatalog                      func(origin string) string
 	SourcesStatsActivityCount               func(count string) string
+	SourcesStatsActivityCountOne            func(count string) string
 	SourcesStatsLast                        func(date string) string
 	SourcesStatsTotal                       func(value string) string
 	SupplierDisclosuresCount                func(count string) string
+	SupplierDisclosuresCountOne             func(count string) string
 	SupplierDisclosuresDetailExportFailed   func(message string) string
 	SupplierDisclosuresDetailExportSuccess  func(path string) string
 	SupplierDisclosuresDetailImportFailed   func(message string) string
@@ -694,6 +704,7 @@ const (
 	textDataSiteName
 	textDataSites
 	textDataSources
+	textDataSourcesSubtitle
 	textDocumentsAiRequiredBody
 	textDocumentsAiRequiredCta
 	textDocumentsAiRequiredTitle
@@ -703,6 +714,7 @@ const (
 	textDocumentsBatchFailuresHeading
 	textDocumentsBatchReasonClassifyFailed
 	textDocumentsBatchReasonError
+	textDocumentsSubtitle
 	textDocumentsDetailButton
 	textDocumentsDetailCopied
 	textDocumentsDetailCopy
@@ -1221,10 +1233,12 @@ const (
 	textQuestionnairesDetailSelect
 	textQuestionnairesDetailUnit
 	textQuestionnairesEmpty
+	textQuestionnairesEmptyBody
 	textQuestionnairesFilterClear
 	textQuestionnairesFilterEmpty
 	textQuestionnairesFilterStatusAll
 	textQuestionnairesFinalizeButton
+	textQuestionnairesSubtitle
 	textQuestionnairesNewButton
 	textQuestionnairesSearchPlaceholder
 	textQuestionnairesSortCustomer
@@ -1457,11 +1471,17 @@ const (
 	textSettingsGeneralThemeLabel
 	textSettingsGeneralThemeLight
 	textSettingsGeneralThemeSystem
+	textSettingsGroupAbout
+	textSettingsGroupData
+	textSettingsGroupGeneral
+	textSettingsGroupIntegrations
+	textSettingsGroupOrganization
 	textSettingsImportOutlierBody
 	textSettingsImportOutlierHeading
 	textSettingsImportOutlierInvalid
 	textSettingsImportOutlierLabel
 	textSettingsImportOutlierSaved
+	textSettingsImportOutlierSave
 	textSettingsLanguage
 	textSettingsLanguageChinese
 	textSettingsLanguageEnglish
@@ -1516,9 +1536,11 @@ const (
 	textSettingsModelSuggestedLabel
 	textSettingsNavLabel
 	textSettingsOrgBasicHeading
+	textSettingsOrgBasicSave
 	textSettingsOrgProfileHeading
 	textSettingsOrgProfileSubheading
 	textSettingsOrgReportingHeading
+	textSettingsOrgReportingSave
 	textSettingsPickerNoMatch
 	textSettingsProviderBaseUrlLabelAdvanced
 	textSettingsProviderCustom
@@ -1685,6 +1707,8 @@ const (
 	textSupplierDisclosuresDetailTitle
 	textSupplierDisclosuresDetailUnanswered
 	textSupplierDisclosuresEmpty
+	textSupplierDisclosuresEmptyBody
+	textSupplierDisclosuresSubtitle
 	textSupplierDisclosuresFileTooLarge
 	textSupplierDisclosuresImportNotTemplate
 	textSupplierDisclosuresImportWrongPeriod
@@ -2039,6 +2063,7 @@ var keyOfText = [numTexts]string{
 	"dataSiteName",
 	"dataSites",
 	"dataSources",
+	"dataSourcesSubtitle",
 	"documentsAiRequiredBody",
 	"documentsAiRequiredCta",
 	"documentsAiRequiredTitle",
@@ -2048,6 +2073,7 @@ var keyOfText = [numTexts]string{
 	"documentsBatchFailuresHeading",
 	"documentsBatchReasonClassifyFailed",
 	"documentsBatchReasonError",
+	"documentsSubtitle",
 	"documentsDetailButton",
 	"documentsDetailCopied",
 	"documentsDetailCopy",
@@ -2566,10 +2592,12 @@ var keyOfText = [numTexts]string{
 	"questionnairesDetailSelect",
 	"questionnairesDetailUnit",
 	"questionnairesEmpty",
+	"questionnairesEmptyBody",
 	"questionnairesFilterClear",
 	"questionnairesFilterEmpty",
 	"questionnairesFilterStatusAll",
 	"questionnairesFinalizeButton",
+	"questionnairesSubtitle",
 	"questionnairesNewButton",
 	"questionnairesSearchPlaceholder",
 	"questionnairesSortCustomer",
@@ -2802,11 +2830,17 @@ var keyOfText = [numTexts]string{
 	"settingsGeneralThemeLabel",
 	"settingsGeneralThemeLight",
 	"settingsGeneralThemeSystem",
+	"settingsGroupAbout",
+	"settingsGroupData",
+	"settingsGroupGeneral",
+	"settingsGroupIntegrations",
+	"settingsGroupOrganization",
 	"settingsImportOutlierBody",
 	"settingsImportOutlierHeading",
 	"settingsImportOutlierInvalid",
 	"settingsImportOutlierLabel",
 	"settingsImportOutlierSaved",
+	"settingsImportOutlierSave",
 	"settingsLanguage",
 	"settingsLanguageChinese",
 	"settingsLanguageEnglish",
@@ -2861,9 +2895,11 @@ var keyOfText = [numTexts]string{
 	"settingsModelSuggestedLabel",
 	"settingsNavLabel",
 	"settingsOrgBasicHeading",
+	"settingsOrgBasicSave",
 	"settingsOrgProfileHeading",
 	"settingsOrgProfileSubheading",
 	"settingsOrgReportingHeading",
+	"settingsOrgReportingSave",
 	"settingsPickerNoMatch",
 	"settingsProviderBaseUrlLabelAdvanced",
 	"settingsProviderCustom",
@@ -3030,6 +3066,8 @@ var keyOfText = [numTexts]string{
 	"supplierDisclosuresDetailTitle",
 	"supplierDisclosuresDetailUnanswered",
 	"supplierDisclosuresEmpty",
+	"supplierDisclosuresEmptyBody",
+	"supplierDisclosuresSubtitle",
 	"supplierDisclosuresFileTooLarge",
 	"supplierDisclosuresImportNotTemplate",
 	"supplierDisclosuresImportWrongPeriod",
@@ -3382,6 +3420,7 @@ var textsEn = i18n.NewTexts(""+
 	"Site name"+
 	"Sites"+
 	"Emission sources"+
+	"What the inventory records emissions against — by site, scope, and category."+
 	"Carbonink needs an AI provider to read documents. Set one up in Settings — you'll need an API key from your provider (OpenAI / Anthropic / Azure / DeepSeek, or any OpenAI-compatible endpoint)."+
 	"Open Settings"+
 	"AI provider not configured"+
@@ -3391,6 +3430,7 @@ var textsEn = i18n.NewTexts(""+
 	"Failed documents"+
 	"could not auto-classify — open it and pick a stage"+
 	"recognition error"+
+	"Bills, invoices, and other evidence kept with this workspace."+
 	"Details"+
 	"Copied"+
 	"Copy text"+
@@ -3909,10 +3949,12 @@ var textsEn = i18n.NewTexts(""+
 	"Pick a question to edit its answer."+
 	"Unit"+
 	"No disclosure filings yet"+
+	"A disclosure filing starts from a customer's .xlsx worksheet: import it, review the answers, then export the finished workbook."+
 	"Clear filters"+
 	"No matching disclosure filings"+
 	"All statuses"+
 	"Finalize answers"+
+	"Filings you send to customers, answered from this inventory."+
 	"New disclosure filing"+
 	"Search customer name"+
 	"Customer A→Z"+
@@ -4110,7 +4152,7 @@ var textsEn = i18n.NewTexts(""+
 	"Could not save the auto-backup setting."+
 	"Auto-backup enabled"+
 	"Backups are a single .carbonink-backup file (a SQLite database). Attachments (PDFs) are NOT included in v1 — they can be re-uploaded after restoring."+
-	"Backup & restore"+
+	"Data & storage"+
 	"Cached LLM responses (already-confirmed extractions) accumulate over time. Clearing them is safe — it does not affect activities, reports, or any user data."+
 	"Clear LLM cache"+
 	"No cached LLM responses."+
@@ -4145,11 +4187,17 @@ var textsEn = i18n.NewTexts(""+
 	"Appearance"+
 	"Light"+
 	"System"+
+	"About"+
+	"Data"+
+	"General"+
+	"Integrations"+
+	"Organization"+
 	"During batch ledger import, a row is flagged as a suspected outlier when its amount is more than N× away from its group's median (both directions). Applies to this workspace only; warnings never block the import."+
 	"Batch-import anomaly detection"+
 	"Enter a number between 2 and 1000"+
 	"Outlier multiplier (2–1000)"+
 	"Outlier multiplier saved"+
+	"Save threshold"+
 	"Language"+
 	"中文"+
 	"English"+
@@ -4204,9 +4252,11 @@ var textsEn = i18n.NewTexts(""+
 	"Suggested models"+
 	"Settings categories"+
 	"Company identity"+
+	"Save identity"+
 	"Organization Profile (ISO 14064-1)"+
 	"Used by the inventory report."+
 	"Reporting profile"+
+	"Save reporting profile"+
 	"No matches"+
 	"Override base URL (advanced)"+
 	"Custom (OpenAI-compatible)"+
@@ -4373,6 +4423,8 @@ var textsEn = i18n.NewTexts(""+
 	"Supplier disclosure"+
 	"(Unanswered)"+
 	"No supplier disclosures yet."+
+	"Send a supplier a questionnaire, then track what comes back. Inbound answers can become ledger rows."+
+	"Data requests you send suppliers, and what comes back."+
 	"File is too large."+
 	"This workbook is not a CarbonInk disclosure template."+
 	"This workbook was issued for a different reporting year."+
@@ -4722,6 +4774,7 @@ var textsEn = i18n.NewTexts(""+
 		9,
 		5,
 		16,
+		78,
 		194,
 		13,
 		26,
@@ -4731,6 +4784,7 @@ var textsEn = i18n.NewTexts(""+
 		16,
 		52,
 		17,
+		61,
 		7,
 		6,
 		9,
@@ -5249,10 +5303,12 @@ var textsEn = i18n.NewTexts(""+
 		35,
 		4,
 		25,
+		127,
 		13,
 		30,
 		12,
 		16,
+		60,
 		21,
 		20,
 		14,
@@ -5450,7 +5506,7 @@ var textsEn = i18n.NewTexts(""+
 		39,
 		19,
 		151,
-		16,
+		14,
 		158,
 		15,
 		24,
@@ -5485,11 +5541,17 @@ var textsEn = i18n.NewTexts(""+
 		10,
 		5,
 		6,
+		5,
+		4,
+		7,
+		12,
+		12,
 		213,
 		30,
 		33,
 		29,
 		24,
+		14,
 		8,
 		6,
 		7,
@@ -5544,9 +5606,11 @@ var textsEn = i18n.NewTexts(""+
 		16,
 		19,
 		16,
+		13,
 		34,
 		29,
 		17,
+		22,
 		10,
 		28,
 		26,
@@ -5713,6 +5777,8 @@ var textsEn = i18n.NewTexts(""+
 		19,
 		12,
 		28,
+		100,
+		54,
 		18,
 		53,
 		56,
@@ -6065,6 +6131,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"场址名称"+
 	"场址"+
 	"排放源"+
+	"清单按场地、范围与类别记录排放的对象。"+
 	"碳墨 需要一个 AI 服务来读取文档内容。请在 Settings 中配置——你需要一个 provider 的 API key（OpenAI / Anthropic / Azure / DeepSeek 或任何 OpenAI 兼容端点）。"+
 	"打开 Settings"+
 	"尚未配置 AI 服务"+
@@ -6074,6 +6141,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"识别失败的文档"+
 	"无法自动识别类型——打开文档手动选择"+
 	"识别出错"+
+	"与当前账套一起保存的账单、发票与证据文件。"+
 	"详情"+
 	"已复制"+
 	"复制文本"+
@@ -6592,10 +6660,12 @@ var textsZhCN = i18n.NewTexts(""+
 	"选择一道题，编辑它的答案。"+
 	"单位"+
 	"还没有披露填报"+
+	"披露填报从客户发来的 .xlsx 工作表开始：导入、逐题核对答案，再导出完成的工作表。"+
 	"清除筛选"+
 	"未找到匹配的披露填报"+
 	"全部状态"+
 	"确认全部答案"+
+	"发给客户、用本清单作答的披露填报。"+
 	"新建披露填报"+
 	"搜索客户名称"+
 	"客户 A→Z"+
@@ -6793,7 +6863,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"保存自动备份设置失败。"+
 	"启用自动备份"+
 	"备份是单个 .carbonink-backup 文件（SQLite 数据库）。v1 不包含附件（PDF 等）— 还原后可以重新上传。"+
-	"备份与还原"+
+	"数据与存储"+
 	"已确认的抽取记录会保留 LLM 原始响应。清理这些缓存是安全的，不会影响活动、报告或任何用户数据。"+
 	"清理 LLM 缓存"+
 	"无 LLM 缓存。"+
@@ -6828,11 +6898,17 @@ var textsZhCN = i18n.NewTexts(""+
 	"外观"+
 	"浅色"+
 	"跟随系统"+
+	"关于"+
+	"数据"+
+	"通用"+
+	"集成"+
+	"组织"+
 	"批量导入台账时，某行数量偏离组内中位数超过 N 倍（双向）即标记为疑似离群。仅对当前账套生效；警告不会阻断导入。"+
 	"批量导入异常检测"+
 	"请输入 2 到 1000 之间的数字"+
 	"离群倍数（2–1000）"+
 	"离群倍数已保存"+
+	"保存阈值"+
 	"语言"+
 	"中文"+
 	"English"+
@@ -6887,9 +6963,11 @@ var textsZhCN = i18n.NewTexts(""+
 	"推荐模型"+
 	"设置分类"+
 	"公司身份"+
+	"保存基本信息"+
 	"组织档案（ISO 14064-1）"+
 	"用于盘查报告。"+
 	"报告档案"+
+	"保存报告档案"+
 	"无匹配结果"+
 	"覆盖 base URL（高级）"+
 	"自定义（OpenAI 兼容）"+
@@ -7056,6 +7134,8 @@ var textsZhCN = i18n.NewTexts(""+
 	"供应商披露"+
 	"（未答）"+
 	"尚无供应商披露。"+
+	"向供应商发出问卷，再跟踪回收情况；回收的答案可以直接转成活动数据。"+
+	"发给供应商的数据请求，以及回收的结果。"+
 	"文件过大。"+
 	"该工作簿不是 CarbonInk 披露模板。"+
 	"该工作簿对应其他报告年度。"+
@@ -7405,6 +7485,7 @@ var textsZhCN = i18n.NewTexts(""+
 		12,
 		6,
 		9,
+		57,
 		196,
 		15,
 		22,
@@ -7414,6 +7495,7 @@ var textsZhCN = i18n.NewTexts(""+
 		21,
 		54,
 		12,
+		63,
 		6,
 		9,
 		12,
@@ -7932,10 +8014,12 @@ var textsZhCN = i18n.NewTexts(""+
 		39,
 		6,
 		21,
+		115,
 		12,
 		30,
 		12,
 		18,
+		51,
 		18,
 		18,
 		12,
@@ -8168,11 +8252,17 @@ var textsZhCN = i18n.NewTexts(""+
 		6,
 		6,
 		12,
+		6,
+		6,
+		6,
+		6,
+		6,
 		162,
 		24,
 		36,
 		26,
 		21,
+		12,
 		6,
 		6,
 		7,
@@ -8227,9 +8317,11 @@ var textsZhCN = i18n.NewTexts(""+
 		12,
 		12,
 		12,
+		18,
 		29,
 		21,
 		12,
+		18,
 		15,
 		27,
 		28,
@@ -8396,6 +8488,8 @@ var textsZhCN = i18n.NewTexts(""+
 		15,
 		12,
 		24,
+		99,
+		57,
 		15,
 		44,
 		39,
@@ -8530,6 +8624,9 @@ func Supply(lang string, t Translation) {
 	if t.ActivitiesCount != nil {
 		s.ActivitiesCount = t.ActivitiesCount
 	}
+	if t.ActivitiesCountOne != nil {
+		s.ActivitiesCountOne = t.ActivitiesCountOne
+	}
 	if t.ActivitiesDropDone != nil {
 		s.ActivitiesDropDone = t.ActivitiesDropDone
 	}
@@ -8604,6 +8701,9 @@ func Supply(lang string, t Translation) {
 	}
 	if t.DataSourcesCount != nil {
 		s.DataSourcesCount = t.DataSourcesCount
+	}
+	if t.DataSourcesCountOne != nil {
+		s.DataSourcesCountOne = t.DataSourcesCountOne
 	}
 	if t.DocumentsBatchButton != nil {
 		s.DocumentsBatchButton = t.DocumentsBatchButton
@@ -8787,6 +8887,9 @@ func Supply(lang string, t Translation) {
 	}
 	if t.QuestionnairesListCount != nil {
 		s.QuestionnairesListCount = t.QuestionnairesListCount
+	}
+	if t.QuestionnairesListCountOne != nil {
+		s.QuestionnairesListCountOne = t.QuestionnairesListCountOne
 	}
 	if t.QuestionnairesQuestionCount != nil {
 		s.QuestionnairesQuestionCount = t.QuestionnairesQuestionCount
@@ -8983,6 +9086,9 @@ func Supply(lang string, t Translation) {
 	if t.SourcesStatsActivityCount != nil {
 		s.SourcesStatsActivityCount = t.SourcesStatsActivityCount
 	}
+	if t.SourcesStatsActivityCountOne != nil {
+		s.SourcesStatsActivityCountOne = t.SourcesStatsActivityCountOne
+	}
 	if t.SourcesStatsLast != nil {
 		s.SourcesStatsLast = t.SourcesStatsLast
 	}
@@ -8991,6 +9097,9 @@ func Supply(lang string, t Translation) {
 	}
 	if t.SupplierDisclosuresCount != nil {
 		s.SupplierDisclosuresCount = t.SupplierDisclosuresCount
+	}
+	if t.SupplierDisclosuresCountOne != nil {
+		s.SupplierDisclosuresCountOne = t.SupplierDisclosuresCountOne
 	}
 	if t.SupplierDisclosuresDetailExportFailed != nil {
 		s.SupplierDisclosuresDetailExportFailed = t.SupplierDisclosuresDetailExportFailed
@@ -9113,6 +9222,28 @@ func (msgs Messages) ActivitiesCount(count int) string {
 			return msgs.arg(i18n.FormatNumber("en", float64(count))) + " rows"
 		case "zh-CN":
 			return i18n.FormatNumber("zh-CN", float64(count)) + " 行"
+		}
+	}
+}
+
+// ActivitiesCountOne says "{count} activity row"
+// in the language the app shows under cx.
+func ActivitiesCountOne(cx *core.Scope, count int) string { return For(cx).ActivitiesCountOne(count) }
+
+// ActivitiesCountOne is the package's ActivitiesCountOne in the language of msgs.
+func (msgs Messages) ActivitiesCountOne(count int) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.ActivitiesCountOne(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].ActivitiesCountOne; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(i18n.FormatNumber("en", float64(count))) + " activity row"
+		case "zh-CN":
+			return i18n.FormatNumber("zh-CN", float64(count)) + " 条活动数据"
 		}
 	}
 }
@@ -11953,6 +12084,37 @@ func (msgs Messages) DataSourcesCount(count string) string {
 	}
 }
 
+// DataSourcesCountOne says "{count} source"
+// in the language the app shows under cx.
+func DataSourcesCountOne(cx *core.Scope, count string) string {
+	return For(cx).DataSourcesCountOne(count)
+}
+
+// DataSourcesCountOne is the package's DataSourcesCountOne in the language of msgs.
+func (msgs Messages) DataSourcesCountOne(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.DataSourcesCountOne(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].DataSourcesCountOne; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " source"
+		case "zh-CN":
+			return count + " 个排放源"
+		}
+	}
+}
+
+// DataSourcesSubtitle says "What the inventory records emissions against — by site, scope, and category."
+// in the language the app shows under cx.
+func DataSourcesSubtitle(cx *core.Scope) string { return For(cx).DataSourcesSubtitle() }
+
+// DataSourcesSubtitle is the package's DataSourcesSubtitle in the language of msgs.
+func (msgs Messages) DataSourcesSubtitle() string { return msgs.text(textDataSourcesSubtitle) }
+
 // DocumentsAiRequiredBody says "Carbonink needs an AI provider to read documents. Set one up in Settings — you'll need an API key from your provider (OpenAI / Anthropic / Azure / DeepSeek, or any OpenAI-compatible endpoint)."
 // in the language the app shows under cx.
 func DocumentsAiRequiredBody(cx *core.Scope) string { return For(cx).DocumentsAiRequiredBody() }
@@ -12173,6 +12335,13 @@ func (msgs Messages) DocumentsCount(count string) string {
 		}
 	}
 }
+
+// DocumentsSubtitle says "Bills, invoices, and other evidence kept with this workspace."
+// in the language the app shows under cx.
+func DocumentsSubtitle(cx *core.Scope) string { return For(cx).DocumentsSubtitle() }
+
+// DocumentsSubtitle is the package's DocumentsSubtitle in the language of msgs.
+func (msgs Messages) DocumentsSubtitle() string { return msgs.text(textDocumentsSubtitle) }
 
 // DocumentsDetailButton says "Details"
 // in the language the app shows under cx.
@@ -17784,6 +17953,13 @@ func QuestionnairesEmpty(cx *core.Scope) string { return For(cx).QuestionnairesE
 // QuestionnairesEmpty is the package's QuestionnairesEmpty in the language of msgs.
 func (msgs Messages) QuestionnairesEmpty() string { return msgs.text(textQuestionnairesEmpty) }
 
+// QuestionnairesEmptyBody says "A disclosure filing starts from a customer's .xlsx worksheet: import it, review the answers, then export the finished workbook."
+// in the language the app shows under cx.
+func QuestionnairesEmptyBody(cx *core.Scope) string { return For(cx).QuestionnairesEmptyBody() }
+
+// QuestionnairesEmptyBody is the package's QuestionnairesEmptyBody in the language of msgs.
+func (msgs Messages) QuestionnairesEmptyBody() string { return msgs.text(textQuestionnairesEmptyBody) }
+
 // QuestionnairesFilterClear says "Clear filters"
 // in the language the app shows under cx.
 func QuestionnairesFilterClear(cx *core.Scope) string { return For(cx).QuestionnairesFilterClear() }
@@ -17847,6 +18023,37 @@ func (msgs Messages) QuestionnairesListCount(count string) string {
 		}
 	}
 }
+
+// QuestionnairesListCountOne says "{count} questionnaire"
+// in the language the app shows under cx.
+func QuestionnairesListCountOne(cx *core.Scope, count string) string {
+	return For(cx).QuestionnairesListCountOne(count)
+}
+
+// QuestionnairesListCountOne is the package's QuestionnairesListCountOne in the language of msgs.
+func (msgs Messages) QuestionnairesListCountOne(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.QuestionnairesListCountOne(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].QuestionnairesListCountOne; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " questionnaire"
+		case "zh-CN":
+			return count + " 份问卷"
+		}
+	}
+}
+
+// QuestionnairesSubtitle says "Filings you send to customers, answered from this inventory."
+// in the language the app shows under cx.
+func QuestionnairesSubtitle(cx *core.Scope) string { return For(cx).QuestionnairesSubtitle() }
+
+// QuestionnairesSubtitle is the package's QuestionnairesSubtitle in the language of msgs.
+func (msgs Messages) QuestionnairesSubtitle() string { return msgs.text(textQuestionnairesSubtitle) }
 
 // QuestionnairesNewButton says "New disclosure filing"
 // in the language the app shows under cx.
@@ -20473,7 +20680,7 @@ func SettingsDataBackupBody(cx *core.Scope) string { return For(cx).SettingsData
 // SettingsDataBackupBody is the package's SettingsDataBackupBody in the language of msgs.
 func (msgs Messages) SettingsDataBackupBody() string { return msgs.text(textSettingsDataBackupBody) }
 
-// SettingsDataBackupHeading says "Backup & restore"
+// SettingsDataBackupHeading says "Data & storage"
 // in the language the app shows under cx.
 func SettingsDataBackupHeading(cx *core.Scope) string { return For(cx).SettingsDataBackupHeading() }
 
@@ -20840,6 +21047,45 @@ func (msgs Messages) SettingsGeneralThemeSystem() string {
 	return msgs.text(textSettingsGeneralThemeSystem)
 }
 
+// SettingsGroupAbout says "About"
+// in the language the app shows under cx.
+func SettingsGroupAbout(cx *core.Scope) string { return For(cx).SettingsGroupAbout() }
+
+// SettingsGroupAbout is the package's SettingsGroupAbout in the language of msgs.
+func (msgs Messages) SettingsGroupAbout() string { return msgs.text(textSettingsGroupAbout) }
+
+// SettingsGroupData says "Data"
+// in the language the app shows under cx.
+func SettingsGroupData(cx *core.Scope) string { return For(cx).SettingsGroupData() }
+
+// SettingsGroupData is the package's SettingsGroupData in the language of msgs.
+func (msgs Messages) SettingsGroupData() string { return msgs.text(textSettingsGroupData) }
+
+// SettingsGroupGeneral says "General"
+// in the language the app shows under cx.
+func SettingsGroupGeneral(cx *core.Scope) string { return For(cx).SettingsGroupGeneral() }
+
+// SettingsGroupGeneral is the package's SettingsGroupGeneral in the language of msgs.
+func (msgs Messages) SettingsGroupGeneral() string { return msgs.text(textSettingsGroupGeneral) }
+
+// SettingsGroupIntegrations says "Integrations"
+// in the language the app shows under cx.
+func SettingsGroupIntegrations(cx *core.Scope) string { return For(cx).SettingsGroupIntegrations() }
+
+// SettingsGroupIntegrations is the package's SettingsGroupIntegrations in the language of msgs.
+func (msgs Messages) SettingsGroupIntegrations() string {
+	return msgs.text(textSettingsGroupIntegrations)
+}
+
+// SettingsGroupOrganization says "Organization"
+// in the language the app shows under cx.
+func SettingsGroupOrganization(cx *core.Scope) string { return For(cx).SettingsGroupOrganization() }
+
+// SettingsGroupOrganization is the package's SettingsGroupOrganization in the language of msgs.
+func (msgs Messages) SettingsGroupOrganization() string {
+	return msgs.text(textSettingsGroupOrganization)
+}
+
 // SettingsImportOutlierBody says "During batch ledger import, a row is flagged as a suspected outlier when its amount is more than N× away from its group's median (both directions). Applies to this workspace only; warnings never block the import."
 // in the language the app shows under cx.
 func SettingsImportOutlierBody(cx *core.Scope) string { return For(cx).SettingsImportOutlierBody() }
@@ -20887,6 +21133,15 @@ func SettingsImportOutlierSaved(cx *core.Scope) string { return For(cx).Settings
 // SettingsImportOutlierSaved is the package's SettingsImportOutlierSaved in the language of msgs.
 func (msgs Messages) SettingsImportOutlierSaved() string {
 	return msgs.text(textSettingsImportOutlierSaved)
+}
+
+// SettingsImportOutlierSave says "Save threshold"
+// in the language the app shows under cx.
+func SettingsImportOutlierSave(cx *core.Scope) string { return For(cx).SettingsImportOutlierSave() }
+
+// SettingsImportOutlierSave is the package's SettingsImportOutlierSave in the language of msgs.
+func (msgs Messages) SettingsImportOutlierSave() string {
+	return msgs.text(textSettingsImportOutlierSave)
 }
 
 // SettingsLanguage says "Language"
@@ -21493,6 +21748,13 @@ func SettingsOrgBasicHeading(cx *core.Scope) string { return For(cx).SettingsOrg
 // SettingsOrgBasicHeading is the package's SettingsOrgBasicHeading in the language of msgs.
 func (msgs Messages) SettingsOrgBasicHeading() string { return msgs.text(textSettingsOrgBasicHeading) }
 
+// SettingsOrgBasicSave says "Save identity"
+// in the language the app shows under cx.
+func SettingsOrgBasicSave(cx *core.Scope) string { return For(cx).SettingsOrgBasicSave() }
+
+// SettingsOrgBasicSave is the package's SettingsOrgBasicSave in the language of msgs.
+func (msgs Messages) SettingsOrgBasicSave() string { return msgs.text(textSettingsOrgBasicSave) }
+
 // SettingsOrgProfileHeading says "Organization Profile (ISO 14064-1)"
 // in the language the app shows under cx.
 func SettingsOrgProfileHeading(cx *core.Scope) string { return For(cx).SettingsOrgProfileHeading() }
@@ -21520,6 +21782,15 @@ func SettingsOrgReportingHeading(cx *core.Scope) string { return For(cx).Setting
 // SettingsOrgReportingHeading is the package's SettingsOrgReportingHeading in the language of msgs.
 func (msgs Messages) SettingsOrgReportingHeading() string {
 	return msgs.text(textSettingsOrgReportingHeading)
+}
+
+// SettingsOrgReportingSave says "Save reporting profile"
+// in the language the app shows under cx.
+func SettingsOrgReportingSave(cx *core.Scope) string { return For(cx).SettingsOrgReportingSave() }
+
+// SettingsOrgReportingSave is the package's SettingsOrgReportingSave in the language of msgs.
+func (msgs Messages) SettingsOrgReportingSave() string {
+	return msgs.text(textSettingsOrgReportingSave)
 }
 
 // SettingsPickerNoMatch says "No matches"
@@ -22955,6 +23226,30 @@ func (msgs Messages) SourcesStatsActivityCount(count string) string {
 	}
 }
 
+// SourcesStatsActivityCountOne says "{count} activity"
+// in the language the app shows under cx.
+func SourcesStatsActivityCountOne(cx *core.Scope, count string) string {
+	return For(cx).SourcesStatsActivityCountOne(count)
+}
+
+// SourcesStatsActivityCountOne is the package's SourcesStatsActivityCountOne in the language of msgs.
+func (msgs Messages) SourcesStatsActivityCountOne(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SourcesStatsActivityCountOne(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SourcesStatsActivityCountOne; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " activity"
+		case "zh-CN":
+			return count + " 条活动"
+		}
+	}
+}
+
 // SourcesStatsLast says "last {date}"
 // in the language the app shows under cx.
 func SourcesStatsLast(cx *core.Scope, date string) string { return For(cx).SourcesStatsLast(date) }
@@ -23052,6 +23347,30 @@ func (msgs Messages) SupplierDisclosuresCount(count string) string {
 		switch lang {
 		case "", "en":
 			return msgs.arg(count) + " supplier disclosures"
+		case "zh-CN":
+			return count + " 份供应商披露"
+		}
+	}
+}
+
+// SupplierDisclosuresCountOne says "{count} supplier disclosure"
+// in the language the app shows under cx.
+func SupplierDisclosuresCountOne(cx *core.Scope, count string) string {
+	return For(cx).SupplierDisclosuresCountOne(count)
+}
+
+// SupplierDisclosuresCountOne is the package's SupplierDisclosuresCountOne in the language of msgs.
+func (msgs Messages) SupplierDisclosuresCountOne(count string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SupplierDisclosuresCountOne(count))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SupplierDisclosuresCountOne; f != nil {
+			return f(count)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(count) + " supplier disclosure"
 		case "zh-CN":
 			return count + " 份供应商披露"
 		}
@@ -23510,6 +23829,26 @@ func SupplierDisclosuresEmpty(cx *core.Scope) string { return For(cx).SupplierDi
 // SupplierDisclosuresEmpty is the package's SupplierDisclosuresEmpty in the language of msgs.
 func (msgs Messages) SupplierDisclosuresEmpty() string {
 	return msgs.text(textSupplierDisclosuresEmpty)
+}
+
+// SupplierDisclosuresEmptyBody says "Send a supplier a questionnaire, then track what comes back. Inbound answers can become ledger rows."
+// in the language the app shows under cx.
+func SupplierDisclosuresEmptyBody(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresEmptyBody()
+}
+
+// SupplierDisclosuresEmptyBody is the package's SupplierDisclosuresEmptyBody in the language of msgs.
+func (msgs Messages) SupplierDisclosuresEmptyBody() string {
+	return msgs.text(textSupplierDisclosuresEmptyBody)
+}
+
+// SupplierDisclosuresSubtitle says "Data requests you send suppliers, and what comes back."
+// in the language the app shows under cx.
+func SupplierDisclosuresSubtitle(cx *core.Scope) string { return For(cx).SupplierDisclosuresSubtitle() }
+
+// SupplierDisclosuresSubtitle is the package's SupplierDisclosuresSubtitle in the language of msgs.
+func (msgs Messages) SupplierDisclosuresSubtitle() string {
+	return msgs.text(textSupplierDisclosuresSubtitle)
 }
 
 // SupplierDisclosuresFileTooLarge says "File is too large."

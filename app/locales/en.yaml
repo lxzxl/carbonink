@@ -7,6 +7,11 @@ activitiesCount:
     placeholders:
         count:
             type: int
+activitiesCountOne:
+    message: '{count} activity row'
+    placeholders:
+        count:
+            type: int
 activitiesCreateFailed: Failed to create activity
 activitiesCreateSuccess: Activity recorded
 activitiesEmpty: No activity data yet.
@@ -304,6 +309,8 @@ dataSites: Sites
 dataSitesCount: '{count} sites'
 dataSources: Emission sources
 dataSourcesCount: '{count} sources'
+dataSourcesCountOne: '{count} source'
+dataSourcesSubtitle: What the inventory records emissions against — by site, scope, and category.
 documentsAiRequiredBody: Carbonink needs an AI provider to read documents. Set one up in Settings — you'll need an API key from your provider (OpenAI / Anthropic / Azure / DeepSeek, or any OpenAI-compatible endpoint).
 documentsAiRequiredCta: Open Settings
 documentsAiRequiredTitle: AI provider not configured
@@ -319,6 +326,7 @@ documentsBatchReasonClassifyFailed: could not auto-classify — open it and pick
 documentsBatchReasonError: recognition error
 documentsBatchSummaryToast: 'Batch recognition done: {ok} ok · {failed} failed'
 documentsCount: 'Files: {count}'
+documentsSubtitle: Bills, invoices, and other evidence kept with this workspace.
 documentsDetailButton: Details
 documentsDetailCopied: Copied
 documentsDetailCopy: Copy text
@@ -893,11 +901,14 @@ questionnairesDetailQuestion: Question
 questionnairesDetailSelect: Pick a question to edit its answer.
 questionnairesDetailUnit: Unit
 questionnairesEmpty: No disclosure filings yet
+questionnairesEmptyBody: "A disclosure filing starts from a customer's .xlsx worksheet: import it, review the answers, then export the finished workbook."
 questionnairesFilterClear: Clear filters
 questionnairesFilterEmpty: No matching disclosure filings
 questionnairesFilterStatusAll: All statuses
 questionnairesFinalizeButton: Finalize answers
 questionnairesListCount: '{count} questionnaires'
+questionnairesListCountOne: '{count} questionnaire'
+questionnairesSubtitle: Filings you send to customers, answered from this inventory.
 questionnairesNewButton: New disclosure filing
 questionnairesQuestionCount: '{count} questions'
 questionnairesSearchPlaceholder: Search customer name
@@ -1144,7 +1155,7 @@ settingsDataAutoBackupOpenFailed: Could not open the auto-backup folder.
 settingsDataAutoBackupToggleFailed: Could not save the auto-backup setting.
 settingsDataAutoBackupToggleLabel: Auto-backup enabled
 settingsDataBackupBody: Backups are a single .carbonink-backup file (a SQLite database). Attachments (PDFs) are NOT included in v1 — they can be re-uploaded after restoring.
-settingsDataBackupHeading: Backup & restore
+settingsDataBackupHeading: Data & storage
 settingsDataCacheBody: Cached LLM responses (already-confirmed extractions) accumulate over time. Clearing them is safe — it does not affect activities, reports, or any user data.
 settingsDataCacheClearButton: Clear LLM cache
 settingsDataCacheClearSuccess: Cleared {rows} entries, freed {size}.
@@ -1181,11 +1192,17 @@ settingsGeneralThemeHint: Follow the system, force light, or force dark.
 settingsGeneralThemeLabel: Appearance
 settingsGeneralThemeLight: Light
 settingsGeneralThemeSystem: System
+settingsGroupAbout: About
+settingsGroupData: Data
+settingsGroupGeneral: General
+settingsGroupIntegrations: Integrations
+settingsGroupOrganization: Organization
 settingsImportOutlierBody: During batch ledger import, a row is flagged as a suspected outlier when its amount is more than N× away from its group's median (both directions). Applies to this workspace only; warnings never block the import.
 settingsImportOutlierHeading: Batch-import anomaly detection
 settingsImportOutlierInvalid: Enter a number between 2 and 1000
 settingsImportOutlierLabel: Outlier multiplier (2–1000)
 settingsImportOutlierSaved: Outlier multiplier saved
+settingsImportOutlierSave: Save threshold
 settingsLanguage: Language
 settingsLanguageChinese: 中文
 settingsLanguageEnglish: English
@@ -1246,9 +1263,11 @@ settingsModelStale: List may be outdated.
 settingsModelSuggestedLabel: Suggested models
 settingsNavLabel: Settings categories
 settingsOrgBasicHeading: Company identity
+settingsOrgBasicSave: Save identity
 settingsOrgProfileHeading: Organization Profile (ISO 14064-1)
 settingsOrgProfileSubheading: Used by the inventory report.
 settingsOrgReportingHeading: Reporting profile
+settingsOrgReportingSave: Save reporting profile
 settingsPickerNoMatch: No matches
 settingsProviderBaseUrlLabelAdvanced: Override base URL (advanced)
 settingsProviderCustom: Custom (OpenAI-compatible)
@@ -1398,6 +1417,7 @@ sourcesInactiveChip: Inactive
 sourcesLoadFailed: Failed to load sources
 sourcesSearchPlaceholder: Search by name, category, or GHG path
 sourcesStatsActivityCount: '{count} activities'
+sourcesStatsActivityCountOne: '{count} activity'
 sourcesStatsLast: last {date}
 sourcesStatsTotal: '{value} CO₂e total'
 sourcesStatsUnused: Not used yet
@@ -1406,6 +1426,7 @@ sourcesTableCategory: Category
 sourcesTableName: Name
 sourcesTableScope: Scope
 supplierDisclosuresCount: '{count} supplier disclosures'
+supplierDisclosuresCountOne: '{count} supplier disclosure'
 supplierDisclosuresDetailClose: Close
 supplierDisclosuresDetailDelete: Delete disclosure
 supplierDisclosuresDetailDeleteBody: Delete this disclosure? Inventory rows ingested from it are removed too.
@@ -1438,6 +1459,8 @@ supplierDisclosuresDetailTitle: Supplier disclosure
 supplierDisclosuresDetailUnanswered: (Unanswered)
 supplierDisclosuresDue: Due {date}
 supplierDisclosuresEmpty: No supplier disclosures yet.
+supplierDisclosuresEmptyBody: Send a supplier a questionnaire, then track what comes back. Inbound answers can become ledger rows.
+supplierDisclosuresSubtitle: Data requests you send suppliers, and what comes back.
 supplierDisclosuresFileTooLarge: File is too large.
 supplierDisclosuresImportNotTemplate: This workbook is not a CarbonInk disclosure template.
 supplierDisclosuresImportWrongPeriod: This workbook was issued for a different reporting year.

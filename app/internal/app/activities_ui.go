@@ -436,15 +436,20 @@ func (s *Session) activitiesScreen(cx *core.Scope, dataRev *core.Signal[int],
 		Padding: core.All(16), Gap: 10}, Children: []core.Node{
 		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Wrap: core.Wrap,
 			Gap: 8}, Children: append([]core.Node{
-			dataHeading(cx, locales.NavActivities(cx), ""),
 			core.Text{ContentFunc: func() string {
 				rows := visible.Get()
+				n := len(rows)
 				if filtersActive() {
-					return locales.ActivitiesCount(cx, len(rows)) + " / " +
-						locales.ActivitiesCount(cx, len(s.activities))
+					return countPhrase(n,
+						func() string { return locales.ActivitiesCountOne(cx, n) },
+						func() string { return locales.ActivitiesCount(cx, n) }) +
+						" / " + locales.ActivitiesCount(cx, len(s.activities))
 				}
-				return locales.ActivitiesCount(cx, len(rows))
-			}, Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+				return countPhrase(n,
+					func() string { return locales.ActivitiesCountOne(cx, n) },
+					func() string { return locales.ActivitiesCount(cx, n) })
+			}, Style: core.Style{FontSize: 12, FontWeight: ui.Semibold},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 			core.View{Style: core.Style{FlexGrow: 1}},
 		}, headerActions...)},
 		core.Show{When: func() bool {
@@ -558,7 +563,7 @@ func activityProvenanceLink(cx *core.Scope, icon func() *core.SVG, label, testID
 				Style: core.Style{FontSize: 11, FlexShrink: 1, MinWidth: core.Pt(0),
 					GroupStyle: &core.GroupStyle{Name: "activity-provenance",
 						Hover: &core.Style{TextDecoration: core.TextDecorationUnderline}}},
-				StyleFunc: ui.Colored(ui.ColorsOf(cx).Accent)},
+				StyleFunc: ui.Colored(accentInk(cx))},
 		},
 	}
 }

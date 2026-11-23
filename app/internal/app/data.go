@@ -27,11 +27,11 @@ import (
 )
 
 func dataCard(cx *core.Scope, children ...core.Node) core.Node {
-	style := ui.CardStyle(cx)
-	style.Gap = 12
-	style.Padding = core.All(16)
-	style.AlignSelf = core.AlignStretch
-	return core.View{Style: style, Children: children}
+	return core.View{
+		Style:     core.Style{Gap: 12, Padding: core.All(16), AlignSelf: core.AlignStretch},
+		StyleFunc: cardSurface(cx),
+		Children:  children,
+	}
 }
 
 func dataHeading(cx *core.Scope, title string, detail string) core.Node {
@@ -40,7 +40,76 @@ func dataHeading(cx *core.Scope, title string, detail string) core.Node {
 		children = append(children, core.Text{Content: detail, Style: core.Style{FontSize: 12},
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
 	}
-	return core.View{Style: core.Style{Gap: 2}, Children: children}
+	return core.View{Style: core.Style{Gap: 2, FlexShrink: 1, MinWidth: core.Pt(0)}, Children: children}
+}
+
+// dataHeaderRow places a card's heading beside its actions, and stacks them
+// when the window is too narrow for both.
+func dataHeaderRow(cx *core.Scope, heading core.Node, actions ...core.Node) core.Node {
+	children := []core.Node{core.View{
+		Style:    core.Style{FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
+		Children: []core.Node{heading},
+	}}
+	if len(actions) > 0 {
+		children = append(children, core.View{
+			Style:    core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Wrap: core.Wrap, Gap: 8},
+			Children: actions,
+		})
+	}
+	return core.View{
+		StyleFunc: func() core.Style {
+			if cx.Env().Window().Width < 900 {
+				return core.Style{Gap: 10}
+			}
+			return core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8}
+		},
+		Children: children,
+	}
+}
+
+// dataColumns places fields side by side, and stacks them when the window
+// is too narrow for two readable columns.
+func dataColumns(cx *core.Scope, gap core.Points, children ...core.Node) core.Node {
+	return core.View{
+		StyleFunc: func() core.Style {
+			if cx.Env().Window().Width < 900 {
+				return core.Style{Gap: gap}
+			}
+			return core.Style{Direction: core.Row, Gap: gap}
+		},
+		Children: children,
+	}
+}
+
+// dataEmptyState is the centered title, explanation and optional next step
+// a list or card shows before it has content.
+func dataEmptyState(cx *core.Scope, title, body string, actions ...core.Node) core.Node {
+	children := []core.Node{
+		core.Text{Content: title, Style: core.Style{FontSize: 15, FontWeight: ui.Semibold}},
+	}
+	if body != "" {
+		children = append(children, core.Text{Content: body,
+			Style:     core.Style{FontSize: 12, TextAlign: core.TextAlignCenter},
+			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
+	}
+	if len(actions) > 0 {
+		children = append(children, core.View{
+			Style:    core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Wrap: core.Wrap, Gap: 8, Padding: core.Edges{Top: 6}},
+			Children: actions,
+		})
+	}
+	return core.View{Style: core.Style{Padding: core.All(24), Gap: 6,
+		AlignItems: core.AlignCenter, JustifyContent: core.JustifyCenter},
+		Children: children}
+}
+
+// countPhrase picks singular wording when n is one, since the catalogs
+// have no plural forms.
+func countPhrase(n int, one, many func() string) string {
+	if n == 1 {
+		return one()
+	}
+	return many()
 }
 
 func dataField(cx *core.Scope, label string, input core.Node) core.Node {
@@ -295,13 +364,13 @@ func (s *Session) dashboardBody(cx *core.Scope, dataRev *core.Signal[int],
 		}
 	}
 	stat := func(label string, value int) core.Node {
-		return core.View{Style: core.Style{FlexGrow: 1, FlexBasis: core.Pt(0), Gap: 2}, Children: []core.Node{
+		return core.View{Style: core.Style{FlexGrow: 1, FlexBasis: core.Pt(130), Gap: 2}, Children: []core.Node{
 			core.Text{Content: strconv.Itoa(value), Style: core.Style{FontSize: 22, FontWeight: ui.Bold}},
 			core.Text{Content: label, Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 		}}
 	}
 	co2e := func(testID, label string, value float64) core.Node {
-		return core.View{TestID: testID, Style: core.Style{FlexGrow: 1, FlexBasis: core.Pt(0), Gap: 2},
+		return core.View{TestID: testID, Style: core.Style{FlexGrow: 1, FlexBasis: core.Pt(150), Gap: 2},
 			Children: []core.Node{
 				core.Text{Content: commaFloat(value), Style: core.Style{FontSize: 22, FontWeight: ui.Bold}},
 				core.Text{Content: label, Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
@@ -358,7 +427,7 @@ func (s *Session) dashboardBody(cx *core.Scope, dataRev *core.Signal[int],
 	return core.View{Style: core.Style{Gap: 12}, Children: []core.Node{
 		dataCard(cx,
 			dataHeading(cx, locales.DashboardInventoryTitle(cx), totalsPeriod),
-			core.View{TestID: "dashboard-totals", Style: core.Style{Direction: core.Row, Gap: 16},
+			core.View{TestID: "dashboard-totals", Style: core.Style{Direction: core.Row, Wrap: core.Wrap, Gap: 16},
 				Children: []core.Node{
 					co2e("dashboard-total", locales.DashboardTotalCo2e(cx), s.totals.TotalKg),
 					co2e("dashboard-scope1", locales.DashboardScope1(cx), s.totals.Scope1Kg),
@@ -370,22 +439,22 @@ func (s *Session) dashboardBody(cx *core.Scope, dataRev *core.Signal[int],
 		s.dashboardWidgets(cx, active),
 		s.readinessHomeCard(cx, active),
 		dataCard(cx,
-			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 12}, Children: []core.Node{
-				core.View{Style: core.Style{Gap: 3, FlexGrow: 1, FlexShrink: 1,
-					MinWidth: core.Pt(0)}, Children: []core.Node{
+			dataHeaderRow(cx, core.View{
+				Style: core.Style{Gap: 3},
+				Children: []core.Node{
 					core.Text{Content: locales.DataOrgCard(cx), Style: core.Style{FontSize: 12, FontWeight: ui.Semibold},
 						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 					core.Text{Content: orgName, Style: core.Style{FontSize: 20, FontWeight: ui.Bold,
 						FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 1},
 					core.Text{Content: orgDetail, Style: core.Style{FontSize: 12,
 						FlexShrink: 1, MinWidth: core.Pt(0)},
-						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
+						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 				}},
 				s.organizationDialog(cx, dataRev),
-			}},
+			),
 		),
 		dataCard(cx,
-			core.View{Style: core.Style{Direction: core.Row, Gap: 16}, Children: []core.Node{
+			core.View{Style: core.Style{Direction: core.Row, Wrap: core.Wrap, Gap: 16}, Children: []core.Node{
 				stat(locales.DataSites(cx), summary.Sites),
 				stat(locales.DataPeriods(cx), summary.Periods),
 				stat(locales.DataSources(cx), summary.Sources),
@@ -393,19 +462,11 @@ func (s *Session) dashboardBody(cx *core.Scope, dataRev *core.Signal[int],
 			}},
 		),
 		dataCard(cx,
-			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8}, Children: []core.Node{
-				dataHeading(cx, locales.DataSites(cx), ""),
-				core.View{Style: core.Style{FlexGrow: 1}},
-				s.siteDialog(cx, dataRev),
-			}},
+			dataHeaderRow(cx, dataHeading(cx, locales.DataSites(cx), ""), s.siteDialog(cx, dataRev)),
 			core.View{Style: core.Style{Gap: 0}, Children: siteRows},
 		),
 		dataCard(cx,
-			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8}, Children: []core.Node{
-				dataHeading(cx, locales.DataPeriods(cx), ""),
-				core.View{Style: core.Style{FlexGrow: 1}},
-				s.periodDialog(cx, dataRev),
-			}},
+			dataHeaderRow(cx, dataHeading(cx, locales.DataPeriods(cx), ""), s.periodDialog(cx, dataRev)),
 			core.View{Style: core.Style{Gap: 0}, Children: periodRows},
 		),
 		dataCard(cx,
@@ -501,9 +562,9 @@ func (s *Session) gettingStartedCard(cx *core.Scope, active *core.Signal[Screen]
 
 func dataActiveLabel(cx *core.Scope, active bool) string {
 	if active {
-		return locales.SourcesActiveYes(cx)
+		return locales.SourcesTableActive(cx)
 	}
-	return locales.SourcesActiveNo(cx)
+	return locales.SourcesInactiveChip(cx)
 }
 
 // onboardingScreen creates the organization, first site, and first reporting
@@ -852,7 +913,9 @@ func (s *Session) sourcesBody(cx *core.Scope, dataRev *core.Signal[int],
 		src := visible[i]
 		stats := locales.SourcesStatsUnused(cx)
 		if src.ActivityCount > 0 {
-			stats = locales.SourcesStatsActivityCount(cx, strconv.Itoa(src.ActivityCount)) + " · " +
+			stats = countPhrase(src.ActivityCount,
+				func() string { return locales.SourcesStatsActivityCountOne(cx, strconv.Itoa(src.ActivityCount)) },
+				func() string { return locales.SourcesStatsActivityCount(cx, strconv.Itoa(src.ActivityCount)) }) + " · " +
 				locales.SourcesStatsTotal(cx, commaFloat(src.TotalCO2eKg))
 			if src.LastActivityAt != "" {
 				last := src.LastActivityAt
@@ -883,7 +946,7 @@ func (s *Session) sourcesBody(cx *core.Scope, dataRev *core.Signal[int],
 				Children: nameRow},
 			core.Text{Content: meta,
 				Style:     core.Style{FontSize: 11, FlexShrink: 1, MinWidth: core.Pt(0)},
-				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2},
 		}
 		if preset, ok := presets.ByID(src.TemplateOrigin); ok {
 			origin := strings.Join([]string{preset.Source, preset.Region, strconv.Itoa(preset.Year)}, " · ")
@@ -904,22 +967,24 @@ func (s *Session) sourcesBody(cx *core.Scope, dataRev *core.Signal[int],
 		})
 	}
 
-	header := []core.Node{
-		dataHeading(cx, locales.DataSources(cx), locales.DataSourcesCount(cx, strconv.Itoa(len(s.sources)))),
-		core.View{Style: core.Style{FlexGrow: 1}},
-	}
+	n := len(s.sources)
+	heading := core.Text{Content: countPhrase(n,
+		func() string { return locales.DataSourcesCountOne(cx, strconv.Itoa(n)) },
+		func() string { return locales.DataSourcesCount(cx, strconv.Itoa(n)) }),
+		Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}}
+	var actions []core.Node
 	pendingCatalog := s.pendingSourceCatalog
 	s.pendingSourceCatalog = false
 	if len(s.sites) == 0 {
-		header = append(header, core.Text{Content: locales.SourcesCatalogNoSite(cx), Style: core.Style{FontSize: 12},
+		actions = append(actions, core.Text{Content: locales.SourcesCatalogNoSite(cx), Style: core.Style{FontSize: 12},
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)})
 	} else {
 		catalog, showCatalog := s.sourceCatalogDialogWithShow(cx, dataRev)
 		if pendingCatalog {
 			s.scope.Post(showCatalog)
 		}
-		header = append(header, catalog)
-		header = append(header, s.sourceDialog(cx, nil, dataRev, "source-add"))
+		actions = append(actions, catalog)
+		actions = append(actions, s.sourceDialog(cx, nil, dataRev, "source-add"))
 	}
 
 	scopeLabel := func(value int) string {
@@ -983,16 +1048,12 @@ func (s *Session) sourcesBody(cx *core.Scope, dataRev *core.Signal[int],
 	}}
 
 	children := []core.Node{
-		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8}, Children: header},
+		dataHeaderRow(cx, heading, actions...),
 	}
 	switch {
 	case len(s.sources) == 0:
-		children = append(children, core.View{Style: core.Style{Padding: core.All(24), Gap: 6,
-			AlignItems: core.AlignCenter}, Children: []core.Node{
-			core.Text{Content: locales.SourcesEmptyTitle(cx), Style: core.Style{FontSize: 15, FontWeight: ui.Semibold}},
-			core.Text{Content: locales.SourcesEmptyBody(cx), Style: core.Style{FontSize: 12},
-				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
-		}})
+		children = append(children, dataEmptyState(cx, locales.SourcesEmptyTitle(cx),
+			locales.SourcesEmptyBody(cx)))
 	case len(visible) == 0:
 		children = append(children, filterNode, core.View{Style: core.Style{Padding: core.All(24), Gap: 8,
 			AlignItems: core.AlignCenter}, Children: []core.Node{
@@ -1107,8 +1168,12 @@ func (s *Session) sourceDialog(cx *core.Scope, src *store.EmissionSource, dataRe
 		label = locales.DataEditSource
 		title = locales.DataEditSource
 	}
+	variant := ui.ButtonSecondary
+	if src == nil {
+		variant = ui.ButtonPrimary
+	}
 	return core.View{Children: []core.Node{
-		ui.Button{Text: label(cx), Variant: ui.ButtonSecondary, OnPress: show, TestID: testID},
+		ui.Button{Text: label(cx), Variant: variant, OnPress: show, TestID: testID},
 		dataDialog(cx, open, title(cx), []core.Node{
 			dataField(cx, locales.SourcesFormName(cx),
 				ui.Input{Value: name.Get, OnChange: name.Set, TestID: testID + "-name"}),
@@ -1220,7 +1285,7 @@ func (s *Session) activityFormDialogPartsWithShow(cx *core.Scope, dataRev *core.
 	disabled func() bool) (core.Node, core.Node, func()) {
 	form := s.newActivityForm(cx, dataRev, initial, nil, triggerLabel, saveLabel, prefix, nil,
 		initial() == nil)
-	trigger := ui.Button{Text: triggerLabel(cx), Variant: ui.ButtonSecondary, OnPress: form.show,
+	trigger := ui.Button{Text: triggerLabel(cx), Variant: ui.ButtonPrimary, OnPress: form.show,
 		Disabled: disabled, TestID: triggerID}
 	return trigger, form.dialog, form.show
 }
@@ -1753,23 +1818,17 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 			wideSelect{Options: periodWideOptions, Value: periodID.Get, OnChange: periodID.Set,
 				Placeholder: locales.ActivitiesFormPeriodPlaceholder(cx),
 				Label:       locales.ActivitiesFormPeriod(cx), TestID: prefix + "-period"}),
-		core.View{Style: core.Style{Direction: core.Row, Gap: 8}, Children: []core.Node{
-			core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{dataField(cx,
-				locales.ActivitiesFormOccurredStart(cx),
-				ui.Input{Value: start.Get, OnChange: start.Set, TestID: prefix + "-start"})}},
-			core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{dataField(cx,
-				locales.ActivitiesFormOccurredEnd(cx),
-				ui.Input{Value: end.Get, OnChange: end.Set, TestID: prefix + "-end"})}},
-		}},
-		core.View{Style: core.Style{Direction: core.Row, Gap: 8}, Children: []core.Node{
-			core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{dataField(cx,
-				locales.ActivitiesFormAmount(cx),
-				ui.Input{Value: amount.Get, OnChange: amount.Set, TestID: prefix + "-amount"})}},
-			core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{dataField(cx,
-				locales.ActivitiesFormUnit(cx),
+		dataColumns(cx, 8,
+			dataField(cx, locales.ActivitiesFormOccurredStart(cx),
+				ui.Input{Value: start.Get, OnChange: start.Set, TestID: prefix + "-start"}),
+			dataField(cx, locales.ActivitiesFormOccurredEnd(cx),
+				ui.Input{Value: end.Get, OnChange: end.Set, TestID: prefix + "-end"})),
+		dataColumns(cx, 8,
+			dataField(cx, locales.ActivitiesFormAmount(cx),
+				ui.Input{Value: amount.Get, OnChange: amount.Set, TestID: prefix + "-amount"}),
+			dataField(cx, locales.ActivitiesFormUnit(cx),
 				ui.Input{Value: unit.Get, OnChange: unit.Set,
-					Placeholder: locales.ActivitiesFormUnitPlaceholder(cx), TestID: prefix + "-unit"})}},
-		}},
+					Placeholder: locales.ActivitiesFormUnitPlaceholder(cx), TestID: prefix + "-unit"})),
 		core.Show{When: func() bool {
 			return routingStage.Get() != "" && routingOrigin.Get() != "" && routingDestination.Get() != ""
 		}, Then: func(cx *core.Scope) core.Node {
@@ -1821,15 +1880,12 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 		}},
 		recommendations,
 		core.Dynamic(efSelect),
-		core.View{Style: core.Style{Direction: core.Row, Gap: 8}, Children: []core.Node{
-			core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{dataField(cx,
-				locales.ActivitiesFormFuel(cx),
+		dataColumns(cx, 8,
+			dataField(cx, locales.ActivitiesFormFuel(cx),
 				ui.Input{Value: fuel.Get, OnChange: fuel.Set,
-					Placeholder: locales.ActivitiesFormFuelNone(cx), TestID: prefix + "-fuel"})}},
-			core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{dataField(cx,
-				locales.ActivitiesFormNotes(cx),
-				ui.Input{Value: notes.Get, OnChange: notes.Set, TestID: prefix + "-notes"})}},
-		}},
+					Placeholder: locales.ActivitiesFormFuelNone(cx), TestID: prefix + "-fuel"}),
+			dataField(cx, locales.ActivitiesFormNotes(cx),
+				ui.Input{Value: notes.Get, OnChange: notes.Set, TestID: prefix + "-notes"})),
 		core.Text{Content: locales.ActivitiesFormFuelHint(cx), Style: core.Style{FontSize: 11},
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 		dataError(cx, status),
@@ -2036,13 +2092,8 @@ func (s *Session) auditBody(cx *core.Scope, kind *core.Signal[string], since *co
 		})
 	}
 	if len(events) == 0 && err == nil && datesOK {
-		rows = append(rows, core.View{Style: core.Style{Padding: core.All(24), Gap: 6, AlignItems: core.AlignCenter},
-			Children: []core.Node{
-				core.Text{Content: locales.AuditEmptyStateHeading(cx),
-					Style: core.Style{FontSize: 15, FontWeight: ui.Semibold}},
-				core.Text{Content: locales.AuditEmptyStateBody(cx), Style: core.Style{FontSize: 12},
-					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
-			}})
+		rows = append(rows, dataEmptyState(cx, locales.AuditEmptyStateHeading(cx),
+			locales.AuditEmptyStateBody(cx)))
 	}
 	kindOptions := []ui.Option[string]{{Value: "", Label: locales.AuditFilterAllKinds(cx)}}
 	for _, value := range []string{"activity_data.created", "activity_data.updated",
@@ -2118,7 +2169,6 @@ func (s *Session) auditBody(cx *core.Scope, kind *core.Signal[string], since *co
 			OnPress: export, TestID: "audit-export"},
 	}}
 	children := []core.Node{
-		dataHeading(cx, locales.AuditHeading(cx), locales.AuditSubheading(cx)),
 		filters,
 	}
 	if !datesOK {

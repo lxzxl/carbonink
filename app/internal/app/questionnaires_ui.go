@@ -120,13 +120,27 @@ func (s *Session) questionnairesScreen(cx *core.Scope, dataRev *core.Signal[int]
 		_ = filters.search.Get()
 		_ = filters.status.Get()
 		visible := rows()
+		total := 0
+		for _, q := range s.questionnaires {
+			if q.Direction == "outbound" {
+				total++
+			}
+		}
 		if len(visible) == 0 {
-			return core.View{Style: core.Style{FlexGrow: 1, AlignItems: core.AlignCenter,
-				JustifyContent: core.JustifyCenter, Padding: core.All(24)},
-				Children: []core.Node{
-					core.Text{Content: locales.QuestionnairesEmpty(cx),
-						Style: core.Style{FontSize: 13}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-				}}
+			empty := dataEmptyState(cx, locales.QuestionnairesEmpty(cx),
+				locales.QuestionnairesEmptyBody(cx),
+				ui.Button{Text: locales.QuestionnairesNewButton(cx), OnPress: wizard.show,
+					TestID: "questionnaires-empty-new"})
+			if total > 0 {
+				empty = dataEmptyState(cx, locales.QuestionnairesFilterEmpty(cx), "",
+					ui.Button{Text: locales.QuestionnairesFilterClear(cx), Variant: ui.ButtonGhost,
+						OnPress: func() {
+							filters.search.Set("")
+							filters.status.Set("")
+						}, TestID: "questionnaires-filter-clear"})
+			}
+			return core.View{Style: core.Style{FlexGrow: 1, JustifyContent: core.JustifyCenter},
+				Children: []core.Node{empty}}
 		}
 		nodes := make([]core.Node, 0, len(visible))
 		for _, q := range visible {
@@ -139,12 +153,18 @@ func (s *Session) questionnairesScreen(cx *core.Scope, dataRev *core.Signal[int]
 
 	return core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0),
 		Padding: core.All(16), Gap: 10}, Children: []core.Node{
-		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8},
-			Children: []core.Node{
-				core.Text{ContentFunc: func() string {
-					return locales.QuestionnairesListCount(cx, strconv.Itoa(len(rows())))
-				}, Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}},
-				core.View{Style: core.Style{FlexGrow: 1}},
+		dataHeaderRow(cx,
+			core.Text{ContentFunc: func() string {
+				n := len(rows())
+				return countPhrase(n,
+					func() string {
+						return locales.QuestionnairesListCountOne(cx, strconv.Itoa(n))
+					},
+					func() string {
+						return locales.QuestionnairesListCount(cx, strconv.Itoa(n))
+					})
+			}, Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}},
+			[]core.Node{
 				ui.Input{Value: filters.search.Get, Placeholder: locales.QuestionnairesSearchPlaceholder(cx),
 					OnChange: func(v string) { filters.search.Set(v) },
 					TestID:   "questionnaires-search", Style: core.Style{Width: core.Pt(220)},
@@ -159,7 +179,7 @@ func (s *Session) questionnairesScreen(cx *core.Scope, dataRev *core.Signal[int]
 					Style:    core.Style{Width: core.Pt(150)}},
 				ui.Button{Text: locales.QuestionnairesNewButton(cx), OnPress: wizard.show,
 					TestID: "questionnaires-new"},
-			}},
+			}...),
 		listGuide.node(s, func() bool { return true }),
 		core.Show{When: func() bool { return screenStatus.Get() != "" },
 			Then: func(cx *core.Scope) core.Node {
@@ -172,7 +192,9 @@ func (s *Session) questionnairesScreen(cx *core.Scope, dataRev *core.Signal[int]
 						return ui.Colored(ui.ColorsOf(cx).Muted)()
 					}}
 			}},
-		list,
+		core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0),
+			CornerRadius: 8, BorderWidth: 1, BorderColor: ui.ColorsOf(cx).Border(),
+			Background: ui.ColorsOf(cx).Surface()}, Children: []core.Node{list}},
 		wizard.dialog(cx, s, dataRev, func(r *questionnaire.CreateResult) {
 			screenFailed.Set(false)
 			screenStatus.Set(locales.QuestionnairesWizardSuccessWithReused(cx,
@@ -964,7 +986,7 @@ func (d *questionnaireDetail) dialog(cx *core.Scope, s *Session,
 				StyleFunc: func() core.Style {
 					style := core.Style{BorderColor: ui.ColorsOf(cx).Line()}
 					if d.selectedID.Get() == q.ID {
-						style.Background = ui.Alpha(ui.ColorsOf(cx).Accent(), 0.10)
+						style.Background = selectionTint(cx)
 					}
 					return style
 				},

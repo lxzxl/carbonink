@@ -40,16 +40,13 @@ func (s *Session) amapKeyCard(cx *core.Scope) core.Node {
 		dataHeading(cx, locales.SettingsAmapHeading(cx), ""),
 		core.Text{ContentFunc: func() string { return locales.SettingsAmapBody(cx) },
 			Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
-		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignEnd, Gap: 8},
-			Children: []core.Node{
-				core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{
-					dataField(cx, locales.SettingsAmapLabel(cx),
-						ui.Input{Value: key.Get, OnChange: key.Set,
-							Placeholder: locales.SettingsAmapPlaceholder(cx),
-							TestID:      "settings-amap-key"}),
-				}},
-				ui.Button{Text: locales.SettingsSave(cx), OnPress: save, TestID: "settings-amap-save"},
-			}},
+		dataHeaderRow(cx,
+			dataField(cx, locales.SettingsAmapLabel(cx),
+				ui.Input{Value: key.Get, OnChange: key.Set,
+					Placeholder: locales.SettingsAmapPlaceholder(cx),
+					TestID:      "settings-amap-key"}),
+			ui.Button{Text: locales.SettingsSave(cx), OnPress: save, TestID: "settings-amap-save"},
+		),
 		core.Show{When: func() bool { return status.Get() != "" },
 			Then: func(cx *core.Scope) core.Node {
 				return core.Text{ContentFunc: func() string { return status.Get() },

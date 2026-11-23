@@ -6,6 +6,11 @@ activitiesCount:
     placeholders:
         count:
             type: int
+activitiesCountOne:
+    message: '{count} 条活动数据'
+    placeholders:
+        count:
+            type: int
 activitiesCreateFailed: 创建活动数据失败
 activitiesCreateSuccess: 活动数据已记录
 activitiesEmpty: 还没有活动数据。
@@ -303,6 +308,8 @@ dataSites: 场址
 dataSitesCount: '{count} 个场址'
 dataSources: 排放源
 dataSourcesCount: '{count} 个排放源'
+dataSourcesCountOne: '{count} 个排放源'
+dataSourcesSubtitle: 清单按场地、范围与类别记录排放的对象。
 documentsAiRequiredBody: 碳墨 需要一个 AI 服务来读取文档内容。请在 Settings 中配置——你需要一个 provider 的 API key（OpenAI / Anthropic / Azure / DeepSeek 或任何 OpenAI 兼容端点）。
 documentsAiRequiredCta: 打开 Settings
 documentsAiRequiredTitle: 尚未配置 AI 服务
@@ -318,6 +325,7 @@ documentsBatchReasonClassifyFailed: 无法自动识别类型——打开文档�
 documentsBatchReasonError: 识别出错
 documentsBatchSummaryToast: 批量识别完成：成功 {ok} · 失败 {failed}
 documentsCount: 文件：{count}
+documentsSubtitle: 与当前账套一起保存的账单、发票与证据文件。
 documentsDetailButton: 详情
 documentsDetailCopied: 已复制
 documentsDetailCopy: 复制文本
@@ -892,11 +900,14 @@ questionnairesDetailQuestion: 题目
 questionnairesDetailSelect: 选择一道题，编辑它的答案。
 questionnairesDetailUnit: 单位
 questionnairesEmpty: 还没有披露填报
+questionnairesEmptyBody: 披露填报从客户发来的 .xlsx 工作表开始：导入、逐题核对答案，再导出完成的工作表。
 questionnairesFilterClear: 清除筛选
 questionnairesFilterEmpty: 未找到匹配的披露填报
 questionnairesFilterStatusAll: 全部状态
 questionnairesFinalizeButton: 确认全部答案
 questionnairesListCount: '{count} 份问卷'
+questionnairesListCountOne: '{count} 份问卷'
+questionnairesSubtitle: 发给客户、用本清单作答的披露填报。
 questionnairesNewButton: 新建披露填报
 questionnairesQuestionCount: '{count} 道题'
 questionnairesSearchPlaceholder: 搜索客户名称
@@ -1143,7 +1154,7 @@ settingsDataAutoBackupOpenFailed: 无法打开自动备份目录。
 settingsDataAutoBackupToggleFailed: 保存自动备份设置失败。
 settingsDataAutoBackupToggleLabel: 启用自动备份
 settingsDataBackupBody: 备份是单个 .carbonink-backup 文件（SQLite 数据库）。v1 不包含附件（PDF 等）— 还原后可以重新上传。
-settingsDataBackupHeading: 备份与还原
+settingsDataBackupHeading: 数据与存储
 settingsDataCacheBody: 已确认的抽取记录会保留 LLM 原始响应。清理这些缓存是安全的，不会影响活动、报告或任何用户数据。
 settingsDataCacheClearButton: 清理 LLM 缓存
 settingsDataCacheClearSuccess: 已清理 {rows} 条，释放 {size}。
@@ -1180,11 +1191,17 @@ settingsGeneralThemeHint: 跟随系统、强制浅色，或强制深色。
 settingsGeneralThemeLabel: 外观
 settingsGeneralThemeLight: 浅色
 settingsGeneralThemeSystem: 跟随系统
+settingsGroupAbout: 关于
+settingsGroupData: 数据
+settingsGroupGeneral: 通用
+settingsGroupIntegrations: 集成
+settingsGroupOrganization: 组织
 settingsImportOutlierBody: 批量导入台账时，某行数量偏离组内中位数超过 N 倍（双向）即标记为疑似离群。仅对当前账套生效；警告不会阻断导入。
 settingsImportOutlierHeading: 批量导入异常检测
 settingsImportOutlierInvalid: 请输入 2 到 1000 之间的数字
 settingsImportOutlierLabel: 离群倍数（2–1000）
 settingsImportOutlierSaved: 离群倍数已保存
+settingsImportOutlierSave: 保存阈值
 settingsLanguage: 语言
 settingsLanguageChinese: 中文
 settingsLanguageEnglish: English
@@ -1245,9 +1262,11 @@ settingsModelStale: 列表可能已过时。
 settingsModelSuggestedLabel: 推荐模型
 settingsNavLabel: 设置分类
 settingsOrgBasicHeading: 公司身份
+settingsOrgBasicSave: 保存基本信息
 settingsOrgProfileHeading: 组织档案（ISO 14064-1）
 settingsOrgProfileSubheading: 用于盘查报告。
 settingsOrgReportingHeading: 报告档案
+settingsOrgReportingSave: 保存报告档案
 settingsPickerNoMatch: 无匹配结果
 settingsProviderBaseUrlLabelAdvanced: 覆盖 base URL（高级）
 settingsProviderCustom: 自定义（OpenAI 兼容）
@@ -1397,6 +1416,7 @@ sourcesInactiveChip: 已停用
 sourcesLoadFailed: 加载排放源失败
 sourcesSearchPlaceholder: 搜索名称、类别或 GHG 路径
 sourcesStatsActivityCount: '{count} 条活动'
+sourcesStatsActivityCountOne: '{count} 条活动'
 sourcesStatsLast: 最近 {date}
 sourcesStatsTotal: 累计 {value} CO₂e
 sourcesStatsUnused: 尚未使用
@@ -1405,6 +1425,7 @@ sourcesTableCategory: 分类
 sourcesTableName: 名称
 sourcesTableScope: 范围
 supplierDisclosuresCount: '{count} 份供应商披露'
+supplierDisclosuresCountOne: '{count} 份供应商披露'
 supplierDisclosuresDetailClose: 关闭
 supplierDisclosuresDetailDelete: 删除披露
 supplierDisclosuresDetailDeleteBody: 删除该披露？由其入库的清单行也会一并删除。
@@ -1437,6 +1458,8 @@ supplierDisclosuresDetailTitle: 供应商披露
 supplierDisclosuresDetailUnanswered: （未答）
 supplierDisclosuresDue: 截止 {date}
 supplierDisclosuresEmpty: 尚无供应商披露。
+supplierDisclosuresEmptyBody: 向供应商发出问卷，再跟踪回收情况；回收的答案可以直接转成活动数据。
+supplierDisclosuresSubtitle: 发给供应商的数据请求，以及回收的结果。
 supplierDisclosuresFileTooLarge: 文件过大。
 supplierDisclosuresImportNotTemplate: 该工作簿不是 CarbonInk 披露模板。
 supplierDisclosuresImportWrongPeriod: 该工作簿对应其他报告年度。

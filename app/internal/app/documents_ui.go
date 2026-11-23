@@ -177,15 +177,8 @@ func (s *Session) documentsBody(cx *core.Scope, dataRev *core.Signal[int],
 		}
 	}
 	if len(rows) == 0 {
-		rows = append(rows, core.View{
-			Style: core.Style{Padding: core.All(24), Gap: 6, AlignItems: core.AlignCenter},
-			Children: []core.Node{
-				core.Text{ContentFunc: func() string { return locales.DocumentsEmptyTitle(cx) },
-					Style: core.Style{FontSize: 15, FontWeight: ui.Semibold}},
-				core.Text{ContentFunc: func() string { return locales.DocumentsEmptyBody(cx) },
-					Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
-			},
-		})
+		rows = append(rows, dataEmptyState(cx, locales.DocumentsEmptyTitle(cx),
+			locales.DocumentsEmptyBody(cx)))
 	}
 
 	count := s.documentTotal
@@ -193,14 +186,13 @@ func (s *Session) documentsBody(cx *core.Scope, dataRev *core.Signal[int],
 		count = len(visible)
 	}
 	children := []core.Node{
-		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8}, Children: []core.Node{
-			dataHeading(cx, locales.NavDocuments(cx),
-				locales.DocumentsCount(cx, strconv.Itoa(count))),
-			core.View{Style: core.Style{FlexGrow: 1}},
+		dataHeaderRow(cx,
+			core.Text{Content: locales.DocumentsCount(cx, strconv.Itoa(count)),
+				Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}},
 			ui.Button{Text: locales.DocumentsUploadButton(cx), Variant: ui.ButtonPrimary,
 				OnPress: func() { s.uploadDocuments(cx, dataRev, status, statusFailed) },
 				TestID:  "documents-upload"},
-		}},
+		),
 		core.Text{ContentFunc: func() string { return locales.DocumentsUploadTypesHint(cx) },
 			Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2},
 		s.documentFilterRow(cx, filters),

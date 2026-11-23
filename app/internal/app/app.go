@@ -90,6 +90,7 @@ type Session struct {
 // Root opens the active workspace and returns the shell. It is the app's
 // first screen.
 func Root(cx *core.Scope) core.Node {
+	cx.SetTheme(carboninkTheme())
 	log := platform.NewLogger(cx.LogsDir())
 	s, err := open(cx, log)
 	if err != nil {
@@ -412,18 +413,17 @@ func (s *Session) view(cx *core.Scope) core.Node {
 					_ = dataRev.Get()
 					switch active.Get() {
 					case ScreenActivities:
-						return locales.ActivitiesSubtitle(cx) + " · " + locales.ActivitiesCount(cx, len(s.activities))
+						return locales.ActivitiesSubtitle(cx)
 					case ScreenDashboard:
 						return locales.WorkspaceActive(cx) + " · " + s.workspace.Name
 					case ScreenSources:
-						return locales.DataSourcesCount(cx, strconv.Itoa(len(s.sources)))
+						return locales.DataSourcesSubtitle(cx)
 					case ScreenDocuments:
-						return locales.DocumentsCount(cx, strconv.Itoa(s.documentTotal))
+						return locales.DocumentsSubtitle(cx)
 					case ScreenQuestionnaires:
-						return locales.QuestionnairesListCount(cx, strconv.Itoa(s.outboundQuestionnaires()))
+						return locales.QuestionnairesSubtitle(cx)
 					case ScreenSupplierDisclosures:
-						return locales.SupplierDisclosuresCount(cx,
-							strconv.Itoa(s.inboundQuestionnaires()))
+						return locales.SupplierDisclosuresSubtitle(cx)
 					case ScreenReports:
 						return locales.ReportsListSubheading(cx)
 					case ScreenAudit:
@@ -454,7 +454,7 @@ func navButton(cx *core.Scope, sc screenInfo, selected func() bool, onPress func
 			Height: core.Pt(30), Padding: core.Symmetric(0, 8), CornerRadius: 6},
 		StyleFunc: func() core.Style {
 			if selected() {
-				return core.Style{Background: ui.Alpha(ui.ColorsOf(cx).Accent(), 0.12)}
+				return core.Style{Background: selectionTint(cx)}
 			}
 			return core.Style{}
 		},

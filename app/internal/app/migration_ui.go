@@ -50,9 +50,9 @@ func (s *Session) migrationCard(cx *core.Scope) core.Node {
 		core.Text{Content: locales.SettingsMigrationBackups(cx), Style: core.Style{FontSize: 11},
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
 	)
-	style := ui.CardStyle(cx)
-	style.Gap = 10
-	style.Padding = core.All(16)
-	style.AlignSelf = core.AlignStretch
-	return core.View{Style: style, Children: children}
+	return core.View{
+		Style:     core.Style{Gap: 10, Padding: core.All(16), AlignSelf: core.AlignStretch},
+		StyleFunc: cardSurface(cx),
+		Children:  children,
+	}
 }

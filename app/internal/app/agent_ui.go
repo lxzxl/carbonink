@@ -85,11 +85,11 @@ func (s *Session) agentIntegrationCard(cx *core.Scope) core.Node {
 		_ = rev.Get()
 	}
 	card := func(children ...core.Node) core.Node {
-		style := ui.CardStyle(cx)
-		style.Gap = 12
-		style.Padding = core.All(16)
-		style.AlignSelf = core.AlignStretch
-		return core.View{Style: style, Children: children}
+		return core.View{
+			Style:     core.Style{Gap: 12, Padding: core.All(16), AlignSelf: core.AlignStretch},
+			StyleFunc: cardSurface(cx),
+			Children:  children,
+		}
 	}
 
 	return core.Dynamic(func(cx *core.Scope) core.Node {
@@ -211,7 +211,7 @@ func (s *Session) agentIntegrationCard(cx *core.Scope) core.Node {
 							if failed.Get() {
 								return ui.Colored(ui.ColorsOf(cx).Danger)()
 							}
-							return ui.Colored(ui.ColorsOf(cx).Accent)()
+							return core.Style{Color: accentInk(cx)()}
 						},
 						TestID: "agent-status"}
 				}},

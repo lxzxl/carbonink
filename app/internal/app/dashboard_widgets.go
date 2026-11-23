@@ -18,16 +18,16 @@ type monthBucket struct {
 	total float64
 }
 
-// buildMonthBuckets sums activities into the last 12 calendar months,
-// including the month now is in. Activities outside that window are ignored.
-func buildMonthBuckets(activities []store.Activity, now time.Time) []monthBucket {
+// buildMonthBuckets sums activities into the reporting period's twelve
+// calendar months. Activities outside that year are ignored.
+func buildMonthBuckets(activities []store.Activity, year int) []monthBucket {
 	buckets := make([]monthBucket, 0, 12)
 	index := make(map[string]int, 12)
-	for i := 11; i >= 0; i-- {
-		month := time.Date(now.Year(), now.Month()-time.Month(i), 1, 0, 0, 0, 0, now.Location())
-		label := month.Format("2006-01")
+	for month := 1; month <= 12; month++ {
+		at := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.Local)
+		label := at.Format("2006-01")
 		index[label] = len(buckets)
-		buckets = append(buckets, monthBucket{label: label, short: strconv.Itoa(int(month.Month()))})
+		buckets = append(buckets, monthBucket{label: label, short: strconv.Itoa(month)})
 	}
 	for _, activity := range activities {
 		if len(activity.OccurredAtEnd) < 7 {
@@ -83,14 +83,23 @@ func (s *Session) dashboardWidgets(cx *core.Scope, active *core.Signal[Screen]) 
 	if s.totals.TotalKg == 0 || len(activities) == 0 {
 		return core.View{}
 	}
+	year := time.Now().Year()
+	if len(s.periods) > 0 {
+		year = s.periods[len(s.periods)-1].Year
+	}
+	monthly := s.monthlyTrendCard(cx, activities, year)
+	recent := s.recentActivitiesCard(cx, activities, active)
+	if cx.Env().Window().Width < 900 {
+		return core.View{Style: core.Style{Gap: 12}, Children: []core.Node{monthly, recent}}
+	}
 	return core.View{
 		Style: core.Style{Direction: core.Row, AlignItems: core.AlignStretch, Gap: 12},
 		Children: []core.Node{
 			core.View{Style: core.Style{FlexGrow: 3, FlexBasis: core.Pt(0)}, Children: []core.Node{
-				s.monthlyTrendCard(cx, activities),
+				monthly,
 			}},
 			core.View{Style: core.Style{FlexGrow: 2, FlexBasis: core.Pt(0)}, Children: []core.Node{
-				s.recentActivitiesCard(cx, activities, active),
+				recent,
 			}},
 		},
 	}
@@ -105,27 +114,24 @@ func (s *Session) readinessHomeCard(cx *core.Scope, active *core.Signal[Screen])
 	}
 	return core.View{TestID: "dashboard-readiness", Children: []core.Node{
 		dataCard(cx,
-			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 12},
-				Children: []core.Node{
-					core.View{Style: core.Style{Gap: 3, FlexGrow: 1, FlexShrink: 1,
-						MinWidth: core.Pt(0)}, Children: []core.Node{
-						core.Text{Content: locales.ReadinessHomeCardTitle(cx),
-							Style:    core.Style{FontSize: 13, FontWeight: ui.Semibold},
-							MaxLines: 1},
-						core.Text{Content: locales.ReadinessDescription(cx),
-							Style:     core.Style{FontSize: 12, FlexShrink: 1, MinWidth: core.Pt(0)},
-							StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2},
-					}},
-					ui.Button{Text: locales.ReadinessHomeCardCta(cx), Variant: ui.ButtonSecondary,
-						OnPress: func() { active.Set(ScreenReports) },
-						TestID:  "dashboard-readiness-open"},
+			dataHeaderRow(cx,
+				core.View{Style: core.Style{Gap: 3, FlexShrink: 1,
+					MinWidth: core.Pt(0)}, Children: []core.Node{
+					core.Text{Content: locales.ReadinessHomeCardTitle(cx),
+						Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}},
+					core.Text{Content: locales.ReadinessDescription(cx),
+						Style:     core.Style{FontSize: 12},
+						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 				}},
+				ui.Button{Text: locales.ReadinessHomeCardCta(cx), Variant: ui.ButtonSecondary,
+					OnPress: func() { active.Set(ScreenReports) },
+					TestID:  "dashboard-readiness-open"}),
 		),
 	}}
 }
 
-func (s *Session) monthlyTrendCard(cx *core.Scope, activities []store.Activity) core.Node {
-	buckets := buildMonthBuckets(activities, time.Now())
+func (s *Session) monthlyTrendCard(cx *core.Scope, activities []store.Activity, year int) core.Node {
+	buckets := buildMonthBuckets(activities, year)
 	maxTotal := 0.0
 	for _, bucket := range buckets {
 		maxTotal = max(maxTotal, bucket.total)
@@ -173,11 +179,12 @@ func (s *Session) recentActivitiesCard(cx *core.Scope, activities []store.Activi
 	active *core.Signal[Screen]) core.Node {
 	recent := recentActivities(activities)
 	children := []core.Node{
-		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8}, Children: []core.Node{
-			core.Text{Content: locales.DashboardRecentActivities(cx),
-				Style:    core.Style{FontSize: 14, FontWeight: ui.Semibold, FlexShrink: 1, MinWidth: core.Pt(0)},
-				MaxLines: 1},
-			core.View{Style: core.Style{FlexGrow: 1}},
+		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+			Wrap: core.Wrap, Gap: 8}, Children: []core.Node{
+			core.View{Style: core.Style{FlexGrow: 1, MinWidth: core.Pt(0)}, Children: []core.Node{
+				core.Text{Content: locales.DashboardRecentActivities(cx),
+					Style: core.Style{FontSize: 14, FontWeight: ui.Semibold}},
+			}},
 			ui.Button{Text: locales.DashboardWidgetViewAll(cx), Variant: ui.ButtonGhost, Size: ui.SizeSmall,
 				OnPress: func() { active.Set(ScreenActivities) }, TestID: "dashboard-recent-view-all"},
 		}},

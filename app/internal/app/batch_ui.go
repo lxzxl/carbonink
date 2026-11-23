@@ -176,12 +176,8 @@ func (s *Session) batchCard(cx *core.Scope) core.Node {
 	if b == nil {
 		return nil
 	}
-	style := ui.CardStyle(cx)
-	style.Direction = core.Row
-	style.AlignItems = core.AlignCenter
-	style.Gap = 10
-	style.Padding = core.Symmetric(10, 12)
-	style.Wrap = core.Wrap
+	style := core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 10,
+		Padding: core.Symmetric(10, 12), Wrap: core.Wrap}
 
 	switch {
 	case b.running:
@@ -192,7 +188,7 @@ func (s *Session) batchCard(cx *core.Scope) core.Node {
 		if b.failed > 0 {
 			text += " · " + strconv.Itoa(b.failed) + " × " + locales.DocumentsBatchReasonError(cx)
 		}
-		return core.View{Style: style, Children: []core.Node{
+		return core.View{Style: style, StyleFunc: cardSurface(cx), Children: []core.Node{
 			core.Text{Content: text, Style: core.Style{FontSize: 12, FlexGrow: 1},
 				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2},
 			ui.Button{Text: locales.DocumentsBatchCancel(cx), Variant: ui.ButtonSecondary,
@@ -220,14 +216,14 @@ func (s *Session) batchCard(cx *core.Scope) core.Node {
 		finished := style
 		finished.Direction = core.Column
 		finished.AlignItems = core.AlignStretch
-		return core.View{Style: finished, Children: children}
+		return core.View{Style: finished, StyleFunc: cardSurface(cx), Children: children}
 	default:
 		docs := s.batchCandidates()
 		if len(docs) == 0 || !s.llmProvider(cx).Configured() {
 			return nil
 		}
 		count := strconv.Itoa(len(docs))
-		return core.View{Style: style, Children: []core.Node{
+		return core.View{Style: style, StyleFunc: cardSurface(cx), Children: []core.Node{
 			core.View{Style: core.Style{Gap: 2, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
 				Children: []core.Node{
 					core.Text{Content: locales.DocumentsBatchHint(cx, count),

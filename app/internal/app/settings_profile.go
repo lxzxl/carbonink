@@ -59,11 +59,6 @@ func (s *Session) organizationProfileCard(cx *core.Scope) core.Node {
 	reportStatus := core.NewSignal(cx, "")
 	reportFailed := core.NewSignal(cx, false)
 
-	ratio := core.NewSignal(cx,
-		strconv.FormatFloat(importOutlierRatio(ctx, s.db), 'f', -1, 64))
-	ratioStatus := core.NewSignal(cx, "")
-	ratioFailed := core.NewSignal(cx, false)
-
 	saveBasic := func() {
 		if s.organization == nil {
 			return
@@ -109,32 +104,11 @@ func (s *Session) organizationProfileCard(cx *core.Scope) core.Node {
 			reportStatus.Set(err.Error())
 		}
 	}
-	saveRatio := func() {
-		parsed, err := strconv.ParseFloat(strings.TrimSpace(ratio.Get()), 64)
-		if err != nil || parsed < minImportOutlierRatio || parsed > maxImportOutlierRatio {
-			ratioFailed.Set(true)
-			ratioStatus.Set(locales.SettingsImportOutlierInvalid(cx))
-			return
-		}
-		if err := s.db.SetSetting(ctx, importOutlierRatioKey,
-			strconv.FormatFloat(parsed, 'f', -1, 64)); err != nil {
-			ratioFailed.Set(true)
-			ratioStatus.Set(locales.SettingsSaveFailed(cx))
-			return
-		}
-		ratioFailed.Set(false)
-		ratioStatus.Set(locales.SettingsImportOutlierSaved(cx))
-	}
-
 	baseOptions := []ui.Option[string]{{Value: "", Label: locales.SettingsBaseYearNone(cx)}}
 	for _, period := range s.periods {
 		baseOptions = append(baseOptions, ui.Option[string]{
 			Value: period.ID, Label: strconv.Itoa(period.Year),
 		})
-	}
-	ratioValid := func() bool {
-		parsed, err := strconv.ParseFloat(strings.TrimSpace(ratio.Get()), 64)
-		return err == nil && parsed >= minImportOutlierRatio && parsed <= maxImportOutlierRatio
 	}
 	statusLine := func(message *core.Signal[string], failed *core.Signal[bool]) core.Node {
 		return core.Show{When: func() bool { return message.Get() != "" },
@@ -157,7 +131,7 @@ func (s *Session) organizationProfileCard(cx *core.Scope) core.Node {
 		dataHeading(cx, locales.SettingsOrgProfileHeading(cx), locales.SettingsOrgProfileSubheading(cx)),
 
 		sectionHeading(locales.SettingsOrgBasicHeading),
-		core.View{Style: core.Style{Direction: core.Row, Gap: 8}, Children: []core.Node{
+		dataColumns(cx, 8,
 			core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{
 				dataField(cx, locales.OnboardingStepCompanyNameZh(cx),
 					ui.Input{Value: zh.Get, OnChange: zh.Set, TestID: "org-profile-zh"}),
@@ -166,8 +140,8 @@ func (s *Session) organizationProfileCard(cx *core.Scope) core.Node {
 				dataField(cx, locales.OnboardingStepCompanyNameEn(cx),
 					ui.Input{Value: en.Get, OnChange: en.Set, TestID: "org-profile-en"}),
 			}},
-		}},
-		core.View{Style: core.Style{Direction: core.Row, Gap: 8}, Children: []core.Node{
+		),
+		dataColumns(cx, 8,
 			core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{
 				dataField(cx, locales.OnboardingStepCompanyIndustry(cx),
 					ui.Input{Value: industry.Get, OnChange: industry.Set, TestID: "org-profile-industry"}),
@@ -176,9 +150,9 @@ func (s *Session) organizationProfileCard(cx *core.Scope) core.Node {
 				dataField(cx, locales.OnboardingStepCompanyCountry(cx),
 					ui.Input{Value: country.Get, OnChange: country.Set, TestID: "org-profile-country"}),
 			}},
-		}},
+		),
 		core.View{Style: core.Style{Direction: core.Row, JustifyContent: core.JustifyEnd}, Children: []core.Node{
-			ui.Button{Text: locales.SettingsReportingProfileSave(cx), OnPress: saveBasic,
+			ui.Button{Text: locales.SettingsOrgBasicSave(cx), OnPress: saveBasic,
 				TestID: "org-profile-save-basic"},
 		}},
 		statusLine(basicStatus, basicFailed),
@@ -187,8 +161,8 @@ func (s *Session) organizationProfileCard(cx *core.Scope) core.Node {
 		dataField(cx, locales.SettingsBoundaryLabel(cx),
 			ui.Select[string]{Options: dataBoundaryOptions(cx), Value: boundary.Get,
 				OnChange: boundary.Set, Label: locales.SettingsBoundaryLabel(cx),
-				TestID: "org-profile-boundary"}),
-		core.View{Style: core.Style{Direction: core.Row, Gap: 8}, Children: []core.Node{
+				TestID: "org-profile-boundary", Style: core.Style{Width: core.Pct(100)}}),
+		dataColumns(cx, 8,
 			core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{
 				dataField(cx, locales.SettingsResponsibleNameLabel(cx),
 					ui.Input{Value: responsible.Get, OnChange: responsible.Set,
@@ -198,40 +172,73 @@ func (s *Session) organizationProfileCard(cx *core.Scope) core.Node {
 				dataField(cx, locales.SettingsResponsibleRoleLabel(cx),
 					ui.Input{Value: role.Get, OnChange: role.Set, TestID: "org-profile-resp-role"}),
 			}},
-		}},
+		),
 		dataField(cx, locales.SettingsBaseYearLabel(cx),
 			ui.Select[string]{Options: baseOptions, Value: baseYear.Get, OnChange: baseYear.Set,
-				Label: locales.SettingsBaseYearLabel(cx), TestID: "org-profile-base-year"}),
+				Label: locales.SettingsBaseYearLabel(cx), TestID: "org-profile-base-year",
+				Style: core.Style{Width: core.Pct(100)}}),
 		core.View{Style: core.Style{Direction: core.Row, JustifyContent: core.JustifyEnd}, Children: []core.Node{
-			ui.Button{Text: locales.SettingsReportingProfileSave(cx), OnPress: saveReporting,
+			ui.Button{Text: locales.SettingsOrgReportingSave(cx), OnPress: saveReporting,
 				TestID: "org-profile-save-reporting"},
 		}},
 		statusLine(reportStatus, reportFailed),
+	)
+}
 
-		core.View{Style: core.Style{Gap: 4, Padding: core.Symmetric(10, 0),
-			Borders: core.Edges{Top: 1}}, StyleFunc: func() core.Style {
-			return core.Style{BorderColor: ui.ColorsOf(cx).Line()}
-		}, Children: []core.Node{
-			sectionHeading(locales.SettingsImportOutlierHeading),
-			core.Text{ContentFunc: func() string { return locales.SettingsImportOutlierBody(cx) },
-				Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignEnd, Gap: 8},
-				Children: []core.Node{
-					core.View{Style: core.Style{Width: core.Pt(120)}, Children: []core.Node{
-						dataField(cx, locales.SettingsImportOutlierLabel(cx),
-							ui.Input{Value: ratio.Get, OnChange: ratio.Set, MaxLength: 6,
-								TestID: "import-outlier-ratio"}),
-					}},
-					ui.Button{Text: locales.SettingsReportingProfileSave(cx),
-						Disabled: func() bool { return !ratioValid() },
-						OnPress:  saveRatio, TestID: "import-outlier-save"},
-				}},
-			core.Show{When: func() bool { return ratio.Get() != "" && !ratioValid() },
-				Then: func(cx *core.Scope) core.Node {
-					return core.Text{Content: locales.SettingsImportOutlierInvalid(cx),
-						Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)}
-				}},
-			statusLine(ratioStatus, ratioFailed),
-		}},
+// importSettingsCard tunes how batch imports flag suspicious rows. It sits
+// with the data settings, not in the organization's ISO profile.
+func (s *Session) importSettingsCard(cx *core.Scope) core.Node {
+	ctx := context.Background()
+	ratio := core.NewSignal(cx,
+		strconv.FormatFloat(importOutlierRatio(ctx, s.db), 'f', -1, 64))
+	status := core.NewSignal(cx, "")
+	failed := core.NewSignal(cx, false)
+	valid := func() bool {
+		parsed, err := strconv.ParseFloat(strings.TrimSpace(ratio.Get()), 64)
+		return err == nil && parsed >= minImportOutlierRatio && parsed <= maxImportOutlierRatio
+	}
+	save := func() {
+		parsed, err := strconv.ParseFloat(strings.TrimSpace(ratio.Get()), 64)
+		if err != nil || parsed < minImportOutlierRatio || parsed > maxImportOutlierRatio {
+			failed.Set(true)
+			status.Set(locales.SettingsImportOutlierInvalid(cx))
+			return
+		}
+		if err := s.db.SetSetting(ctx, importOutlierRatioKey,
+			strconv.FormatFloat(parsed, 'f', -1, 64)); err != nil {
+			failed.Set(true)
+			status.Set(locales.SettingsSaveFailed(cx))
+			return
+		}
+		failed.Set(false)
+		status.Set(locales.SettingsImportOutlierSaved(cx))
+	}
+
+	return dataCard(cx,
+		dataHeading(cx, locales.SettingsImportOutlierHeading(cx), ""),
+		core.Text{ContentFunc: func() string { return locales.SettingsImportOutlierBody(cx) },
+			Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+		dataHeaderRow(cx,
+			dataField(cx, locales.SettingsImportOutlierLabel(cx),
+				ui.Input{Value: ratio.Get, OnChange: ratio.Set, MaxLength: 6,
+					TestID: "import-outlier-ratio"}),
+			ui.Button{Text: locales.SettingsImportOutlierSave(cx),
+				Disabled: func() bool { return !valid() },
+				OnPress:  save, TestID: "import-outlier-save"}),
+		core.Show{When: func() bool { return ratio.Get() != "" && !valid() },
+			Then: func(cx *core.Scope) core.Node {
+				return core.Text{Content: locales.SettingsImportOutlierInvalid(cx),
+					Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)}
+			}},
+		core.Show{When: func() bool { return status.Get() != "" },
+			Then: func(cx *core.Scope) core.Node {
+				return core.Text{ContentFunc: func() string { return status.Get() },
+					Style: core.Style{FontSize: 11}, StyleFunc: func() core.Style {
+						if failed.Get() {
+							return ui.Colored(ui.ColorsOf(cx).Danger)()
+						}
+						return ui.Colored(ui.ColorsOf(cx).Muted)()
+					}}
+			}},
 	)
 }

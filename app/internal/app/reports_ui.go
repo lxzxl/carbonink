@@ -305,42 +305,59 @@ func (s *Session) reportsScreen(cx *core.Scope, dataRev *core.Signal[int],
 	}
 
 	controls := dataCard(cx,
-		dataHeading(cx, locales.ReportsListHeading(cx), locales.ReportsListSubheading(cx)),
-		core.View{Style: core.Style{Direction: core.Row, Gap: 12, AlignItems: core.AlignEnd},
-			Children: []core.Node{
-				core.View{Style: core.Style{Gap: 4, FlexGrow: 1, FlexBasis: core.Pt(0)}, Children: []core.Node{
-					core.Text{Content: locales.ReportsPeriodLabel(cx),
-						Style:     core.Style{FontSize: 12, FontWeight: ui.Semibold},
-						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-					ui.Select[string]{Options: periodOptions, Value: state.period.Get,
-						Placeholder: locales.ReportsNoPeriods(cx),
-						OnChange: func(next string) {
-							state.period.Set(next)
-							invalidate()
-						},
-						TestID: "reports-period"},
-				}},
-				core.View{Style: core.Style{Gap: 4, FlexGrow: 2, FlexBasis: core.Pt(0)}, Children: []core.Node{
-					core.Text{Content: locales.ReportsKindLabel(cx),
-						Style:     core.Style{FontSize: 12, FontWeight: ui.Semibold},
-						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-					ui.Select[string]{Options: kindOptions, Value: state.kind.Get,
-						OnChange: func(next string) {
-							state.kind.Set(next)
-							invalidate()
-						}, TestID: "reports-kind"},
-				}},
-				core.View{Style: core.Style{Gap: 4}, Children: []core.Node{
-					core.Text{Content: locales.ReportsLangLabel(cx),
-						Style:     core.Style{FontSize: 12, FontWeight: ui.Semibold},
-						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-					ui.Select[string]{Options: languageOptions, Value: state.language.Get,
-						OnChange: state.language.Set, TestID: "reports-language"},
-				}},
+		dataHeading(cx, locales.ReportsListHeading(cx), ""),
+		dataColumns(cx, 12,
+			core.View{StyleFunc: func() core.Style {
+				if cx.Env().Window().Width < 900 {
+					return core.Style{Gap: 4}
+				}
+				return core.Style{Gap: 4, FlexGrow: 1, FlexBasis: core.Pt(0)}
+			}, Children: []core.Node{
+				core.Text{Content: locales.ReportsPeriodLabel(cx),
+					Style:     core.Style{FontSize: 12, FontWeight: ui.Semibold},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+				ui.Select[string]{Options: periodOptions, Value: state.period.Get,
+					Placeholder: locales.ReportsNoPeriods(cx),
+					OnChange: func(next string) {
+						state.period.Set(next)
+						invalidate()
+					},
+					TestID: "reports-period", Style: core.Style{Width: core.Pct(100)}},
 			}},
-		ui.Button{Text: locales.ReportsGenerateButton(cx), OnPress: generate,
-			Busy: state.busy.Get, Disabled: func() bool { return len(periodOptions) == 0 },
-			TestID: "reports-generate"},
+			core.View{StyleFunc: func() core.Style {
+				if cx.Env().Window().Width < 900 {
+					return core.Style{Gap: 4}
+				}
+				return core.Style{Gap: 4, FlexGrow: 2, FlexBasis: core.Pt(0)}
+			}, Children: []core.Node{
+				core.Text{Content: locales.ReportsKindLabel(cx),
+					Style:     core.Style{FontSize: 12, FontWeight: ui.Semibold},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+				ui.Select[string]{Options: kindOptions, Value: state.kind.Get,
+					OnChange: func(next string) {
+						state.kind.Set(next)
+						invalidate()
+					}, TestID: "reports-kind", Style: core.Style{Width: core.Pct(100)}},
+			}},
+			core.View{StyleFunc: func() core.Style {
+				if cx.Env().Window().Width < 900 {
+					return core.Style{Gap: 4}
+				}
+				return core.Style{Gap: 4, FlexGrow: 1, FlexBasis: core.Pt(0)}
+			}, Children: []core.Node{
+				core.Text{Content: locales.ReportsLangLabel(cx),
+					Style:     core.Style{FontSize: 12, FontWeight: ui.Semibold},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+				ui.Select[string]{Options: languageOptions, Value: state.language.Get,
+					OnChange: state.language.Set, TestID: "reports-language",
+					Style: core.Style{Width: core.Pct(100)}},
+			}},
+		),
+		core.View{Style: core.Style{Direction: core.Row, JustifyContent: core.JustifyEnd}, Children: []core.Node{
+			ui.Button{Text: locales.ReportsGenerateButton(cx), OnPress: generate,
+				Busy: state.busy.Get, Disabled: func() bool { return len(periodOptions) == 0 },
+				TestID: "reports-generate"},
+		}},
 		core.Show{When: func() bool { return state.status.Get() != "" },
 			Then: func(cx *core.Scope) core.Node {
 				return core.Text{ContentFunc: func() string { return state.status.Get() },
@@ -359,10 +376,7 @@ func (s *Session) reportsScreen(cx *core.Scope, dataRev *core.Signal[int],
 		generated := state.generated.Get()
 		if generated == nil {
 			return dataCard(cx,
-				core.Text{Content: locales.ReportsPreviewHeading(cx),
-					Style: core.Style{FontSize: 14, FontWeight: ui.Semibold}},
-				core.Text{Content: locales.ReportsPreviewHint(cx), Style: core.Style{FontSize: 12},
-					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
+				dataEmptyState(cx, locales.ReportsPreviewHeading(cx), locales.ReportsPreviewHint(cx)))
 		}
 		data := generated.Data
 		stat := func(label string, value float64) core.Node {
@@ -396,7 +410,12 @@ func (s *Session) reportsScreen(cx *core.Scope, dataRev *core.Signal[int],
 		return core.View{Style: core.Style{Gap: 12}, Children: []core.Node{
 			guide.node(s, func() bool { return true }),
 			dataCard(cx,
-				core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 12},
+				core.View{StyleFunc: func() core.Style {
+					if cx.Env().Window().Width < 900 {
+						return core.Style{Gap: 10}
+					}
+					return core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 12}
+				},
 					Children: []core.Node{
 						core.View{Children: logoPreview(generated)},
 						core.View{Style: core.Style{Gap: 2, FlexGrow: 1}, Children: []core.Node{
@@ -406,21 +425,24 @@ func (s *Session) reportsScreen(cx *core.Scope, dataRev *core.Signal[int],
 								Style:     core.Style{FontSize: 12},
 								StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 						}},
-						ui.Button{Text: locales.ReportsExportPdfButton(cx), Variant: ui.ButtonSecondary,
-							OnPress: func() { export("pdf") }, Busy: state.exportBusy.Get,
-							TestID: "reports-export-pdf"},
-						ui.Button{Text: locales.ReportsExportXlsxButton(cx), Variant: ui.ButtonSecondary,
-							OnPress: func() { export("xlsx") }, Busy: state.exportBusy.Get,
-							TestID: "reports-export-xlsx"},
-						ui.Button{Text: locales.ReportsExportBothButton(cx),
-							OnPress: func() { export("both") }, Busy: state.exportBusy.Get,
-							TestID: "reports-export-both"},
-						ui.Button{Text: locales.ReportsExportDeliverableButton(cx),
-							Variant: ui.ButtonSecondary,
-							OnPress: func() { exportDeliverable() }, Busy: state.exportBusy.Get,
-							TestID: "reports-export-deliverable"},
+						core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+							Wrap: core.Wrap, Gap: 8}, Children: []core.Node{
+							ui.Button{Text: locales.ReportsExportPdfButton(cx), Variant: ui.ButtonSecondary,
+								OnPress: func() { export("pdf") }, Busy: state.exportBusy.Get,
+								TestID: "reports-export-pdf"},
+							ui.Button{Text: locales.ReportsExportXlsxButton(cx), Variant: ui.ButtonSecondary,
+								OnPress: func() { export("xlsx") }, Busy: state.exportBusy.Get,
+								TestID: "reports-export-xlsx"},
+							ui.Button{Text: locales.ReportsExportBothButton(cx),
+								OnPress: func() { export("both") }, Busy: state.exportBusy.Get,
+								TestID: "reports-export-both"},
+							ui.Button{Text: locales.ReportsExportDeliverableButton(cx),
+								Variant: ui.ButtonSecondary,
+								OnPress: func() { exportDeliverable() }, Busy: state.exportBusy.Get,
+								TestID: "reports-export-deliverable"},
+						}},
 					}},
-				core.View{Style: core.Style{Direction: core.Row, Gap: 16}, Children: []core.Node{
+				core.View{Style: core.Style{Direction: core.Row, Wrap: core.Wrap, Gap: 16}, Children: []core.Node{
 					stat(locales.DashboardScope1(cx), data.Totals.Scope1Kg),
 					stat(locales.DashboardScope2(cx), data.Totals.Scope2Kg),
 					stat(locales.DashboardScope3(cx), data.Totals.Scope3Kg),

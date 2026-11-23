@@ -35,7 +35,12 @@ func (s *Session) aboutCard(cx *core.Scope) core.Node {
 		return app.Version
 	}
 
-	rowStyle := core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 12}
+	rowStyle := func() core.Style {
+		if cx.Env().Window().Width < 900 {
+			return core.Style{Gap: 3}
+		}
+		return core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 12}
+	}
 	label := func(text func(*core.Scope) string) core.Node {
 		return core.Text{ContentFunc: func() string { return text(cx) },
 			Style:     core.Style{FontSize: 12, Width: core.Pt(96)},
@@ -46,7 +51,7 @@ func (s *Session) aboutCard(cx *core.Scope) core.Node {
 			Style: core.Style{FontSize: 12, FlexShrink: 1}}
 	}
 	row := func(testID string, labelText func(*core.Scope) string, valueText func(*core.Scope) string) core.Node {
-		return core.View{TestID: testID, Style: rowStyle,
+		return core.View{TestID: testID, StyleFunc: rowStyle,
 			Children: []core.Node{label(labelText), value(valueText)}}
 	}
 
@@ -100,18 +105,20 @@ func (s *Session) aboutCard(cx *core.Scope) core.Node {
 			Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint), MaxLines: 2},
 		core.Text{ContentFunc: func() string { return locales.SettingsAboutOpenLogDirHint(cx) },
 			Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint), MaxLines: 2},
-		core.View{TestID: "settings-about-support", Style: rowStyle, Children: []core.Node{
+		core.View{TestID: "settings-about-support", StyleFunc: rowStyle, Children: []core.Node{
 			label(locales.SettingsAboutSupportLabel),
-			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8},
+			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+				Wrap: core.Wrap, Gap: 8},
 				Children: []core.Node{
 					value(locales.SettingsAboutSupportEmail),
 					ui.Button{Text: locales.SettingsAboutCopy(cx), Variant: ui.ButtonSecondary,
 						OnPress: copied, TestID: "settings-about-support-copy"},
 				}},
 		}},
-		core.View{TestID: "settings-about-website", Style: rowStyle, Children: []core.Node{
+		core.View{TestID: "settings-about-website", StyleFunc: rowStyle, Children: []core.Node{
 			label(locales.SettingsAboutWebsiteLabel),
-			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8},
+			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+				Wrap: core.Wrap, Gap: 8},
 				Children: []core.Node{
 					value(locales.SettingsAboutWebsiteUrl),
 					ui.Button{Text: locales.SettingsAboutOpenWebsite(cx), Variant: ui.ButtonSecondary,

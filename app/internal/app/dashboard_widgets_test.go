@@ -13,24 +13,23 @@ import (
 )
 
 func TestBuildMonthBucketsWindowAndSums(t *testing.T) {
-	now := time.Date(2026, 11, 21, 12, 0, 0, 0, time.UTC)
 	activities := []store.Activity{
 		{OccurredAtEnd: "2026-11-03", CO2eKg: 10.5},
 		{OccurredAtEnd: "2026-10-31", CO2eKg: 4},
 		{OccurredAtEnd: "2025-10-31", CO2eKg: 99},
 		{OccurredAtEnd: "not-a-date", CO2eKg: 1},
 	}
-	buckets := buildMonthBuckets(activities, now)
+	buckets := buildMonthBuckets(activities, 2026)
 	if len(buckets) != 12 {
 		t.Fatalf("buckets = %d, want 12", len(buckets))
 	}
-	if first, last := buckets[0].label, buckets[11].label; first != "2025-12" || last != "2026-11" {
-		t.Errorf("window = %s..%s, want 2025-12..2026-11", first, last)
+	if first, last := buckets[0].label, buckets[11].label; first != "2026-01" || last != "2026-12" {
+		t.Errorf("window = %s..%s, want 2026-01..2026-12", first, last)
 	}
-	if got := buckets[11].total; got != 10.5 {
+	if got := buckets[10].total; got != 10.5 {
 		t.Errorf("November total = %v, want 10.5", got)
 	}
-	if got := buckets[10].total; got != 4 {
+	if got := buckets[9].total; got != 4 {
 		t.Errorf("October total = %v, want 4", got)
 	}
 	sum := 0.0
@@ -70,7 +69,7 @@ func TestDashboardShowsTrendAndRecentActivities(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	today := time.Now().Format("2006-01-02")
+	today := "2025-11-21"
 	if _, err := db.DB().ExecContext(ctx,
 		`UPDATE activity_data SET occurred_at_start = ?, occurred_at_end = ?`, today, today); err != nil {
 		db.Close()
@@ -87,7 +86,7 @@ func TestDashboardShowsTrendAndRecentActivities(t *testing.T) {
 	ui.Press("id:nav:dashboard")
 
 	ui.WaitFor("id:dashboard-monthly-trend", 5*time.Second)
-	ui.WaitFor("id:dashboard-trend-"+time.Now().Format("2006-01"), 5*time.Second)
+	ui.WaitFor("id:dashboard-trend-2025-11", 5*time.Second)
 	ui.WaitFor("id:dashboard-recent", 5*time.Second)
 	ui.WaitFor("text:外购电力", 3*time.Second)
 	ui.WaitFor("text:120.00 kg CO2e", 3*time.Second)
