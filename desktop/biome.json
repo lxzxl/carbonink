@@ -52,6 +52,8 @@
       "!**/node_modules",
       "!**/dist",
       "!**/out",
+      "!**/test-results",
+      "!**/src/paraglide",
       "!**/src/renderer/paraglide",
       "!**/src/renderer/routeTree.gen.ts"
     ]
