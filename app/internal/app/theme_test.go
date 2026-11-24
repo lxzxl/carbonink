@@ -52,4 +52,13 @@ func TestCarbonInkThemeUses1xEmerald(t *testing.T) {
 	if got, want := theme.Dark.Colors["inset"], core.RGB(sidebarDark); got != want {
 		t.Fatalf("dark inset = %v, want %v", got, want)
 	}
+	if theme.Light.SurfaceHover == theme.Light.Colors["selectionTint"] {
+		t.Fatal("light hover and selection tint must remain visually distinct")
+	}
+	if theme.Dark.SurfaceHover == theme.Dark.Colors["selectionTint"] {
+		t.Fatal("dark hover and selection tint must remain visually distinct")
+	}
+	if theme.Light.Colors["selectionHoverTint"] == 0 || theme.Dark.Colors["selectionHoverTint"] == 0 {
+		t.Fatal("selectionHoverTint must be configured in both light and dark themes")
+	}
 }

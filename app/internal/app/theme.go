@@ -76,6 +76,12 @@ func selectionTint(cx *core.Scope) core.Color {
 	return cx.Palette().Colors["selectionTint"]
 }
 
+// selectionHoverTint is the slightly deeper fill used when hovering an already
+// selected row, preventing selection feedback from washing out under the pointer.
+func selectionHoverTint(cx *core.Scope) core.Color {
+	return cx.Palette().Colors["selectionHoverTint"]
+}
+
 // cardSurface is a card's palette colors as a dynamic style, so the card
 // follows a light/dark switch instead of freezing the palette it was built
 // under.
@@ -92,8 +98,8 @@ func carboninkTheme() *core.Theme {
 
 	t.Light.Background = core.RGB(0xffffff)
 	t.Light.Surface = core.RGB(0xffffff)
-	t.Light.SurfaceHover = core.RGBA(foreground, 0.05)
-	t.Light.SurfacePressed = core.RGBA(foreground, 0.10)
+	t.Light.SurfaceHover = core.RGBA(foreground, 0.04)
+	t.Light.SurfacePressed = core.RGBA(foreground, 0.12)
 	t.Light.Border = core.RGB(border)
 	t.Light.Text = core.RGB(foreground)
 	t.Light.TextMuted = core.RGB(muted)
@@ -120,7 +126,8 @@ func carboninkTheme() *core.Theme {
 		"accentFill":                 core.RGB(primary),
 		"accentInk":                  core.RGB(primaryInk),
 		"accentTint":                 core.RGB(primaryTint),
-		"selectionTint":              core.RGBA(foreground, 0.06),
+		"selectionTint":              core.RGBA(foreground, 0.08),
+		"selectionHoverTint":         core.RGBA(foreground, 0.10),
 		"primary":                    core.RGB(primary),
 		"primary-foreground":         core.RGB(0xfdfcf8),
 		"ring":                       core.RGB(primary),
@@ -151,8 +158,8 @@ func carboninkTheme() *core.Theme {
 
 	t.Dark.Background = core.RGB(pageDark)
 	t.Dark.Surface = core.RGB(surfaceDark)
-	t.Dark.SurfaceHover = core.RGBA(foregroundDark, 0.08)
-	t.Dark.SurfacePressed = core.RGBA(foregroundDark, 0.14)
+	t.Dark.SurfaceHover = core.RGBA(foregroundDark, 0.05)
+	t.Dark.SurfacePressed = core.RGBA(foregroundDark, 0.16)
 	t.Dark.Border = core.RGB(borderDark)
 	t.Dark.Text = core.RGB(foregroundDark)
 	t.Dark.TextMuted = core.RGB(mutedDark)
@@ -180,7 +187,8 @@ func carboninkTheme() *core.Theme {
 		"accentFill":                 core.RGB(primaryDark),
 		"accentInk":                  core.RGB(primaryDark),
 		"accentTint":                 core.RGB(primaryDarkTint),
-		"selectionTint":              core.RGBA(foregroundDark, 0.08),
+		"selectionTint":              core.RGBA(foregroundDark, 0.10),
+		"selectionHoverTint":         core.RGBA(foregroundDark, 0.13),
 		"primary":                    core.RGB(primaryDark),
 		"primary-foreground":         core.RGB(pageDark),
 		"ring":                       core.RGB(primaryDark),

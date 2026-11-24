@@ -55,6 +55,7 @@ func dataClickableRowBordered(cx *core.Scope, testID string, onPress func(),
 			}
 			if selected != nil && selected() {
 				style.Background = selectionTint(cx)
+				style.Hover = &core.Style{Background: selectionHoverTint(cx)}
 			}
 			return style
 		},

@@ -288,3 +288,87 @@ func TestActivityDocumentProvenanceIsLink(t *testing.T) {
 		t.Fatalf("provenance text MaxLines = %d, want 1", text.MaxLines)
 	}
 }
+
+func TestActivityListRowHoverAndSelection(t *testing.T) {
+	dbPath := fixtureDB(t)
+	seedSecondActivity(t, dbPath)
+	t.Setenv("CARBONINK_TEST_DB", dbPath)
+	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
+		nsgotest.Environment(core.Environment{Locale: "en-US"}))
+	ui.WaitFor("id:activities-table", 5*time.Second)
+	ui.WaitFor("id:activities-table >> text:柴油", 3*time.Second)
+	ui.WaitFor("id:activities-table >> text:外购电力", 3*time.Second)
+
+	rows := ui.Query("id:activities-table >> role:option")
+	if len(rows) != 2 {
+		t.Fatalf("expected 2 activity rows, got %d", len(rows))
+	}
+	for i, cell := range rows {
+		if len(cell.Children) == 0 {
+			t.Fatalf("row %d has no child view", i)
+		}
+		inner := cell.Children[0]
+		if inner.Frame.Origin.X != 0 || inner.Frame.Origin.Y != 0 {
+			t.Fatalf("row %d inner origin = %v, want (0, 0) flush with option cell", i, inner.Frame.Origin)
+		}
+		if inner.Frame.Size != cell.Frame.Size {
+			t.Fatalf("row %d inner size = %v, want %v matching option cell", i, inner.Frame.Size, cell.Frame.Size)
+		}
+		if inner.Style.Background != 0 {
+			t.Fatalf("row %d should have transparent resting background, got %v", i, inner.Style.Background)
+		}
+	}
+
+	// Hover the first row (柴油): hover tint applies and outline stays off.
+	ui.Hover("id:activities-table >> role:option >> text:柴油")
+	dieselRow, powerRow, ok := optionRows(ui)
+	if !ok {
+		t.Fatal("failed to locate diesel and power rows")
+	}
+	hoverBg := dieselRow.Children[0].Style.Background
+	if hoverBg == 0 {
+		t.Fatal("expected hovered row to apply background tint")
+	}
+	if powerRow.Children[0].Style.Background != 0 {
+		t.Fatalf("unhovered row should stay transparent, got %v", powerRow.Children[0].Style.Background)
+	}
+
+	// Click to select the first row: selected fill applies without mouse-focus ring.
+	ui.HoverOut()
+	ui.Press("id:activities-table >> role:option >> text:柴油")
+	dieselRow, powerRow, ok = optionRows(ui)
+	if !ok {
+		t.Fatal("failed to locate rows after selecting diesel")
+	}
+	if !dieselRow.Props.Selected {
+		t.Fatal("expected diesel row to be selected after press")
+	}
+	if dieselRow.Style.Outline.Width != 0 {
+		t.Fatalf("mouse click should not show focus outline, got width %v", dieselRow.Style.Outline.Width)
+	}
+	selectedBg := dieselRow.Children[0].Style.Background
+	if selectedBg == 0 {
+		t.Fatal("expected selected row to apply selection fill")
+	}
+	if selectedBg == hoverBg {
+		t.Fatalf("selected fill (%v) must be stronger/distinct from hover tint (%v)", selectedBg, hoverBg)
+	}
+	if powerRow.Children[0].Style.Background != 0 {
+		t.Fatalf("unselected row should stay transparent, got %v", powerRow.Children[0].Style.Background)
+	}
+
+	// Select the second row (外购电力): selection cleanly transfers.
+	ui.Press("id:activities-table >> role:option >> text:外购电力")
+	dieselRow, powerRow, ok = optionRows(ui)
+	if !ok {
+		t.Fatal("failed to locate rows after selecting power")
+	}
+	if dieselRow.Props.Selected || dieselRow.Children[0].Style.Background != 0 {
+		t.Fatalf("previous row should clear selection and fill (selected=%v bg=%v)",
+			dieselRow.Props.Selected, dieselRow.Children[0].Style.Background)
+	}
+	if !powerRow.Props.Selected || powerRow.Children[0].Style.Background != selectedBg {
+		t.Fatalf("second row should become selected with fill %v (selected=%v bg=%v)",
+			selectedBg, powerRow.Props.Selected, powerRow.Children[0].Style.Background)
+	}
+}

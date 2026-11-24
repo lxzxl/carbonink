@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"app.carbonink.desktop/internal/store"
 	"app.carbonink.desktop/locales"
@@ -431,15 +432,39 @@ func (s *Session) activitiesScreen(cx *core.Scope, dataRev *core.Signal[int],
 			}},
 		}
 		return core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 12,
-			Padding: core.Symmetric(12, 16), FlexGrow: 1, MinWidth: core.Pt(0)}, StyleFunc: func() core.Style {
+			Padding: core.Symmetric(12, 16), FlexGrow: 1, MinWidth: core.Pt(0),
+			Transition: core.Transition{Duration: 120 * time.Millisecond, Easing: core.EaseOut,
+				Properties: core.TransitionBackground}}, StyleFunc: func() core.Style {
 			colors := ui.ColorsOf(cx)
-			st := core.Style{Hover: &core.Style{Background: ui.Alpha(colors.Text(), 0.03)}}
+			st := core.Style{}
 			if row.Index() < len(visible.Get())-1 {
 				st.Borders = core.Edges{Bottom: 1}
 				st.BorderColor = colors.Line()
 			}
-			if current, ok := activity(); ok && current.ID == highlightID.Get() {
+			current, ok := activity()
+			isHighlighted := ok && current.ID == highlightID.Get()
+			isSelected := ok && selection.Has(current.ID)
+			switch {
+			case isHighlighted:
 				st.Background = ui.Alpha(colors.Warn(), 0.12)
+				st.GroupStyle = &core.GroupStyle{
+					Name:   "activity-row",
+					Hover:  &core.Style{Background: ui.Alpha(colors.Warn(), 0.16)},
+					Active: &core.Style{Background: ui.Alpha(colors.Warn(), 0.20)},
+				}
+			case isSelected:
+				st.Background = selectionTint(cx)
+				st.GroupStyle = &core.GroupStyle{
+					Name:   "activity-row",
+					Hover:  &core.Style{Background: selectionHoverTint(cx)},
+					Active: &core.Style{Background: colors.Pressed()},
+				}
+			default:
+				st.GroupStyle = &core.GroupStyle{
+					Name:   "activity-row",
+					Hover:  &core.Style{Background: colors.Hover()},
+					Active: &core.Style{Background: selectionTint(cx)},
+				}
 			}
 			return st
 		}, Children: children}
@@ -510,7 +535,7 @@ func (s *Session) activitiesScreen(cx *core.Scope, dataRev *core.Signal[int],
 
 	overlays := []core.Node{addDialog, importDialog, editDialog, rebindPanel.drawer(cx, s),
 		s.documentPreviewDialog(cx, preview), lineagePanel.drawer(cx, s)}
-	list := ui.List{
+	list := base.List{
 		TestID: "activities-table", Label: locales.ActivitiesTitle(cx),
 		Ref:   listRef,
 		Count: func() int { return len(visible.Get()) },
@@ -525,6 +550,7 @@ func (s *Session) activitiesScreen(cx *core.Scope, dataRev *core.Signal[int],
 		},
 		Selection: selection,
 		OnSelectionChange: func(chosen *ui.Selection) {
+			highlightID.Set("")
 			keys := chosen.Keys()
 			if len(keys) == 0 {
 				selectedID.Set("")
@@ -537,9 +563,21 @@ func (s *Session) activitiesScreen(cx *core.Scope, dataRev *core.Signal[int],
 		Empty:         listEmpty,
 		EstimatedSize: 80,
 		Style:         core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
+		StyleFunc:     func() core.Style { return core.Style{FocusVisible: ui.FocusRing(cx, 2)} },
 		ListStyle:     core.Style{Padding: core.All(0)},
-		RowStyle:     core.Style{Padding: core.All(0), CornerRadius: 0},
-		RowStyleFunc: func() core.Style { return core.Style{} },
+		ItemStyle: core.Style{
+			Group:      "activity-row",
+			Direction:  core.Row,
+			AlignItems: core.AlignStretch,
+			MinWidth:   core.Pt(0),
+			Cursor:     core.CursorPointer,
+		},
+		ItemStyleFunc: func() core.Style {
+			return core.Style{
+				Color:        ui.ColorsOf(cx).Text(),
+				FocusVisible: ui.FocusRing(cx, -2),
+			}
+		},
 	}
 	listFrame := core.View{
 		Style:     core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0), Overflow: core.Hidden},
