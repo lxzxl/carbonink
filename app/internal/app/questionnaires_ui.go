@@ -489,8 +489,8 @@ func (w *questionnaireWizard) dialog(cx *core.Scope, s *Session, dataRev *core.S
 				ui.Input{Value: w.year.Get, OnChange: w.year.Set,
 					TestID: "questionnaires-wizard-year"}, submit),
 			dataField(cx, locales.QuestionnairesWizardDue(cx),
-				ui.Input{Value: w.due.Get, OnChange: w.due.Set,
-					TestID: "questionnaires-wizard-due"}, submit),
+				appDatePicker(cx, locales.QuestionnairesWizardDue(cx), w.due.Get, w.due.Set,
+					"questionnaires-wizard-due", true)),
 		),
 		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8},
 			Children: []core.Node{

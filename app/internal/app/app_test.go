@@ -309,7 +309,7 @@ func TestImportActivitiesThroughUI(t *testing.T) {
 	}
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}))
-	ui.PickFiles = func(core.FilesRequest) []core.File {
+	ui.PickFiles = func(nsgotest.FilePick) []core.File {
 		return []core.File{{Name: "ledger.csv", Path: csvPath}}
 	}
 	ui.WaitFor("id:activities-table", 5*time.Second)
@@ -371,7 +371,7 @@ func TestImportActivitiesWithManualMapping(t *testing.T) {
 	}
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}))
-	ui.PickFiles = func(core.FilesRequest) []core.File {
+	ui.PickFiles = func(nsgotest.FilePick) []core.File {
 		return []core.File{{Name: "ledger.csv", Path: csvPath}}
 	}
 	ui.WaitFor("id:activities-table", 5*time.Second)
@@ -415,7 +415,7 @@ func TestImportActivitiesCreatesMissingSource(t *testing.T) {
 	}
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}))
-	ui.PickFiles = func(core.FilesRequest) []core.File {
+	ui.PickFiles = func(nsgotest.FilePick) []core.File {
 		return []core.File{{Name: "ledger.csv", Path: csvPath}}
 	}
 	ui.WaitFor("id:activities-table", 5*time.Second)
@@ -476,10 +476,10 @@ func TestImportEFLibraryThroughUI(t *testing.T) {
 	templatePath := filepath.Join(dir, "template.xlsx")
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}))
-	ui.PickFiles = func(core.FilesRequest) []core.File {
+	ui.PickFiles = func(nsgotest.FilePick) []core.File {
 		return []core.File{{Name: "factors.csv", Path: csvPath}}
 	}
-	ui.SaveFile = func(core.SaveRequest) string { return templatePath }
+	ui.SaveFile = func(nsgotest.FileSave) string { return templatePath }
 
 	openSettings(ui, "efLibrary")
 	ui.WaitFor("id:ef-library-import", 3*time.Second)
@@ -571,7 +571,7 @@ func TestAuditExportThroughUI(t *testing.T) {
 	savePath := filepath.Join(t.TempDir(), "audit.csv")
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}))
-	ui.SaveFile = func(core.SaveRequest) string { return savePath }
+	ui.SaveFile = func(nsgotest.FileSave) string { return savePath }
 	ui.WaitFor("id:activities-table", 5*time.Second)
 	ui.Press("id:activity-add")
 	ui.WaitFor("id:activity-dialog", 2*time.Second)
@@ -759,7 +759,7 @@ func TestUploadDocumentsThroughUI(t *testing.T) {
 	}
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}))
-	ui.PickFiles = func(core.FilesRequest) []core.File {
+	ui.PickFiles = func(nsgotest.FilePick) []core.File {
 		return []core.File{
 			{Name: "bill.pdf", Path: pdfPath},
 			{Name: "bill-copy.pdf", Path: pdfPath},
@@ -835,7 +835,7 @@ func TestPreviewImageThroughUI(t *testing.T) {
 
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}))
-	ui.PickFiles = func(core.FilesRequest) []core.File {
+	ui.PickFiles = func(nsgotest.FilePick) []core.File {
 		return []core.File{{Name: "meter.png", Path: photoPath}}
 	}
 	ui.Press("id:nav:documents")
@@ -887,7 +887,7 @@ func TestRunDocumentExtractionThroughUI(t *testing.T) {
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}),
 		nsgotest.Secrets(map[string]string{llmSecretAccount: "test-key"}))
-	ui.PickFiles = func(core.FilesRequest) []core.File {
+	ui.PickFiles = func(nsgotest.FilePick) []core.File {
 		return []core.File{{Name: "bill.pdf", Path: pdfPath}}
 	}
 	configureLLMEndpoint(t, ui, srv.URL)
@@ -984,7 +984,7 @@ func TestRunDocumentExtractionVisionThroughUI(t *testing.T) {
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}),
 		nsgotest.Secrets(map[string]string{llmSecretAccount: "test-key"}))
-	ui.PickFiles = func(core.FilesRequest) []core.File {
+	ui.PickFiles = func(nsgotest.FilePick) []core.File {
 		return []core.File{{Name: "scan.pdf", Path: pdfPath}}
 	}
 	configureLLMEndpoint(t, ui, srv.URL)
@@ -1050,7 +1050,7 @@ func TestBatchExtractionThroughUI(t *testing.T) {
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}),
 		nsgotest.Secrets(map[string]string{llmSecretAccount: "test-key"}))
-	ui.PickFiles = func(core.FilesRequest) []core.File {
+	ui.PickFiles = func(nsgotest.FilePick) []core.File {
 		return []core.File{
 			{Name: "bill.pdf", Path: textPath},
 			{Name: "scan.pdf", Path: scanPath},
@@ -1160,7 +1160,7 @@ func TestBatchExtractionCancelThroughUI(t *testing.T) {
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}),
 		nsgotest.Secrets(map[string]string{llmSecretAccount: "test-key"}))
-	ui.PickFiles = func(core.FilesRequest) []core.File {
+	ui.PickFiles = func(nsgotest.FilePick) []core.File {
 		return []core.File{{Name: "bill.pdf", Path: pdfPath}}
 	}
 	configureLLMEndpoint(t, ui, srv.URL)

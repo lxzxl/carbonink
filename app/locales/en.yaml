@@ -317,6 +317,7 @@ dataSources: Emission sources
 dataSourcesCount: '{count} sources'
 dataSourcesCountOne: '{count} source'
 dataSourcesSubtitle: What the inventory records emissions against — by site, scope, and category.
+datePickerPlaceholder: Select a date…
 documentsAiRequiredBody: Carbonink needs an AI provider to read documents. Set one up in Settings — you'll need an API key from your provider (OpenAI / Anthropic / Azure / DeepSeek, or any OpenAI-compatible endpoint).
 documentsAiRequiredCta: Open Settings
 documentsAiRequiredTitle: AI provider not configured

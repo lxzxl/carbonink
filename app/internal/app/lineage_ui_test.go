@@ -35,7 +35,7 @@ func TestActivityLineagePanelAndEvidence(t *testing.T) {
 	if err := os.WriteFile(evidencePath, []byte("%PDF-1.4\nmeter reading\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	ui.PickFiles = func(core.FilesRequest) []core.File {
+	ui.PickFiles = func(nsgotest.FilePick) []core.File {
 		return []core.File{{Name: "meter.pdf", Path: evidencePath}}
 	}
 	ui.Press("id:lineage-evidence-add")

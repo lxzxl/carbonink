@@ -152,6 +152,53 @@ func dataEnterToSubmit(input core.Node, submit func()) core.Node {
 	return in
 }
 
+// parseDateValue parses an ISO date or RFC3339 timestamp into a single-date
+// base.DateValue at midnight UTC. Blank or unparseable values yield zero.
+func parseDateValue(raw string) base.DateValue {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return base.DateValue{}
+	}
+	if d, ok := base.ParseISODate(trimmed); ok {
+		return base.DateValue{Start: d}
+	}
+	for _, layout := range []string{time.RFC3339Nano, time.RFC3339} {
+		if t, err := time.Parse(layout, trimmed); err == nil {
+			return base.DateValue{Start: base.NewDate(t.Year(), t.Month(), t.Day(), base.TimeOfDay{})}
+		}
+	}
+	if len(trimmed) >= len(time.DateOnly) {
+		if d, ok := base.ParseISODate(trimmed[:len(time.DateOnly)]); ok {
+			return base.DateValue{Start: d}
+		}
+	}
+	return base.DateValue{}
+}
+
+// formatDateValue formats a single-date base.DateValue as an ISO date string,
+// or empty when unset.
+func formatDateValue(v base.DateValue) string {
+	if !v.IsSet() {
+		return ""
+	}
+	return base.ISODate(v.Start)
+}
+
+// appDatePicker binds a YYYY-MM-DD string state to ui.DatePicker filling its
+// container width.
+func appDatePicker(cx *core.Scope, label string, value func() string, onChange func(string),
+	testID string, cleanable bool) ui.DatePicker {
+	return ui.DatePicker{
+		Value:       func() base.DateValue { return parseDateValue(value()) },
+		OnChange:    func(v base.DateValue) { onChange(formatDateValue(v)) },
+		Placeholder: locales.DatePickerPlaceholder(cx),
+		Cleanable:   cleanable,
+		Label:       label,
+		TestID:      testID,
+		Style:       core.Style{Width: core.Pct(100)},
+	}
+}
+
 func dataError(cx *core.Scope, message *core.Signal[string]) core.Node {
 	return core.Show{When: func() bool { return message.Get() != "" },
 		Then: func(cx *core.Scope) core.Node {
@@ -2139,9 +2186,9 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 				Label:       locales.ActivitiesFormPeriod(cx), TestID: prefix + "-period"}),
 		dataColumns(cx, 8,
 			dataField(cx, locales.ActivitiesFormOccurredStart(cx),
-				ui.Input{Value: start.Get, OnChange: start.Set, TestID: prefix + "-start"}, save),
+				appDatePicker(cx, locales.ActivitiesFormOccurredStart(cx), start.Get, start.Set, prefix+"-start", false)),
 			dataField(cx, locales.ActivitiesFormOccurredEnd(cx),
-				ui.Input{Value: end.Get, OnChange: end.Set, TestID: prefix + "-end"}, save)),
+				appDatePicker(cx, locales.ActivitiesFormOccurredEnd(cx), end.Get, end.Set, prefix+"-end", false))),
 		dataColumns(cx, 8,
 			dataField(cx, locales.ActivitiesFormAmount(cx),
 				ui.Input{Value: amount.Get, OnChange: amount.Set, TestID: prefix + "-amount"}, save),
@@ -2466,10 +2513,10 @@ func (s *Session) auditBody(cx *core.Scope, kind *core.Signal[string], since *co
 		return core.View{Style: core.Style{FlexGrow: 1, FlexBasis: core.Pt(0),
 			MinWidth: core.Pt(0), Gap: 4}, Children: []core.Node{
 			core.Text{Content: label, Style: core.Style{FontSize: 12, FontWeight: ui.Medium}},
-			ui.Input{Value: value.Get, OnChange: func(v string) { value.Set(v); limit.Set(100) },
-				Placeholder: "YYYY-MM-DD", TestID: testID,
-				Style: core.Style{Height: core.Pt(28),
-					Padding: core.Symmetric(0, 8)}},
+			appDatePicker(cx, label, value.Get, func(v string) {
+				value.Set(v)
+				limit.Set(100)
+			}, testID, true),
 		}}
 	}
 	rebindActive := func() bool { return kind.Get() == "activity_rebind_ef" }

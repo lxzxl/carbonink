@@ -72,7 +72,7 @@ func TestImportQuestionnaireAndEditAnswers(t *testing.T) {
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}),
 		nsgotest.Secrets(map[string]string{llmSecretAccount: "test-key"}))
-	ui.PickFiles = func(core.FilesRequest) []core.File {
+	ui.PickFiles = func(nsgotest.FilePick) []core.File {
 		return []core.File{{Name: filepath.Base(workbookPath), Path: workbookPath}}
 	}
 	configureLLMEndpoint(t, ui, srv.URL)
@@ -111,12 +111,12 @@ func TestImportQuestionnaireAndEditAnswers(t *testing.T) {
 	ui.Press("id:questionnaires-finalize-all")
 	ui.WaitFor("id:questionnaires-detail-dialog >> text:2025 · Finalized", 5*time.Second)
 	exportPath := filepath.Join(t.TempDir(), "filled.xlsx")
-	ui.SaveFile = func(core.SaveRequest) string { return exportPath }
+	ui.SaveFile = func(nsgotest.FileSave) string { return exportPath }
 	ui.Press("id:questionnaires-export-xlsx")
 	ui.WaitFor("text:1 answers written (0 drafts).", 5*time.Second)
 	ui.WaitFor("id:questionnaires-detail-dialog >> text:2025 · Exported", 3*time.Second)
 	pdfPath := filepath.Join(t.TempDir(), "filled.pdf")
-	ui.SaveFile = func(core.SaveRequest) string { return pdfPath }
+	ui.SaveFile = func(nsgotest.FileSave) string { return pdfPath }
 	ui.Press("id:questionnaires-export-pdf")
 	ui.WaitFor("id:questionnaires-pdf-dialog", 3*time.Second)
 	ui.Press("id:questionnaires-pdf-export")

@@ -238,7 +238,7 @@ func TestImportGroupRecommendations(t *testing.T) {
 		nsgotest.Environment(core.Environment{Locale: "en-US"}),
 		nsgotest.Secrets(map[string]string{llmSecretAccount: "test-key"}))
 	configureLLMEndpoint(t, ui, srv.URL)
-	ui.PickFiles = func(core.FilesRequest) []core.File {
+	ui.PickFiles = func(nsgotest.FilePick) []core.File {
 		return []core.File{{Name: "ledger.csv", Path: csvPath}}
 	}
 	ui.Press("id:nav:activities")

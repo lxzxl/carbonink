@@ -83,7 +83,7 @@ func TestGenerateAndExportReportThroughUI(t *testing.T) {
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}),
 		nsgotest.Secrets(map[string]string{llmSecretAccount: "test-key"}))
-	ui.SaveFile = func(req core.SaveRequest) string {
+	ui.SaveFile = func(req nsgotest.FileSave) string {
 		saved = append(saved, req.Name)
 		if strings.HasSuffix(req.Name, ".xlsx") {
 			return xlsxPath

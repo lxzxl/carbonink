@@ -40,7 +40,7 @@ func TestDataExportWritesAValidBackup(t *testing.T) {
 	savePath := filepath.Join(t.TempDir(), "carbonink-backup.carbonink-backup")
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}))
-	ui.SaveFile = func(core.SaveRequest) string { return savePath }
+	ui.SaveFile = func(nsgotest.FileSave) string { return savePath }
 	openSettings(ui, "data")
 	ui.WaitFor("id:data-export", 5*time.Second)
 	ui.Press("id:data-export")
@@ -95,7 +95,7 @@ func TestDataImportValidatesAndRestarts(t *testing.T) {
 	if err := os.WriteFile(bad, []byte("definitely not sqlite"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	ui.PickFiles = func(core.FilesRequest) []core.File {
+	ui.PickFiles = func(nsgotest.FilePick) []core.File {
 		return []core.File{{Name: "not-a-backup.sqlite", Path: bad}}
 	}
 	ui.Press("id:data-import")
@@ -106,7 +106,7 @@ func TestDataImportValidatesAndRestarts(t *testing.T) {
 		t.Fatalf("restarts after a bad backup = %d, want 0", ui.Restarts)
 	}
 
-	ui.PickFiles = func(core.FilesRequest) []core.File {
+	ui.PickFiles = func(nsgotest.FilePick) []core.File {
 		return []core.File{{Name: "good.carbonink-backup", Path: backupPath}}
 	}
 	ui.Press("id:data-import")

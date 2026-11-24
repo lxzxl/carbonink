@@ -48,7 +48,7 @@ func TestSupplierDisclosureLifecycle(t *testing.T) {
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}))
 	exportPath := filepath.Join(t.TempDir(), "inbound-filled.xlsx")
-	ui.SaveFile = func(core.SaveRequest) string { return exportPath }
+	ui.SaveFile = func(nsgotest.FileSave) string { return exportPath }
 	var opened []string
 	ui.OpenURL = func(link string) bool {
 		opened = append(opened, link)
@@ -93,7 +93,7 @@ func TestSupplierDisclosureLifecycle(t *testing.T) {
 	}
 	_ = book.Close()
 
-	ui.PickFiles = func(core.FilesRequest) []core.File {
+	ui.PickFiles = func(nsgotest.FilePick) []core.File {
 		return []core.File{{Name: filepath.Base(exportPath), Path: exportPath}}
 	}
 	ui.Press("id:supplier-disclosures-import")

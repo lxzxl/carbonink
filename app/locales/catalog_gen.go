@@ -713,6 +713,7 @@ const (
 	textDataSites
 	textDataSources
 	textDataSourcesSubtitle
+	textDatePickerPlaceholder
 	textDocumentsAiRequiredBody
 	textDocumentsAiRequiredCta
 	textDocumentsAiRequiredTitle
@@ -2099,6 +2100,7 @@ var keyOfText = [numTexts]string{
 	"dataSites",
 	"dataSources",
 	"dataSourcesSubtitle",
+	"datePickerPlaceholder",
 	"documentsAiRequiredBody",
 	"documentsAiRequiredCta",
 	"documentsAiRequiredTitle",
@@ -3483,6 +3485,7 @@ var textsEn = i18n.NewTexts(""+
 	"Sites"+
 	"Emission sources"+
 	"What the inventory records emissions against — by site, scope, and category."+
+	"Select a date…"+
 	"Carbonink needs an AI provider to read documents. Set one up in Settings — you'll need an API key from your provider (OpenAI / Anthropic / Azure / DeepSeek, or any OpenAI-compatible endpoint)."+
 	"Open Settings"+
 	"AI provider not configured"+
@@ -4864,6 +4867,7 @@ var textsEn = i18n.NewTexts(""+
 		5,
 		16,
 		78,
+		16,
 		194,
 		13,
 		26,
@@ -6248,6 +6252,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"场址"+
 	"排放源"+
 	"清单按场地、范围与类别记录排放的对象。"+
+	"选择日期…"+
 	"碳墨 需要一个 AI 服务来读取文档内容。请在 Settings 中配置——你需要一个 provider 的 API key（OpenAI / Anthropic / Azure / DeepSeek 或任何 OpenAI 兼容端点）。"+
 	"打开 Settings"+
 	"尚未配置 AI 服务"+
@@ -7629,6 +7634,7 @@ var textsZhCN = i18n.NewTexts(""+
 		6,
 		9,
 		57,
+		15,
 		196,
 		15,
 		22,
@@ -12323,6 +12329,13 @@ func DataSourcesSubtitle(cx *core.Scope) string { return For(cx).DataSourcesSubt
 
 // DataSourcesSubtitle is the package's DataSourcesSubtitle in the language of msgs.
 func (msgs Messages) DataSourcesSubtitle() string { return msgs.text(textDataSourcesSubtitle) }
+
+// DatePickerPlaceholder says "Select a date…"
+// in the language the app shows under cx.
+func DatePickerPlaceholder(cx *core.Scope) string { return For(cx).DatePickerPlaceholder() }
+
+// DatePickerPlaceholder is the package's DatePickerPlaceholder in the language of msgs.
+func (msgs Messages) DatePickerPlaceholder() string { return msgs.text(textDatePickerPlaceholder) }
 
 // DocumentsAiRequiredBody says "Carbonink needs an AI provider to read documents. Set one up in Settings — you'll need an API key from your provider (OpenAI / Anthropic / Azure / DeepSeek, or any OpenAI-compatible endpoint)."
 // in the language the app shows under cx.
