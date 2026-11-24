@@ -168,12 +168,16 @@ func (s *Session) readinessSection(cx *core.Scope, period *core.Signal[string],
 				strconv.Itoa(current.DismissedCount))
 		}
 		rows := make([]core.Node, 0, len(shown))
-		for _, finding := range shown {
+		for i, finding := range shown {
 			finding := finding
+			borders := core.Edges{}
+			if i < len(shown)-1 {
+				borders.Bottom = 1
+			}
 			rows = append(rows, core.View{
 				StyleFunc: func() core.Style {
 					style := core.Style{Gap: 6, Padding: core.Symmetric(9, 0),
-						Borders: core.Edges{Bottom: 1}, BorderColor: ui.ColorsOf(cx).Line()}
+						Borders: borders, BorderColor: ui.ColorsOf(cx).Line()}
 					if cx.Env().Window().Width >= 900 {
 						style.Direction = core.Row
 						style.AlignItems = core.AlignStart
@@ -220,7 +224,8 @@ func (s *Session) readinessSection(cx *core.Scope, period *core.Signal[string],
 	})
 
 	button := func(label func(*core.Scope) string) core.Node {
-		return ui.Button{Text: label(cx), Busy: busy.Get, OnPress: run, TestID: "readiness-run"}
+		return ui.Button{Text: label(cx), Variant: ui.ButtonOutline, Busy: busy.Get,
+			OnPress: run, TestID: "readiness-run"}
 	}
 
 	node := dataCard(cx,

@@ -177,7 +177,13 @@ func (s *Session) batchCard(cx *core.Scope) core.Node {
 		return nil
 	}
 	style := core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 10,
-		Padding: core.Symmetric(10, 12), Wrap: core.Wrap}
+		Padding: core.Symmetric(10, 14), Margin: core.Edges{Left: 12, Right: 12, Top: 8},
+		Wrap: core.Wrap}
+	bannerFunc := func() core.Style {
+		colors := ui.ColorsOf(cx)
+		return core.Style{Background: colors.Inset(), CornerRadius: radiusCard,
+			BorderWidth: 1, BorderColor: colors.Border()}
+	}
 
 	switch {
 	case b.running:
@@ -188,8 +194,9 @@ func (s *Session) batchCard(cx *core.Scope) core.Node {
 		if b.failed > 0 {
 			text += " · " + strconv.Itoa(b.failed) + " × " + locales.DocumentsBatchReasonError(cx)
 		}
-		return core.View{Style: style, StyleFunc: cardSurface(cx), Children: []core.Node{
-			core.Text{Content: text, Style: core.Style{FontSize: 12, FlexGrow: 1},
+		return core.View{Style: style, StyleFunc: bannerFunc, Children: []core.Node{
+			core.Text{Content: text, Style: core.Style{FontSize: typeCaption,
+				FontVariant: core.FontTabularNums, FlexGrow: 1},
 				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2},
 			ui.Button{Text: locales.DocumentsBatchCancel(cx), Variant: ui.ButtonSecondary,
 				OnPress: func() {
@@ -207,7 +214,8 @@ func (s *Session) batchCard(cx *core.Scope) core.Node {
 			text = locales.DocumentsBatchCanceledToast(cx, strconv.Itoa(b.done), strconv.Itoa(b.total))
 		}
 		children := []core.Node{
-			core.Text{Content: text, Style: core.Style{FontSize: 12, FontWeight: ui.Semibold},
+			core.Text{Content: text, Style: core.Style{FontSize: typeCaption, FontWeight: ui.Semibold,
+				FontVariant: core.FontTabularNums},
 				MaxLines: 2},
 		}
 		if len(b.failures) > 0 {
@@ -216,18 +224,19 @@ func (s *Session) batchCard(cx *core.Scope) core.Node {
 		finished := style
 		finished.Direction = core.Column
 		finished.AlignItems = core.AlignStretch
-		return core.View{Style: finished, StyleFunc: cardSurface(cx), Children: children}
+		return core.View{Style: finished, StyleFunc: bannerFunc, Children: children}
 	default:
 		docs := s.batchCandidates()
 		if len(docs) == 0 || !s.llmProvider(cx).Configured() {
 			return nil
 		}
 		count := strconv.Itoa(len(docs))
-		return core.View{Style: style, StyleFunc: cardSurface(cx), Children: []core.Node{
+		return core.View{Style: style, StyleFunc: bannerFunc, Children: []core.Node{
 			core.View{Style: core.Style{Gap: 2, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
 				Children: []core.Node{
 					core.Text{Content: locales.DocumentsBatchHint(cx, count),
-						Style: core.Style{FontSize: 12}, MaxLines: 2},
+						Style: core.Style{FontSize: typeCaption, FontVariant: core.FontTabularNums},
+						MaxLines: 2},
 				}},
 			ui.Button{Text: locales.DocumentsBatchButton(cx, count), Variant: ui.ButtonSecondary,
 				OnPress: func() { s.startBatch(cx, docs) },

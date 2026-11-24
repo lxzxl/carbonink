@@ -38,7 +38,12 @@ var settingsSections = []settingsSection{
 // settingsScreen is 1.x's Settings: a 200 pt rail of sections and a single
 // scrolling pane, so adjacent settings never read as one long form.
 func (s *Session) settingsScreen(cx *core.Scope, dataRev *core.Signal[int]) core.Node {
-	active := core.NewSignal(cx, "general")
+	initial := s.pendingSettingsSection
+	if initial == "" {
+		initial = "general"
+	}
+	s.pendingSettingsSection = ""
+	active := core.NewSignal(cx, initial)
 	rail := make([]core.Node, 0, len(settingsSections))
 	for _, section := range settingsSections {
 		section := section
@@ -49,29 +54,35 @@ func (s *Session) settingsScreen(cx *core.Scope, dataRev *core.Signal[int]) core
 				active.Set(section.key)
 			},
 			Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8,
-				Height: core.Pt(30), Padding: core.Symmetric(0, 8), CornerRadius: 6},
+				Height: core.Pt(30), Padding: core.Symmetric(0, 8), CornerRadius: radiusItem},
 			StyleFunc: func() core.Style {
-				if active.Get() == section.key {
-					return core.Style{Background: ui.Alpha(ui.ColorsOf(cx).Text(), 0.10)}
+				colors := ui.ColorsOf(cx)
+				st := core.Style{
+					Hover:        &core.Style{Background: colors.Hover()},
+					FocusVisible: ui.FocusRing(cx, -2),
 				}
-				return core.Style{}
+				if active.Get() == section.key {
+					st.Background = selectionTint(cx)
+				}
+				return st
 			},
 			Children: []core.Node{
-				core.Dynamic(func(cx *core.Scope) core.Node {
-					color := ui.ColorsOf(cx).Muted()
+				ui.Icon(section.icon, 16, func() core.Color {
+					colors := ui.ColorsOf(cx)
 					if active.Get() == section.key {
-						color = ui.ColorsOf(cx).Text()
+						return colors.Text()
 					}
-					return ui.Icon(section.icon, 16, func() core.Color { return color })
+					return colors.Muted()
 				}),
 				core.Text{ContentFunc: func() string { return section.title(cx) },
-					Style: core.Style{FontSize: 13, FlexGrow: 1, FlexShrink: 1,
+					Style: core.Style{FontSize: typeBody, FlexGrow: 1, FlexShrink: 1,
 						MinWidth: core.Pt(0)},
 					StyleFunc: func() core.Style {
+						colors := ui.ColorsOf(cx)
 						if active.Get() == section.key {
-							return core.Style{FontWeight: ui.Medium}
+							return core.Style{FontWeight: ui.Medium, Color: colors.Text()}
 						}
-						return ui.Colored(ui.ColorsOf(cx).Muted)()
+						return core.Style{Color: colors.Muted()}
 					},
 					MaxLines: 1},
 			},
@@ -91,7 +102,7 @@ func (s *Session) settingsScreen(cx *core.Scope, dataRev *core.Signal[int]) core
 			if section.key != key {
 				continue
 			}
-			return core.View{Style: core.Style{Gap: 24}, Children: []core.Node{
+			return core.View{Style: core.Style{Gap: 16}, Children: []core.Node{
 				settingsSectionHeading(cx, section.title, section.description),
 				bodies[key],
 			}}
@@ -142,7 +153,7 @@ func (s *Session) settingsSectionBody(cx *core.Scope, dataRev *core.Signal[int],
 	case "mcp":
 		return s.agentIntegrationCard(cx)
 	case "org":
-		return core.View{Style: core.Style{Gap: 32}, Children: []core.Node{
+		return core.View{Style: core.Style{Gap: 16}, Children: []core.Node{
 			s.organizationProfileCard(cx),
 			s.reportLogoCard(cx),
 			s.importSettingsCard(cx),
@@ -152,7 +163,7 @@ func (s *Session) settingsSectionBody(cx *core.Scope, dataRev *core.Signal[int],
 	case "efLibrary":
 		return s.efLibraryBody(cx, dataRev)
 	case "data":
-		return core.View{Style: core.Style{Gap: 24}, Children: []core.Node{
+		return core.View{Style: core.Style{Gap: 16}, Children: []core.Node{
 			s.dataCard(cx),
 			s.migrationCard(cx),
 		}}
@@ -216,60 +227,66 @@ func (s *Session) settingsGeneralSection(cx *core.Scope) core.Node {
 	block := func(label, hint func(*core.Scope) string, control core.Node) core.Node {
 		children := []core.Node{
 			core.Text{ContentFunc: func() string { return label(cx) },
-				Style: core.Style{FontSize: 14, FontWeight: ui.Medium}},
+				Style: core.Style{FontSize: typeBody, FontWeight: ui.Medium}},
 		}
 		if hint != nil {
 			children = append(children, core.Text{ContentFunc: func() string { return hint(cx) },
-				Style:     core.Style{FontSize: 12},
+				Style:     core.Style{FontSize: typeCaption},
 				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3})
 		}
 		children = append(children, control)
-		return core.View{Style: core.Style{Gap: 12}, Children: children}
+		return core.View{Style: core.Style{Gap: 8}, Children: children}
 	}
 
-	return core.View{Style: core.Style{Gap: 28}, Children: []core.Node{
-		block(locales.SettingsGeneralLanguageLabel, locales.SettingsGeneralLanguageHint,
-			settingsSegmented(cx, []settingsChoice{
-				{Value: "zh-CN", Label: locales.SettingsGeneralLanguageZh},
-				{Value: "en", Label: locales.SettingsGeneralLanguageEn},
-			}, locale.Get, setLocale, "settings-language")),
-		block(locales.SettingsGeneralThemeLabel, locales.SettingsGeneralThemeHint,
-			settingsSegmented(cx, []settingsChoice{
-				{Value: "", Label: locales.SettingsGeneralThemeSystem},
-				{Value: "light", Label: locales.SettingsGeneralThemeLight},
-				{Value: "dark", Label: locales.SettingsGeneralThemeDark},
-			}, theme.Get, setTheme, "settings-theme")),
-		block(locales.SettingsGeneralGuidanceLabel, locales.SettingsGeneralGuidanceHint,
-			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
-				Wrap: core.Wrap, Gap: 12}, Children: []core.Node{
+	return core.View{Style: core.Style{Gap: 16, AlignSelf: core.AlignStretch}, Children: []core.Node{
+		settingsCard(cx, lucide.Palette, locales.SettingsGeneralAppearanceHeading, nil,
+			block(locales.SettingsGeneralLanguageLabel, locales.SettingsGeneralLanguageHint,
 				settingsSegmented(cx, []settingsChoice{
-					{Value: "on", Label: locales.SettingsGeneralGuidanceOn},
-					{Value: "off", Label: locales.SettingsGeneralGuidanceOff},
-				}, func() string {
-					if guidanceOn.Get() {
-						return "on"
-					}
-					return "off"
-				}, func(value string) { setGuidance(value == "on") }, "settings-guidance"),
-				ui.Button{Text: locales.SettingsGeneralGuidanceReplay(cx),
-					Variant: ui.ButtonSecondary,
-					OnPress: func() {
-						s.resetGuidance()
-						status.Set(locales.SettingsGeneralGuidanceReplayDone(cx))
-					}, TestID: "settings-guidance-replay"},
-			}}),
-		block(locales.SettingsAiCacheLabel, locales.SettingsAiCacheHint,
-			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
-				Wrap: core.Wrap, Gap: 12}, Children: []core.Node{
-				ui.Button{Text: locales.SettingsAiCacheClear(cx), Variant: ui.ButtonSecondary,
-					Busy: busy.Get, OnPress: clearCache, TestID: "settings-ai-cache-clear"},
-			}}),
-		core.Show{When: func() bool { return status.Get() != "" },
-			Then: func(cx *core.Scope) core.Node {
-				return core.Text{ContentFunc: func() string { return status.Get() },
-					Style:     core.Style{FontSize: 12},
-					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3}
-			}},
+					{Value: "zh-CN", Label: locales.SettingsGeneralLanguageZh},
+					{Value: "en", Label: locales.SettingsGeneralLanguageEn},
+				}, locale.Get, setLocale, "settings-language")),
+			hairline(cx),
+			block(locales.SettingsGeneralThemeLabel, locales.SettingsGeneralThemeHint,
+				settingsSegmented(cx, []settingsChoice{
+					{Value: "", Label: locales.SettingsGeneralThemeSystem},
+					{Value: "light", Label: locales.SettingsGeneralThemeLight},
+					{Value: "dark", Label: locales.SettingsGeneralThemeDark},
+				}, theme.Get, setTheme, "settings-theme")),
+		),
+		settingsCard(cx, lucide.Sparkles, locales.SettingsGeneralExperienceHeading, nil,
+			block(locales.SettingsGeneralGuidanceLabel, locales.SettingsGeneralGuidanceHint,
+				core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+					Wrap: core.Wrap, Gap: 12}, Children: []core.Node{
+					settingsSegmented(cx, []settingsChoice{
+						{Value: "on", Label: locales.SettingsGeneralGuidanceOn},
+						{Value: "off", Label: locales.SettingsGeneralGuidanceOff},
+					}, func() string {
+						if guidanceOn.Get() {
+							return "on"
+						}
+						return "off"
+					}, func(value string) { setGuidance(value == "on") }, "settings-guidance"),
+					ui.Button{Text: locales.SettingsGeneralGuidanceReplay(cx),
+						Variant: ui.ButtonSecondary,
+						OnPress: func() {
+							s.resetGuidance()
+							status.Set(locales.SettingsGeneralGuidanceReplayDone(cx))
+						}, TestID: "settings-guidance-replay"},
+				}}),
+			hairline(cx),
+			block(locales.SettingsAiCacheLabel, locales.SettingsAiCacheHint,
+				core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+					Wrap: core.Wrap, Gap: 12}, Children: []core.Node{
+					ui.Button{Text: locales.SettingsAiCacheClear(cx), Variant: ui.ButtonSecondary,
+						Busy: busy.Get, OnPress: clearCache, TestID: "settings-ai-cache-clear"},
+				}}),
+			core.Show{When: func() bool { return status.Get() != "" },
+				Then: func(cx *core.Scope) core.Node {
+					return core.Text{ContentFunc: func() string { return status.Get() },
+						Style:     core.Style{FontSize: typeCaption},
+						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3}
+				}},
+		),
 	}}
 }
 
@@ -292,16 +309,22 @@ func settingsSegmented(cx *core.Scope, choices []settingsChoice,
 			OnPress: func(core.PressEvent) {
 				onChange(choice.Value)
 			},
-			Style: core.Style{Padding: core.Symmetric(6, 12), CornerRadius: 4},
+			Style: core.Style{Height: core.Pt(ui.ButtonHeight - 6),
+				AlignItems: core.AlignCenter, JustifyContent: core.JustifyCenter,
+				Padding: core.Symmetric(0, 12), CornerRadius: radiusMark},
 			StyleFunc: func() core.Style {
+				colors := ui.ColorsOf(cx)
+				st := core.Style{FocusVisible: ui.FocusRing(cx, -2)}
 				if value() == choice.Value {
-					return core.Style{Background: ui.ColorsOf(cx).Text()}
+					st.Background = colors.Text()
+					return st
 				}
-				return core.Style{}
+				st.Hover = &core.Style{Background: ui.Alpha(colors.Text(), 0.05)}
+				return st
 			},
 			Children: []core.Node{core.Text{ContentFunc: func() string {
 				return choice.Label(cx)
-			}, Style: core.Style{FontSize: 12, FontWeight: ui.Medium},
+			}, Style: core.Style{FontSize: typeCaption, FontWeight: ui.Medium},
 				StyleFunc: func() core.Style {
 					if value() == choice.Value {
 						return core.Style{Color: ui.ColorsOf(cx).Background()}
@@ -311,8 +334,9 @@ func settingsSegmented(cx *core.Scope, choices []settingsChoice,
 		})
 	}
 	return core.View{
-		Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Padding: core.All(2),
-			CornerRadius: 6, BorderWidth: 1, AlignSelf: core.AlignStart},
+		Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+			Height: core.Pt(ui.ButtonHeight), Padding: core.All(2),
+			CornerRadius: radiusItem, BorderWidth: 1, AlignSelf: core.AlignStart},
 		StyleFunc: func() core.Style {
 			return core.Style{Background: ui.ColorsOf(cx).Surface(),
 				BorderColor: ui.ColorsOf(cx).Border()}
@@ -357,19 +381,19 @@ func (s *Session) updatesCard(cx *core.Scope) core.Node {
 	if version == "" {
 		version = locales.SettingsAboutDevelopment(cx)
 	}
-	return dataCardFlat(cx,
+	return settingsCard(cx, lucide.RefreshCw, locales.SettingsSectionUpdates, nil,
 		core.Text{ContentFunc: func() string {
 			return locales.UpdaterCurrentVersion(cx, version)
-		}, Style: core.Style{FontSize: 13}},
+		}, Style: core.Style{FontSize: typeBody, FontVariant: core.FontTabularNums}},
 		core.View{Style: core.Style{Padding: core.All(12), AlignSelf: core.AlignStretch,
-			CornerRadius: 6, BorderWidth: 1},
+			CornerRadius: radiusItem, BorderWidth: 1},
 			StyleFunc: func() core.Style {
 				colors := ui.ColorsOf(cx)
 				return core.Style{Background: colors.Inset(), BorderColor: colors.Border()}
 			},
 			Children: []core.Node{
 				core.Text{ContentFunc: func() string { return status.Get() },
-					Style:     core.Style{FontSize: 13},
+					Style:     core.Style{FontSize: typeBody},
 					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
 			}},
 		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,

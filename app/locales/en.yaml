@@ -1199,6 +1199,8 @@ settingsDataResetConfirm: Reset and restart
 settingsDataResetConfirmInput: Type RESET to confirm
 settingsDataResetHeading: Reset all data
 settingsDataResetInflight: Resetting — restarting…
+settingsGeneralAppearanceHeading: Language & theme
+settingsGeneralExperienceHeading: Guidance & cache
 settingsGeneralGuidanceHint: Short walkthroughs that play once, the first time you open a screen.
 settingsGeneralGuidanceLabel: Guided tours
 settingsGeneralGuidanceOff: "Off"

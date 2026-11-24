@@ -160,7 +160,7 @@ func (s *Session) documentsBody(cx *core.Scope, dataRev *core.Signal[int],
 	visible := s.filteredDocuments(filters)
 	rows := make([]core.Node, 0, len(visible))
 	for i := range visible {
-		rows = append(rows, s.documentRow(cx, visible[i], status, statusFailed, preview, detail))
+		rows = append(rows, s.documentRow(cx, visible[i], i < len(visible)-1, status, statusFailed, preview, detail))
 	}
 	upload := ui.Button{Text: locales.DocumentsUploadButton(cx), Icon: lucide.Plus,
 		Variant: ui.ButtonOutline, Size: ui.SizeSmall,
@@ -327,46 +327,41 @@ func (s *Session) documentFilterRow(cx *core.Scope, filters *documentFilters) co
 	}}
 }
 
-func (s *Session) documentRow(cx *core.Scope, document store.Document,
+func (s *Session) documentRow(cx *core.Scope, document store.Document, bottomBorder bool,
 	status *core.Signal[string], statusFailed *core.Signal[bool], preview *documentPreview,
 	detail *documentDetail) core.Node {
 	meta := documentStageLabel(cx, document.DocType)
 	if date := documentDate(document.UploadedAt); date != "" {
 		meta = date + " · " + meta
 	}
-	children := []core.Node{
+	statusText, _ := s.documentStatusChip(cx, document.ID)
+	selected := func() bool {
+		return detail.open.Get() && detail.doc.Get().ID == document.ID
+	}
+	return dataClickableRowBordered(cx, "documents-row-"+document.ID, func() {
+		s.openDocumentDetail(cx, detail, document)
+	}, selected, bottomBorder,
 		core.View{TestID: "documents-status-" + document.ID,
-			Style: core.Style{Width: core.Pt(8), Height: core.Pt(8), CornerRadius: 4,
+			Style: core.Style{Width: core.Pt(8), Height: core.Pt(8), CornerRadius: radiusMark,
 				FlexShrink: 0},
 			StyleFunc: func() core.Style {
 				return core.Style{Background: s.documentStatusColor(cx, document.ID)}
 			}},
 		core.View{Style: core.Style{Gap: 2, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
 			Children: []core.Node{
-				core.Text{Content: document.Filename,
-					Style: core.Style{FontSize: 14, FontWeight: ui.Medium,
-						FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 1},
-				core.Text{Content: meta, Style: core.Style{FontSize: 12},
+				core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 6},
+					Children: []core.Node{
+						core.Text{Content: document.Filename,
+							Style: core.Style{FontSize: typeBody, FontWeight: ui.Medium,
+								FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 1},
+						core.Text{Content: statusText,
+							Style:     core.Style{FontSize: typeMicro, FlexShrink: 0},
+							StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
+					}},
+				core.Text{Content: meta, Style: core.Style{FontSize: typeCaption},
 					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
 			}},
-	}
-	return core.View{
-		TestID: "documents-row-" + document.ID,
-		Role:   core.RoleButton,
-		OnPress: func(core.PressEvent) {
-			s.openDocumentDetail(cx, detail, document)
-		},
-		Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 10,
-			Padding: core.Symmetric(10, 16), Borders: core.Edges{Bottom: 1}},
-		StyleFunc: func() core.Style {
-			style := core.Style{BorderColor: ui.ColorsOf(cx).Line()}
-			if detail.open.Get() && detail.doc.Get().ID == document.ID {
-				style.Background = selectionTint(cx)
-			}
-			return style
-		},
-		Children: children,
-	}
+	)
 }
 
 // documentStatusColor is 1.x's 8 pt status dot: emerald for a confirmed
@@ -1091,28 +1086,11 @@ func (s *Session) documentDetailPane(cx *core.Scope, detail *documentDetail) cor
 			detail.busy.Set(false)
 			detail.open.Set(false)
 		}, TestID: "documents-detail-close"})
-	header := []core.Node{
-		core.Text{Content: document.Filename, Style: core.Style{FontSize: 18,
-			FontWeight: ui.Semibold, FlexGrow: 1, FlexShrink: 1,
-			MinWidth: core.Pt(0)}, MaxLines: 1},
-	}
-	header = append(header, actions...)
-	return core.View{
-		TestID: "documents-detail-dialog",
-		Style:  core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
-		Children: []core.Node{
-			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
-				Gap: 8, Padding: core.Symmetric(12, 16), Borders: core.Edges{Bottom: 1}},
-				StyleFunc: func() core.Style {
-					return core.Style{BorderColor: ui.ColorsOf(cx).Line()}
-				},
-				Children: header},
-			core.Dynamic(func(cx *core.Scope) core.Node {
-				_ = detail.rev.Get()
-				return s.documentDetailBody(cx, detail)
-			}),
-		},
-	}
+	return detailPaneShell(cx, "documents-detail-dialog", document.Filename, actions,
+		[]core.Node{core.Dynamic(func(cx *core.Scope) core.Node {
+			_ = detail.rev.Get()
+			return s.documentDetailBody(cx, detail)
+		})}, nil)
 }
 
 func (s *Session) documentDetailBody(cx *core.Scope, detail *documentDetail) core.Node {
@@ -1140,14 +1118,18 @@ func (s *Session) documentDetailBody(cx *core.Scope, detail *documentDetail) cor
 		}
 		meta += " · " + commaFloat(item.Amount) + " " + item.Unit +
 			" · " + commaFloat(item.CO2eKg) + " kgCO2e"
+		borders := core.Edges{}
+		if i < len(detail.evidence)-1 {
+			borders.Bottom = 1
+		}
 		evidenceRows = append(evidenceRows, core.View{
 			TestID: "documents-detail-evidence-" + strconv.Itoa(i),
 			Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8,
-				Padding: core.Symmetric(6, 0), Borders: core.Edges{Bottom: 1}},
+				Padding: core.Symmetric(8, 0), Borders: borders},
 			StyleFunc: func() core.Style { return core.Style{BorderColor: ui.ColorsOf(cx).Line()} },
 			Children: []core.Node{
-				core.Text{Content: meta, Style: core.Style{FontSize: 12}, MaxLines: 1,
-					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+				core.Text{Content: meta, Style: core.Style{FontSize: typeCaption, FontVariant: core.FontTabularNums},
+					MaxLines: 1, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 				core.View{Style: core.Style{FlexGrow: 1}},
 				ui.Badge{Text: dataScopeLabel(cx, item.Scope), Variant: ui.BadgeNeutral},
 			},
@@ -1204,35 +1186,32 @@ func (s *Session) documentDetailBody(cx *core.Scope, detail *documentDetail) cor
 				}}
 		}}
 
-	return core.Scroll{
-		Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
-		Children: []core.Node{core.View{Style: core.Style{Gap: 12}, Children: []core.Node{
-			dataCard(cx,
-				dataHeading(cx, locales.DocumentsDetailMetadata(cx), ""),
-				core.View{Style: core.Style{Gap: 6}, Children: metaRows},
-				status,
-			),
-			detail.guide.node(s, func() bool { return detail.extraction.Get() != nil }),
-			s.documentExtractionCard(cx, detail),
-			dataCard(cx,
-				dataHeading(cx, locales.DocumentsDetailEvidence(cx),
-					locales.DocumentsDetailEvidenceCount(cx, strconv.Itoa(detail.total))),
-				core.View{Style: core.Style{Gap: 0}, Children: evidenceRows},
-			),
-			dataCard(cx,
-				core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8}, Children: []core.Node{
-					dataHeading(cx, locales.DocumentsDetailText(cx), ""),
-					core.View{Style: core.Style{FlexGrow: 1}},
-					core.Show{When: func() bool { return detail.pages > 0 },
-						Then: func(cx *core.Scope) core.Node {
-							return ui.Badge{Text: locales.DocumentsDetailPages(cx, strconv.Itoa(detail.pages)),
-								Variant: ui.BadgeNeutral}
-						}},
-				}},
-				core.View{Style: core.Style{Gap: 8}, Children: textChildren},
-			),
-		}}},
-	}
+	return core.View{Style: core.Style{Gap: 16}, Children: []core.Node{
+		dataCard(cx,
+			dataHeading(cx, locales.DocumentsDetailMetadata(cx), ""),
+			core.View{Style: core.Style{Gap: 8}, Children: metaRows},
+			status,
+		),
+		detail.guide.node(s, func() bool { return detail.extraction.Get() != nil }),
+		s.documentExtractionCard(cx, detail),
+		dataCard(cx,
+			dataHeading(cx, locales.DocumentsDetailEvidence(cx),
+				locales.DocumentsDetailEvidenceCount(cx, strconv.Itoa(detail.total))),
+			core.View{Style: core.Style{Gap: 0}, Children: evidenceRows},
+		),
+		dataCard(cx,
+			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8}, Children: []core.Node{
+				dataHeading(cx, locales.DocumentsDetailText(cx), ""),
+				core.View{Style: core.Style{FlexGrow: 1}},
+				core.Show{When: func() bool { return detail.pages > 0 },
+					Then: func(cx *core.Scope) core.Node {
+						return ui.Badge{Text: locales.DocumentsDetailPages(cx, strconv.Itoa(detail.pages)),
+							Variant: ui.BadgeNeutral}
+					}},
+			}},
+			core.View{Style: core.Style{Gap: 8}, Children: textChildren},
+		),
+	}}
 }
 
 func documentDetailField(cx *core.Scope, label string, value string, monospace bool) core.Node {

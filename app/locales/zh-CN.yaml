@@ -1198,6 +1198,8 @@ settingsDataResetConfirm: 重置并重启
 settingsDataResetConfirmInput: 输入 RESET 确认
 settingsDataResetHeading: 重置所有数据
 settingsDataResetInflight: 正在重置 — 重启中…
+settingsGeneralAppearanceHeading: 语言与主题
+settingsGeneralExperienceHeading: 引导与缓存
 settingsGeneralGuidanceHint: 首次进入某个界面时播放一次的分步说明。
 settingsGeneralGuidanceLabel: 引导提示
 settingsGeneralGuidanceOff: 关

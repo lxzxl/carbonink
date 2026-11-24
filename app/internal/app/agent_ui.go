@@ -10,6 +10,7 @@ import (
 	"app.carbonink.desktop/locales"
 
 	"github.com/nsgo-dev/nsgo/core"
+	"github.com/nsgo-dev/nsgo/icons/lucide"
 	"github.com/nsgo-dev/nsgo/ui"
 )
 
@@ -143,10 +144,10 @@ func (s *Session) agentIntegrationCard(cx *core.Scope) core.Node {
 				Wrap: core.Wrap, Gap: 12}, Children: []core.Node{
 				core.View{Style: core.Style{Gap: 2, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
 					Children: []core.Node{
-						core.Text{Content: skillText, Style: core.Style{FontSize: 14,
+						core.Text{Content: skillText, Style: core.Style{FontSize: typeBody,
 							FontWeight: ui.Medium}, MaxLines: 2},
 						core.Text{Content: skillDetail,
-							Style: core.Style{FontSize: 12, FontFamily: core.FontMonospace,
+							Style: core.Style{FontSize: typeCaption, FontFamily: core.FontMonospace,
 								FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 1,
 							StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 					}},
@@ -158,63 +159,59 @@ func (s *Session) agentIntegrationCard(cx *core.Scope) core.Node {
 			hostLines := make([]core.Node, 0, len(skill.LinkedHosts))
 			for _, host := range skill.LinkedHosts {
 				hostLines = append(hostLines, core.Text{Content: "• " + skillHostLabel(cx, host),
-					Style:     core.Style{FontSize: 12},
+					Style:     core.Style{FontSize: typeCaption},
 					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1})
 			}
 			skillBody = append(skillBody, core.View{Style: core.Style{Gap: 2}, Children: hostLines})
 		}
 
-		stepOne := core.View{Style: core.Style{Gap: 12}, Children: []core.Node{
-			core.View{Style: core.Style{Gap: 4}, Children: []core.Node{
-				core.Text{Content: locales.SettingsSkillStepTitle(cx),
-					Style: core.Style{FontSize: 14, FontWeight: ui.Medium}},
-				core.Text{Content: locales.SettingsSkillStepHelp(cx),
-					Style:     core.Style{FontSize: 12},
-					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
-			}},
-			core.View{Style: core.Style{Gap: 8, Padding: core.All(12),
-				AlignSelf: core.AlignStretch}, StyleFunc: cardSurface(cx), Children: skillBody},
-		}}
+		stepOne := settingsCard(cx, lucide.Sparkles,
+			locales.SettingsSkillStepTitle, locales.SettingsSkillStepHelp,
+			skillBody...)
 
 		serverCard := core.View{
 			Style: core.Style{Gap: 3, Padding: core.All(12), AlignSelf: core.AlignStretch,
-				CornerRadius: 6, BorderWidth: 1},
+				CornerRadius: radiusItem, BorderWidth: 1},
 			StyleFunc: func() core.Style {
 				colors := ui.ColorsOf(cx)
 				return core.Style{Background: colors.Inset(), BorderColor: colors.Border()}
 			},
 			Children: []core.Node{
 				core.Text{Content: locales.SettingsMcpBinaryLabel(cx),
-					Style:     core.Style{FontSize: 11, FontWeight: ui.Medium},
+					Style:     core.Style{FontSize: typeMicro, FontWeight: ui.Medium},
 					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-				core.Text{Content: entry.Command, Style: core.Style{FontSize: 12,
+				core.Text{Content: entry.Command, Style: core.Style{FontSize: typeCaption,
 					FontFamily: core.FontMonospace, FlexShrink: 1, MinWidth: core.Pt(0)},
 					MaxLines: 1},
 				core.Text{Content: locales.SettingsMcpScriptLabel(cx),
-					Style:     core.Style{FontSize: 11, FontWeight: ui.Medium, Padding: core.Edges{Top: 6}},
+					Style:     core.Style{FontSize: typeMicro, FontWeight: ui.Medium, Padding: core.Edges{Top: 6}},
 					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 				core.Text{Content: strings.Join(entry.Args, " "),
-					Style: core.Style{FontSize: 12, FontFamily: core.FontMonospace,
+					Style: core.Style{FontSize: typeCaption, FontFamily: core.FontMonospace,
 						FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 1},
 			},
 		}
 
 		clientRow := func(name, detail string, action core.Node) core.View {
+			infoChildren := []core.Node{
+				core.Text{Content: name, Style: core.Style{FontSize: typeBody,
+					FontWeight: ui.Medium}, MaxLines: 1},
+			}
+			if detail != "" {
+				infoChildren = append(infoChildren, core.Text{Content: detail,
+					Style:     core.Style{FontSize: typeCaption},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2})
+			}
 			return core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
 				Wrap: core.Wrap, Gap: 12, Padding: core.Symmetric(12, 16)},
 				Children: []core.Node{
 					core.View{Style: core.Style{Gap: 2, FlexGrow: 1, FlexShrink: 1,
-						MinWidth: core.Pt(0)}, Children: []core.Node{
-						core.Text{Content: name, Style: core.Style{FontSize: 14,
-							FontWeight: ui.Medium}, MaxLines: 1},
-						core.Text{Content: detail, Style: core.Style{FontSize: 12},
-							StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2},
-					}},
+						MinWidth: core.Pt(0)}, Children: infoChildren},
 					action,
 				}}
 		}
 		rows := make([]core.Node, 0, len(clients)+1)
-		for i, client := range clients {
+		for _, client := range clients {
 			client := client
 			detail := mcpStatusText(cx, client)
 			var action core.Node
@@ -249,11 +246,9 @@ func (s *Session) agentIntegrationCard(cx *core.Scope) core.Node {
 					TestID:   "agent-config-" + string(client.Client)}
 			}
 			row := clientRow(mcpClientLabel(cx, client.Client), detail, action)
-			if i < len(clients)-1 {
-				row.Style.Borders = core.Edges{Bottom: 1}
-				row.StyleFunc = func() core.Style {
-					return core.Style{BorderColor: ui.ColorsOf(cx).Line()}
-				}
+			row.Style.Borders = core.Edges{Bottom: 1}
+			row.StyleFunc = func() core.Style {
+				return core.Style{BorderColor: ui.ColorsOf(cx).Line()}
 			}
 			rows = append(rows, row)
 		}
@@ -261,41 +256,35 @@ func (s *Session) agentIntegrationCard(cx *core.Scope) core.Node {
 			ui.Button{Text: locales.SettingsMcpActionViewPiGuide(cx), Variant: ui.ButtonOutline,
 				OnPress: func() { piOpen.Set(true) }, TestID: "mcp-pi-guide-open"}))
 
-		stepTwo := core.View{Style: core.Style{Gap: 16, Padding: core.Edges{Top: 24},
-			Borders: core.Edges{Top: 1}, AlignSelf: core.AlignStretch},
-			StyleFunc: func() core.Style {
-				return core.Style{BorderColor: ui.ColorsOf(cx).Line()}
-			},
-			Children: []core.Node{
-				core.View{Style: core.Style{Gap: 4}, Children: []core.Node{
-					core.Text{Content: locales.SettingsMcpStepTitle(cx),
-						Style: core.Style{FontSize: 14, FontWeight: ui.Medium}},
-					core.Text{Content: locales.SettingsMcpStepHelp(cx),
-						Style:     core.Style{FontSize: 12},
-						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
+		stepTwo := settingsCard(cx, lucide.Cable,
+			locales.SettingsMcpStepTitle, locales.SettingsMcpStepHelp,
+			core.View{Style: core.Style{Gap: 6}, Children: []core.Node{
+				core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+					Gap: 10}, Children: []core.Node{
+					ui.Switch{Checked: master.Get, OnChange: master.Set,
+						Label: locales.SettingsMcpMasterToggle(cx), TestID: "mcp-master-toggle"},
+					core.Text{Content: locales.SettingsMcpMasterToggle(cx),
+						Style: core.Style{FontSize: typeBody}},
 				}},
-				core.View{Style: core.Style{Gap: 6}, Children: []core.Node{
-					core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
-						Gap: 10}, Children: []core.Node{
-						ui.Switch{Checked: master.Get, OnChange: master.Set,
-							Label: locales.SettingsMcpMasterToggle(cx), TestID: "mcp-master-toggle"},
-						core.Text{Content: locales.SettingsMcpMasterToggle(cx),
-							Style: core.Style{FontSize: 13}},
-					}},
-					core.Text{Content: locales.SettingsMcpMasterToggleHelp(cx),
-						Style:     core.Style{FontSize: 12},
-						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
-				}},
-				serverCard,
-				core.View{Style: core.Style{AlignSelf: core.AlignStretch},
-					StyleFunc: cardSurface(cx), Children: rows},
-			}}
+				core.Text{Content: locales.SettingsMcpMasterToggleHelp(cx),
+					Style:     core.Style{FontSize: typeCaption},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
+			}},
+			serverCard,
+			core.View{Style: core.Style{AlignSelf: core.AlignStretch,
+				CornerRadius: radiusItem, BorderWidth: 1},
+				StyleFunc: func() core.Style {
+					colors := ui.ColorsOf(cx)
+					return core.Style{Background: colors.Surface(), BorderColor: colors.Border()}
+				},
+				Children: rows},
+		)
 
 		children := []core.Node{stepOne, stepTwo}
 		children = append(children, core.Show{When: func() bool { return status.Get() != "" },
 			Then: func(cx *core.Scope) core.Node {
 				return core.Text{ContentFunc: func() string { return status.Get() },
-					Style: core.Style{FontSize: 12},
+					Style: core.Style{FontSize: typeCaption},
 					StyleFunc: func() core.Style {
 						if failed.Get() {
 							return ui.Colored(ui.ColorsOf(cx).Danger)()
@@ -306,7 +295,7 @@ func (s *Session) agentIntegrationCard(cx *core.Scope) core.Node {
 			}})
 		children = append(children, piGuideDialog(cx, piOpen))
 
-		return core.View{Style: core.Style{Gap: 24}, Children: children}
+		return core.View{Style: core.Style{Gap: 16}, Children: children}
 	})
 }
 
@@ -372,18 +361,18 @@ func skillHostLabel(cx *core.Scope, host string) string {
 func piGuideDialog(cx *core.Scope, open *core.Signal[bool]) core.Node {
 	code := core.View{Style: core.Style{Padding: core.All(8), AlignSelf: core.AlignStart},
 		StyleFunc: func() core.Style {
-			return core.Style{CornerRadius: 4, Background: ui.ColorsOf(cx).Inset()}
+			return core.Style{CornerRadius: radiusMark, Background: ui.ColorsOf(cx).Inset()}
 		}, Children: []core.Node{
 			core.Text{Content: "pi install mavam/pi-mcporter",
-				Style:     core.Style{FontSize: 12, FontFamily: core.FontMonospace},
+				Style:     core.Style{FontSize: typeCaption, FontFamily: core.FontMonospace},
 				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 		}}
 	return dataDialog(cx, open, locales.SettingsMcpPiGuideTitle(cx), []core.Node{
 		core.Text{Content: locales.SettingsMcpPiGuideIntro(cx),
-			Style:     core.Style{FontSize: 13},
+			Style:     core.Style{FontSize: typeBody},
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
-		core.Text{Content: locales.SettingsMcpPiGuideStep1(cx), Style: core.Style{FontSize: 13}},
+		core.Text{Content: locales.SettingsMcpPiGuideStep1(cx), Style: core.Style{FontSize: typeBody}},
 		code,
-		core.Text{Content: locales.SettingsMcpPiGuideStep2(cx), Style: core.Style{FontSize: 13}},
+		core.Text{Content: locales.SettingsMcpPiGuideStep2(cx), Style: core.Style{FontSize: typeBody}},
 	}, nil, "mcp-pi-guide")
 }

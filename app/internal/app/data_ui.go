@@ -179,7 +179,7 @@ func (s *Session) dataCard(cx *core.Scope) core.Node {
 		return st != nil && st.ExtractionRawCount > 0
 	}
 
-	return core.View{Style: core.Style{Gap: 24, AlignSelf: core.AlignStretch}, Children: []core.Node{
+	return core.View{Style: core.Style{Gap: 16, AlignSelf: core.AlignStretch}, Children: []core.Node{
 		settingsCard(cx, lucide.ArchiveRestore,
 			locales.SettingsDataBackupHeading, locales.SettingsDataBackupBody,
 			core.View{Style: core.Style{Direction: core.Row, Wrap: core.Wrap, Gap: 8},
@@ -193,7 +193,7 @@ func (s *Session) dataCard(cx *core.Scope) core.Node {
 			core.Show{When: func() bool { return importStatus.Get() != "" },
 				Then: func(cx *core.Scope) core.Node {
 					return core.Text{ContentFunc: func() string { return importStatus.Get() },
-						Style: core.Style{FontSize: 11},
+						Style: core.Style{FontSize: typeCaption},
 						StyleFunc: func() core.Style {
 							if importFailed.Get() {
 								return ui.Colored(ui.ColorsOf(cx).Danger)()
@@ -204,9 +204,11 @@ func (s *Session) dataCard(cx *core.Scope) core.Node {
 		),
 		settingsCard(cx, lucide.Database,
 			locales.SettingsDataCacheHeading, locales.SettingsDataCacheBody,
-			core.Text{ContentFunc: statLine, Style: core.Style{FontSize: 12},
+			core.Text{ContentFunc: statLine,
+				Style:     core.Style{FontSize: typeCaption, FontVariant: core.FontTabularNums},
 				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), TestID: "data-cache-db-size"},
-			core.Text{ContentFunc: cacheLine, Style: core.Style{FontSize: 12},
+			core.Text{ContentFunc: cacheLine,
+				Style:     core.Style{FontSize: typeCaption, FontVariant: core.FontTabularNums},
 				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), TestID: "data-cache-summary"},
 			core.View{Style: core.Style{Direction: core.Row}, Children: []core.Node{
 				ui.Button{Text: locales.SettingsDataCacheClearButton(cx),
@@ -236,7 +238,7 @@ func (s *Session) dataCard(cx *core.Scope) core.Node {
 							ui.Input{Value: resetText.Get, OnChange: resetText.Set,
 								Placeholder: "RESET", MaxLength: 10, TestID: "data-reset-input"}),
 					}},
-				ui.Button{Text: locales.SettingsDataResetButton(cx), Variant: ui.ButtonOutline,
+				ui.Button{Text: locales.SettingsDataResetButton(cx), Color: ui.ColorsOf(cx).Danger,
 					Disabled: func() bool { return !resetArmed(resetText.Get()) || resetBusy.Get() },
 					Busy:     resetBusy.Get, OnPress: reset, TestID: "data-reset"},
 			}},
@@ -245,7 +247,7 @@ func (s *Session) dataCard(cx *core.Scope) core.Node {
 		core.Show{When: func() bool { return status.Get() != "" },
 			Then: func(cx *core.Scope) core.Node {
 				return core.Text{ContentFunc: func() string { return status.Get() },
-					Style: core.Style{FontSize: 12}, StyleFunc: func() core.Style {
+					Style: core.Style{FontSize: typeCaption}, StyleFunc: func() core.Style {
 						if failed.Get() {
 							return ui.Colored(ui.ColorsOf(cx).Danger)()
 						}
@@ -255,11 +257,11 @@ func (s *Session) dataCard(cx *core.Scope) core.Node {
 
 		dataDialog(cx, importOpen, locales.SettingsDataImportButton(cx), []core.Node{
 			core.Text{Content: locales.SettingsDataImportConfirm(cx),
-				Style: core.Style{FontSize: 13}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+				Style: core.Style{FontSize: typeBody}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 		}, []core.Node{
 			dataCancelButton(cx, importOpen, "data-import-cancel"),
-			ui.Button{Text: locales.SettingsDataImportButton(cx), OnPress: importBackup,
-				TestID: "data-import-confirm"},
+			ui.Button{Text: locales.SettingsDataImportButton(cx), Color: ui.ColorsOf(cx).Danger,
+				OnPress: importBackup, TestID: "data-import-confirm"},
 		}, "data-import-dialog"),
 	}}
 }

@@ -162,7 +162,7 @@ func (s *Session) onboardingRoot(cx *core.Scope) core.Node {
 			w.step.Set(step + 1)
 		}
 	}
-	finish := func() {
+	finishWithAI := func(openAI bool) {
 		if w.busy.Get() {
 			return
 		}
@@ -195,7 +195,12 @@ func (s *Session) onboardingRoot(cx *core.Scope) core.Node {
 			w.status.Set(locales.OnboardingCompleteFailed(cx) + ": " + err.Error())
 			return
 		}
-		s.justOnboarded = true
+		s.justOnboarded = !openAI
+		if openAI {
+			s.pendingSettingsSection = "ai"
+		} else {
+			s.pendingSettingsSection = ""
+		}
 		if s.onboarded != nil {
 			s.onboarded.Set(true)
 		}
@@ -204,6 +209,8 @@ func (s *Session) onboardingRoot(cx *core.Scope) core.Node {
 			w.status.Set(err.Error())
 		}
 	}
+	finish := func() { finishWithAI(false) }
+	finishAI := func() { finishWithAI(true) }
 
 	card := core.View{
 		Style:     core.Style{BorderWidth: 1, CornerRadius: radiusCard},
@@ -231,7 +238,7 @@ func (s *Session) onboardingRoot(cx *core.Scope) core.Node {
 			core.View{Style: core.Style{Padding: core.Edges{Left: 32, Right: 32, Bottom: 24}},
 				Children: []core.Node{core.Dynamic(func(cx *core.Scope) core.Node {
 					_ = i18n.Language(cx)
-					return w.body(cx, finish)
+					return w.body(cx, finish, finishAI)
 				})}},
 			core.View{
 				Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
@@ -302,21 +309,18 @@ func onboardingProgress(cx *core.Scope, step func() int) core.Node {
 	segments := make([]core.Node, 0, onboardingSteps)
 	for i := 1; i <= onboardingSteps; i++ {
 		i := i
-		width := core.Points(24)
-		if i == 1 {
-			width = 32
-		}
 		segments = append(segments, core.View{
-			Style: core.Style{Width: core.Pt(width), Height: core.Pt(6), CornerRadius: 3},
+			Style: core.Style{Height: core.Pt(6), CornerRadius: 3},
 			StyleFunc: func() core.Style {
 				current := step()
+				colors := ui.ColorsOf(cx)
 				switch {
 				case i == current:
-					return core.Style{Background: ui.ColorsOf(cx).Accent()}
+					return core.Style{Width: core.Pt(32), Background: colors.Accent()}
 				case i < current:
-					return core.Style{Background: ui.Alpha(ui.ColorsOf(cx).Accent(), 0.6)}
+					return core.Style{Width: core.Pt(20), Background: ui.Alpha(colors.Accent(), 0.45)}
 				default:
-					return core.Style{Background: ui.ColorsOf(cx).Border()}
+					return core.Style{Width: core.Pt(20), Background: colors.Border()}
 				}
 			},
 		})
@@ -377,7 +381,7 @@ func (w *onboardingWizard) validStep(step int) bool {
 	return true
 }
 
-func (w *onboardingWizard) body(cx *core.Scope, finish func()) core.Node {
+func (w *onboardingWizard) body(cx *core.Scope, finish, finishAI func()) core.Node {
 	switch w.step.Get() {
 	case 2:
 		return w.yearBody(cx)
@@ -386,7 +390,7 @@ func (w *onboardingWizard) body(cx *core.Scope, finish func()) core.Node {
 	case 4:
 		return w.siteBody(cx)
 	case 5:
-		return w.aiBody(cx, finish)
+		return w.aiBody(cx, finish, finishAI)
 	default:
 		return w.companyBody(cx)
 	}
@@ -395,7 +399,7 @@ func (w *onboardingWizard) body(cx *core.Scope, finish func()) core.Node {
 func onboardingField(cx *core.Scope, label string, input core.Node) core.Node {
 	return core.View{Style: core.Style{Gap: 6, FlexGrow: 1, FlexShrink: 1,
 		MinWidth: core.Pt(0)}, Children: []core.Node{
-		core.Text{Content: label, Style: core.Style{FontSize: 14, FontWeight: ui.Medium}},
+		core.Text{Content: label, Style: core.Style{FontSize: typeBody, FontWeight: ui.Medium}},
 		input,
 	}}
 }
@@ -403,7 +407,7 @@ func onboardingField(cx *core.Scope, label string, input core.Node) core.Node {
 func (w *onboardingWizard) requiredNameHint(cx *core.Scope, zh, en *core.Signal[string],
 	minAttempt int) core.Node {
 	return core.Text{ContentFunc: func() string { return locales.OnboardingNameHint(cx) },
-		Style: core.Style{FontSize: 12},
+		Style: core.Style{FontSize: typeCaption},
 		StyleFunc: func() core.Style {
 			missing := strings.TrimSpace(zh.Get()+en.Get()) == ""
 			if missing && w.attempted.Get() >= minAttempt {
@@ -414,17 +418,17 @@ func (w *onboardingWizard) requiredNameHint(cx *core.Scope, zh, en *core.Signal[
 }
 
 func (w *onboardingWizard) companyBody(cx *core.Scope) core.Node {
-	return core.View{Style: core.Style{Gap: 24}, Children: []core.Node{
-		core.View{Style: core.Style{Gap: 12}, Children: []core.Node{
+	return core.View{Style: core.Style{Gap: 20}, Children: []core.Node{
+		core.View{Style: core.Style{Gap: 10}, Children: []core.Node{
 			dataColumns(cx, 16,
 				onboardingField(cx, locales.OnboardingStepCompanyNameZh(cx),
 					ui.Input{Value: w.nameZH.Get, OnChange: w.nameZH.Set,
 						Placeholder: "碳墨示例有限公司", TestID: "onboarding-org-zh",
-						Style: core.Style{Height: core.Pt(36)}}),
+						Style: core.Style{Height: core.Pt(32)}}),
 				onboardingField(cx, locales.OnboardingStepCompanyNameEn(cx),
 					ui.Input{Value: w.nameEN.Get, OnChange: w.nameEN.Set,
 						Placeholder: "CarbonInk Demo Co.", TestID: "onboarding-org-en",
-						Style: core.Style{Height: core.Pt(36)}}),
+						Style: core.Style{Height: core.Pt(32)}}),
 			),
 			w.requiredNameHint(cx, w.nameZH, w.nameEN, 1),
 		}},
@@ -435,13 +439,13 @@ func (w *onboardingWizard) companyBody(cx *core.Scope) core.Node {
 					Placeholder: locales.OnboardingStepCompanyIndustryPlaceholder(cx),
 					Label:       locales.OnboardingStepCompanyIndustry(cx),
 					TestID:      "onboarding-org-industry",
-					Style:       core.Style{Width: core.Pct(100)}}),
+					Style:       core.Style{Width: core.Pct(100), Height: core.Pt(32)}}),
 			onboardingField(cx, locales.OnboardingStepCompanyCountry(cx),
 				appSelect[string]{Options: lookupOptions(onboardingCountries),
 					Value: w.country.Get, OnChange: w.country.Set,
 					Label:  locales.OnboardingStepCompanyCountry(cx),
 					TestID: "onboarding-org-country",
-					Style:  core.Style{Width: core.Pct(100)}}),
+					Style:  core.Style{Width: core.Pct(100), Height: core.Pt(32)}}),
 		),
 	}}
 }
@@ -458,18 +462,25 @@ func (w *onboardingWizard) yearBody(cx *core.Scope) core.Node {
 			OnPress: func(core.PressEvent) {
 				w.year.Set(strconv.Itoa(year))
 			},
-			Style: core.Style{Height: core.Pt(32), Padding: core.Symmetric(0, 16),
-				CornerRadius: 16, BorderWidth: 1},
+			Style: core.Style{Height: core.Pt(34), Padding: core.Symmetric(0, 16),
+				AlignItems: core.AlignCenter, JustifyContent: core.JustifyCenter,
+				CornerRadius: radiusItem, BorderWidth: 1},
 			StyleFunc: func() core.Style {
+				colors := ui.ColorsOf(cx)
+				st := core.Style{FocusVisible: ui.FocusRing(cx, -2)}
 				if w.year.Get() == strconv.Itoa(year) {
-					return core.Style{Background: ui.ColorsOf(cx).Accent(),
-						BorderColor: ui.ColorsOf(cx).Accent()}
+					st.Background = colors.Accent()
+					st.BorderColor = colors.Accent()
+					return st
 				}
-				return core.Style{Background: ui.ColorsOf(cx).Surface(),
-					BorderColor: ui.ColorsOf(cx).Border()}
+				st.Background = colors.Surface()
+				st.BorderColor = colors.Border()
+				st.Hover = &core.Style{Background: colors.Hover()}
+				return st
 			},
 			Children: []core.Node{core.Text{Content: strconv.Itoa(year),
-				Style: core.Style{FontSize: 14, FontWeight: ui.Medium},
+				Style: core.Style{FontSize: typeBody, FontWeight: ui.Medium,
+					FontVariant: core.FontTabularNums, TextAlign: core.TextAlignCenter},
 				StyleFunc: func() core.Style {
 					if w.year.Get() == strconv.Itoa(year) {
 						return core.Style{Color: ui.ColorsOf(cx).OnAccent()}
@@ -483,9 +494,10 @@ func (w *onboardingWizard) yearBody(cx *core.Scope) core.Node {
 			Children: chips},
 		core.View{Style: core.Style{Gap: 6, Width: core.Pt(140)}, Children: []core.Node{
 			core.Text{Content: locales.OnboardingStepYearTitle(cx),
-				Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+				Style: core.Style{FontSize: typeCaption, FontWeight: ui.Medium},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 			ui.Input{Value: w.year.Get, OnChange: w.year.Set, TestID: "onboarding-year",
-				Style: core.Style{Height: core.Pt(36)}},
+				Style: core.Style{Height: core.Pt(32), FontVariant: core.FontTabularNums}},
 		}},
 	}}
 }
@@ -493,15 +505,17 @@ func (w *onboardingWizard) yearBody(cx *core.Scope) core.Node {
 func (w *onboardingWizard) boundaryBody(cx *core.Scope) core.Node {
 	options := []struct {
 		Value string
-		Label string
+		Label func(*core.Scope) string
 		Body  func(*core.Scope) string
 	}{
-		{"operational_control", "Operational Control", locales.OnboardingStepBoundaryOperationalControl},
-		{"equity_share", "Equity Share", locales.OnboardingStepBoundaryEquityShare},
+		{"operational_control", locales.SettingsBoundaryOperationalControl, locales.OnboardingStepBoundaryOperationalControl},
+		{"financial_control", locales.SettingsBoundaryFinancialControl, locales.OnboardingStepBoundaryFinancialControl},
+		{"equity_share", locales.SettingsBoundaryEquityShare, locales.OnboardingStepBoundaryEquityShare},
 	}
 	cards := make([]core.Node, 0, len(options))
 	for _, option := range options {
 		option := option
+		title := option.Label(cx)
 		body := option.Body(cx)
 		selected := func() bool { return w.boundary.Get() == option.Value }
 		cards = append(cards, core.View{
@@ -511,33 +525,37 @@ func (w *onboardingWizard) boundaryBody(cx *core.Scope) core.Node {
 				w.boundary.Set(option.Value)
 			},
 			Style: core.Style{Direction: core.Row, AlignItems: core.AlignStart, Gap: 12,
-				Padding: core.All(16), CornerRadius: 8, BorderWidth: 1},
+				Padding: core.All(16), CornerRadius: radiusCard, BorderWidth: 1},
 			StyleFunc: func() core.Style {
+				colors := ui.ColorsOf(cx)
+				st := core.Style{FocusVisible: ui.FocusRing(cx, -2)}
 				if selected() {
-					return core.Style{Background: ui.Alpha(ui.ColorsOf(cx).Accent(), 0.06),
-						BorderColor: ui.ColorsOf(cx).Accent()}
+					st.Background = ui.Alpha(colors.Accent(), 0.06)
+					st.BorderColor = colors.Accent()
+					return st
 				}
-				return core.Style{Background: ui.ColorsOf(cx).Surface(),
-					BorderColor: ui.ColorsOf(cx).Border()}
+				st.Background = colors.Surface()
+				st.BorderColor = colors.Border()
+				st.Hover = &core.Style{Background: colors.Hover()}
+				return st
 			},
 			Children: []core.Node{
 				core.View{Style: core.Style{Gap: 4, FlexGrow: 1, FlexShrink: 1,
 					MinWidth: core.Pt(0)}, Children: []core.Node{
-					core.Text{Content: option.Label, Style: core.Style{FontSize: 14,
+					core.Text{Content: title, Style: core.Style{FontSize: typeBody,
 						FontWeight: ui.Medium}},
-					core.Text{Content: body, Style: core.Style{FontSize: 14, LineHeightEm: 1.5},
+					core.Text{Content: body, Style: core.Style{FontSize: typeCaption, LineHeightEm: 1.5},
 						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
 				}},
 				core.View{Style: core.Style{Width: core.Pt(20), Height: core.Pt(20),
 					CornerRadius: 10, AlignItems: core.AlignCenter,
 					JustifyContent: core.JustifyCenter, BorderWidth: 1},
 					StyleFunc: func() core.Style {
+						colors := ui.ColorsOf(cx)
 						if selected() {
-							return core.Style{Background: ui.ColorsOf(cx).Accent(),
-								BorderColor: ui.ColorsOf(cx).Accent()}
+							return core.Style{Background: colors.Accent(), BorderColor: colors.Accent()}
 						}
-						return core.Style{Background: ui.ColorsOf(cx).Background(),
-							BorderColor: ui.ColorsOf(cx).Border()}
+						return core.Style{Background: colors.Background(), BorderColor: colors.Border()}
 					},
 					Children: []core.Node{core.Show{When: selected,
 						Then: func(cx *core.Scope) core.Node {
@@ -551,23 +569,23 @@ func (w *onboardingWizard) boundaryBody(cx *core.Scope) core.Node {
 
 func (w *onboardingWizard) siteBody(cx *core.Scope) core.Node {
 	return core.View{Style: core.Style{Gap: 20}, Children: []core.Node{
-		core.View{Style: core.Style{Gap: 12}, Children: []core.Node{
+		core.View{Style: core.Style{Gap: 10}, Children: []core.Node{
 			dataColumns(cx, 16,
 				onboardingField(cx, locales.OnboardingStepSiteNameZh(cx),
 					ui.Input{Value: w.siteZH.Get, OnChange: w.siteZH.Set,
 						Placeholder: "北京总部", TestID: "onboarding-site-zh",
-						Style: core.Style{Height: core.Pt(36)}}),
+						Style: core.Style{Height: core.Pt(32)}}),
 				onboardingField(cx, locales.OnboardingStepSiteNameEn(cx),
 					ui.Input{Value: w.siteEN.Get, OnChange: w.siteEN.Set,
 						Placeholder: "Beijing HQ", TestID: "onboarding-site-en",
-						Style: core.Style{Height: core.Pt(36)}}),
+						Style: core.Style{Height: core.Pt(32)}}),
 			),
 			w.requiredNameHint(cx, w.siteZH, w.siteEN, 4),
 		}},
 		onboardingField(cx, locales.OnboardingStepSiteAddress(cx),
 			ui.Input{Value: w.address.Get, OnChange: w.address.Set,
 				Placeholder: "北京市朝阳区某某路 1 号", TestID: "onboarding-site-address",
-				Style: core.Style{Height: core.Pt(36)}}),
+				Style: core.Style{Height: core.Pt(32)}}),
 		core.View{Style: core.Style{Width: core.Pct(50), MinWidth: core.Pt(200),
 			MaxWidth: core.Pt(260)}, Children: []core.Node{
 			onboardingField(cx, locales.OnboardingStepSiteCountry(cx),
@@ -575,12 +593,12 @@ func (w *onboardingWizard) siteBody(cx *core.Scope) core.Node {
 					Value: w.siteCC.Get, OnChange: w.siteCC.Set,
 					Label:  locales.OnboardingStepSiteCountry(cx),
 					TestID: "onboarding-site-country",
-					Style:  core.Style{Width: core.Pct(100)}}),
+					Style:  core.Style{Width: core.Pct(100), Height: core.Pt(32)}}),
 		}},
 	}}
 }
 
-func (w *onboardingWizard) aiBody(cx *core.Scope, finish func()) core.Node {
+func (w *onboardingWizard) aiBody(cx *core.Scope, finish, finishAI func()) core.Node {
 	action := func(label string, primary bool, testID string, onPress func()) core.Node {
 		return core.View{
 			TestID:   testID,
@@ -618,7 +636,7 @@ func (w *onboardingWizard) aiBody(cx *core.Scope, finish func()) core.Node {
 		}
 	}
 	return core.View{Style: core.Style{Gap: 12}, Children: []core.Node{
-		action(locales.OnboardingStepAiByot(cx), true, "onboarding-byot", finish),
+		action(locales.OnboardingStepAiByot(cx), true, "onboarding-byot", finishAI),
 		action(locales.OnboardingStepAiSkip(cx), false, "onboarding-skip", finish),
 		core.Show{When: w.busy.Get, Then: func(cx *core.Scope) core.Node {
 			return core.Text{ContentFunc: func() string { return locales.OnboardingCreating(cx) },

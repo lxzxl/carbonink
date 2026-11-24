@@ -192,11 +192,9 @@ func (s *Session) questionnairesScreen(cx *core.Scope, dataRev *core.Signal[int]
 				Style:     core.Style{FontSize: 14, Padding: core.Symmetric(24, 16)},
 				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3})
 		} else if len(visible) == 0 {
-			empty := locales.QuestionnairesEmpty(cx)
-			empty = locales.QuestionnairesFilterEmpty(cx)
 			content = append(content, core.View{Style: core.Style{Padding: core.Symmetric(48, 16),
 				Gap: 8, AlignItems: core.AlignCenter}, Children: []core.Node{
-				core.Text{Content: empty, Style: core.Style{FontSize: 14,
+				core.Text{Content: locales.QuestionnairesFilterEmpty(cx), Style: core.Style{FontSize: typeBody,
 					TextAlign: core.TextAlignCenter}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted),
 					MaxLines: 2},
 				core.Show{When: func() bool {
@@ -325,18 +323,21 @@ func newQuestionnaireDetail(cx *core.Scope, db *store.Store) *questionnaireDetai
 
 func questionnaireListRow(cx *core.Scope, q store.Questionnaire, selected func() bool,
 	onPress func()) core.Node {
-	meta := strconv.Itoa(q.ReportingYear) + " · " + questionnaireStatusLabel(cx, q.Status) +
-		" · " + locales.QuestionnairesQuestionCount(cx, strconv.Itoa(q.QuestionCount)) + " ·"
+	meta := strconv.Itoa(q.ReportingYear) + " · " + questionnaireStatusLabel(cx, q.Status)
+	if q.QuestionCount > 0 {
+		meta += " · " + locales.QuestionnairesQuestionCount(cx, strconv.Itoa(q.QuestionCount))
+	}
 	if q.DueDate != "" {
 		meta += "\n" + locales.QuestionnairesDueDate(cx, q.DueDate)
 	}
 	return dataClickableRowSelected(cx, "questionnaires-row-"+q.ID, onPress, selected,
 		core.View{Style: core.Style{Gap: 2, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
 			Children: []core.Node{
-				core.Text{Content: q.CustomerName, Style: core.Style{FontSize: 14,
+				core.Text{Content: q.CustomerName, Style: core.Style{FontSize: typeBody,
 					FontWeight: ui.Medium, FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 1},
 				core.Text{Content: meta,
-					Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted),
+					Style: core.Style{FontSize: typeCaption, FontVariant: core.FontTabularNums},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted),
 					MaxLines: 3},
 			}},
 	)
@@ -362,7 +363,7 @@ func questionnaireStatusVariant(status string) ui.BadgeVariant {
 	case store.QuestionnaireFinalized, store.QuestionnaireExported:
 		return ui.BadgeAccent
 	case store.QuestionnaireAnswering:
-		return ui.BadgeInfo
+		return ui.BadgeWarn
 	default:
 		return ui.BadgeNeutral
 	}
@@ -1028,7 +1029,11 @@ func (d *questionnaireDetail) dialog(cx *core.Scope, s *Session,
 	dataRev *core.Signal[int]) core.Node {
 	dialog := func(cx *core.Scope) core.Node {
 		if !d.open.Get() {
-			return detailEmptyIcon(cx, lucide.ClipboardList, locales.QuestionnairesEmpty)
+			text := locales.QuestionnairesSelectDetail
+			if s.outboundQuestionnaires() == 0 {
+				text = locales.QuestionnairesEmpty
+			}
+			return detailEmptyIcon(cx, lucide.ClipboardList, text)
 		}
 		_ = d.rev.Get()
 		answered := 0
@@ -1050,38 +1055,58 @@ func (d *questionnaireDetail) dialog(cx *core.Scope, s *Session,
 			} else if !q.Answered() {
 				badge = ui.Badge{Text: locales.QuestionnairesStatusMapping(cx), Variant: ui.BadgeNeutral}
 			}
+			borders := core.Edges{}
+			if i < len(d.questions)-1 {
+				borders.Bottom = 1
+			}
 			list = append(list, core.View{TestID: "questionnaires-question-" + strconv.Itoa(i),
 				Role:    core.RoleButton,
 				OnPress: func(core.PressEvent) { d.selectQuestion(i) },
 				Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 10,
-					Padding: core.Symmetric(8, 6)},
+					Padding: core.Symmetric(10, 12), Borders: borders},
 				StyleFunc: func() core.Style {
-					style := core.Style{BorderColor: ui.ColorsOf(cx).Line()}
+					colors := ui.ColorsOf(cx)
+					style := core.Style{
+						BorderColor:  colors.Line(),
+						Hover:        &core.Style{Background: colors.Hover()},
+						FocusVisible: ui.FocusRing(cx, -2),
+					}
 					if d.selectedID.Get() == q.ID {
 						style.Background = selectionTint(cx)
 					}
 					return style
 				},
 				Children: []core.Node{
-					core.Text{Content: firstNonEmpty(q.Position, "—"), Style: core.Style{
-						FontSize: 11, Width: core.Pt(110)}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint),
-						MaxLines: 1},
+					core.View{
+						Style: core.Style{MinWidth: core.Pt(48), Padding: core.Symmetric(2, 6),
+							CornerRadius: radiusMark, AlignItems: core.AlignCenter,
+							JustifyContent: core.JustifyCenter, FlexShrink: 0},
+						StyleFunc: ui.Filled(ui.ColorsOf(cx).Inset),
+						Children: []core.Node{
+							core.Text{Content: firstNonEmpty(q.Position, "—"),
+								Style: core.Style{FontSize: typeMicro, FontFamily: core.FontMonospace,
+									FontVariant: core.FontTabularNums},
+								StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
+						},
+					},
 					core.View{Style: core.Style{Gap: 2, FlexGrow: 1, FlexShrink: 1,
 						MinWidth: core.Pt(0)}, Children: []core.Node{
 						core.Text{Content: firstNonEmpty(q.RawText, q.NormalizedText),
-							Style: core.Style{FontSize: 12}, MaxLines: 2},
-						core.Text{Content: answer, Style: core.Style{FontSize: 11},
+							Style: core.Style{FontSize: typeCaption, FontWeight: ui.Medium}, MaxLines: 2},
+						core.Text{Content: answer, Style: core.Style{FontSize: typeMicro},
 							StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
 					}},
 					core.Text{Content: questionnaireKindLabel(cx, q.QuestionKind),
-						Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted),
+						Style: core.Style{FontSize: typeMicro, FlexShrink: 0},
+						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted),
 						MaxLines: 1},
 					badge,
 				}})
 		}
 		if len(list) == 0 {
 			list = append(list, core.Text{Content: locales.QuestionnairesEmpty(cx),
-				Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
+				Style:     core.Style{FontSize: typeCaption, Padding: core.All(16)},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
 		}
 
 		editor := []core.Node{
@@ -1090,7 +1115,7 @@ func (d *questionnaireDetail) dialog(cx *core.Scope, s *Session,
 					return locales.QuestionnairesDetailSelect(cx)
 				}
 				return d.selectedTitle.Get()
-			}, Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}, MaxLines: 3},
+			}, Style: core.Style{FontSize: typeBody, FontWeight: ui.Semibold}, MaxLines: 3},
 		}
 		if d.selectedID.Get() != "" {
 			editor = append(editor, core.View{Style: core.Style{Direction: core.Row,
@@ -1107,6 +1132,7 @@ func (d *questionnaireDetail) dialog(cx *core.Scope, s *Session,
 			actions := make([]core.Node, 0, 3)
 			if !d.selectedAnswered.Get() {
 				actions = append(actions, ui.Button{Text: locales.AnswerGenerate(cx),
+					Variant: ui.ButtonSecondary,
 					OnPress: func() { d.generate(s, cx, dataRev) }, Busy: d.busy.Get,
 					TestID: "questionnaires-answer-generate"})
 			}
@@ -1116,27 +1142,28 @@ func (d *questionnaireDetail) dialog(cx *core.Scope, s *Session,
 				TestID: "questionnaires-answer-save"})
 			if d.selectedFinalized.Get() {
 				actions = append(actions, ui.Button{Text: locales.AnswerUnfinalize(cx),
-					Variant: ui.ButtonSecondary,
+					Variant: ui.ButtonOutline,
 					OnPress: func() { d.unfinalize(s, cx) }, Busy: d.busy.Get,
 					TestID: "questionnaires-answer-unfinalize"})
 			} else {
 				actions = append(actions, ui.Button{Text: locales.AnswerSaveFinalize(cx),
+					Variant: ui.ButtonOutline,
 					OnPress: func() { d.save(s, cx, dataRev, true) }, Busy: d.busy.Get,
 					TestID: "questionnaires-answer-finalize"})
 			}
 			if d.selectedAnswered.Get() {
 				actions = append(actions, ui.Button{Text: locales.LineageOpenButton(cx),
-					Variant: ui.ButtonSecondary,
+					Variant: ui.ButtonOutline,
 					OnPress: func() {
 						d.lineage.show(cx, s, "answer", d.selectedAnswerID.Get())
 					}, TestID: "answer-lineage"})
 			}
-			editor = append(editor, core.View{Style: core.Style{Direction: core.Row, Gap: 8},
+			editor = append(editor, core.View{Style: core.Style{Direction: core.Row, Wrap: core.Wrap, Gap: 8},
 				Children: actions})
 		}
 		if d.message.Get() != "" {
 			editor = append(editor, core.Text{ContentFunc: func() string { return d.message.Get() },
-				Style: core.Style{FontSize: 12}, StyleFunc: func() core.Style {
+				Style: core.Style{FontSize: typeCaption}, StyleFunc: func() core.Style {
 					if d.failed.Get() {
 						return ui.Colored(ui.ColorsOf(cx).Danger)()
 					}
@@ -1150,15 +1177,19 @@ func (d *questionnaireDetail) dialog(cx *core.Scope, s *Session,
 					core.Text{ContentFunc: func() string {
 						return strconv.Itoa(d.year.Get()) + " · " +
 							questionnaireStatusLabel(cx, d.status.Get())
-					}, Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+					}, Style: core.Style{FontSize: typeCaption, FontVariant: core.FontTabularNums},
+						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 					core.Text{ContentFunc: func() string { return d.due.Get() },
-						Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
+						Style:     core.Style{FontSize: typeCaption, FontVariant: core.FontTabularNums},
+						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 					core.View{Style: core.Style{FlexGrow: 1}},
 					core.Text{Content: locales.QuestionnairesAnswerProgress(cx,
 						strconv.Itoa(answered), strconv.Itoa(len(d.questions))),
-						Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+						Style:     core.Style{FontSize: typeCaption, FontVariant: core.FontTabularNums},
+						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 				}},
-			core.View{Style: core.Style{Gap: 0}, Children: list},
+			core.View{Style: core.Style{Gap: 0, Overflow: core.Hidden},
+				StyleFunc: cardSurface(cx), Children: list},
 			dataCard(cx, editor...),
 			d.lineage.drawer(cx, s),
 		}

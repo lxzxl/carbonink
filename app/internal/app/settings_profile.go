@@ -115,7 +115,7 @@ func (s *Session) organizationProfileCard(cx *core.Scope) core.Node {
 		return core.Show{When: func() bool { return message.Get() != "" },
 			Then: func(cx *core.Scope) core.Node {
 				return core.Text{ContentFunc: func() string { return message.Get() },
-					Style: core.Style{FontSize: 11}, StyleFunc: func() core.Style {
+					Style: core.Style{FontSize: typeCaption}, StyleFunc: func() core.Style {
 						if failed.Get() {
 							return ui.Colored(ui.ColorsOf(cx).Danger)()
 						}
@@ -123,72 +123,62 @@ func (s *Session) organizationProfileCard(cx *core.Scope) core.Node {
 					}}
 			}}
 	}
-	sectionHeading := func(label func(*core.Scope) string) core.Node {
-		return core.Text{ContentFunc: func() string { return label(cx) },
-			Style: core.Style{FontSize: 14, FontWeight: ui.Semibold}}
-	}
 	field := func(label func(*core.Scope) string, input core.Node) core.Node {
 		return core.View{Style: core.Style{Gap: 4}, Children: []core.Node{
 			core.Text{ContentFunc: func() string { return label(cx) },
-				Style: core.Style{FontSize: 14, FontWeight: ui.Medium}},
+				Style: core.Style{FontSize: typeBody, FontWeight: ui.Medium}},
 			namedNode(input, func() string { return label(cx) }),
 		}}
 	}
 
-	return dataCardFlat(cx,
-		sectionHeading(locales.SettingsOrgBasicHeading),
-		dataColumns(cx, 8,
-			core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{
-				field(locales.OnboardingStepCompanyNameZh,
-					ui.Input{Value: zh.Get, OnChange: zh.Set, TestID: "org-profile-zh"}),
-			}},
-			core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{
-				field(locales.OnboardingStepCompanyNameEn,
-					ui.Input{Value: en.Get, OnChange: en.Set, TestID: "org-profile-en"}),
-			}},
-		),
-		dataColumns(cx, 8,
-			core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{
-				field(locales.OnboardingStepCompanyIndustry,
-					ui.Input{Value: industry.Get, OnChange: industry.Set, TestID: "org-profile-industry"}),
-			}},
-			core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{
-				field(locales.OnboardingStepCompanyCountry,
-					ui.Input{Value: country.Get, OnChange: country.Set, TestID: "org-profile-country"}),
-			}},
-		),
-		core.View{Style: core.Style{Direction: core.Row, JustifyContent: core.JustifyEnd}, Children: []core.Node{
-			ui.Button{Text: locales.SettingsOrgBasicSave(cx), OnPress: saveBasic,
-				TestID: "org-profile-save-basic"},
-		}},
-		statusLine(basicStatus, basicFailed),
-
-		sectionHeading(locales.SettingsOrgReportingHeading),
-		field(locales.SettingsBoundaryLabel,
-			appSelect[string]{Options: dataBoundaryOptions(cx), Value: boundary.Get,
-				OnChange: boundary.Set, Label: locales.SettingsBoundaryLabel(cx),
-				TestID: "org-profile-boundary", Style: core.Style{Width: core.Pct(100)}}),
-		dataColumns(cx, 8,
-			core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{
-				field(locales.SettingsResponsibleNameLabel,
-					ui.Input{Value: responsible.Get, OnChange: responsible.Set,
-						TestID: "org-profile-resp-name"}),
-			}},
-			core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{
-				field(locales.SettingsResponsibleRoleLabel,
-					ui.Input{Value: role.Get, OnChange: role.Set, TestID: "org-profile-resp-role"}),
-			}},
-		),
-		field(locales.SettingsBaseYearLabel,
-			appSelect[string]{Options: baseOptions, Value: baseYear.Get, OnChange: baseYear.Set,
-				Label: locales.SettingsBaseYearLabel(cx), TestID: "org-profile-base-year",
-				Style: core.Style{Width: core.Pct(100)}}),
-		core.View{Style: core.Style{Direction: core.Row, JustifyContent: core.JustifyEnd}, Children: []core.Node{
-			ui.Button{Text: locales.SettingsOrgReportingSave(cx), OnPress: saveReporting,
-				TestID: "org-profile-save-reporting"},
-		}},
-		statusLine(reportStatus, reportFailed),
-	)
+	return core.View{
+		Style: core.Style{Gap: 16, AlignSelf: core.AlignStretch},
+		Children: []core.Node{
+			settingsCard(cx, lucide.Building,
+				locales.SettingsOrgBasicHeading, nil,
+				settingsColumns(cx, 12,
+					field(locales.OnboardingStepCompanyNameZh,
+						ui.Input{Value: zh.Get, OnChange: zh.Set, TestID: "org-profile-zh"}),
+					field(locales.OnboardingStepCompanyNameEn,
+						ui.Input{Value: en.Get, OnChange: en.Set, TestID: "org-profile-en"}),
+				),
+				settingsColumns(cx, 12,
+					field(locales.OnboardingStepCompanyIndustry,
+						ui.Input{Value: industry.Get, OnChange: industry.Set, TestID: "org-profile-industry"}),
+					field(locales.OnboardingStepCompanyCountry,
+						ui.Input{Value: country.Get, OnChange: country.Set, TestID: "org-profile-country"}),
+				),
+				core.View{Style: core.Style{Direction: core.Row, JustifyContent: core.JustifyEnd}, Children: []core.Node{
+					ui.Button{Text: locales.SettingsOrgBasicSave(cx), OnPress: saveBasic,
+						TestID: "org-profile-save-basic"},
+				}},
+				statusLine(basicStatus, basicFailed),
+			),
+			settingsCard(cx, lucide.FileCheck,
+				locales.SettingsOrgReportingHeading, locales.SettingsOrgProfileSubheading,
+				field(locales.SettingsBoundaryLabel,
+					appSelect[string]{Options: dataBoundaryOptions(cx), Value: boundary.Get,
+						OnChange: boundary.Set, Label: locales.SettingsBoundaryLabel(cx),
+						TestID: "org-profile-boundary", Style: core.Style{Width: core.Pct(100)}}),
+				settingsColumns(cx, 12,
+					field(locales.SettingsResponsibleNameLabel,
+						ui.Input{Value: responsible.Get, OnChange: responsible.Set,
+							TestID: "org-profile-resp-name"}),
+					field(locales.SettingsResponsibleRoleLabel,
+						ui.Input{Value: role.Get, OnChange: role.Set, TestID: "org-profile-resp-role"}),
+				),
+				field(locales.SettingsBaseYearLabel,
+					appSelect[string]{Options: baseOptions, Value: baseYear.Get, OnChange: baseYear.Set,
+						Label: locales.SettingsBaseYearLabel(cx), TestID: "org-profile-base-year",
+						Style: core.Style{Width: core.Pct(100)}}),
+				core.View{Style: core.Style{Direction: core.Row, JustifyContent: core.JustifyEnd}, Children: []core.Node{
+					ui.Button{Text: locales.SettingsOrgReportingSave(cx), OnPress: saveReporting,
+						TestID: "org-profile-save-reporting"},
+				}},
+				statusLine(reportStatus, reportFailed),
+			),
+		},
+	}
 }
 
 // importSettingsCard tunes how batch imports flag suspicious rows. It sits
@@ -223,22 +213,26 @@ func (s *Session) importSettingsCard(cx *core.Scope) core.Node {
 
 	return settingsCard(cx, lucide.SlidersHorizontal,
 		locales.SettingsImportOutlierHeading, locales.SettingsImportOutlierBody,
-		dataHeaderRow(cx,
-			dataField(cx, locales.SettingsImportOutlierLabel(cx),
-				ui.Input{Value: ratio.Get, OnChange: ratio.Set, MaxLength: 6,
-					TestID: "import-outlier-ratio"}),
+		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignEnd,
+			Wrap: core.Wrap, Gap: 8}, Children: []core.Node{
+			core.View{Style: core.Style{FlexGrow: 1, MinWidth: core.Pt(200)}, Children: []core.Node{
+				dataField(cx, locales.SettingsImportOutlierLabel(cx),
+					ui.Input{Value: ratio.Get, OnChange: ratio.Set, MaxLength: 6,
+						TestID: "import-outlier-ratio"}),
+			}},
 			ui.Button{Text: locales.SettingsImportOutlierSave(cx),
 				Disabled: func() bool { return !valid() },
-				OnPress:  save, TestID: "import-outlier-save"}),
+				OnPress:  save, TestID: "import-outlier-save"},
+		}},
 		core.Show{When: func() bool { return ratio.Get() != "" && !valid() },
 			Then: func(cx *core.Scope) core.Node {
 				return core.Text{Content: locales.SettingsImportOutlierInvalid(cx),
-					Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)}
+					Style: core.Style{FontSize: typeCaption}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)}
 			}},
 		core.Show{When: func() bool { return status.Get() != "" },
 			Then: func(cx *core.Scope) core.Node {
 				return core.Text{ContentFunc: func() string { return status.Get() },
-					Style: core.Style{FontSize: 11}, StyleFunc: func() core.Style {
+					Style: core.Style{FontSize: typeCaption}, StyleFunc: func() core.Style {
 						if failed.Get() {
 							return ui.Colored(ui.ColorsOf(cx).Danger)()
 						}

@@ -9,6 +9,7 @@ import (
 	"app.carbonink.desktop/locales"
 
 	"github.com/nsgo-dev/nsgo/core"
+	"github.com/nsgo-dev/nsgo/icons/lucide"
 	"github.com/nsgo-dev/nsgo/ui"
 )
 
@@ -187,7 +188,7 @@ func (s *Session) aiProviderCard(cx *core.Scope) core.Node {
 	field := func(label func(*core.Scope) string, input core.Node) core.Node {
 		return core.View{Style: core.Style{Gap: 4, FlexGrow: 1}, Children: []core.Node{
 			core.Text{ContentFunc: func() string { return label(cx) },
-				Style: core.Style{FontSize: 14, FontWeight: ui.Medium}},
+				Style: core.Style{FontSize: typeBody, FontWeight: ui.Medium}},
 			namedNode(input, func() string { return label(cx) }),
 		}}
 	}
@@ -208,11 +209,11 @@ func (s *Session) aiProviderCard(cx *core.Scope) core.Node {
 				Label: locales.SettingsProviderPickerLabel(cx), TestID: "settings-llm-provider",
 				Style: core.Style{Width: core.Pct(100)}}),
 		core.Text{ContentFunc: func() string { return providerGuidance(cx, provider.Get()) },
-			Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2},
+			Style: core.Style{FontSize: typeCaption}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2},
 		field(locales.SettingsProviderModelLabel,
 			ui.Input{Value: model.Get, OnChange: model.Set, TestID: "settings-llm-model"}),
 		core.View{StyleFunc: func() core.Style {
-			if cx.Env().Window().Width < 900 {
+			if cx.Env().Window().Width < 1120 {
 				return core.Style{Gap: 8}
 			}
 			return core.Style{Direction: core.Row, Gap: 8, AlignItems: core.AlignEnd}
@@ -220,7 +221,7 @@ func (s *Session) aiProviderCard(cx *core.Scope) core.Node {
 			Children: []core.Node{
 				core.View{Style: core.Style{Gap: 4, FlexGrow: 1}, Children: []core.Node{
 					core.Text{ContentFunc: func() string { return locales.SettingsModelSuggestedLabel(cx) },
-						Style:     core.Style{FontSize: 12, FontWeight: ui.Semibold},
+						Style:     core.Style{FontSize: typeCaption, FontWeight: ui.Semibold},
 						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 					core.Dynamic(func(cx *core.Scope) core.Node {
 						var fetched []modelcatalog.Model
@@ -237,7 +238,7 @@ func (s *Session) aiProviderCard(cx *core.Scope) core.Node {
 		core.Show{When: func() bool { return fetchStatus.Get() != "" },
 			Then: func(cx *core.Scope) core.Node {
 				return core.Text{ContentFunc: func() string { return fetchStatus.Get() },
-					Style: core.Style{FontSize: 11},
+					Style: core.Style{FontSize: typeCaption},
 					StyleFunc: func() core.Style {
 						if fetchFailed.Get() {
 							return ui.Colored(ui.ColorsOf(cx).Danger)()
@@ -250,7 +251,7 @@ func (s *Session) aiProviderCard(cx *core.Scope) core.Node {
 		core.Show{When: func() bool { return s.adoptedProvider && !keySaved.Get() },
 			Then: func(cx *core.Scope) core.Node {
 				return core.Text{Content: locales.SettingsMigrationProviderImported(cx),
-					Style:     core.Style{FontSize: 12},
+					Style:     core.Style{FontSize: typeCaption},
 					StyleFunc: ui.Colored(accentInk(cx))}
 			}},
 		field(locales.SettingsApikeyLabel,
@@ -266,12 +267,12 @@ func (s *Session) aiProviderCard(cx *core.Scope) core.Node {
 						},
 						Children: []core.Node{
 							core.Text{ContentFunc: func() string { return savedMask.Get() },
-								Style:     core.Style{FontSize: 13, FontFamily: core.FontMonospace},
+								Style:     core.Style{FontSize: typeBody, FontFamily: core.FontMonospace},
 								StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 							core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
 								Gap: 8}, Children: []core.Node{
 								core.Text{Content: locales.SettingsApikeySaved(cx),
-									Style:     core.Style{FontSize: 12},
+									Style:     core.Style{FontSize: typeCaption},
 									StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 								ui.Button{Text: locales.SettingsApikeyReplace(cx),
 									Variant: ui.ButtonOutline, Size: ui.SizeSmall,
@@ -290,11 +291,11 @@ func (s *Session) aiProviderCard(cx *core.Scope) core.Node {
 	if keyErr != nil {
 		children = append(children, core.Text{ContentFunc: func() string {
 			return locales.SettingsApikeyUnavailable(cx)
-		}, Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)})
+		}, Style: core.Style{FontSize: typeCaption}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)})
 	}
 	children = append(children,
 		core.Text{ContentFunc: func() string { return locales.SettingsAiHint(cx) },
-			Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
+			Style: core.Style{FontSize: typeCaption}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
 		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
 			JustifyContent: core.JustifySpaceBetween, Gap: 8}, Children: []core.Node{
 			ui.Button{Text: locales.SettingsTestConnection(cx), Variant: ui.ButtonOutline,
@@ -304,7 +305,7 @@ func (s *Session) aiProviderCard(cx *core.Scope) core.Node {
 		core.Show{When: func() bool { return testStatus.Get() != "" },
 			Then: func(cx *core.Scope) core.Node {
 				return core.Text{ContentFunc: func() string { return testStatus.Get() },
-					Style: core.Style{FontSize: 12},
+					Style: core.Style{FontSize: typeCaption},
 					StyleFunc: func() core.Style {
 						if testFailed.Get() {
 							return ui.Colored(ui.ColorsOf(cx).Danger)()
@@ -315,7 +316,7 @@ func (s *Session) aiProviderCard(cx *core.Scope) core.Node {
 		core.Show{When: func() bool { return status.Get() != "" },
 			Then: func(cx *core.Scope) core.Node {
 				return core.Text{ContentFunc: func() string { return status.Get() },
-					Style: core.Style{FontSize: 12},
+					Style: core.Style{FontSize: typeCaption},
 					StyleFunc: func() core.Style {
 						if failed.Get() {
 							return ui.Colored(ui.ColorsOf(cx).Danger)()
@@ -325,7 +326,7 @@ func (s *Session) aiProviderCard(cx *core.Scope) core.Node {
 			}},
 	)
 
-	return dataCardFlat(cx, children...)
+	return settingsCard(cx, lucide.Sparkles, locales.SettingsSectionAi, nil, children...)
 }
 
 // maskSecret is 1.x's credential preview: keep a recognizable provider prefix

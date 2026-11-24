@@ -378,37 +378,41 @@ func (s *Session) activitiesScreen(cx *core.Scope, dataRev *core.Signal[int],
 		}
 
 		children := []core.Node{
-			core.View{Style: core.Style{Gap: 4, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
+			core.View{Style: core.Style{Gap: 3, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
 				Children: []core.Node{
 					core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8},
 						Children: []core.Node{
 							core.Text{ContentFunc: text(func(a store.Activity) string { return a.Source }),
-								Style: core.Style{FontSize: 16, FontWeight: ui.Medium,
+								Style: core.Style{FontSize: typeBody, FontWeight: ui.Medium,
 									FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 1},
+							ui.Badge{TextFunc: text(func(a store.Activity) string { return dataScopeLabel(cx, a.Scope) }),
+								Variant: ui.BadgeNeutral},
 							core.Text{ContentFunc: text(func(a store.Activity) string { return dataActivityDate(a) }),
-								Style:     core.Style{FontSize: 12, FlexShrink: 0},
+								Style: core.Style{FontSize: typeCaption, FontVariant: core.FontTabularNums,
+									FlexShrink: 0},
 								StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
-						}},
-					core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 6},
-						Children: []core.Node{
-							core.Text{ContentFunc: text(func(a store.Activity) string {
-								return commaFloat(a.Amount) + " " + a.Unit
-							}), Style: core.Style{FontSize: 14, FlexShrink: 1, MinWidth: core.Pt(0)},
-								MaxLines: 1},
-							core.Text{Content: "→", Style: core.Style{FontSize: 14},
-								StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-							core.Text{ContentFunc: text(func(a store.Activity) string {
-								return commaFloat(a.CO2eKg) + " " + locales.UnitKgCo2e(cx)
-							}), Style: core.Style{FontSize: 14, FontWeight: ui.Medium,
-								FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 1},
 						}},
 					core.Text{ContentFunc: text(func(a store.Activity) string {
 						return a.EFFactorCode + " (" + a.EFSource + " · " + strconv.Itoa(a.EFYear) +
 							" · " + a.EFGeography + ")"
-					}), Style: core.Style{FontSize: 12, FontFamily: ui.Mono, FlexShrink: 1,
-						MinWidth: core.Pt(0)},
+					}), Style: core.Style{FontSize: typeCaption, FontFamily: core.FontMonospace,
+						FlexShrink: 1, MinWidth: core.Pt(0)},
 						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
 					provenance(cx),
+				}},
+			core.View{Style: core.Style{AlignItems: core.AlignEnd, Gap: 2, FlexShrink: 0,
+				MinWidth: core.Pt(136)},
+				Children: []core.Node{
+					core.Text{ContentFunc: text(func(a store.Activity) string {
+						return commaFloat(a.CO2eKg) + " " + locales.UnitKgCo2e(cx)
+					}), Style: core.Style{FontSize: typeBody, FontWeight: ui.Semibold,
+						FontVariant: core.FontTabularNums, TextAlign: core.TextAlignEnd},
+						MaxLines: 1},
+					core.Text{ContentFunc: text(func(a store.Activity) string {
+						return commaFloat(a.Amount) + " " + a.Unit
+					}), Style: core.Style{FontSize: typeCaption, FontVariant: core.FontTabularNums,
+						TextAlign: core.TextAlignEnd},
+						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
 				}},
 			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 2,
 				FlexShrink: 0}, Children: []core.Node{
@@ -426,13 +430,18 @@ func (s *Session) activitiesScreen(cx *core.Scope, dataRev *core.Signal[int],
 					}, TestID: "activity-rebind"},
 			}},
 		}
-		return core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignStart, Gap: 10,
-			FlexGrow: 1, MinWidth: core.Pt(0), CornerRadius: 6}, StyleFunc: func() core.Style {
-			if current, ok := activity(); ok && current.ID == highlightID.Get() {
-				return core.Style{Background: ui.Alpha(ui.ColorsOf(cx).Warn(), 0.12)}
+		return core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 12,
+			Padding: core.Symmetric(12, 16), FlexGrow: 1, MinWidth: core.Pt(0)}, StyleFunc: func() core.Style {
+			colors := ui.ColorsOf(cx)
+			st := core.Style{Hover: &core.Style{Background: ui.Alpha(colors.Text(), 0.03)}}
+			if row.Index() < len(visible.Get())-1 {
+				st.Borders = core.Edges{Bottom: 1}
+				st.BorderColor = colors.Line()
 			}
-			return core.Style{Hover: &core.Style{
-				Background: ui.Alpha(ui.ColorsOf(cx).Text(), 0.03)}}
+			if current, ok := activity(); ok && current.ID == highlightID.Get() {
+				st.Background = ui.Alpha(colors.Warn(), 0.12)
+			}
+			return st
 		}, Children: children}
 	}
 
@@ -445,11 +454,21 @@ func (s *Session) activitiesScreen(cx *core.Scope, dataRev *core.Signal[int],
 		_ = dataRev.Get()
 		return len(s.activities) > 0
 	}, Then: func(cx *core.Scope) core.Node {
-		searchRow := searchField(cx, search.Get, locales.ActivitiesSearchPlaceholder(cx),
-			func(value string) {
-				search.Set(value)
-				clearSelection()
-			}, "activities-search")
+		searchRow := core.View{
+			Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Wrap: core.Wrap, Gap: 8},
+			Children: []core.Node{
+				core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(220)},
+					Children: []core.Node{
+						searchField(cx, search.Get, locales.ActivitiesSearchPlaceholder(cx),
+							func(value string) {
+								search.Set(value)
+								clearSelection()
+							}, "activities-search"),
+					}},
+				core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8,
+					FlexShrink: 0}, Children: selectionActions},
+			},
+		}
 		segments := make([]segment, 0, len(scopeOptions))
 		for _, option := range scopeOptions {
 			option := option
@@ -474,11 +493,6 @@ func (s *Session) activitiesScreen(cx *core.Scope, dataRev *core.Signal[int],
 					Variant: ui.ButtonGhost, TestID: "activities-filter-clear",
 					OnPress: clearFilters}
 			}},
-			core.Show{When: func() bool { return selectedActivity() != "" },
-				Then: func(*core.Scope) core.Node {
-					return core.View{Style: core.Style{Direction: core.Row, Gap: 8},
-						Children: selectionActions}
-				}},
 			sortMenu(cx, activitySortOptions(cx), order.Get, order.Set, "activities-sort"),
 		}}
 		return core.View{Style: core.Style{Gap: 12}, Children: []core.Node{
@@ -521,14 +535,11 @@ func (s *Session) activitiesScreen(cx *core.Scope, dataRev *core.Signal[int],
 			}
 		},
 		Empty:         listEmpty,
-		EstimatedSize: 96,
+		EstimatedSize: 80,
 		Style:         core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
 		ListStyle:     core.Style{Padding: core.All(0)},
-		RowStyle: core.Style{Padding: core.Symmetric(12, 16), AlignItems: core.AlignStart,
-			CornerRadius: 0},
-		RowStyleFunc: func() core.Style {
-			return core.Style{Borders: core.Edges{Bottom: 1}, BorderColor: ui.ColorsOf(cx).Line()}
-		},
+		RowStyle:     core.Style{Padding: core.All(0), CornerRadius: 0},
+		RowStyleFunc: func() core.Style { return core.Style{} },
 	}
 	listFrame := core.View{
 		Style:     core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0), Overflow: core.Hidden},

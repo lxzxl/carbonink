@@ -34,16 +34,6 @@ func dataCard(cx *core.Scope, children ...core.Node) core.Node {
 	}
 }
 
-// dataCardFlat groups settings content the way 1.x did: controls sit
-// directly on the page, separated by headings and space rather than a card
-// border. Screens that read as a dashboard still use dataCard.
-func dataCardFlat(cx *core.Scope, children ...core.Node) core.Node {
-	return core.View{
-		Style:    core.Style{Gap: 16, AlignSelf: core.AlignStretch},
-		Children: children,
-	}
-}
-
 func dataHeading(cx *core.Scope, title string, detail string) core.Node {
 	children := []core.Node{core.Text{Content: title, Style: core.Style{FontSize: typeSectionTitle, FontWeight: ui.Semibold}}}
 	if detail != "" {
@@ -446,27 +436,50 @@ func (s *Session) dashboardBody(cx *core.Scope, dataRev *core.Signal[int],
 	unit := locales.UnitKgCo2e(cx)
 	co2e := func(testID, label string, value float64) core.Node {
 		return core.View{TestID: testID,
-			Style: core.Style{FlexGrow: 1, FlexBasis: core.Pt(0), MinWidth: core.Pt(150),
-				Padding: core.All(20), CornerRadius: 8, BorderWidth: 1},
+			Style: core.Style{Padding: core.All(20), CornerRadius: radiusCard, BorderWidth: 1},
 			StyleFunc: func() core.Style {
-				return core.Style{Background: ui.ColorsOf(cx).Surface(),
-					BorderColor: ui.ColorsOf(cx).Line()}
+				colors := ui.ColorsOf(cx)
+				basis := core.Style{FlexGrow: 1, FlexBasis: core.Pt(0), MinWidth: core.Pt(150)}
+				if cx.Env().Window().Width < 1080 {
+					basis = core.Style{FlexGrow: 1, FlexBasis: core.Pct(48), MinWidth: core.Pt(200)}
+				}
+				return basis.Merge(core.Style{Background: colors.Surface(),
+					BorderColor: colors.Border()})
 			},
 			Children: []core.Node{
-				core.Text{Content: label, Style: core.Style{FontSize: 12, FontWeight: ui.Medium,
-					TextTransform: core.TextTransformUppercase, LetterSpacingEm: 0.025},
+				core.Text{Content: label, Style: core.Style{FontSize: typeCaption, FontWeight: ui.Medium},
 					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 				core.Text{Content: commaFloat(value),
-					Style: core.Style{FontSize: 24, FontWeight: ui.Semibold,
-						Margin: core.Edges{Top: 8}}},
-				core.Text{Content: unit, Style: core.Style{FontSize: 12,
+					Style: core.Style{FontSize: typeKPI, FontWeight: ui.Semibold,
+						FontVariant: core.FontTabularNums, Margin: core.Edges{Top: 8}}},
+				core.Text{Content: unit, Style: core.Style{FontSize: typeCaption,
 					Margin: core.Edges{Top: 2}},
 					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 			}}
 	}
 
+	var headingActions []core.Node
+	if activePeriod := dataYearPeriod(s.periods); activePeriod != nil {
+		headingActions = append(headingActions, core.View{
+			Style: core.Style{Padding: core.Symmetric(4, 10), CornerRadius: radiusItem,
+				BorderWidth: 1},
+			StyleFunc: func() core.Style {
+				colors := ui.ColorsOf(cx)
+				return core.Style{Background: colors.Inset(), BorderColor: colors.Border()}
+			},
+			Children: []core.Node{
+				core.Text{
+					Content: locales.ReportsPeriodLabel(cx) + " · " + strconv.Itoa(activePeriod.Year),
+					Style: core.Style{FontSize: typeCaption, FontWeight: ui.Medium,
+						FontVariant: core.FontTabularNums},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1,
+				},
+			},
+		})
+	}
+
 	return core.View{Style: core.Style{Gap: 24}, Children: []core.Node{
-		pageHeading(cx, locales.DashboardInventoryTitle),
+		pageHeading(cx, locales.DashboardInventoryTitle, headingActions...),
 		core.View{TestID: "dashboard-totals", Style: core.Style{Direction: core.Row,
 			Wrap: core.Wrap, AlignItems: core.AlignStretch, Gap: 16}, Children: []core.Node{
 			co2e("dashboard-total", locales.DashboardTotalCo2e(cx), s.totals.TotalKg),
@@ -1033,7 +1046,7 @@ func (s *Session) sourcesBody(cx *core.Scope, dataRev *core.Signal[int],
 			}
 		}
 		nameLine := []core.Node{
-			core.Text{Content: src.Name, Style: core.Style{FontSize: 16,
+			core.Text{Content: src.Name, Style: core.Style{FontSize: typeBody,
 				FontWeight: ui.Medium, FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 1},
 		}
 		if !src.IsActive {
@@ -1051,7 +1064,7 @@ func (s *Session) sourcesBody(cx *core.Scope, dataRev *core.Signal[int],
 			}
 		}
 		mutedMeta := func(text string) core.Node {
-			return core.Text{Content: text, Style: core.Style{FontSize: 12,
+			return core.Text{Content: text, Style: core.Style{FontSize: typeCaption,
 				FlexShrink: 1, MinWidth: core.Pt(0)},
 				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1}
 		}
@@ -1073,25 +1086,33 @@ func (s *Session) sourcesBody(cx *core.Scope, dataRev *core.Signal[int],
 			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
 				Wrap: core.Wrap, Gap: 8}, Children: metaLine},
 			core.Text{Content: stats,
-				Style: core.Style{FontSize: 12, FlexShrink: 1, MinWidth: core.Pt(0),
-					FontStyle: statsStyle},
+				Style: core.Style{FontSize: typeCaption, FlexShrink: 1, MinWidth: core.Pt(0),
+					FontStyle: statsStyle, FontVariant: core.FontTabularNums},
 				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2},
 		}
 		if preset, ok := presets.ByID(src.TemplateOrigin); ok {
 			origin := strings.Join([]string{preset.Source, preset.Region, strconv.Itoa(preset.Year)}, " · ")
 			texts = append(texts, core.Text{Content: locales.SourcesFromCatalog(cx, origin),
-				Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint), MaxLines: 1})
+				Style: core.Style{FontSize: typeMicro}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1})
 		}
 		id := src.ID
 		active := src.IsActive
+		borders := core.Edges{}
+		if i < len(visible)-1 {
+			borders.Bottom = 1
+		}
+		totalLabel := "—"
+		if src.ActivityCount > 0 {
+			totalLabel = co2eWithUnit(src.TotalCO2eKg)
+		}
 		rows = append(rows, core.View{
 			TestID: "source-row-" + id,
 			Role:   core.RoleButton,
 			OnPress: func(core.PressEvent) {
 				showEdit(id)
 			},
-			Style: core.Style{Direction: core.Row, AlignItems: core.AlignStart, Gap: 12,
-				Padding: core.Symmetric(12, 16), Borders: core.Edges{Bottom: 1}},
+			Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 12,
+				Padding: core.Symmetric(12, 16), Borders: borders},
 			StyleFunc: func() core.Style {
 				colors := ui.ColorsOf(cx)
 				style := core.Style{BorderColor: colors.Line(),
@@ -1105,6 +1126,14 @@ func (s *Session) sourcesBody(cx *core.Scope, dataRev *core.Signal[int],
 			Children: []core.Node{
 				core.View{Style: core.Style{Gap: 4, FlexGrow: 1, FlexShrink: 1,
 					MinWidth: core.Pt(0)}, Children: texts},
+				core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+					Gap: 8, FlexShrink: 0}, Children: []core.Node{
+					core.Text{Content: totalLabel,
+						Style: core.Style{FontSize: typeBody, FontWeight: ui.Medium,
+							FontVariant: core.FontTabularNums, TextAlign: core.TextAlignEnd},
+						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
+					ui.Icon(lucide.ChevronRight, 14, ui.ColorsOf(cx).Faint),
+				}},
 			},
 		})
 	}
@@ -1197,7 +1226,7 @@ func (s *Session) sourcesBody(cx *core.Scope, dataRev *core.Signal[int],
 		}(), scope.Get, func(value int) {
 			category.Set("")
 			scope.Set(value)
-		}, true),
+		}, false),
 		core.View{Style: core.Style{Direction: core.Row, Wrap: core.Wrap, Gap: 6},
 			Children: chips},
 		core.Show{When: filtersActive, Then: func(*core.Scope) core.Node {
@@ -2285,8 +2314,8 @@ func (s *Session) deleteActivityButton(cx *core.Scope, selectedID *core.Signal[s
 			dataError(cx, status),
 		}, []core.Node{
 			dataCancelButton(cx, open, "activity-delete-cancel"),
-			ui.Button{Text: locales.DataDeleteActivity(cx), Busy: busy.Get, OnPress: confirm,
-				TestID: "activity-delete-confirm"},
+			ui.Button{Text: locales.DataDeleteActivity(cx), Color: ui.ColorsOf(cx).Danger,
+				Busy: busy.Get, OnPress: confirm, TestID: "activity-delete-confirm"},
 		}, "activity-delete-dialog"),
 	}}
 }
@@ -2371,31 +2400,20 @@ func (s *Session) auditBody(cx *core.Scope, kind *core.Signal[string], since *co
 		rows = append(rows, core.Text{Content: err.Error(), Style: core.Style{FontSize: 12},
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)})
 	}
-	for _, event := range events {
+	for i, event := range events {
 		event := event
 		isSelected := func() bool { return selected.Get() == event.ID }
-		rows = append(rows, core.View{
-			TestID: "audit-row-" + event.ID,
-			Role:   core.RoleButton,
-			OnPress: func(core.PressEvent) {
-				selected.Set(event.ID)
-			},
-			Style: core.Style{Gap: 2, Padding: core.Symmetric(10, 16),
-				Borders: core.Edges{Bottom: 1}},
-			StyleFunc: func() core.Style {
-				style := core.Style{BorderColor: ui.ColorsOf(cx).Line()}
-				if isSelected() {
-					style.Background = selectionTint(cx)
-				}
-				return style
-			},
-			Children: []core.Node{
+		rows = append(rows, dataClickableRowBordered(cx, "audit-row-"+event.ID, func() {
+			selected.Set(event.ID)
+		}, isSelected, i < len(events)-1,
+			core.View{Style: core.Style{Gap: 2, FlexGrow: 1, MinWidth: core.Pt(0)}, Children: []core.Node{
 				core.Text{Content: dataAuditKind(cx, event.Kind),
-					Style: core.Style{FontSize: 14, FontWeight: ui.Semibold}, MaxLines: 1},
-				core.Text{Content: event.OccurredAt, Style: core.Style{FontSize: 12},
-					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-			},
-		})
+					Style: core.Style{FontSize: typeBody, FontWeight: ui.Medium}, MaxLines: 1},
+				core.Text{Content: auditTimestamp(event.OccurredAt),
+					Style:     core.Style{FontSize: typeCaption, FontVariant: core.FontTabularNums},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
+			}},
+		))
 	}
 	if len(events) == 0 && err == nil && datesOK {
 		rows = append(rows, dataEmptyState(cx, locales.AuditEmptyStateHeading(cx),
@@ -2484,41 +2502,54 @@ func (s *Session) auditBody(cx *core.Scope, kind *core.Signal[string], since *co
 				return core.Style{}
 			}}},
 	}
-	filters := core.View{Style: core.Style{Gap: 10}, Children: []core.Node{
-		core.View{Style: core.Style{Gap: 6}, Children: []core.Node{
-			core.Text{Content: locales.AuditFilterEventKindLabel(cx),
-				Style: core.Style{FontSize: 12, FontWeight: ui.Medium}},
-			rebindChip,
-		}},
-		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignEnd,
-			Gap: 8}, Children: []core.Node{
-			dateField(locales.AuditFilterSinceLabel(cx), since, "audit-since"),
-			dateField(locales.AuditFilterUntilLabel(cx), until, "audit-until"),
-		}},
-		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 12},
-			Children: []core.Node{
-				sortMenu(cx, sortOptions, oldestFirst.Get, oldestFirst.Set, "audit-sort"),
-				core.View{Style: core.Style{FlexGrow: 1}},
-				ui.Button{Text: locales.AuditExportCsvButton(cx), Icon: lucide.Download,
-					Variant: ui.ButtonGhost, Size: ui.SizeSmall, OnPress: export,
-					TestID: "audit-export"},
-				ui.Button{Text: locales.AuditFilterResetButton(cx), Variant: ui.ButtonGhost,
-					Size: ui.SizeSmall, OnPress: resetFilters, TestID: "audit-reset"},
+	filters := core.View{
+		Style: core.Style{Gap: 10, Padding: core.Symmetric(12, 16),
+			Borders: core.Edges{Bottom: 1}, FlexShrink: 0},
+		StyleFunc: func() core.Style {
+			return core.Style{BorderColor: ui.ColorsOf(cx).Line()}
+		},
+		Children: []core.Node{
+			core.View{Style: core.Style{Gap: 6}, Children: []core.Node{
+				core.Text{Content: locales.AuditFilterEventKindLabel(cx),
+					Style: core.Style{FontSize: typeCaption, FontWeight: ui.Medium}},
+				rebindChip,
 			}},
-	}}
-	left := []core.Node{filters}
+			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignEnd,
+				Gap: 8}, Children: []core.Node{
+				dateField(locales.AuditFilterSinceLabel(cx), since, "audit-since"),
+				dateField(locales.AuditFilterUntilLabel(cx), until, "audit-until"),
+			}},
+			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8},
+				Children: []core.Node{
+					sortMenu(cx, sortOptions, oldestFirst.Get, oldestFirst.Set, "audit-sort"),
+					core.View{Style: core.Style{FlexGrow: 1}},
+					ui.Button{Text: locales.AuditExportCsvButton(cx), Icon: lucide.Download,
+						Variant: ui.ButtonGhost, Size: ui.SizeSmall, OnPress: export,
+						TestID: "audit-export"},
+					ui.Button{Text: locales.AuditFilterResetButton(cx), Variant: ui.ButtonGhost,
+						Size: ui.SizeSmall, OnPress: resetFilters, TestID: "audit-reset"},
+				}},
+		},
+	}
+	var banners []core.Node
 	if !datesOK {
-		left = append(left, core.Text{Content: locales.AuditFilterInvalidDate(cx),
-			Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)})
+		banners = append(banners, core.Text{Content: locales.AuditFilterInvalidDate(cx),
+			Style: core.Style{FontSize: typeCaption, Padding: core.Symmetric(6, 16)},
+			StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)})
 	} else if status.Get() != "" {
-		left = append(left, core.Text{Content: status.Get(), Style: core.Style{FontSize: 12},
+		banners = append(banners, core.Text{Content: status.Get(),
+			Style: core.Style{FontSize: typeCaption, Padding: core.Symmetric(6, 16)},
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
 	}
-	left = append(left, core.View{Style: core.Style{Gap: 0}, Children: rows})
+	scrollItems := make([]core.Node, 0, len(rows)+1)
+	scrollItems = append(scrollItems, rows...)
 	if datesOK && len(events) == page && page < 10_000 {
-		left = append(left, ui.Button{Text: locales.AuditLoadOlderButton(cx),
-			Variant: ui.ButtonSecondary, TestID: "audit-older",
-			OnPress: func() { limit.Set(page + 100) }})
+		scrollItems = append(scrollItems, core.View{
+			Style: core.Style{Padding: core.Symmetric(10, 16)},
+			Children: []core.Node{ui.Button{Text: locales.AuditLoadOlderButton(cx),
+				Variant: ui.ButtonSecondary, TestID: "audit-older",
+				OnPress: func() { limit.Set(page + 100) }}},
+		})
 	}
 	detail := core.Node(core.View{Style: core.Style{FlexGrow: 1, MinHeight: core.Pt(0)},
 		Children: []core.Node{detailEmpty(cx, locales.AuditSelectEvent)}})
@@ -2530,13 +2561,14 @@ func (s *Session) auditBody(cx *core.Scope, kind *core.Signal[string], since *co
 			Style: core.Style{FlexGrow: 1, MinHeight: core.Pt(0)},
 			Children: []core.Node{core.View{
 				Style: core.Style{Padding: core.All(24), Gap: 12,
-					Width: core.Pct(100), MaxWidth: core.Pt(980)},
+					Width: core.Pct(100), MaxWidth: core.Pt(880)},
 				Children: []core.Node{
 					core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
 						Gap: 8}, Children: []core.Node{
 						ui.Badge{Text: dataAuditKind(cx, event.Kind), Variant: ui.BadgeNeutral},
 						core.View{Style: core.Style{FlexGrow: 1}},
-						core.Text{Content: event.OccurredAt, Style: core.Style{FontSize: 12},
+						core.Text{Content: auditTimestamp(event.OccurredAt),
+							Style: core.Style{FontSize: typeCaption, FontVariant: core.FontTabularNums},
 							StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 					}},
 					s.auditEventBody(cx, event, rawOpen, rawRev, openActivity),
@@ -2544,16 +2576,29 @@ func (s *Session) auditBody(cx *core.Scope, kind *core.Signal[string], since *co
 			}},
 		}
 	}
+	listChildren := []core.Node{
+		listPaneHeader(cx, locales.AuditNav, locales.AuditSubheading),
+		filters,
+	}
+	listChildren = append(listChildren, banners...)
+	listChildren = append(listChildren, core.Scroll{
+		Style:    core.Style{FlexGrow: 1, MinHeight: core.Pt(0)},
+		Children: []core.Node{core.View{Style: core.Style{Gap: 0}, Children: scrollItems}},
+	})
 	list := core.View{Style: core.Style{FlexGrow: 1, MinHeight: core.Pt(0)},
-		Children: []core.Node{
-			listPaneHeader(cx, locales.AuditNav, locales.AuditSubheading),
-			core.Scroll{Style: core.Style{FlexGrow: 1, MinHeight: core.Pt(0)},
-				Children: []core.Node{core.View{
-					Style:    core.Style{Padding: core.Symmetric(12, 16), Gap: 10},
-					Children: left}},
-			},
-		}}
+		Children: listChildren}
 	return splitPage(cx, 36, list, detail)
+}
+
+func auditTimestamp(raw string) string {
+	t, err := time.Parse(time.RFC3339, raw)
+	if err == nil {
+		return t.Format("2006-01-02 15:04")
+	}
+	if len(raw) >= 16 {
+		return strings.ReplaceAll(raw[:16], "T", " ")
+	}
+	return raw
 }
 
 func auditDatesOK(since, until string) bool {
@@ -2573,19 +2618,22 @@ func auditDatesOK(since, until string) bool {
 // every other kind keeps the pretty-printed payload visible.
 func (s *Session) auditEventBody(cx *core.Scope, event store.AuditEvent,
 	rawOpen map[string]bool, rawRev *core.Signal[int], openActivity func(string)) core.Node {
-	header := core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8},
-		Children: []core.Node{
-			ui.Badge{Text: dataAuditKind(cx, event.Kind), Variant: ui.BadgeNeutral},
-			core.Text{Content: event.OccurredAt, Style: core.Style{FontSize: 11},
-				StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
-		}}
 	payload := dataAuditPayload(event.Payload)
 	if event.Kind != "activity_rebind_ef" {
-		children := []core.Node{header}
+		children := []core.Node{}
 		if payload != "" {
-			children = append(children, core.Text{Content: payload,
-				Style:     core.Style{FontSize: 11, FontFamily: core.FontMonospace},
-				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 12})
+			children = append(children, core.View{
+				Style: core.Style{Padding: core.All(12), CornerRadius: radiusCard, BorderWidth: 1},
+				StyleFunc: func() core.Style {
+					colors := ui.ColorsOf(cx)
+					return core.Style{Background: colors.Inset(), BorderColor: colors.Line()}
+				},
+				Children: []core.Node{
+					core.Text{Content: payload,
+						Style:     core.Style{FontSize: typeMicro, FontFamily: core.FontMonospace},
+						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 16},
+				},
+			})
 		}
 		return core.View{Style: core.Style{Gap: 4}, Children: children}
 	}
@@ -2593,10 +2641,9 @@ func (s *Session) auditEventBody(cx *core.Scope, event store.AuditEvent,
 	var rebind auditRebindPayload
 	if err := json.Unmarshal([]byte(event.Payload), &rebind); err != nil || rebind.ActivityID == "" {
 		return core.View{Style: core.Style{Gap: 4}, Children: []core.Node{
-			header,
-			core.Text{Content: locales.AuditMalformedPayload(cx), Style: core.Style{FontSize: 12},
+			core.Text{Content: locales.AuditMalformedPayload(cx), Style: core.Style{FontSize: typeCaption},
 				StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)},
-			core.Text{Content: payload, Style: core.Style{FontSize: 11, FontFamily: core.FontMonospace},
+			core.Text{Content: payload, Style: core.Style{FontSize: typeMicro, FontFamily: core.FontMonospace},
 				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 12},
 		}}
 	}
@@ -2615,24 +2662,32 @@ func (s *Session) auditEventBody(cx *core.Scope, event store.AuditEvent,
 		rawRev.Set(rawRev.Get() + 1)
 	}
 	details := []core.Node{
-		header,
-		ui.Button{Text: locales.AuditRebindActivityLabel(cx) + " #" + short,
-			Variant: ui.ButtonSecondary, TestID: "audit-rebind-activity-" + event.ID,
-			OnPress: func() { openActivity(rebind.ActivityID) }},
-		core.Text{Content: s.auditEFName(rebind.OldEF) + " → " +
-			s.auditEFName(rebind.NewEF), Style: core.Style{FontSize: 12, FontWeight: ui.Semibold}},
+		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Wrap: core.Wrap, Gap: 8},
+			Children: []core.Node{
+				core.Text{Content: s.auditEFName(rebind.OldEF) + " → " +
+					s.auditEFName(rebind.NewEF),
+					Style: core.Style{FontSize: typeBody, FontWeight: ui.Semibold,
+						FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)}},
+				ui.Button{Text: locales.AuditRebindActivityLabel(cx) + " #" + short,
+					Variant: ui.ButtonSecondary, Size: ui.SizeSmall,
+					TestID:  "audit-rebind-activity-" + event.ID,
+					OnPress: func() { openActivity(rebind.ActivityID) }},
+			}},
 		core.Text{Content: locales.AuditRebindDelta(cx, auditNumber(rebind.OldCO2e),
 			auditNumber(rebind.NewCO2e), auditSigned(delta), auditSigned(percent)),
-			Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-		core.Show{When: func() bool { return rawOpen[event.ID] },
-			Then: func(cx *core.Scope) core.Node {
-				return ui.Button{Text: locales.AuditHideRaw(cx), Variant: ui.ButtonSecondary,
-					TestID: "audit-raw-" + event.ID, OnPress: toggle}
-			},
-			Else: func(cx *core.Scope) core.Node {
-				return ui.Button{Text: locales.AuditShowRaw(cx), Variant: ui.ButtonSecondary,
-					TestID: "audit-raw-" + event.ID, OnPress: toggle}
-			}},
+			Style:     core.Style{FontSize: typeCaption, FontVariant: core.FontTabularNums},
+			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+		core.View{Style: core.Style{Direction: core.Row}, Children: []core.Node{
+			core.Show{When: func() bool { return rawOpen[event.ID] },
+				Then: func(cx *core.Scope) core.Node {
+					return ui.Button{Text: locales.AuditHideRaw(cx), Variant: ui.ButtonOutline,
+						Size: ui.SizeSmall, TestID: "audit-raw-" + event.ID, OnPress: toggle}
+				},
+				Else: func(cx *core.Scope) core.Node {
+					return ui.Button{Text: locales.AuditShowRaw(cx), Variant: ui.ButtonOutline,
+						Size: ui.SizeSmall, TestID: "audit-raw-" + event.ID, OnPress: toggle}
+				}},
+		}},
 	}
 	if rawOpen[event.ID] {
 		details = append(details, core.Text{Content: payload,

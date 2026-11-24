@@ -38,8 +38,12 @@ func (s *Session) reportsScreen(cx *core.Scope, dataRev *core.Signal[int],
 	if s.organization == nil {
 		return s.onboardingScreen(cx, dataRev)
 	}
+	defaultPeriod := ""
+	if latest := dataYearPeriod(s.periods); latest != nil {
+		defaultPeriod = latest.ID
+	}
 	state := &reportsState{
-		period:     core.NewSignal(cx, ""),
+		period:     core.NewSignal(cx, defaultPeriod),
 		kind:       core.NewSignal(cx, report.KindISO),
 		language:   core.NewSignal(cx, reportLanguage(cx)),
 		busy:       core.NewSignal(cx, false),
@@ -334,9 +338,20 @@ func (s *Session) reportsScreen(cx *core.Scope, dataRev *core.Signal[int],
 			}},
 		),
 		core.View{Style: core.Style{Direction: core.Row, JustifyContent: core.JustifyEnd}, Children: []core.Node{
-			ui.Button{Text: locales.ReportsGenerateButton(cx), OnPress: generate,
-				Busy: state.busy.Get, Disabled: func() bool { return len(periodOptions) == 0 },
-				TestID: "reports-generate"},
+			core.Dynamic(func(cx *core.Scope) core.Node {
+				variant := ui.ButtonPrimary
+				if state.generated.Get() != nil {
+					variant = ui.ButtonSecondary
+				}
+				return ui.Button{
+					Text:     locales.ReportsGenerateButton(cx),
+					Variant:  variant,
+					OnPress:  generate,
+					Busy:     state.busy.Get,
+					Disabled: func() bool { return len(periodOptions) == 0 },
+					TestID:   "reports-generate",
+				}
+			}),
 		}},
 		core.Show{When: func() bool { return state.status.Get() != "" },
 			Then: func(cx *core.Scope) core.Node {
@@ -362,16 +377,18 @@ func (s *Session) reportsScreen(cx *core.Scope, dataRev *core.Signal[int],
 		stat := func(label string, value float64) core.Node {
 			return core.View{Style: core.Style{FlexGrow: 1, FlexBasis: core.Pt(0), Gap: 2},
 				Children: []core.Node{
-					core.Text{Content: commaFloat(value), Style: core.Style{FontSize: 20, FontWeight: ui.Bold}},
-					core.Text{Content: label, Style: core.Style{FontSize: 12},
+					core.Text{Content: commaFloat(value),
+						Style: core.Style{FontSize: typePageTitle, FontWeight: ui.Bold,
+							FontVariant: core.FontTabularNums}},
+					core.Text{Content: label, Style: core.Style{FontSize: typeCaption},
 						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 				}}
 		}
 		sections := []core.Node{}
 		add := func(title, body string) {
 			sections = append(sections, dataCard(cx,
-				core.Text{Content: title, Style: core.Style{FontSize: 14, FontWeight: ui.Semibold}},
-				core.Text{Content: body, Style: core.Style{FontSize: 13}}))
+				core.Text{Content: title, Style: core.Style{FontSize: typeSectionTitle, FontWeight: ui.Semibold}},
+				core.Text{Content: body, Style: core.Style{FontSize: typeBody}}))
 		}
 		if generated.ISO != nil {
 			add(locales.ReportsSectionBoundary(cx), generated.ISO.BoundaryDescription)
@@ -407,19 +424,20 @@ func (s *Session) reportsScreen(cx *core.Scope, dataRev *core.Signal[int],
 						}},
 						core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
 							Wrap: core.Wrap, Gap: 8}, Children: []core.Node{
-							ui.Button{Text: locales.ReportsExportPdfButton(cx), Variant: ui.ButtonSecondary,
+							ui.Button{Text: locales.ReportsExportPdfButton(cx), Variant: ui.ButtonOutline,
 								OnPress: func() { export("pdf") }, Busy: state.exportBusy.Get,
 								TestID: "reports-export-pdf"},
-							ui.Button{Text: locales.ReportsExportXlsxButton(cx), Variant: ui.ButtonSecondary,
+							ui.Button{Text: locales.ReportsExportXlsxButton(cx), Variant: ui.ButtonOutline,
 								OnPress: func() { export("xlsx") }, Busy: state.exportBusy.Get,
 								TestID: "reports-export-xlsx"},
-							ui.Button{Text: locales.ReportsExportBothButton(cx),
-								OnPress: func() { export("both") }, Busy: state.exportBusy.Get,
-								TestID: "reports-export-both"},
 							ui.Button{Text: locales.ReportsExportDeliverableButton(cx),
 								Variant: ui.ButtonSecondary,
 								OnPress: func() { exportDeliverable() }, Busy: state.exportBusy.Get,
 								TestID: "reports-export-deliverable"},
+							ui.Button{Text: locales.ReportsExportBothButton(cx),
+								Variant: ui.ButtonPrimary,
+								OnPress: func() { export("both") }, Busy: state.exportBusy.Get,
+								TestID: "reports-export-both"},
 						}},
 					}},
 				core.View{Style: core.Style{Direction: core.Row, Wrap: core.Wrap, Gap: 16}, Children: []core.Node{
@@ -434,9 +452,13 @@ func (s *Session) reportsScreen(cx *core.Scope, dataRev *core.Signal[int],
 	})
 
 	rows := make([]core.Node, 0, len(s.periods))
-	for _, period := range s.periods {
+	for i, period := range s.periods {
 		period := period
 		selected := func() bool { return state.period.Get() == period.ID }
+		borders := core.Edges{}
+		if i < len(s.periods)-1 {
+			borders.Bottom = 1
+		}
 		rows = append(rows, core.View{
 			TestID: "reports-period-" + period.ID,
 			Role:   core.RoleButton,
@@ -445,19 +467,25 @@ func (s *Session) reportsScreen(cx *core.Scope, dataRev *core.Signal[int],
 				invalidate()
 			},
 			Style: core.Style{Gap: 2, Padding: core.Symmetric(12, 16),
-				Borders: core.Edges{Bottom: 1}},
+				Borders: borders},
 			StyleFunc: func() core.Style {
-				style := core.Style{BorderColor: ui.ColorsOf(cx).Line()}
+				colors := ui.ColorsOf(cx)
+				style := core.Style{
+					BorderColor:  colors.Line(),
+					Hover:        &core.Style{Background: colors.Hover()},
+					FocusVisible: ui.FocusRing(cx, -2),
+				}
 				if selected() {
 					style.Background = selectionTint(cx)
 				}
 				return style
 			},
 			Children: []core.Node{
-				core.Text{Content: strconv.Itoa(period.Year), Style: core.Style{FontSize: 15,
-					FontWeight: ui.Semibold}},
+				core.Text{Content: strconv.Itoa(period.Year),
+					Style: core.Style{FontSize: typeSectionTitle, FontWeight: ui.Semibold,
+						FontVariant: core.FontTabularNums}},
 				core.Text{Content: locales.PeriodGranularityAnnual(cx),
-					Style:     core.Style{FontSize: 12},
+					Style:     core.Style{FontSize: typeCaption},
 					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 			},
 		})
@@ -486,7 +514,7 @@ func (s *Session) reportsScreen(cx *core.Scope, dataRev *core.Signal[int],
 			}},
 		}
 	})
-	return splitPage(cx, 28, list, detail)
+	return splitPage(cx, 22, list, detail)
 }
 
 // reportLanguage picks the export language from the interface locale.

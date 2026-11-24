@@ -279,9 +279,13 @@ func catalogList(cx *core.Scope, c *sourceCatalog) core.Node {
 		if already {
 			kids = append(kids, ui.Badge{Text: locales.SourcesCatalogAdded(cx), Variant: ui.BadgeNeutral})
 		}
+		borders := core.Edges{}
+		if i < shown-1 {
+			borders.Bottom = 1
+		}
 		rows = append(rows, core.View{
 			Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 10,
-				Padding: core.Symmetric(7, 0), Borders: core.Edges{Bottom: 1}},
+				Padding: core.Symmetric(8, 0), Borders: borders},
 			StyleFunc: func() core.Style { return core.Style{BorderColor: ui.ColorsOf(cx).Line()} },
 			Children:  kids,
 		})

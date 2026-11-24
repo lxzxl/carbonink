@@ -147,14 +147,12 @@ func (s *Session) dashboardWidgets(cx *core.Scope, nav *screenNav) core.Node {
 		return core.View{Style: core.Style{Gap: 12}, Children: []core.Node{monthly, recent}}
 	}
 	return core.View{
-		Style: core.Style{Direction: core.Row, AlignItems: core.AlignStretch, Gap: 12},
+		Style: core.Style{Direction: core.Row, AlignItems: core.AlignStretch, Gap: 16},
 		Children: []core.Node{
-			core.View{Style: core.Style{FlexGrow: 3, FlexBasis: core.Pt(0)}, Children: []core.Node{
-				monthly,
-			}},
-			core.View{Style: core.Style{FlexGrow: 2, FlexBasis: core.Pt(0)}, Children: []core.Node{
-				recent,
-			}},
+			core.View{Style: core.Style{FlexGrow: 3, FlexBasis: core.Pt(0), AlignSelf: core.AlignStretch},
+				Children: []core.Node{monthly}},
+			core.View{Style: core.Style{FlexGrow: 2, FlexBasis: core.Pt(0), AlignSelf: core.AlignStretch},
+				Children: []core.Node{recent}},
 		},
 	}
 }
@@ -166,25 +164,25 @@ func (s *Session) readinessHomeCard(cx *core.Scope, nav *screenNav) core.Node {
 	if s.totals.TotalKg == 0 || len(s.periods) == 0 {
 		return core.View{}
 	}
-	return core.View{TestID: "dashboard-readiness", Children: []core.Node{
-		core.View{Style: core.Style{Padding: core.Symmetric(12, 16), CornerRadius: 6,
-			BorderWidth: 1}, StyleFunc: func() core.Style {
-			return core.Style{BorderColor: ui.ColorsOf(cx).Line()}
-		}, Children: []core.Node{dataHeaderRow(cx,
-			core.View{Style: core.Style{Gap: 3, FlexShrink: 1,
+	return core.View{
+		TestID:    "dashboard-readiness",
+		Style:     core.Style{Padding: core.All(16), AlignSelf: core.AlignStretch},
+		StyleFunc: cardSurface(cx),
+		Children: []core.Node{dataHeaderRow(cx,
+			core.View{Style: core.Style{Gap: 4, FlexShrink: 1,
 				MinWidth: core.Pt(0)}, Children: []core.Node{
 				core.Text{Content: locales.ReadinessHomeCardTitle(cx),
-					Style: core.Style{FontSize: 14, FontWeight: ui.Medium}},
+					Style: core.Style{FontSize: typeSectionTitle, FontWeight: ui.Semibold}},
 				core.Text{Content: locales.ReadinessDescription(cx),
-					Style:     core.Style{FontSize: 12},
+					Style:     core.Style{FontSize: typeCaption},
 					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 			}},
 			ui.Button{Text: locales.ReadinessHomeCardCta(cx) + " →",
-				Variant: ui.ButtonGhost, Size: ui.SizeSmall,
+				Variant: ui.ButtonOutline, Size: ui.SizeSmall,
 				OnPress: func() { nav.Set(ScreenReports) },
 				TestID:  "dashboard-readiness-open"}),
-		}},
-	}}
+		},
+	}
 }
 
 func (s *Session) monthlyTrendCard(cx *core.Scope, activities []store.Activity, year int) core.Node {
@@ -195,15 +193,31 @@ func (s *Session) monthlyTrendCard(cx *core.Scope, activities []store.Activity, 
 	}
 
 	card := func(children ...core.Node) core.Node {
-		return core.View{Style: core.Style{Gap: 12, Padding: core.All(20),
-			AlignSelf: core.AlignStretch}, StyleFunc: cardSurface(cx), Children: children}
+		return core.View{Style: core.Style{Gap: 12, Padding: core.All(16),
+			FlexGrow: 1, AlignSelf: core.AlignStretch}, StyleFunc: cardSurface(cx), Children: children}
 	}
-	children := []core.Node{dataHeading(cx, locales.DashboardMonthlyTrend(cx), "")}
+	scaleCaption := strconv.Itoa(year)
+	if maxTotal > 0 {
+		scaleCaption = strconv.Itoa(year) + " · " + co2eWithUnit(maxTotal)
+	}
+	header := core.View{
+		Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+			JustifyContent: core.JustifySpaceBetween, Gap: 8},
+		Children: []core.Node{
+			core.Text{Content: locales.DashboardMonthlyTrend(cx),
+				Style: core.Style{FontSize: typeSectionTitle, FontWeight: ui.Semibold}},
+			core.Text{Content: scaleCaption,
+				Style:     core.Style{FontSize: typeMicro, FontVariant: core.FontTabularNums},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
+		},
+	}
+	children := []core.Node{header}
 	if maxTotal == 0 {
 		children = append(children,
-			core.Text{Content: locales.DashboardNoDataForChart(cx), Style: core.Style{FontSize: 12},
+			core.Text{Content: locales.DashboardNoDataForChart(cx), Style: core.Style{FontSize: typeCaption},
 				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2})
-		return core.View{TestID: "dashboard-monthly-trend", Children: []core.Node{card(children...)}}
+		return core.View{TestID: "dashboard-monthly-trend",
+			Style: core.Style{FlexGrow: 1, AlignSelf: core.AlignStretch}, Children: []core.Node{card(children...)}}
 	}
 
 	bars := make([]core.Node, 0, len(buckets))
@@ -218,22 +232,24 @@ func (s *Session) monthlyTrendCard(cx *core.Scope, activities []store.Activity, 
 			Children: []core.Node{
 				core.View{Style: core.Style{Height: core.Pt(112), JustifyContent: core.JustifyEnd},
 					Children: []core.Node{core.View{
-						Style: core.Style{Height: core.Pt(height), CornerRadius: 2, Opacity: core.Alpha(0.6)},
+						Style: core.Style{Height: core.Pt(height), CornerRadius: radiusMark, Opacity: core.Alpha(0.7)},
 						StyleFunc: func() core.Style {
 							return core.Style{Background: ui.ColorsOf(cx).Accent()}
 						},
 					}}},
-				core.Text{Content: bucket.short, Style: core.Style{FontSize: 9, TextAlign: core.TextAlignCenter},
+				core.Text{Content: bucket.short, Style: core.Style{FontSize: typeMicro,
+					FontVariant: core.FontTabularNums, TextAlign: core.TextAlignCenter},
 					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 			},
 		})
 	}
 	children = append(children, core.View{
 		TestID:   "dashboard-trend",
-		Style:    core.Style{Direction: core.Row, AlignItems: core.AlignEnd, Gap: 3},
+		Style:    core.Style{Direction: core.Row, AlignItems: core.AlignEnd, Gap: 4},
 		Children: bars,
 	})
-	return core.View{TestID: "dashboard-monthly-trend", Children: []core.Node{card(children...)}}
+	return core.View{TestID: "dashboard-monthly-trend",
+		Style: core.Style{FlexGrow: 1, AlignSelf: core.AlignStretch}, Children: []core.Node{card(children...)}}
 }
 
 func (s *Session) recentActivitiesCard(cx *core.Scope, activities []store.Activity,
@@ -241,10 +257,10 @@ func (s *Session) recentActivitiesCard(cx *core.Scope, activities []store.Activi
 	recent := recentActivities(activities)
 	children := []core.Node{
 		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
-			Wrap: core.Wrap, Gap: 8}, Children: []core.Node{
+			JustifyContent: core.JustifySpaceBetween, Wrap: core.Wrap, Gap: 8}, Children: []core.Node{
 			core.View{Style: core.Style{FlexGrow: 1, MinWidth: core.Pt(0)}, Children: []core.Node{
 				core.Text{Content: locales.DashboardRecentActivities(cx),
-					Style: core.Style{FontSize: 14, FontWeight: ui.Semibold}},
+					Style: core.Style{FontSize: typeSectionTitle, FontWeight: ui.Semibold}},
 			}},
 			ui.Button{Text: locales.DashboardWidgetViewAll(cx) + " →",
 				Variant: ui.ButtonGhost, Size: ui.SizeSmall,
@@ -252,40 +268,49 @@ func (s *Session) recentActivitiesCard(cx *core.Scope, activities []store.Activi
 		}},
 	}
 	card := func(children ...core.Node) core.Node {
-		return core.View{Style: core.Style{Gap: 12, Padding: core.All(20),
-			AlignSelf: core.AlignStretch}, StyleFunc: cardSurface(cx), Children: children}
+		return core.View{Style: core.Style{Gap: 12, Padding: core.All(16),
+			FlexGrow: 1, AlignSelf: core.AlignStretch}, StyleFunc: cardSurface(cx), Children: children}
 	}
 	if len(recent) == 0 {
 		children = append(children,
-			core.Text{Content: locales.DashboardRecentEmpty(cx), Style: core.Style{FontSize: 12},
+			core.Text{Content: locales.DashboardRecentEmpty(cx), Style: core.Style{FontSize: typeCaption},
 				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
-		return core.View{TestID: "dashboard-recent", Children: []core.Node{card(children...)}}
+		return core.View{TestID: "dashboard-recent",
+			Style: core.Style{FlexGrow: 1, AlignSelf: core.AlignStretch}, Children: []core.Node{card(children...)}}
 	}
 
 	rows := make([]core.Node, 0, len(recent))
-	for _, activity := range recent {
+	for i, activity := range recent {
+		borders := core.Edges{}
+		if i < len(recent)-1 {
+			borders.Bottom = 1
+		}
 		rows = append(rows, core.View{
 			TestID: "dashboard-recent-" + activity.ID,
 			Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8,
-				Padding: core.Symmetric(7, 0), Borders: core.Edges{Bottom: 1}},
+				Padding: core.Symmetric(8, 0), Borders: borders},
 			StyleFunc: func() core.Style { return core.Style{BorderColor: ui.ColorsOf(cx).Line()} },
 			Children: []core.Node{
 				core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)}, Children: []core.Node{
 					core.Text{Content: activity.Source,
-						Style: core.Style{FontSize: 12, FontWeight: ui.Medium,
+						Style: core.Style{FontSize: typeBody, FontWeight: ui.Medium,
 							FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
 						MaxLines: 1},
 				}},
-				core.Text{Content: activityEndDate(activity), Style: core.Style{FontSize: 11},
+				core.Text{Content: activityEndDate(activity),
+					Style:     core.Style{FontSize: typeCaption, FontVariant: core.FontTabularNums},
 					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
-				core.View{Style: core.Style{Width: core.Pt(12)}},
+				core.View{Style: core.Style{Width: core.Pt(8)}},
 				core.Text{Content: commaFloat(activity.CO2eKg) + " " + locales.UnitKgCo2e(cx),
-					Style: core.Style{FontSize: 12, FontWeight: ui.Medium, FlexShrink: 0}, MaxLines: 1},
+					Style: core.Style{FontSize: typeBody, FontWeight: ui.Medium,
+						FontVariant: core.FontTabularNums, TextAlign: core.TextAlignEnd,
+						FlexShrink: 0}, MaxLines: 1},
 			},
 		})
 	}
 	children = append(children, core.View{Style: core.Style{Gap: 0}, Children: rows})
-	return core.View{TestID: "dashboard-recent", Children: []core.Node{card(children...)}}
+	return core.View{TestID: "dashboard-recent",
+		Style: core.Style{FlexGrow: 1, AlignSelf: core.AlignStretch}, Children: []core.Node{card(children...)}}
 }
 
 // activityEndDate is the dashboard's date: 1.x shows occurred_at_end there,

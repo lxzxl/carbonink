@@ -1479,6 +1479,8 @@ const (
 	textSettingsDataResetConfirmInput
 	textSettingsDataResetHeading
 	textSettingsDataResetInflight
+	textSettingsGeneralAppearanceHeading
+	textSettingsGeneralExperienceHeading
 	textSettingsGeneralGuidanceHint
 	textSettingsGeneralGuidanceLabel
 	textSettingsGeneralGuidanceOff
@@ -2863,6 +2865,8 @@ var keyOfText = [numTexts]string{
 	"settingsDataResetConfirmInput",
 	"settingsDataResetHeading",
 	"settingsDataResetInflight",
+	"settingsGeneralAppearanceHeading",
+	"settingsGeneralExperienceHeading",
 	"settingsGeneralGuidanceHint",
 	"settingsGeneralGuidanceLabel",
 	"settingsGeneralGuidanceOff",
@@ -4245,6 +4249,8 @@ var textsEn = i18n.NewTexts(""+
 	"Type RESET to confirm"+
 	"Reset all data"+
 	"Resetting — restarting…"+
+	"Language & theme"+
+	"Guidance & cache"+
 	"Short walkthroughs that play once, the first time you open a screen."+
 	"Guided tours"+
 	"Off"+
@@ -5624,6 +5630,8 @@ var textsEn = i18n.NewTexts(""+
 		21,
 		14,
 		27,
+		16,
+		16,
 		68,
 		12,
 		3,
@@ -7006,6 +7014,8 @@ var textsZhCN = i18n.NewTexts(""+
 	"输入 RESET 确认"+
 	"重置所有数据"+
 	"正在重置 — 重启中…"+
+	"语言与主题"+
+	"引导与缓存"+
 	"首次进入某个界面时播放一次的分步说明。"+
 	"引导提示"+
 	"关"+
@@ -8385,6 +8395,8 @@ var textsZhCN = i18n.NewTexts(""+
 		19,
 		18,
 		29,
+		15,
+		15,
 		57,
 		12,
 		3,
@@ -21242,6 +21254,28 @@ func SettingsDataResetInflight(cx *core.Scope) string { return For(cx).SettingsD
 // SettingsDataResetInflight is the package's SettingsDataResetInflight in the language of msgs.
 func (msgs Messages) SettingsDataResetInflight() string {
 	return msgs.text(textSettingsDataResetInflight)
+}
+
+// SettingsGeneralAppearanceHeading says "Language & theme"
+// in the language the app shows under cx.
+func SettingsGeneralAppearanceHeading(cx *core.Scope) string {
+	return For(cx).SettingsGeneralAppearanceHeading()
+}
+
+// SettingsGeneralAppearanceHeading is the package's SettingsGeneralAppearanceHeading in the language of msgs.
+func (msgs Messages) SettingsGeneralAppearanceHeading() string {
+	return msgs.text(textSettingsGeneralAppearanceHeading)
+}
+
+// SettingsGeneralExperienceHeading says "Guidance & cache"
+// in the language the app shows under cx.
+func SettingsGeneralExperienceHeading(cx *core.Scope) string {
+	return For(cx).SettingsGeneralExperienceHeading()
+}
+
+// SettingsGeneralExperienceHeading is the package's SettingsGeneralExperienceHeading in the language of msgs.
+func (msgs Messages) SettingsGeneralExperienceHeading() string {
+	return msgs.text(textSettingsGeneralExperienceHeading)
 }
 
 // SettingsGeneralGuidanceHint says "Short walkthroughs that play once, the first time you open a screen."

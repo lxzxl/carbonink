@@ -356,9 +356,9 @@ func supplierStatusVariant(status string) ui.BadgeVariant {
 	case store.QuestionnaireIngested:
 		return ui.BadgeAccent
 	case store.QuestionnaireReceived:
-		return ui.BadgeInfo
-	case store.QuestionnaireSent:
 		return ui.BadgeWarn
+	case store.QuestionnaireSent:
+		return ui.BadgeNeutral
 	}
 	return ui.BadgeNeutral
 }
@@ -653,7 +653,13 @@ func (d *supplierDetail) load(cx *core.Scope, s *Session) {
 func (d *supplierDetail) dialog(cx *core.Scope, s *Session, dataRev *core.Signal[int]) core.Node {
 	return core.Dynamic(func(cx *core.Scope) core.Node {
 		if !d.open.Get() {
-			return detailEmptyIcon(cx, lucide.Download, locales.InboundSelectHint)
+			_ = dataRev.Get()
+			for _, q := range s.questionnaires {
+				if q.Direction == "inbound" {
+					return detailEmptyIcon(cx, lucide.Download, locales.SupplierDisclosuresSelectDetail)
+				}
+			}
+			return detailEmptyIcon(cx, lucide.Download, locales.SupplierDisclosuresEmpty)
 		}
 		export := func() {
 			id := d.id
@@ -782,17 +788,23 @@ func (d *supplierDetail) dialog(cx *core.Scope, s *Session, dataRev *core.Signal
 						d.message.Set("")
 						d.remindOpen.Set(true)
 					}, TestID: "supplier-disclosures-remind"},
-				ui.Button{Text: locales.SupplierDisclosuresDetailDelete(cx), Variant: ui.ButtonOutline,
-					OnPress: func() { d.deleteOpen.Set(true) }, TestID: "supplier-disclosures-delete"},
 			)
-			return core.View{Style: core.Style{Direction: core.Row, Gap: 8,
-				JustifyContent: core.JustifyEnd, Wrap: core.Wrap}, Children: actions}
+			return core.View{
+				Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+					JustifyContent: core.JustifySpaceBetween, Wrap: core.Wrap, Gap: 8,
+					FlexGrow: 1, Width: core.Pct(100)},
+				Children: []core.Node{
+					ui.Button{Text: locales.SupplierDisclosuresDetailDelete(cx),
+						Variant: ui.ButtonOutline, Tint: ui.ColorsOf(cx).Danger,
+						OnPress: func() { d.deleteOpen.Set(true) },
+						TestID:  "supplier-disclosures-delete"},
+					core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+						Wrap: core.Wrap, Gap: 8}, Children: actions},
+				},
+			}
 		})
 
 		body := []core.Node{
-			core.Text{ContentFunc: func() string {
-				return d.supplier.Get() + " · " + strconv.Itoa(d.year.Get())
-			}, Style: core.Style{FontSize: 15, FontWeight: ui.Semibold}},
 			core.View{Style: core.Style{Direction: core.Row, Gap: 8, AlignItems: core.AlignCenter},
 				Children: []core.Node{
 					ui.Badge{
@@ -804,12 +816,13 @@ func (d *supplierDetail) dialog(cx *core.Scope, s *Session, dataRev *core.Signal
 							return ""
 						}
 						return locales.SupplierDisclosuresDue(cx, d.due.Get())
-					}, Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+					}, Style: core.Style{FontSize: typeCaption, FontVariant: core.FontTabularNums},
+						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 				}},
 			core.Show{When: func() bool { return d.message.Get() != "" },
 				Then: func(cx *core.Scope) core.Node {
 					return core.Text{ContentFunc: func() string { return d.message.Get() },
-						Style: core.Style{FontSize: 12}, StyleFunc: func() core.Style {
+						Style: core.Style{FontSize: typeCaption}, StyleFunc: func() core.Style {
 							if d.failed.Get() {
 								return ui.Colored(ui.ColorsOf(cx).Danger)()
 							}
@@ -820,21 +833,26 @@ func (d *supplierDetail) dialog(cx *core.Scope, s *Session, dataRev *core.Signal
 				_ = d.rev.Get()
 				nodes := make([]core.Node, 0, len(d.questions))
 				for index, question := range d.questions {
-					nodes = append(nodes, supplierQuestionRow(cx, index, question))
+					nodes = append(nodes, supplierQuestionRow(cx, index, index < len(d.questions)-1, question))
 				}
-				return core.View{Style: core.Style{Gap: 6}, Children: nodes}
+				return core.View{Style: core.Style{Gap: 0, Overflow: core.Hidden},
+					StyleFunc: cardSurface(cx), Children: nodes}
 			}),
 		}
 		header := []core.Node{
 			ui.Button{Text: locales.SupplierDisclosuresDetailClose(cx), Variant: ui.ButtonSecondary,
 				OnPress: func() { d.open.Set(false) }, TestID: "supplier-disclosures-detail-close"},
 		}
-		return detailPaneShell(cx, "supplier-disclosures-detail-dialog", d.supplier.Get(),
+		title := d.supplier.Get()
+		if d.year.Get() > 0 {
+			title += " · " + strconv.Itoa(d.year.Get())
+		}
+		return detailPaneShell(cx, "supplier-disclosures-detail-dialog", title,
 			header, body, []core.Node{footer})
 	})
 }
 
-func supplierQuestionRow(cx *core.Scope, index int, q store.Question) core.Node {
+func supplierQuestionRow(cx *core.Scope, index int, bottomBorder bool, q store.Question) core.Node {
 	text := q.RawText
 	if strings.TrimSpace(text) == "" {
 		text = q.NormalizedText
@@ -851,18 +869,23 @@ func supplierQuestionRow(cx *core.Scope, index int, q store.Question) core.Node 
 		meta += " · " + locales.SupplierDisclosuresDetailTier(cx, strconv.Itoa(q.Tier))
 	}
 	finalized := q.AnswerFinalizedAt != ""
+	borders := core.Edges{}
+	if bottomBorder {
+		borders.Bottom = 1
+	}
 	return core.View{TestID: "supplier-disclosures-question-" + strconv.Itoa(index),
-		Style: core.Style{Gap: 2, Padding: core.Symmetric(8, 6), CornerRadius: radiusItem},
+		Style: core.Style{Gap: 3, Padding: core.Symmetric(10, 14), Borders: borders},
 		StyleFunc: func() core.Style {
-			return core.Style{Background: ui.ColorsOf(cx).Surface()}
+			return core.Style{BorderColor: ui.ColorsOf(cx).Line()}
 		},
 		Children: []core.Node{
-			core.Text{Content: meta, Style: core.Style{FontSize: 11},
+			core.Text{Content: meta, Style: core.Style{FontSize: typeMicro, FontFamily: core.FontMonospace},
 				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
-			core.Text{Content: text, Style: core.Style{FontSize: 12}, MaxLines: 3},
+			core.Text{Content: text, Style: core.Style{FontSize: typeCaption}, MaxLines: 3},
 			core.View{Style: core.Style{Direction: core.Row, Gap: 6, AlignItems: core.AlignCenter},
 				Children: []core.Node{
-					core.Text{Content: answer, Style: core.Style{FontSize: 12, FontWeight: ui.Semibold}},
+					core.Text{Content: answer, Style: core.Style{FontSize: typeCaption,
+						FontWeight: ui.Semibold, FontVariant: core.FontTabularNums}},
 					core.Show{When: func() bool { return finalized },
 						Then: func(cx *core.Scope) core.Node {
 							return ui.Badge{Text: locales.SupplierDisclosuresDetailFinalized(cx),
@@ -955,7 +978,8 @@ func (d *supplierDetail) reviewDialog(cx *core.Scope, s *Session,
 	body := []core.Node{
 		core.Text{Content: locales.SupplierDisclosuresReviewHint(cx),
 			Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-		core.View{Style: core.Style{Direction: core.Row, Gap: 8, AlignItems: core.AlignEnd},
+		core.View{Style: core.Style{Direction: core.Row, Wrap: core.Wrap, Gap: 8,
+			AlignItems: core.AlignEnd},
 			Children: []core.Node{
 				dataField(cx, locales.SupplierDisclosuresReviewTier(cx),
 					appSelect[string]{Options: tierOptions, Value: d.tierOverride.Get,
@@ -1149,7 +1173,7 @@ func (d *supplierDetail) deleteDialog(cx *core.Scope, s *Session,
 			Variant: ui.ButtonSecondary, OnPress: func() { d.deleteOpen.Set(false) },
 			TestID: "supplier-disclosures-delete-cancel"},
 		ui.Button{Text: locales.SupplierDisclosuresDetailDeleteConfirm(cx),
-			Variant: ui.ButtonOutline, OnPress: confirm,
+			Color: ui.ColorsOf(cx).Danger, OnPress: confirm,
 			TestID: "supplier-disclosures-delete-confirm"},
 	}
 	return dataDialog(cx, d.deleteOpen, locales.SupplierDisclosuresDetailDelete(cx), body, footer,
@@ -1193,9 +1217,10 @@ func (d *supplierDetail) remindDialog(cx *core.Scope, s *Session,
 			ui.Input{Value: d.email.Get, Placeholder: "buyer@example.com",
 				OnChange: d.email.Set, TestID: "supplier-disclosures-remind-email"}, send),
 		core.Text{Content: locales.SupplierDisclosuresDetailRemindBody(cx),
-			Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+			Style: core.Style{FontSize: typeCaption}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 	}
 	footer := []core.Node{
+		dataCancelButton(cx, d.remindOpen, "supplier-disclosures-remind-cancel"),
 		ui.Button{Text: locales.SupplierDisclosuresDetailEmailSave(cx),
 			Variant: ui.ButtonSecondary, OnPress: save,
 			TestID: "supplier-disclosures-remind-save"},

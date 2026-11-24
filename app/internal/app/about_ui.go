@@ -43,16 +43,16 @@ func (s *Session) aboutCard(cx *core.Scope) core.Node {
 
 	label := func(text func(*core.Scope) string) core.Node {
 		return core.Text{ContentFunc: func() string { return text(cx) },
-			Style:     core.Style{FontSize: 14, Width: core.Pt(64), FlexShrink: 0},
+			Style:     core.Style{FontSize: typeBody, Width: core.Pt(96), FlexShrink: 0},
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)}
 	}
 	value := func(text func(*core.Scope) string) core.Node {
 		return core.Text{ContentFunc: func() string { return text(cx) },
-			Style: core.Style{FontSize: 14, FlexShrink: 1}}
+			Style: core.Style{FontSize: typeBody, FlexShrink: 1}}
 	}
 	row := func(testID string, left, right core.Node) core.Node {
 		return core.View{TestID: testID, Style: core.Style{Direction: core.Row,
-			AlignItems: core.AlignStart, Gap: 24},
+			AlignItems: core.AlignStart, Gap: 16},
 			Children: []core.Node{left, right}}
 	}
 
@@ -73,7 +73,7 @@ func (s *Session) aboutCard(cx *core.Scope) core.Node {
 			value(func(*core.Scope) string { return app.ID })))
 	}
 	rows = append(rows, row("settings-about-user-data", label(locales.SettingsAboutUserData),
-		core.Text{Content: cx.DataDir(), Style: core.Style{FontSize: 12,
+		core.Text{Content: cx.DataDir(), Style: core.Style{FontSize: typeCaption,
 			FontFamily: core.FontMonospace, FlexShrink: 1},
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)}))
 
@@ -84,7 +84,7 @@ func (s *Session) aboutCard(cx *core.Scope) core.Node {
 				OnPress: onPress, TestID: testID,
 				Style: core.Style{AlignSelf: core.AlignStart}},
 			core.Text{ContentFunc: func() string { return hint(cx) },
-				Style:     core.Style{FontSize: 12},
+				Style:     core.Style{FontSize: typeCaption},
 				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2},
 		}}
 	}
@@ -115,12 +115,20 @@ func (s *Session) aboutCard(cx *core.Scope) core.Node {
 		return core.View{TestID: testID, Role: core.RoleButton, OnPress: func(core.PressEvent) {
 			onPress()
 		}, Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
-			Gap: 4, AlignSelf: core.AlignStart}, Children: []core.Node{
-			core.Text{ContentFunc: func() string { return text(cx) },
-				Style:     core.Style{FontSize: 14},
-				StyleFunc: ui.Colored(accentInk(cx))},
-			ui.Icon(lucide.ExternalLink, 12, accentInk(cx)),
-		}}
+			Gap: 4, AlignSelf: core.AlignStart, Padding: core.Symmetric(2, 4),
+			CornerRadius: radiusMark},
+			StyleFunc: func() core.Style {
+				return core.Style{
+					Hover:        &core.Style{Background: ui.ColorsOf(cx).Hover()},
+					FocusVisible: ui.FocusRing(cx, -2),
+				}
+			},
+			Children: []core.Node{
+				core.Text{ContentFunc: func() string { return text(cx) },
+					Style:     core.Style{FontSize: typeBody},
+					StyleFunc: ui.Colored(accentInk(cx))},
+				ui.Icon(lucide.ExternalLink, 12, accentInk(cx)),
+			}}
 	}
 
 	children := []core.Node{
@@ -129,25 +137,23 @@ func (s *Session) aboutCard(cx *core.Scope) core.Node {
 			lucide.FolderOpen, "settings-about-open-data", openData),
 		action(locales.SettingsAboutOpenLogDir, locales.SettingsAboutOpenLogDirHint,
 			lucide.FileText, "settings-about-open-logs", openLogs),
+		hairline(cx),
 		core.View{
-			Style: core.Style{Gap: 8, Padding: core.Edges{Top: 8}, Borders: core.Edges{Top: 1}},
-			StyleFunc: func() core.Style {
-				return core.Style{BorderColor: ui.ColorsOf(cx).Line()}
-			},
+			Style: core.Style{Gap: 8},
 			Children: []core.Node{
-			row("settings-about-support", label(locales.SettingsAboutSupportLabel),
-				link(locales.SettingsAboutSupportEmail, "settings-about-support-link",
-					openLink("mailto:"+locales.SettingsAboutSupportEmail(cx),
-						locales.SettingsAboutOpenSupportFailed))),
-			row("settings-about-website", label(locales.SettingsAboutWebsiteLabel),
-				link(locales.SettingsAboutWebsiteUrl, "settings-about-open-website",
-					openLink("https://carbonink.xyz", locales.SettingsAboutOpenWebsiteFailed))),
-		}},
+				row("settings-about-support", label(locales.SettingsAboutSupportLabel),
+					link(locales.SettingsAboutSupportEmail, "settings-about-support-link",
+						openLink("mailto:"+locales.SettingsAboutSupportEmail(cx),
+							locales.SettingsAboutOpenSupportFailed))),
+				row("settings-about-website", label(locales.SettingsAboutWebsiteLabel),
+					link(locales.SettingsAboutWebsiteUrl, "settings-about-open-website",
+						openLink("https://carbonink.xyz", locales.SettingsAboutOpenWebsiteFailed))),
+			}},
 	}
 	children = append(children, core.Show{When: func() bool { return status.Get() != "" },
 		Then: func(cx *core.Scope) core.Node {
 			return core.Text{ContentFunc: func() string { return status.Get() },
-				Style: core.Style{FontSize: 11},
+				Style: core.Style{FontSize: typeCaption},
 				StyleFunc: func() core.Style {
 					if failed.Get() {
 						return ui.Colored(ui.ColorsOf(cx).Danger)()
@@ -156,6 +162,11 @@ func (s *Session) aboutCard(cx *core.Scope) core.Node {
 				}}
 		}})
 
-	return core.View{TestID: "settings-about", Style: core.Style{Gap: 16},
-		Children: children}
+	return core.View{
+		TestID: "settings-about",
+		Style:  core.Style{AlignSelf: core.AlignStretch},
+		Children: []core.Node{
+			settingsCard(cx, lucide.Info, locales.SettingsSectionAbout, nil, children...),
+		},
+	}
 }

@@ -163,7 +163,7 @@ func (s *Session) workspacesCard(cx *core.Scope) core.Node {
 					if i < len(reg.Workspaces)-1 {
 						style.Borders = core.Edges{Bottom: 1}
 					}
-					if cx.Env().Window().Width >= 900 {
+					if cx.Env().Window().Width >= 1120 {
 						style.Direction = core.Row
 						style.AlignItems = core.AlignCenter
 						style.Gap = 8
@@ -174,27 +174,27 @@ func (s *Session) workspacesCard(cx *core.Scope) core.Node {
 					core.View{Style: core.Style{FlexGrow: 1, Gap: 2}, Children: []core.Node{
 						core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 6},
 							Children: append([]core.Node{
-								core.Text{Content: w.Name, Style: core.Style{FontSize: 13, FontWeight: ui.Medium}, MaxLines: 1},
+								core.Text{Content: w.Name, Style: core.Style{FontSize: typeBody, FontWeight: ui.Medium}, MaxLines: 1},
 							}, badge...)},
-						core.Text{Content: locales.WorkspaceCreatedAt(cx, created), Style: core.Style{FontSize: 11},
-							StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
+						core.Text{Content: locales.WorkspaceCreatedAt(cx, created),
+							Style:     core.Style{FontSize: typeMicro, FontVariant: core.FontTabularNums},
+							StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 					}},
 					core.View{Style: core.Style{Direction: core.Row, Wrap: core.Wrap, Gap: 4}, Children: buttons},
 				},
 			}
 			rows = append(rows, row)
 		}
-		return core.View{Style: core.Style{Gap: 0, AlignSelf: core.AlignStretch},
-			StyleFunc: cardSurface(cx), Children: rows}
+		return core.View{Style: core.Style{Gap: 0, AlignSelf: core.AlignStretch,
+			CornerRadius: radiusItem, BorderWidth: 1},
+			StyleFunc: func() core.Style {
+				colors := ui.ColorsOf(cx)
+				return core.Style{Background: colors.Surface(), BorderColor: colors.Border()}
+			}, Children: rows}
 	})
 
-	return dataCardFlat(cx,
-		core.View{Style: core.Style{Gap: 4}, Children: []core.Node{
-			core.Text{Content: locales.WorkspaceHeading(cx),
-				Style: core.Style{FontSize: 16, FontWeight: ui.Semibold}},
-			core.Text{Content: locales.WorkspaceBody(cx), Style: core.Style{FontSize: 13},
-				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
-		}},
+	return settingsCard(cx, lucide.Briefcase,
+		locales.WorkspaceHeading, locales.WorkspaceBody,
 		list,
 		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
 			Wrap: core.Wrap, Gap: 8}, Children: []core.Node{
@@ -204,14 +204,14 @@ func (s *Session) workspacesCard(cx *core.Scope) core.Node {
 					Placeholder: locales.WorkspaceCreatePlaceholder(cx),
 					TestID:      "workspace-create-input"},
 			}},
-			ui.Button{Text: locales.WorkspaceCreateButton(cx), Variant: ui.ButtonOutline,
+			ui.Button{Text: locales.WorkspaceCreateButton(cx),
 				Icon: lucide.FolderPlus, Busy: createBusy.Get, OnPress: create,
 				TestID: "workspace-create-button"},
 		}},
 		core.Show{When: func() bool { return status.Get() != "" },
 			Then: func(cx *core.Scope) core.Node {
 				return core.Text{ContentFunc: func() string { return status.Get() },
-					Style: core.Style{FontSize: 11},
+					Style: core.Style{FontSize: typeCaption},
 					StyleFunc: func() core.Style {
 						if failed.Get() {
 							return ui.Colored(ui.ColorsOf(cx).Danger)()
@@ -231,7 +231,7 @@ func (s *Session) workspacesCard(cx *core.Scope) core.Node {
 		dataDialog(cx, switchOpen, locales.WorkspaceSwitchButton(cx), []core.Node{
 			core.Text{ContentFunc: func() string {
 				return locales.WorkspaceSwitchConfirm(cx, switchName.Get())
-			}, Style: core.Style{FontSize: 13}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+			}, Style: core.Style{FontSize: typeBody}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 		}, []core.Node{
 			dataCancelButton(cx, switchOpen, "workspace-switch-cancel"),
 			ui.Button{Text: locales.WorkspaceSwitchButton(cx), OnPress: func() {
@@ -246,12 +246,12 @@ func (s *Session) workspacesCard(cx *core.Scope) core.Node {
 		dataDialog(cx, deleteOpen, locales.WorkspaceDeleteButton(cx), []core.Node{
 			core.Text{ContentFunc: func() string {
 				return locales.WorkspaceDeleteConfirm(cx, deleteName.Get())
-			}, Style: core.Style{FontSize: 13}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+			}, Style: core.Style{FontSize: typeBody}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 			dataError(cx, deleteStatus),
 		}, []core.Node{
 			dataCancelButton(cx, deleteOpen, "workspace-delete-cancel"),
-			ui.Button{Text: locales.WorkspaceDeleteButton(cx), Busy: deleteBusy.Get, OnPress: remove,
-				TestID: "workspace-delete-confirm"},
+			ui.Button{Text: locales.WorkspaceDeleteButton(cx), Color: ui.ColorsOf(cx).Danger,
+				Busy: deleteBusy.Get, OnPress: remove, TestID: "workspace-delete-confirm"},
 		}, "workspace-delete-dialog"),
 	)
 }

@@ -182,7 +182,7 @@ func TestCreateActivityThroughUI(t *testing.T) {
 	}
 	ui.WaitFor("id:dashboard-total >> text:"+commaFloat(totals.TotalKg), 3*time.Second)
 	ui.WaitFor("id:dashboard-scope2 >> text:"+commaFloat(totals.Scope2Kg), 3*time.Second)
-	ui.WaitFor("id:dashboard-total >> text:TOTAL CO2E", 3*time.Second)
+	ui.WaitFor("id:dashboard-total >> text:Total CO2e", 3*time.Second)
 }
 
 // TestActivityDialogReturnSubmits proves Return in a text field runs the

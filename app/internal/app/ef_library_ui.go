@@ -35,11 +35,11 @@ func (s *Session) efLibraryBody(cx *core.Scope, dataRev *core.Signal[int]) core.
 		core.Show{When: func() bool { return templateStatus.Get() != "" },
 			Then: func(cx *core.Scope) core.Node {
 				return core.Text{ContentFunc: func() string { return templateStatus.Get() },
-					Style:     core.Style{FontSize: 11},
+					Style:     core.Style{FontSize: typeCaption},
 					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)}
 			}},
 	)
-	return core.View{Style: core.Style{Gap: 24, AlignSelf: core.AlignStretch},
+	return core.View{Style: core.Style{Gap: 16, AlignSelf: core.AlignStretch},
 		Children: []core.Node{
 			importCard,
 			core.Dynamic(func(cx *core.Scope) core.Node {
@@ -53,14 +53,14 @@ func (s *Session) efLibraryList(cx *core.Scope, dataRev *core.Signal[int]) core.
 	libraries, err := s.db.ListEFLibraries(context.Background())
 	rows := make([]core.Node, 0, len(libraries)+1)
 	if err != nil {
-		rows = append(rows, core.Text{Content: err.Error(), Style: core.Style{FontSize: 12},
+		rows = append(rows, core.Text{Content: err.Error(), Style: core.Style{FontSize: typeCaption},
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)})
 	}
 	for i := range libraries {
 		library := libraries[i]
 		row := core.View{
 			Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8,
-				Padding: core.Symmetric(6, 16)},
+				Padding: core.Symmetric(8, 12)},
 			StyleFunc: func() core.Style {
 				return core.Style{BorderColor: ui.ColorsOf(cx).Line()}
 			},
@@ -75,27 +75,30 @@ func (s *Session) efLibraryList(cx *core.Scope, dataRev *core.Signal[int]) core.
 		rows = append(rows, row)
 	}
 	if len(libraries) == 0 && err == nil {
-		return core.View{Style: core.Style{Gap: 8}, Children: []core.Node{
-			core.Text{Content: locales.EfLibraryListHeading(cx),
-				Style: core.Style{FontSize: 14, FontWeight: ui.Semibold}, MaxLines: 1},
+		return settingsCard(cx, lucide.BookOpen, locales.EfLibraryListHeading, nil,
 			core.View{
 				Style: core.Style{Padding: core.Symmetric(24, 16), AlignSelf: core.AlignStretch,
-					AlignItems: core.AlignCenter},
-				StyleFunc: cardSurface(cx),
+					AlignItems: core.AlignCenter, CornerRadius: radiusItem, BorderWidth: 1},
+				StyleFunc: func() core.Style {
+					colors := ui.ColorsOf(cx)
+					return core.Style{Background: colors.Inset(), BorderColor: colors.Border()}
+				},
 				Children: []core.Node{
-					core.Text{Content: locales.EfLibraryEmpty(cx), Style: core.Style{FontSize: 12,
+					core.Text{Content: locales.EfLibraryEmpty(cx), Style: core.Style{FontSize: typeCaption,
 						TextAlign: core.TextAlignCenter},
 						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2},
 				}},
-		}}
+		)
 	}
-	list := core.View{Style: core.Style{AlignSelf: core.AlignStretch},
-		StyleFunc: cardSurface(cx), Children: rows}
-	return core.View{Style: core.Style{Gap: 8}, Children: []core.Node{
-		core.Text{Content: locales.EfLibraryListHeading(cx),
-			Style: core.Style{FontSize: 14, FontWeight: ui.Semibold}, MaxLines: 1},
-		list,
-	}}
+	list := core.View{
+		Style: core.Style{AlignSelf: core.AlignStretch, CornerRadius: radiusItem, BorderWidth: 1},
+		StyleFunc: func() core.Style {
+			colors := ui.ColorsOf(cx)
+			return core.Style{Background: colors.Surface(), BorderColor: colors.Border()}
+		},
+		Children: rows,
+	}
+	return settingsCard(cx, lucide.BookOpen, locales.EfLibraryListHeading, nil, list)
 }
 
 func (s *Session) efLibraryDeleteButton(cx *core.Scope, library store.EFLibrary,
@@ -114,7 +117,7 @@ func (s *Session) efLibraryDeleteButton(cx *core.Scope, library store.EFLibrary,
 		open.Set(false)
 		_ = dataRefresh(s, dataRev)
 	}
-	return core.View{Children: []core.Node{
+	return core.View{Style: core.Style{FlexShrink: 0}, Children: []core.Node{
 		ui.Button{Icon: lucide.Trash, Variant: ui.ButtonGhost, Side: 28, IconSize: 14,
 			Label:   locales.EfLibraryDeleteButton(cx),
 			Tint:    func() core.Color { return ui.ColorsOf(cx).Muted() },
@@ -122,12 +125,12 @@ func (s *Session) efLibraryDeleteButton(cx *core.Scope, library store.EFLibrary,
 			TestID:  "ef-library-delete-" + library.Name},
 		dataDialog(cx, open, locales.EfLibraryDeleteButton(cx), []core.Node{
 			core.Text{Content: locales.EfLibraryDeleteConfirm(cx, library.Name),
-				Style: core.Style{FontSize: 13}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+				Style: core.Style{FontSize: typeBody}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 			dataError(cx, status),
 		}, []core.Node{
 			dataCancelButton(cx, open, "ef-library-delete-cancel"),
-			ui.Button{Text: locales.EfLibraryDeleteButton(cx), Busy: busy.Get, OnPress: confirm,
-				TestID: "ef-library-delete-confirm"},
+			ui.Button{Text: locales.EfLibraryDeleteButton(cx), Color: ui.ColorsOf(cx).Danger,
+				Busy: busy.Get, OnPress: confirm, TestID: "ef-library-delete-confirm"},
 		}, "ef-library-delete-dialog"),
 	}}
 }
@@ -177,7 +180,7 @@ func (s *Session) efLibraryBrowseButton(cx *core.Scope, library store.EFLibrary)
 		load(true)
 		b.open.Set(true)
 	}
-	return core.View{Children: []core.Node{
+	return core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)}, Children: []core.Node{
 		core.View{
 			TestID: "ef-library-browse-" + library.Name,
 			Role:   core.RoleButton,
@@ -185,31 +188,38 @@ func (s *Session) efLibraryBrowseButton(cx *core.Scope, library store.EFLibrary)
 			OnPress: func(core.PressEvent) {
 				show()
 			},
-			Style: core.Style{Gap: 2, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0),
-				Padding: core.Symmetric(4, 0), CornerRadius: 4},
+			Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8,
+				FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0),
+				Padding: core.Symmetric(4, 6), CornerRadius: radiusItem},
 			StyleFunc: func() core.Style {
-				return core.Style{Hover: &core.Style{
-					Background: ui.Alpha(ui.ColorsOf(cx).Text(), 0.04)}}
+				return core.Style{
+					Hover:        &core.Style{Background: ui.Alpha(ui.ColorsOf(cx).Text(), 0.04)},
+					FocusVisible: ui.FocusRing(cx, -2),
+				}
 			},
 			Children: []core.Node{
-				core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
-					Gap: 8, MinWidth: core.Pt(0)}, Children: []core.Node{
-					core.Text{Content: library.Name,
-						Style: core.Style{FontSize: 13, FontWeight: ui.Semibold,
-							FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 1},
-					core.Text{Content: library.Source,
-						Style:     core.Style{FontSize: 11, FontFamily: core.FontMonospace},
-						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
-				}},
-				core.Text{ContentFunc: func() string {
-					meta := locales.EfLibraryRowMeta(cx, library.Version,
-						strconv.Itoa(library.FactorCount), dateOnly(library.ImportedAt))
-					if library.SourceFilename != "" {
-						meta += " · " + library.SourceFilename
-					}
-					return meta
-				}, Style: core.Style{FontSize: 11},
-					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
+				core.View{Style: core.Style{Gap: 2, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
+					Children: []core.Node{
+						core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+							Gap: 8, MinWidth: core.Pt(0)}, Children: []core.Node{
+							core.Text{Content: library.Name,
+								Style: core.Style{FontSize: typeBody, FontWeight: ui.Semibold,
+									FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 1},
+							core.Text{Content: library.Source,
+								Style:     core.Style{FontSize: typeMicro, FontFamily: core.FontMonospace},
+								StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
+						}},
+						core.Text{ContentFunc: func() string {
+							meta := locales.EfLibraryRowMeta(cx, library.Version,
+								strconv.Itoa(library.FactorCount), dateOnly(library.ImportedAt))
+							if library.SourceFilename != "" {
+								meta += " · " + library.SourceFilename
+							}
+							return meta
+						}, Style: core.Style{FontSize: typeCaption, FontVariant: core.FontTabularNums},
+							StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
+					}},
+				ui.Icon(lucide.ChevronRight, 14, ui.ColorsOf(cx).Faint),
 			},
 		},
 		dataDialogSized(cx, b.open, library.Name, []core.Node{

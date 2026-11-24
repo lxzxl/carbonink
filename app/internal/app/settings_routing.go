@@ -8,6 +8,7 @@ import (
 	"app.carbonink.desktop/locales"
 
 	"github.com/nsgo-dev/nsgo/core"
+	"github.com/nsgo-dev/nsgo/icons/lucide"
 	"github.com/nsgo-dev/nsgo/ui"
 )
 
@@ -36,25 +37,25 @@ func (s *Session) amapKeyCard(cx *core.Scope) core.Node {
 		status.Set(locales.SettingsAmapSaved(cx))
 	}
 
-	return dataCardFlat(cx,
-		dataHeaderRow(cx,
-			core.View{Style: core.Style{FlexGrow: 1, Gap: 4}, Children: []core.Node{
+	return settingsCard(cx, lucide.MapPin,
+		locales.SettingsAmapHeading, locales.SettingsAmapBody,
+		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignEnd,
+			Wrap: core.Wrap, Gap: 8}, Children: []core.Node{
+			core.View{Style: core.Style{FlexGrow: 1, MinWidth: core.Pt(200), Gap: 4}, Children: []core.Node{
 				core.Text{ContentFunc: func() string { return locales.SettingsAmapLabel(cx) },
-					Style: core.Style{FontSize: 14, FontWeight: ui.Medium}},
+					Style: core.Style{FontSize: typeBody, FontWeight: ui.Medium}},
 				namedNode(ui.Input{Value: key.Get, OnChange: key.Set,
 					Placeholder: locales.SettingsAmapPlaceholder(cx),
 					TestID:      "settings-amap-key"},
 					func() string { return locales.SettingsAmapLabel(cx) }),
 			}},
-			ui.Button{Text: locales.SettingsSave(cx), Variant: ui.ButtonOutline,
+			ui.Button{Text: locales.SettingsSave(cx),
 				OnPress: save, TestID: "settings-amap-save"},
-		),
-		core.Text{ContentFunc: func() string { return locales.SettingsAmapBody(cx) },
-			Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
+		}},
 		core.Show{When: func() bool { return status.Get() != "" },
 			Then: func(cx *core.Scope) core.Node {
 				return core.Text{ContentFunc: func() string { return status.Get() },
-					Style: core.Style{FontSize: 11}, StyleFunc: func() core.Style {
+					Style: core.Style{FontSize: typeCaption}, StyleFunc: func() core.Style {
 						if failed.Get() {
 							return ui.Colored(ui.ColorsOf(cx).Danger)()
 						}
