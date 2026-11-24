@@ -15,9 +15,9 @@ carbonink/
 ├── desktop/                  ← Electron app (the user-facing v1)
 │   ├── package.json          ← name: "carbonink"
 │   ├── src/                  ← main, preload, renderer, shared
-│   ├── tests/                ← vitest (932 passing as of 2026-05-29)
+│   ├── tests/                ← vitest (1408 passing as of 2026-10-09)
 │   └── …                     ← electron-vite, electron-builder, paraglide
-├── app/                      ← NSGo desktop app (the v2 line, feature parity with v1)
+├── app/                      ← NSGo desktop app (the v2 line)
 │   ├── go.mod                ← module app.carbonink.desktop
 │   ├── internal/             ← app UI, store, extraction, report, readiness, …
 │   ├── locales/              ← en + zh-CN catalogs, generated catalog_gen.go
@@ -57,7 +57,7 @@ in `cloud/web/src/styles/global.css` is bound to the X2 mark's moss-green
 accent (`#6B8266`), and the LogoMark/favicon are verbatim ports of the
 desktop icon. Source of truth is `desktop/scripts/icon-designs.mjs`.
 Full palette table + "don't reintroduce sky-blue" rule lives in
-`cloud/CLAUDE.md` § "Brand palette".
+`cloud/AGENTS.md` § "Brand palette".
 
 **Electron pinned at `^41.5.1`** — not the latest. We can't move to v42
 yet because `better-sqlite3` (latest 12.10.0) doesn't compile against

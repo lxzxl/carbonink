@@ -68,7 +68,7 @@ cd app && go test ./... && go tool nsgo test .    # NSGo app tests
 | UI patterns (scroll containment, list rows, button hierarchy) | [ui-patterns.md](docs/conventions/ui-patterns.md) |
 | Testing + i18n discipline (full detail + ABI rebuild) | [testing-and-i18n.md](docs/conventions/testing-and-i18n.md) |
 
-Brand palette + "don't reintroduce sky-blue" rule: `cloud/CLAUDE.md`.
+Brand palette + "don't reintroduce sky-blue" rule: [cloud/AGENTS.md](cloud/AGENTS.md).
 
 ## Docs map
 

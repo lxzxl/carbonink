@@ -6,21 +6,14 @@
 ## i18n
 
 All user-facing strings go through paraglide messages (`messages/en.json`
-+ `messages/zh-CN.json`). Both files must have the exact same key set —
-the Phase 5 sweep includes a key-alignment check. New features add keys
-to BOTH files in the same commit.
-
-**Known exception:** the inbound supplier-disclosure UI (v2.0) shipped with
-inline Chinese rather than paraglide keys, as a deliberate ship-it shortcut.
-Only the two nav-label keys went through paraglide. Full migration is tracked
-as a v2.1 follow-up (ROADMAP §4.5). Don't copy this pattern for new features —
-it's debt, not precedent.
++ `messages/zh-CN.json`) in `desktop/`, or ICU YAML catalogs (`locales/en.yaml`
++ `locales/zh-CN.yaml`) in `app/`. Both language files must keep the exact
+same key set — new features add keys to BOTH files in the same commit.
 
 ## Test discipline
 
-- **vitest baseline:** 662/662 was the floor on `main` after `v1.0.0`.
-  Current passing count is **1113/1113** (2026-07-22). Don't land a commit
-  that drops the passing count.
+- **vitest baseline:** **1408/1408** (verified green pre-v1.2.0, 2026-10-09).
+  Don't land a commit that drops the passing count.
 - **Biome lint debt: CLEARED (2026-07-22).** Desktop `biome check .` is at
   **0 errors**. What survived the cleanup: ~170 warnings/infos, dominated by
   `noNonNullAssertion` (88, mostly deliberate `!` in tests) plus small

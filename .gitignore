@@ -106,3 +106,6 @@ docs/ROADMAP.md
 
 # Eval harness output (timestamped runs) — regenerable, not source.
 desktop/scripts/eval/results/
+
+# Local UI review captures & temporary design-plugin scratch files.
+.impeccable/
