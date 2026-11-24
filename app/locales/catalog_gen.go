@@ -222,6 +222,7 @@ var Parameters = map[string][]string{
 	"SupplierDisclosuresReviewPlan":           {"rows", "total"},
 	"SupplierDisclosuresReviewWarnings":       {"count"},
 	"SupplierDisclosuresWizardCreated":        {"count"},
+	"UpdaterCapabilityStore":                  {"store"},
 	"UpdaterCurrentVersion":                   {"version"},
 	"UpdaterStatusAvailable":                  {"version"},
 	"UpdaterStatusAvailableManual":            {"version"},
@@ -418,6 +419,7 @@ type Translation struct {
 	SupplierDisclosuresReviewPlan           func(rows string, total string) string
 	SupplierDisclosuresReviewWarnings       func(count string) string
 	SupplierDisclosuresWizardCreated        func(count string) string
+	UpdaterCapabilityStore                  func(store string) string
 	UpdaterCurrentVersion                   func(version string) string
 	UpdaterStatusAvailable                  func(version string) string
 	UpdaterStatusAvailableManual            func(version string) string
@@ -1789,6 +1791,11 @@ const (
 	textUndoDone
 	textUndoFailed
 	textUnitKgCo2e
+	textUpdaterAutomaticHint
+	textUpdaterAutomaticLabel
+	textUpdaterCapabilityChannel
+	textUpdaterCapabilityDevelopment
+	textUpdaterCapabilityUnavailable
 	textUpdaterCheckButton
 	textUpdaterDownloadButton
 	textUpdaterDownloadUrl
@@ -1798,6 +1805,8 @@ const (
 	textUpdaterStatusChecking
 	textUpdaterStatusIdle
 	textUpdaterStatusNotAvailable
+	textUpdaterStatusRestart
+	textUpdaterStatusShown
 	textWorkspaceActive
 	textWorkspaceActiveBadge
 	textWorkspaceBody
@@ -3176,6 +3185,11 @@ var keyOfText = [numTexts]string{
 	"undoDone",
 	"undoFailed",
 	"unitKgCo2e",
+	"updaterAutomaticHint",
+	"updaterAutomaticLabel",
+	"updaterCapabilityChannel",
+	"updaterCapabilityDevelopment",
+	"updaterCapabilityUnavailable",
 	"updaterCheckButton",
 	"updaterDownloadButton",
 	"updaterDownloadUrl",
@@ -3185,6 +3199,8 @@ var keyOfText = [numTexts]string{
 	"updaterStatusChecking",
 	"updaterStatusIdle",
 	"updaterStatusNotAvailable",
+	"updaterStatusRestart",
+	"updaterStatusShown",
 	"workspaceActive",
 	"workspaceActiveBadge",
 	"workspaceBody",
@@ -4561,6 +4577,11 @@ var textsEn = i18n.NewTexts(""+
 	"Undone"+
 	"Could not undo the last action."+
 	"kg CO2e"+
+	"Check for updates automatically in the background."+
+	"Automatic update checks"+
+	"Update checks are disabled in this build."+
+	"Development builds do not check for updates."+
+	"Automatic updates are unavailable in this environment."+
 	"Check for Updates"+
 	"Open Download Page"+
 	"carbonink.xyz/download"+
@@ -4570,6 +4591,8 @@ var textsEn = i18n.NewTexts(""+
 	"Checking for updates..."+
 	"No update check performed yet."+
 	"You are running the latest version."+
+	"An update is ready. Restart CarbonInk to finish installing."+
+	"Update check opened in the system updater."+
 	"Active workspace"+
 	"Active"+
 	"Each workspace is its own local database file — client data stays physically separate. Switching reloads the app."+
@@ -5943,6 +5966,11 @@ var textsEn = i18n.NewTexts(""+
 		6,
 		31,
 		7,
+		50,
+		23,
+		41,
+		44,
+		54,
 		17,
 		18,
 		22,
@@ -5952,6 +5980,8 @@ var textsEn = i18n.NewTexts(""+
 		23,
 		30,
 		35,
+		59,
+		42,
 		16,
 		6,
 		115,
@@ -7328,6 +7358,11 @@ var textsZhCN = i18n.NewTexts(""+
 	"已撤销"+
 	"撤销失败。"+
 	"kg CO2e"+
+	"在后台自动检查软件更新。"+
+	"自动检查更新"+
+	"此构建已关闭更新检查。"+
+	"开发构建不检查更新。"+
+	"当前环境不支持自动更新。"+
 	"检查更新"+
 	"打开下载页"+
 	"carbonink.xyz/zh/download"+
@@ -7337,6 +7372,8 @@ var textsZhCN = i18n.NewTexts(""+
 	"正在检查更新..."+
 	"尚未检查更新。"+
 	"当前已是最新版本。"+
+	"更新已就绪，重启 碳墨 即可完成安装。"+
+	"已在系统更新窗口中显示检查结果。"+
 	"当前账套"+
 	"当前"+
 	"每个账套是一个独立的本地数据库文件，客户数据物理隔离。切换后应用会重新加载。"+
@@ -8710,6 +8747,11 @@ var textsZhCN = i18n.NewTexts(""+
 		9,
 		15,
 		7,
+		36,
+		18,
+		33,
+		30,
+		36,
 		12,
 		15,
 		25,
@@ -8719,6 +8761,8 @@ var textsZhCN = i18n.NewTexts(""+
 		21,
 		21,
 		27,
+		53,
+		48,
 		12,
 		6,
 		114,
@@ -9327,6 +9371,9 @@ func Supply(lang string, t Translation) {
 	}
 	if t.SupplierDisclosuresWizardCreated != nil {
 		s.SupplierDisclosuresWizardCreated = t.SupplierDisclosuresWizardCreated
+	}
+	if t.UpdaterCapabilityStore != nil {
+		s.UpdaterCapabilityStore = t.UpdaterCapabilityStore
 	}
 	if t.UpdaterCurrentVersion != nil {
 		s.UpdaterCurrentVersion = t.UpdaterCurrentVersion
@@ -25026,6 +25073,75 @@ func UnitKgCo2e(cx *core.Scope) string { return For(cx).UnitKgCo2e() }
 // UnitKgCo2e is the package's UnitKgCo2e in the language of msgs.
 func (msgs Messages) UnitKgCo2e() string { return msgs.text(textUnitKgCo2e) }
 
+// UpdaterAutomaticHint says "Check for updates automatically in the background."
+// in the language the app shows under cx.
+func UpdaterAutomaticHint(cx *core.Scope) string { return For(cx).UpdaterAutomaticHint() }
+
+// UpdaterAutomaticHint is the package's UpdaterAutomaticHint in the language of msgs.
+func (msgs Messages) UpdaterAutomaticHint() string { return msgs.text(textUpdaterAutomaticHint) }
+
+// UpdaterAutomaticLabel says "Automatic update checks"
+// in the language the app shows under cx.
+func UpdaterAutomaticLabel(cx *core.Scope) string { return For(cx).UpdaterAutomaticLabel() }
+
+// UpdaterAutomaticLabel is the package's UpdaterAutomaticLabel in the language of msgs.
+func (msgs Messages) UpdaterAutomaticLabel() string { return msgs.text(textUpdaterAutomaticLabel) }
+
+// UpdaterCapabilityChannel says "Update checks are disabled in this build."
+// in the language the app shows under cx.
+func UpdaterCapabilityChannel(cx *core.Scope) string { return For(cx).UpdaterCapabilityChannel() }
+
+// UpdaterCapabilityChannel is the package's UpdaterCapabilityChannel in the language of msgs.
+func (msgs Messages) UpdaterCapabilityChannel() string {
+	return msgs.text(textUpdaterCapabilityChannel)
+}
+
+// UpdaterCapabilityDevelopment says "Development builds do not check for updates."
+// in the language the app shows under cx.
+func UpdaterCapabilityDevelopment(cx *core.Scope) string {
+	return For(cx).UpdaterCapabilityDevelopment()
+}
+
+// UpdaterCapabilityDevelopment is the package's UpdaterCapabilityDevelopment in the language of msgs.
+func (msgs Messages) UpdaterCapabilityDevelopment() string {
+	return msgs.text(textUpdaterCapabilityDevelopment)
+}
+
+// UpdaterCapabilityStore says "Updates are managed by {store}."
+// in the language the app shows under cx.
+func UpdaterCapabilityStore(cx *core.Scope, store string) string {
+	return For(cx).UpdaterCapabilityStore(store)
+}
+
+// UpdaterCapabilityStore is the package's UpdaterCapabilityStore in the language of msgs.
+func (msgs Messages) UpdaterCapabilityStore(store string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.UpdaterCapabilityStore(store))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].UpdaterCapabilityStore; f != nil {
+			return f(store)
+		}
+		switch lang {
+		case "", "en":
+			return "Updates are managed by " + msgs.arg(store) + "."
+		case "zh-CN":
+			return "更新由 " + store + " 管理。"
+		}
+	}
+}
+
+// UpdaterCapabilityUnavailable says "Automatic updates are unavailable in this environment."
+// in the language the app shows under cx.
+func UpdaterCapabilityUnavailable(cx *core.Scope) string {
+	return For(cx).UpdaterCapabilityUnavailable()
+}
+
+// UpdaterCapabilityUnavailable is the package's UpdaterCapabilityUnavailable in the language of msgs.
+func (msgs Messages) UpdaterCapabilityUnavailable() string {
+	return msgs.text(textUpdaterCapabilityUnavailable)
+}
+
 // UpdaterCheckButton says "Check for Updates"
 // in the language the app shows under cx.
 func UpdaterCheckButton(cx *core.Scope) string { return For(cx).UpdaterCheckButton() }
@@ -25236,6 +25352,20 @@ func UpdaterStatusNotAvailable(cx *core.Scope) string { return For(cx).UpdaterSt
 func (msgs Messages) UpdaterStatusNotAvailable() string {
 	return msgs.text(textUpdaterStatusNotAvailable)
 }
+
+// UpdaterStatusRestart says "An update is ready. Restart CarbonInk to finish installing."
+// in the language the app shows under cx.
+func UpdaterStatusRestart(cx *core.Scope) string { return For(cx).UpdaterStatusRestart() }
+
+// UpdaterStatusRestart is the package's UpdaterStatusRestart in the language of msgs.
+func (msgs Messages) UpdaterStatusRestart() string { return msgs.text(textUpdaterStatusRestart) }
+
+// UpdaterStatusShown says "Update check opened in the system updater."
+// in the language the app shows under cx.
+func UpdaterStatusShown(cx *core.Scope) string { return For(cx).UpdaterStatusShown() }
+
+// UpdaterStatusShown is the package's UpdaterStatusShown in the language of msgs.
+func (msgs Messages) UpdaterStatusShown() string { return msgs.text(textUpdaterStatusShown) }
 
 // WorkspaceActive says "Active workspace"
 // in the language the app shows under cx.

@@ -1549,6 +1549,12 @@ undo: 撤销
 undoDone: 已撤销
 undoFailed: 撤销失败。
 unitKgCo2e: kg CO2e
+updaterAutomaticHint: 在后台自动检查软件更新。
+updaterAutomaticLabel: 自动检查更新
+updaterCapabilityChannel: 此构建已关闭更新检查。
+updaterCapabilityDevelopment: 开发构建不检查更新。
+updaterCapabilityStore: 更新由 {store} 管理。
+updaterCapabilityUnavailable: 当前环境不支持自动更新。
 updaterCheckButton: 检查更新
 updaterCurrentVersion: 当前版本：{version}
 updaterDownloadButton: 打开下载页
@@ -1564,6 +1570,8 @@ updaterStatusDownloading: 正在下载更新... {percent}%
 updaterStatusError: 检查更新失败：{message}
 updaterStatusIdle: 尚未检查更新。
 updaterStatusNotAvailable: 当前已是最新版本。
+updaterStatusRestart: 更新已就绪，重启 碳墨 即可完成安装。
+updaterStatusShown: 已在系统更新窗口中显示检查结果。
 workspaceActive: 当前账套
 workspaceActiveBadge: 当前
 workspaceBody: 每个账套是一个独立的本地数据库文件，客户数据物理隔离。切换后应用会重新加载。

@@ -1550,6 +1550,12 @@ undo: Undo
 undoDone: Undone
 undoFailed: Could not undo the last action.
 unitKgCo2e: kg CO2e
+updaterAutomaticHint: Check for updates automatically in the background.
+updaterAutomaticLabel: Automatic update checks
+updaterCapabilityChannel: Update checks are disabled in this build.
+updaterCapabilityDevelopment: Development builds do not check for updates.
+updaterCapabilityStore: Updates are managed by {store}.
+updaterCapabilityUnavailable: Automatic updates are unavailable in this environment.
 updaterCheckButton: Check for Updates
 updaterCurrentVersion: 'Current version: {version}'
 updaterDownloadButton: Open Download Page
@@ -1565,6 +1571,8 @@ updaterStatusDownloading: Downloading update... {percent}%
 updaterStatusError: 'Update check failed: {message}'
 updaterStatusIdle: No update check performed yet.
 updaterStatusNotAvailable: You are running the latest version.
+updaterStatusRestart: An update is ready. Restart CarbonInk to finish installing.
+updaterStatusShown: Update check opened in the system updater.
 workspaceActive: Active workspace
 workspaceActiveBadge: Active
 workspaceBody: Each workspace is its own local database file — client data stays physically separate. Switching reloads the app.

@@ -95,9 +95,7 @@ jobs:
         run: pnpm cloud:build:web
 
   go-app:
-    # Compiles the NSGo module and runs the packages that need no display.
-    # The headless UI tests (internal/app, package main) need the platform
-    # backend and run on macOS/Windows instead.
+    # Compiles the NSGo module and runs all pure-Go domain packages on Linux.
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -114,7 +112,27 @@ jobs:
         run: go vet ./...
 
       - name: Test pure-Go packages
-        run: go test ./internal/backup ./internal/llm ./internal/platform ./internal/prefs ./internal/store ./internal/workspace ./internal/spike
+        run: go test $(go list ./... | grep -v -E '(/internal/app|/internal/spike)$' | grep -v '^app\.carbonink\.desktop$')
 
       - name: Cross-compile the Linux backend
         run: go build ./...
+
+  go-app-macos:
+    # Runs the full NSGo check and headless UI test suite on macOS.
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: app/go.mod
+          cache-dependency-path: app/go.sum
+
+      - name: Check NSGo module and locales
+        run: go tool nsgo check
+
+      - name: Run Go and NSGo headless UI tests
+        run: go test ./... && go tool nsgo test ./internal/app && go tool nsgo test .

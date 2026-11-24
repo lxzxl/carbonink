@@ -10,6 +10,7 @@ import (
 	"github.com/nsgo-dev/nsgo/core"
 	"github.com/nsgo-dev/nsgo/icons/lucide"
 	"github.com/nsgo-dev/nsgo/ui"
+	"github.com/nsgo-dev/nsgo/updater"
 )
 
 // settingsSection is one entry in 1.x's Settings rail: an icon, a label and
@@ -345,30 +346,68 @@ func settingsSegmented(cx *core.Scope, choices []settingsChoice,
 	}
 }
 
-// updatesCard is Settings → Software updates. The channel is off in the beta,
-// so a check normally reports either the latest version or an unavailable
-// updater; both read as plain status copy.
+// updatesCard is Settings → Software updates. It inspects updater.CapabilityOf
+// before offering check controls and reads updater.Status inside reactive
+// bindings so dev/channel-disabled builds explain themselves instead of claiming
+// to be up to date.
 func (s *Session) updatesCard(cx *core.Scope) core.Node {
-	status := core.NewSignal(cx, locales.UpdaterStatusIdle(cx))
+	status := core.NewSignal(cx, "")
 	available := core.NewSignal(cx, "")
 	url := core.NewSignal(cx, "")
+	restartReady := core.NewSignal(cx, false)
 	busy := core.NewSignal(cx, false)
 
+	capabilityMessage := func(cx *core.Scope, cap updater.Capability, availableVersion string) string {
+		switch cap.Managed {
+		case updater.ManagedDevelopment:
+			return locales.UpdaterCapabilityDevelopment(cx)
+		case updater.ManagedChannel:
+			return locales.UpdaterCapabilityChannel(cx)
+		case updater.ManagedStore:
+			return locales.UpdaterCapabilityStore(cx, cap.Store)
+		case updater.ManagedUnavailable:
+			return locales.UpdaterCapabilityUnavailable(cx)
+		default:
+			if availableVersion != "" {
+				return locales.UpdaterStatusAvailable(cx, availableVersion)
+			}
+			return locales.UpdaterStatusIdle(cx)
+		}
+	}
+	canCheck := func(managed updater.Managed) bool {
+		return managed == updater.ManagedSelf || managed == updater.ManagedPage
+	}
+
 	check := func() {
-		if busy.Get() {
+		if busy.Get() || !canCheck(updater.CapabilityOf(cx).Managed) {
 			return
 		}
 		busy.Set(true)
 		status.Set(locales.UpdaterStatusChecking(cx))
 		available.Set("")
 		url.Set("")
+		restartReady.Set(false)
 		cx.CheckForUpdates(false, func(update core.UpdateCheck) {
 			busy.Set(false)
 			if update.Err != nil {
 				status.Set(locales.UpdaterStatusError(cx, update.Err.Error()))
 				return
 			}
-			if update.Shown || update.Version == "" {
+			if update.Shown {
+				status.Set(locales.UpdaterStatusShown(cx))
+				return
+			}
+			if update.Restart {
+				restartReady.Set(true)
+				status.Set(locales.UpdaterStatusRestart(cx))
+				return
+			}
+			managed := updater.Managed(update.Managed)
+			if !canCheck(managed) {
+				status.Set(capabilityMessage(cx, updater.Capability{Managed: managed, Store: update.Store}, ""))
+				return
+			}
+			if update.Version == "" {
 				status.Set(locales.UpdaterStatusNotAvailable(cx))
 				return
 			}
@@ -381,10 +420,38 @@ func (s *Session) updatesCard(cx *core.Scope) core.Node {
 	if version == "" {
 		version = locales.SettingsAboutDevelopment(cx)
 	}
+	statusText := func() string {
+		if msg := status.Get(); msg != "" {
+			return msg
+		}
+		state := updater.Status(cx)
+		return capabilityMessage(cx, state.Capability, state.Available)
+	}
 	return settingsCard(cx, lucide.RefreshCw, locales.SettingsSectionUpdates, nil,
 		core.Text{ContentFunc: func() string {
 			return locales.UpdaterCurrentVersion(cx, version)
 		}, Style: core.Style{FontSize: typeBody, FontVariant: core.FontTabularNums}},
+		core.Show{
+			When: func() bool { return canCheck(updater.CapabilityOf(cx).Managed) },
+			Then: func(cx *core.Scope) core.Node {
+				return core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+					Gap: 10}, Children: []core.Node{
+					ui.Switch{
+						Checked:  func() bool { return updater.Status(cx).AutomaticChecks },
+						OnChange: func(on bool) { updater.SetAutomaticChecks(cx, on) },
+						Label:    locales.UpdaterAutomaticLabel(cx),
+						TestID:   "settings-update-automatic",
+					},
+					core.View{Style: core.Style{Gap: 2, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)}, Children: []core.Node{
+						core.Text{ContentFunc: func() string { return locales.UpdaterAutomaticLabel(cx) },
+							Style: core.Style{FontSize: typeBody}},
+						core.Text{ContentFunc: func() string { return locales.UpdaterAutomaticHint(cx) },
+							Style:     core.Style{FontSize: typeCaption},
+							StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2},
+					}},
+				}}
+			},
+		},
 		core.View{Style: core.Style{Padding: core.All(12), AlignSelf: core.AlignStretch,
 			CornerRadius: radiusItem, BorderWidth: 1},
 			StyleFunc: func() core.Style {
@@ -392,14 +459,23 @@ func (s *Session) updatesCard(cx *core.Scope) core.Node {
 				return core.Style{Background: colors.Inset(), BorderColor: colors.Border()}
 			},
 			Children: []core.Node{
-				core.Text{ContentFunc: func() string { return status.Get() },
+				core.Text{ContentFunc: statusText,
+					TestID:    "settings-update-status",
 					Style:     core.Style{FontSize: typeBody},
 					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
 			}},
 		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
 			Wrap: core.Wrap, Gap: 8}, Children: []core.Node{
 			ui.Button{Text: locales.UpdaterCheckButton(cx), Variant: ui.ButtonOutline,
-				Busy: busy.Get, OnPress: check, TestID: "settings-update-check"},
+				Busy:     busy.Get,
+				Disabled: func() bool { return !canCheck(updater.CapabilityOf(cx).Managed) },
+				OnPress:  check, TestID: "settings-update-check"},
+			core.Show{When: func() bool { return restartReady.Get() },
+				Then: func(cx *core.Scope) core.Node {
+					return ui.Button{Text: locales.UpdaterInstallButton(cx),
+						OnPress: func() { cx.RequestRestart() },
+						TestID:  "settings-update-restart"}
+				}},
 			core.Show{When: func() bool { return url.Get() != "" },
 				Then: func(cx *core.Scope) core.Node {
 					return ui.Button{Text: locales.UpdaterDownloadButton(cx),
