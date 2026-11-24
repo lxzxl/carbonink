@@ -7,6 +7,7 @@ import (
 
 	"github.com/nsgo-dev/nsgo/core"
 	"github.com/nsgo-dev/nsgo/desktop"
+	"github.com/nsgo-dev/nsgo/icons/lucide"
 	"github.com/nsgo-dev/nsgo/ui"
 )
 
@@ -21,9 +22,14 @@ func (s *Session) aboutCard(cx *core.Scope) core.Node {
 		failed.Set(isFailure)
 	}
 
-	name := app.Name
-	if name == "" {
-		name = "CarbonInk"
+	name := func(cx *core.Scope) string {
+		if localized := locales.AppName(cx); localized != "" {
+			return localized
+		}
+		if app.Name != "" {
+			return app.Name
+		}
+		return "CarbonInk"
 	}
 	version := func(cx *core.Scope) string {
 		if app.Version == "" {
@@ -35,121 +41,118 @@ func (s *Session) aboutCard(cx *core.Scope) core.Node {
 		return app.Version
 	}
 
-	rowStyle := func() core.Style {
-		if cx.Env().Window().Width < 900 {
-			return core.Style{Gap: 3}
-		}
-		return core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 12}
-	}
 	label := func(text func(*core.Scope) string) core.Node {
 		return core.Text{ContentFunc: func() string { return text(cx) },
-			Style:     core.Style{FontSize: 12, Width: core.Pt(96)},
+			Style:     core.Style{FontSize: 14, Width: core.Pt(64), FlexShrink: 0},
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)}
 	}
 	value := func(text func(*core.Scope) string) core.Node {
 		return core.Text{ContentFunc: func() string { return text(cx) },
-			Style: core.Style{FontSize: 12, FlexShrink: 1}}
+			Style: core.Style{FontSize: 14, FlexShrink: 1}}
 	}
-	row := func(testID string, labelText func(*core.Scope) string, valueText func(*core.Scope) string) core.Node {
-		return core.View{TestID: testID, StyleFunc: rowStyle,
-			Children: []core.Node{label(labelText), value(valueText)}}
+	row := func(testID string, left, right core.Node) core.Node {
+		return core.View{TestID: testID, Style: core.Style{Direction: core.Row,
+			AlignItems: core.AlignStart, Gap: 24},
+			Children: []core.Node{left, right}}
 	}
 
 	rows := []core.Node{
-		row("settings-about-app", locales.SettingsAboutAppName, func(*core.Scope) string { return name }),
-		row("settings-about-version", locales.SettingsAboutVersion, version),
-		row("settings-about-platform", locales.SettingsAboutPlatform, func(*core.Scope) string {
-			return runtime.GOOS + " · " + runtime.GOARCH
-		}),
-		row("settings-about-runtime", locales.SettingsAboutRuntime, func(cx *core.Scope) string {
-			return locales.SettingsAboutNsgo(cx) + " · " + runtime.Version()
-		}),
+		row("settings-about-app", label(locales.SettingsAboutAppName),
+			value(name)),
+		row("settings-about-version", label(locales.SettingsAboutVersion),
+			value(version)),
+		row("settings-about-platform", label(locales.SettingsAboutPlatform),
+			value(func(*core.Scope) string { return runtime.GOOS + " · " + runtime.GOARCH })),
+		row("settings-about-runtime", label(locales.SettingsAboutRuntime),
+			value(func(cx *core.Scope) string {
+				return locales.SettingsAboutNsgo(cx) + " · " + runtime.Version()
+			})),
 	}
 	if app.ID != "" {
-		rows = append(rows, row("settings-about-id", locales.SettingsAboutAppId,
-			func(*core.Scope) string { return app.ID }))
+		rows = append(rows, row("settings-about-id", label(locales.SettingsAboutAppId),
+			value(func(*core.Scope) string { return app.ID })))
 	}
+	rows = append(rows, row("settings-about-user-data", label(locales.SettingsAboutUserData),
+		core.Text{Content: cx.DataDir(), Style: core.Style{FontSize: 12,
+			FontFamily: core.FontMonospace, FlexShrink: 1},
+			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)}))
 
-	copied := func() {
-		cx.SetClipboard(locales.SettingsAboutSupportEmail(cx))
-		report(locales.SettingsAboutCopied(cx), false)
+	action := func(text func(*core.Scope) string, hint func(*core.Scope) string,
+		icon func() *core.SVG, testID string, onPress func()) core.Node {
+		return core.View{Style: core.Style{Gap: 6}, Children: []core.Node{
+			ui.Button{Text: text(cx), Variant: ui.ButtonOutline, Icon: icon,
+				OnPress: onPress, TestID: testID,
+				Style: core.Style{AlignSelf: core.AlignStart}},
+			core.Text{ContentFunc: func() string { return hint(cx) },
+				Style:     core.Style{FontSize: 12},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2},
+		}}
+	}
+	openData := func() {
+		desktop.RevealFile(cx, cx.DataDir(), func(err error) {
+			if err != nil {
+				report(locales.SettingsAboutOpenDataDirFailed(cx), true)
+			}
+		})
+	}
+	openLogs := func() {
+		desktop.RevealFile(cx, cx.LogsDir(), func(err error) {
+			if err != nil {
+				report(locales.SettingsAboutOpenLogDirFailed(cx), true)
+			}
+		})
+	}
+	openLink := func(url string, failure func(*core.Scope) string) func() {
+		return func() {
+			cx.OpenURL(url, func(opened bool) {
+				if !opened {
+					report(failure(cx), true)
+				}
+			})
+		}
+	}
+	link := func(text func(*core.Scope) string, testID string, onPress func()) core.Node {
+		return core.View{TestID: testID, Role: core.RoleButton, OnPress: func(core.PressEvent) {
+			onPress()
+		}, Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+			Gap: 4, AlignSelf: core.AlignStart}, Children: []core.Node{
+			core.Text{ContentFunc: func() string { return text(cx) },
+				Style:     core.Style{FontSize: 14},
+				StyleFunc: ui.Colored(accentInk(cx))},
+			ui.Icon(lucide.ExternalLink, 12, accentInk(cx)),
+		}}
 	}
 
 	children := []core.Node{
-		core.Text{ContentFunc: func() string { return locales.SettingsSectionAbout(cx) },
-			Style: core.Style{FontSize: 14, FontWeight: ui.Semibold}},
-		core.Text{ContentFunc: func() string { return locales.SettingsSectionAboutDescription(cx) },
-			Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
+		core.View{Style: core.Style{Gap: 8}, Children: rows},
+		action(locales.SettingsAboutOpenDataDir, locales.SettingsAboutOpenDataDirHint,
+			lucide.FolderOpen, "settings-about-open-data", openData),
+		action(locales.SettingsAboutOpenLogDir, locales.SettingsAboutOpenLogDirHint,
+			lucide.FileText, "settings-about-open-logs", openLogs),
+		core.View{Style: core.Style{Gap: 8, Padding: core.Edges{Top: 8},
+			Borders:     core.Edges{Top: 1},
+			BorderColor: ui.ColorsOf(cx).Line()}, Children: []core.Node{
+			row("settings-about-support", label(locales.SettingsAboutSupportLabel),
+				link(locales.SettingsAboutSupportEmail, "settings-about-support-link",
+					openLink("mailto:"+locales.SettingsAboutSupportEmail(cx),
+						locales.SettingsAboutOpenSupportFailed))),
+			row("settings-about-website", label(locales.SettingsAboutWebsiteLabel),
+				link(locales.SettingsAboutWebsiteUrl, "settings-about-open-website",
+					openLink("https://carbonink.xyz", locales.SettingsAboutOpenWebsiteFailed))),
+		}},
 	}
-	children = append(children, rows...)
-	children = append(children,
-		core.View{Style: core.Style{Direction: core.Row, Wrap: core.Wrap, Gap: 6}, Children: []core.Node{
-			ui.Button{Text: locales.SettingsAboutOpenDataDir(cx), Variant: ui.ButtonSecondary,
-				OnPress: func() {
-					desktop.RevealFile(cx, cx.DataDir(), func(err error) {
-						if err != nil {
-							report(locales.SettingsAboutOpenDataDirFailed(cx), true)
-						}
-					})
-				}, TestID: "settings-about-open-data"},
-			ui.Button{Text: locales.SettingsAboutOpenLogDir(cx), Variant: ui.ButtonSecondary,
-				OnPress: func() {
-					desktop.RevealFile(cx, cx.LogsDir(), func(err error) {
-						if err != nil {
-							report(locales.SettingsAboutOpenLogDirFailed(cx), true)
-						}
-					})
-				}, TestID: "settings-about-open-logs"},
-		}},
-		core.Text{ContentFunc: func() string { return locales.SettingsAboutOpenDataDirHint(cx) },
-			Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint), MaxLines: 2},
-		core.Text{ContentFunc: func() string { return locales.SettingsAboutOpenLogDirHint(cx) },
-			Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint), MaxLines: 2},
-		core.View{TestID: "settings-about-support", StyleFunc: rowStyle, Children: []core.Node{
-			label(locales.SettingsAboutSupportLabel),
-			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
-				Wrap: core.Wrap, Gap: 8},
-				Children: []core.Node{
-					value(locales.SettingsAboutSupportEmail),
-					ui.Button{Text: locales.SettingsAboutCopy(cx), Variant: ui.ButtonSecondary,
-						OnPress: copied, TestID: "settings-about-support-copy"},
-				}},
-		}},
-		core.View{TestID: "settings-about-website", StyleFunc: rowStyle, Children: []core.Node{
-			label(locales.SettingsAboutWebsiteLabel),
-			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
-				Wrap: core.Wrap, Gap: 8},
-				Children: []core.Node{
-					value(locales.SettingsAboutWebsiteUrl),
-					ui.Button{Text: locales.SettingsAboutOpenWebsite(cx), Variant: ui.ButtonSecondary,
-						OnPress: func() {
-							cx.OpenURL("https://carbonink.xyz", func(opened bool) {
-								if !opened {
-									report(locales.SettingsAboutOpenWebsiteFailed(cx), true)
-								}
-							})
-						}, TestID: "settings-about-open-website"},
-				}},
-		}},
-		core.Show{When: func() bool { return status.Get() != "" },
-			Then: func(cx *core.Scope) core.Node {
-				return core.Text{ContentFunc: func() string { return status.Get() },
-					Style: core.Style{FontSize: 11},
-					StyleFunc: func() core.Style {
-						if failed.Get() {
-							return ui.Colored(ui.ColorsOf(cx).Danger)()
-						}
-						return ui.Colored(ui.ColorsOf(cx).Muted)()
-					}}
-			}},
-	)
+	children = append(children, core.Show{When: func() bool { return status.Get() != "" },
+		Then: func(cx *core.Scope) core.Node {
+			return core.Text{ContentFunc: func() string { return status.Get() },
+				Style: core.Style{FontSize: 11},
+				StyleFunc: func() core.Style {
+					if failed.Get() {
+						return ui.Colored(ui.ColorsOf(cx).Danger)()
+					}
+					return ui.Colored(ui.ColorsOf(cx).Muted)()
+				}}
+		}})
 
-	return core.View{
-		TestID: "settings-about",
-		Style:  core.Style{Padding: core.All(16), Gap: 10, CornerRadius: 10, BorderWidth: 1},
-		StyleFunc: func() core.Style {
-			return core.Style{Background: ui.ColorsOf(cx).Surface(), BorderColor: ui.ColorsOf(cx).Border()}
-		},
-		Children: children,
-	}
+	return core.View{TestID: "settings-about", Style: core.Style{Gap: 16},
+		Children: children}
 }

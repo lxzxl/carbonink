@@ -14,7 +14,7 @@ func TestCardHeaderStacksWhenNarrow(t *testing.T) {
 	t.Setenv("CARBONINK_TEST_DB", fixtureDB(t))
 	ui := nsgotest.Start(t, Root, nsgotest.Size(640, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}))
-	ui.Press("id:nav:sources")
+	openSettings(ui, "efLibrary")
 	body := ui.WaitFor("text:Bring your own factors", 5*time.Second)
 	action := ui.WaitFor("text:Import library", 5*time.Second)
 	bodyBounds, actionBounds := body.Bounds(), action.Bounds()

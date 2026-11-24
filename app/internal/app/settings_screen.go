@@ -1,0 +1,387 @@
+package app
+
+import (
+	"context"
+	"strconv"
+
+	"app.carbonink.desktop/internal/prefs"
+	"app.carbonink.desktop/locales"
+
+	"github.com/nsgo-dev/nsgo/core"
+	"github.com/nsgo-dev/nsgo/icons/lucide"
+	"github.com/nsgo-dev/nsgo/ui"
+)
+
+// settingsSection is one entry in 1.x's Settings rail: an icon, a label and
+// the pane it opens.
+type settingsSection struct {
+	key         string
+	icon        func() *core.SVG
+	title       func(*core.Scope) string
+	description func(*core.Scope) string
+}
+
+// settingsSections is the rail order 1.x used, value for value.
+var settingsSections = []settingsSection{
+	{"general", lucide.Settings, locales.SettingsSectionGeneral, locales.SettingsSectionGeneralDescription},
+	{"ai", lucide.Sparkles, locales.SettingsSectionAi, locales.SettingsSectionAiDescription},
+	{"amap", lucide.MapPin, locales.SettingsSectionAmap, locales.SettingsSectionAmapDescription},
+	{"mcp", lucide.Cable, locales.SettingsSectionMcp, locales.SettingsSectionMcpDescription},
+	{"org", lucide.Building, locales.SettingsSectionOrg, locales.SettingsSectionOrgDescription},
+	{"workspaces", lucide.Briefcase, locales.SettingsSectionWorkspaces, locales.SettingsSectionWorkspacesDescription},
+	{"efLibrary", lucide.Library, locales.SettingsSectionEfLibrary, locales.SettingsSectionEfLibraryDescription},
+	{"data", lucide.Database, locales.SettingsSectionData, locales.SettingsSectionDataDescription},
+	{"updates", lucide.RefreshCw, locales.SettingsSectionUpdates, locales.SettingsSectionUpdatesDescription},
+	{"about", lucide.Info, locales.SettingsSectionAbout, locales.SettingsSectionAboutDescription},
+}
+
+// settingsScreen is 1.x's Settings: a 200 pt rail of sections and a single
+// scrolling pane, so adjacent settings never read as one long form.
+func (s *Session) settingsScreen(cx *core.Scope, dataRev *core.Signal[int]) core.Node {
+	active := core.NewSignal(cx, "general")
+	rail := make([]core.Node, 0, len(settingsSections))
+	for _, section := range settingsSections {
+		section := section
+		rail = append(rail, core.View{
+			TestID: "settings-section-" + section.key,
+			Role:   core.RoleButton,
+			OnPress: func(core.PressEvent) {
+				active.Set(section.key)
+			},
+			Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8,
+				Height: core.Pt(30), Padding: core.Symmetric(0, 8), CornerRadius: 6},
+			StyleFunc: func() core.Style {
+				if active.Get() == section.key {
+					return core.Style{Background: ui.Alpha(ui.ColorsOf(cx).Text(), 0.10)}
+				}
+				return core.Style{}
+			},
+			Children: []core.Node{
+				core.Dynamic(func(cx *core.Scope) core.Node {
+					color := ui.ColorsOf(cx).Muted()
+					if active.Get() == section.key {
+						color = ui.ColorsOf(cx).Text()
+					}
+					return ui.Icon(section.icon, 16, func() core.Color { return color })
+				}),
+				core.Text{ContentFunc: func() string { return section.title(cx) },
+					Style: core.Style{FontSize: 13, FlexGrow: 1, FlexShrink: 1,
+						MinWidth: core.Pt(0)},
+					StyleFunc: func() core.Style {
+						if active.Get() == section.key {
+							return core.Style{FontWeight: ui.Medium}
+						}
+						return ui.Colored(ui.ColorsOf(cx).Muted)()
+					},
+					MaxLines: 1},
+			},
+		})
+	}
+
+	// Build each pane once. A section owns signals (form drafts, status),
+	// so rebuilding it inside the switcher would discard the draft on
+	// every re-render.
+	bodies := make(map[string]core.Node, len(settingsSections))
+	for _, section := range settingsSections {
+		bodies[section.key] = s.settingsSectionBody(cx, dataRev, section.key)
+	}
+	body := core.Dynamic(func(cx *core.Scope) core.Node {
+		key := active.Get()
+		for _, section := range settingsSections {
+			if section.key != key {
+				continue
+			}
+			return core.View{Style: core.Style{Gap: 24}, Children: []core.Node{
+				settingsSectionHeading(cx, section.title, section.description),
+				bodies[key],
+			}}
+		}
+		return core.View{}
+	})
+
+	return core.View{
+		Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0),
+			Direction: core.Row},
+		Children: []core.Node{
+			core.View{TestID: "settings-rail",
+				Style: core.Style{Width: core.Pt(200), FlexShrink: 0, Padding: core.Symmetric(16, 8),
+					Gap: 2, Borders: core.Edges{Right: 1}},
+				StyleFunc: func() core.Style {
+					return core.Style{Background: ui.ColorsOf(cx).Background(),
+						BorderColor: ui.ColorsOf(cx).Line()}
+				},
+				Children: []core.Node{core.Scroll{
+					Style:    core.Style{FlexGrow: 1, MinHeight: core.Pt(0)},
+					Children: []core.Node{core.View{Style: core.Style{Gap: 2}, Children: rail}},
+				}}},
+			core.View{TestID: "settings-scroll",
+				Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0),
+					MinHeight: core.Pt(0)},
+				Children: []core.Node{core.Scroll{
+					Style: core.Style{FlexGrow: 1, MinHeight: core.Pt(0)},
+					Children: []core.Node{core.View{
+						Style: core.Style{Width: core.Pct(100), MaxWidth: core.Pt(672),
+							Padding:   core.Edges{Left: 32, Right: 32, Top: 24, Bottom: 24},
+							AlignSelf: core.AlignCenter},
+						Children: []core.Node{body},
+					}},
+				}}},
+		},
+	}
+}
+
+func (s *Session) settingsSectionBody(cx *core.Scope, dataRev *core.Signal[int],
+	key string) core.Node {
+	switch key {
+	case "general":
+		return s.settingsGeneralSection(cx)
+	case "ai":
+		return s.aiProviderCard(cx)
+	case "amap":
+		return s.amapKeyCard(cx)
+	case "mcp":
+		return s.agentIntegrationCard(cx)
+	case "org":
+		return core.View{Style: core.Style{Gap: 32}, Children: []core.Node{
+			s.organizationProfileCard(cx),
+			s.reportLogoCard(cx),
+			s.importSettingsCard(cx),
+		}}
+	case "workspaces":
+		return s.workspacesCard(cx)
+	case "efLibrary":
+		return s.efLibraryBody(cx, dataRev)
+	case "data":
+		return core.View{Style: core.Style{Gap: 24}, Children: []core.Node{
+			s.dataCard(cx),
+			s.migrationCard(cx),
+		}}
+	case "updates":
+		return s.updatesCard(cx)
+	case "about":
+		return s.aboutCard(cx)
+	}
+	return core.View{}
+}
+
+// settingsGeneralSection is 1.x's General pane: language, appearance, guided
+// tours, and the AI cache. Each block is a label, a hint, and one control.
+func (s *Session) settingsGeneralSection(cx *core.Scope) core.Node {
+	theme := core.NewSignal(cx, s.settings.Theme)
+	locale := core.NewSignal(cx, s.settings.Locale)
+	guidanceOn := core.NewSignal(cx, !s.settings.GuidanceDisabled)
+	status := core.NewSignal(cx, "")
+	busy := core.NewSignal(cx, false)
+
+	persist := func() {
+		s.settings.Theme = theme.Get()
+		s.settings.Locale = locale.Get()
+		if err := prefs.Save(s.prefsPath, s.settings); err != nil {
+			status.Set(err.Error())
+		}
+	}
+	setTheme := func(value string) {
+		theme.Set(value)
+		applyAppearance(cx, value)
+		persist()
+	}
+	setLocale := func(value string) {
+		locale.Set(value)
+		cx.SetLocale(value)
+		persist()
+	}
+	setGuidance := func(on bool) {
+		guidanceOn.Set(on)
+		s.settings.GuidanceDisabled = !on
+		if err := prefs.Save(s.prefsPath, s.settings); err != nil {
+			status.Set(err.Error())
+		}
+	}
+	clearCache := func() {
+		if busy.Get() {
+			return
+		}
+		busy.Set(true)
+		ctx := context.Background()
+		rows, freed, err := s.db.ClearExtractionRawCache(ctx)
+		busy.Set(false)
+		if err != nil {
+			status.Set(err.Error())
+			return
+		}
+		status.Set(locales.SettingsAiCacheCleared(cx, strconv.FormatInt(rows, 10)))
+		_ = freed
+	}
+
+	block := func(label, hint func(*core.Scope) string, control core.Node) core.Node {
+		children := []core.Node{
+			core.Text{ContentFunc: func() string { return label(cx) },
+				Style: core.Style{FontSize: 14, FontWeight: ui.Medium}},
+		}
+		if hint != nil {
+			children = append(children, core.Text{ContentFunc: func() string { return hint(cx) },
+				Style:     core.Style{FontSize: 12},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3})
+		}
+		children = append(children, control)
+		return core.View{Style: core.Style{Gap: 12}, Children: children}
+	}
+
+	return core.View{Style: core.Style{Gap: 28}, Children: []core.Node{
+		block(locales.SettingsGeneralLanguageLabel, locales.SettingsGeneralLanguageHint,
+			settingsSegmented(cx, []settingsChoice{
+				{Value: "zh-CN", Label: locales.SettingsGeneralLanguageZh},
+				{Value: "en", Label: locales.SettingsGeneralLanguageEn},
+			}, locale.Get, setLocale, "settings-language")),
+		block(locales.SettingsGeneralThemeLabel, locales.SettingsGeneralThemeHint,
+			settingsSegmented(cx, []settingsChoice{
+				{Value: "", Label: locales.SettingsGeneralThemeSystem},
+				{Value: "light", Label: locales.SettingsGeneralThemeLight},
+				{Value: "dark", Label: locales.SettingsGeneralThemeDark},
+			}, theme.Get, setTheme, "settings-theme")),
+		block(locales.SettingsGeneralGuidanceLabel, locales.SettingsGeneralGuidanceHint,
+			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+				Wrap: core.Wrap, Gap: 12}, Children: []core.Node{
+				settingsSegmented(cx, []settingsChoice{
+					{Value: "on", Label: locales.SettingsGeneralGuidanceOn},
+					{Value: "off", Label: locales.SettingsGeneralGuidanceOff},
+				}, func() string {
+					if guidanceOn.Get() {
+						return "on"
+					}
+					return "off"
+				}, func(value string) { setGuidance(value == "on") }, "settings-guidance"),
+				ui.Button{Text: locales.SettingsGeneralGuidanceReplay(cx),
+					Variant: ui.ButtonSecondary,
+					OnPress: func() {
+						s.resetGuidance()
+						status.Set(locales.SettingsGeneralGuidanceReplayDone(cx))
+					}, TestID: "settings-guidance-replay"},
+			}}),
+		block(locales.SettingsAiCacheLabel, locales.SettingsAiCacheHint,
+			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+				Wrap: core.Wrap, Gap: 12}, Children: []core.Node{
+				ui.Button{Text: locales.SettingsAiCacheClear(cx), Variant: ui.ButtonSecondary,
+					Busy: busy.Get, OnPress: clearCache, TestID: "settings-ai-cache-clear"},
+			}}),
+		core.Show{When: func() bool { return status.Get() != "" },
+			Then: func(cx *core.Scope) core.Node {
+				return core.Text{ContentFunc: func() string { return status.Get() },
+					Style:     core.Style{FontSize: 12},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3}
+			}},
+	}}
+}
+
+type settingsChoice struct {
+	Value string
+	Label func(*core.Scope) string
+}
+
+// settingsSegmented is 1.x's small pill switcher: one border around the
+// group and a dark (foreground) fill on the selected option.
+func settingsSegmented(cx *core.Scope, choices []settingsChoice,
+	value func() string, onChange func(string), testID string) core.Node {
+	children := make([]core.Node, 0, len(choices))
+	for _, choice := range choices {
+		choice := choice
+		children = append(children, core.View{
+			TestID:   testID + "-" + choice.Value,
+			Role:     core.RoleButton,
+			Selected: func() bool { return value() == choice.Value },
+			OnPress: func(core.PressEvent) {
+				onChange(choice.Value)
+			},
+			Style: core.Style{Padding: core.Symmetric(6, 12), CornerRadius: 4},
+			StyleFunc: func() core.Style {
+				if value() == choice.Value {
+					return core.Style{Background: ui.ColorsOf(cx).Text()}
+				}
+				return core.Style{}
+			},
+			Children: []core.Node{core.Text{ContentFunc: func() string {
+				return choice.Label(cx)
+			}, Style: core.Style{FontSize: 12, FontWeight: ui.Medium},
+				StyleFunc: func() core.Style {
+					if value() == choice.Value {
+						return core.Style{Color: ui.ColorsOf(cx).Background()}
+					}
+					return ui.Colored(ui.ColorsOf(cx).Muted)()
+				}}},
+		})
+	}
+	return core.View{
+		Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Padding: core.All(2),
+			CornerRadius: 6, BorderWidth: 1, AlignSelf: core.AlignStart},
+		StyleFunc: func() core.Style {
+			return core.Style{Background: ui.ColorsOf(cx).Surface(),
+				BorderColor: ui.ColorsOf(cx).Border()}
+		},
+		Children: children,
+	}
+}
+
+// updatesCard is Settings → Software updates. The channel is off in the beta,
+// so a check normally reports either the latest version or an unavailable
+// updater; both read as plain status copy.
+func (s *Session) updatesCard(cx *core.Scope) core.Node {
+	status := core.NewSignal(cx, locales.UpdaterStatusIdle(cx))
+	available := core.NewSignal(cx, "")
+	url := core.NewSignal(cx, "")
+	busy := core.NewSignal(cx, false)
+
+	check := func() {
+		if busy.Get() {
+			return
+		}
+		busy.Set(true)
+		status.Set(locales.UpdaterStatusChecking(cx))
+		available.Set("")
+		url.Set("")
+		cx.CheckForUpdates(false, func(update core.UpdateCheck) {
+			busy.Set(false)
+			if update.Err != nil {
+				status.Set(locales.UpdaterStatusError(cx, update.Err.Error()))
+				return
+			}
+			if update.Shown || update.Version == "" {
+				status.Set(locales.UpdaterStatusNotAvailable(cx))
+				return
+			}
+			available.Set(update.Version)
+			url.Set(update.URL)
+			status.Set(locales.UpdaterStatusAvailable(cx, update.Version))
+		})
+	}
+	version := core.App().Version
+	if version == "" {
+		version = locales.SettingsAboutDevelopment(cx)
+	}
+	return dataCardFlat(cx,
+		core.Text{ContentFunc: func() string {
+			return locales.UpdaterCurrentVersion(cx, version)
+		}, Style: core.Style{FontSize: 13}},
+		core.View{Style: core.Style{Padding: core.All(12), AlignSelf: core.AlignStretch,
+			CornerRadius: 6, BorderWidth: 1},
+			StyleFunc: func() core.Style {
+				colors := ui.ColorsOf(cx)
+				return core.Style{Background: colors.Inset(), BorderColor: colors.Border()}
+			},
+			Children: []core.Node{
+				core.Text{ContentFunc: func() string { return status.Get() },
+					Style:     core.Style{FontSize: 13},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
+			}},
+		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+			Wrap: core.Wrap, Gap: 8}, Children: []core.Node{
+			ui.Button{Text: locales.UpdaterCheckButton(cx), Variant: ui.ButtonOutline,
+				Busy: busy.Get, OnPress: check, TestID: "settings-update-check"},
+			core.Show{When: func() bool { return url.Get() != "" },
+				Then: func(cx *core.Scope) core.Node {
+					return ui.Button{Text: locales.UpdaterDownloadButton(cx),
+						OnPress: func() { cx.OpenURL(url.Get(), nil) },
+						TestID:  "settings-update-download"}
+				}},
+		}},
+	)
+}

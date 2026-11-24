@@ -41,6 +41,7 @@ type documentDetail struct {
 	dataRev       *core.Signal[int]
 	open          *core.Signal[bool]
 	doc           *core.Signal[store.Document]
+	preview       *documentPreview
 	rev           *core.Signal[int]
 	status        *core.Signal[string]
 	failed        *core.Signal[bool]
@@ -111,6 +112,7 @@ func (s *Session) documentsScreen(cx *core.Scope, dataRev *core.Signal[int]) cor
 	preview := newDocumentPreview(cx)
 	filters := newDocumentFilters(cx)
 	detail := newDocumentDetail(cx, dataRev)
+	detail.preview = preview
 	detail.guide = newGuidance(cx, s, "extraction")
 	extractionForm := s.newActivityForm(cx, dataRev,
 		func() *store.Activity { return nil },
@@ -119,6 +121,10 @@ func (s *Session) documentsScreen(cx *core.Scope, dataRev *core.Signal[int]) cor
 		"documents-extraction-activity",
 		func() { s.afterExtractionActivity(cx, detail) }, false)
 	detail.openForm = extractionForm.show
+	list := core.Dynamic(func(cx *core.Scope) core.Node {
+		_ = dataRev.Get()
+		return s.documentsBody(cx, dataRev, filters, status, statusFailed, preview, detail)
+	})
 	return core.View{
 		TestID: "documents-drop",
 		Style:  core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
@@ -136,18 +142,10 @@ func (s *Session) documentsScreen(cx *core.Scope, dataRev *core.Signal[int]) cor
 			s.uploadFiles(cx, dataRev, status, statusFailed, files)
 		},
 		Children: []core.Node{
-			core.Scroll{
-				Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
-				Children: []core.Node{core.View{
-					Style: core.Style{Padding: core.All(16), Gap: 12, MaxWidth: core.Pt(980), AlignSelf: core.AlignStretch},
-					Children: []core.Node{core.Dynamic(func(cx *core.Scope) core.Node {
-						_ = dataRev.Get()
-						return s.documentsBody(cx, dataRev, filters, status, statusFailed, preview, detail)
-					})},
-				}},
-			},
+			splitPage(cx, 32, list, core.Dynamic(func(cx *core.Scope) core.Node {
+				return s.documentDetailPane(cx, detail)
+			})),
 			s.documentPreviewDialog(cx, preview),
-			s.documentDetailDialog(cx, detail),
 			extractionForm.dialog,
 		},
 	}
@@ -164,64 +162,76 @@ func (s *Session) documentsBody(cx *core.Scope, dataRev *core.Signal[int],
 	for i := range visible {
 		rows = append(rows, s.documentRow(cx, visible[i], status, statusFailed, preview, detail))
 	}
-	if len(rows) == 0 {
-		if len(s.documents) > 0 {
-			rows = append(rows, core.View{
-				Style: core.Style{Padding: core.All(24), AlignItems: core.AlignCenter},
-				Children: []core.Node{
-					core.Text{Content: locales.DocumentsFilterEmpty(cx),
-						Style:     core.Style{FontSize: 12},
-						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-				},
-			})
-		}
-	}
-	if len(rows) == 0 {
-		rows = append(rows, dataEmptyState(cx, locales.DocumentsEmptyTitle(cx),
-			locales.DocumentsEmptyBody(cx)))
-	}
+	upload := ui.Button{Text: locales.DocumentsUploadButton(cx), Icon: lucide.Plus,
+		Variant: ui.ButtonOutline, Size: ui.SizeSmall,
+		OnPress: func() { s.uploadDocuments(cx, dataRev, status, statusFailed) },
+		TestID:  "documents-upload"}
+	header := listPaneHeader(cx, locales.NavDocuments, nil, upload)
 
-	count := s.documentTotal
-	if filters.search.Get() != "" || filters.status.Get() != "" {
-		count = len(visible)
-	}
-	children := []core.Node{
-		dataHeaderRow(cx,
-			core.Text{Content: locales.DocumentsCount(cx, strconv.Itoa(count)),
-				Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}},
-			ui.Button{Text: locales.DocumentsUploadButton(cx), Variant: ui.ButtonPrimary,
-				OnPress: func() { s.uploadDocuments(cx, dataRev, status, statusFailed) },
-				TestID:  "documents-upload"},
-		),
-		core.Text{ContentFunc: func() string { return locales.DocumentsUploadTypesHint(cx) },
-			Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2},
-		s.documentFilterRow(cx, filters),
-		core.Show{When: func() bool { return status.Get() != "" },
-			Then: func(cx *core.Scope) core.Node {
-				return core.Text{ContentFunc: func() string { return status.Get() },
-					Style: core.Style{FontSize: 12},
-					StyleFunc: func() core.Style {
-						if statusFailed.Get() {
-							return ui.Colored(ui.ColorsOf(cx).Danger)()
-						}
-						return ui.Colored(ui.ColorsOf(cx).Muted)()
-					}}
-			}},
-	}
+	top := []core.Node{header}
 	if card := s.batchCard(cx); card != nil {
-		children = append(children, card)
+		top = append(top, card)
 	}
-	children = append(children, core.View{Style: core.Style{Gap: 0}, Children: rows})
+	if len(s.documents) > 0 {
+		top = append(top, core.View{Style: core.Style{Padding: core.Symmetric(12, 16),
+			Borders: core.Edges{Bottom: 1}}, StyleFunc: func() core.Style {
+			return core.Style{BorderColor: ui.ColorsOf(cx).Line()}
+		}, Children: []core.Node{s.documentFilterRow(cx, filters)}})
+	}
+	top = append(top, core.Show{When: func() bool { return status.Get() != "" },
+		Then: func(cx *core.Scope) core.Node {
+			return core.Text{ContentFunc: func() string { return status.Get() },
+				Style: core.Style{FontSize: 12, Padding: core.Symmetric(6, 16)},
+				StyleFunc: func() core.Style {
+					if statusFailed.Get() {
+						return ui.Colored(ui.ColorsOf(cx).Danger)()
+					}
+					return ui.Colored(ui.ColorsOf(cx).Muted)()
+				}}
+		}})
+
+	body := []core.Node{}
+	if len(rows) == 0 {
+		if len(s.documents) == 0 {
+			body = append(body, core.Text{Content: locales.DocumentsEmpty(cx),
+				Style:     core.Style{FontSize: 14, Padding: core.Symmetric(24, 16)},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3})
+		} else {
+			body = append(body, core.View{Style: core.Style{Padding: core.Symmetric(48, 16),
+				AlignItems: core.AlignCenter, Gap: 8}, Children: []core.Node{
+				core.Text{Content: locales.DocumentsFilterEmpty(cx),
+					Style:     core.Style{FontSize: 14, TextAlign: core.TextAlignCenter},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2},
+				core.Show{When: func() bool {
+					return filters.search.Get() != "" || filters.status.Get() != ""
+				}, Then: func(*core.Scope) core.Node {
+					return ui.Button{Text: locales.DocumentsFilterClear(cx),
+						Variant: ui.ButtonGhost, OnPress: func() {
+							filters.search.Set("")
+							filters.status.Set("")
+						}, TestID: "documents-filter-clear"}
+				}},
+			}})
+		}
+	} else {
+		body = append(body, core.View{Style: core.Style{Gap: 0}, Children: rows})
+	}
 	if s.documentTotal > len(s.documents) {
-		children = append(children, core.Text{
+		body = append(body, core.Text{
 			ContentFunc: func() string {
 				return locales.DocumentsShowingLatest(cx, strconv.Itoa(len(s.documents)),
 					strconv.Itoa(s.documentTotal))
 			},
-			Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted),
+			Style:     core.Style{FontSize: 11, Padding: core.Symmetric(8, 16)},
+			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted),
 		})
 	}
-	return dataCard(cx, children...)
+	top = append(top, core.Scroll{
+		Style:    core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
+		Children: []core.Node{core.View{Style: core.Style{Gap: 0}, Children: body}},
+	})
+	return core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
+		Children: top}
 }
 
 // filteredDocuments applies filename search, status chip, and sort to the
@@ -254,93 +264,144 @@ func (s *Session) filteredDocuments(filters *documentFilters) []store.Document {
 }
 
 func (s *Session) documentFilterRow(cx *core.Scope, filters *documentFilters) core.Node {
-	statusOptions := []ui.Option[string]{
-		{Value: "", Label: locales.DocumentsFilterStatusAll(cx)},
-		{Value: "none", Label: locales.DocumentsStatusNone(cx)},
-		{Value: "review_needed", Label: locales.DocumentsStatusReviewNeeded(cx)},
-		{Value: "parsed", Label: locales.DocumentsStatusParsed(cx)},
-		{Value: "rejected", Label: locales.DocumentsStatusRejected(cx)},
-	}
 	orderOptions := []ui.Option[string]{
 		{Value: "recent", Label: locales.DocumentsSortRecent(cx)},
 		{Value: "oldest", Label: locales.DocumentsSortOldest(cx)},
 		{Value: "filename", Label: locales.DocumentsSortFilename(cx)},
 	}
-	children := []core.Node{
-		core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(180)},
-			Children: []core.Node{
-				ui.Input{Value: filters.search.Get, Placeholder: locales.DocumentsSearchPlaceholder(cx),
-					OnChange: filters.search.Set, TestID: "documents-search",
-					Role: core.RoleSearchField,
-					LabelFunc: func() string {
-						return locales.DocumentsSearchPlaceholder(cx)
-					}},
-			}},
-		ui.Select[string]{Options: statusOptions, Value: filters.status.Get,
-			OnChange: filters.status.Set, Label: locales.DocumentsFilterStatusAll(cx),
-			TestID: "documents-filter-status"},
-		ui.Select[string]{Options: orderOptions, Value: filters.order.Get,
-			OnChange: filters.order.Set, Label: locales.DocumentsSortRecent(cx),
-			TestID: "documents-sort"},
+	query := strings.ToLower(strings.TrimSpace(filters.search.Get()))
+	counts := map[string]int{}
+	total := 0
+	for _, document := range s.documents {
+		if query != "" && !strings.Contains(strings.ToLower(document.Filename), query) {
+			continue
+		}
+		total++
+		counts[s.documentStatusKey(document.ID)]++
+	}
+	statusLabel := func(value string) string {
+		switch value {
+		case "none":
+			return locales.DocumentsStatusNone(cx)
+		case "review_needed":
+			return locales.DocumentsStatusReviewNeeded(cx)
+		case "parsed":
+			return locales.DocumentsStatusParsed(cx)
+		case "rejected":
+			return locales.DocumentsStatusRejected(cx)
+		default:
+			return locales.DocumentsFilterStatusAll(cx)
+		}
+	}
+	chip := func(value string, count int) core.Node {
+		return filterChip(cx, false, "documents-filter-"+firstNonEmpty(value, "all"),
+			statusLabel(value), func() int { return count },
+			func() bool { return filters.status.Get() == value },
+			func() { filters.status.Set(value) })
+	}
+	chips := []core.Node{chip("", total)}
+	for _, key := range []string{"parsed", "review_needed", "rejected", "none"} {
+		chips = append(chips, chip(key, counts[key]))
+	}
+	right := []core.Node{
+		sortMenu(cx, orderOptions, filters.order.Get, filters.order.Set, "documents-sort"),
 	}
 	if filters.search.Get() != "" || filters.status.Get() != "" {
-		children = append(children, ui.Button{Text: locales.DocumentsFilterClear(cx),
-			Variant: ui.ButtonGhost, TestID: "documents-filter-clear",
+		right = append(right, ui.Button{Text: locales.DocumentsFilterClear(cx),
+			Variant: ui.ButtonGhost, Size: ui.SizeSmall, TestID: "documents-filter-clear",
 			OnPress: func() {
 				filters.search.Set("")
 				filters.status.Set("")
 			}})
 	}
-	return core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
-		Wrap: core.Wrap, Gap: 8}, Children: children}
+	return core.View{Style: core.Style{Gap: 8}, Children: []core.Node{
+		searchField(cx, filters.search.Get, locales.DocumentsSearchPlaceholder(cx),
+			filters.search.Set, "documents-search"),
+		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+			Wrap: core.Wrap, Gap: 4}, Children: []core.Node{
+			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+				Wrap: core.Wrap, Gap: 4}, Children: chips},
+			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+				Gap: 8, AutoMargin: core.SideLeft}, Children: right},
+		}},
+	}}
 }
 
 func (s *Session) documentRow(cx *core.Scope, document store.Document,
 	status *core.Signal[string], statusFailed *core.Signal[bool], preview *documentPreview,
 	detail *documentDetail) core.Node {
-	meta := documentKind(document.MIMEType) + " · " + documentSize(document.SizeBytes)
+	meta := documentStageLabel(cx, document.DocType)
 	if date := documentDate(document.UploadedAt); date != "" {
-		meta += " · " + locales.DocumentsReviewUploadedOn(cx, date)
-	}
-	actions := []core.Node{}
-	actions = append(actions, ui.Button{Text: locales.DocumentsDetailButton(cx), Variant: ui.ButtonGhost,
-		OnPress: func() { s.openDocumentDetail(cx, detail, document) },
-		TestID:  "documents-detail-" + document.ID})
-	if documentPreviewable(document.MIMEType) {
-		actions = append(actions, ui.Button{Text: locales.DocumentsPreviewButton(cx), Variant: ui.ButtonGhost,
-			OnPress: func() { s.openDocumentPreview(cx, preview, document) },
-			TestID:  "documents-preview-" + document.ID})
-	}
-	actions = append(actions, ui.Button{Text: locales.DocumentsOpenRow(cx), Variant: ui.ButtonGhost,
-		OnPress: func() { s.openDocument(cx, document, status, statusFailed) },
-		TestID:  "documents-open-" + document.ID})
-	chipText, chipVariant := s.documentStatusChip(cx, document.ID)
-	if running, ok := s.batchRowBadge(cx, document.ID); ok {
-		chipText, chipVariant = running, ui.BadgeInfo
+		meta = date + " · " + meta
 	}
 	children := []core.Node{
-		ui.Icon(documentIcon(document.MIMEType), 15, ui.ColorsOf(cx).Muted),
+		core.View{TestID: "documents-status-" + document.ID,
+			Style: core.Style{Width: core.Pt(8), Height: core.Pt(8), CornerRadius: 4,
+				FlexShrink: 0},
+			StyleFunc: func() core.Style {
+				return core.Style{Background: s.documentStatusColor(cx, document.ID)}
+			}},
 		core.View{Style: core.Style{Gap: 2, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
 			Children: []core.Node{
-				core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 6},
-					Children: []core.Node{
-						core.Text{Content: document.Filename,
-							Style: core.Style{FontSize: 13, FontWeight: ui.Semibold,
-								FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 1},
-						core.View{TestID: "documents-status-" + document.ID,
-							Children: []core.Node{ui.Badge{Text: chipText, Variant: chipVariant}}},
-					}},
-				core.Text{Content: meta, Style: core.Style{FontSize: 11},
+				core.Text{Content: document.Filename,
+					Style: core.Style{FontSize: 14, FontWeight: ui.Medium,
+						FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 1},
+				core.Text{Content: meta, Style: core.Style{FontSize: 12},
 					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
 			}},
 	}
-	children = append(children, actions...)
 	return core.View{
 		TestID: "documents-row-" + document.ID,
+		Role:   core.RoleButton,
+		OnPress: func(core.PressEvent) {
+			s.openDocumentDetail(cx, detail, document)
+		},
 		Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 10,
-			Padding: core.Symmetric(9, 0), Borders: core.Edges{Bottom: 1}},
-		StyleFunc: func() core.Style { return core.Style{BorderColor: ui.ColorsOf(cx).Line()} },
-		Children:  children,
+			Padding: core.Symmetric(10, 16), Borders: core.Edges{Bottom: 1}},
+		StyleFunc: func() core.Style {
+			style := core.Style{BorderColor: ui.ColorsOf(cx).Line()}
+			if detail.open.Get() && detail.doc.Get().ID == document.ID {
+				style.Background = selectionTint(cx)
+			}
+			return style
+		},
+		Children: children,
+	}
+}
+
+// documentStatusColor is 1.x's 8 pt status dot: emerald for a confirmed
+// extraction, amber for one waiting on review, red for a discarded one, and
+// a faint neutral when nothing has been extracted yet.
+func (s *Session) documentStatusColor(cx *core.Scope, documentID string) core.Color {
+	switch s.documentStatusKey(documentID) {
+	case "parsed":
+		return ui.ColorsOf(cx).Accent()
+	case "review_needed":
+		return ui.ColorsOf(cx).Warn()
+	case "rejected":
+		return ui.ColorsOf(cx).Danger()
+	default:
+		return ui.ColorsOf(cx).Faint()
+	}
+}
+
+// documentStageLabel shows the extraction stage in the same words 1.x used
+// in its list rows.
+func documentStageLabel(cx *core.Scope, docType string) string {
+	stage, _, _ := strings.Cut(docType, ".")
+	switch stage {
+	case "china_utility":
+		return locales.DocumentsStageChinaUtility(cx)
+	case "fuel_receipt":
+		return locales.DocumentsStageFuelReceipt(cx)
+	case "freight":
+		return locales.DocumentsStageFreight(cx)
+	case "purchase":
+		return locales.DocumentsStagePurchase(cx)
+	case "travel":
+		return locales.DocumentsStageTravel(cx)
+	default:
+		return locales.DocumentsStatusUnclassified(cx)
 	}
 }
 
@@ -767,12 +828,13 @@ func (s *Session) documentExtractionCard(cx *core.Scope, detail *documentDetail)
 		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignEnd, Gap: 8}, Children: []core.Node{
 			core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{dataField(cx,
 				locales.DocumentsReviewStage(cx),
-				ui.Select[string]{Options: options, Value: detail.stage.Get,
+				appSelect[string]{Options: options, Value: detail.stage.Get,
 					OnChange: func(value string) {
 						detail.stage.Set(value)
 						detail.rev.Set(detail.rev.Get() + 1)
 					},
-					Label: locales.DocumentsReviewStage(cx), TestID: "documents-extraction-stage"})}},
+					Label: locales.DocumentsReviewStage(cx), TestID: "documents-extraction-stage",
+					Style: core.Style{Width: core.Pct(100)}})}},
 			ui.Button{Text: runLabel, Busy: detail.extracting.Get,
 				OnPress: func() { s.runDocumentExtraction(cx, detail) },
 				TestID:  "documents-extraction-run"},
@@ -1007,35 +1069,49 @@ func extractionFieldLabel(cx *core.Scope, key string) string {
 	}
 }
 
-func (s *Session) documentDetailDialog(cx *core.Scope, detail *documentDetail) core.Node {
-	return ui.Dialog{
-		Open: detail.open.Get,
-		OnOpenChange: func(open bool, _ base.Reason) {
-			detail.open.Set(open)
-			if !open {
-				detail.busy.Set(false)
-			}
-		},
-		TitleFunc: func() string { return detail.doc.Get().Filename },
-		Children: []core.Node{core.Dynamic(func(cx *core.Scope) core.Node {
-			_ = detail.rev.Get()
-			return s.documentDetailBody(cx, detail)
-		})},
-		Footer: []core.Node{core.Dynamic(func(cx *core.Scope) core.Node {
-			document := detail.doc.Get()
-			return core.View{Style: core.Style{Direction: core.Row, JustifyContent: core.JustifyEnd, Gap: 8},
-				Children: []core.Node{
-					ui.Button{Text: locales.DocumentsOpenRow(cx), Variant: ui.ButtonSecondary,
-						OnPress: func() { s.openDocument(cx, document, detail.status, detail.failed) }},
-					ui.Button{Text: locales.DocumentsPreviewClose(cx), Variant: ui.ButtonSecondary,
-						OnPress: func() {
-							detail.busy.Set(false)
-							detail.open.Set(false)
-						}, TestID: "documents-detail-close"},
-				}}
-		})},
+func (s *Session) documentDetailPane(cx *core.Scope, detail *documentDetail) core.Node {
+	if !detail.open.Get() {
+		text := locales.DocumentsSelectDetail
+		if len(s.documents) == 0 {
+			text = locales.DocumentsEmpty
+		}
+		return detailEmptyIcon(cx, lucide.FileText, text)
+	}
+	document := detail.doc.Get()
+	actions := []core.Node{}
+	if documentPreviewable(document.MIMEType) {
+		actions = append(actions, ui.Button{Text: locales.DocumentsPreviewButton(cx),
+			Variant: ui.ButtonSecondary,
+			OnPress: func() { s.openDocumentPreview(cx, detail.preview, document) },
+			TestID:  "documents-detail-preview"})
+	}
+	actions = append(actions, ui.Button{Text: locales.DocumentsPreviewClose(cx),
+		Variant: ui.ButtonSecondary,
+		OnPress: func() {
+			detail.busy.Set(false)
+			detail.open.Set(false)
+		}, TestID: "documents-detail-close"})
+	header := []core.Node{
+		core.Text{Content: document.Filename, Style: core.Style{FontSize: 18,
+			FontWeight: ui.Semibold, FlexGrow: 1, FlexShrink: 1,
+			MinWidth: core.Pt(0)}, MaxLines: 1},
+	}
+	header = append(header, actions...)
+	return core.View{
 		TestID: "documents-detail-dialog",
-		Style:  core.Style{Width: core.Pt(760)},
+		Style:  core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
+		Children: []core.Node{
+			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+				Gap: 8, Padding: core.Symmetric(12, 16), Borders: core.Edges{Bottom: 1}},
+				StyleFunc: func() core.Style {
+					return core.Style{BorderColor: ui.ColorsOf(cx).Line()}
+				},
+				Children: header},
+			core.Dynamic(func(cx *core.Scope) core.Node {
+				_ = detail.rev.Get()
+				return s.documentDetailBody(cx, detail)
+			}),
+		},
 	}
 }
 
@@ -1129,7 +1205,7 @@ func (s *Session) documentDetailBody(cx *core.Scope, detail *documentDetail) cor
 		}}
 
 	return core.Scroll{
-		Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0), MaxHeight: core.Pt(560)},
+		Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
 		Children: []core.Node{core.View{Style: core.Style{Gap: 12}, Children: []core.Node{
 			dataCard(cx,
 				dataHeading(cx, locales.DocumentsDetailMetadata(cx), ""),

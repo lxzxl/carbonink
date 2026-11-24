@@ -53,8 +53,7 @@ func TestSourceListSearchScopeCategoryAndClear(t *testing.T) {
 	ui.Press("id:sources-scope-0")
 	ui.WaitFor("id:source-row-src-diesel", 2*time.Second)
 
-	ui.Press("id:sources-category-filter")
-	ui.Press("role:option fuel.diesel (1)")
+	ui.Press("id:sources-category-fuel.diesel")
 	ui.WaitForGone("id:source-row-src", 2*time.Second)
 	ui.WaitFor("id:source-row-src-diesel", 2*time.Second)
 	ui.Press("id:sources-scope-2")

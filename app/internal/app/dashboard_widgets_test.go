@@ -117,6 +117,8 @@ func TestDashboardShowsTrendAndRecentActivities(t *testing.T) {
 
 	ui.WaitFor("id:dashboard-readiness", 3*time.Second)
 	ui.Press("id:dashboard-readiness-open")
+	ui.WaitFor("id:reports-period-period", 3*time.Second)
+	ui.Press("id:reports-period-period")
 	ui.WaitFor("id:reports-kind", 3*time.Second)
 	ui.Press("id:nav:dashboard")
 

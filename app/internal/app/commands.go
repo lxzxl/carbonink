@@ -18,7 +18,7 @@ import (
 
 // commandDialog lists the screens and the places the app keeps its files.
 // Cmd+K (Ctrl+K on Windows and Linux) opens it.
-func (s *Session) commandDialog(cx *core.Scope, open *core.Signal[bool], active *core.Signal[Screen]) core.Node {
+func (s *Session) commandDialog(cx *core.Scope, open *core.Signal[bool], nav *screenNav) core.Node {
 	items := func() []base.CommandItem {
 		out := make([]base.CommandItem, 0, len(screens)+6)
 		for _, sc := range screens {
@@ -89,18 +89,18 @@ func (s *Session) commandDialog(cx *core.Scope, open *core.Signal[bool], active 
 						open.Set(false)
 						switch {
 						case strings.HasPrefix(id, "go:"):
-							active.Set(Screen(strings.TrimPrefix(id, "go:")))
+							nav.Set(Screen(strings.TrimPrefix(id, "go:")))
 						case id == "new-activity":
 							s.pendingNewActivity = true
-							active.Set(ScreenActivities)
+							nav.Set(ScreenActivities)
 						case id == "import-activities":
 							s.pendingImportActivities = true
-							active.Set(ScreenActivities)
+							nav.Set(ScreenActivities)
 						case id == "export-activities":
 							s.exportActivitiesCSV(cx)
 						case id == "add-source":
 							s.pendingSourceCatalog = true
-							active.Set(ScreenSources)
+							nav.Set(ScreenSources)
 						case id == "reveal-data":
 							desktop.RevealFile(cx, cx.DataDir(), nil)
 						case id == "reveal-db":
@@ -145,32 +145,4 @@ func (s *Session) exportActivitiesCSV(cx *core.Scope) {
 		MIME: "text/csv",
 		Data: buf.Bytes(),
 	}, func(bool, string, error) {})
-}
-
-// paletteButton is the sidebar's way into the palette, with its key beside it.
-func paletteButton(cx *core.Scope, onPress func()) core.Node {
-	shortcut := "Ctrl+K"
-	if cx.Env().OS() == core.OSMacOS {
-		shortcut = "⌘K"
-	}
-	return core.View{
-		Role:   core.RoleButton,
-		TestID: "open-command-palette",
-		OnPress: func(core.PressEvent) {
-			onPress()
-		},
-		Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 6,
-			Height: core.Pt(30), Padding: core.Symmetric(0, 8), CornerRadius: 6, BorderWidth: 1},
-		StyleFunc: func() core.Style {
-			return core.Style{Background: ui.ColorsOf(cx).Inset(), BorderColor: ui.ColorsOf(cx).Border()}
-		},
-		Children: []core.Node{
-			ui.Icon(lucide.Search, 14, ui.ColorsOf(cx).Muted),
-			core.Text{ContentFunc: func() string { return locales.CommandSearch(cx) },
-				Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
-			core.View{Style: core.Style{FlexGrow: 1}},
-			core.Text{Content: shortcut, Style: core.Style{FontSize: 11},
-				StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
-		},
-	}
 }

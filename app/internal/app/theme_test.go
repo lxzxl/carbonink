@@ -6,30 +6,29 @@ import (
 	"github.com/nsgo-dev/nsgo/core"
 )
 
-// TestCarbonInkThemeUsesMossAccent locks the brand decision: the app no
-// longer ships NSGo's default blue, filled controls use sage with graphite
-// text, and accent-as-text stays on the darker moss step.
-func TestCarbonInkThemeUsesMossAccent(t *testing.T) {
+// TestCarbonInkThemeUses1xEmerald locks 1.x's palette: the emerald primary,
+// warm neutral text, and the light-on-emerald label 1.x used on fills.
+func TestCarbonInkThemeUses1xEmerald(t *testing.T) {
 	theme := carboninkTheme()
-	if got, want := theme.Light.Accent, core.RGB(sage); got != want {
-		t.Fatalf("light accent = %v, want sage %v", got, want)
+	if got, want := theme.Light.Accent, core.RGB(0x008c4f); got != want {
+		t.Fatalf("light accent = %v, want 1.x emerald %v", got, want)
 	}
-	if got, want := theme.Dark.Accent, core.RGB(moss300); got != want {
-		t.Fatalf("dark accent = %v, want moss-300 %v", got, want)
+	if got, want := theme.Dark.Accent, core.RGB(0x00af67); got != want {
+		t.Fatalf("dark accent = %v, want 1.x dark emerald %v", got, want)
 	}
 	if theme.Light.Accent == core.DefaultTheme().Light.Accent {
 		t.Fatal("light accent is still NSGo's default blue")
 	}
-	if got, want := theme.Light.AccentText, core.RGB(graphite); got != want {
-		t.Fatalf("light accent text = %v, want graphite %v", got, want)
+	if got, want := theme.Light.AccentText, core.RGB(0xfdfcf8); got != want {
+		t.Fatalf("light accent text = %v, want %v", got, want)
 	}
-	if got, want := theme.Light.Colors["primary"], core.RGB(sage); got != want {
+	if got, want := theme.Light.Colors["primary"], core.RGB(0x008c4f); got != want {
 		t.Fatalf("light primary token = %v, want %v", got, want)
 	}
-	if got, want := theme.Dark.Colors["primary-foreground"], core.RGB(graphite); got != want {
-		t.Fatalf("dark primary foreground = %v, want graphite %v", got, want)
+	if got, want := theme.Dark.Colors["primary-foreground"], core.RGB(0x13120c); got != want {
+		t.Fatalf("dark primary foreground = %v, want %v", got, want)
 	}
-	if got, want := theme.Light.Colors["accentInk"], core.RGB(moss700); got != want {
-		t.Fatalf("accent ink = %v, want moss-700 %v", got, want)
+	if got, want := theme.Light.Colors["accentInk"], core.RGB(0x008c4f); got != want {
+		t.Fatalf("accent ink = %v, want %v", got, want)
 	}
 }

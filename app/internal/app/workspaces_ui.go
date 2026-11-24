@@ -9,6 +9,7 @@ import (
 
 	"github.com/nsgo-dev/nsgo/core"
 	"github.com/nsgo-dev/nsgo/desktop"
+	"github.com/nsgo-dev/nsgo/icons/lucide"
 	"github.com/nsgo-dev/nsgo/ui"
 )
 
@@ -154,11 +155,14 @@ func (s *Session) workspacesCard(cx *core.Scope) core.Node {
 			if len(created) >= 10 {
 				created = created[:10]
 			}
-			rows = append(rows, core.View{
+			row := core.View{
 				TestID: "workspace-row-" + index,
 				StyleFunc: func() core.Style {
-					style := core.Style{Gap: 6, Padding: core.Symmetric(8, 0),
-						Borders: core.Edges{Bottom: 1}, BorderColor: ui.ColorsOf(cx).Line()}
+					style := core.Style{Gap: 6, Padding: core.Symmetric(10, 12),
+						BorderColor: ui.ColorsOf(cx).Line()}
+					if i < len(reg.Workspaces)-1 {
+						style.Borders = core.Edges{Bottom: 1}
+					}
 					if cx.Env().Window().Width >= 900 {
 						style.Direction = core.Row
 						style.AlignItems = core.AlignCenter
@@ -177,21 +181,33 @@ func (s *Session) workspacesCard(cx *core.Scope) core.Node {
 					}},
 					core.View{Style: core.Style{Direction: core.Row, Wrap: core.Wrap, Gap: 4}, Children: buttons},
 				},
-			})
+			}
+			rows = append(rows, row)
 		}
-		return core.View{Style: core.Style{Gap: 0}, Children: rows}
+		return core.View{Style: core.Style{Gap: 0, AlignSelf: core.AlignStretch},
+			StyleFunc: cardSurface(cx), Children: rows}
 	})
 
-	return dataCard(cx,
-		dataHeading(cx, locales.WorkspaceHeading(cx), locales.WorkspaceBody(cx)),
+	return dataCardFlat(cx,
+		core.View{Style: core.Style{Gap: 4}, Children: []core.Node{
+			core.Text{Content: locales.WorkspaceHeading(cx),
+				Style: core.Style{FontSize: 16, FontWeight: ui.Semibold}},
+			core.Text{Content: locales.WorkspaceBody(cx), Style: core.Style{FontSize: 13},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
+		}},
 		list,
-		dataHeaderRow(cx,
-			dataField(cx, locales.WorkspaceCreateButton(cx),
+		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+			Wrap: core.Wrap, Gap: 8}, Children: []core.Node{
+			core.View{Style: core.Style{FlexGrow: 1, FlexBasis: core.Pt(288),
+				MaxWidth: core.Pt(288), MinWidth: core.Pt(180)}, Children: []core.Node{
 				ui.Input{Value: createName.Get, OnChange: createName.Set,
-					Placeholder: locales.WorkspaceCreatePlaceholder(cx), TestID: "workspace-create-input"}, create),
-			ui.Button{Text: locales.WorkspaceCreateButton(cx), Busy: createBusy.Get, OnPress: create,
+					Placeholder: locales.WorkspaceCreatePlaceholder(cx),
+					TestID:      "workspace-create-input"},
+			}},
+			ui.Button{Text: locales.WorkspaceCreateButton(cx), Variant: ui.ButtonOutline,
+				Icon: lucide.FolderPlus, Busy: createBusy.Get, OnPress: create,
 				TestID: "workspace-create-button"},
-		),
+		}},
 		core.Show{When: func() bool { return status.Get() != "" },
 			Then: func(cx *core.Scope) core.Node {
 				return core.Text{ContentFunc: func() string { return status.Get() },

@@ -96,6 +96,8 @@ func TestGenerateAndExportReportThroughUI(t *testing.T) {
 	configureLLMEndpoint(t, ui, srv.URL)
 
 	ui.Press("id:nav:reports")
+	ui.WaitFor("id:reports-period-period", 3*time.Second)
+	ui.Press("id:reports-period-period")
 	ui.WaitFor("id:reports-generate", 3*time.Second)
 	ui.Press("id:reports-generate")
 	ui.WaitFor("text:"+boundary, 15*time.Second)

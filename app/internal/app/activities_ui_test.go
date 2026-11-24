@@ -95,14 +95,14 @@ func TestActivityListSearchScopeAndSort(t *testing.T) {
 	ui.WaitFor("id:activities-table >> text:柴油", 2*time.Second)
 
 	ui.Press("id:activities-sort")
-	ui.Press("role:option CO₂e high → low")
+	ui.Press("id:activities-sort-2")
 	ui.WaitUntil(2*time.Second, func() bool {
 		diesel, power, ok := optionRows(ui)
 		return ok && rowCell(diesel).Frame.Origin.Y < rowCell(power).Frame.Origin.Y
 	})
 
 	ui.Press("id:activities-sort")
-	ui.Press("role:option CO₂e low → high")
+	ui.Press("id:activities-sort-3")
 	ui.WaitUntil(2*time.Second, func() bool {
 		diesel, power, ok := optionRows(ui)
 		return ok && rowCell(power).Frame.Origin.Y < rowCell(diesel).Frame.Origin.Y

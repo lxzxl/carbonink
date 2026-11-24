@@ -30,6 +30,8 @@ func TestModelCatalogAndProviderGuidance(t *testing.T) {
 	configureLLMEndpoint(t, ui, srv.URL)
 
 	ui.WaitFor("text:Suggested models", 3*time.Second)
+	ui.Press("id:settings-llm-test")
+	ui.WaitFor("text:Connection successful", 10*time.Second)
 	ui.Press("id:settings-llm-fetch-models")
 	ui.WaitFor("text:Model list updated.", 10*time.Second)
 

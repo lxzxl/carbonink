@@ -20,12 +20,26 @@ func TestMain(m *testing.M) {
 func TestShellMounts(t *testing.T) {
 	app := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}))
-	app.WaitFor("id:shell", 5*time.Second)
+	app.WaitFor("id:onboarding", 5*time.Second)
 	app.WaitFor("id:onboarding-org-zh", 5*time.Second)
+	if app.Exists("id:shell") {
+		t.Fatal("the onboarding guide is showing inside the inventory shell")
+	}
 	app.Type("id:onboarding-org-zh", "测试组织")
+	app.Press("id:onboarding-next")
+	app.WaitFor("id:onboarding-year", 2*time.Second)
+	app.Press("id:onboarding-next")
+	app.WaitFor("id:onboarding-boundary-operational_control", 2*time.Second)
+	app.Press("id:onboarding-next")
+	app.WaitFor("id:onboarding-site-zh", 2*time.Second)
 	app.Type("id:onboarding-site-zh", "上海工厂")
-	app.Press("id:onboarding-submit")
-	app.WaitFor("text:测试组织", 5*time.Second)
+	app.Press("id:onboarding-next")
+	app.WaitFor("id:onboarding-skip", 2*time.Second)
+	app.Press("id:onboarding-skip")
+	app.WaitFor("id:shell", 5*time.Second)
+	if app.Exists("id:onboarding") {
+		t.Fatal("the onboarding guide survived the finished setup")
+	}
 	app.Press("text:Sources")
 	app.WaitFor("text:No emission sources yet", 2*time.Second)
 }

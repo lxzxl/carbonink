@@ -177,22 +177,19 @@ func (s *Session) activityImportDialogPartsWithShow(cx *core.Scope,
 	}
 
 	title := locales.ActivityImportTitle(cx)
-	trigger := ui.Button{Text: locales.ActivityImportButton(cx), Variant: ui.ButtonSecondary,
-		OnPress: show, TestID: "activity-import"}
-	dialog := dataDialogSized(cx, open, title, []core.Node{
-		core.Scroll{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0),
-			MaxHeight: core.Pt(560)}, Children: []core.Node{
-			core.Dynamic(func(cx *core.Scope) core.Node {
-				_ = w.rev.Get()
-				return s.importBody(cx, w, pick)
-			}),
-		}},
+	trigger := ui.Button{Text: locales.ActivityImportButton(cx), Icon: lucide.FileSpreadsheet,
+		Variant: ui.ButtonOutline, OnPress: show, TestID: "activity-import"}
+	dialog := sideDrawer(cx, open, title, 720, []core.Node{
+		core.Dynamic(func(cx *core.Scope) core.Node {
+			_ = w.rev.Get()
+			return s.importBody(cx, w, pick)
+		}),
 	}, []core.Node{
 		core.Dynamic(func(cx *core.Scope) core.Node {
 			_ = w.rev.Get()
 			return s.importFooter(cx, w, dataRev, open)
 		}),
-	}, "activity-import-dialog", 760)
+	}, "activity-import-dialog", locales.DataCancel(cx))
 	return trigger, dialog, show
 }
 
@@ -249,7 +246,7 @@ func (s *Session) importPickBody(cx *core.Scope, w *importWizard, pick func()) c
 				Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 		}},
 		dataField(cx, locales.ActivityImportPeriodLabel(cx),
-			ui.Select[string]{Options: periodOptions, Value: w.periodID.Get,
+			appSelect[string]{Options: periodOptions, Value: w.periodID.Get,
 				OnChange: func(v string) {
 					w.periodID.Set(v)
 					if w.grid != nil {
@@ -258,7 +255,8 @@ func (s *Session) importPickBody(cx *core.Scope, w *importWizard, pick func()) c
 					w.rev.Set(w.rev.Get() + 1)
 				},
 				Placeholder: locales.ActivityImportPeriodPlaceholder(cx),
-				Label:       locales.ActivityImportPeriodLabel(cx), TestID: "activity-import-period"}),
+				Label:       locales.ActivityImportPeriodLabel(cx), TestID: "activity-import-period",
+				Style: core.Style{Width: core.Pct(100)}}),
 		core.Text{Content: locales.ActivityImportPeriodHint(cx), Style: core.Style{FontSize: 11},
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
 		s.importMappingCard(cx, w),
@@ -320,10 +318,11 @@ func (s *Session) importMappingCard(cx *core.Scope, w *importWizard) core.Node {
 			core.View{Style: core.Style{FlexGrow: 1, Direction: core.Row, AlignItems: core.AlignCenter, Gap: 4},
 				Children: labelChildren},
 			core.View{Style: core.Style{Width: core.Pt(240)}, Children: []core.Node{
-				ui.Select[string]{Options: columnOptions, Value: func() string { return value },
+				appSelect[string]{Options: columnOptions, Value: func() string { return value },
 					Placeholder: locales.ActivityImportUnmapped(cx),
 					Label:       importFieldLabel(cx, field),
 					TestID:      "activity-import-map-" + string(field),
+					Style:       core.Style{Width: core.Pct(100)},
 					OnChange: func(next string) {
 						if next == "" {
 							change(field, -1)
@@ -444,15 +443,17 @@ func (s *Session) importSourceCreator(cx *core.Scope, w *importWizard, name stri
 			Children: []core.Node{
 				core.View{Style: core.Style{Width: core.Pt(120)}, Children: []core.Node{
 					dataField(cx, locales.ActivityImportSourceCreateScope(cx),
-						ui.Select[int]{Options: dataScopeOptions(cx), Value: w.creatorScope.Get,
+						appSelect[int]{Options: dataScopeOptions(cx), Value: w.creatorScope.Get,
 							OnChange: w.creatorScope.Set, Label: locales.ActivityImportSourceCreateScope(cx),
-							TestID: "activity-import-create-scope"}),
+							TestID: "activity-import-create-scope",
+							Style:  core.Style{Width: core.Pct(100)}}),
 				}},
 				core.View{Style: core.Style{Width: core.Pt(200)}, Children: []core.Node{
 					dataField(cx, locales.ActivityImportSourceCreateSite(cx),
-						ui.Select[string]{Options: siteOptions, Value: w.creatorSite.Get,
+						appSelect[string]{Options: siteOptions, Value: w.creatorSite.Get,
 							OnChange: w.creatorSite.Set, Label: locales.ActivityImportSourceCreateSite(cx),
-							TestID: "activity-import-create-site"}),
+							TestID: "activity-import-create-site",
+							Style:  core.Style{Width: core.Pct(100)}}),
 				}},
 				core.View{Style: core.Style{FlexGrow: 1, MinWidth: core.Pt(160)}, Children: []core.Node{
 					dataField(cx, locales.ActivityImportSourceCreateCategory(cx),

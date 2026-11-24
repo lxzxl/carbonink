@@ -13,6 +13,7 @@ import (
 
 	"app.carbonink.desktop/internal/agentbridge"
 	"app.carbonink.desktop/internal/backup"
+	"app.carbonink.desktop/internal/mcpconfig"
 	"app.carbonink.desktop/internal/platform"
 	"app.carbonink.desktop/internal/prefs"
 	"app.carbonink.desktop/internal/store"
@@ -86,6 +87,15 @@ type Session struct {
 	// pendingSupplierDisclosure opens an inbound disclosure when an activity
 	// row's provenance link sends the user to the supplier-disclosures screen.
 	pendingSupplierDisclosure string
+	// onboarded flips once the setup wizard finishes, so the root swaps to
+	// the shell without watching every data refresh.
+	onboarded *core.Signal[bool]
+	// justOnboarded lands the first shell on the dashboard, as 1.x did
+	// after the wizard.
+	justOnboarded bool
+	// mcpRev changes when the agent-host configuration changes, so the
+	// sidebar's MCP status dot follows Settings without a restart.
+	mcpRev *core.Signal[int]
 }
 
 // Root opens the active workspace and returns the shell. It is the app's
@@ -106,6 +116,7 @@ func Root(cx *core.Scope) core.Node {
 	applyAppearance(cx, s.settings.Theme)
 	notifyOverdueInbound(cx, s)
 	s.dataRev = core.NewSignal(cx, 0)
+	s.onboarded = core.NewSignal(cx, s.organization != nil)
 	s.startBridge(cx)
 	cx.OnQuit(func(context.Context) {
 		s.stopBridge()
@@ -118,7 +129,18 @@ func Root(cx *core.Scope) core.Node {
 		_ = log.Close()
 		_ = s.db.Close()
 	})
-	return s.view(cx)
+	return s.rootView(cx)
+}
+
+// rootView chooses between the full-screen onboarding wizard and the
+// inventory shell. 1.x suppressed the sidebar and header until onboarding
+// finished, so the wizard owns the whole window.
+func (s *Session) rootView(cx *core.Scope) core.Node {
+	return core.Show{
+		When: func() bool { return s.onboarded != nil && s.onboarded.Get() },
+		Then: s.view,
+		Else: s.onboardingRoot,
+	}
 }
 
 func open(cx *core.Scope, log *platform.Logger) (*Session, error) {
@@ -287,22 +309,37 @@ type screenInfo struct {
 
 var screens = []screenInfo{
 	{ScreenDashboard, locales.NavDashboard, lucide.LayoutDashboard},
-	{ScreenActivities, locales.NavActivities, lucide.Table},
-	{ScreenSources, locales.NavSources, lucide.Building},
-	{ScreenDocuments, locales.NavDocuments, lucide.Files},
+	{ScreenAudit, locales.AuditNav, lucide.FileSearch},
+	{ScreenSources, locales.NavSources, lucide.SlidersHorizontal},
+	{ScreenActivities, locales.NavActivities, lucide.Flame},
+	{ScreenReports, locales.NavReports, lucide.ScrollText},
+	{ScreenDocuments, locales.NavDocuments, lucide.FileText},
 	{ScreenQuestionnaires, locales.NavDisclosureFilings, lucide.ClipboardList},
-	{ScreenSupplierDisclosures, locales.NavSupplierDisclosures, lucide.ClipboardCheck},
-	{ScreenReports, locales.NavReports, lucide.ChartColumn},
-	{ScreenAudit, locales.AuditNav, lucide.ScrollText},
+	{ScreenSupplierDisclosures, locales.NavSupplierDisclosures, lucide.Download},
 	{ScreenSettings, locales.NavSettings, lucide.Settings},
+}
+
+// navGroups is 1.x's sidebar: Overview, Inventory, Inputs. Settings lives in
+// the sidebar footer, not in a fourth group.
+var navGroups = []struct {
+	Title func(*core.Scope) string
+	Items []Screen
+}{
+	{locales.NavSectionGeneral, []Screen{ScreenDashboard, ScreenAudit}},
+	{locales.NavSectionInventory, []Screen{ScreenSources, ScreenActivities, ScreenReports}},
+	{locales.NavSectionDocumentsQuestionnaires,
+		[]Screen{ScreenDocuments, ScreenQuestionnaires, ScreenSupplierDisclosures}},
 }
 
 func (s *Session) view(cx *core.Scope) core.Node {
 	start := ScreenActivities
-	if s.organization == nil {
+	if s.justOnboarded {
 		start = ScreenDashboard
+		s.justOnboarded = false
 	}
-	active := core.NewSignal(cx, start)
+	nav := newScreenNav(cx, start)
+	s.mcpRev = core.NewSignal(cx, 0)
+	s.watchMCP(cx)
 	open := core.NewSignal(cx, true)
 	paletteOpen := core.NewSignal(cx, false)
 	undoStatus := core.NewSignal(cx, "")
@@ -314,7 +351,7 @@ func (s *Session) view(cx *core.Scope) core.Node {
 	cx.OnKey("mod+y", func() { s.performHistory(cx, dataRev, true) })
 	cx.OnNotificationPress(func(id string) {
 		if id == overdueNotificationID {
-			active.Set(ScreenSupplierDisclosures)
+			nav.Set(ScreenSupplierDisclosures)
 		}
 	})
 
@@ -327,38 +364,33 @@ func (s *Session) view(cx *core.Scope) core.Node {
 		return screens[0]
 	}
 
-	nav := []core.Node{
-		core.View{Style: core.Style{Padding: core.Symmetric(10, 12), Gap: 2}, Children: []core.Node{
-			core.Text{ContentFunc: func() string { return locales.AppName(cx) },
-				Style: core.Style{FontSize: 15, FontWeight: ui.Bold}},
-			core.Text{ContentFunc: func() string { return locales.WorkspaceActive(cx) + " · " + s.workspace.Name },
-				Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
-		}},
-		core.View{Style: core.Style{Padding: core.Symmetric(0, 10)}, Children: []core.Node{
-			paletteButton(cx, func() { paletteOpen.Set(true) }),
-		}},
-		navSection(cx, locales.NavOverview),
-	}
-	for _, sc := range screens {
-		sc := sc
-		switch sc.ID {
-		case ScreenSources:
-			nav = append(nav, navSection(cx, locales.NavInventory))
-		case ScreenDocuments:
-			nav = append(nav, navSection(cx, locales.NavInputs))
-		case ScreenQuestionnaires:
-			nav = append(nav, navSection(cx, locales.NavDisclosures))
-		case ScreenSettings:
-			nav = append(nav, navSection(cx, locales.NavSystem))
+	overdue := s.overdueSupplierDisclosures()
+	subtitle := func() string { return locales.AppTagline(cx) }
+	if s.workspaces != nil {
+		if registry, err := s.workspaces.Load(); err == nil && len(registry.Workspaces) > 1 {
+			name := s.workspace.Name
+			subtitle = func() string { return name }
 		}
-		nav = append(nav, navButton(cx, sc, func() bool { return active.Get() == sc.ID },
-			func() { active.Set(sc.ID) }))
+	}
+	items := []core.Node{brandHeader(cx, subtitle)}
+	for _, group := range navGroups {
+		items = append(items, navSection(cx, group.Title))
+		for _, id := range group.Items {
+			sc := byID(id)
+			badge := 0
+			if id == ScreenSupplierDisclosures {
+				badge = overdue
+			}
+			items = append(items, navButton(cx, sc, badge, func() bool { return nav.Get() == sc.ID },
+				func() { nav.Set(sc.ID) }))
+		}
 	}
 	if s.imported {
-		nav = append(nav, core.Text{ContentFunc: func() string { return locales.ImportedLegacy(cx) },
-			Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)})
+		items = append(items, core.Text{ContentFunc: func() string { return locales.ImportedLegacy(cx) },
+			Style:     core.Style{FontSize: 11, Padding: core.Symmetric(4, 12)},
+			StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)})
 	}
-	nav = append(nav, core.Show{When: func() bool { return undoStatus.Get() != "" },
+	items = append(items, core.Show{When: func() bool { return undoStatus.Get() != "" },
 		Then: func(cx *core.Scope) core.Node {
 			return core.Text{ContentFunc: func() string { return undoStatus.Get() },
 				Style:     core.Style{FontSize: 11, Padding: core.All(10)},
@@ -366,73 +398,63 @@ func (s *Session) view(cx *core.Scope) core.Node {
 		}})
 
 	content := []core.Node{
-		core.Show{When: func() bool { return active.Get() == ScreenActivities },
-			Then: func(cx *core.Scope) core.Node { return s.activitiesScreen(cx, dataRev, active) }},
-		core.Show{When: func() bool { return active.Get() == ScreenDashboard },
-			Then: func(cx *core.Scope) core.Node { return s.dashboardScreen(cx, dataRev, active) }},
-		core.Show{When: func() bool { return active.Get() == ScreenSources },
+		core.Show{When: func() bool { return nav.Get() == ScreenActivities },
+			Then: func(cx *core.Scope) core.Node { return s.activitiesScreen(cx, dataRev, nav) }},
+		core.Show{When: func() bool { return nav.Get() == ScreenDashboard },
+			Then: func(cx *core.Scope) core.Node { return s.dashboardScreen(cx, dataRev, nav) }},
+		core.Show{When: func() bool { return nav.Get() == ScreenSources },
 			Then: func(cx *core.Scope) core.Node { return s.sourcesScreen(cx, dataRev) }},
-		core.Show{When: func() bool { return active.Get() == ScreenDocuments },
+		core.Show{When: func() bool { return nav.Get() == ScreenDocuments },
 			Then: func(cx *core.Scope) core.Node { return s.documentsScreen(cx, dataRev) }},
-		core.Show{When: func() bool { return active.Get() == ScreenQuestionnaires },
+		core.Show{When: func() bool { return nav.Get() == ScreenQuestionnaires },
 			Then: func(cx *core.Scope) core.Node { return s.questionnairesScreen(cx, dataRev) }},
-		core.Show{When: func() bool { return active.Get() == ScreenSupplierDisclosures },
+		core.Show{When: func() bool { return nav.Get() == ScreenSupplierDisclosures },
 			Then: func(cx *core.Scope) core.Node { return s.supplierDisclosuresScreen(cx, dataRev) }},
-		core.Show{When: func() bool { return active.Get() == ScreenReports },
-			Then: func(cx *core.Scope) core.Node { return s.reportsScreen(cx, dataRev, active) }},
-		core.Show{When: func() bool { return active.Get() == ScreenAudit },
+		core.Show{When: func() bool { return nav.Get() == ScreenReports },
+			Then: func(cx *core.Scope) core.Node { return s.reportsScreen(cx, dataRev, nav) }},
+		core.Show{When: func() bool { return nav.Get() == ScreenAudit },
 			Then: func(cx *core.Scope) core.Node {
 				return s.auditScreen(cx, dataRev, func(id string) {
 					s.pendingActivity = id
-					active.Set(ScreenActivities)
+					nav.Set(ScreenActivities)
 				})
 			}},
-		core.Show{When: func() bool { return active.Get() == ScreenSettings },
-			Then: func(cx *core.Scope) core.Node { return s.settingsScreen(cx) }},
+		core.Show{When: func() bool { return nav.Get() == ScreenSettings },
+			Then: func(cx *core.Scope) core.Node { return s.settingsScreen(cx, dataRev) }},
 		core.Show{When: func() bool {
-			id := active.Get()
+			id := nav.Get()
 			return id != ScreenActivities && id != ScreenDashboard &&
 				id != ScreenSources && id != ScreenDocuments && id != ScreenQuestionnaires &&
 				id != ScreenSupplierDisclosures && id != ScreenReports &&
 				id != ScreenAudit && id != ScreenSettings
 		},
 			Then: func(cx *core.Scope) core.Node { return placeholder(cx) }},
-		s.commandDialog(cx, paletteOpen, active),
+		s.commandDialog(cx, paletteOpen, nav),
 	}
 
 	return ui.SidebarShell{
 		Variant:      ui.SidebarShellInset,
 		Open:         open.Get,
-		OnOpenChange: open.Set,
-		ToggleLabel:  "Toggle sidebar",
-		Sidebar:      []core.Node{core.View{Style: core.Style{Gap: 2, Padding: core.Symmetric(4, 0)}, Children: nav}},
+		DefaultWidth: 256,
+		Fixed:        true,
+		Sidebar:      []core.Node{core.View{Style: core.Style{Gap: 2, Padding: core.Symmetric(4, 8)}, Children: items}},
+		SidebarFooter: []core.Node{
+			navButton(cx, byID(ScreenSettings), 0,
+				func() bool { return nav.Get() == ScreenSettings },
+				func() { nav.Set(ScreenSettings) }, s.mcpStatusDot(cx)),
+		},
 		Header: []core.Node{
-			core.View{Style: core.Style{Gap: 2}, Children: []core.Node{
-				core.Text{ContentFunc: func() string { return byID(active.Get()).Title(cx) },
-					Style: core.Style{FontSize: 15, FontWeight: ui.Semibold}},
-				core.Text{ContentFunc: func() string {
-					_ = dataRev.Get()
-					switch active.Get() {
-					case ScreenActivities:
-						return locales.ActivitiesSubtitle(cx)
-					case ScreenDashboard:
-						return locales.WorkspaceActive(cx) + " · " + s.workspace.Name
-					case ScreenSources:
-						return locales.DataSourcesSubtitle(cx)
-					case ScreenDocuments:
-						return locales.DocumentsSubtitle(cx)
-					case ScreenQuestionnaires:
-						return locales.QuestionnairesSubtitle(cx)
-					case ScreenSupplierDisclosures:
-						return locales.SupplierDisclosuresSubtitle(cx)
-					case ScreenReports:
-						return locales.ReportsListSubheading(cx)
-					case ScreenAudit:
-						return locales.AuditSubheading(cx)
-					}
-					return ""
-				}, Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
-			}},
+			ui.Button{Variant: ui.ButtonOutline, Icon: lucide.PanelLeft, Side: 28, IconSize: 14,
+				Label: locales.SidebarToggle(cx), TestID: "sidebar-toggle",
+				OnPress: func() { open.Set(!open.Get()) }},
+			core.View{Style: core.Style{Width: core.Pt(1), Height: core.Pt(20), FlexShrink: 0},
+				StyleFunc: ui.Filled(ui.ColorsOf(cx).Border)},
+			ui.Button{Variant: ui.ButtonGhost, Icon: lucide.ArrowLeft, Side: 28, IconSize: 16,
+				Label: locales.TopbarBack(cx), TestID: "nav-back",
+				Disabled: func() bool { return !nav.CanBack() }, OnPress: nav.Back},
+			ui.Button{Variant: ui.ButtonGhost, Icon: lucide.ArrowRight, Side: 28, IconSize: 16,
+				Label: locales.TopbarForward(cx), TestID: "nav-forward",
+				Disabled: func() bool { return !nav.CanForward() }, OnPress: nav.Forward},
 		},
 		Content: []core.Node{
 			core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
@@ -444,7 +466,17 @@ func (s *Session) view(cx *core.Scope) core.Node {
 
 // navButton is SidebarButton with a reactive label, so switching language
 // updates the sidebar without a restart.
-func navButton(cx *core.Scope, sc screenInfo, selected func() bool, onPress func()) core.Node {
+func navButton(cx *core.Scope, sc screenInfo, badge int, selected func() bool, onPress func(),
+	trailing ...core.Node) core.Node {
+	children := []core.Node{
+		ui.Icon(sc.Icon, 16, ui.ColorsOf(cx).Muted),
+		core.Text{ContentFunc: func() string { return sc.Title(cx) },
+			Style: core.Style{FontSize: 13, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 1},
+	}
+	if badge > 0 {
+		children = append(children, ui.Badge{Text: strconv.Itoa(badge), Variant: ui.BadgeDanger})
+	}
+	children = append(children, trailing...)
 	return core.View{
 		TestID: "nav:" + string(sc.ID),
 		Role:   core.RoleButton,
@@ -460,17 +492,52 @@ func navButton(cx *core.Scope, sc screenInfo, selected func() bool, onPress func
 			return core.Style{}
 		},
 		Children: []core.Node{
-			ui.Icon(sc.Icon, 16, ui.ColorsOf(cx).Muted),
-			core.Text{ContentFunc: func() string { return sc.Title(cx) },
-				Style: core.Style{FontSize: 13}, MaxLines: 1},
+			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+				Gap: 8, FlexGrow: 1}, Children: children},
 		},
 	}
 }
 
 func navSection(cx *core.Scope, title func(*core.Scope) string) core.Node {
 	return core.Text{ContentFunc: func() string { return title(cx) },
-		Style:     core.Style{FontSize: 11, FontWeight: ui.Semibold, Padding: core.Edges{Left: 12, Top: 10, Bottom: 2}},
-		StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)}
+		Style:     core.Style{FontSize: 11, FontWeight: ui.Semibold, Padding: core.Edges{Left: 8, Top: 12, Bottom: 4}},
+		StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)}
+}
+
+// brandHeader is 1.x's sidebar header: the boxed leaf mark, the app name,
+// and the active workspace (or the tagline while only one exists).
+func brandHeader(cx *core.Scope, subtitle func() string) core.Node {
+	return core.View{
+		Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 10,
+			Padding: core.Edges{Left: 8, Right: 8, Top: 6, Bottom: 12}},
+		Children: []core.Node{
+			core.View{Style: core.Style{Width: core.Pt(28), Height: core.Pt(28),
+				CornerRadius: 6, AlignItems: core.AlignCenter, JustifyContent: core.JustifyCenter},
+				StyleFunc: ui.Filled(accentTint(cx)),
+				Children:  []core.Node{ui.Icon(lucide.Leaf, 16, ui.ColorsOf(cx).Accent)}},
+			core.View{Style: core.Style{Gap: 1, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
+				Children: []core.Node{
+					core.Text{ContentFunc: func() string { return locales.AppName(cx) },
+						Style: core.Style{FontSize: 15, FontWeight: ui.Semibold}, MaxLines: 1},
+					core.Text{ContentFunc: subtitle, Style: core.Style{FontSize: 12},
+						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
+				}},
+		},
+	}
+}
+
+// overdueSupplierDisclosures counts inbound rows past their due date, as
+// 1.x's sidebar badge did.
+func (s *Session) overdueSupplierDisclosures() int {
+	today := time.Now().Format("2006-01-02")
+	count := 0
+	for _, q := range s.questionnaires {
+		if q.Direction == "inbound" && q.Status == store.QuestionnaireSent &&
+			q.DueDate != "" && q.DueDate < today {
+			count++
+		}
+	}
+	return count
 }
 
 func placeholder(cx *core.Scope) core.Node {
@@ -498,4 +565,61 @@ func commaFloat(v float64) string {
 		s = s[:i] + "," + s[i:]
 	}
 	return s
+}
+
+// co2eWithUnit is 1.x's dense source-row total: tonnes past 1,000 kg,
+// kilograms below it, so the card sheds precision instead of digits.
+func co2eWithUnit(kg float64) string {
+	if kg >= 1000 {
+		return commaFloat(kg/1000) + " t"
+	}
+	return commaFloat(kg) + " kg"
+}
+
+// mcpStatusDot is 1.x's footer status: green when any detected agent host
+// points at this app, amber while one is installed but not configured.
+func (s *Session) mcpStatusDot(cx *core.Scope) core.Node {
+	return core.Dynamic(func(cx *core.Scope) core.Node {
+		_ = s.mcpRev.Get()
+		configured := false
+		for _, status := range mcpconfig.Detect(agentHome(), agentConfigDir(), agentEntry()) {
+			if status.Configured {
+				configured = true
+				break
+			}
+		}
+		label := locales.SidebarMcpLabelPending(cx)
+		color := ui.ColorsOf(cx).Warn()
+		if configured {
+			label = locales.SidebarMcpLabelAvailable(cx)
+			color = ui.ColorsOf(cx).Accent()
+		}
+		return core.View{
+			TestID: "sidebar-mcp-status",
+			Role:   core.RoleStatus,
+			Label:  label,
+			Style: core.Style{Width: core.Pt(8), Height: core.Pt(8),
+				CornerRadius: 4, FlexShrink: 0},
+			StyleFunc: func() core.Style { return core.Style{Background: color} },
+		}
+	})
+}
+
+// bumpMCP re-renders the footer dot after Settings writes a host config.
+func (s *Session) bumpMCP() {
+	if s.mcpRev != nil {
+		s.mcpRev.Set(s.mcpRev.Get() + 1)
+	}
+}
+
+// watchMCP refreshes the footer dot every ten seconds, as 1.x's status
+// poller did, so a host configured outside the app turns it green without a
+// restart. The scope owns the timer and stops it with the shell.
+func (s *Session) watchMCP(cx *core.Scope) {
+	var tick func()
+	tick = func() {
+		s.bumpMCP()
+		cx.AfterFunc(10*time.Second, tick)
+	}
+	cx.AfterFunc(10*time.Second, tick)
 }

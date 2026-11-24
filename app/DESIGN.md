@@ -2,32 +2,32 @@
 name: CarbonInk
 description: The ledger for audit-grade GHG inventories — flat white pages, one quiet accent, native macOS and Windows chrome.
 colors:
-  accent: "#7c9476"
-  accent-hover: "#748c6e"
-  accent-pressed: "#71896b"
-  accent-tint: "rgba(107, 130, 102, 0.18)"
-  accent-mark: "#6b8266"
-  accent-ink: "#475743"
+  accent: "#008c4f"
+  accent-hover: "#1a9861"
+  accent-pressed: "#0d9258"
+  accent-tint: "rgba(0, 140, 79, 0.12)"
+  accent-mark: "#008c4f"
+  accent-ink: "#008c4f"
   page: "#ffffff"
   surface: "#ffffff"
-  inset: "#f1f1f1"
-  field: "#fdfdfd"
-  text: "#333333"
-  muted: "#5f5f5f"
-  faint: "#767676"
-  border: "rgba(51, 51, 51, 0.16)"
-  line: "rgba(51, 51, 51, 0.12)"
-  danger: "#b4444c"
+  inset: "#fafafa"
+  field: "#ffffff"
+  text: "#13120c"
+  muted: "#65635c"
+  faint: "#a8a6a0"
+  border: "#e7e7e7"
+  line: "rgba(19, 18, 12, 0.07)"
+  danger: "#cc272e"
   warning: "#b45309"
   success: "#059669"
-  page-dark: "#1f1f1f"
-  surface-dark: "#292929"
-  inset-dark: "#282828"
-  field-dark: "#242424"
-  text-dark: "#eaeaea"
-  muted-dark: "#aaaaaa"
-  faint-dark: "#878787"
-  accent-dark: "#a3b8a0"
+  page-dark: "#13120c"
+  surface-dark: "#1c1b14"
+  inset-dark: "#13120c"
+  field-dark: "#1c1b14"
+  text-dark: "#f0eee9"
+  muted-dark: "#918f87"
+  faint-dark: "#918f87"
+  accent-dark: "#00af67"
 typography:
   heading:
     fontFamily: "system-ui, -apple-system, 'Segoe UI', sans-serif"
@@ -84,23 +84,23 @@ spacing:
 components:
   button-primary:
     backgroundColor: "{colors.accent}"
-    textColor: "#15171a"
+    textColor: "#fdfcf8"
     typography: "{typography.body}"
     rounded: "{rounded.control}"
     padding: "0 12px"
     height: "28px"
   button-primary-hover:
     backgroundColor: "{colors.accent-hover}"
-    textColor: "#15171a"
+    textColor: "#fdfcf8"
   button-secondary:
-    backgroundColor: "#efefef"
+    backgroundColor: "#f3f2ec"
     textColor: "{colors.text}"
     typography: "{typography.body}"
     rounded: "{rounded.control}"
     padding: "0 12px"
     height: "28px"
   button-secondary-hover:
-    backgroundColor: "#e3e3e3"
+    backgroundColor: "#e9e7df"
     textColor: "{colors.text}"
   button-outline:
     backgroundColor: "transparent"
@@ -177,7 +177,7 @@ as every surface reads its color from the palette instead of freezing a literal.
 
 **Key Characteristics:**
 - One white surface for the page and its cards; separation is a 1 pt hairline, never a fill or shadow.
-- A single moss accent, used on well under a tenth of any screen.
+- A single emerald accent, used on well under a tenth of any screen.
 - System type at small sizes (11–20 pt), with weight doing the hierarchy work.
 - Rounded-rectangle cards (12 pt), 16 pt internal padding, generous but regular rhythm.
 - Native window chrome, native controls, native scrolling; no web-app tells.
@@ -190,37 +190,38 @@ the sidebar and wells recess a step, and the accent is reserved for action,
 selection, and focus.
 
 ### Primary
-- **Sage** (`#7c9476`): the control accent. Filled primary buttons and the
-  toggle's on-track, carrying graphite text (`#15171a`, 5.4:1). Hover `#748c6e`
-  (4.9:1), pressed `#71896b` (4.7:1). The fill is 3.3:1 against the white page,
-  so the control's shape stays visible without a border.
-- **Mark Moss** (`#6b8266`): the X2 icon's mint-moss, the identity color. It is
-  the brand's public green (logo, site, packaging) and the selected-row tint
-  (18%); it never carries white text.
-- **Moss Ink** (`#475743`): the accent as text — provenance links, inline
-  status, and any accent-colored body copy (7.5:1 on white). Icons may use the
-  sage fill, but text uses this step.
+- **Emerald** (`#008c4f`): the control accent 1.x shipped. Filled primary
+  buttons and the toggle's on-track carry warm white text (`#fdfcf8`). Hover
+  `#1a9861`, pressed `#0d9258`. The fill is 4.4:1 against the white page and
+  5.0:1 against the warm white label, so the control reads without a border.
+- **Brand Emerald** (`#008c4f`): the leaf mark, the site and packaging green,
+  and the accent used for links and inline status. Selection never uses the
+  brand colour: rows tint with the foreground at 6%, as in 1.x, so a green
+  button stays the only saturated control.
+- **Accent Ink** (`#008c4f`): the accent as text — provenance links, inline
+  status, and accent-coloured body copy (4.4:1 on white).
 
 ### Neutral
 - **Paper White** (`#ffffff`): the page and every resting card. One white, not
   two.
-- **Ledger Inset** (`#f1f1f1`): the sidebar, recessed wells, and track fills.
-- **Field Well** (`#fdfdfd`): inputs, a barely-there step below the card.
-- **Ink** (`#333333`): body text, figures, icons.
-- **Quiet Ink** (`#5f5f5f`, 6.4:1 on white): secondary lines, subtitles,
+- **Ledger Inset** (`#fafafa`): the flat sidebar, recessed wells, and track
+  fills.
+- **Field Well** (`#ffffff`): inputs sit on the card with a hairline, not a
+  grey fill.
+- **Ink** (`#13120c`): body text, figures, icons.
+- **Quiet Ink** (`#65635c`, 5.9:1 on white): secondary lines, subtitles,
   timestamps, helper copy.
-- **Whisper** (`#767676`, 4.5:1 on white): placeholders, tertiary metadata, and
-  section labels in the sidebar. The old 38% ink step measured 2.9:1 and was
-  retired.
-- **Hairline** (`rgba(51, 51, 51, 0.16)`): card and control borders; **Rule
-  Line** (`rgba(51, 51, 51, 0.12)`): separators inside insets.
+- **Whisper** (`#a8a6a0`, 2.4:1 on white): empty-state glyphs and tertiary
+  metadata. Placeholders may use it because every field also has a visible
+  label; never use it for body copy.
+- **Hairline** (`#e7e7e7`): card and control borders; **Rule Line**
+  (`rgba(19, 18, 12, 0.07)`): separators inside insets.
 
 ### Dark
-- The same roles invert through the palette: page `#1f1f1f`, card `#292929`,
-  sidebar `#282828`, field `#242424`, ink `#eaeaea`. The accent lifts to
-  moss-300 (`#a3b8a0`) with graphite text, and accent-as-text lifts to
-  moss-200 (`#c8d5c4`), so both stay legible on the dark page. Quiet Ink lifts
-  to `#aaaaaa` (7.0:1) and Whisper to `#878787` (4.5:1).
+- The same roles invert through the palette: page `#13120c`, card `#1c1b14`,
+  sidebar `#13120c`, field `#1c1b14`, ink `#f0eee9`. The accent lifts to
+  emerald `#00af67` with the dark page as its label colour. Quiet Ink lifts to
+  `#918f87` and Whisper shares that step on dark.
 
 ### Semantic
 - **Danger Rust** (`#b4444c`): destructive actions and failed states.
@@ -236,11 +237,11 @@ accent things has no primary action.
 a `StyleFunc`. A literal color in a static `Style` freezes the light value and
 breaks the dark appearance; the palette is the source of truth.
 
-**The Moss Rule.** Green is the only accent. Moss-500 (`#6b8266`) is the
-identity color and the selected-row tint. Filled controls use sage (`#7c9476`)
-with graphite text (5.4:1), stepping to `#748c6e` and `#71896b`; accent-as-text
-uses moss-700 (`#475743`, 7.5:1). Never put white text on moss-500 (4.2:1) or on
-sage (3.3:1), and never introduce a second accent.
+**The Emerald Rule.** Green is the only accent, and it is 1.x's emerald
+(`#008c4f`), not a sage or sky substitute. Filled controls use emerald with warm
+white text (`#fdfcf8`), stepping to `#1a9861` and `#0d9258`; accent-as-text uses
+the same emerald. Selected rows stay neutral (6% ink), and no second accent is
+allowed.
 
 ## Typography
 
@@ -276,18 +277,18 @@ line up digit for digit.
 
 ## Layout
 
-The app opens at **1280 × 820** and may shrink to **640 × 480**. The shell is a
-sidebar beside a content card: a 5 pt window margin, a **240 pt** sidebar
-(resizable from 160 pt), and the content floating as a rounded card (10 pt
-radius) on the inset page. Hiding the sidebar slides the content over it; the
-window controls and the sidebar toggle stay together in the top-left.
+The app opens at **1400 × 900** and may shrink to **960 × 600**, as 1.x did.
+The shell is a **256 pt** sidebar beside a content card: a 5 pt window margin,
+and the content floating as a rounded card (10 pt radius) on the inset page.
+Hiding the sidebar slides the content over it; the window controls and the
+sidebar toggle stay together in the top-left.
 
-Inside the content, pages use **16 pt** padding and a measure cap: **980 pt** for
-data surfaces (activities, sources, documents, disclosures, reports, audit) and
-**720 pt** for settings and form flows (680 pt for a focused form). Cards use
-16 pt padding and 10–12 pt gaps. The spacing rhythm is **2 / 4 / 6 / 8 / 10 / 12
-/ 16 / 20 / 24 / 32** — small steps inside controls and rows, 16 pt between
-blocks, 32 pt around empty states.
+Inside the content, pages use **24 pt** padding and a **1280 pt** measure cap
+(1.x's 80 rem container) for data surfaces (activities, sources, documents,
+disclosures, reports, audit). Settings uses a centered **672 pt** pane, and
+form flows cap at **680 pt**. Cards use 16 pt padding and 10–12 pt gaps. The
+spacing rhythm is **2 / 4 / 6 / 8 / 10 / 12 / 16 / 20 / 24 / 32** — small steps
+inside controls and rows, 16 pt between blocks, 32 pt around empty states.
 
 Row heights carry the density: **30 pt** navigation rows, **32 pt** table rows,
 **36 pt** list rows, with 9–12 pt vertical padding in card lists. The content
@@ -299,8 +300,8 @@ surface; the content is a card floating 5 pt above it. Do not paint a second
 sidebar background, a browser-style toolbar, or a full-width band that breaks
 the card's silhouette.
 
-**The Measure Rule.** Long-form and form content stops at 680–720 pt; data
-surfaces stop at 980 pt. Full-window line lengths are reserved for tables and
+**The Measure Rule.** Long-form and form content stops at 672–680 pt; data
+surfaces stop at 1280 pt. Full-window line lengths are reserved for tables and
 the command palette.
 
 **The Header Stack Rule.** A card header with actions holds one row while the
@@ -349,7 +350,7 @@ system never uses a 2–3 pt colored stripe, a left accent bar, or a heavy divid
 ### Buttons
 - **Shape:** 8 pt radius, 28 pt tall on desktop (24 pt small, 32 pt large), 12 pt
   horizontal padding, 13 pt regular text, 6 pt icon gap.
-- **Primary:** Sage fill with graphite text. One per screen — the action the
+- **Primary:** Emerald fill with warm white text. One per screen — the action the
   screen exists for (Upload, Save profile, Confirm).
 - **Secondary:** a quiet 8% ink fill over the card (`#efefef`), ink text; hover
   deepens to 12%, pressed to 18%.
@@ -362,11 +363,11 @@ system never uses a 2–3 pt colored stripe, a left accent bar, or a heavy divid
   size and shows a spinner over its hidden label.
 
 ### Inputs / Fields
-- **Style:** 28 pt tall, 13 pt text, 8 pt radius, `#fdfdfd` well, 1 pt hairline
-  border, 10 pt horizontal padding.
+- **Style:** 28–36 pt tall by context, 13 pt text, 8 pt radius, white well,
+  1 pt hairline border, 10 pt horizontal padding.
 - **Placeholder:** Whisper.
 - **Hover:** the border mixes 25% toward ink.
-- **Focus:** the border becomes Sage; the selection uses the accent's
+- **Focus:** the border becomes Emerald; the selection uses the accent's
   22% tint. No shadow, no ring.
 - **Multiline:** grows from a three-line floor, 6 × 10 pt padding.
 
@@ -493,7 +494,7 @@ system never uses a 2–3 pt colored stripe, a left accent bar, or a heavy divid
   inline in a sentence, so long paths are readable and distinguishable.
 - **Do** wrap long explanatory copy inside its card; a one-line helper that
   runs past the card edge is clipped and unreadable.
-- **Do** check both zh-CN and en at 640 pt, 1280 pt, and a wide window: CJK
+- **Do** check both zh-CN and en at 960 pt, 1400 pt, and a wide window: CJK
   labels, unit strings, and factor codes are the overflow cases.
 
 ### Don't:
@@ -507,8 +508,8 @@ system never uses a 2–3 pt colored stripe, a left accent bar, or a heavy divid
 - **Don't** add a focus halo, glow, or 2–3 pt ring; shift the border to the
   accent instead.
 - **Don't** uppercase or letter-space section labels; sentence case at 11/600.
-- **Don't** put white text on moss-500 `#6b8266` (4.2:1) or add a second accent;
-  filled controls use sage `#7c9476` with graphite text, and accent-as-text uses
-  moss-700 `#475743`.
+- **Don't** replace the emerald with a sage, moss, or sky accent; filled
+  controls use `#008c4f` with warm white text, and accent-as-text uses the same
+  emerald.
 - **Don't** use a gradient, glassmorphism, decorative blur, or a hero-metric
   block anywhere in the app shell.

@@ -54,11 +54,41 @@ func TestSettingsSwitchThemeAndLanguage(t *testing.T) {
 		nsgotest.Environment(core.Environment{Locale: "en-US"}))
 	ui.Press("id:nav:settings")
 	ui.WaitFor("text:Appearance", 2*time.Second)
-	ui.Press("text:Dark")
-	ui.WaitFor("text:Current: Dark", 2*time.Second)
+	ui.Press("id:settings-theme-dark")
+	if !ui.Find("id:settings-theme-dark").Props.Selected {
+		t.Fatal("dark theme segment is not selected after pressing it")
+	}
 	ui.Press("text:中文")
 	ui.WaitFor("text:外观", 2*time.Second)
 	ui.WaitFor("text:活动数据", 2*time.Second)
+	ui.Key("mod+k")
+	ui.WaitFor("id:command-palette", 2*time.Second)
+}
+
+// openSettings opens Settings and selects one rail section. The two-pane
+// layout shows a single section at a time, as 1.x did.
+func openSettings(ui *nsgotest.App, section string) {
+	ui.Press("id:nav:settings")
+	ui.WaitFor("id:settings-section-"+section, 3*time.Second)
+	ui.Press("id:settings-section-" + section)
+}
+
+// completeOnboarding walks the five-step wizard with the minimum required
+// input, landing on the inventory shell.
+func completeOnboarding(ui *nsgotest.App, org, site string) {
+	ui.WaitFor("id:onboarding-org-zh", 5*time.Second)
+	ui.Type("id:onboarding-org-zh", org)
+	ui.Press("id:onboarding-next")
+	ui.WaitFor("id:onboarding-year", 2*time.Second)
+	ui.Press("id:onboarding-next")
+	ui.WaitFor("id:onboarding-boundary-operational_control", 2*time.Second)
+	ui.Press("id:onboarding-next")
+	ui.WaitFor("id:onboarding-site-zh", 2*time.Second)
+	ui.Type("id:onboarding-site-zh", site)
+	ui.Press("id:onboarding-next")
+	ui.WaitFor("id:onboarding-skip", 2*time.Second)
+	ui.Press("id:onboarding-skip")
+	ui.WaitFor("id:shell", 5*time.Second)
 }
 
 // TestCommandPalette opens the palette, searches, and runs a screen command.
@@ -66,7 +96,7 @@ func TestCommandPalette(t *testing.T) {
 	t.Setenv("CARBONINK_TEST_DB", fixtureDB(t))
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}))
-	ui.Press("id:open-command-palette")
+	ui.Key("mod+k")
 	ui.WaitFor("id:command-palette", 2*time.Second)
 	ui.Type("id:command-palette >> role:textbox", "export")
 	ui.WaitFor("text:Export activities as CSV", 2*time.Second)
@@ -74,6 +104,51 @@ func TestCommandPalette(t *testing.T) {
 	ui.Type("id:command-palette >> role:textbox", "settings")
 	ui.Key("enter")
 	ui.WaitFor("text:Appearance", 2*time.Second)
+}
+
+// TestNavigationHistoryBackForward proves the shell's toolbar arrows walk the
+// same screen history 1.x's router exposed, including disabling at each end
+// and dropping the forward branch after a new destination.
+func TestNavigationHistoryBackForward(t *testing.T) {
+	t.Setenv("CARBONINK_TEST_DB", fixtureDB(t))
+	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
+		nsgotest.Environment(core.Environment{Locale: "en-US"}))
+	ui.WaitFor("id:activities-table", 5*time.Second)
+	if ui.Enabled("id:nav-back") || ui.Enabled("id:nav-forward") {
+		t.Fatal("history arrows are enabled on the first screen")
+	}
+
+	ui.Press("id:nav:sources")
+	ui.WaitFor("id:source-row-src", 2*time.Second)
+	ui.Press("id:nav:settings")
+	ui.WaitFor("id:settings-section-general", 2*time.Second)
+	if !ui.Enabled("id:nav-back") {
+		t.Fatal("Back is disabled after navigating")
+	}
+
+	ui.Press("id:nav-back")
+	ui.WaitFor("id:source-row-src", 2*time.Second)
+	if ui.Exists("id:settings-section-general") {
+		t.Fatal("Back did not leave Settings")
+	}
+	if !ui.Enabled("id:nav-forward") {
+		t.Fatal("Forward is disabled after going back")
+	}
+
+	ui.Press("id:nav-forward")
+	ui.WaitFor("id:settings-section-general", 2*time.Second)
+	ui.Press("id:nav-back")
+	ui.WaitFor("id:source-row-src", 2*time.Second)
+
+	// A new destination from the middle of the stack replaces the forward
+	// branch, as a browser history does.
+	ui.Press("id:nav:audit")
+	ui.WaitFor("id:audit-kind", 2*time.Second)
+	if ui.Enabled("id:nav-forward") {
+		t.Fatal("Forward is enabled after a new destination")
+	}
+	ui.Press("id:nav-back")
+	ui.WaitFor("id:source-row-src", 2*time.Second)
 }
 
 // TestCreateActivityThroughUI proves the add-activity dialog pins an EF and
@@ -107,7 +182,7 @@ func TestCreateActivityThroughUI(t *testing.T) {
 	}
 	ui.WaitFor("id:dashboard-total >> text:"+commaFloat(totals.TotalKg), 3*time.Second)
 	ui.WaitFor("id:dashboard-scope2 >> text:"+commaFloat(totals.Scope2Kg), 3*time.Second)
-	ui.WaitFor("id:dashboard-total >> text:Total CO2e", 3*time.Second)
+	ui.WaitFor("id:dashboard-total >> text:TOTAL CO2E", 3*time.Second)
 }
 
 // TestActivityDialogReturnSubmits proves Return in a text field runs the
@@ -215,7 +290,9 @@ func TestEditActivityThroughUI(t *testing.T) {
 	ui.Press("id:rebind-confirm")
 	ui.WaitFor("text:268.13", 3*time.Second)
 	ui.Press("id:nav:audit")
-	ui.WaitFor("text:Rebind emission factor", 3*time.Second)
+	ui.WaitUntil(3*time.Second, func() bool {
+		return len(ui.Query("text:Rebind emission factor")) > 0
+	})
 }
 
 // TestImportActivitiesThroughUI picks a CSV ledger, auto-maps it, confirms one
@@ -274,7 +351,7 @@ func TestImportActivitiesThroughUI(t *testing.T) {
 
 	ui.Press("id:nav:documents")
 	ui.WaitFor("text:ledger.csv", 3*time.Second)
-	ui.Press("text:Details")
+	ui.Press("text:ledger.csv")
 	ui.WaitFor("id:documents-detail-dialog", 3*time.Second)
 	ui.WaitFor("text:2 linked", 3*time.Second)
 	ui.WaitFor("id:documents-detail-evidence-1", 3*time.Second)
@@ -404,7 +481,7 @@ func TestImportEFLibraryThroughUI(t *testing.T) {
 	}
 	ui.SaveFile = func(core.SaveRequest) string { return templatePath }
 
-	ui.Press("id:nav:sources")
+	openSettings(ui, "efLibrary")
 	ui.WaitFor("id:ef-library-import", 3*time.Second)
 	ui.Press("id:ef-library-import")
 	ui.WaitFor("id:ef-import-dialog", 2*time.Second)
@@ -432,7 +509,7 @@ func TestImportEFLibraryThroughUI(t *testing.T) {
 	ui.Press("id:ef-import-run")
 	ui.WaitFor("text:Imported 1 factors", 3*time.Second)
 	ui.Press("id:ef-import-cancel")
-	ui.WaitFor("text:Test library", 3*time.Second)
+	ui.WaitFor("id:ef-library-browse-Test library", 3*time.Second)
 	ui.Press("id:ef-library-browse-Test library")
 	ui.WaitFor("id:ef-library-browse-dialog", 2*time.Second)
 	ui.WaitFor("text:Test factor", 3*time.Second)
@@ -472,12 +549,12 @@ func TestImportEFLibraryThroughUI(t *testing.T) {
 	ui.Press("id:activity-ef-0")
 	ui.Press("id:activity-cancel")
 
-	ui.Press("id:nav:sources")
-	ui.WaitFor("text:Delete library", 3*time.Second)
-	ui.Press("text:Delete library")
+	openSettings(ui, "efLibrary")
+	ui.WaitFor("id:ef-library-delete-Test library", 3*time.Second)
+	ui.Press("id:ef-library-delete-Test library")
 	ui.WaitFor("id:ef-library-delete-dialog", 2*time.Second)
 	ui.Press("id:ef-library-delete-confirm")
-	ui.WaitForGone("text:Test library", 3*time.Second)
+	ui.WaitForGone("id:ef-library-browse-Test library", 3*time.Second)
 	if err := check.DB().QueryRowContext(ctx,
 		`SELECT COUNT(*) FROM emission_factor WHERE source = 'user:Test library'`).Scan(&count); err != nil {
 		t.Fatal(err)
@@ -503,7 +580,9 @@ func TestAuditExportThroughUI(t *testing.T) {
 	ui.Press("id:activity-save")
 	ui.WaitFor("text:100.00", 3*time.Second)
 	ui.Press("id:nav:audit")
-	ui.WaitFor("text:Activity data created", 3*time.Second)
+	ui.WaitUntil(3*time.Second, func() bool {
+		return len(ui.Query("text:Activity data created")) > 0
+	})
 	ui.Press("id:audit-export")
 	ui.WaitFor("text:Exported 1 rows", 3*time.Second)
 	data, err := os.ReadFile(savePath)
@@ -534,7 +613,9 @@ func TestCreateSourceThroughUI(t *testing.T) {
 	ui.Press("id:source-add-category-select-1")
 	ui.Press("id:source-add-save")
 	ui.WaitFor("text:Diesel fleet", 3*time.Second)
-	ui.WaitFor("text:Mobile combustion", 2*time.Second)
+	ui.WaitUntil(2*time.Second, func() bool {
+		return len(ui.Query("text:Mobile combustion")) > 0
+	})
 
 	ctx := context.Background()
 	check, err := store.Open(ctx, dbPath)
@@ -671,10 +752,7 @@ func TestAddSourcesFromCatalog(t *testing.T) {
 func TestUploadDocumentsThroughUI(t *testing.T) {
 	dbPath := fixtureDB(t)
 	t.Setenv("CARBONINK_TEST_DB", dbPath)
-	fixture, err := os.ReadFile(filepath.Join("..", "..", "internal", "spike", "fixtures", "pdf", "two-page-text.pdf"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	fixture := readFixturePDF(t, "two-page-text.pdf")
 	pdfPath := filepath.Join(t.TempDir(), "bill.pdf")
 	if err := os.WriteFile(pdfPath, fixture, 0o644); err != nil {
 		t.Fatal(err)
@@ -689,22 +767,24 @@ func TestUploadDocumentsThroughUI(t *testing.T) {
 	}
 	ui.Press("id:nav:documents")
 	ui.WaitFor("id:documents-upload", 3*time.Second)
-	ui.WaitFor("text:No documents yet", 2*time.Second)
+	ui.WaitUntil(2*time.Second, func() bool {
+		return len(ui.Query("text:No documents yet")) > 0
+	})
 	ui.Press("id:documents-upload")
 	ui.WaitFor("text:bill.pdf", 5*time.Second)
 	ui.WaitFor("text:Uploaded 2 · 0 failed", 3*time.Second)
-	ui.Press("text:Details")
+	ui.Press("text:bill.pdf")
 	ui.WaitFor("id:documents-detail-dialog", 3*time.Second)
 	ui.WaitFor("text:Test content for Phase 1c pdfToImages.", 10*time.Second)
 	ui.WaitFor("text:2 pages", 3*time.Second)
 	ui.WaitFor("text:No activities are linked to this file yet.", 3*time.Second)
-	ui.Press("id:documents-detail-close")
-	ui.Press("text:Preview")
+	ui.Press("id:documents-detail-preview")
 	ui.WaitFor("id:documents-preview-dialog", 5*time.Second)
 	ui.WaitFor("text:Page 1 of 2", 10*time.Second)
 	ui.Press("id:documents-preview-next")
 	ui.WaitFor("text:Page 2 of 2", 10*time.Second)
 	ui.Press("id:documents-preview-close")
+	ui.Press("id:documents-detail-close")
 
 	ctx := context.Background()
 	check, err := store.Open(ctx, dbPath)
@@ -762,7 +842,9 @@ func TestPreviewImageThroughUI(t *testing.T) {
 	ui.WaitFor("id:documents-upload", 3*time.Second)
 	ui.Press("id:documents-upload")
 	ui.WaitFor("text:meter.png", 5*time.Second)
-	ui.Press("text:Preview")
+	ui.Press("text:meter.png")
+	ui.WaitFor("id:documents-detail-dialog", 3*time.Second)
+	ui.Press("id:documents-detail-preview")
 	ui.WaitFor("id:documents-preview-dialog", 5*time.Second)
 	ui.WaitFor("id:documents-preview-image", 5*time.Second)
 	ui.Press("id:documents-preview-close")
@@ -774,10 +856,7 @@ func TestPreviewImageThroughUI(t *testing.T) {
 func TestRunDocumentExtractionThroughUI(t *testing.T) {
 	dbPath := fixtureDB(t)
 	t.Setenv("CARBONINK_TEST_DB", dbPath)
-	fixture, err := os.ReadFile(filepath.Join("..", "..", "internal", "spike", "fixtures", "pdf", "two-page-text.pdf"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	fixture := readFixturePDF(t, "two-page-text.pdf")
 	pdfPath := filepath.Join(t.TempDir(), "bill.pdf")
 	if err := os.WriteFile(pdfPath, fixture, 0o644); err != nil {
 		t.Fatal(err)
@@ -817,8 +896,7 @@ func TestRunDocumentExtractionThroughUI(t *testing.T) {
 	ui.WaitFor("id:documents-upload", 3*time.Second)
 	ui.Press("id:documents-upload")
 	ui.WaitFor("text:bill.pdf", 5*time.Second)
-	ui.WaitFor("text:No extractions", 3*time.Second)
-	ui.Press("text:Details")
+	ui.Press("text:bill.pdf")
 	ui.WaitFor("id:documents-detail-dialog", 3*time.Second)
 	ui.WaitFor("text:AI extraction", 3*time.Second)
 	ui.Press("id:documents-extraction-run")
@@ -828,8 +906,8 @@ func TestRunDocumentExtractionThroughUI(t *testing.T) {
 	ui.WaitFor("id:documents-detail-dialog >> text:Needs review", 3*time.Second)
 	ui.Press("id:documents-detail-close")
 	ui.WaitForGone("id:documents-detail-dialog", 3*time.Second)
-	ui.WaitFor("text:Needs review", 3*time.Second)
-	ui.Press("text:Details")
+	ui.WaitFor("text:bill.pdf", 3*time.Second)
+	ui.Press("text:bill.pdf")
 	ui.WaitFor("id:documents-detail-dialog", 3*time.Second)
 	ui.Press("id:documents-extraction-confirm")
 	ui.WaitFor("id:documents-extraction-activity-dialog", 3*time.Second)
@@ -839,7 +917,7 @@ func TestRunDocumentExtractionThroughUI(t *testing.T) {
 	ui.WaitFor("text:1 linked", 3*time.Second)
 	ui.Press("id:documents-detail-close")
 	ui.WaitForGone("id:documents-detail-dialog", 3*time.Second)
-	ui.WaitFor("text:Confirmed", 3*time.Second)
+	ui.WaitFor("text:bill.pdf", 3*time.Second)
 	if calls.Load() != 1 {
 		t.Errorf("extraction model calls = %d, want 1", calls.Load())
 	}
@@ -914,7 +992,7 @@ func TestRunDocumentExtractionVisionThroughUI(t *testing.T) {
 	ui.WaitFor("id:documents-upload", 3*time.Second)
 	ui.Press("id:documents-upload")
 	ui.WaitFor("text:scan.pdf", 5*time.Second)
-	ui.Press("text:Details")
+	ui.Press("text:scan.pdf")
 	ui.WaitFor("id:documents-detail-dialog", 3*time.Second)
 	ui.Press("id:documents-extraction-run")
 	ui.WaitFor("text:Extraction ready for review", 20*time.Second)
@@ -930,11 +1008,7 @@ func TestRunDocumentExtractionVisionThroughUI(t *testing.T) {
 func TestBatchExtractionThroughUI(t *testing.T) {
 	dbPath := fixtureDB(t)
 	t.Setenv("CARBONINK_TEST_DB", dbPath)
-	fixture, err := os.ReadFile(filepath.Join("..", "..", "internal", "spike", "fixtures", "pdf",
-		"two-page-text.pdf"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	fixture := readFixturePDF(t, "two-page-text.pdf")
 	dir := t.TempDir()
 	textPath := filepath.Join(dir, "bill.pdf")
 	if err := os.WriteFile(textPath, fixture, 0o644); err != nil {
@@ -1019,7 +1093,7 @@ func TestBatchExtractionThroughUI(t *testing.T) {
 	ui.Press("id:documents-batch")
 	ui.WaitFor("text:Batch recognition done: 2 ok · 0 failed", 60*time.Second)
 	for _, id := range ids {
-		ui.WaitFor("id:documents-status-"+id+" >> text:Needs review", 5*time.Second)
+		ui.WaitFor("id:documents-status-"+id, 5*time.Second)
 	}
 	ui.Type("id:documents-search", "bill")
 	ui.WaitForGone("text:scan.pdf", 3*time.Second)
@@ -1027,15 +1101,11 @@ func TestBatchExtractionThroughUI(t *testing.T) {
 	ui.Press("id:documents-filter-clear")
 	ui.WaitFor("text:scan.pdf", 3*time.Second)
 
-	ui.Press("id:documents-filter-status")
-	ui.WaitFor("id:documents-filter-status-3", 2*time.Second)
-	ui.Press("id:documents-filter-status-3")
+	ui.Press("id:documents-filter-rejected")
 	ui.WaitFor("text:No matching documents", 3*time.Second)
-	ui.Press("id:documents-filter-status")
-	ui.WaitFor("id:documents-filter-status-2", 2*time.Second)
-	ui.Press("id:documents-filter-status-2")
+	ui.Press("id:documents-filter-review_needed")
 	for _, id := range ids {
-		ui.WaitFor("id:documents-status-"+id+" >> text:Needs review", 3*time.Second)
+		ui.WaitFor("id:documents-status-"+id, 3*time.Second)
 	}
 	if classifyCalls.Load() != 2 || extractCalls.Load() != 2 {
 		t.Errorf("calls = classify %d, extract %d", classifyCalls.Load(), extractCalls.Load())
@@ -1066,11 +1136,7 @@ func TestBatchExtractionThroughUI(t *testing.T) {
 func TestBatchExtractionCancelThroughUI(t *testing.T) {
 	dbPath := fixtureDB(t)
 	t.Setenv("CARBONINK_TEST_DB", dbPath)
-	fixture, err := os.ReadFile(filepath.Join("..", "..", "internal", "spike", "fixtures", "pdf",
-		"two-page-text.pdf"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	fixture := readFixturePDF(t, "two-page-text.pdf")
 	pdfPath := filepath.Join(t.TempDir(), "bill.pdf")
 	if err := os.WriteFile(pdfPath, fixture, 0o644); err != nil {
 		t.Fatal(err)
@@ -1133,7 +1199,7 @@ func TestBatchExtractionCancelThroughUI(t *testing.T) {
 
 func configureLLMEndpoint(t *testing.T, ui *nsgotest.App, baseURL string) {
 	t.Helper()
-	ui.Press("id:nav:settings")
+	openSettings(ui, "ai")
 	ui.WaitFor("id:settings-llm-base-url", 3*time.Second)
 	ui.Clear("id:settings-llm-base-url")
 	ui.Type("id:settings-llm-base-url", baseURL)

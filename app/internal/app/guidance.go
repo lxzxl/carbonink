@@ -102,24 +102,23 @@ func (g *guidance) render(cx *core.Scope, s *Session, ready func() bool) core.No
 	colors := ui.ColorsOf(cx)
 	return core.View{
 		TestID: "guidance-" + g.id,
-		Style:  core.Style{Gap: 8, Padding: core.All(14), CornerRadius: ui.RadiusCard, BorderWidth: 1},
+		Style: core.Style{Gap: 8, Padding: core.All(14), CornerRadius: ui.RadiusCard,
+			BorderWidth: 1, Margin: core.Edges{Top: 12, Left: 16, Right: 16, Bottom: 12}},
 		StyleFunc: func() core.Style {
 			return core.Style{BorderColor: ui.Alpha(colors.Accent(), 0.45),
 				Background: ui.Alpha(colors.Accent(), 0.06)}
 		},
 		Children: []core.Node{
-			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8},
-				Children: []core.Node{
-					core.Text{Content: current.title(cx), Style: core.Style{FontSize: 13, FontWeight: ui.Semibold},
-						MaxLines: 1},
-					status,
-					core.View{Style: core.Style{FlexGrow: 1}},
-					ui.Button{Text: locales.GuidanceSkip(cx), Variant: ui.ButtonGhost, OnPress: finish,
-						TestID: "guidance-" + g.id + "-skip"},
-				}},
+			core.Text{Content: current.title(cx), Style: core.Style{FontSize: 14,
+				FontWeight: ui.Semibold}, MaxLines: 2},
+			core.View{Style: core.Style{Direction: core.Row}, Children: []core.Node{status}},
 			core.Text{Content: current.body(cx), Style: core.Style{FontSize: 12},
-				StyleFunc: ui.Colored(colors.Muted), MaxLines: 5},
-			core.View{Style: core.Style{Direction: core.Row, Gap: 8}, Children: nav},
+				StyleFunc: ui.Colored(colors.Muted), MaxLines: 6},
+			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+				Wrap: core.Wrap, Gap: 8}, Children: append(nav,
+				core.View{Style: core.Style{FlexGrow: 1}},
+				ui.Button{Text: locales.GuidanceSkip(cx), Variant: ui.ButtonGhost,
+					OnPress: finish, TestID: "guidance-" + g.id + "-skip"})},
 		},
 	}
 }

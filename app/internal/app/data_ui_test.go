@@ -41,7 +41,7 @@ func TestDataExportWritesAValidBackup(t *testing.T) {
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}))
 	ui.SaveFile = func(core.SaveRequest) string { return savePath }
-	ui.Press("id:nav:settings")
+	openSettings(ui, "data")
 	ui.WaitFor("id:data-export", 5*time.Second)
 	ui.Press("id:data-export")
 	ui.WaitFor("text:Backup saved", 5*time.Second)
@@ -87,7 +87,7 @@ func TestDataImportValidatesAndRestarts(t *testing.T) {
 
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}))
-	ui.Press("id:nav:settings")
+	openSettings(ui, "data")
 	ui.WaitFor("id:data-import", 5*time.Second)
 
 	// A text file fails validation before anything is replaced.
@@ -124,7 +124,7 @@ func TestDataResetRequiresTheTypedWord(t *testing.T) {
 	t.Setenv("CARBONINK_TEST_DB", fixture)
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}))
-	ui.Press("id:nav:settings")
+	openSettings(ui, "data")
 	ui.WaitFor("id:data-reset-input", 5*time.Second)
 
 	if ui.Enabled("id:data-reset") {
@@ -155,7 +155,7 @@ func TestDataAutoBackupToggleAndFolder(t *testing.T) {
 	t.Setenv("CARBONINK_TEST_DB", fixture)
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}))
-	ui.Press("id:nav:settings")
+	openSettings(ui, "data")
 	ui.WaitFor("id:data-auto-backup-toggle", 5*time.Second)
 
 	ui.Press("id:data-auto-backup-toggle")
@@ -205,7 +205,7 @@ func TestDataCacheClearDropsRawResponses(t *testing.T) {
 
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}))
-	ui.Press("id:nav:settings")
+	openSettings(ui, "data")
 	ui.WaitFor("id:data-cache-summary", 5*time.Second)
 	ui.WaitFor("text:1 cached LLM responses", 2*time.Second)
 	ui.Press("id:data-cache-clear")

@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -21,12 +22,25 @@ import (
 	"github.com/nsgo-dev/nsgo/nsgotest"
 )
 
-func fixturePDF(t *testing.T) string {
+// readFixturePDF reads a bundled sample PDF by source-relative path, so the
+// NSGo macOS runner (which launches the binary from a temporary directory)
+// finds it just as `go test` does.
+func readFixturePDF(t *testing.T, name string) []byte {
 	t.Helper()
-	data, err := os.ReadFile(filepath.Join("..", "..", "internal", "spike", "fixtures", "pdf", "two-page-text.pdf"))
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("locate the test source")
+	}
+	data, err := os.ReadFile(filepath.Join(filepath.Dir(file), "..", "spike", "fixtures", "pdf", name))
 	if err != nil {
 		t.Fatal(err)
 	}
+	return data
+}
+
+func fixturePDF(t *testing.T) string {
+	t.Helper()
+	data := readFixturePDF(t, "two-page-text.pdf")
 	path := filepath.Join(t.TempDir(), "bill.pdf")
 	if err := os.WriteFile(path, data, 0o644); err != nil {
 		t.Fatal(err)
@@ -101,6 +115,10 @@ func TestActivityDropzoneExtractsAndPrefills(t *testing.T) {
 	ui.WaitFor("text:2025-09-01", 3*time.Second)
 	ui.WaitFor("id:activity-ef-recommend-0", 5*time.Second)
 	ui.WaitFor("text:Best match for grid power.", 3*time.Second)
+	ui.WaitFor("id:activity-dropzone >> text:bill.pdf", 3*time.Second)
+	ui.WaitFor("id:activity-dropzone >> text:Recognized", 3*time.Second)
+	ui.Press("id:activity-drop-reset")
+	ui.WaitFor("id:activity-drop-pick", 3*time.Second)
 	ui.Press("id:activity-ef-recommend-0")
 	ui.Press("id:activity-save")
 	ui.WaitFor("text:523.50", 5*time.Second)

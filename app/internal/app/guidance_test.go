@@ -26,9 +26,9 @@ func TestTourRunsOnceAndReplays(t *testing.T) {
 	ui.WaitForGone("id:guidance-questionnaires", 3*time.Second)
 
 	ui.Press("id:nav:documents")
-	ui.WaitFor("id:documents-search", 3*time.Second)
+	ui.WaitFor("id:documents-upload", 3*time.Second)
 	ui.Press("id:nav:questionnaires")
-	ui.WaitFor("id:questionnaires-search", 3*time.Second)
+	ui.WaitFor("id:questionnaires-new", 3*time.Second)
 	ui.WaitForGone("id:guidance-questionnaires", time.Second)
 
 	ui.Press("id:nav:settings")
@@ -39,9 +39,9 @@ func TestTourRunsOnceAndReplays(t *testing.T) {
 	ui.WaitFor("id:guidance-questionnaires", 3*time.Second)
 
 	ui.Press("id:nav:settings")
-	ui.WaitFor("id:settings-guidance-toggle", 3*time.Second)
-	ui.Press("id:settings-guidance-toggle")
+	ui.WaitFor("id:settings-guidance-off", 3*time.Second)
+	ui.Press("id:settings-guidance-off")
 	ui.Press("id:nav:questionnaires")
-	ui.WaitFor("id:questionnaires-search", 3*time.Second)
+	ui.WaitFor("id:questionnaires-new", 3*time.Second)
 	ui.WaitForGone("id:guidance-questionnaires", time.Second)
 }

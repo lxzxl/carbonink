@@ -40,7 +40,7 @@ func activitySortOptions(cx *core.Scope) []ui.Option[activitySort] {
 // row-level provenance, and actions. The list virtualizes rows, so a large
 // workspace does not build every activity up front.
 func (s *Session) activitiesScreen(cx *core.Scope, dataRev *core.Signal[int],
-	active *core.Signal[Screen]) core.Node {
+	nav *screenNav) core.Node {
 	search := core.NewSignal(cx, "")
 	scope := core.NewSignal(cx, 0)
 	defaultPeriod := ""
@@ -180,7 +180,7 @@ func (s *Session) activitiesScreen(cx *core.Scope, dataRev *core.Signal[int],
 
 	lineagePanel := newLineagePanel(cx)
 	rebindPanel := newRebindPanel(cx, s, dataRev)
-	editDialog, _ := s.editableActivityDialog(cx, selectedID, dataRev)
+	editDialog, showEdit := s.editableActivityDialog(cx, selectedID, dataRev)
 	addTrigger, addDialog, showAdd := s.activityDialogPartsWithShow(cx, dataRev)
 	importTrigger, importDialog, showImport := s.activityImportDialogPartsWithShow(cx, dataRev)
 	if s.pendingNewActivity {
@@ -258,21 +258,20 @@ func (s *Session) activitiesScreen(cx *core.Scope, dataRev *core.Signal[int],
 	headerActions := []core.Node{
 		core.Show{When: func() bool { return len(s.activities) > 0 }, Then: func(*core.Scope) core.Node {
 			return core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8},
-				Children: []core.Node{addTrigger, importTrigger}}
+				Children: []core.Node{importTrigger, addTrigger}}
 		}},
-		addDialog,
-		importDialog,
-		editDialog,
-		rebindPanel.drawer(cx, s),
+	}
+	selectionActions := []core.Node{
 		s.deleteActivityButton(cx, selectedID, dataRev),
-		ui.Button{Text: locales.LineageOpenButton(cx), Variant: ui.ButtonSecondary,
+		ui.Button{Text: locales.DataEditActivity(cx), Variant: ui.ButtonSecondary,
 			Disabled: func() bool { return selectedActivity() == "" },
 			OnPress: func() {
 				id := selectedActivity()
 				if id != "" {
-					lineagePanel.show(cx, s, "activity_data", id)
+					selectActivity(id)
+					showEdit()
 				}
-			}, TestID: "activity-lineage"},
+			}, TestID: "activity-edit"},
 	}
 
 	listEmpty := core.Dynamic(func(cx *core.Scope) core.Node {
@@ -295,7 +294,7 @@ func (s *Session) activitiesScreen(cx *core.Scope, dataRev *core.Signal[int],
 			children = append(children, ui.Button{Text: locales.ActivitiesEmptyNoSourcesCta(cx),
 				OnPress: func() {
 					s.pendingSourceCatalog = true
-					active.Set(ScreenSources)
+					nav.Set(ScreenSources)
 				}, TestID: "activities-empty-sources"})
 		default:
 			children = append(children,
@@ -352,7 +351,7 @@ func (s *Session) activitiesScreen(cx *core.Scope, dataRev *core.Signal[int],
 				children = append(children, activityProvenanceLink(cx, lucide.Download, label,
 					"activity-supplier-"+current.ID, func() {
 						s.pendingSupplierDisclosure = current.InboundQuestionnaireID
-						active.Set(ScreenSupplierDisclosures)
+						nav.Set(ScreenSupplierDisclosures)
 					}))
 			case current.FromLedgerImport:
 				children = append(children, ui.Icon(lucide.FileSpreadsheet, 12, ui.ColorsOf(cx).Muted),
@@ -379,34 +378,34 @@ func (s *Session) activitiesScreen(cx *core.Scope, dataRev *core.Signal[int],
 		}
 
 		children := []core.Node{
-			core.View{Style: core.Style{Gap: 3, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
+			core.View{Style: core.Style{Gap: 4, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
 				Children: []core.Node{
 					core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8},
 						Children: []core.Node{
 							core.Text{ContentFunc: text(func(a store.Activity) string { return a.Source }),
-								Style: core.Style{FontSize: 13, FontWeight: ui.Semibold,
-									FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 1},
+								Style: core.Style{FontSize: 16, FontWeight: ui.Medium,
+									FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 1},
 							core.Text{ContentFunc: text(func(a store.Activity) string { return dataActivityDate(a) }),
-								Style:     core.Style{FontSize: 11, FlexShrink: 0},
+								Style:     core.Style{FontSize: 12, FlexShrink: 0},
 								StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
 						}},
-					core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 4},
+					core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 6},
 						Children: []core.Node{
 							core.Text{ContentFunc: text(func(a store.Activity) string {
 								return commaFloat(a.Amount) + " " + a.Unit
-							}), Style: core.Style{FontSize: 12, FlexShrink: 1, MinWidth: core.Pt(0)},
+							}), Style: core.Style{FontSize: 14, FlexShrink: 1, MinWidth: core.Pt(0)},
 								MaxLines: 1},
-							core.Text{Content: "→", Style: core.Style{FontSize: 12},
+							core.Text{Content: "→", Style: core.Style{FontSize: 14},
 								StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 							core.Text{ContentFunc: text(func(a store.Activity) string {
 								return commaFloat(a.CO2eKg) + " " + locales.UnitKgCo2e(cx)
-							}), Style: core.Style{FontSize: 12, FontWeight: ui.Medium,
+							}), Style: core.Style{FontSize: 14, FontWeight: ui.Medium,
 								FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 1},
 						}},
 					core.Text{ContentFunc: text(func(a store.Activity) string {
 						return a.EFFactorCode + " (" + a.EFSource + " · " + strconv.Itoa(a.EFYear) +
 							" · " + a.EFGeography + ")"
-					}), Style: core.Style{FontSize: 11, FontFamily: ui.Mono, FlexShrink: 1,
+					}), Style: core.Style{FontSize: 12, FontFamily: ui.Mono, FlexShrink: 1,
 						MinWidth: core.Pt(0)},
 						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
 					provenance(cx),
@@ -418,7 +417,7 @@ func (s *Session) activitiesScreen(cx *core.Scope, dataRev *core.Signal[int],
 						rowAction(func() {
 							lineagePanel.show(cx, s, "activity_data", selectedActivity())
 						})
-					}},
+					}, TestID: "activity-lineage"},
 				ui.Button{Text: locales.RebindButton(cx), Variant: ui.ButtonGhost, Size: ui.SizeSmall,
 					OnPress: func() {
 						rowAction(func() {
@@ -432,114 +431,108 @@ func (s *Session) activitiesScreen(cx *core.Scope, dataRev *core.Signal[int],
 			if current, ok := activity(); ok && current.ID == highlightID.Get() {
 				return core.Style{Background: ui.Alpha(ui.ColorsOf(cx).Warn(), 0.12)}
 			}
-			return core.Style{}
+			return core.Style{Hover: &core.Style{
+				Background: ui.Alpha(ui.ColorsOf(cx).Text(), 0.03)}}
 		}, Children: children}
 	}
 
-	return core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0),
-		Padding: core.All(16), Gap: 10}, Children: []core.Node{
-		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Wrap: core.Wrap,
-			Gap: 8}, Children: append([]core.Node{
-			core.Text{ContentFunc: func() string {
-				rows := visible.Get()
-				n := len(rows)
-				if filtersActive() {
-					return countPhrase(n,
-						func() string { return locales.ActivitiesCountOne(cx, n) },
-						func() string { return locales.ActivitiesCount(cx, n) }) +
-						" / " + locales.ActivitiesCount(cx, len(s.activities))
-				}
-				return countPhrase(n,
-					func() string { return locales.ActivitiesCountOne(cx, n) },
-					func() string { return locales.ActivitiesCount(cx, n) })
-			}, Style: core.Style{FontSize: 12, FontWeight: ui.Semibold},
-				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-			core.View{Style: core.Style{FlexGrow: 1}},
-		}, headerActions...)},
-		core.Show{When: func() bool {
-			_ = dataRev.Get()
-			return len(s.activities) > 0
-		}, Then: func(cx *core.Scope) core.Node {
-			return core.View{Style: core.Style{Gap: 8}, Children: []core.Node{
-				core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
-					Wrap: core.Wrap, Gap: 8}, Children: []core.Node{
-					core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(180)},
-						Children: []core.Node{
-							ui.Input{Value: search.Get,
-								Placeholder: locales.ActivitiesSearchPlaceholder(cx),
-								OnChange: func(value string) {
-									search.Set(value)
-									clearSelection()
-								}, TestID: "activities-search", Role: core.RoleSearchField,
-								LabelFunc: func() string {
-									return locales.ActivitiesSearchPlaceholder(cx)
-								}},
-						}},
-					ui.Select[activitySort]{Options: activitySortOptions(cx), Value: order.Get,
-						OnChange: order.Set, Label: locales.SortLabel(cx), TestID: "activities-sort",
-						Style: core.Style{Width: core.Pt(180)}},
-					core.Show{When: func() bool { return len(s.periods) > 1 },
-						Then: func(cx *core.Scope) core.Node {
-							return ui.Select[string]{Options: periodOptions, Value: period.Get,
-								OnChange: func(value string) {
-									period.Set(value)
-									clearSelection()
-								}, Label: locales.ActivitiesFormPeriod(cx), TestID: "activities-period",
-								Style: core.Style{Width: core.Pt(130)}}
-						}},
-					core.Show{When: filtersActive, Then: func(*core.Scope) core.Node {
-						return ui.Button{Text: locales.ActivitiesFilterClear(cx),
-							Variant: ui.ButtonGhost, TestID: "activities-filter-clear",
-							OnPress: clearFilters}
-					}},
+	header := []core.Node{pageHeading(cx, locales.NavActivities)}
+	if len(headerActions) > 0 {
+		header = []core.Node{pageHeading(cx, locales.NavActivities, headerActions...)}
+	}
+	top := []core.Node{header[0]}
+	top = append(top, core.Show{When: func() bool {
+		_ = dataRev.Get()
+		return len(s.activities) > 0
+	}, Then: func(cx *core.Scope) core.Node {
+		searchRow := searchField(cx, search.Get, locales.ActivitiesSearchPlaceholder(cx),
+			func(value string) {
+				search.Set(value)
+				clearSelection()
+			}, "activities-search")
+		segments := make([]segment, 0, len(scopeOptions))
+		for _, option := range scopeOptions {
+			option := option
+			segments = append(segments, segment{Value: option.Value, Label: func(cx *core.Scope) string {
+				return option.Label
+			}, Count: func() int { return scopeCounts.Get()[option.Value] }, TestID: option.TestID})
+		}
+		rightControls := core.View{Style: core.Style{Direction: core.Row,
+			AlignItems: core.AlignCenter, Wrap: core.Wrap, Gap: 8,
+			AutoMargin: core.SideLeft, FlexShrink: 0}, Children: []core.Node{
+			core.Show{When: func() bool { return len(s.periods) > 1 },
+				Then: func(cx *core.Scope) core.Node {
+					return appSelect[string]{Options: periodOptions, Value: period.Get,
+						OnChange: func(value string) {
+							period.Set(value)
+							clearSelection()
+						}, Label: locales.ActivitiesFormPeriod(cx), TestID: "activities-period",
+						Style: core.Style{Width: core.Pt(130)}}
 				}},
-				ui.Tabs[int]{Options: scopeOptions, Value: scope.Get, Size: ui.SizeSmall,
-					Label: locales.SourcesFormScope(cx),
-					OnChange: func(value int) {
-						scope.Set(value)
-						clearSelection()
-					}, TestID: "activities-scope-filter"},
-			}}
-		}},
-		ui.List{
-			TestID: "activities-table", Label: locales.ActivitiesTitle(cx),
-			Ref:   listRef,
-			Count: func() int { return len(visible.Get()) },
-			Key:   func(index int) any { return visible.Get()[index].ID },
-			Row:   rowNode,
-			RowLabel: func(index int) string {
-				rows := visible.Get()
-				if index < 0 || index >= len(rows) {
-					return ""
-				}
-				return rows[index].Source + " · " + dataActivityDate(rows[index])
-			},
-			Selection: selection,
-			OnSelectionChange: func(chosen *ui.Selection) {
-				keys := chosen.Keys()
-				if len(keys) == 0 {
-					selectedID.Set("")
-					return
-				}
-				if id, ok := keys[len(keys)-1].(string); ok {
-					selectedID.Set(id)
-				}
-			},
-			Empty:         listEmpty,
-			EstimatedSize: 96,
-			Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0),
-				CornerRadius: 8, BorderWidth: 1, BorderColor: ui.ColorsOf(cx).Border(),
-				Background: ui.ColorsOf(cx).Surface()},
-			ListStyle: core.Style{Padding: core.All(0)},
-			RowStyle: core.Style{Padding: core.Symmetric(10, 12), AlignItems: core.AlignStart,
-				CornerRadius: 0},
-			RowStyleFunc: func() core.Style {
-				return core.Style{Borders: core.Edges{Bottom: 1}, BorderColor: ui.ColorsOf(cx).Line()}
-			},
+			core.Show{When: filtersActive, Then: func(*core.Scope) core.Node {
+				return ui.Button{Text: locales.ActivitiesFilterClear(cx),
+					Variant: ui.ButtonGhost, TestID: "activities-filter-clear",
+					OnPress: clearFilters}
+			}},
+			core.Show{When: func() bool { return selectedActivity() != "" },
+				Then: func(*core.Scope) core.Node {
+					return core.View{Style: core.Style{Direction: core.Row, Gap: 8},
+						Children: selectionActions}
+				}},
+			sortMenu(cx, activitySortOptions(cx), order.Get, order.Set, "activities-sort"),
+		}}
+		return core.View{Style: core.Style{Gap: 12}, Children: []core.Node{
+			searchRow,
+			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+				Wrap: core.Wrap, Gap: 8}, Children: []core.Node{
+				segmentedControl(cx, segments, scope.Get, func(value int) {
+					scope.Set(value)
+					clearSelection()
+				}, false),
+				rightControls,
+			}},
+		}}
+	}})
+
+	overlays := []core.Node{addDialog, importDialog, editDialog, rebindPanel.drawer(cx, s),
+		s.documentPreviewDialog(cx, preview), lineagePanel.drawer(cx, s)}
+	list := ui.List{
+		TestID: "activities-table", Label: locales.ActivitiesTitle(cx),
+		Ref:   listRef,
+		Count: func() int { return len(visible.Get()) },
+		Key:   func(index int) any { return visible.Get()[index].ID },
+		Row:   rowNode,
+		RowLabel: func(index int) string {
+			rows := visible.Get()
+			if index < 0 || index >= len(rows) {
+				return ""
+			}
+			return rows[index].Source + " · " + dataActivityDate(rows[index])
 		},
-		lineagePanel.drawer(cx, s),
-		s.documentPreviewDialog(cx, preview),
-	}}
+		Selection: selection,
+		OnSelectionChange: func(chosen *ui.Selection) {
+			keys := chosen.Keys()
+			if len(keys) == 0 {
+				selectedID.Set("")
+				return
+			}
+			if id, ok := keys[len(keys)-1].(string); ok {
+				selectedID.Set(id)
+			}
+		},
+		Empty:         listEmpty,
+		EstimatedSize: 96,
+		Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0),
+			CornerRadius: 8, BorderWidth: 1, BorderColor: ui.ColorsOf(cx).Border(),
+			Background: ui.ColorsOf(cx).Surface()},
+		ListStyle: core.Style{Padding: core.All(0)},
+		RowStyle: core.Style{Padding: core.Symmetric(12, 16), AlignItems: core.AlignStart,
+			CornerRadius: 0},
+		RowStyleFunc: func() core.Style {
+			return core.Style{Borders: core.Edges{Bottom: 1}, BorderColor: ui.ColorsOf(cx).Line()}
+		},
+	}
+	return appFixedPage(append(append(top, list), overlays...)...)
 }
 
 func dataActivityDate(activity store.Activity) string {

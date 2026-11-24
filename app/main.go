@@ -22,10 +22,13 @@ func main() {
 		mcp.Main()
 		return
 	}
-	opts := []nsgo.Option{nsgo.WindowSize(1280, 820)}
+	opts := []nsgo.Option{
+		nsgo.WindowSize(1400, 900),
+		nsgo.WindowConstraints(core.WindowConstraints{MinWidth: 960, MinHeight: 600}),
+	}
 	dataDir := platform.DataDir("app.carbonink.desktop.beta")
 	if settings, err := prefs.Load(prefs.Path(dataDir)); err == nil {
-		if w := settings.Window; w != nil && w.Width >= 640 && w.Height >= 480 {
+		if w := settings.Window; w != nil && w.Width >= 960 && w.Height >= 600 {
 			opts = append(opts, nsgo.WindowFrame(core.WindowFrame{
 				X: core.Points(w.X), Y: core.Points(w.Y),
 				Width: core.Points(w.Width), Height: core.Points(w.Height),

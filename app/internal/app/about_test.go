@@ -18,7 +18,7 @@ func TestSettingsAboutShowsRuntimeAndActions(t *testing.T) {
 	t.Setenv("CARBONINK_TEST_DB", fixtureDB(t))
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}))
-	ui.Press("id:nav:settings")
+	openSettings(ui, "about")
 	ui.WaitFor("id:settings-about", 5*time.Second)
 
 	rowText := func(selector string) string {
@@ -49,16 +49,13 @@ func TestSettingsAboutShowsRuntimeAndActions(t *testing.T) {
 	ui.Press("id:settings-about-open-data")
 	ui.Press("id:settings-about-open-logs")
 	ui.Press("id:settings-about-open-website")
-	ui.Press("id:settings-about-support-copy")
+	ui.Press("id:settings-about-support-link")
 
 	if len(ui.RevealedFiles) != 2 {
 		t.Errorf("revealed %v, want the data and log folders", ui.RevealedFiles)
 	}
-	if !slices.Equal(ui.OpenedURLs, []string{"https://carbonink.xyz"}) {
-		t.Errorf("opened %v, want the website", ui.OpenedURLs)
+	wantURLs := []string{"https://carbonink.xyz", "mailto:support@carbonink.xyz"}
+	if !slices.Equal(ui.OpenedURLs, wantURLs) {
+		t.Errorf("opened %v, want the website and support address", ui.OpenedURLs)
 	}
-	if ui.Clipboard != "support@carbonink.xyz" {
-		t.Errorf("clipboard = %q, want the support address", ui.Clipboard)
-	}
-	ui.WaitFor("text:Copied to clipboard", 2*time.Second)
 }

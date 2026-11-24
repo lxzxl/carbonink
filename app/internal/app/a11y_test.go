@@ -30,8 +30,8 @@ func TestFormFieldsCarryAccessibleLabels(t *testing.T) {
 
 	ui.Press("id:activity-cancel")
 	ui.WaitForGone("id:activity-dialog", 3*time.Second)
-	ui.Press("id:nav:settings")
-	ui.WaitFor("text:Appearance", 3*time.Second)
+	openSettings(ui, "ai")
+	ui.WaitFor("id:settings-llm-model", 3*time.Second)
 	if got := ui.Find("id:settings-llm-model").Props.Label; got != "Model" {
 		t.Fatalf("model label = %q, want Model", got)
 	}
@@ -45,15 +45,14 @@ func TestSearchFieldsAreNamed(t *testing.T) {
 		nsgotest.Environment(core.Environment{Locale: "en-US"}))
 	ui.WaitFor("id:activities-table", 5*time.Second)
 
-	ui.Press("id:nav:documents")
 	ui.WaitFor("role:searchbox", 3*time.Second)
-	if got := ui.Find("id:documents-search").Props.Label; got != "Search by filename" {
-		t.Fatalf("documents search label = %q", got)
+	if got := ui.Find("id:activities-search").Props.Label; got != "Search source, unit, or EF" {
+		t.Fatalf("activities search label = %q", got)
 	}
 
-	ui.Press("id:nav:questionnaires")
+	ui.Press("id:nav:sources")
 	ui.WaitFor("role:searchbox", 3*time.Second)
-	if got := ui.Find("id:questionnaires-search").Props.Label; got != "Search customer name" {
-		t.Fatalf("questionnaires search label = %q", got)
+	if got := ui.Find("id:sources-search").Props.Label; got != "Search by name, category, or GHG path" {
+		t.Fatalf("sources search label = %q", got)
 	}
 }

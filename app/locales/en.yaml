@@ -14,21 +14,20 @@ activitiesCountOne:
             type: int
 activitiesCreateFailed: Failed to create activity
 activitiesCreateSuccess: Activity recorded
-activitiesEmpty: No activity data yet.
-activitiesEmptyBody: Record the consumption behind each source — a meter reading, a fuel receipt, a trip. Drop in a PDF and the fields get filled in for you.
 activitiesDropDone: Filled from {filename}
 activitiesDropHint: Drop a bill or receipt here, or choose a PDF — CarbonInk reads it and fills this form.
 activitiesDropPdfOnly: Only PDF documents can be read here.
 activitiesDropPick: Choose PDF
 activitiesDropUnsupported: This document type cannot prefill an activity.
 activitiesDropWorking: Reading the document…
+activitiesEmpty: No activity data yet.
+activitiesEmptyBody: Record the consumption behind each source — a meter reading, a fuel receipt, a trip. Drop in a PDF and the fields get filled in for you.
 activitiesEmptyNoSourcesBody: Activity data hangs off an emission source, and this organization has none yet. Set one up and you can start recording consumption here.
 activitiesEmptyNoSourcesCta: Set up emission sources
 activitiesEmptyNoSourcesTitle: Add an emission source first
 activitiesEmptyTitle: No activity data yet
 activitiesFilterClear: Clear filters
 activitiesFilterEmpty: No matching activities
-activitiesPeriodAll: All periods
 activitiesFormAmount: Amount
 activitiesFormEf: Emission factor
 activitiesFormEfLoading: Loading emission factors…
@@ -55,6 +54,7 @@ activitiesFromDocument: From {filename}
 activitiesFromLedgerImport: Ledger import
 activitiesFromSupplierDisclosure: From supplier disclosure
 activitiesLoadFailed: Failed to load activities
+activitiesPeriodAll: All periods
 activitiesRecommendEmpty: The model did not return a recommendation; the full list below still applies.
 activitiesRecommendFailed: Could not rank factors; the full list below still applies.
 activitiesRecommendHeading: Recommended factors
@@ -223,6 +223,7 @@ auditNav: Audit log
 auditRebindActivityLabel: Activity
 auditRebindDelta: 'CO2e: {old_co2e} kg → {new_co2e} kg ({delta_signed} kg, {pct_signed}%)'
 auditRebindSummary: 'Rebound activity {activity_id_short}: {old_ef} → {new_ef}'
+auditSelectEvent: Select an event to see its details.
 auditShowRaw: Show raw payload
 auditSortOldest: Oldest first
 auditSortRecent: Most recent
@@ -250,7 +251,6 @@ dashboardInventoryBody: No emission data yet.
 dashboardInventoryTitle: Inventory Dashboard
 dashboardMonthlyTrend: Monthly emissions
 dashboardNoDataForChart: Once activities are recorded, monthly totals appear here.
-dashboardTrendNote: Apportioned by days across each activity's date range.
 dashboardRecentActivities: Recent activities
 dashboardRecentEmpty: No activities yet
 dashboardScope1: Scope 1
@@ -269,6 +269,7 @@ dashboardStartStepDone: Done
 dashboardStartSubtitle: Three steps from an empty workspace to a defensible inventory.
 dashboardStartTitle: Start here
 dashboardTotalCo2e: Total CO2e
+dashboardTrendNote: Apportioned by days across each activity's date range.
 dashboardWelcomeBody: You haven't set up your organization yet. The onboarding wizard will guide you next.
 dashboardWelcomeTitle: Welcome to CarbonInk
 dashboardWidgetViewAll: View all
@@ -330,7 +331,6 @@ documentsBatchReasonClassifyFailed: could not auto-classify — open it and pick
 documentsBatchReasonError: recognition error
 documentsBatchSummaryToast: 'Batch recognition done: {ok} ok · {failed} failed'
 documentsCount: 'Files: {count}'
-documentsSubtitle: Bills, invoices, and other evidence kept with this workspace.
 documentsDetailButton: Details
 documentsDetailCopied: Copied
 documentsDetailCopy: Copy text
@@ -451,16 +451,23 @@ documentsReviewUploadedOn: Uploaded {date}
 documentsReviewViewActivitiesLink: Go to Activities →
 documentsReviewViewActivityLink: View in activities list →
 documentsSearchPlaceholder: Search by filename
+documentsSelectDetail: Select a document to see its details.
 documentsShowingLatest: Showing the latest {shown} of {total}
 documentsSortFilename: Filename A→Z
 documentsSortOldest: Oldest first
 documentsSortRecent: Most recent
+documentsStageChinaUtility: Electricity bill
+documentsStageFreight: Freight invoice
+documentsStageFuelReceipt: Fuel receipt
 documentsStageNoVision: Vision input not yet supported for this stage
+documentsStagePurchase: Purchase invoice
+documentsStageTravel: Travel receipt
 documentsStatusNone: No extractions
 documentsStatusParsed: Confirmed
 documentsStatusRejected: Discarded
 documentsStatusReviewNeeded: Needs review
 documentsStatusUnclassified: Not classified
+documentsSubtitle: Bills, invoices, and other evidence kept with this workspace.
 documentsTableFilename: File
 documentsTableSha: Hash
 documentsTableStatus: Status
@@ -827,8 +834,8 @@ onboardingCompleteFailed: Could not complete onboarding.
 onboardingCreating: Creating organization…
 onboardingEyebrow: Step {current} of {total}
 onboardingFinish: Finish
-onboardingNext: Next
 onboardingNameHint: At least one language is required.
+onboardingNext: Next
 onboardingRequired: Add a company name, a site name, and a reporting year between 2020 and 2030 to finish.
 onboardingRequiredNote: '* Required'
 onboardingStepAiBody: CarbonInk needs an AI provider to parse documents and answer questionnaires. You can configure this later in Settings; skipping is fine for now.
@@ -907,15 +914,15 @@ questionnairesDetailPosition: Cell
 questionnairesDetailQuestion: Question
 questionnairesDetailSelect: Pick a question to edit its answer.
 questionnairesDetailUnit: Unit
+questionnairesDueDate: Due date {date}
 questionnairesEmpty: No disclosure filings yet
-questionnairesEmptyBody: "A disclosure filing starts from a customer's .xlsx worksheet: import it, review the answers, then export the finished workbook."
+questionnairesEmptyBody: 'A disclosure filing starts from a customer''s .xlsx worksheet: import it, review the answers, then export the finished workbook.'
 questionnairesFilterClear: Clear filters
 questionnairesFilterEmpty: No matching disclosure filings
 questionnairesFilterStatusAll: All statuses
 questionnairesFinalizeButton: Finalize answers
 questionnairesListCount: '{count} questionnaires'
 questionnairesListCountOne: '{count} questionnaire'
-questionnairesSubtitle: Filings you send to customers, answered from this inventory.
 questionnairesNewButton: New disclosure filing
 questionnairesQuestionCount: '{count} questions'
 questionnairesSearchPlaceholder: Search customer name
@@ -929,6 +936,7 @@ questionnairesStatusExported: Exported
 questionnairesStatusFinalized: Finalized
 questionnairesStatusMapping: Draft
 questionnairesStatusParsing: Parsing
+questionnairesSubtitle: Filings you send to customers, answered from this inventory.
 questionnairesTableCustomer: Customer
 questionnairesTableDue: Due date
 questionnairesTableQuestions: Questions
@@ -1017,6 +1025,9 @@ rebindPreviewHeading: Preview
 rebindSuccessToast: Rebound — new emissions {co2e} kg CO2e ({pct_signed}%)
 rebindUnitConversion: 'Unit conversion: {from_amt} {from_unit} → {to_amt} {to_unit}'
 rebindUnitCrossFamily: Cross-unit-family change ({from} → {to}). Enter the new activity amount in {to} below — the system will not guess a conversion (e.g. heating value).
+redo: Redo
+redoDone: Redone
+redoFailed: Could not redo the last action.
 reportsCancelButton: Cancel
 reportsDeliverableSuccess: Deliverable bundle saved to {path} ({count} evidence files included)
 reportsDeliverableSuccessMissing: Deliverable bundle saved to {path} — {missing} of {count} evidence files were missing on disk and are flagged in manifest.csv
@@ -1091,6 +1102,7 @@ settingsAboutOpenDataDirHint: Reveals the app's data folder (sqlite database, at
 settingsAboutOpenLogDir: Open log folder
 settingsAboutOpenLogDirFailed: Could not open the log folder.
 settingsAboutOpenLogDirHint: Daily log files for support. Last 14 days are kept.
+settingsAboutOpenSupportFailed: Could not open the support address.
 settingsAboutOpenWebsite: Open website
 settingsAboutOpenWebsiteFailed: Could not open the website.
 settingsAboutPlatform: Platform
@@ -1208,8 +1220,8 @@ settingsImportOutlierBody: During batch ledger import, a row is flagged as a sus
 settingsImportOutlierHeading: Batch-import anomaly detection
 settingsImportOutlierInvalid: Enter a number between 2 and 1000
 settingsImportOutlierLabel: Outlier multiplier (2–1000)
-settingsImportOutlierSaved: Outlier multiplier saved
 settingsImportOutlierSave: Save threshold
+settingsImportOutlierSaved: Outlier multiplier saved
 settingsLanguage: Language
 settingsLanguageChinese: 中文
 settingsLanguageEnglish: English
@@ -1247,11 +1259,11 @@ settingsMcpStepTitle: Step 2 · Configure MCP Clients
 settingsMcpTitle: MCP integration
 settingsMigrationAvailable: A CarbonInk 1.x data folder was found. Its workspaces are imported the first time the new app starts.
 settingsMigrationBackups: The 1.x files are copied, never moved. Backups and attachments are copied too, and the originals stay where they are.
-settingsMigrationCurrentPath: 'Current data folder: {path}'
 settingsMigrationCurrentLabel: Current data folder
+settingsMigrationCurrentPath: 'Current data folder: {path}'
 settingsMigrationImported: Imported from CarbonInk 1.x — this workspace now lives in the new data folder.
-settingsMigrationLegacyPath: 'CarbonInk 1.x data folder: {path}'
 settingsMigrationLegacyLabel: CarbonInk 1.x data folder
+settingsMigrationLegacyPath: 'CarbonInk 1.x data folder: {path}'
 settingsMigrationNone: No CarbonInk 1.x data folder was found on this computer.
 settingsMigrationProviderImported: The AI provider setting was imported from 1.x. Re-enter the API key in AI provider above to keep using document extraction.
 settingsMigrationRevealCurrent: Reveal current folder
@@ -1335,6 +1347,9 @@ settingsSkillActionRemove: Remove
 settingsSkillActionUpdate: Update
 settingsSkillInstallFailed: Skill operation failed
 settingsSkillInstalled: Installed Skill — synced to {count} host(s). Restart your AI agent to use it.
+settingsSkillHostClaudeCode: Claude Code (~/.claude/skills/)
+settingsSkillHostCodex: Codex (~/.codex/skills/)
+settingsSkillHostPi: Pi (~/.pi/agent/skills/)
 settingsSkillLoading: Detecting…
 settingsSkillNoHosts: no agent hosts detected (only ~/.agents/skills/)
 settingsSkillRemoved: Skill removed.
@@ -1358,6 +1373,7 @@ settingsWorkspace: Workspace
 sidebarMcpLabelAvailable: MCP
 sidebarMcpLabelNotBuilt: MCP · Not built
 sidebarMcpLabelPending: MCP · Not configured
+sidebarToggle: Toggle sidebar
 sortLabel: Sort
 sourceEditActiveLabel: Active
 sourceEditCancel: Cancel
@@ -1467,9 +1483,8 @@ supplierDisclosuresDetailTier: Tier {tier}
 supplierDisclosuresDetailTitle: Supplier disclosure
 supplierDisclosuresDetailUnanswered: (Unanswered)
 supplierDisclosuresDue: Due {date}
-supplierDisclosuresEmpty: No supplier disclosures yet.
+supplierDisclosuresEmpty: No supplier disclosures yet. Click "+ New disclosure" (top right) to start collecting Scope 3 Cat 1 data from upstream suppliers.
 supplierDisclosuresEmptyBody: Send a supplier a questionnaire, then track what comes back. Inbound answers can become ledger rows.
-supplierDisclosuresSubtitle: Data requests you send suppliers, and what comes back.
 supplierDisclosuresFileTooLarge: File is too large.
 supplierDisclosuresImportNotTemplate: This workbook is not a CarbonInk disclosure template.
 supplierDisclosuresImportWrongPeriod: This workbook was issued for a different reporting year.
@@ -1500,13 +1515,14 @@ supplierDisclosuresReviewTierOne: Tier 1 — product PCF
 supplierDisclosuresReviewTierTwo: Tier 2 — allocated emissions
 supplierDisclosuresReviewTitle: Review supplier reply
 supplierDisclosuresReviewWarnings: '{count} parse warning(s)'
-supplierDisclosuresSearchPlaceholder: Search suppliers
+supplierDisclosuresSearchPlaceholder: Search supplier name…
 supplierDisclosuresStatusAll: All statuses
 supplierDisclosuresStatusDraft: Draft
 supplierDisclosuresStatusFilter: Status
 supplierDisclosuresStatusIngested: Ingested
 supplierDisclosuresStatusReceived: Received
 supplierDisclosuresStatusSent: Sent
+supplierDisclosuresSubtitle: Data requests you send suppliers, and what comes back.
 supplierDisclosuresWizardCreated: Draft created with {count} questions.
 supplierDisclosuresWizardEmail: Contact email
 supplierDisclosuresWizardFailed: Could not create the disclosure
@@ -1526,9 +1542,6 @@ topbarForward: Go forward
 undo: Undo
 undoDone: Undone
 undoFailed: Could not undo the last action.
-redo: Redo
-redoDone: Redone
-redoFailed: Could not redo the last action.
 unitKgCo2e: kg CO2e
 updaterCheckButton: Check for Updates
 updaterCurrentVersion: 'Current version: {version}'

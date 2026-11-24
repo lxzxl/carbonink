@@ -87,45 +87,39 @@ func (s *Session) reportLogoCard(cx *core.Scope) core.Node {
 			OnPress: pick, TestID: "settings-report-logo-replace"}
 	}
 
-	return core.View{
-		Style: core.Style{Padding: core.All(16), Gap: 10, CornerRadius: 10, BorderWidth: 1},
-		StyleFunc: func() core.Style {
-			return core.Style{Background: ui.ColorsOf(cx).Surface(), BorderColor: ui.ColorsOf(cx).Border()}
-		},
-		Children: []core.Node{
-			core.Text{ContentFunc: func() string { return locales.SettingsReportLogoHeading(cx) },
-				Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}},
-			core.Text{ContentFunc: func() string { return locales.SettingsReportLogoBody(cx) },
-				Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
-			core.Dynamic(func(cx *core.Scope) core.Node {
-				data := logo.Get()
-				actions := core.View{Style: core.Style{Direction: core.Row, Gap: 8},
-					Children: []core.Node{preview(cx)}}
-				if data != nil {
-					actions.Children = append([]core.Node{
-						ui.Image{Source: core.ImageSource{Data: *data}, TestID: "settings-report-logo",
-							ResizeMode: core.Contain,
-							Style:      core.Style{Width: core.Pt(120), Height: core.Pt(48)}},
-					}, actions.Children...)
-					actions.Children = append(actions.Children,
-						ui.Button{Text: locales.SettingsReportLogoClear(cx), Variant: ui.ButtonGhost,
-							OnPress: clear, TestID: "settings-report-logo-clear"})
-				}
-				return actions
-			}),
-			core.Show{When: func() bool { return status.Get() != "" },
-				Then: func(cx *core.Scope) core.Node {
-					return core.Text{ContentFunc: func() string { return status.Get() },
-						Style: core.Style{FontSize: 12},
-						StyleFunc: func() core.Style {
-							if failed.Get() {
-								return ui.Colored(ui.ColorsOf(cx).Danger)()
-							}
-							return ui.Colored(ui.ColorsOf(cx).Muted)()
-						}}
-				}},
-		},
-	}
+	return dataCardFlat(cx,
+		core.Text{ContentFunc: func() string { return locales.SettingsReportLogoHeading(cx) },
+			Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}},
+		core.Text{ContentFunc: func() string { return locales.SettingsReportLogoBody(cx) },
+			Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
+		core.Dynamic(func(cx *core.Scope) core.Node {
+			data := logo.Get()
+			actions := core.View{Style: core.Style{Direction: core.Row, Gap: 8},
+				Children: []core.Node{preview(cx)}}
+			if data != nil {
+				actions.Children = append([]core.Node{
+					ui.Image{Source: core.ImageSource{Data: *data}, TestID: "settings-report-logo",
+						ResizeMode: core.Contain,
+						Style:      core.Style{Width: core.Pt(120), Height: core.Pt(48)}},
+				}, actions.Children...)
+				actions.Children = append(actions.Children,
+					ui.Button{Text: locales.SettingsReportLogoClear(cx), Variant: ui.ButtonGhost,
+						OnPress: clear, TestID: "settings-report-logo-clear"})
+			}
+			return actions
+		}),
+		core.Show{When: func() bool { return status.Get() != "" },
+			Then: func(cx *core.Scope) core.Node {
+				return core.Text{ContentFunc: func() string { return status.Get() },
+					Style: core.Style{FontSize: 12},
+					StyleFunc: func() core.Style {
+						if failed.Get() {
+							return ui.Colored(ui.ColorsOf(cx).Danger)()
+						}
+						return ui.Colored(ui.ColorsOf(cx).Muted)()
+					}}
+			}},
+	)
 }
 
 // logoBytes reads the workspace's current logo for the preview.

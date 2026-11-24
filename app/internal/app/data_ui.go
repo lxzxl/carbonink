@@ -14,6 +14,7 @@ import (
 
 	"github.com/nsgo-dev/nsgo/core"
 	"github.com/nsgo-dev/nsgo/desktop"
+	"github.com/nsgo-dev/nsgo/icons/lucide"
 	"github.com/nsgo-dev/nsgo/ui"
 )
 
@@ -178,56 +179,68 @@ func (s *Session) dataCard(cx *core.Scope) core.Node {
 		return st != nil && st.ExtractionRawCount > 0
 	}
 
-	return dataCard(cx,
-		dataHeading(cx, locales.SettingsDataBackupHeading(cx), locales.SettingsDataBackupBody(cx)),
-		core.View{Style: core.Style{Direction: core.Row, Gap: 8}, Children: []core.Node{
-			ui.Button{Text: locales.SettingsDataExportButton(cx), Variant: ui.ButtonSecondary,
-				OnPress: export, TestID: "data-export"},
-			ui.Button{Text: locales.SettingsDataImportButton(cx), Variant: ui.ButtonSecondary,
-				OnPress: func() { importOpen.Set(true) }, TestID: "data-import"},
-		}},
-		core.Text{ContentFunc: func() string { return importStatus.Get() },
-			Style: core.Style{FontSize: 11},
-			StyleFunc: func() core.Style {
-				if importFailed.Get() {
-					return ui.Colored(ui.ColorsOf(cx).Danger)()
-				}
-				return ui.Colored(ui.ColorsOf(cx).Muted)()
+	return core.View{Style: core.Style{Gap: 24, AlignSelf: core.AlignStretch}, Children: []core.Node{
+		settingsCard(cx, lucide.ArchiveRestore,
+			locales.SettingsDataBackupHeading, locales.SettingsDataBackupBody,
+			core.View{Style: core.Style{Direction: core.Row, Wrap: core.Wrap, Gap: 8},
+				Children: []core.Node{
+					ui.Button{Text: locales.SettingsDataExportButton(cx), Variant: ui.ButtonSecondary,
+						Icon: lucide.Download, OnPress: export, TestID: "data-export"},
+					ui.Button{Text: locales.SettingsDataImportButton(cx), Variant: ui.ButtonSecondary,
+						Icon: lucide.Upload, OnPress: func() { importOpen.Set(true) },
+						TestID: "data-import"},
+				}},
+			core.Show{When: func() bool { return importStatus.Get() != "" },
+				Then: func(cx *core.Scope) core.Node {
+					return core.Text{ContentFunc: func() string { return importStatus.Get() },
+						Style: core.Style{FontSize: 11},
+						StyleFunc: func() core.Style {
+							if importFailed.Get() {
+								return ui.Colored(ui.ColorsOf(cx).Danger)()
+							}
+							return ui.Colored(ui.ColorsOf(cx).Muted)()
+						}}
+				}},
+		),
+		settingsCard(cx, lucide.Database,
+			locales.SettingsDataCacheHeading, locales.SettingsDataCacheBody,
+			core.Text{ContentFunc: statLine, Style: core.Style{FontSize: 12},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), TestID: "data-cache-db-size"},
+			core.Text{ContentFunc: cacheLine, Style: core.Style{FontSize: 12},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), TestID: "data-cache-summary"},
+			core.View{Style: core.Style{Direction: core.Row}, Children: []core.Node{
+				ui.Button{Text: locales.SettingsDataCacheClearButton(cx),
+					Variant: ui.ButtonSecondary, Icon: lucide.Trash,
+					Disabled: func() bool { return !cacheClearable() }, OnPress: clearCache,
+					TestID: "data-cache-clear"},
 			}},
-
-		dataHeading(cx, locales.SettingsDataAutoBackupHeading(cx), locales.SettingsDataAutoBackupBody(cx)),
-		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 10},
-			Children: []core.Node{
+		),
+		settingsCard(cx, lucide.Calendar,
+			locales.SettingsDataAutoBackupHeading, locales.SettingsDataAutoBackupBody,
+			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+				Wrap: core.Wrap, Gap: 10}, Children: []core.Node{
 				ui.Switch{Checked: autoOn.Get, OnChange: setAutoBackup,
 					Label:  locales.SettingsDataAutoBackupToggleLabel(cx),
 					TestID: "data-auto-backup-toggle"},
-				ui.Button{Text: locales.SettingsDataAutoBackupOpen(cx), Variant: ui.ButtonGhost,
-					OnPress: openBackups, TestID: "data-auto-backup-open"},
+				ui.Button{Text: locales.SettingsDataAutoBackupOpen(cx), Variant: ui.ButtonOutline,
+					Icon: lucide.FolderOpen, OnPress: openBackups, TestID: "data-auto-backup-open"},
 			}},
-
-		dataHeading(cx, locales.SettingsDataCacheHeading(cx), locales.SettingsDataCacheBody(cx)),
-		core.Text{ContentFunc: statLine, Style: core.Style{FontSize: 12},
-			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), TestID: "data-cache-db-size"},
-		core.Text{ContentFunc: cacheLine, Style: core.Style{FontSize: 12},
-			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), TestID: "data-cache-summary"},
-		core.View{Style: core.Style{Direction: core.Row}, Children: []core.Node{
-			ui.Button{Text: locales.SettingsDataCacheClearButton(cx), Variant: ui.ButtonSecondary,
-				Disabled: func() bool { return !cacheClearable() }, OnPress: clearCache,
-				TestID: "data-cache-clear"},
-		}},
-
-		dataHeading(cx, locales.SettingsDataResetHeading(cx), locales.SettingsDataResetBody(cx)),
-		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignEnd, Gap: 8},
-			Children: []core.Node{
-				core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{
-					dataField(cx, locales.SettingsDataResetConfirmInput(cx),
-						ui.Input{Value: resetText.Get, OnChange: resetText.Set,
-							Placeholder: "RESET", MaxLength: 10, TestID: "data-reset-input"}),
-				}},
+		),
+		settingsDangerCard(cx, lucide.TriangleAlert,
+			locales.SettingsDataResetHeading, locales.SettingsDataResetBody,
+			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignEnd,
+				Wrap: core.Wrap, Gap: 8}, Children: []core.Node{
+				core.View{Style: core.Style{FlexGrow: 1, MinWidth: core.Pt(200)},
+					Children: []core.Node{
+						dataField(cx, locales.SettingsDataResetConfirmInput(cx),
+							ui.Input{Value: resetText.Get, OnChange: resetText.Set,
+								Placeholder: "RESET", MaxLength: 10, TestID: "data-reset-input"}),
+					}},
 				ui.Button{Text: locales.SettingsDataResetButton(cx), Variant: ui.ButtonOutline,
 					Disabled: func() bool { return !resetArmed(resetText.Get()) || resetBusy.Get() },
 					Busy:     resetBusy.Get, OnPress: reset, TestID: "data-reset"},
 			}},
+		),
 
 		core.Show{When: func() bool { return status.Get() != "" },
 			Then: func(cx *core.Scope) core.Node {
@@ -248,7 +261,7 @@ func (s *Session) dataCard(cx *core.Scope) core.Node {
 			ui.Button{Text: locales.SettingsDataImportButton(cx), OnPress: importBackup,
 				TestID: "data-import-confirm"},
 		}, "data-import-dialog"),
-	)
+	}}
 }
 
 func resetArmed(text string) bool {

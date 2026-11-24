@@ -9,6 +9,7 @@ import (
 	"app.carbonink.desktop/locales"
 
 	"github.com/nsgo-dev/nsgo/core"
+	"github.com/nsgo-dev/nsgo/icons/lucide"
 	"github.com/nsgo-dev/nsgo/ui"
 )
 
@@ -124,30 +125,35 @@ func (s *Session) organizationProfileCard(cx *core.Scope) core.Node {
 	}
 	sectionHeading := func(label func(*core.Scope) string) core.Node {
 		return core.Text{ContentFunc: func() string { return label(cx) },
-			Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}}
+			Style: core.Style{FontSize: 14, FontWeight: ui.Semibold}}
+	}
+	field := func(label func(*core.Scope) string, input core.Node) core.Node {
+		return core.View{Style: core.Style{Gap: 4}, Children: []core.Node{
+			core.Text{ContentFunc: func() string { return label(cx) },
+				Style: core.Style{FontSize: 14, FontWeight: ui.Medium}},
+			namedNode(input, func() string { return label(cx) }),
+		}}
 	}
 
-	return dataCard(cx,
-		dataHeading(cx, locales.SettingsOrgProfileHeading(cx), locales.SettingsOrgProfileSubheading(cx)),
-
+	return dataCardFlat(cx,
 		sectionHeading(locales.SettingsOrgBasicHeading),
 		dataColumns(cx, 8,
 			core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{
-				dataField(cx, locales.OnboardingStepCompanyNameZh(cx),
+				field(locales.OnboardingStepCompanyNameZh,
 					ui.Input{Value: zh.Get, OnChange: zh.Set, TestID: "org-profile-zh"}),
 			}},
 			core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{
-				dataField(cx, locales.OnboardingStepCompanyNameEn(cx),
+				field(locales.OnboardingStepCompanyNameEn,
 					ui.Input{Value: en.Get, OnChange: en.Set, TestID: "org-profile-en"}),
 			}},
 		),
 		dataColumns(cx, 8,
 			core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{
-				dataField(cx, locales.OnboardingStepCompanyIndustry(cx),
+				field(locales.OnboardingStepCompanyIndustry,
 					ui.Input{Value: industry.Get, OnChange: industry.Set, TestID: "org-profile-industry"}),
 			}},
 			core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{
-				dataField(cx, locales.OnboardingStepCompanyCountry(cx),
+				field(locales.OnboardingStepCompanyCountry,
 					ui.Input{Value: country.Get, OnChange: country.Set, TestID: "org-profile-country"}),
 			}},
 		),
@@ -158,23 +164,23 @@ func (s *Session) organizationProfileCard(cx *core.Scope) core.Node {
 		statusLine(basicStatus, basicFailed),
 
 		sectionHeading(locales.SettingsOrgReportingHeading),
-		dataField(cx, locales.SettingsBoundaryLabel(cx),
-			ui.Select[string]{Options: dataBoundaryOptions(cx), Value: boundary.Get,
+		field(locales.SettingsBoundaryLabel,
+			appSelect[string]{Options: dataBoundaryOptions(cx), Value: boundary.Get,
 				OnChange: boundary.Set, Label: locales.SettingsBoundaryLabel(cx),
 				TestID: "org-profile-boundary", Style: core.Style{Width: core.Pct(100)}}),
 		dataColumns(cx, 8,
 			core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{
-				dataField(cx, locales.SettingsResponsibleNameLabel(cx),
+				field(locales.SettingsResponsibleNameLabel,
 					ui.Input{Value: responsible.Get, OnChange: responsible.Set,
 						TestID: "org-profile-resp-name"}),
 			}},
 			core.View{Style: core.Style{FlexGrow: 1}, Children: []core.Node{
-				dataField(cx, locales.SettingsResponsibleRoleLabel(cx),
+				field(locales.SettingsResponsibleRoleLabel,
 					ui.Input{Value: role.Get, OnChange: role.Set, TestID: "org-profile-resp-role"}),
 			}},
 		),
-		dataField(cx, locales.SettingsBaseYearLabel(cx),
-			ui.Select[string]{Options: baseOptions, Value: baseYear.Get, OnChange: baseYear.Set,
+		field(locales.SettingsBaseYearLabel,
+			appSelect[string]{Options: baseOptions, Value: baseYear.Get, OnChange: baseYear.Set,
 				Label: locales.SettingsBaseYearLabel(cx), TestID: "org-profile-base-year",
 				Style: core.Style{Width: core.Pct(100)}}),
 		core.View{Style: core.Style{Direction: core.Row, JustifyContent: core.JustifyEnd}, Children: []core.Node{
@@ -186,7 +192,8 @@ func (s *Session) organizationProfileCard(cx *core.Scope) core.Node {
 }
 
 // importSettingsCard tunes how batch imports flag suspicious rows. It sits
-// with the data settings, not in the organization's ISO profile.
+// in Settings → Organization after the report logo, alongside the other
+// per-client calculation rules (matching 1.x).
 func (s *Session) importSettingsCard(cx *core.Scope) core.Node {
 	ctx := context.Background()
 	ratio := core.NewSignal(cx,
@@ -214,10 +221,8 @@ func (s *Session) importSettingsCard(cx *core.Scope) core.Node {
 		status.Set(locales.SettingsImportOutlierSaved(cx))
 	}
 
-	return dataCard(cx,
-		dataHeading(cx, locales.SettingsImportOutlierHeading(cx), ""),
-		core.Text{ContentFunc: func() string { return locales.SettingsImportOutlierBody(cx) },
-			Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+	return settingsCard(cx, lucide.SlidersHorizontal,
+		locales.SettingsImportOutlierHeading, locales.SettingsImportOutlierBody,
 		dataHeaderRow(cx,
 			dataField(cx, locales.SettingsImportOutlierLabel(cx),
 				ui.Input{Value: ratio.Get, OnChange: ratio.Set, MaxLength: 6,

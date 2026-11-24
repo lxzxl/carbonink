@@ -131,6 +131,7 @@ var Parameters = map[string][]string{
 	"QuestionnaireExportPdfSuccess":           {"path"},
 	"QuestionnairesAnswerProgress":            {"answered", "count"},
 	"QuestionnairesDetailInventoryEmptyTitle": {"year"},
+	"QuestionnairesDueDate":                   {"date"},
 	"QuestionnairesListCount":                 {"count"},
 	"QuestionnairesListCountOne":              {"count"},
 	"QuestionnairesQuestionCount":             {"count"},
@@ -326,6 +327,7 @@ type Translation struct {
 	QuestionnaireExportPdfSuccess           func(path string) string
 	QuestionnairesAnswerProgress            func(answered string, count string) string
 	QuestionnairesDetailInventoryEmptyTitle func(year string) string
+	QuestionnairesDueDate                   func(date string) string
 	QuestionnairesListCount                 func(count string) string
 	QuestionnairesListCountOne              func(count string) string
 	QuestionnairesQuestionCount             func(count string) string
@@ -434,20 +436,19 @@ const (
 	textActivitiesAddButton = iota
 	textActivitiesCreateFailed
 	textActivitiesCreateSuccess
-	textActivitiesEmpty
-	textActivitiesEmptyBody
 	textActivitiesDropHint
 	textActivitiesDropPdfOnly
 	textActivitiesDropPick
 	textActivitiesDropUnsupported
 	textActivitiesDropWorking
+	textActivitiesEmpty
+	textActivitiesEmptyBody
 	textActivitiesEmptyNoSourcesBody
 	textActivitiesEmptyNoSourcesCta
 	textActivitiesEmptyNoSourcesTitle
 	textActivitiesEmptyTitle
 	textActivitiesFilterClear
 	textActivitiesFilterEmpty
-	textActivitiesPeriodAll
 	textActivitiesFormAmount
 	textActivitiesFormEf
 	textActivitiesFormEfLoading
@@ -473,6 +474,7 @@ const (
 	textActivitiesFromLedgerImport
 	textActivitiesFromSupplierDisclosure
 	textActivitiesLoadFailed
+	textActivitiesPeriodAll
 	textActivitiesRecommendEmpty
 	textActivitiesRecommendFailed
 	textActivitiesRecommendHeading
@@ -623,6 +625,7 @@ const (
 	textAuditMalformedPayload
 	textAuditNav
 	textAuditRebindActivityLabel
+	textAuditSelectEvent
 	textAuditShowRaw
 	textAuditSortOldest
 	textAuditSortRecent
@@ -649,7 +652,6 @@ const (
 	textDashboardInventoryTitle
 	textDashboardMonthlyTrend
 	textDashboardNoDataForChart
-	textDashboardTrendNote
 	textDashboardRecentActivities
 	textDashboardRecentEmpty
 	textDashboardScope1
@@ -668,6 +670,7 @@ const (
 	textDashboardStartSubtitle
 	textDashboardStartTitle
 	textDashboardTotalCo2e
+	textDashboardTrendNote
 	textDashboardWelcomeBody
 	textDashboardWelcomeTitle
 	textDashboardWidgetViewAll
@@ -718,7 +721,6 @@ const (
 	textDocumentsBatchFailuresHeading
 	textDocumentsBatchReasonClassifyFailed
 	textDocumentsBatchReasonError
-	textDocumentsSubtitle
 	textDocumentsDetailButton
 	textDocumentsDetailCopied
 	textDocumentsDetailCopy
@@ -835,15 +837,22 @@ const (
 	textDocumentsReviewViewActivitiesLink
 	textDocumentsReviewViewActivityLink
 	textDocumentsSearchPlaceholder
+	textDocumentsSelectDetail
 	textDocumentsSortFilename
 	textDocumentsSortOldest
 	textDocumentsSortRecent
+	textDocumentsStageChinaUtility
+	textDocumentsStageFreight
+	textDocumentsStageFuelReceipt
 	textDocumentsStageNoVision
+	textDocumentsStagePurchase
+	textDocumentsStageTravel
 	textDocumentsStatusNone
 	textDocumentsStatusParsed
 	textDocumentsStatusRejected
 	textDocumentsStatusReviewNeeded
 	textDocumentsStatusUnclassified
+	textDocumentsSubtitle
 	textDocumentsTableFilename
 	textDocumentsTableSha
 	textDocumentsTableStatus
@@ -1163,8 +1172,8 @@ const (
 	textOnboardingCompleteFailed
 	textOnboardingCreating
 	textOnboardingFinish
-	textOnboardingNext
 	textOnboardingNameHint
+	textOnboardingNext
 	textOnboardingRequired
 	textOnboardingRequiredNote
 	textOnboardingStepAiBody
@@ -1245,7 +1254,6 @@ const (
 	textQuestionnairesFilterEmpty
 	textQuestionnairesFilterStatusAll
 	textQuestionnairesFinalizeButton
-	textQuestionnairesSubtitle
 	textQuestionnairesNewButton
 	textQuestionnairesSearchPlaceholder
 	textQuestionnairesSortCustomer
@@ -1258,6 +1266,7 @@ const (
 	textQuestionnairesStatusFinalized
 	textQuestionnairesStatusMapping
 	textQuestionnairesStatusParsing
+	textQuestionnairesSubtitle
 	textQuestionnairesTableCustomer
 	textQuestionnairesTableDue
 	textQuestionnairesTableQuestions
@@ -1316,6 +1325,9 @@ const (
 	textRebindNewCo2e
 	textRebindPickerHeading
 	textRebindPreviewHeading
+	textRedo
+	textRedoDone
+	textRedoFailed
 	textReportsCancelButton
 	textReportsExportBothButton
 	textReportsExportDeliverableButton
@@ -1381,6 +1393,7 @@ const (
 	textSettingsAboutOpenLogDir
 	textSettingsAboutOpenLogDirFailed
 	textSettingsAboutOpenLogDirHint
+	textSettingsAboutOpenSupportFailed
 	textSettingsAboutOpenWebsite
 	textSettingsAboutOpenWebsiteFailed
 	textSettingsAboutPlatform
@@ -1487,8 +1500,8 @@ const (
 	textSettingsImportOutlierHeading
 	textSettingsImportOutlierInvalid
 	textSettingsImportOutlierLabel
-	textSettingsImportOutlierSaved
 	textSettingsImportOutlierSave
+	textSettingsImportOutlierSaved
 	textSettingsLanguage
 	textSettingsLanguageChinese
 	textSettingsLanguageEnglish
@@ -1606,6 +1619,9 @@ const (
 	textSettingsSkillActionRemove
 	textSettingsSkillActionUpdate
 	textSettingsSkillInstallFailed
+	textSettingsSkillHostClaudeCode
+	textSettingsSkillHostCodex
+	textSettingsSkillHostPi
 	textSettingsSkillLoading
 	textSettingsSkillNoHosts
 	textSettingsSkillRemoved
@@ -1627,6 +1643,7 @@ const (
 	textSidebarMcpLabelAvailable
 	textSidebarMcpLabelNotBuilt
 	textSidebarMcpLabelPending
+	textSidebarToggle
 	textSortLabel
 	textSourceEditActiveLabel
 	textSourceEditCancel
@@ -1717,7 +1734,6 @@ const (
 	textSupplierDisclosuresDetailUnanswered
 	textSupplierDisclosuresEmpty
 	textSupplierDisclosuresEmptyBody
-	textSupplierDisclosuresSubtitle
 	textSupplierDisclosuresFileTooLarge
 	textSupplierDisclosuresImportNotTemplate
 	textSupplierDisclosuresImportWrongPeriod
@@ -1746,6 +1762,7 @@ const (
 	textSupplierDisclosuresStatusIngested
 	textSupplierDisclosuresStatusReceived
 	textSupplierDisclosuresStatusSent
+	textSupplierDisclosuresSubtitle
 	textSupplierDisclosuresWizardEmail
 	textSupplierDisclosuresWizardFailed
 	textSupplierDisclosuresWizardNewSupplier
@@ -1764,9 +1781,6 @@ const (
 	textUndo
 	textUndoDone
 	textUndoFailed
-	textRedo
-	textRedoDone
-	textRedoFailed
 	textUnitKgCo2e
 	textUpdaterCheckButton
 	textUpdaterDownloadButton
@@ -1802,20 +1816,19 @@ var keyOfText = [numTexts]string{
 	"activitiesAddButton",
 	"activitiesCreateFailed",
 	"activitiesCreateSuccess",
-	"activitiesEmpty",
-	"activitiesEmptyBody",
 	"activitiesDropHint",
 	"activitiesDropPdfOnly",
 	"activitiesDropPick",
 	"activitiesDropUnsupported",
 	"activitiesDropWorking",
+	"activitiesEmpty",
+	"activitiesEmptyBody",
 	"activitiesEmptyNoSourcesBody",
 	"activitiesEmptyNoSourcesCta",
 	"activitiesEmptyNoSourcesTitle",
 	"activitiesEmptyTitle",
 	"activitiesFilterClear",
 	"activitiesFilterEmpty",
-	"activitiesPeriodAll",
 	"activitiesFormAmount",
 	"activitiesFormEf",
 	"activitiesFormEfLoading",
@@ -1841,6 +1854,7 @@ var keyOfText = [numTexts]string{
 	"activitiesFromLedgerImport",
 	"activitiesFromSupplierDisclosure",
 	"activitiesLoadFailed",
+	"activitiesPeriodAll",
 	"activitiesRecommendEmpty",
 	"activitiesRecommendFailed",
 	"activitiesRecommendHeading",
@@ -1991,6 +2005,7 @@ var keyOfText = [numTexts]string{
 	"auditMalformedPayload",
 	"auditNav",
 	"auditRebindActivityLabel",
+	"auditSelectEvent",
 	"auditShowRaw",
 	"auditSortOldest",
 	"auditSortRecent",
@@ -2017,7 +2032,6 @@ var keyOfText = [numTexts]string{
 	"dashboardInventoryTitle",
 	"dashboardMonthlyTrend",
 	"dashboardNoDataForChart",
-	"dashboardTrendNote",
 	"dashboardRecentActivities",
 	"dashboardRecentEmpty",
 	"dashboardScope1",
@@ -2036,6 +2050,7 @@ var keyOfText = [numTexts]string{
 	"dashboardStartSubtitle",
 	"dashboardStartTitle",
 	"dashboardTotalCo2e",
+	"dashboardTrendNote",
 	"dashboardWelcomeBody",
 	"dashboardWelcomeTitle",
 	"dashboardWidgetViewAll",
@@ -2086,7 +2101,6 @@ var keyOfText = [numTexts]string{
 	"documentsBatchFailuresHeading",
 	"documentsBatchReasonClassifyFailed",
 	"documentsBatchReasonError",
-	"documentsSubtitle",
 	"documentsDetailButton",
 	"documentsDetailCopied",
 	"documentsDetailCopy",
@@ -2203,15 +2217,22 @@ var keyOfText = [numTexts]string{
 	"documentsReviewViewActivitiesLink",
 	"documentsReviewViewActivityLink",
 	"documentsSearchPlaceholder",
+	"documentsSelectDetail",
 	"documentsSortFilename",
 	"documentsSortOldest",
 	"documentsSortRecent",
+	"documentsStageChinaUtility",
+	"documentsStageFreight",
+	"documentsStageFuelReceipt",
 	"documentsStageNoVision",
+	"documentsStagePurchase",
+	"documentsStageTravel",
 	"documentsStatusNone",
 	"documentsStatusParsed",
 	"documentsStatusRejected",
 	"documentsStatusReviewNeeded",
 	"documentsStatusUnclassified",
+	"documentsSubtitle",
 	"documentsTableFilename",
 	"documentsTableSha",
 	"documentsTableStatus",
@@ -2531,8 +2552,8 @@ var keyOfText = [numTexts]string{
 	"onboardingCompleteFailed",
 	"onboardingCreating",
 	"onboardingFinish",
-	"onboardingNext",
 	"onboardingNameHint",
+	"onboardingNext",
 	"onboardingRequired",
 	"onboardingRequiredNote",
 	"onboardingStepAiBody",
@@ -2613,7 +2634,6 @@ var keyOfText = [numTexts]string{
 	"questionnairesFilterEmpty",
 	"questionnairesFilterStatusAll",
 	"questionnairesFinalizeButton",
-	"questionnairesSubtitle",
 	"questionnairesNewButton",
 	"questionnairesSearchPlaceholder",
 	"questionnairesSortCustomer",
@@ -2626,6 +2646,7 @@ var keyOfText = [numTexts]string{
 	"questionnairesStatusFinalized",
 	"questionnairesStatusMapping",
 	"questionnairesStatusParsing",
+	"questionnairesSubtitle",
 	"questionnairesTableCustomer",
 	"questionnairesTableDue",
 	"questionnairesTableQuestions",
@@ -2684,6 +2705,9 @@ var keyOfText = [numTexts]string{
 	"rebindNewCo2e",
 	"rebindPickerHeading",
 	"rebindPreviewHeading",
+	"redo",
+	"redoDone",
+	"redoFailed",
 	"reportsCancelButton",
 	"reportsExportBothButton",
 	"reportsExportDeliverableButton",
@@ -2749,6 +2773,7 @@ var keyOfText = [numTexts]string{
 	"settingsAboutOpenLogDir",
 	"settingsAboutOpenLogDirFailed",
 	"settingsAboutOpenLogDirHint",
+	"settingsAboutOpenSupportFailed",
 	"settingsAboutOpenWebsite",
 	"settingsAboutOpenWebsiteFailed",
 	"settingsAboutPlatform",
@@ -2855,8 +2880,8 @@ var keyOfText = [numTexts]string{
 	"settingsImportOutlierHeading",
 	"settingsImportOutlierInvalid",
 	"settingsImportOutlierLabel",
-	"settingsImportOutlierSaved",
 	"settingsImportOutlierSave",
+	"settingsImportOutlierSaved",
 	"settingsLanguage",
 	"settingsLanguageChinese",
 	"settingsLanguageEnglish",
@@ -2974,6 +2999,9 @@ var keyOfText = [numTexts]string{
 	"settingsSkillActionRemove",
 	"settingsSkillActionUpdate",
 	"settingsSkillInstallFailed",
+	"settingsSkillHostClaudeCode",
+	"settingsSkillHostCodex",
+	"settingsSkillHostPi",
 	"settingsSkillLoading",
 	"settingsSkillNoHosts",
 	"settingsSkillRemoved",
@@ -2995,6 +3023,7 @@ var keyOfText = [numTexts]string{
 	"sidebarMcpLabelAvailable",
 	"sidebarMcpLabelNotBuilt",
 	"sidebarMcpLabelPending",
+	"sidebarToggle",
 	"sortLabel",
 	"sourceEditActiveLabel",
 	"sourceEditCancel",
@@ -3085,7 +3114,6 @@ var keyOfText = [numTexts]string{
 	"supplierDisclosuresDetailUnanswered",
 	"supplierDisclosuresEmpty",
 	"supplierDisclosuresEmptyBody",
-	"supplierDisclosuresSubtitle",
 	"supplierDisclosuresFileTooLarge",
 	"supplierDisclosuresImportNotTemplate",
 	"supplierDisclosuresImportWrongPeriod",
@@ -3114,6 +3142,7 @@ var keyOfText = [numTexts]string{
 	"supplierDisclosuresStatusIngested",
 	"supplierDisclosuresStatusReceived",
 	"supplierDisclosuresStatusSent",
+	"supplierDisclosuresSubtitle",
 	"supplierDisclosuresWizardEmail",
 	"supplierDisclosuresWizardFailed",
 	"supplierDisclosuresWizardNewSupplier",
@@ -3132,9 +3161,6 @@ var keyOfText = [numTexts]string{
 	"undo",
 	"undoDone",
 	"undoFailed",
-	"redo",
-	"redoDone",
-	"redoFailed",
 	"unitKgCo2e",
 	"updaterCheckButton",
 	"updaterDownloadButton",
@@ -3168,20 +3194,19 @@ var textsEn = i18n.NewTexts(""+
 	"Add Activity"+
 	"Failed to create activity"+
 	"Activity recorded"+
-	"No activity data yet."+
-	"Record the consumption behind each source — a meter reading, a fuel receipt, a trip. Drop in a PDF and the fields get filled in for you."+
 	"Drop a bill or receipt here, or choose a PDF — CarbonInk reads it and fills this form."+
 	"Only PDF documents can be read here."+
 	"Choose PDF"+
 	"This document type cannot prefill an activity."+
 	"Reading the document…"+
+	"No activity data yet."+
+	"Record the consumption behind each source — a meter reading, a fuel receipt, a trip. Drop in a PDF and the fields get filled in for you."+
 	"Activity data hangs off an emission source, and this organization has none yet. Set one up and you can start recording consumption here."+
 	"Set up emission sources"+
 	"Add an emission source first"+
 	"No activity data yet"+
 	"Clear filters"+
 	"No matching activities"+
-	"All periods"+
 	"Amount"+
 	"Emission factor"+
 	"Loading emission factors…"+
@@ -3207,6 +3232,7 @@ var textsEn = i18n.NewTexts(""+
 	"Ledger import"+
 	"From supplier disclosure"+
 	"Failed to load activities"+
+	"All periods"+
 	"The model did not return a recommendation; the full list below still applies."+
 	"Could not rank factors; the full list below still applies."+
 	"Recommended factors"+
@@ -3357,6 +3383,7 @@ var textsEn = i18n.NewTexts(""+
 	"Malformed payload"+
 	"Audit log"+
 	"Activity"+
+	"Select an event to see its details."+
 	"Show raw payload"+
 	"Oldest first"+
 	"Most recent"+
@@ -3383,7 +3410,6 @@ var textsEn = i18n.NewTexts(""+
 	"Inventory Dashboard"+
 	"Monthly emissions"+
 	"Once activities are recorded, monthly totals appear here."+
-	"Apportioned by days across each activity's date range."+
 	"Recent activities"+
 	"No activities yet"+
 	"Scope 1"+
@@ -3402,6 +3428,7 @@ var textsEn = i18n.NewTexts(""+
 	"Three steps from an empty workspace to a defensible inventory."+
 	"Start here"+
 	"Total CO2e"+
+	"Apportioned by days across each activity's date range."+
 	"You haven't set up your organization yet. The onboarding wizard will guide you next."+
 	"Welcome to CarbonInk"+
 	"View all"+
@@ -3452,7 +3479,6 @@ var textsEn = i18n.NewTexts(""+
 	"Failed documents"+
 	"could not auto-classify — open it and pick a stage"+
 	"recognition error"+
-	"Bills, invoices, and other evidence kept with this workspace."+
 	"Details"+
 	"Copied"+
 	"Copy text"+
@@ -3569,15 +3595,22 @@ var textsEn = i18n.NewTexts(""+
 	"Go to Activities →"+
 	"View in activities list →"+
 	"Search by filename"+
+	"Select a document to see its details."+
 	"Filename A→Z"+
 	"Oldest first"+
 	"Most recent"+
+	"Electricity bill"+
+	"Freight invoice"+
+	"Fuel receipt"+
 	"Vision input not yet supported for this stage"+
+	"Purchase invoice"+
+	"Travel receipt"+
 	"No extractions"+
 	"Confirmed"+
 	"Discarded"+
 	"Needs review"+
 	"Not classified"+
+	"Bills, invoices, and other evidence kept with this workspace."+
 	"File"+
 	"Hash"+
 	"Status"+
@@ -3897,8 +3930,8 @@ var textsEn = i18n.NewTexts(""+
 	"Could not complete onboarding."+
 	"Creating organization…"+
 	"Finish"+
-	"Next"+
 	"At least one language is required."+
+	"Next"+
 	"Add a company name, a site name, and a reporting year between 2020 and 2030 to finish."+
 	"* Required"+
 	"CarbonInk needs an AI provider to parse documents and answer questionnaires. You can configure this later in Settings; skipping is fine for now."+
@@ -3979,7 +4012,6 @@ var textsEn = i18n.NewTexts(""+
 	"No matching disclosure filings"+
 	"All statuses"+
 	"Finalize answers"+
-	"Filings you send to customers, answered from this inventory."+
 	"New disclosure filing"+
 	"Search customer name"+
 	"Customer A→Z"+
@@ -3992,6 +4024,7 @@ var textsEn = i18n.NewTexts(""+
 	"Finalized"+
 	"Draft"+
 	"Parsing"+
+	"Filings you send to customers, answered from this inventory."+
 	"Customer"+
 	"Due date"+
 	"Questions"+
@@ -4050,6 +4083,9 @@ var textsEn = i18n.NewTexts(""+
 	"New emissions"+
 	"Pick a new emission factor"+
 	"Preview"+
+	"Redo"+
+	"Redone"+
+	"Could not redo the last action."+
 	"Cancel"+
 	"Confirm and export (PDF + Excel)"+
 	"Export deliverable bundle (ZIP)"+
@@ -4115,6 +4151,7 @@ var textsEn = i18n.NewTexts(""+
 	"Open log folder"+
 	"Could not open the log folder."+
 	"Daily log files for support. Last 14 days are kept."+
+	"Could not open the support address."+
 	"Open website"+
 	"Could not open the website."+
 	"Platform"+
@@ -4221,8 +4258,8 @@ var textsEn = i18n.NewTexts(""+
 	"Batch-import anomaly detection"+
 	"Enter a number between 2 and 1000"+
 	"Outlier multiplier (2–1000)"+
-	"Outlier multiplier saved"+
 	"Save threshold"+
+	"Outlier multiplier saved"+
 	"Language"+
 	"中文"+
 	"English"+
@@ -4340,6 +4377,9 @@ var textsEn = i18n.NewTexts(""+
 	"Remove"+
 	"Update"+
 	"Skill operation failed"+
+	"Claude Code (~/.claude/skills/)"+
+	"Codex (~/.codex/skills/)"+
+	"Pi (~/.pi/agent/skills/)"+
 	"Detecting…"+
 	"no agent hosts detected (only ~/.agents/skills/)"+
 	"Skill removed."+
@@ -4361,6 +4401,7 @@ var textsEn = i18n.NewTexts(""+
 	"MCP"+
 	"MCP · Not built"+
 	"MCP · Not configured"+
+	"Toggle sidebar"+
 	"Sort"+
 	"Active"+
 	"Cancel"+
@@ -4449,9 +4490,8 @@ var textsEn = i18n.NewTexts(""+
 	"Review import"+
 	"Supplier disclosure"+
 	"(Unanswered)"+
-	"No supplier disclosures yet."+
+	"No supplier disclosures yet. Click \"+ New disclosure\" (top right) to start collecting Scope 3 Cat 1 data from upstream suppliers."+
 	"Send a supplier a questionnaire, then track what comes back. Inbound answers can become ledger rows."+
-	"Data requests you send suppliers, and what comes back."+
 	"File is too large."+
 	"This workbook is not a CarbonInk disclosure template."+
 	"This workbook was issued for a different reporting year."+
@@ -4473,13 +4513,14 @@ var textsEn = i18n.NewTexts(""+
 	"Tier 1 — product PCF"+
 	"Tier 2 — allocated emissions"+
 	"Review supplier reply"+
-	"Search suppliers"+
+	"Search supplier name…"+
 	"All statuses"+
 	"Draft"+
 	"Status"+
 	"Ingested"+
 	"Received"+
 	"Sent"+
+	"Data requests you send suppliers, and what comes back."+
 	"Contact email"+
 	"Could not create the disclosure"+
 	"Or add a supplier"+
@@ -4498,9 +4539,6 @@ var textsEn = i18n.NewTexts(""+
 	"Undo"+
 	"Undone"+
 	"Could not undo the last action."+
-	"Redo"+
-	"Redone"+
-	"Could not redo the last action."+
 	"kg CO2e"+
 	"Check for Updates"+
 	"Open Download Page"+
@@ -4531,20 +4569,19 @@ var textsEn = i18n.NewTexts(""+
 		12,
 		25,
 		17,
-		21,
-		138,
 		88,
 		36,
 		10,
 		46,
 		23,
+		21,
+		138,
 		136,
 		23,
 		28,
 		20,
 		13,
 		22,
-		11,
 		6,
 		15,
 		27,
@@ -4570,6 +4607,7 @@ var textsEn = i18n.NewTexts(""+
 		13,
 		24,
 		25,
+		11,
 		77,
 		58,
 		19,
@@ -4720,6 +4758,7 @@ var textsEn = i18n.NewTexts(""+
 		17,
 		9,
 		8,
+		35,
 		16,
 		12,
 		11,
@@ -4746,7 +4785,6 @@ var textsEn = i18n.NewTexts(""+
 		19,
 		17,
 		57,
-		54,
 		17,
 		17,
 		7,
@@ -4765,6 +4803,7 @@ var textsEn = i18n.NewTexts(""+
 		62,
 		10,
 		10,
+		54,
 		84,
 		20,
 		8,
@@ -4815,7 +4854,6 @@ var textsEn = i18n.NewTexts(""+
 		16,
 		52,
 		17,
-		61,
 		7,
 		6,
 		9,
@@ -4932,15 +4970,22 @@ var textsEn = i18n.NewTexts(""+
 		20,
 		27,
 		18,
+		37,
 		14,
 		12,
 		11,
+		16,
+		15,
+		12,
 		45,
+		16,
+		14,
 		14,
 		9,
 		9,
 		12,
 		14,
+		61,
 		4,
 		4,
 		6,
@@ -5260,8 +5305,8 @@ var textsEn = i18n.NewTexts(""+
 		30,
 		24,
 		6,
-		4,
 		34,
+		4,
 		86,
 		10,
 		144,
@@ -5342,7 +5387,6 @@ var textsEn = i18n.NewTexts(""+
 		30,
 		12,
 		16,
-		60,
 		21,
 		20,
 		14,
@@ -5355,6 +5399,7 @@ var textsEn = i18n.NewTexts(""+
 		9,
 		5,
 		7,
+		60,
 		8,
 		8,
 		9,
@@ -5413,6 +5458,9 @@ var textsEn = i18n.NewTexts(""+
 		13,
 		26,
 		7,
+		4,
+		6,
+		31,
 		6,
 		32,
 		31,
@@ -5478,6 +5526,7 @@ var textsEn = i18n.NewTexts(""+
 		15,
 		30,
 		51,
+		35,
 		12,
 		27,
 		8,
@@ -5584,8 +5633,8 @@ var textsEn = i18n.NewTexts(""+
 		30,
 		33,
 		29,
-		24,
 		14,
+		24,
 		8,
 		6,
 		7,
@@ -5703,6 +5752,9 @@ var textsEn = i18n.NewTexts(""+
 		6,
 		6,
 		22,
+		31,
+		24,
+		24,
 		12,
 		48,
 		14,
@@ -5724,6 +5776,7 @@ var textsEn = i18n.NewTexts(""+
 		3,
 		16,
 		21,
+		14,
 		4,
 		6,
 		6,
@@ -5812,9 +5865,8 @@ var textsEn = i18n.NewTexts(""+
 		13,
 		19,
 		12,
-		28,
+		129,
 		100,
-		54,
 		18,
 		53,
 		56,
@@ -5836,13 +5888,14 @@ var textsEn = i18n.NewTexts(""+
 		22,
 		30,
 		21,
-		16,
+		23,
 		12,
 		5,
 		6,
 		8,
 		8,
 		4,
+		54,
 		13,
 		31,
 		17,
@@ -5858,9 +5911,6 @@ var textsEn = i18n.NewTexts(""+
 		7,
 		6,
 		10,
-		4,
-		6,
-		31,
 		4,
 		6,
 		31,
@@ -5897,20 +5947,19 @@ var textsZhCN = i18n.NewTexts(""+
 	"添加活动数据"+
 	"创建活动数据失败"+
 	"活动数据已记录"+
-	"还没有活动数据。"+
-	"记录每个排放源背后的实际用量——一次抄表、一张加油发票、一趟差旅。上传 PDF 还能自动填好表单。"+
 	"把账单或票据拖到这里，或选择一个 PDF；CarbonInk 会自动识别并填入表单。"+
 	"这里只支持读取 PDF 文件。"+
 	"选择 PDF"+
 	"这类单据不能用来预填活动数据。"+
 	"正在读取单据…"+
+	"还没有活动数据。"+
+	"记录每个排放源背后的实际用量——一次抄表、一张加油发票、一趟差旅。上传 PDF 还能自动填好表单。"+
 	"活动数据要挂在排放源下面，而当前组织还没有任何排放源。建好第一个之后，就可以在这里录入用量了。"+
 	"去建立排放源"+
 	"请先建立排放源"+
 	"还没有活动数据"+
 	"清除筛选"+
 	"未找到匹配的活动"+
-	"全部报告期"+
 	"数量"+
 	"排放因子"+
 	"正在加载排放因子…"+
@@ -5936,6 +5985,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"台账导入"+
 	"来自供应商披露"+
 	"加载活动数据失败"+
+	"全部报告期"+
 	"模型没有返回推荐；仍可从下方完整列表选择。"+
 	"推荐排序失败；仍可从下方完整列表选择。"+
 	"推荐排放因子"+
@@ -6061,7 +6111,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"撤销定稿"+
 	"单位"+
 	"数值"+
-	"CarbonInk"+
+	"碳墨"+
 	"本地碳核算"+
 	"碳墨"+
 	"在你确认抽取、定稿答案或重新镶嵌排放因子时会自动记录事件。"+
@@ -6086,6 +6136,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"数据格式异常"+
 	"审计日志"+
 	"活动"+
+	"选择一个事件查看详情。"+
 	"显示原始数据"+
 	"最早事件"+
 	"最近事件"+
@@ -6112,7 +6163,6 @@ var textsZhCN = i18n.NewTexts(""+
 	"排放清单仪表盘"+
 	"月度排放趋势"+
 	"录入活动数据后，按月汇总会显示在这里。"+
-	"按活动日期区间天数分摊到各月。"+
 	"最近活动"+
 	"暂无活动数据"+
 	"范围 1"+
@@ -6131,6 +6181,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"三步，把空工作区变成一份可核查的排放清单。"+
 	"从这里开始"+
 	"总 CO2e"+
+	"按活动日期区间天数分摊到各月。"+
 	"你还没有设置组织。下一步引导向导会带你完成。"+
 	"欢迎使用 碳墨"+
 	"查看全部"+
@@ -6181,7 +6232,6 @@ var textsZhCN = i18n.NewTexts(""+
 	"识别失败的文档"+
 	"无法自动识别类型——打开文档手动选择"+
 	"识别出错"+
-	"与当前账套一起保存的账单、发票与证据文件。"+
 	"详情"+
 	"已复制"+
 	"复制文本"+
@@ -6298,15 +6348,22 @@ var textsZhCN = i18n.NewTexts(""+
 	"前往活动数据 →"+
 	"在活动列表中查看 →"+
 	"搜索文件名"+
+	"选择一个文档查看详情。"+
 	"文件名 A→Z"+
 	"最早上传"+
 	"最近上传"+
+	"电费账单"+
+	"货运发票"+
+	"加油发票"+
 	"此 stage 暂不支持图像输入"+
+	"采购发票"+
+	"差旅票据"+
 	"无抽取"+
 	"已确认"+
 	"已丢弃"+
 	"待审核"+
 	"未分类"+
+	"与当前账套一起保存的账单、发票与证据文件。"+
 	"文件"+
 	"Hash"+
 	"状态"+
@@ -6626,8 +6683,8 @@ var textsZhCN = i18n.NewTexts(""+
 	"完成新手引导失败。"+
 	"正在创建组织…"+
 	"完成"+
-	"下一步"+
 	"至少填写一种语言的名称。"+
+	"下一步"+
 	"填写公司名称、Site 名称，并确认 2020–2030 之间的报告年度后才能完成。"+
 	"* 必填"+
 	"碳墨 需要 AI 提供方解析文档和回答问卷。可以稍后在设置里配置；现在跳过也可以。"+
@@ -6708,7 +6765,6 @@ var textsZhCN = i18n.NewTexts(""+
 	"未找到匹配的披露填报"+
 	"全部状态"+
 	"确认全部答案"+
-	"发给客户、用本清单作答的披露填报。"+
 	"新建披露填报"+
 	"搜索客户名称"+
 	"客户 A→Z"+
@@ -6721,6 +6777,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"已定稿"+
 	"草稿"+
 	"解析中"+
+	"发给客户、用本清单作答的披露填报。"+
 	"客户"+
 	"截止日期"+
 	"题目数"+
@@ -6779,6 +6836,9 @@ var textsZhCN = i18n.NewTexts(""+
 	"新排放"+
 	"选择新的排放因子"+
 	"预览"+
+	"重做"+
+	"已重做"+
+	"重做失败。"+
 	"取消"+
 	"确认导出 (PDF + Excel)"+
 	"导出交付包 (ZIP)"+
@@ -6844,6 +6904,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"打开日志目录"+
 	"无法打开日志目录。"+
 	"按天滚动的日志文件，留存 14 天，便于客服排错。"+
+	"无法打开技术支持邮箱。"+
 	"打开官网"+
 	"无法打开官网。"+
 	"平台"+
@@ -6950,8 +7011,8 @@ var textsZhCN = i18n.NewTexts(""+
 	"批量导入异常检测"+
 	"请输入 2 到 1000 之间的数字"+
 	"离群倍数（2–1000）"+
-	"离群倍数已保存"+
 	"保存阈值"+
+	"离群倍数已保存"+
 	"语言"+
 	"中文"+
 	"English"+
@@ -6982,7 +7043,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"已配置但路径过期 — 请点「重新配置」"+
 	"已检测到，未配置"+
 	"未检测到"+
-	"上方的 Skill 告诉 agent **何时**该查询碳墨；下方的 MCP 配置告诉它**如何**查（用哪个 server、有哪些工具）。"+
+	"上方的 Skill 告诉 agent 何时该查询碳墨；下方的 MCP 配置告诉它如何查（用哪个 server、有哪些工具）。"+
 	"步骤 2 · 配置 MCP 客户端"+
 	"MCP 集成"+
 	"检测到 CarbonInk 1.x 数据目录，新版首次启动时已自动导入其中的账套。"+
@@ -7069,6 +7130,9 @@ var textsZhCN = i18n.NewTexts(""+
 	"移除"+
 	"更新"+
 	"Skill 操作失败"+
+	"Claude Code（~/.claude/skills/）"+
+	"Codex（~/.codex/skills/）"+
+	"Pi（~/.pi/agent/skills/）"+
 	"检测中…"+
 	"未检测到 agent host（仅 ~/.agents/skills/）"+
 	"Skill 已移除。"+
@@ -7090,6 +7154,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"MCP"+
 	"MCP·未构建"+
 	"MCP·待配置"+
+	"切换侧栏"+
 	"排序"+
 	"启用"+
 	"取消"+
@@ -7178,9 +7243,8 @@ var textsZhCN = i18n.NewTexts(""+
 	"审核导入"+
 	"供应商披露"+
 	"（未答）"+
-	"尚无供应商披露。"+
+	"尚无供应商披露。点击右上「+ 新建披露」开始向上游供应商收集 Scope 3 Cat 1 数据。"+
 	"向供应商发出问卷，再跟踪回收情况；回收的答案可以直接转成活动数据。"+
-	"发给供应商的数据请求，以及回收的结果。"+
 	"文件过大。"+
 	"该工作簿不是 CarbonInk 披露模板。"+
 	"该工作簿对应其他报告年度。"+
@@ -7202,13 +7266,14 @@ var textsZhCN = i18n.NewTexts(""+
 	"Tier 1 — 产品碳足迹"+
 	"Tier 2 — 分配排放"+
 	"审核供应商填报"+
-	"搜索供应商"+
+	"搜索供应商名称…"+
 	"全部状态"+
 	"草稿"+
 	"状态"+
 	"已入库"+
 	"已收回"+
 	"已发送"+
+	"发给供应商的数据请求，以及回收的结果。"+
 	"联系邮箱"+
 	"无法创建披露"+
 	"或新增供应商"+
@@ -7227,9 +7292,6 @@ var textsZhCN = i18n.NewTexts(""+
 	"撤销"+
 	"已撤销"+
 	"撤销失败。"+
-	"重做"+
-	"已重做"+
-	"重做失败。"+
 	"kg CO2e"+
 	"检查更新"+
 	"打开下载页"+
@@ -7260,20 +7322,19 @@ var textsZhCN = i18n.NewTexts(""+
 		18,
 		24,
 		21,
-		24,
-		137,
 		98,
 		35,
 		10,
 		45,
 		21,
+		24,
+		137,
 		141,
 		18,
 		21,
 		21,
 		12,
 		24,
-		15,
 		6,
 		12,
 		27,
@@ -7299,6 +7360,7 @@ var textsZhCN = i18n.NewTexts(""+
 		12,
 		21,
 		24,
+		15,
 		63,
 		57,
 		18,
@@ -7424,7 +7486,7 @@ var textsZhCN = i18n.NewTexts(""+
 		12,
 		6,
 		6,
-		9,
+		6,
 		15,
 		6,
 		87,
@@ -7449,6 +7511,7 @@ var textsZhCN = i18n.NewTexts(""+
 		18,
 		12,
 		6,
+		33,
 		18,
 		12,
 		12,
@@ -7475,7 +7538,6 @@ var textsZhCN = i18n.NewTexts(""+
 		21,
 		18,
 		57,
-		45,
 		12,
 		18,
 		8,
@@ -7494,6 +7556,7 @@ var textsZhCN = i18n.NewTexts(""+
 		63,
 		15,
 		8,
+		45,
 		66,
 		19,
 		12,
@@ -7544,7 +7607,6 @@ var textsZhCN = i18n.NewTexts(""+
 		21,
 		54,
 		12,
-		63,
 		6,
 		9,
 		12,
@@ -7661,15 +7723,22 @@ var textsZhCN = i18n.NewTexts(""+
 		22,
 		28,
 		15,
+		33,
 		15,
 		12,
 		12,
+		12,
+		12,
+		12,
 		34,
+		12,
+		12,
 		9,
 		9,
 		9,
 		9,
 		9,
+		63,
 		6,
 		4,
 		6,
@@ -7989,8 +8058,8 @@ var textsZhCN = i18n.NewTexts(""+
 		27,
 		21,
 		6,
-		9,
 		36,
+		9,
 		96,
 		8,
 		113,
@@ -8071,7 +8140,6 @@ var textsZhCN = i18n.NewTexts(""+
 		30,
 		12,
 		18,
-		51,
 		18,
 		18,
 		12,
@@ -8084,6 +8152,7 @@ var textsZhCN = i18n.NewTexts(""+
 		9,
 		6,
 		9,
+		51,
 		6,
 		12,
 		9,
@@ -8142,6 +8211,9 @@ var textsZhCN = i18n.NewTexts(""+
 		9,
 		24,
 		6,
+		6,
+		9,
+		15,
 		6,
 		26,
 		21,
@@ -8207,6 +8279,7 @@ var textsZhCN = i18n.NewTexts(""+
 		18,
 		27,
 		67,
+		33,
 		12,
 		21,
 		6,
@@ -8313,8 +8386,8 @@ var textsZhCN = i18n.NewTexts(""+
 		24,
 		36,
 		26,
-		21,
 		12,
+		21,
 		6,
 		6,
 		7,
@@ -8345,7 +8418,7 @@ var textsZhCN = i18n.NewTexts(""+
 		53,
 		24,
 		12,
-		142,
+		134,
 		32,
 		10,
 		93,
@@ -8432,6 +8505,9 @@ var textsZhCN = i18n.NewTexts(""+
 		6,
 		6,
 		18,
+		34,
+		27,
+		27,
 		12,
 		50,
 		18,
@@ -8453,6 +8529,7 @@ var textsZhCN = i18n.NewTexts(""+
 		3,
 		14,
 		14,
+		12,
 		6,
 		6,
 		6,
@@ -8541,9 +8618,8 @@ var textsZhCN = i18n.NewTexts(""+
 		12,
 		15,
 		12,
-		24,
+		110,
 		99,
-		57,
 		15,
 		44,
 		39,
@@ -8565,13 +8641,14 @@ var textsZhCN = i18n.NewTexts(""+
 		26,
 		23,
 		21,
-		15,
+		24,
 		12,
 		6,
 		6,
 		9,
 		9,
 		9,
+		57,
 		12,
 		18,
 		18,
@@ -8587,9 +8664,6 @@ var textsZhCN = i18n.NewTexts(""+
 		6,
 		6,
 		6,
-		6,
-		9,
-		15,
 		6,
 		9,
 		15,
@@ -8938,6 +9012,9 @@ func Supply(lang string, t Translation) {
 	}
 	if t.QuestionnairesDetailInventoryEmptyTitle != nil {
 		s.QuestionnairesDetailInventoryEmptyTitle = t.QuestionnairesDetailInventoryEmptyTitle
+	}
+	if t.QuestionnairesDueDate != nil {
+		s.QuestionnairesDueDate = t.QuestionnairesDueDate
 	}
 	if t.QuestionnairesListCount != nil {
 		s.QuestionnairesListCount = t.QuestionnairesListCount
@@ -9316,20 +9393,6 @@ func ActivitiesCreateSuccess(cx *core.Scope) string { return For(cx).ActivitiesC
 // ActivitiesCreateSuccess is the package's ActivitiesCreateSuccess in the language of msgs.
 func (msgs Messages) ActivitiesCreateSuccess() string { return msgs.text(textActivitiesCreateSuccess) }
 
-// ActivitiesEmpty says "No activity data yet."
-// in the language the app shows under cx.
-func ActivitiesEmpty(cx *core.Scope) string { return For(cx).ActivitiesEmpty() }
-
-// ActivitiesEmpty is the package's ActivitiesEmpty in the language of msgs.
-func (msgs Messages) ActivitiesEmpty() string { return msgs.text(textActivitiesEmpty) }
-
-// ActivitiesEmptyBody says "Record the consumption behind each source — a meter reading, a fuel receipt, a trip. Drop in a PDF and the fields get filled in for you."
-// in the language the app shows under cx.
-func ActivitiesEmptyBody(cx *core.Scope) string { return For(cx).ActivitiesEmptyBody() }
-
-// ActivitiesEmptyBody is the package's ActivitiesEmptyBody in the language of msgs.
-func (msgs Messages) ActivitiesEmptyBody() string { return msgs.text(textActivitiesEmptyBody) }
-
 // ActivitiesDropDone says "Filled from {filename}"
 // in the language the app shows under cx.
 func ActivitiesDropDone(cx *core.Scope, filename string) string {
@@ -9391,6 +9454,20 @@ func ActivitiesDropWorking(cx *core.Scope) string { return For(cx).ActivitiesDro
 // ActivitiesDropWorking is the package's ActivitiesDropWorking in the language of msgs.
 func (msgs Messages) ActivitiesDropWorking() string { return msgs.text(textActivitiesDropWorking) }
 
+// ActivitiesEmpty says "No activity data yet."
+// in the language the app shows under cx.
+func ActivitiesEmpty(cx *core.Scope) string { return For(cx).ActivitiesEmpty() }
+
+// ActivitiesEmpty is the package's ActivitiesEmpty in the language of msgs.
+func (msgs Messages) ActivitiesEmpty() string { return msgs.text(textActivitiesEmpty) }
+
+// ActivitiesEmptyBody says "Record the consumption behind each source — a meter reading, a fuel receipt, a trip. Drop in a PDF and the fields get filled in for you."
+// in the language the app shows under cx.
+func ActivitiesEmptyBody(cx *core.Scope) string { return For(cx).ActivitiesEmptyBody() }
+
+// ActivitiesEmptyBody is the package's ActivitiesEmptyBody in the language of msgs.
+func (msgs Messages) ActivitiesEmptyBody() string { return msgs.text(textActivitiesEmptyBody) }
+
 // ActivitiesEmptyNoSourcesBody says "Activity data hangs off an emission source, and this organization has none yet. Set one up and you can start recording consumption here."
 // in the language the app shows under cx.
 func ActivitiesEmptyNoSourcesBody(cx *core.Scope) string {
@@ -9442,13 +9519,6 @@ func ActivitiesFilterEmpty(cx *core.Scope) string { return For(cx).ActivitiesFil
 
 // ActivitiesFilterEmpty is the package's ActivitiesFilterEmpty in the language of msgs.
 func (msgs Messages) ActivitiesFilterEmpty() string { return msgs.text(textActivitiesFilterEmpty) }
-
-// ActivitiesPeriodAll says "All periods"
-// in the language the app shows under cx.
-func ActivitiesPeriodAll(cx *core.Scope) string { return For(cx).ActivitiesPeriodAll() }
-
-// ActivitiesPeriodAll is the package's ActivitiesPeriodAll in the language of msgs.
-func (msgs Messages) ActivitiesPeriodAll() string { return msgs.text(textActivitiesPeriodAll) }
 
 // ActivitiesFormAmount says "Amount"
 // in the language the app shows under cx.
@@ -9678,6 +9748,13 @@ func ActivitiesLoadFailed(cx *core.Scope) string { return For(cx).ActivitiesLoad
 
 // ActivitiesLoadFailed is the package's ActivitiesLoadFailed in the language of msgs.
 func (msgs Messages) ActivitiesLoadFailed() string { return msgs.text(textActivitiesLoadFailed) }
+
+// ActivitiesPeriodAll says "All periods"
+// in the language the app shows under cx.
+func ActivitiesPeriodAll(cx *core.Scope) string { return For(cx).ActivitiesPeriodAll() }
+
+// ActivitiesPeriodAll is the package's ActivitiesPeriodAll in the language of msgs.
+func (msgs Messages) ActivitiesPeriodAll() string { return msgs.text(textActivitiesPeriodAll) }
 
 // ActivitiesRecommendEmpty says "The model did not return a recommendation; the full list below still applies."
 // in the language the app shows under cx.
@@ -11435,6 +11512,13 @@ func (msgs Messages) AuditRebindSummary(activity_id_short string, old_ef string,
 	}
 }
 
+// AuditSelectEvent says "Select an event to see its details."
+// in the language the app shows under cx.
+func AuditSelectEvent(cx *core.Scope) string { return For(cx).AuditSelectEvent() }
+
+// AuditSelectEvent is the package's AuditSelectEvent in the language of msgs.
+func (msgs Messages) AuditSelectEvent() string { return msgs.text(textAuditSelectEvent) }
+
 // AuditShowRaw says "Show raw payload"
 // in the language the app shows under cx.
 func AuditShowRaw(cx *core.Scope) string { return For(cx).AuditShowRaw() }
@@ -11641,13 +11725,6 @@ func DashboardNoDataForChart(cx *core.Scope) string { return For(cx).DashboardNo
 // DashboardNoDataForChart is the package's DashboardNoDataForChart in the language of msgs.
 func (msgs Messages) DashboardNoDataForChart() string { return msgs.text(textDashboardNoDataForChart) }
 
-// DashboardTrendNote says "Apportioned by days across each activity's date range."
-// in the language the app shows under cx.
-func DashboardTrendNote(cx *core.Scope) string { return For(cx).DashboardTrendNote() }
-
-// DashboardTrendNote is the package's DashboardTrendNote in the language of msgs.
-func (msgs Messages) DashboardTrendNote() string { return msgs.text(textDashboardTrendNote) }
-
 // DashboardRecentActivities says "Recent activities"
 // in the language the app shows under cx.
 func DashboardRecentActivities(cx *core.Scope) string { return For(cx).DashboardRecentActivities() }
@@ -11795,6 +11872,13 @@ func DashboardTotalCo2e(cx *core.Scope) string { return For(cx).DashboardTotalCo
 
 // DashboardTotalCo2e is the package's DashboardTotalCo2e in the language of msgs.
 func (msgs Messages) DashboardTotalCo2e() string { return msgs.text(textDashboardTotalCo2e) }
+
+// DashboardTrendNote says "Apportioned by days across each activity's date range."
+// in the language the app shows under cx.
+func DashboardTrendNote(cx *core.Scope) string { return For(cx).DashboardTrendNote() }
+
+// DashboardTrendNote is the package's DashboardTrendNote in the language of msgs.
+func (msgs Messages) DashboardTrendNote() string { return msgs.text(textDashboardTrendNote) }
 
 // DashboardWelcomeBody says "You haven't set up your organization yet. The onboarding wizard will guide you next."
 // in the language the app shows under cx.
@@ -12417,13 +12501,6 @@ func (msgs Messages) DocumentsCount(count string) string {
 		}
 	}
 }
-
-// DocumentsSubtitle says "Bills, invoices, and other evidence kept with this workspace."
-// in the language the app shows under cx.
-func DocumentsSubtitle(cx *core.Scope) string { return For(cx).DocumentsSubtitle() }
-
-// DocumentsSubtitle is the package's DocumentsSubtitle in the language of msgs.
-func (msgs Messages) DocumentsSubtitle() string { return msgs.text(textDocumentsSubtitle) }
 
 // DocumentsDetailButton says "Details"
 // in the language the app shows under cx.
@@ -13605,6 +13682,13 @@ func (msgs Messages) DocumentsSearchPlaceholder() string {
 	return msgs.text(textDocumentsSearchPlaceholder)
 }
 
+// DocumentsSelectDetail says "Select a document to see its details."
+// in the language the app shows under cx.
+func DocumentsSelectDetail(cx *core.Scope) string { return For(cx).DocumentsSelectDetail() }
+
+// DocumentsSelectDetail is the package's DocumentsSelectDetail in the language of msgs.
+func (msgs Messages) DocumentsSelectDetail() string { return msgs.text(textDocumentsSelectDetail) }
+
 // DocumentsShowingLatest says "Showing the latest {shown} of {total}"
 // in the language the app shows under cx.
 func DocumentsShowingLatest(cx *core.Scope, shown string, total string) string {
@@ -13650,12 +13734,51 @@ func DocumentsSortRecent(cx *core.Scope) string { return For(cx).DocumentsSortRe
 // DocumentsSortRecent is the package's DocumentsSortRecent in the language of msgs.
 func (msgs Messages) DocumentsSortRecent() string { return msgs.text(textDocumentsSortRecent) }
 
+// DocumentsStageChinaUtility says "Electricity bill"
+// in the language the app shows under cx.
+func DocumentsStageChinaUtility(cx *core.Scope) string { return For(cx).DocumentsStageChinaUtility() }
+
+// DocumentsStageChinaUtility is the package's DocumentsStageChinaUtility in the language of msgs.
+func (msgs Messages) DocumentsStageChinaUtility() string {
+	return msgs.text(textDocumentsStageChinaUtility)
+}
+
+// DocumentsStageFreight says "Freight invoice"
+// in the language the app shows under cx.
+func DocumentsStageFreight(cx *core.Scope) string { return For(cx).DocumentsStageFreight() }
+
+// DocumentsStageFreight is the package's DocumentsStageFreight in the language of msgs.
+func (msgs Messages) DocumentsStageFreight() string { return msgs.text(textDocumentsStageFreight) }
+
+// DocumentsStageFuelReceipt says "Fuel receipt"
+// in the language the app shows under cx.
+func DocumentsStageFuelReceipt(cx *core.Scope) string { return For(cx).DocumentsStageFuelReceipt() }
+
+// DocumentsStageFuelReceipt is the package's DocumentsStageFuelReceipt in the language of msgs.
+func (msgs Messages) DocumentsStageFuelReceipt() string {
+	return msgs.text(textDocumentsStageFuelReceipt)
+}
+
 // DocumentsStageNoVision says "Vision input not yet supported for this stage"
 // in the language the app shows under cx.
 func DocumentsStageNoVision(cx *core.Scope) string { return For(cx).DocumentsStageNoVision() }
 
 // DocumentsStageNoVision is the package's DocumentsStageNoVision in the language of msgs.
 func (msgs Messages) DocumentsStageNoVision() string { return msgs.text(textDocumentsStageNoVision) }
+
+// DocumentsStagePurchase says "Purchase invoice"
+// in the language the app shows under cx.
+func DocumentsStagePurchase(cx *core.Scope) string { return For(cx).DocumentsStagePurchase() }
+
+// DocumentsStagePurchase is the package's DocumentsStagePurchase in the language of msgs.
+func (msgs Messages) DocumentsStagePurchase() string { return msgs.text(textDocumentsStagePurchase) }
+
+// DocumentsStageTravel says "Travel receipt"
+// in the language the app shows under cx.
+func DocumentsStageTravel(cx *core.Scope) string { return For(cx).DocumentsStageTravel() }
+
+// DocumentsStageTravel is the package's DocumentsStageTravel in the language of msgs.
+func (msgs Messages) DocumentsStageTravel() string { return msgs.text(textDocumentsStageTravel) }
 
 // DocumentsStatusNone says "No extractions"
 // in the language the app shows under cx.
@@ -13695,6 +13818,13 @@ func DocumentsStatusUnclassified(cx *core.Scope) string { return For(cx).Documen
 func (msgs Messages) DocumentsStatusUnclassified() string {
 	return msgs.text(textDocumentsStatusUnclassified)
 }
+
+// DocumentsSubtitle says "Bills, invoices, and other evidence kept with this workspace."
+// in the language the app shows under cx.
+func DocumentsSubtitle(cx *core.Scope) string { return For(cx).DocumentsSubtitle() }
+
+// DocumentsSubtitle is the package's DocumentsSubtitle in the language of msgs.
+func (msgs Messages) DocumentsSubtitle() string { return msgs.text(textDocumentsSubtitle) }
 
 // DocumentsTableFilename says "File"
 // in the language the app shows under cx.
@@ -17231,19 +17361,19 @@ func OnboardingFinish(cx *core.Scope) string { return For(cx).OnboardingFinish()
 // OnboardingFinish is the package's OnboardingFinish in the language of msgs.
 func (msgs Messages) OnboardingFinish() string { return msgs.text(textOnboardingFinish) }
 
-// OnboardingNext says "Next"
-// in the language the app shows under cx.
-func OnboardingNext(cx *core.Scope) string { return For(cx).OnboardingNext() }
-
-// OnboardingNext is the package's OnboardingNext in the language of msgs.
-func (msgs Messages) OnboardingNext() string { return msgs.text(textOnboardingNext) }
-
 // OnboardingNameHint says "At least one language is required."
 // in the language the app shows under cx.
 func OnboardingNameHint(cx *core.Scope) string { return For(cx).OnboardingNameHint() }
 
 // OnboardingNameHint is the package's OnboardingNameHint in the language of msgs.
 func (msgs Messages) OnboardingNameHint() string { return msgs.text(textOnboardingNameHint) }
+
+// OnboardingNext says "Next"
+// in the language the app shows under cx.
+func OnboardingNext(cx *core.Scope) string { return For(cx).OnboardingNext() }
+
+// OnboardingNext is the package's OnboardingNext in the language of msgs.
+func (msgs Messages) OnboardingNext() string { return msgs.text(textOnboardingNext) }
 
 // OnboardingRequired says "Add a company name, a site name, and a reporting year between 2020 and 2030 to finish."
 // in the language the app shows under cx.
@@ -18049,6 +18179,30 @@ func (msgs Messages) QuestionnairesDetailUnit() string {
 	return msgs.text(textQuestionnairesDetailUnit)
 }
 
+// QuestionnairesDueDate says "Due date {date}"
+// in the language the app shows under cx.
+func QuestionnairesDueDate(cx *core.Scope, date string) string {
+	return For(cx).QuestionnairesDueDate(date)
+}
+
+// QuestionnairesDueDate is the package's QuestionnairesDueDate in the language of msgs.
+func (msgs Messages) QuestionnairesDueDate(date string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.QuestionnairesDueDate(date))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].QuestionnairesDueDate; f != nil {
+			return f(date)
+		}
+		switch lang {
+		case "", "en":
+			return "Due date " + msgs.arg(date)
+		case "zh-CN":
+			return "截止 " + date
+		}
+	}
+}
+
 // QuestionnairesEmpty says "No disclosure filings yet"
 // in the language the app shows under cx.
 func QuestionnairesEmpty(cx *core.Scope) string { return For(cx).QuestionnairesEmpty() }
@@ -18150,13 +18304,6 @@ func (msgs Messages) QuestionnairesListCountOne(count string) string {
 		}
 	}
 }
-
-// QuestionnairesSubtitle says "Filings you send to customers, answered from this inventory."
-// in the language the app shows under cx.
-func QuestionnairesSubtitle(cx *core.Scope) string { return For(cx).QuestionnairesSubtitle() }
-
-// QuestionnairesSubtitle is the package's QuestionnairesSubtitle in the language of msgs.
-func (msgs Messages) QuestionnairesSubtitle() string { return msgs.text(textQuestionnairesSubtitle) }
 
 // QuestionnairesNewButton says "New disclosure filing"
 // in the language the app shows under cx.
@@ -18293,6 +18440,13 @@ func QuestionnairesStatusParsing(cx *core.Scope) string { return For(cx).Questio
 func (msgs Messages) QuestionnairesStatusParsing() string {
 	return msgs.text(textQuestionnairesStatusParsing)
 }
+
+// QuestionnairesSubtitle says "Filings you send to customers, answered from this inventory."
+// in the language the app shows under cx.
+func QuestionnairesSubtitle(cx *core.Scope) string { return For(cx).QuestionnairesSubtitle() }
+
+// QuestionnairesSubtitle is the package's QuestionnairesSubtitle in the language of msgs.
+func (msgs Messages) QuestionnairesSubtitle() string { return msgs.text(textQuestionnairesSubtitle) }
 
 // QuestionnairesTableCustomer says "Customer"
 // in the language the app shows under cx.
@@ -19456,6 +19610,27 @@ func (msgs Messages) RebindUnitCrossFamily(from string, to string) string {
 	}
 }
 
+// Redo says "Redo"
+// in the language the app shows under cx.
+func Redo(cx *core.Scope) string { return For(cx).Redo() }
+
+// Redo is the package's Redo in the language of msgs.
+func (msgs Messages) Redo() string { return msgs.text(textRedo) }
+
+// RedoDone says "Redone"
+// in the language the app shows under cx.
+func RedoDone(cx *core.Scope) string { return For(cx).RedoDone() }
+
+// RedoDone is the package's RedoDone in the language of msgs.
+func (msgs Messages) RedoDone() string { return msgs.text(textRedoDone) }
+
+// RedoFailed says "Could not redo the last action."
+// in the language the app shows under cx.
+func RedoFailed(cx *core.Scope) string { return For(cx).RedoFailed() }
+
+// RedoFailed is the package's RedoFailed in the language of msgs.
+func (msgs Messages) RedoFailed() string { return msgs.text(textRedoFailed) }
+
 // ReportsCancelButton says "Cancel"
 // in the language the app shows under cx.
 func ReportsCancelButton(cx *core.Scope) string { return For(cx).ReportsCancelButton() }
@@ -20165,6 +20340,17 @@ func SettingsAboutOpenLogDirHint(cx *core.Scope) string { return For(cx).Setting
 // SettingsAboutOpenLogDirHint is the package's SettingsAboutOpenLogDirHint in the language of msgs.
 func (msgs Messages) SettingsAboutOpenLogDirHint() string {
 	return msgs.text(textSettingsAboutOpenLogDirHint)
+}
+
+// SettingsAboutOpenSupportFailed says "Could not open the support address."
+// in the language the app shows under cx.
+func SettingsAboutOpenSupportFailed(cx *core.Scope) string {
+	return For(cx).SettingsAboutOpenSupportFailed()
+}
+
+// SettingsAboutOpenSupportFailed is the package's SettingsAboutOpenSupportFailed in the language of msgs.
+func (msgs Messages) SettingsAboutOpenSupportFailed() string {
+	return msgs.text(textSettingsAboutOpenSupportFailed)
 }
 
 // SettingsAboutOpenWebsite says "Open website"
@@ -21229,15 +21415,6 @@ func (msgs Messages) SettingsImportOutlierLabel() string {
 	return msgs.text(textSettingsImportOutlierLabel)
 }
 
-// SettingsImportOutlierSaved says "Outlier multiplier saved"
-// in the language the app shows under cx.
-func SettingsImportOutlierSaved(cx *core.Scope) string { return For(cx).SettingsImportOutlierSaved() }
-
-// SettingsImportOutlierSaved is the package's SettingsImportOutlierSaved in the language of msgs.
-func (msgs Messages) SettingsImportOutlierSaved() string {
-	return msgs.text(textSettingsImportOutlierSaved)
-}
-
 // SettingsImportOutlierSave says "Save threshold"
 // in the language the app shows under cx.
 func SettingsImportOutlierSave(cx *core.Scope) string { return For(cx).SettingsImportOutlierSave() }
@@ -21245,6 +21422,15 @@ func SettingsImportOutlierSave(cx *core.Scope) string { return For(cx).SettingsI
 // SettingsImportOutlierSave is the package's SettingsImportOutlierSave in the language of msgs.
 func (msgs Messages) SettingsImportOutlierSave() string {
 	return msgs.text(textSettingsImportOutlierSave)
+}
+
+// SettingsImportOutlierSaved says "Outlier multiplier saved"
+// in the language the app shows under cx.
+func SettingsImportOutlierSaved(cx *core.Scope) string { return For(cx).SettingsImportOutlierSaved() }
+
+// SettingsImportOutlierSaved is the package's SettingsImportOutlierSaved in the language of msgs.
+func (msgs Messages) SettingsImportOutlierSaved() string {
+	return msgs.text(textSettingsImportOutlierSaved)
 }
 
 // SettingsLanguage says "Language"
@@ -21586,6 +21772,17 @@ func (msgs Messages) SettingsMigrationBackups() string {
 	return msgs.text(textSettingsMigrationBackups)
 }
 
+// SettingsMigrationCurrentLabel says "Current data folder"
+// in the language the app shows under cx.
+func SettingsMigrationCurrentLabel(cx *core.Scope) string {
+	return For(cx).SettingsMigrationCurrentLabel()
+}
+
+// SettingsMigrationCurrentLabel is the package's SettingsMigrationCurrentLabel in the language of msgs.
+func (msgs Messages) SettingsMigrationCurrentLabel() string {
+	return msgs.text(textSettingsMigrationCurrentLabel)
+}
+
 // SettingsMigrationCurrentPath says "Current data folder: {path}"
 // in the language the app shows under cx.
 func SettingsMigrationCurrentPath(cx *core.Scope, path string) string {
@@ -21610,17 +21807,6 @@ func (msgs Messages) SettingsMigrationCurrentPath(path string) string {
 	}
 }
 
-// SettingsMigrationCurrentLabel says "Current data folder"
-// in the language the app shows under cx.
-func SettingsMigrationCurrentLabel(cx *core.Scope) string {
-	return For(cx).SettingsMigrationCurrentLabel()
-}
-
-// SettingsMigrationCurrentLabel is the package's SettingsMigrationCurrentLabel in the language of msgs.
-func (msgs Messages) SettingsMigrationCurrentLabel() string {
-	return msgs.text(textSettingsMigrationCurrentLabel)
-}
-
 // SettingsMigrationImported says "Imported from CarbonInk 1.x — this workspace now lives in the new data folder."
 // in the language the app shows under cx.
 func SettingsMigrationImported(cx *core.Scope) string { return For(cx).SettingsMigrationImported() }
@@ -21628,6 +21814,17 @@ func SettingsMigrationImported(cx *core.Scope) string { return For(cx).SettingsM
 // SettingsMigrationImported is the package's SettingsMigrationImported in the language of msgs.
 func (msgs Messages) SettingsMigrationImported() string {
 	return msgs.text(textSettingsMigrationImported)
+}
+
+// SettingsMigrationLegacyLabel says "CarbonInk 1.x data folder"
+// in the language the app shows under cx.
+func SettingsMigrationLegacyLabel(cx *core.Scope) string {
+	return For(cx).SettingsMigrationLegacyLabel()
+}
+
+// SettingsMigrationLegacyLabel is the package's SettingsMigrationLegacyLabel in the language of msgs.
+func (msgs Messages) SettingsMigrationLegacyLabel() string {
+	return msgs.text(textSettingsMigrationLegacyLabel)
 }
 
 // SettingsMigrationLegacyPath says "CarbonInk 1.x data folder: {path}"
@@ -21652,17 +21849,6 @@ func (msgs Messages) SettingsMigrationLegacyPath(path string) string {
 			return "CarbonInk 1.x 数据目录：" + path
 		}
 	}
-}
-
-// SettingsMigrationLegacyLabel says "CarbonInk 1.x data folder"
-// in the language the app shows under cx.
-func SettingsMigrationLegacyLabel(cx *core.Scope) string {
-	return For(cx).SettingsMigrationLegacyLabel()
-}
-
-// SettingsMigrationLegacyLabel is the package's SettingsMigrationLegacyLabel in the language of msgs.
-func (msgs Messages) SettingsMigrationLegacyLabel() string {
-	return msgs.text(textSettingsMigrationLegacyLabel)
 }
 
 // SettingsMigrationNone says "No CarbonInk 1.x data folder was found on this computer."
@@ -22482,6 +22668,29 @@ func (msgs Messages) SettingsSkillInstalled(count string) string {
 	}
 }
 
+// SettingsSkillHostClaudeCode says "Claude Code (~/.claude/skills/)"
+// in the language the app shows under cx.
+func SettingsSkillHostClaudeCode(cx *core.Scope) string { return For(cx).SettingsSkillHostClaudeCode() }
+
+// SettingsSkillHostClaudeCode is the package's SettingsSkillHostClaudeCode in the language of msgs.
+func (msgs Messages) SettingsSkillHostClaudeCode() string {
+	return msgs.text(textSettingsSkillHostClaudeCode)
+}
+
+// SettingsSkillHostCodex says "Codex (~/.codex/skills/)"
+// in the language the app shows under cx.
+func SettingsSkillHostCodex(cx *core.Scope) string { return For(cx).SettingsSkillHostCodex() }
+
+// SettingsSkillHostCodex is the package's SettingsSkillHostCodex in the language of msgs.
+func (msgs Messages) SettingsSkillHostCodex() string { return msgs.text(textSettingsSkillHostCodex) }
+
+// SettingsSkillHostPi says "Pi (~/.pi/agent/skills/)"
+// in the language the app shows under cx.
+func SettingsSkillHostPi(cx *core.Scope) string { return For(cx).SettingsSkillHostPi() }
+
+// SettingsSkillHostPi is the package's SettingsSkillHostPi in the language of msgs.
+func (msgs Messages) SettingsSkillHostPi() string { return msgs.text(textSettingsSkillHostPi) }
+
 // SettingsSkillLoading says "Detecting…"
 // in the language the app shows under cx.
 func SettingsSkillLoading(cx *core.Scope) string { return For(cx).SettingsSkillLoading() }
@@ -22684,6 +22893,13 @@ func SidebarMcpLabelPending(cx *core.Scope) string { return For(cx).SidebarMcpLa
 
 // SidebarMcpLabelPending is the package's SidebarMcpLabelPending in the language of msgs.
 func (msgs Messages) SidebarMcpLabelPending() string { return msgs.text(textSidebarMcpLabelPending) }
+
+// SidebarToggle says "Toggle sidebar"
+// in the language the app shows under cx.
+func SidebarToggle(cx *core.Scope) string { return For(cx).SidebarToggle() }
+
+// SidebarToggle is the package's SidebarToggle in the language of msgs.
+func (msgs Messages) SidebarToggle() string { return msgs.text(textSidebarToggle) }
 
 // SortLabel says "Sort"
 // in the language the app shows under cx.
@@ -23947,7 +24163,7 @@ func (msgs Messages) SupplierDisclosuresDue(date string) string {
 	}
 }
 
-// SupplierDisclosuresEmpty says "No supplier disclosures yet."
+// SupplierDisclosuresEmpty says "No supplier disclosures yet. Click \"+ New disclosure\" (top right) to start collecting Scope 3 Cat 1 data from upstream suppliers."
 // in the language the app shows under cx.
 func SupplierDisclosuresEmpty(cx *core.Scope) string { return For(cx).SupplierDisclosuresEmpty() }
 
@@ -23965,15 +24181,6 @@ func SupplierDisclosuresEmptyBody(cx *core.Scope) string {
 // SupplierDisclosuresEmptyBody is the package's SupplierDisclosuresEmptyBody in the language of msgs.
 func (msgs Messages) SupplierDisclosuresEmptyBody() string {
 	return msgs.text(textSupplierDisclosuresEmptyBody)
-}
-
-// SupplierDisclosuresSubtitle says "Data requests you send suppliers, and what comes back."
-// in the language the app shows under cx.
-func SupplierDisclosuresSubtitle(cx *core.Scope) string { return For(cx).SupplierDisclosuresSubtitle() }
-
-// SupplierDisclosuresSubtitle is the package's SupplierDisclosuresSubtitle in the language of msgs.
-func (msgs Messages) SupplierDisclosuresSubtitle() string {
-	return msgs.text(textSupplierDisclosuresSubtitle)
 }
 
 // SupplierDisclosuresFileTooLarge says "File is too large."
@@ -24421,7 +24628,7 @@ func (msgs Messages) SupplierDisclosuresReviewWarnings(count string) string {
 	}
 }
 
-// SupplierDisclosuresSearchPlaceholder says "Search suppliers"
+// SupplierDisclosuresSearchPlaceholder says "Search supplier name…"
 // in the language the app shows under cx.
 func SupplierDisclosuresSearchPlaceholder(cx *core.Scope) string {
 	return For(cx).SupplierDisclosuresSearchPlaceholder()
@@ -24496,6 +24703,15 @@ func SupplierDisclosuresStatusSent(cx *core.Scope) string {
 // SupplierDisclosuresStatusSent is the package's SupplierDisclosuresStatusSent in the language of msgs.
 func (msgs Messages) SupplierDisclosuresStatusSent() string {
 	return msgs.text(textSupplierDisclosuresStatusSent)
+}
+
+// SupplierDisclosuresSubtitle says "Data requests you send suppliers, and what comes back."
+// in the language the app shows under cx.
+func SupplierDisclosuresSubtitle(cx *core.Scope) string { return For(cx).SupplierDisclosuresSubtitle() }
+
+// SupplierDisclosuresSubtitle is the package's SupplierDisclosuresSubtitle in the language of msgs.
+func (msgs Messages) SupplierDisclosuresSubtitle() string {
+	return msgs.text(textSupplierDisclosuresSubtitle)
 }
 
 // SupplierDisclosuresWizardCreated says "Draft created with {count} questions."
@@ -24693,27 +24909,6 @@ func UndoFailed(cx *core.Scope) string { return For(cx).UndoFailed() }
 
 // UndoFailed is the package's UndoFailed in the language of msgs.
 func (msgs Messages) UndoFailed() string { return msgs.text(textUndoFailed) }
-
-// Redo says "Redo"
-// in the language the app shows under cx.
-func Redo(cx *core.Scope) string { return For(cx).Redo() }
-
-// Redo is the package's Redo in the language of msgs.
-func (msgs Messages) Redo() string { return msgs.text(textRedo) }
-
-// RedoDone says "Redone"
-// in the language the app shows under cx.
-func RedoDone(cx *core.Scope) string { return For(cx).RedoDone() }
-
-// RedoDone is the package's RedoDone in the language of msgs.
-func (msgs Messages) RedoDone() string { return msgs.text(textRedoDone) }
-
-// RedoFailed says "Could not redo the last action."
-// in the language the app shows under cx.
-func RedoFailed(cx *core.Scope) string { return For(cx).RedoFailed() }
-
-// RedoFailed is the package's RedoFailed in the language of msgs.
-func (msgs Messages) RedoFailed() string { return msgs.text(textRedoFailed) }
 
 // UnitKgCo2e says "kg CO2e"
 // in the language the app shows under cx.

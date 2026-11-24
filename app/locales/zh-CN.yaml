@@ -13,21 +13,20 @@ activitiesCountOne:
             type: int
 activitiesCreateFailed: 创建活动数据失败
 activitiesCreateSuccess: 活动数据已记录
-activitiesEmpty: 还没有活动数据。
-activitiesEmptyBody: 记录每个排放源背后的实际用量——一次抄表、一张加油发票、一趟差旅。上传 PDF 还能自动填好表单。
-activitiesEmptyNoSourcesBody: 活动数据要挂在排放源下面，而当前组织还没有任何排放源。建好第一个之后，就可以在这里录入用量了。
 activitiesDropDone: 已根据 {filename} 填入
 activitiesDropHint: 把账单或票据拖到这里，或选择一个 PDF；CarbonInk 会自动识别并填入表单。
 activitiesDropPdfOnly: 这里只支持读取 PDF 文件。
 activitiesDropPick: 选择 PDF
 activitiesDropUnsupported: 这类单据不能用来预填活动数据。
 activitiesDropWorking: 正在读取单据…
+activitiesEmpty: 还没有活动数据。
+activitiesEmptyBody: 记录每个排放源背后的实际用量——一次抄表、一张加油发票、一趟差旅。上传 PDF 还能自动填好表单。
+activitiesEmptyNoSourcesBody: 活动数据要挂在排放源下面，而当前组织还没有任何排放源。建好第一个之后，就可以在这里录入用量了。
 activitiesEmptyNoSourcesCta: 去建立排放源
 activitiesEmptyNoSourcesTitle: 请先建立排放源
 activitiesEmptyTitle: 还没有活动数据
 activitiesFilterClear: 清除筛选
 activitiesFilterEmpty: 未找到匹配的活动
-activitiesPeriodAll: 全部报告期
 activitiesFormAmount: 数量
 activitiesFormEf: 排放因子
 activitiesFormEfLoading: 正在加载排放因子…
@@ -54,6 +53,7 @@ activitiesFromDocument: 来自文档：{filename}
 activitiesFromLedgerImport: 台账导入
 activitiesFromSupplierDisclosure: 来自供应商披露
 activitiesLoadFailed: 加载活动数据失败
+activitiesPeriodAll: 全部报告期
 activitiesRecommendEmpty: 模型没有返回推荐；仍可从下方完整列表选择。
 activitiesRecommendFailed: 推荐排序失败；仍可从下方完整列表选择。
 activitiesRecommendHeading: 推荐排放因子
@@ -194,7 +194,7 @@ answerSourceReused: 沿用上次问卷答案
 answerUnfinalize: 撤销定稿
 answerUnit: 单位
 answerValue: 数值
-appName: CarbonInk
+appName: 碳墨
 appTagline: 本地碳核算
 appTitle: 碳墨
 auditEmptyStateBody: 在你确认抽取、定稿答案或重新镶嵌排放因子时会自动记录事件。
@@ -222,6 +222,7 @@ auditNav: 审计日志
 auditRebindActivityLabel: 活动
 auditRebindDelta: 'CO2e: {old_co2e} kg → {new_co2e} kg ({delta_signed} kg, {pct_signed}%)'
 auditRebindSummary: '重新镶嵌活动 {activity_id_short}: {old_ef} → {new_ef}'
+auditSelectEvent: 选择一个事件查看详情。
 auditShowRaw: 显示原始数据
 auditSortOldest: 最早事件
 auditSortRecent: 最近事件
@@ -249,7 +250,6 @@ dashboardInventoryBody: 目前没有排放数据。
 dashboardInventoryTitle: 排放清单仪表盘
 dashboardMonthlyTrend: 月度排放趋势
 dashboardNoDataForChart: 录入活动数据后，按月汇总会显示在这里。
-dashboardTrendNote: 按活动日期区间天数分摊到各月。
 dashboardRecentActivities: 最近活动
 dashboardRecentEmpty: 暂无活动数据
 dashboardScope1: 范围 1
@@ -268,6 +268,7 @@ dashboardStartStepDone: 已完成
 dashboardStartSubtitle: 三步，把空工作区变成一份可核查的排放清单。
 dashboardStartTitle: 从这里开始
 dashboardTotalCo2e: 总 CO2e
+dashboardTrendNote: 按活动日期区间天数分摊到各月。
 dashboardWelcomeBody: 你还没有设置组织。下一步引导向导会带你完成。
 dashboardWelcomeTitle: 欢迎使用 碳墨
 dashboardWidgetViewAll: 查看全部
@@ -329,7 +330,6 @@ documentsBatchReasonClassifyFailed: 无法自动识别类型——打开文档�
 documentsBatchReasonError: 识别出错
 documentsBatchSummaryToast: 批量识别完成：成功 {ok} · 失败 {failed}
 documentsCount: 文件：{count}
-documentsSubtitle: 与当前账套一起保存的账单、发票与证据文件。
 documentsDetailButton: 详情
 documentsDetailCopied: 已复制
 documentsDetailCopy: 复制文本
@@ -450,16 +450,23 @@ documentsReviewUploadedOn: 上传于 {date}
 documentsReviewViewActivitiesLink: 前往活动数据 →
 documentsReviewViewActivityLink: 在活动列表中查看 →
 documentsSearchPlaceholder: 搜索文件名
+documentsSelectDetail: 选择一个文档查看详情。
 documentsShowingLatest: 仅显示最近 {shown} 个，共 {total} 个
 documentsSortFilename: 文件名 A→Z
 documentsSortOldest: 最早上传
 documentsSortRecent: 最近上传
+documentsStageChinaUtility: 电费账单
+documentsStageFreight: 货运发票
+documentsStageFuelReceipt: 加油发票
 documentsStageNoVision: 此 stage 暂不支持图像输入
+documentsStagePurchase: 采购发票
+documentsStageTravel: 差旅票据
 documentsStatusNone: 无抽取
 documentsStatusParsed: 已确认
 documentsStatusRejected: 已丢弃
 documentsStatusReviewNeeded: 待审核
 documentsStatusUnclassified: 未分类
+documentsSubtitle: 与当前账套一起保存的账单、发票与证据文件。
 documentsTableFilename: 文件
 documentsTableSha: Hash
 documentsTableStatus: 状态
@@ -826,8 +833,8 @@ onboardingCompleteFailed: 完成新手引导失败。
 onboardingCreating: 正在创建组织…
 onboardingEyebrow: 第 {current} 步 / 共 {total} 步
 onboardingFinish: 完成
-onboardingNext: 下一步
 onboardingNameHint: 至少填写一种语言的名称。
+onboardingNext: 下一步
 onboardingRequired: 填写公司名称、Site 名称，并确认 2020–2030 之间的报告年度后才能完成。
 onboardingRequiredNote: '* 必填'
 onboardingStepAiBody: 碳墨 需要 AI 提供方解析文档和回答问卷。可以稍后在设置里配置；现在跳过也可以。
@@ -906,6 +913,7 @@ questionnairesDetailPosition: 单元格
 questionnairesDetailQuestion: 题目
 questionnairesDetailSelect: 选择一道题，编辑它的答案。
 questionnairesDetailUnit: 单位
+questionnairesDueDate: 截止 {date}
 questionnairesEmpty: 还没有披露填报
 questionnairesEmptyBody: 披露填报从客户发来的 .xlsx 工作表开始：导入、逐题核对答案，再导出完成的工作表。
 questionnairesFilterClear: 清除筛选
@@ -914,7 +922,6 @@ questionnairesFilterStatusAll: 全部状态
 questionnairesFinalizeButton: 确认全部答案
 questionnairesListCount: '{count} 份问卷'
 questionnairesListCountOne: '{count} 份问卷'
-questionnairesSubtitle: 发给客户、用本清单作答的披露填报。
 questionnairesNewButton: 新建披露填报
 questionnairesQuestionCount: '{count} 道题'
 questionnairesSearchPlaceholder: 搜索客户名称
@@ -928,6 +935,7 @@ questionnairesStatusExported: 已导出
 questionnairesStatusFinalized: 已定稿
 questionnairesStatusMapping: 草稿
 questionnairesStatusParsing: 解析中
+questionnairesSubtitle: 发给客户、用本清单作答的披露填报。
 questionnairesTableCustomer: 客户
 questionnairesTableDue: 截止日期
 questionnairesTableQuestions: 题目数
@@ -1016,6 +1024,9 @@ rebindPreviewHeading: 预览
 rebindSuccessToast: 已重新镶嵌 — 新排放 {co2e} kg CO2e ({pct_signed}%)
 rebindUnitConversion: '单位换算: {from_amt} {from_unit} → {to_amt} {to_unit}'
 rebindUnitCrossFamily: 跨单位族（{from} → {to}）：系统不会替你猜换算（例如热值），请在下方手动输入新单位下的活动量。
+redo: 重做
+redoDone: 已重做
+redoFailed: 重做失败。
 reportsCancelButton: 取消
 reportsDeliverableSuccess: 交付包已保存至 {path}（含证据文件 {count} 份）
 reportsDeliverableSuccessMissing: 交付包已保存至 {path}——{count} 份证据文件中 {missing} 份磁盘缺失，已在 manifest.csv 标注
@@ -1090,6 +1101,7 @@ settingsAboutOpenDataDirHint: 在文件管理器里显示 app 的数据目录（
 settingsAboutOpenLogDir: 打开日志目录
 settingsAboutOpenLogDirFailed: 无法打开日志目录。
 settingsAboutOpenLogDirHint: 按天滚动的日志文件，留存 14 天，便于客服排错。
+settingsAboutOpenSupportFailed: 无法打开技术支持邮箱。
 settingsAboutOpenWebsite: 打开官网
 settingsAboutOpenWebsiteFailed: 无法打开官网。
 settingsAboutPlatform: 平台
@@ -1207,8 +1219,8 @@ settingsImportOutlierBody: 批量导入台账时，某行数量偏离组内中�
 settingsImportOutlierHeading: 批量导入异常检测
 settingsImportOutlierInvalid: 请输入 2 到 1000 之间的数字
 settingsImportOutlierLabel: 离群倍数（2–1000）
-settingsImportOutlierSaved: 离群倍数已保存
 settingsImportOutlierSave: 保存阈值
+settingsImportOutlierSaved: 离群倍数已保存
 settingsLanguage: 语言
 settingsLanguageChinese: 中文
 settingsLanguageEnglish: English
@@ -1241,16 +1253,16 @@ settingsMcpStatusInvalidJson: 配置文件不是合法 JSON — 请手动打开�
 settingsMcpStatusNeedsReconfigure: 已配置但路径过期 — 请点「重新配置」
 settingsMcpStatusNotConfigured: 已检测到，未配置
 settingsMcpStatusNotInstalled: 未检测到
-settingsMcpStepHelp: 上方的 Skill 告诉 agent **何时**该查询碳墨；下方的 MCP 配置告诉它**如何**查（用哪个 server、有哪些工具）。
+settingsMcpStepHelp: 上方的 Skill 告诉 agent 何时该查询碳墨；下方的 MCP 配置告诉它如何查（用哪个 server、有哪些工具）。
 settingsMcpStepTitle: 步骤 2 · 配置 MCP 客户端
 settingsMcpTitle: MCP 集成
 settingsMigrationAvailable: 检测到 CarbonInk 1.x 数据目录，新版首次启动时已自动导入其中的账套。
 settingsMigrationBackups: 1.x 的文件是复制而不是移动，自动备份和附件一并复制，原文件仍保留在原处。
-settingsMigrationCurrentPath: 当前数据目录：{path}
 settingsMigrationCurrentLabel: 当前数据目录
+settingsMigrationCurrentPath: 当前数据目录：{path}
 settingsMigrationImported: 已从 CarbonInk 1.x 导入——这个账套现在存放在新的数据目录中。
-settingsMigrationLegacyPath: CarbonInk 1.x 数据目录：{path}
 settingsMigrationLegacyLabel: CarbonInk 1.x 数据目录
+settingsMigrationLegacyPath: CarbonInk 1.x 数据目录：{path}
 settingsMigrationNone: 这台电脑上没有找到 CarbonInk 1.x 数据目录。
 settingsMigrationProviderImported: 已从 1.x 导入 AI 提供商设置。请在上方 AI 提供商中重新输入 API 密钥，以便继续使用文档提取。
 settingsMigrationRevealCurrent: 打开当前目录
@@ -1334,6 +1346,9 @@ settingsSkillActionRemove: 移除
 settingsSkillActionUpdate: 更新
 settingsSkillInstallFailed: Skill 操作失败
 settingsSkillInstalled: 已安装 Skill — 同步到 {count} 个 host。请重启 AI agent 让 skill 生效。
+settingsSkillHostClaudeCode: Claude Code（~/.claude/skills/）
+settingsSkillHostCodex: Codex（~/.codex/skills/）
+settingsSkillHostPi: Pi（~/.pi/agent/skills/）
 settingsSkillLoading: 检测中…
 settingsSkillNoHosts: 未检测到 agent host（仅 ~/.agents/skills/）
 settingsSkillRemoved: Skill 已移除。
@@ -1357,6 +1372,7 @@ settingsWorkspace: 账套
 sidebarMcpLabelAvailable: MCP
 sidebarMcpLabelNotBuilt: MCP·未构建
 sidebarMcpLabelPending: MCP·待配置
+sidebarToggle: 切换侧栏
 sortLabel: 排序
 sourceEditActiveLabel: 启用
 sourceEditCancel: 取消
@@ -1466,9 +1482,8 @@ supplierDisclosuresDetailTier: Tier {tier}
 supplierDisclosuresDetailTitle: 供应商披露
 supplierDisclosuresDetailUnanswered: （未答）
 supplierDisclosuresDue: 截止 {date}
-supplierDisclosuresEmpty: 尚无供应商披露。
+supplierDisclosuresEmpty: 尚无供应商披露。点击右上「+ 新建披露」开始向上游供应商收集 Scope 3 Cat 1 数据。
 supplierDisclosuresEmptyBody: 向供应商发出问卷，再跟踪回收情况；回收的答案可以直接转成活动数据。
-supplierDisclosuresSubtitle: 发给供应商的数据请求，以及回收的结果。
 supplierDisclosuresFileTooLarge: 文件过大。
 supplierDisclosuresImportNotTemplate: 该工作簿不是 CarbonInk 披露模板。
 supplierDisclosuresImportWrongPeriod: 该工作簿对应其他报告年度。
@@ -1499,13 +1514,14 @@ supplierDisclosuresReviewTierOne: Tier 1 — 产品碳足迹
 supplierDisclosuresReviewTierTwo: Tier 2 — 分配排放
 supplierDisclosuresReviewTitle: 审核供应商填报
 supplierDisclosuresReviewWarnings: '{count} 条解析提示'
-supplierDisclosuresSearchPlaceholder: 搜索供应商
+supplierDisclosuresSearchPlaceholder: 搜索供应商名称…
 supplierDisclosuresStatusAll: 全部状态
 supplierDisclosuresStatusDraft: 草稿
 supplierDisclosuresStatusFilter: 状态
 supplierDisclosuresStatusIngested: 已入库
 supplierDisclosuresStatusReceived: 已收回
 supplierDisclosuresStatusSent: 已发送
+supplierDisclosuresSubtitle: 发给供应商的数据请求，以及回收的结果。
 supplierDisclosuresWizardCreated: 已创建草稿，共 {count} 个问题。
 supplierDisclosuresWizardEmail: 联系邮箱
 supplierDisclosuresWizardFailed: 无法创建披露
@@ -1525,9 +1541,6 @@ topbarForward: 前进
 undo: 撤销
 undoDone: 已撤销
 undoFailed: 撤销失败。
-redo: 重做
-redoDone: 已重做
-redoFailed: 重做失败。
 unitKgCo2e: kg CO2e
 updaterCheckButton: 检查更新
 updaterCurrentVersion: 当前版本：{version}

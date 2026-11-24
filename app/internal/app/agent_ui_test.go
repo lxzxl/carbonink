@@ -26,11 +26,14 @@ func TestAgentIntegrationFromSettings(t *testing.T) {
 
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}))
-	ui.Press("id:nav:settings")
-	ui.WaitFor("text:Agent integration", 5*time.Second)
+	openSettings(ui, "mcp")
+	ui.WaitFor("id:agent-skill-install", 5*time.Second)
 
 	ui.Press("id:agent-skill-install")
-	ui.WaitFor("text:Agent skill installed.", 10*time.Second)
+	ui.WaitFor("text:Installed Skill", 10*time.Second)
+	if label := ui.Find("id:sidebar-mcp-status").Props.Label; label != "MCP · Not configured" {
+		t.Fatalf("sidebar MCP label before configure = %q", label)
+	}
 	canonical := filepath.Join(home, ".agents", "skills", "carbonink-mcp", "SKILL.md")
 	if _, err := os.Stat(canonical); err != nil {
 		t.Fatal(err)
@@ -40,7 +43,10 @@ func TestAgentIntegrationFromSettings(t *testing.T) {
 	}
 
 	ui.Press("id:agent-config-claudeCode")
-	ui.WaitFor("text:Claude Code MCP entry written.", 10*time.Second)
+	ui.WaitFor("text:Configured Claude Code", 10*time.Second)
+	ui.WaitUntil(5*time.Second, func() bool {
+		return ui.Find("id:sidebar-mcp-status").Props.Label == "MCP"
+	})
 	data, err := os.ReadFile(filepath.Join(home, ".claude.json"))
 	if err != nil {
 		t.Fatal(err)
@@ -57,7 +63,10 @@ func TestAgentIntegrationFromSettings(t *testing.T) {
 	}
 
 	ui.Press("id:agent-remove-claudeCode")
-	ui.WaitFor("text:Claude Code MCP entry removed.", 10*time.Second)
+	ui.WaitFor("text:Removed CarbonInk from Claude Code", 10*time.Second)
+	ui.WaitUntil(5*time.Second, func() bool {
+		return ui.Find("id:sidebar-mcp-status").Props.Label == "MCP · Not configured"
+	})
 	data, err = os.ReadFile(filepath.Join(home, ".claude.json"))
 	if err != nil {
 		t.Fatal(err)

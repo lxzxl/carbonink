@@ -36,17 +36,21 @@ func (s *Session) amapKeyCard(cx *core.Scope) core.Node {
 		status.Set(locales.SettingsAmapSaved(cx))
 	}
 
-	return dataCard(cx,
-		dataHeading(cx, locales.SettingsAmapHeading(cx), ""),
+	return dataCardFlat(cx,
+		dataHeaderRow(cx,
+			core.View{Style: core.Style{FlexGrow: 1, Gap: 4}, Children: []core.Node{
+				core.Text{ContentFunc: func() string { return locales.SettingsAmapLabel(cx) },
+					Style: core.Style{FontSize: 14, FontWeight: ui.Medium}},
+				namedNode(ui.Input{Value: key.Get, OnChange: key.Set,
+					Placeholder: locales.SettingsAmapPlaceholder(cx),
+					TestID:      "settings-amap-key"},
+					func() string { return locales.SettingsAmapLabel(cx) }),
+			}},
+			ui.Button{Text: locales.SettingsSave(cx), Variant: ui.ButtonOutline,
+				OnPress: save, TestID: "settings-amap-save"},
+		),
 		core.Text{ContentFunc: func() string { return locales.SettingsAmapBody(cx) },
 			Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
-		dataHeaderRow(cx,
-			dataField(cx, locales.SettingsAmapLabel(cx),
-				ui.Input{Value: key.Get, OnChange: key.Set,
-					Placeholder: locales.SettingsAmapPlaceholder(cx),
-					TestID:      "settings-amap-key"}),
-			ui.Button{Text: locales.SettingsSave(cx), OnPress: save, TestID: "settings-amap-save"},
-		),
 		core.Show{When: func() bool { return status.Get() != "" },
 			Then: func(cx *core.Scope) core.Node {
 				return core.Text{ContentFunc: func() string { return status.Get() },

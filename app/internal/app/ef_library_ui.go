@@ -12,21 +12,41 @@ import (
 	"app.carbonink.desktop/locales"
 
 	"github.com/nsgo-dev/nsgo/core"
+	"github.com/nsgo-dev/nsgo/icons/lucide"
 	"github.com/nsgo-dev/nsgo/ui"
 	"github.com/xuri/excelize/v2"
 )
 
 // efLibraryBody lists user-imported factor libraries and their import entry.
 func (s *Session) efLibraryBody(cx *core.Scope, dataRev *core.Signal[int]) core.Node {
-	return dataCard(cx,
-		dataHeaderRow(cx,
-			dataHeading(cx, locales.EfLibraryGroupHeading(cx), locales.EfLibraryGroupBody(cx)),
-			s.efImportDialog(cx, dataRev)),
-		core.Dynamic(func(cx *core.Scope) core.Node {
-			_ = dataRev.Get()
-			return s.efLibraryList(cx, dataRev)
-		}),
+	templateStatus := core.NewSignal(cx, "")
+	templateButton := ui.Button{Text: locales.EfLibraryTemplateButton(cx),
+		Variant: ui.ButtonGhost, Icon: lucide.Download,
+		OnPress: func() {
+			s.saveEFTemplate(cx, func(message string) { templateStatus.Set(message) })
+		}, TestID: "ef-library-template"}
+	importCard := settingsCard(cx, lucide.Library,
+		locales.EfLibraryGroupHeading, locales.EfLibraryGroupBody,
+		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+			Wrap: core.Wrap, Gap: 8}, Children: []core.Node{
+			s.efImportDialog(cx, dataRev),
+			templateButton,
+		}},
+		core.Show{When: func() bool { return templateStatus.Get() != "" },
+			Then: func(cx *core.Scope) core.Node {
+				return core.Text{ContentFunc: func() string { return templateStatus.Get() },
+					Style:     core.Style{FontSize: 11},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)}
+			}},
 	)
+	return core.View{Style: core.Style{Gap: 24, AlignSelf: core.AlignStretch},
+		Children: []core.Node{
+			importCard,
+			core.Dynamic(func(cx *core.Scope) core.Node {
+				_ = dataRev.Get()
+				return s.efLibraryList(cx, dataRev)
+			}),
+		}}
 }
 
 func (s *Session) efLibraryList(cx *core.Scope, dataRev *core.Signal[int]) core.Node {
@@ -38,33 +58,43 @@ func (s *Session) efLibraryList(cx *core.Scope, dataRev *core.Signal[int]) core.
 	}
 	for i := range libraries {
 		library := libraries[i]
-		rows = append(rows, core.View{
-			Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 10,
-				Padding: core.Symmetric(9, 0), Borders: core.Edges{Bottom: 1}},
-			StyleFunc: func() core.Style { return core.Style{BorderColor: ui.ColorsOf(cx).Line()} },
+		row := core.View{
+			Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8,
+				Padding: core.Symmetric(6, 16)},
+			StyleFunc: func() core.Style {
+				return core.Style{BorderColor: ui.ColorsOf(cx).Line()}
+			},
 			Children: []core.Node{
-				core.View{Style: core.Style{Gap: 2, FlexGrow: 1}, Children: []core.Node{
-					core.Text{Content: library.Name, Style: core.Style{FontSize: 13, FontWeight: ui.Semibold},
-						MaxLines: 1},
-					core.Text{Content: locales.EfLibraryRowMeta(cx, library.Version,
-						strconv.Itoa(library.FactorCount), dateOnly(library.ImportedAt)),
-						Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
-				}},
 				s.efLibraryBrowseButton(cx, library),
 				s.efLibraryDeleteButton(cx, library, dataRev),
 			},
-		})
+		}
+		if i < len(libraries)-1 {
+			row.Style.Borders = core.Edges{Bottom: 1}
+		}
+		rows = append(rows, row)
 	}
 	if len(libraries) == 0 && err == nil {
-		rows = append(rows, core.View{Style: core.Style{Padding: core.All(16)}, Children: []core.Node{
-			core.Text{Content: locales.EfLibraryEmpty(cx), Style: core.Style{FontSize: 12},
-				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-		}})
+		return core.View{Style: core.Style{Gap: 8}, Children: []core.Node{
+			core.Text{Content: locales.EfLibraryListHeading(cx),
+				Style: core.Style{FontSize: 14, FontWeight: ui.Semibold}, MaxLines: 1},
+			core.View{
+				Style: core.Style{Padding: core.Symmetric(24, 16), AlignSelf: core.AlignStretch,
+					AlignItems: core.AlignCenter},
+				StyleFunc: cardSurface(cx),
+				Children: []core.Node{
+					core.Text{Content: locales.EfLibraryEmpty(cx), Style: core.Style{FontSize: 12,
+						TextAlign: core.TextAlignCenter},
+						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2},
+				}},
+		}}
 	}
-	return core.View{Style: core.Style{Gap: 0}, Children: []core.Node{
-		core.Text{Content: locales.EfLibraryListHeading(cx), Style: core.Style{FontSize: 11, FontWeight: ui.Semibold},
-			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-		core.View{Style: core.Style{Gap: 0}, Children: rows},
+	list := core.View{Style: core.Style{AlignSelf: core.AlignStretch},
+		StyleFunc: cardSurface(cx), Children: rows}
+	return core.View{Style: core.Style{Gap: 8}, Children: []core.Node{
+		core.Text{Content: locales.EfLibraryListHeading(cx),
+			Style: core.Style{FontSize: 14, FontWeight: ui.Semibold}, MaxLines: 1},
+		list,
 	}}
 }
 
@@ -85,7 +115,9 @@ func (s *Session) efLibraryDeleteButton(cx *core.Scope, library store.EFLibrary,
 		_ = dataRefresh(s, dataRev)
 	}
 	return core.View{Children: []core.Node{
-		ui.Button{Text: locales.EfLibraryDeleteButton(cx), Variant: ui.ButtonSecondary,
+		ui.Button{Icon: lucide.Trash, Variant: ui.ButtonGhost, Side: 28, IconSize: 14,
+			Label:   locales.EfLibraryDeleteButton(cx),
+			Tint:    func() core.Color { return ui.ColorsOf(cx).Muted() },
 			OnPress: func() { status.Set(""); open.Set(true) },
 			TestID:  "ef-library-delete-" + library.Name},
 		dataDialog(cx, open, locales.EfLibraryDeleteButton(cx), []core.Node{
@@ -146,8 +178,40 @@ func (s *Session) efLibraryBrowseButton(cx *core.Scope, library store.EFLibrary)
 		b.open.Set(true)
 	}
 	return core.View{Children: []core.Node{
-		ui.Button{Text: locales.EfLibraryBrowseOpen(cx), Variant: ui.ButtonSecondary,
-			OnPress: show, TestID: "ef-library-browse-" + library.Name},
+		core.View{
+			TestID: "ef-library-browse-" + library.Name,
+			Role:   core.RoleButton,
+			Label:  library.Name + " — " + locales.EfLibraryBrowseOpen(cx),
+			OnPress: func(core.PressEvent) {
+				show()
+			},
+			Style: core.Style{Gap: 2, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0),
+				Padding: core.Symmetric(4, 0), CornerRadius: 4},
+			StyleFunc: func() core.Style {
+				return core.Style{Hover: &core.Style{
+					Background: ui.Alpha(ui.ColorsOf(cx).Text(), 0.04)}}
+			},
+			Children: []core.Node{
+				core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+					Gap: 8, MinWidth: core.Pt(0)}, Children: []core.Node{
+					core.Text{Content: library.Name,
+						Style: core.Style{FontSize: 13, FontWeight: ui.Semibold,
+							FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 1},
+					core.Text{Content: library.Source,
+						Style:     core.Style{FontSize: 11, FontFamily: core.FontMonospace},
+						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
+				}},
+				core.Text{ContentFunc: func() string {
+					meta := locales.EfLibraryRowMeta(cx, library.Version,
+						strconv.Itoa(library.FactorCount), dateOnly(library.ImportedAt))
+					if library.SourceFilename != "" {
+						meta += " · " + library.SourceFilename
+					}
+					return meta
+				}, Style: core.Style{FontSize: 11},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
+			},
+		},
 		dataDialogSized(cx, b.open, library.Name, []core.Node{
 			dataField(cx, locales.EfLibraryBrowseSearchPlaceholder(cx),
 				ui.Input{Value: b.query.Get, Placeholder: locales.EfLibraryBrowseSearchPlaceholder(cx),
@@ -332,7 +396,8 @@ func (s *Session) efImportDialog(cx *core.Scope, dataRev *core.Signal[int]) core
 		w.rev.Set(w.rev.Get() + 1)
 	}
 	return core.View{Children: []core.Node{
-		ui.Button{Text: locales.EfLibraryImportButton(cx), Variant: ui.ButtonSecondary,
+		ui.Button{Text: locales.EfLibraryImportButton(cx), Variant: ui.ButtonOutline,
+			Icon:    lucide.FileUp,
 			OnPress: show, TestID: "ef-library-import"},
 		dataDialogSized(cx, w.open, locales.EfImportTitle(cx), []core.Node{
 			core.Scroll{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0),
@@ -507,20 +572,29 @@ func efSampleCard(cx *core.Scope, w *efWizard) core.Node {
 }
 
 func (s *Session) efTemplate(cx *core.Scope, w *efWizard) {
+	s.saveEFTemplate(cx, func(message string) {
+		w.status.Set(message)
+		w.rev.Set(w.rev.Get() + 1)
+	})
+}
+
+// saveEFTemplate writes the import template and reports the outcome. The
+// Settings group and the import dialog both offer the download, so they share
+// the save path.
+func (s *Session) saveEFTemplate(cx *core.Scope, done func(message string)) {
 	data, err := efTemplateBytes()
 	if err != nil {
-		w.status.Set(locales.EfLibraryTemplateFailed(cx))
+		done(locales.EfLibraryTemplateFailed(cx))
 		return
 	}
 	cx.SaveFile(core.SaveOptions{Name: "carbonink-ef-template.xlsx",
 		MIME: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", Data: data},
 		func(saved bool, _ string, err error) {
 			if err != nil || !saved {
-				w.status.Set(locales.EfLibraryTemplateFailed(cx))
+				done(locales.EfLibraryTemplateFailed(cx))
 				return
 			}
-			w.status.Set(locales.EfLibraryTemplateSaved(cx))
-			w.rev.Set(w.rev.Get() + 1)
+			done(locales.EfLibraryTemplateSaved(cx))
 		})
 }
 

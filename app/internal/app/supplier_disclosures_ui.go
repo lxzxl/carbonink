@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"app.carbonink.desktop/locales"
 
 	"github.com/nsgo-dev/nsgo/core"
+	"github.com/nsgo-dev/nsgo/icons/lucide"
 	"github.com/nsgo-dev/nsgo/ui"
 )
 
@@ -29,6 +31,7 @@ const (
 type supplierFilters struct {
 	search *core.Signal[string]
 	status *core.Signal[string]
+	order  *core.Signal[string]
 }
 
 type supplierCheck struct {
@@ -88,6 +91,7 @@ func (s *Session) supplierDisclosuresScreen(cx *core.Scope, dataRev *core.Signal
 	filters := &supplierFilters{
 		search: core.NewSignal(cx, ""),
 		status: core.NewSignal(cx, ""),
+		order:  core.NewSignal(cx, "recent"),
 	}
 	screenStatus := core.NewSignal(cx, "")
 	screenFailed := core.NewSignal(cx, false)
@@ -108,143 +112,229 @@ func (s *Session) supplierDisclosuresScreen(cx *core.Scope, dataRev *core.Signal
 		_ = dataRev.Get()
 		query := strings.ToLower(strings.TrimSpace(filters.search.Get()))
 		status := filters.status.Get()
+		today := time.Now().Format(supplierDisclosureDate)
 		out := make([]store.Questionnaire, 0, len(s.questionnaires))
 		for _, q := range s.questionnaires {
 			if q.Direction != "inbound" {
 				continue
 			}
-			if status != "" && q.Status != status {
-				continue
+			if status != "" {
+				if status == "overdue" {
+					if !(q.Status == store.QuestionnaireSent && q.DueDate != "" && q.DueDate < today) {
+						continue
+					}
+				} else if q.Status != status {
+					continue
+				}
 			}
 			if query != "" && !strings.Contains(strings.ToLower(q.CustomerName), query) {
 				continue
 			}
 			out = append(out, q)
 		}
+		switch filters.order.Get() {
+		case "oldest":
+			sort.SliceStable(out, func(i, j int) bool { return out[i].CreatedAt < out[j].CreatedAt })
+		case "supplier":
+			sort.SliceStable(out, func(i, j int) bool {
+				return strings.ToLower(out[i].CustomerName) < strings.ToLower(out[j].CustomerName)
+			})
+		case "due":
+			sort.SliceStable(out, func(i, j int) bool {
+				if out[i].DueDate == "" {
+					return false
+				}
+				if out[j].DueDate == "" {
+					return true
+				}
+				return out[i].DueDate < out[j].DueDate
+			})
+		case "questions":
+			sort.SliceStable(out, func(i, j int) bool { return out[i].QuestionCount > out[j].QuestionCount })
+		default:
+			sort.SliceStable(out, func(i, j int) bool { return out[i].CreatedAt > out[j].CreatedAt })
+		}
 		return out
 	}
 
-	statusOptions := []ui.Option[string]{
-		{Value: "", Label: locales.SupplierDisclosuresStatusAll(cx)},
-		{Value: store.QuestionnaireDraft, Label: locales.SupplierDisclosuresStatusDraft(cx)},
-		{Value: store.QuestionnaireSent, Label: locales.SupplierDisclosuresStatusSent(cx)},
-		{Value: store.QuestionnaireReceived, Label: locales.SupplierDisclosuresStatusReceived(cx)},
-		{Value: store.QuestionnaireIngested, Label: locales.SupplierDisclosuresStatusIngested(cx)},
+	orderOptions := []ui.Option[string]{
+		{Value: "recent", Label: locales.InboundSortRecent(cx)},
+		{Value: "oldest", Label: locales.InboundSortOldest(cx)},
+		{Value: "supplier", Label: locales.InboundSortSupplier(cx)},
+		{Value: "due", Label: locales.InboundSortDue(cx)},
+		{Value: "questions", Label: locales.InboundSortQuestions(cx)},
 	}
-
-	today := time.Now().Format(supplierDisclosureDate)
 	list := core.Dynamic(func(cx *core.Scope) core.Node {
 		_ = dataRev.Get()
 		_ = filters.search.Get()
 		_ = filters.status.Get()
+		_ = filters.order.Get()
 		visible := rows()
+		query := strings.ToLower(strings.TrimSpace(filters.search.Get()))
+		today := time.Now().Format(supplierDisclosureDate)
 		total := 0
+		counts := map[string]int{}
+		allInbound := 0
 		for _, q := range s.questionnaires {
-			if q.Direction == "inbound" {
-				total++
+			if q.Direction != "inbound" {
+				continue
 			}
-		}
-		if len(visible) == 0 {
-			empty := dataEmptyState(cx, locales.SupplierDisclosuresEmpty(cx),
-				locales.SupplierDisclosuresEmptyBody(cx),
-				ui.Button{Text: locales.SupplierDisclosuresNewButton(cx), OnPress: wizard.show,
-					TestID: "supplier-disclosures-empty-new"})
-			if total > 0 {
-				empty = dataEmptyState(cx, locales.InboundListNoMatch(cx), "",
-					ui.Button{Text: locales.InboundClearFilters(cx), Variant: ui.ButtonGhost,
-						OnPress: func() {
-							filters.search.Set("")
-							filters.status.Set("")
-						}, TestID: "supplier-disclosures-filter-clear"})
+			allInbound++
+			if query != "" && !strings.Contains(strings.ToLower(q.CustomerName), query) {
+				continue
 			}
-			return core.View{Style: core.Style{FlexGrow: 1, JustifyContent: core.JustifyCenter},
-				Children: []core.Node{empty}}
+			total++
+			counts[q.Status]++
+			if q.Status == store.QuestionnaireSent && q.DueDate != "" && q.DueDate < today {
+				counts["overdue"]++
+			}
 		}
 		nodes := make([]core.Node, 0, len(visible))
 		for _, q := range visible {
 			q := q
 			overdue := q.Status == store.QuestionnaireSent && q.DueDate != "" && q.DueDate < today
-			nodes = append(nodes, supplierDisclosureRow(cx, q, overdue,
+			nodes = append(nodes, supplierDisclosureRow(cx, q, overdue, func() bool {
+				return detail.open.Get() && detail.id == q.ID
+			},
 				func() { detail.show(cx, s, dataRev, q) }))
 		}
-		return core.Scroll{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
-			Children: []core.Node{core.View{Style: core.Style{Gap: 0}, Children: nodes}}}
+		label := func(value string) string {
+			switch value {
+			case "":
+				return locales.SupplierDisclosuresStatusAll(cx)
+			case "overdue":
+				return locales.InboundFilterOverdue(cx)
+			default:
+				return supplierStatusLabel(cx, value)
+			}
+		}
+		chip := func(value string, count int) core.Node {
+			var color []func(*core.Scope) core.Color
+			if value == "overdue" {
+				color = append(color, func(cx *core.Scope) core.Color {
+					return ui.ColorsOf(cx).Danger()
+				})
+			}
+			return filterChip(cx, true, "supplier-disclosures-filter-"+firstNonEmpty(value, "all"),
+				label(value), func() int { return count },
+				func() bool { return filters.status.Get() == value },
+				func() { filters.status.Set(value) }, color...)
+		}
+		chips := []core.Node{chip("", total)}
+		for _, status := range []string{store.QuestionnaireDraft, store.QuestionnaireSent,
+			store.QuestionnaireReceived, store.QuestionnaireIngested, "overdue"} {
+			chips = append(chips, chip(status, counts[status]))
+		}
+		content := []core.Node{}
+		if allInbound == 0 {
+			content = append(content, core.Text{Content: locales.SupplierDisclosuresEmpty(cx),
+				Style:     core.Style{FontSize: 14, Padding: core.Symmetric(24, 16)},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3})
+		} else if len(visible) == 0 {
+			content = append(content, core.View{Style: core.Style{Padding: core.Symmetric(48, 16),
+				Gap: 8, AlignItems: core.AlignCenter}, Children: []core.Node{
+				core.Text{Content: locales.InboundListNoMatch(cx), Style: core.Style{FontSize: 14,
+					TextAlign: core.TextAlignCenter}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted),
+					MaxLines: 2},
+				core.Show{When: func() bool {
+					return filters.search.Get() != "" || filters.status.Get() != ""
+				}, Then: func(*core.Scope) core.Node {
+					return ui.Button{Text: locales.InboundClearFilters(cx),
+						Variant: ui.ButtonGhost, OnPress: func() {
+							filters.search.Set("")
+							filters.status.Set("")
+						}, TestID: "supplier-disclosures-filter-clear"}
+				}},
+			}})
+		} else {
+			content = append(content, core.View{Style: core.Style{Gap: 0}, Children: nodes})
+		}
+		filtersNode := core.View{Style: core.Style{Padding: core.Symmetric(12, 16),
+			Gap: 8, Borders: core.Edges{Bottom: 1}}, StyleFunc: func() core.Style {
+			return core.Style{BorderColor: ui.ColorsOf(cx).Line()}
+		}, Children: []core.Node{
+			searchField(cx, filters.search.Get,
+				locales.SupplierDisclosuresSearchPlaceholder(cx),
+				filters.search.Set, "supplier-disclosures-search"),
+			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+				Wrap: core.Wrap, Gap: 4}, Children: []core.Node{
+				core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+					Wrap: core.Wrap, Gap: 4}, Children: chips},
+				core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+					Gap: 8, AutoMargin: core.SideLeft}, Children: []core.Node{
+					sortMenu(cx, orderOptions, filters.order.Get, filters.order.Set,
+						"supplier-disclosures-sort"),
+				}},
+			}},
+		}}
+		scroll := core.Scroll{Style: core.Style{FlexGrow: 1, FlexShrink: 1,
+			MinHeight: core.Pt(0)}, Children: []core.Node{core.View{
+			Style: core.Style{Gap: 0}, Children: content}}}
+		children := []core.Node{scroll}
+		if allInbound > 0 {
+			children = []core.Node{filtersNode, scroll}
+		}
+		return core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
+			Children: children}
 	})
 
-	return core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0),
-		Padding: core.All(16), Gap: 10}, Children: []core.Node{
-		dataHeaderRow(cx,
-			core.Text{ContentFunc: func() string {
-				n := len(rows())
-				return countPhrase(n,
-					func() string {
-						return locales.SupplierDisclosuresCountOne(cx, strconv.Itoa(n))
-					},
-					func() string {
-						return locales.SupplierDisclosuresCount(cx, strconv.Itoa(n))
-					})
-			}, Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}},
-			[]core.Node{
-				ui.Input{Value: filters.search.Get, Placeholder: locales.SupplierDisclosuresSearchPlaceholder(cx),
-					OnChange: func(v string) { filters.search.Set(v) },
-					TestID:   "supplier-disclosures-search", Style: core.Style{Width: core.Pt(220)}},
-				ui.Select[string]{Options: statusOptions, Value: filters.status.Get,
-					OnChange: func(v string) { filters.status.Set(v) },
-					Label:    locales.SupplierDisclosuresStatusFilter(cx),
-					TestID:   "supplier-disclosures-filter-status",
-					Style:    core.Style{Width: core.Pt(150)}},
-				ui.Button{Text: locales.SupplierDisclosuresNewButton(cx), OnPress: wizard.show,
-					TestID: "supplier-disclosures-new"},
-			}...),
-		core.Show{When: func() bool { return screenStatus.Get() != "" },
-			Then: func(cx *core.Scope) core.Node {
-				return core.Text{ContentFunc: func() string { return screenStatus.Get() },
-					Style: core.Style{FontSize: 12}, StyleFunc: func() core.Style {
-						if screenFailed.Get() {
-							return ui.Colored(ui.ColorsOf(cx).Danger)()
-						}
-						return ui.Colored(ui.ColorsOf(cx).Muted)()
-					}}
-			}},
-		core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0),
-			CornerRadius: 8, BorderWidth: 1, BorderColor: ui.ColorsOf(cx).Border(),
-			Background: ui.ColorsOf(cx).Surface()}, Children: []core.Node{list}},
-		wizard.dialog(cx, s, dataRev, func(count int) {
-			screenFailed.Set(false)
-			screenStatus.Set(locales.SupplierDisclosuresWizardCreated(cx, strconv.Itoa(count)))
-		}, func(message string) {
-			screenFailed.Set(true)
-			screenStatus.Set(message)
-		}),
-		detail.dialog(cx, s, dataRev),
-		detail.reviewDialog(cx, s, dataRev),
-		detail.deleteDialog(cx, s, dataRev),
-		detail.remindDialog(cx, s, dataRev),
-	}}
+	left := core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
+		Children: []core.Node{
+			listPaneHeader(cx, locales.NavSupplierDisclosures, nil,
+				ui.Button{Text: locales.SupplierDisclosuresNewButton(cx), Icon: lucide.Plus,
+					Variant: ui.ButtonOutline, Size: ui.SizeSmall, OnPress: wizard.show,
+					TestID: "supplier-disclosures-new"}),
+			core.Show{When: func() bool { return screenStatus.Get() != "" },
+				Then: func(cx *core.Scope) core.Node {
+					return core.Text{ContentFunc: func() string { return screenStatus.Get() },
+						Style: core.Style{FontSize: 12, Padding: core.Symmetric(4, 16)},
+						StyleFunc: func() core.Style {
+							if screenFailed.Get() {
+								return ui.Colored(ui.ColorsOf(cx).Danger)()
+							}
+							return ui.Colored(ui.ColorsOf(cx).Muted)()
+						}}
+				}},
+			list,
+		}}
+	return core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
+		Children: []core.Node{
+			splitPage(cx, 32, left, detail.dialog(cx, s, dataRev)),
+			wizard.dialog(cx, s, dataRev, func(count int) {
+				screenFailed.Set(false)
+				screenStatus.Set(locales.SupplierDisclosuresWizardCreated(cx, strconv.Itoa(count)))
+			}, func(message string) {
+				screenFailed.Set(true)
+				screenStatus.Set(message)
+			}),
+			detail.reviewDialog(cx, s, dataRev),
+			detail.deleteDialog(cx, s, dataRev),
+			detail.remindDialog(cx, s, dataRev),
+		}}
 }
 
 func supplierDisclosureRow(cx *core.Scope, q store.Questionnaire, overdue bool,
-	onPress func()) core.Node {
-	meta := strconv.Itoa(q.ReportingYear) + " · " +
-		locales.QuestionnairesQuestionCount(cx, strconv.Itoa(q.QuestionCount))
+	selected func() bool, onPress func()) core.Node {
+	meta := strconv.Itoa(q.ReportingYear) + " · " + supplierStatusLabel(cx, q.Status) +
+		" · " + locales.QuestionnairesQuestionCount(cx, strconv.Itoa(q.QuestionCount))
+	metaColor := func() core.Color { return ui.ColorsOf(cx).Muted() }
 	if q.DueDate != "" {
-		meta = meta + " · " + locales.SupplierDisclosuresDue(cx, q.DueDate)
+		if overdue {
+			meta += " · " + locales.InboundOverdueDays(cx, strconv.Itoa(supplierOverdueDays(q.DueDate)))
+			metaColor = func() core.Color { return ui.ColorsOf(cx).Danger() }
+		} else {
+			meta += " · " + locales.SupplierDisclosuresDue(cx, q.DueDate)
+		}
 	}
-	children := []core.Node{
+	return dataClickableRowSelected(cx, "supplier-disclosures-row-"+q.ID, onPress, selected,
 		core.View{Style: core.Style{Gap: 2, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
 			Children: []core.Node{
-				core.Text{Content: q.CustomerName, Style: core.Style{FontSize: 13,
-					FontWeight: ui.Semibold, FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 1},
-				core.Text{Content: meta, Style: core.Style{FontSize: 11},
-					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
-			}},
-		ui.Badge{Text: supplierStatusLabel(cx, q.Status), Variant: supplierStatusVariant(q.Status)},
-	}
-	if overdue {
-		children = append(children, ui.Badge{Text: locales.SupplierDisclosuresOverdue(cx),
-			Variant: ui.BadgeDanger})
-	}
-	return dataClickableRow(cx, "supplier-disclosures-row-"+q.ID, onPress, children...)
+				core.Text{Content: q.CustomerName, Style: core.Style{FontSize: 14,
+					FontWeight: ui.Medium, FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 1},
+				core.Text{Content: meta, Style: core.Style{FontSize: 12},
+					StyleFunc: func() core.Style { return core.Style{Color: metaColor()} },
+					MaxLines:  2},
+			}})
 }
 
 func supplierStatusLabel(cx *core.Scope, status string) string {
@@ -403,7 +493,7 @@ func (w *supplierWizard) dialog(cx *core.Scope, s *Session, dataRev *core.Signal
 
 	body := []core.Node{
 		dataField(cx, locales.SupplierDisclosuresWizardSupplier(cx),
-			ui.Select[string]{Options: supplierOptions, Value: w.supplier.Get,
+			appSelect[string]{Options: supplierOptions, Value: w.supplier.Get,
 				OnChange: func(v string) {
 					w.supplier.Set(v)
 					for _, supplier := range s.suppliers {
@@ -453,7 +543,7 @@ func supplierYearInput(cx *core.Scope, w *supplierWizard,
 		return ui.Input{Value: w.year.Get, OnChange: w.year.Set,
 			TestID: "supplier-disclosures-wizard-year"}
 	}
-	return ui.Select[string]{Options: options, Value: w.year.Get,
+	return appSelect[string]{Options: options, Value: w.year.Get,
 		OnChange: w.year.Set, Label: locales.SupplierDisclosuresWizardYear(cx),
 		TestID: "supplier-disclosures-wizard-year", Style: core.Style{Width: core.Pct(100)}}
 }
@@ -507,6 +597,18 @@ func newSupplierDetail(cx *core.Scope, db *store.Store) *supplierDetail {
 	}
 }
 
+func supplierOverdueDays(due string) int {
+	parsed, err := time.Parse(supplierDisclosureDate, due)
+	if err != nil {
+		return 0
+	}
+	days := int(time.Since(parsed).Hours() / 24)
+	if days < 0 {
+		return 0
+	}
+	return days
+}
+
 // show loads one disclosure and opens its detail dialog.
 func (d *supplierDetail) show(cx *core.Scope, s *Session, dataRev *core.Signal[int],
 	q store.Questionnaire) {
@@ -549,181 +651,187 @@ func (d *supplierDetail) load(cx *core.Scope, s *Session) {
 }
 
 func (d *supplierDetail) dialog(cx *core.Scope, s *Session, dataRev *core.Signal[int]) core.Node {
-	export := func() {
-		id := d.id
-		d.busy.Set(true)
-		d.failed.Set(false)
-		d.message.Set(locales.SupplierDisclosuresDetailExporting(cx))
-		go func() {
-			service := &inbound.Service{Store: s.db}
-			data, name, err := service.ExportBlank(context.Background(), id)
-			s.scope.Post(func() {
-				d.busy.Set(false)
-				if err != nil {
-					d.failed.Set(true)
-					d.message.Set(locales.SupplierDisclosuresDetailExportFailed(cx, err.Error()))
-					return
-				}
-				cx.SaveFile(core.SaveOptions{Name: name, MIME: questionnaire.WorkbookMIME,
-					Data: data}, func(saved bool, path string, err error) {
+	return core.Dynamic(func(cx *core.Scope) core.Node {
+		if !d.open.Get() {
+			return detailEmptyIcon(cx, lucide.Download, locales.InboundSelectHint)
+		}
+		export := func() {
+			id := d.id
+			d.busy.Set(true)
+			d.failed.Set(false)
+			d.message.Set(locales.SupplierDisclosuresDetailExporting(cx))
+			go func() {
+				service := &inbound.Service{Store: s.db}
+				data, name, err := service.ExportBlank(context.Background(), id)
+				s.scope.Post(func() {
+					d.busy.Set(false)
 					if err != nil {
 						d.failed.Set(true)
 						d.message.Set(locales.SupplierDisclosuresDetailExportFailed(cx, err.Error()))
 						return
 					}
-					if !saved {
-						d.message.Set("")
-						return
-					}
-					d.failed.Set(false)
-					d.message.Set(locales.SupplierDisclosuresDetailExportSuccess(cx, path))
-					d.load(cx, s)
-					_ = dataRefresh(s, dataRev)
+					cx.SaveFile(core.SaveOptions{Name: name, MIME: questionnaire.WorkbookMIME,
+						Data: data}, func(saved bool, path string, err error) {
+						if err != nil {
+							d.failed.Set(true)
+							d.message.Set(locales.SupplierDisclosuresDetailExportFailed(cx, err.Error()))
+							return
+						}
+						if !saved {
+							d.message.Set("")
+							return
+						}
+						d.failed.Set(false)
+						d.message.Set(locales.SupplierDisclosuresDetailExportSuccess(cx, path))
+						d.load(cx, s)
+						_ = dataRefresh(s, dataRev)
+					})
 				})
-			})
-		}()
-	}
-	importFilled := func() {
-		cx.PickFiles(core.PickFilesOptions{
-			Multiple: false, Types: []string{".xlsx"},
-			Title:  locales.SupplierDisclosuresDetailImport(cx),
-			Button: locales.SupplierDisclosuresDetailImportChoose(cx),
-		}, func(files []core.File, err error) {
-			if err != nil || len(files) == 0 {
+			}()
+		}
+		importFilled := func() {
+			cx.PickFiles(core.PickFilesOptions{
+				Multiple: false, Types: []string{".xlsx"},
+				Title:  locales.SupplierDisclosuresDetailImport(cx),
+				Button: locales.SupplierDisclosuresDetailImportChoose(cx),
+			}, func(files []core.File, err error) {
+				if err != nil || len(files) == 0 {
+					if err != nil {
+						d.failed.Set(true)
+						d.message.Set(err.Error())
+					}
+					return
+				}
+				file := files[0]
+				if file.Size > questionnaire.MaxWorkbookBytes {
+					d.failed.Set(true)
+					d.message.Set(locales.SupplierDisclosuresDetailImportFailed(cx,
+						locales.SupplierDisclosuresFileTooLarge(cx)))
+					return
+				}
+				reader, err := file.Open()
 				if err != nil {
 					d.failed.Set(true)
 					d.message.Set(err.Error())
+					return
 				}
-				return
-			}
-			file := files[0]
-			if file.Size > questionnaire.MaxWorkbookBytes {
-				d.failed.Set(true)
-				d.message.Set(locales.SupplierDisclosuresDetailImportFailed(cx,
-					locales.SupplierDisclosuresFileTooLarge(cx)))
-				return
-			}
-			reader, err := file.Open()
+				data, readErr := io.ReadAll(io.LimitReader(reader, questionnaire.MaxWorkbookBytes+1))
+				_ = reader.Close()
+				if readErr != nil {
+					d.failed.Set(true)
+					d.message.Set(readErr.Error())
+					return
+				}
+				id := d.id
+				d.busy.Set(true)
+				d.failed.Set(false)
+				d.message.Set(locales.SupplierDisclosuresDetailImporting(cx))
+				go func() {
+					service := &inbound.Service{Store: s.db}
+					preview, err := service.ImportFilled(context.Background(), id, data)
+					s.scope.Post(func() {
+						d.busy.Set(false)
+						if err != nil {
+							d.failed.Set(true)
+							d.message.Set(locales.SupplierDisclosuresDetailImportFailed(cx,
+								importErrorText(cx, err)))
+							return
+						}
+						d.load(cx, s)
+						_ = dataRefresh(s, dataRev)
+						d.setPreview(cx, preview)
+						d.failed.Set(false)
+						d.message.Set(locales.SupplierDisclosuresDetailImportSuccess(cx,
+							strconv.Itoa(len(preview.Answers))))
+						d.reviewOpen.Set(true)
+					})
+				}()
+			})
+		}
+		openReview := func() {
+			service := &inbound.Service{Store: s.db}
+			preview, err := service.Preview(context.Background(), d.id)
 			if err != nil {
 				d.failed.Set(true)
-				d.message.Set(err.Error())
+				d.message.Set(locales.SupplierDisclosuresDetailImportFailed(cx, err.Error()))
 				return
 			}
-			data, readErr := io.ReadAll(io.LimitReader(reader, questionnaire.MaxWorkbookBytes+1))
-			_ = reader.Close()
-			if readErr != nil {
-				d.failed.Set(true)
-				d.message.Set(readErr.Error())
-				return
+			d.setPreview(cx, preview)
+			d.reviewOpen.Set(true)
+		}
+
+		footer := core.Dynamic(func(cx *core.Scope) core.Node {
+			var actions []core.Node
+			switch d.status.Get() {
+			case store.QuestionnaireDraft, store.QuestionnaireSent:
+				actions = append(actions,
+					ui.Button{Text: locales.SupplierDisclosuresDetailExport(cx), Variant: ui.ButtonSecondary,
+						OnPress: export, Busy: d.busy.Get, TestID: "supplier-disclosures-export"},
+					ui.Button{Text: locales.SupplierDisclosuresDetailImport(cx), Variant: ui.ButtonSecondary,
+						OnPress: importFilled, Busy: d.busy.Get, TestID: "supplier-disclosures-import"})
+			case store.QuestionnaireReceived:
+				actions = append(actions,
+					ui.Button{Text: locales.SupplierDisclosuresDetailReview(cx),
+						OnPress: openReview, TestID: "supplier-disclosures-review"},
+					ui.Button{Text: locales.SupplierDisclosuresDetailImport(cx), Variant: ui.ButtonSecondary,
+						OnPress: importFilled, Busy: d.busy.Get, TestID: "supplier-disclosures-import"})
 			}
-			id := d.id
-			d.busy.Set(true)
-			d.failed.Set(false)
-			d.message.Set(locales.SupplierDisclosuresDetailImporting(cx))
-			go func() {
-				service := &inbound.Service{Store: s.db}
-				preview, err := service.ImportFilled(context.Background(), id, data)
-				s.scope.Post(func() {
-					d.busy.Set(false)
-					if err != nil {
-						d.failed.Set(true)
-						d.message.Set(locales.SupplierDisclosuresDetailImportFailed(cx,
-							importErrorText(cx, err)))
-						return
-					}
-					d.load(cx, s)
-					_ = dataRefresh(s, dataRev)
-					d.setPreview(cx, preview)
-					d.failed.Set(false)
-					d.message.Set(locales.SupplierDisclosuresDetailImportSuccess(cx,
-						strconv.Itoa(len(preview.Answers))))
-					d.reviewOpen.Set(true)
-				})
-			}()
+			actions = append(actions,
+				ui.Button{Text: locales.SupplierDisclosuresDetailRemind(cx), Variant: ui.ButtonSecondary,
+					OnPress: func() {
+						d.message.Set("")
+						d.remindOpen.Set(true)
+					}, TestID: "supplier-disclosures-remind"},
+				ui.Button{Text: locales.SupplierDisclosuresDetailDelete(cx), Variant: ui.ButtonOutline,
+					OnPress: func() { d.deleteOpen.Set(true) }, TestID: "supplier-disclosures-delete"},
+			)
+			return core.View{Style: core.Style{Direction: core.Row, Gap: 8,
+				JustifyContent: core.JustifyEnd, Wrap: core.Wrap}, Children: actions}
 		})
-	}
-	openReview := func() {
-		service := &inbound.Service{Store: s.db}
-		preview, err := service.Preview(context.Background(), d.id)
-		if err != nil {
-			d.failed.Set(true)
-			d.message.Set(locales.SupplierDisclosuresDetailImportFailed(cx, err.Error()))
-			return
-		}
-		d.setPreview(cx, preview)
-		d.reviewOpen.Set(true)
-	}
 
-	footer := core.Dynamic(func(cx *core.Scope) core.Node {
-		var actions []core.Node
-		switch d.status.Get() {
-		case store.QuestionnaireDraft, store.QuestionnaireSent:
-			actions = append(actions,
-				ui.Button{Text: locales.SupplierDisclosuresDetailExport(cx), Variant: ui.ButtonSecondary,
-					OnPress: export, Busy: d.busy.Get, TestID: "supplier-disclosures-export"},
-				ui.Button{Text: locales.SupplierDisclosuresDetailImport(cx), Variant: ui.ButtonSecondary,
-					OnPress: importFilled, Busy: d.busy.Get, TestID: "supplier-disclosures-import"})
-		case store.QuestionnaireReceived:
-			actions = append(actions,
-				ui.Button{Text: locales.SupplierDisclosuresDetailReview(cx),
-					OnPress: openReview, TestID: "supplier-disclosures-review"},
-				ui.Button{Text: locales.SupplierDisclosuresDetailImport(cx), Variant: ui.ButtonSecondary,
-					OnPress: importFilled, Busy: d.busy.Get, TestID: "supplier-disclosures-import"})
-		}
-		actions = append(actions,
-			ui.Button{Text: locales.SupplierDisclosuresDetailRemind(cx), Variant: ui.ButtonSecondary,
-				OnPress: func() {
-					d.message.Set("")
-					d.remindOpen.Set(true)
-				}, TestID: "supplier-disclosures-remind"},
-			ui.Button{Text: locales.SupplierDisclosuresDetailDelete(cx), Variant: ui.ButtonOutline,
-				OnPress: func() { d.deleteOpen.Set(true) }, TestID: "supplier-disclosures-delete"},
-			ui.Button{Text: locales.SupplierDisclosuresDetailClose(cx), Variant: ui.ButtonSecondary,
-				OnPress: func() { d.open.Set(false) }, TestID: "supplier-disclosures-detail-close"})
-		return core.View{Style: core.Style{Direction: core.Row, Gap: 8,
-			JustifyContent: core.JustifyEnd, Wrap: core.Wrap}, Children: actions}
-	})
-
-	body := []core.Node{
-		core.Text{ContentFunc: func() string {
-			return d.supplier.Get() + " · " + strconv.Itoa(d.year.Get())
-		}, Style: core.Style{FontSize: 15, FontWeight: ui.Semibold}},
-		core.View{Style: core.Style{Direction: core.Row, Gap: 8, AlignItems: core.AlignCenter},
-			Children: []core.Node{
-				ui.Badge{
-					TextFunc:    func() string { return supplierStatusLabel(cx, d.status.Get()) },
-					VariantFunc: func() ui.BadgeVariant { return supplierStatusVariant(d.status.Get()) },
-				},
-				core.Text{ContentFunc: func() string {
-					if d.due.Get() == "" {
-						return ""
-					}
-					return locales.SupplierDisclosuresDue(cx, d.due.Get())
-				}, Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-			}},
-		core.Show{When: func() bool { return d.message.Get() != "" },
-			Then: func(cx *core.Scope) core.Node {
-				return core.Text{ContentFunc: func() string { return d.message.Get() },
-					Style: core.Style{FontSize: 12}, StyleFunc: func() core.Style {
-						if d.failed.Get() {
-							return ui.Colored(ui.ColorsOf(cx).Danger)()
+		body := []core.Node{
+			core.Text{ContentFunc: func() string {
+				return d.supplier.Get() + " · " + strconv.Itoa(d.year.Get())
+			}, Style: core.Style{FontSize: 15, FontWeight: ui.Semibold}},
+			core.View{Style: core.Style{Direction: core.Row, Gap: 8, AlignItems: core.AlignCenter},
+				Children: []core.Node{
+					ui.Badge{
+						TextFunc:    func() string { return supplierStatusLabel(cx, d.status.Get()) },
+						VariantFunc: func() ui.BadgeVariant { return supplierStatusVariant(d.status.Get()) },
+					},
+					core.Text{ContentFunc: func() string {
+						if d.due.Get() == "" {
+							return ""
 						}
-						return ui.Colored(ui.ColorsOf(cx).Muted)()
-					}}
-			}},
-		core.Dynamic(func(cx *core.Scope) core.Node {
-			_ = d.rev.Get()
-			nodes := make([]core.Node, 0, len(d.questions))
-			for index, question := range d.questions {
-				nodes = append(nodes, supplierQuestionRow(cx, index, question))
-			}
-			return core.Scroll{Style: core.Style{FlexGrow: 1, FlexShrink: 1,
-				MinHeight: core.Pt(0), MaxHeight: core.Pt(360)},
-				Children: []core.Node{core.View{Style: core.Style{Gap: 6}, Children: nodes}}}
-		}),
-	}
-	return dataDialogSized(cx, d.open, locales.SupplierDisclosuresDetailTitle(cx), body, []core.Node{footer},
-		"supplier-disclosures-detail-dialog", 780)
+						return locales.SupplierDisclosuresDue(cx, d.due.Get())
+					}, Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+				}},
+			core.Show{When: func() bool { return d.message.Get() != "" },
+				Then: func(cx *core.Scope) core.Node {
+					return core.Text{ContentFunc: func() string { return d.message.Get() },
+						Style: core.Style{FontSize: 12}, StyleFunc: func() core.Style {
+							if d.failed.Get() {
+								return ui.Colored(ui.ColorsOf(cx).Danger)()
+							}
+							return ui.Colored(ui.ColorsOf(cx).Muted)()
+						}}
+				}},
+			core.Dynamic(func(cx *core.Scope) core.Node {
+				_ = d.rev.Get()
+				nodes := make([]core.Node, 0, len(d.questions))
+				for index, question := range d.questions {
+					nodes = append(nodes, supplierQuestionRow(cx, index, question))
+				}
+				return core.View{Style: core.Style{Gap: 6}, Children: nodes}
+			}),
+		}
+		header := []core.Node{
+			ui.Button{Text: locales.SupplierDisclosuresDetailClose(cx), Variant: ui.ButtonSecondary,
+				OnPress: func() { d.open.Set(false) }, TestID: "supplier-disclosures-detail-close"},
+		}
+		return detailPaneShell(cx, "supplier-disclosures-detail-dialog", d.supplier.Get(),
+			header, body, []core.Node{footer})
+	})
 }
 
 func supplierQuestionRow(cx *core.Scope, index int, q store.Question) core.Node {
@@ -848,7 +956,7 @@ func (d *supplierDetail) reviewDialog(cx *core.Scope, s *Session,
 		core.View{Style: core.Style{Direction: core.Row, Gap: 8, AlignItems: core.AlignEnd},
 			Children: []core.Node{
 				dataField(cx, locales.SupplierDisclosuresReviewTier(cx),
-					ui.Select[string]{Options: tierOptions, Value: d.tierOverride.Get,
+					appSelect[string]{Options: tierOptions, Value: d.tierOverride.Get,
 						OnChange: d.tierOverride.Set, Label: locales.SupplierDisclosuresReviewTier(cx),
 						TestID: "supplier-disclosures-review-tier"}),
 				dataField(cx, locales.SupplierDisclosuresReviewQuantity(cx),

@@ -109,12 +109,12 @@ func TestImportQuestionnaireAndEditAnswers(t *testing.T) {
 	ui.WaitFor("text:Answer saved", 5*time.Second)
 	ui.WaitFor("text:1 of 2 answered", 3*time.Second)
 	ui.Press("id:questionnaires-finalize-all")
-	ui.WaitFor("text:2025 · Finalized", 5*time.Second)
+	ui.WaitFor("id:questionnaires-detail-dialog >> text:2025 · Finalized", 5*time.Second)
 	exportPath := filepath.Join(t.TempDir(), "filled.xlsx")
 	ui.SaveFile = func(core.SaveRequest) string { return exportPath }
 	ui.Press("id:questionnaires-export-xlsx")
 	ui.WaitFor("text:1 answers written (0 drafts).", 5*time.Second)
-	ui.WaitFor("text:2025 · Exported", 3*time.Second)
+	ui.WaitFor("id:questionnaires-detail-dialog >> text:2025 · Exported", 3*time.Second)
 	pdfPath := filepath.Join(t.TempDir(), "filled.pdf")
 	ui.SaveFile = func(core.SaveRequest) string { return pdfPath }
 	ui.Press("id:questionnaires-export-pdf")
@@ -125,7 +125,7 @@ func TestImportQuestionnaireAndEditAnswers(t *testing.T) {
 	ui.WaitForGone("id:questionnaires-pdf-dialog", 3*time.Second)
 	ui.Press("id:questionnaires-detail-close")
 	ui.WaitForGone("id:questionnaires-detail-dialog", 3*time.Second)
-	ui.WaitFor("text:Exported", 3*time.Second)
+	ui.WaitFor("text:2025 · Exported · 2 questions", 3*time.Second)
 	exported, err := excelize.OpenFile(exportPath)
 	if err != nil {
 		t.Fatal(err)

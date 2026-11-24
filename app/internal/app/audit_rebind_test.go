@@ -67,7 +67,10 @@ func TestAuditRebindCardStructuresPayload(t *testing.T) {
 	ui.WaitFor("text:Most recent", 3*time.Second)
 	ui.Press("id:audit-sort")
 	ui.WaitFor("text:Oldest first", 3*time.Second)
+	ui.Press("id:audit-sort-1")
+	ui.WaitFor("text:Oldest first", 3*time.Second)
 	ui.Press("id:audit-sort")
+	ui.Press("id:audit-sort-0")
 	ui.WaitFor("text:Most recent", 3*time.Second)
 
 	ui.Press("id:audit-rebind-activity-evt")

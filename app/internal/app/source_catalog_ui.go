@@ -12,6 +12,7 @@ import (
 
 	"github.com/nsgo-dev/nsgo/core"
 	"github.com/nsgo-dev/nsgo/i18n"
+	"github.com/nsgo-dev/nsgo/icons/lucide"
 	"github.com/nsgo-dev/nsgo/ui"
 )
 
@@ -36,20 +37,28 @@ type sourceCatalog struct {
 }
 
 func (s *Session) sourceCatalogDialog(cx *core.Scope, dataRev *core.Signal[int]) core.Node {
-	node, _ := s.sourceCatalogDialogWithShow(cx, dataRev)
+	node, _ := s.sourceCatalogDialogWithShow(cx, dataRev, false)
 	return node
 }
 
 func (s *Session) sourceCatalogDialogWithShow(cx *core.Scope,
-	dataRev *core.Signal[int]) (core.Node, func()) {
+	dataRev *core.Signal[int], opened bool) (core.Node, func()) {
 	c := &sourceCatalog{
-		open:     core.NewSignal(cx, false),
+		open:     core.NewSignal(cx, opened),
 		rev:      core.NewSignal(cx, 0),
 		query:    core.NewSignal(cx, ""),
 		scope:    core.NewSignal(cx, 0),
 		category: core.NewSignal(cx, ""),
 		status:   core.NewSignal(cx, ""),
 		busy:     core.NewSignal(cx, false),
+		selected: map[string]bool{},
+		existing: map[string]bool{},
+		limit:    catalogPageSize,
+	}
+	for _, src := range s.sources {
+		if src.TemplateOrigin != "" {
+			c.existing[src.TemplateOrigin] = true
+		}
 	}
 	show := func() {
 		c.query.Set("")
@@ -158,13 +167,14 @@ func (s *Session) sourceCatalogDialogWithShow(cx *core.Scope,
 	})}
 
 	return core.View{Children: []core.Node{
-		ui.Button{Text: locales.SourcesCatalogButton(cx), Variant: ui.ButtonSecondary,
+		ui.Button{Text: locales.SourcesCatalogButton(cx), Icon: lucide.Layers,
+			Variant: ui.ButtonOutline,
 			OnPress: show, TestID: "source-catalog"},
-		dataDialogSized(cx, c.open, locales.SourcesCatalogTitle(cx), []core.Node{
+		sideDrawer(cx, c.open, locales.SourcesCatalogTitle(cx), 640, []core.Node{
 			search,
 			dataColumns(cx, 8,
 				dataField(cx, locales.SourcesFormScope(cx),
-					ui.Select[int]{Options: scopeOptions, Value: c.scope.Get,
+					appSelect[int]{Options: scopeOptions, Value: c.scope.Get,
 						OnChange: func(scope int) {
 							c.category.Set("")
 							c.scope.Set(scope)
@@ -174,7 +184,7 @@ func (s *Session) sourceCatalogDialogWithShow(cx *core.Scope,
 						Label: locales.SourcesFormScope(cx), TestID: "source-catalog-scope",
 						Style: core.Style{Width: core.Pct(100)}}),
 				dataField(cx, locales.SourcesFormCategory(cx),
-					ui.Select[string]{Options: categoryOptions, Value: c.category.Get,
+					appSelect[string]{Options: categoryOptions, Value: c.category.Get,
 						OnChange: func(category string) {
 							c.category.Set(category)
 							c.limit = catalogPageSize
@@ -186,14 +196,12 @@ func (s *Session) sourceCatalogDialogWithShow(cx *core.Scope,
 						TestID:            "source-catalog-category",
 						Style:             core.Style{Width: core.Pct(100)}}),
 			),
-			core.Scroll{Style: core.Style{MaxHeight: core.Pt(460)}, Children: []core.Node{
-				core.Dynamic(func(cx *core.Scope) core.Node {
-					_ = c.rev.Get()
-					return catalogList(cx, c)
-				}),
-			}},
+			core.Dynamic(func(cx *core.Scope) core.Node {
+				_ = c.rev.Get()
+				return catalogList(cx, c)
+			}),
 			dataError(cx, c.status),
-		}, footer, "source-catalog-dialog", 780, add),
+		}, footer, "source-catalog-dialog", locales.DataCancel(cx)),
 	}}, show
 }
 

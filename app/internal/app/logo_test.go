@@ -33,7 +33,7 @@ func TestReportLogoUploadAndRemove(t *testing.T) {
 	ui.PickFiles = func(core.FilesRequest) []core.File {
 		return []core.File{{Name: "logo.png", Path: logoPath}}
 	}
-	ui.Press("id:nav:settings")
+	openSettings(ui, "org")
 	ui.WaitFor("id:settings-report-logo-pick", 3*time.Second)
 	ui.Press("id:settings-report-logo-pick")
 	ui.WaitFor("text:Report logo saved", 3*time.Second)
@@ -124,7 +124,7 @@ func TestReportLogoRejectsLargeAndUnsupportedFiles(t *testing.T) {
 
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}))
-	ui.Press("id:nav:settings")
+	openSettings(ui, "org")
 	ui.WaitFor("id:settings-report-logo-pick", 3*time.Second)
 
 	ui.PickFiles = func(core.FilesRequest) []core.File {

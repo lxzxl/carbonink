@@ -15,6 +15,7 @@ import (
 
 	"github.com/nsgo-dev/nsgo/core"
 	"github.com/nsgo-dev/nsgo/i18n"
+	"github.com/nsgo-dev/nsgo/icons/lucide"
 	"github.com/nsgo-dev/nsgo/ui"
 )
 
@@ -33,7 +34,7 @@ type reportsState struct {
 }
 
 func (s *Session) reportsScreen(cx *core.Scope, dataRev *core.Signal[int],
-	active *core.Signal[Screen]) core.Node {
+	nav *screenNav) core.Node {
 	if s.organization == nil {
 		return s.onboardingScreen(cx, dataRev)
 	}
@@ -48,11 +49,8 @@ func (s *Session) reportsScreen(cx *core.Scope, dataRev *core.Signal[int],
 		generated:  core.NewSignal[*report.Report](cx, nil),
 		rev:        core.NewSignal(cx, 0),
 	}
-	if len(s.periods) > 0 {
-		state.period.Set(s.periods[len(s.periods)-1].ID)
-	}
 	guide := newGuidance(cx, s, "report-export")
-	readinessCard, resetReadiness := s.readinessSection(cx, state.period, active)
+	readinessCard, resetReadiness := s.readinessSection(cx, state.period, nav)
 
 	// Switching the period or kind retires the preview: it belonged to the
 	// previous selection, and exporting it under the new one would mislead.
@@ -305,7 +303,6 @@ func (s *Session) reportsScreen(cx *core.Scope, dataRev *core.Signal[int],
 	}
 
 	controls := dataCard(cx,
-		dataHeading(cx, locales.ReportsListHeading(cx), ""),
 		dataColumns(cx, 12,
 			core.View{StyleFunc: func() core.Style {
 				if cx.Env().Window().Width < 900 {
@@ -313,27 +310,10 @@ func (s *Session) reportsScreen(cx *core.Scope, dataRev *core.Signal[int],
 				}
 				return core.Style{Gap: 4, FlexGrow: 1, FlexBasis: core.Pt(0)}
 			}, Children: []core.Node{
-				core.Text{Content: locales.ReportsPeriodLabel(cx),
-					Style:     core.Style{FontSize: 12, FontWeight: ui.Semibold},
-					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-				ui.Select[string]{Options: periodOptions, Value: state.period.Get,
-					Placeholder: locales.ReportsNoPeriods(cx),
-					OnChange: func(next string) {
-						state.period.Set(next)
-						invalidate()
-					},
-					TestID: "reports-period", Style: core.Style{Width: core.Pct(100)}},
-			}},
-			core.View{StyleFunc: func() core.Style {
-				if cx.Env().Window().Width < 900 {
-					return core.Style{Gap: 4}
-				}
-				return core.Style{Gap: 4, FlexGrow: 2, FlexBasis: core.Pt(0)}
-			}, Children: []core.Node{
 				core.Text{Content: locales.ReportsKindLabel(cx),
 					Style:     core.Style{FontSize: 12, FontWeight: ui.Semibold},
 					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-				ui.Select[string]{Options: kindOptions, Value: state.kind.Get,
+				appSelect[string]{Options: kindOptions, Value: state.kind.Get,
 					OnChange: func(next string) {
 						state.kind.Set(next)
 						invalidate()
@@ -348,7 +328,7 @@ func (s *Session) reportsScreen(cx *core.Scope, dataRev *core.Signal[int],
 				core.Text{Content: locales.ReportsLangLabel(cx),
 					Style:     core.Style{FontSize: 12, FontWeight: ui.Semibold},
 					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-				ui.Select[string]{Options: languageOptions, Value: state.language.Get,
+				appSelect[string]{Options: languageOptions, Value: state.language.Get,
 					OnChange: state.language.Set, TestID: "reports-language",
 					Style: core.Style{Width: core.Pct(100)}},
 			}},
@@ -453,18 +433,60 @@ func (s *Session) reportsScreen(cx *core.Scope, dataRev *core.Signal[int],
 		}}
 	})
 
-	return core.Scroll{
-		Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
-		Children: []core.Node{core.View{
-			Style: core.Style{Padding: core.All(16), Gap: 12, MaxWidth: core.Pt(980), AlignSelf: core.AlignStretch},
-			Children: []core.Node{
-				controls,
-				core.Show{When: func() bool { return state.generated.Get() == nil },
-					Then: func(cx *core.Scope) core.Node { return readinessCard }},
-				preview,
+	rows := make([]core.Node, 0, len(s.periods))
+	for _, period := range s.periods {
+		period := period
+		selected := func() bool { return state.period.Get() == period.ID }
+		rows = append(rows, core.View{
+			TestID: "reports-period-" + period.ID,
+			Role:   core.RoleButton,
+			OnPress: func(core.PressEvent) {
+				state.period.Set(period.ID)
+				invalidate()
 			},
-		}},
+			Style: core.Style{Gap: 2, Padding: core.Symmetric(12, 16),
+				Borders: core.Edges{Bottom: 1}},
+			StyleFunc: func() core.Style {
+				style := core.Style{BorderColor: ui.ColorsOf(cx).Line()}
+				if selected() {
+					style.Background = selectionTint(cx)
+				}
+				return style
+			},
+			Children: []core.Node{
+				core.Text{Content: strconv.Itoa(period.Year), Style: core.Style{FontSize: 15,
+					FontWeight: ui.Semibold}},
+				core.Text{Content: locales.PeriodGranularityAnnual(cx),
+					Style:     core.Style{FontSize: 12},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+			},
+		})
 	}
+	list := core.View{Style: core.Style{FlexGrow: 1, MinHeight: core.Pt(0)},
+		Children: []core.Node{
+			listPaneHeader(cx, locales.ReportsListHeading, locales.ReportsListSubheading),
+			core.Scroll{Style: core.Style{FlexGrow: 1, MinHeight: core.Pt(0)},
+				Children: []core.Node{core.View{Style: core.Style{Gap: 0}, Children: rows}}},
+		}}
+	detail := core.Dynamic(func(cx *core.Scope) core.Node {
+		if state.period.Get() == "" {
+			return detailEmptyIcon(cx, lucide.FileText, locales.ReportsListSubheading)
+		}
+		return core.Scroll{
+			Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
+			Children: []core.Node{core.View{
+				Style: core.Style{Padding: core.All(24), Gap: 16,
+					Width: core.Pct(100), MaxWidth: core.Pt(980)},
+				Children: []core.Node{
+					controls,
+					core.Show{When: func() bool { return state.generated.Get() == nil },
+						Then: func(cx *core.Scope) core.Node { return readinessCard }},
+					preview,
+				},
+			}},
+		}
+	})
+	return splitPage(cx, 28, list, detail)
 }
 
 // reportLanguage picks the export language from the interface locale.

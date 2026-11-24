@@ -57,11 +57,14 @@ func TestMigrationCardFromLegacyWorkspace(t *testing.T) {
 	ui.WaitFor("id:activities-table", 5*time.Second)
 	ui.WaitFor("text:外购电力", 3*time.Second)
 
-	ui.Press("id:nav:settings")
+	openSettings(ui, "data")
 	ui.WaitFor("text:Migration from CarbonInk 1.x", 5*time.Second)
 	// The sidebar already says "Imported from CarbonInk 1.x", so match on the
 	// card's longer sentence.
 	ui.WaitFor("text:this workspace now lives in the new data folder", 3*time.Second)
+	ui.WaitFor("text:CarbonInk 1.x data folder", 3*time.Second)
+
+	openSettings(ui, "ai")
 	if got := ui.Find("id:settings-llm-model").Text; got != "deepseek-chat" {
 		t.Fatalf("model field = %q, want the imported deepseek-chat", got)
 	}
@@ -69,7 +72,6 @@ func TestMigrationCardFromLegacyWorkspace(t *testing.T) {
 		t.Fatalf("base URL field = %q, want the DeepSeek preset", got)
 	}
 	ui.WaitFor("text:The AI provider setting was imported from 1.x", 3*time.Second)
-	ui.WaitFor("text:CarbonInk 1.x data folder", 3*time.Second)
 
 	// Entering the key is the one manual step; the reminder goes away with it.
 	ui.Type("id:settings-llm-key", "sk-test-12345")

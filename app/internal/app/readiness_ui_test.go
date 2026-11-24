@@ -25,6 +25,8 @@ func TestReadinessReviewRunsAndDismisses(t *testing.T) {
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 900),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}))
 	ui.Press("id:nav:reports")
+	ui.WaitFor("id:reports-period-period", 5*time.Second)
+	ui.Press("id:reports-period-period")
 	ui.WaitFor("id:readiness-run", 5*time.Second)
 	ui.Press("id:readiness-run")
 	ui.WaitFor("text:Row has no audit trail", 5*time.Second)
@@ -108,6 +110,8 @@ func TestReadinessAgentReviewAppendsFindings(t *testing.T) {
 		nsgotest.Environment(core.Environment{Locale: "en-US"}))
 	configureLLMEndpoint(t, ui, server.URL)
 	ui.Press("id:nav:reports")
+	ui.WaitFor("id:reports-period-period", 5*time.Second)
+	ui.Press("id:reports-period-period")
 	ui.WaitFor("id:readiness-run", 5*time.Second)
 	ui.Press("id:readiness-run")
 	ui.WaitFor("text:Row has no audit trail", 5*time.Second)

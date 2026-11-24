@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/nsgo-dev/nsgo/core"
 	"github.com/nsgo-dev/nsgo/i18n"
+	"github.com/nsgo-dev/nsgo/icons/lucide"
 	"github.com/nsgo-dev/nsgo/ui"
 )
 
@@ -25,6 +27,7 @@ import (
 type questionnaireFilters struct {
 	search *core.Signal[string]
 	status *core.Signal[string]
+	order  *core.Signal[string]
 }
 
 type questionnaireWizard struct {
@@ -78,6 +81,7 @@ func (s *Session) questionnairesScreen(cx *core.Scope, dataRev *core.Signal[int]
 	filters := &questionnaireFilters{
 		search: core.NewSignal(cx, ""),
 		status: core.NewSignal(cx, ""),
+		order:  core.NewSignal(cx, "recent"),
 	}
 	screenStatus := core.NewSignal(cx, "")
 	screenFailed := core.NewSignal(cx, false)
@@ -103,109 +107,175 @@ func (s *Session) questionnairesScreen(cx *core.Scope, dataRev *core.Signal[int]
 			}
 			out = append(out, q)
 		}
+		switch filters.order.Get() {
+		case "oldest":
+			sort.SliceStable(out, func(i, j int) bool { return out[i].CreatedAt < out[j].CreatedAt })
+		case "customer":
+			sort.SliceStable(out, func(i, j int) bool {
+				return strings.ToLower(out[i].CustomerName) < strings.ToLower(out[j].CustomerName)
+			})
+		case "due":
+			sort.SliceStable(out, func(i, j int) bool {
+				if out[i].DueDate == "" {
+					return false
+				}
+				if out[j].DueDate == "" {
+					return true
+				}
+				return out[i].DueDate < out[j].DueDate
+			})
+		case "questions":
+			sort.SliceStable(out, func(i, j int) bool { return out[i].QuestionCount > out[j].QuestionCount })
+		default:
+			sort.SliceStable(out, func(i, j int) bool { return out[i].CreatedAt > out[j].CreatedAt })
+		}
 		return out
 	}
 
-	statusOptions := []ui.Option[string]{
-		{Value: "", Label: locales.QuestionnairesFilterStatusAll(cx)},
-		{Value: store.QuestionnaireParsing, Label: locales.QuestionnairesStatusParsing(cx)},
-		{Value: store.QuestionnaireMapping, Label: locales.QuestionnairesStatusMapping(cx)},
-		{Value: store.QuestionnaireAnswering, Label: locales.QuestionnairesStatusAnswering(cx)},
-		{Value: store.QuestionnaireFinalized, Label: locales.QuestionnairesStatusFinalized(cx)},
-		{Value: store.QuestionnaireExported, Label: locales.QuestionnairesStatusExported(cx)},
+	orderOptions := []ui.Option[string]{
+		{Value: "recent", Label: locales.QuestionnairesSortRecent(cx)},
+		{Value: "oldest", Label: locales.QuestionnairesSortOldest(cx)},
+		{Value: "customer", Label: locales.QuestionnairesSortCustomer(cx)},
+		{Value: "due", Label: locales.QuestionnairesSortDue(cx)},
+		{Value: "questions", Label: locales.QuestionnairesSortQuestions(cx)},
+	}
+	statusLabel := func(cx *core.Scope, status string) string {
+		if status == "" {
+			return locales.QuestionnairesFilterStatusAll(cx)
+		}
+		return questionnaireStatusLabel(cx, status)
 	}
 
 	list := core.Dynamic(func(cx *core.Scope) core.Node {
 		_ = dataRev.Get()
 		_ = filters.search.Get()
 		_ = filters.status.Get()
+		_ = filters.order.Get()
 		visible := rows()
+		query := strings.ToLower(strings.TrimSpace(filters.search.Get()))
 		total := 0
+		counts := map[string]int{}
+		allOutbound := 0
 		for _, q := range s.questionnaires {
-			if q.Direction == "outbound" {
-				total++
+			if q.Direction != "outbound" {
+				continue
 			}
-		}
-		if len(visible) == 0 {
-			empty := dataEmptyState(cx, locales.QuestionnairesEmpty(cx),
-				locales.QuestionnairesEmptyBody(cx),
-				ui.Button{Text: locales.QuestionnairesNewButton(cx), OnPress: wizard.show,
-					TestID: "questionnaires-empty-new"})
-			if total > 0 {
-				empty = dataEmptyState(cx, locales.QuestionnairesFilterEmpty(cx), "",
-					ui.Button{Text: locales.QuestionnairesFilterClear(cx), Variant: ui.ButtonGhost,
-						OnPress: func() {
-							filters.search.Set("")
-							filters.status.Set("")
-						}, TestID: "questionnaires-filter-clear"})
+			allOutbound++
+			if query != "" && !strings.Contains(strings.ToLower(q.CustomerName), query) {
+				continue
 			}
-			return core.View{Style: core.Style{FlexGrow: 1, JustifyContent: core.JustifyCenter},
-				Children: []core.Node{empty}}
+			total++
+			counts[q.Status]++
 		}
 		nodes := make([]core.Node, 0, len(visible))
 		for _, q := range visible {
 			q := q
-			nodes = append(nodes, questionnaireListRow(cx, q, func() { detail.show(cx, q) }))
+			nodes = append(nodes, questionnaireListRow(cx, q, func() bool {
+				return detail.open.Get() && detail.id == q.ID
+			}, func() { detail.show(cx, q) }))
 		}
-		return core.Scroll{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
-			Children: []core.Node{core.View{Style: core.Style{Gap: 0}, Children: nodes}}}
+		chip := func(value string, count int) core.Node {
+			return filterChip(cx, true, "questionnaires-filter-"+firstNonEmpty(value, "all"),
+				statusLabel(cx, value), func() int { return count },
+				func() bool { return filters.status.Get() == value },
+				func() { filters.status.Set(value) })
+		}
+		chips := []core.Node{chip("", total)}
+		for _, status := range []string{store.QuestionnaireParsing, store.QuestionnaireMapping,
+			store.QuestionnaireAnswering, store.QuestionnaireFinalized,
+			store.QuestionnaireExported} {
+			chips = append(chips, chip(status, counts[status]))
+		}
+		content := []core.Node{}
+		if allOutbound == 0 {
+			content = append(content, core.Text{Content: locales.QuestionnairesEmpty(cx),
+				Style:     core.Style{FontSize: 14, Padding: core.Symmetric(24, 16)},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3})
+		} else if len(visible) == 0 {
+			empty := locales.QuestionnairesEmpty(cx)
+			empty = locales.QuestionnairesFilterEmpty(cx)
+			content = append(content, core.View{Style: core.Style{Padding: core.Symmetric(48, 16),
+				Gap: 8, AlignItems: core.AlignCenter}, Children: []core.Node{
+				core.Text{Content: empty, Style: core.Style{FontSize: 14,
+					TextAlign: core.TextAlignCenter}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted),
+					MaxLines: 2},
+				core.Show{When: func() bool {
+					return filters.search.Get() != "" || filters.status.Get() != ""
+				}, Then: func(*core.Scope) core.Node {
+					return ui.Button{Text: locales.QuestionnairesFilterClear(cx),
+						Variant: ui.ButtonGhost, OnPress: func() {
+							filters.search.Set("")
+							filters.status.Set("")
+						}, TestID: "questionnaires-filter-clear"}
+				}},
+			}})
+		} else {
+			content = append(content, core.View{Style: core.Style{Gap: 0}, Children: nodes})
+		}
+		filtersNode := core.View{Style: core.Style{Padding: core.Symmetric(12, 16),
+			Gap: 8, Borders: core.Edges{Bottom: 1}}, StyleFunc: func() core.Style {
+			return core.Style{BorderColor: ui.ColorsOf(cx).Line()}
+		}, Children: []core.Node{
+			searchField(cx, filters.search.Get,
+				locales.QuestionnairesSearchPlaceholder(cx),
+				filters.search.Set, "questionnaires-search"),
+			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+				Wrap: core.Wrap, Gap: 4}, Children: []core.Node{
+				core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+					Wrap: core.Wrap, Gap: 4}, Children: chips},
+				core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+					Gap: 8, AutoMargin: core.SideLeft}, Children: []core.Node{
+					sortMenu(cx, orderOptions, filters.order.Get, filters.order.Set,
+						"questionnaires-sort"),
+				}},
+			}},
+		}}
+		scroll := core.Scroll{Style: core.Style{FlexGrow: 1, FlexShrink: 1,
+			MinHeight: core.Pt(0)}, Children: []core.Node{core.View{
+			Style: core.Style{Gap: 0}, Children: content}}}
+		children := []core.Node{scroll}
+		if allOutbound > 0 {
+			children = []core.Node{filtersNode, scroll}
+		}
+		return core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
+			Children: children}
 	})
 
-	return core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0),
-		Padding: core.All(16), Gap: 10}, Children: []core.Node{
-		dataHeaderRow(cx,
-			core.Text{ContentFunc: func() string {
-				n := len(rows())
-				return countPhrase(n,
-					func() string {
-						return locales.QuestionnairesListCountOne(cx, strconv.Itoa(n))
-					},
-					func() string {
-						return locales.QuestionnairesListCount(cx, strconv.Itoa(n))
-					})
-			}, Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}},
-			[]core.Node{
-				ui.Input{Value: filters.search.Get, Placeholder: locales.QuestionnairesSearchPlaceholder(cx),
-					OnChange: func(v string) { filters.search.Set(v) },
-					TestID:   "questionnaires-search", Style: core.Style{Width: core.Pt(220)},
-					Role: core.RoleSearchField,
-					LabelFunc: func() string {
-						return locales.QuestionnairesSearchPlaceholder(cx)
-					}},
-				ui.Select[string]{Options: statusOptions, Value: filters.status.Get,
-					OnChange: func(v string) { filters.status.Set(v) },
-					Label:    locales.QuestionnairesTableStatus(cx),
-					TestID:   "questionnaires-filter-status",
-					Style:    core.Style{Width: core.Pt(150)}},
-				ui.Button{Text: locales.QuestionnairesNewButton(cx), OnPress: wizard.show,
-					TestID: "questionnaires-new"},
-			}...),
-		listGuide.node(s, func() bool { return true }),
-		core.Show{When: func() bool { return screenStatus.Get() != "" },
-			Then: func(cx *core.Scope) core.Node {
-				return core.Text{ContentFunc: func() string { return screenStatus.Get() },
-					Style: core.Style{FontSize: 12},
-					StyleFunc: func() core.Style {
-						if screenFailed.Get() {
-							return ui.Colored(ui.ColorsOf(cx).Danger)()
-						}
-						return ui.Colored(ui.ColorsOf(cx).Muted)()
-					}}
-			}},
-		core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0),
-			CornerRadius: 8, BorderWidth: 1, BorderColor: ui.ColorsOf(cx).Border(),
-			Background: ui.ColorsOf(cx).Surface()}, Children: []core.Node{list}},
-		wizard.dialog(cx, s, dataRev, func(r *questionnaire.CreateResult) {
-			screenFailed.Set(false)
-			screenStatus.Set(locales.QuestionnairesWizardSuccessWithReused(cx,
-				strconv.Itoa(r.QuestionCount), strconv.Itoa(r.ReusedCount)))
-		}, func(message string) {
-			screenFailed.Set(true)
-			screenStatus.Set(message)
-		}),
-		detail.dialog(cx, s, dataRev),
-		detail.pdfDialog(cx, s),
-	}}
+	left := core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
+		Children: []core.Node{
+			listPaneHeader(cx, locales.NavDisclosureFilings, nil,
+				ui.Button{Text: locales.QuestionnairesNewButton(cx), Icon: lucide.Plus,
+					Variant: ui.ButtonOutline, Size: ui.SizeSmall, OnPress: wizard.show,
+					TestID: "questionnaires-new"}),
+			listGuide.node(s, func() bool { return true }),
+			core.Show{When: func() bool { return screenStatus.Get() != "" },
+				Then: func(cx *core.Scope) core.Node {
+					return core.Text{ContentFunc: func() string { return screenStatus.Get() },
+						Style: core.Style{FontSize: 12, Padding: core.Symmetric(4, 16)},
+						StyleFunc: func() core.Style {
+							if screenFailed.Get() {
+								return ui.Colored(ui.ColorsOf(cx).Danger)()
+							}
+							return ui.Colored(ui.ColorsOf(cx).Muted)()
+						}}
+				}},
+			list,
+		}}
+	return core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
+		Children: []core.Node{
+			splitPage(cx, 32, left, core.Dynamic(func(cx *core.Scope) core.Node {
+				return detail.dialog(cx, s, dataRev)
+			})),
+			wizard.dialog(cx, s, dataRev, func(r *questionnaire.CreateResult) {
+				screenFailed.Set(false)
+				screenStatus.Set(locales.QuestionnairesWizardSuccessWithReused(cx,
+					strconv.Itoa(r.QuestionCount), strconv.Itoa(r.ReusedCount)))
+			}, func(message string) {
+				screenFailed.Set(true)
+				screenStatus.Set(message)
+			}),
+			detail.pdfDialog(cx, s),
+		}}
 }
 
 func newQuestionnaireWizard(cx *core.Scope, s *Session) *questionnaireWizard {
@@ -253,21 +323,22 @@ func newQuestionnaireDetail(cx *core.Scope, db *store.Store) *questionnaireDetai
 	}
 }
 
-func questionnaireListRow(cx *core.Scope, q store.Questionnaire, onPress func()) core.Node {
-	return dataClickableRow(cx, "questionnaires-row-"+q.ID, onPress,
+func questionnaireListRow(cx *core.Scope, q store.Questionnaire, selected func() bool,
+	onPress func()) core.Node {
+	meta := strconv.Itoa(q.ReportingYear) + " · " + questionnaireStatusLabel(cx, q.Status) +
+		" · " + locales.QuestionnairesQuestionCount(cx, strconv.Itoa(q.QuestionCount)) + " ·"
+	if q.DueDate != "" {
+		meta += "\n" + locales.QuestionnairesDueDate(cx, q.DueDate)
+	}
+	return dataClickableRowSelected(cx, "questionnaires-row-"+q.ID, onPress, selected,
 		core.View{Style: core.Style{Gap: 2, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
 			Children: []core.Node{
-				core.Text{Content: q.CustomerName, Style: core.Style{FontSize: 13,
-					FontWeight: ui.Semibold, FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 1},
-				core.Text{Content: strconv.Itoa(q.ReportingYear) + " · " +
-					locales.QuestionnairesQuestionCount(cx, strconv.Itoa(q.QuestionCount)),
-					Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted),
-					MaxLines: 1},
+				core.Text{Content: q.CustomerName, Style: core.Style{FontSize: 14,
+					FontWeight: ui.Medium, FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 1},
+				core.Text{Content: meta,
+					Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted),
+					MaxLines: 3},
 			}},
-		ui.Badge{Text: questionnaireStatusLabel(cx, q.Status),
-			Variant: questionnaireStatusVariant(q.Status)},
-		core.Text{Content: q.DueDate, Style: core.Style{FontSize: 11},
-			StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint), MaxLines: 1},
 	)
 }
 
@@ -927,9 +998,10 @@ func (d *questionnaireDetail) pdfDialog(cx *core.Scope, s *Session) core.Node {
 		core.Text{Content: locales.QuestionnaireExportPdfDialogSubheading(cx),
 			Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 		dataField(cx, locales.QuestionnaireExportPdfLangLabel(cx),
-			ui.Select[string]{Options: options, Value: d.pdfLang.Get,
+			appSelect[string]{Options: options, Value: d.pdfLang.Get,
 				OnChange: d.pdfLang.Set, Label: locales.QuestionnaireExportPdfLangLabel(cx),
-				TestID: "questionnaires-pdf-lang"}),
+				TestID: "questionnaires-pdf-lang",
+				Style:  core.Style{Width: core.Pct(100)}}),
 		core.Show{When: func() bool { return d.pdfStatus.Get() != "" },
 			Then: func(cx *core.Scope) core.Node {
 				return core.Text{ContentFunc: func() string { return d.pdfStatus.Get() },
@@ -955,6 +1027,9 @@ func (d *questionnaireDetail) pdfDialog(cx *core.Scope, s *Session) core.Node {
 func (d *questionnaireDetail) dialog(cx *core.Scope, s *Session,
 	dataRev *core.Signal[int]) core.Node {
 	dialog := func(cx *core.Scope) core.Node {
+		if !d.open.Get() {
+			return detailEmptyIcon(cx, lucide.ClipboardList, locales.QuestionnairesEmpty)
+		}
 		_ = d.rev.Get()
 		answered := 0
 		for _, q := range d.questions {
@@ -1083,8 +1158,7 @@ func (d *questionnaireDetail) dialog(cx *core.Scope, s *Session,
 						strconv.Itoa(answered), strconv.Itoa(len(d.questions))),
 						Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 				}},
-			core.Scroll{Style: core.Style{MaxHeight: core.Pt(360)},
-				Children: []core.Node{core.View{Style: core.Style{Gap: 0}, Children: list}}},
+			core.View{Style: core.Style{Gap: 0}, Children: list},
 			dataCard(cx, editor...),
 			d.lineage.drawer(cx, s),
 		}
@@ -1092,8 +1166,6 @@ func (d *questionnaireDetail) dialog(cx *core.Scope, s *Session,
 			body = append([]core.Node{d.guide.node(s, func() bool { return true })}, body...)
 		}
 		footer := []core.Node{
-			ui.Button{Text: locales.QuestionnairesDetailClose(cx), Variant: ui.ButtonSecondary,
-				OnPress: func() { d.open.Set(false) }, TestID: "questionnaires-detail-close"},
 			ui.Button{Text: locales.AnswerGenerateAllButton(cx), Variant: ui.ButtonSecondary,
 				OnPress: func() { d.generateAll(s, cx, dataRev) }, Busy: d.busy.Get,
 				TestID: "questionnaires-generate-all"},
@@ -1106,8 +1178,12 @@ func (d *questionnaireDetail) dialog(cx *core.Scope, s *Session,
 				OnPress: func() { d.finalizeAll(s, cx, dataRev) }, Busy: d.busy.Get,
 				TestID: "questionnaires-finalize-all"},
 		}
-		return dataDialogSized(cx, d.open, d.customer.Get(), body, footer,
-			"questionnaires-detail-dialog", 860)
+		header := []core.Node{
+			ui.Button{Text: locales.QuestionnairesDetailClose(cx), Variant: ui.ButtonSecondary,
+				OnPress: func() { d.open.Set(false) }, TestID: "questionnaires-detail-close"},
+		}
+		return detailPaneShell(cx, "questionnaires-detail-dialog", d.customer.Get(),
+			header, body, footer)
 	}
 	return core.Dynamic(dialog)
 }

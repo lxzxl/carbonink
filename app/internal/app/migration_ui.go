@@ -6,6 +6,7 @@ import (
 
 	"github.com/nsgo-dev/nsgo/core"
 	"github.com/nsgo-dev/nsgo/desktop"
+	"github.com/nsgo-dev/nsgo/icons/lucide"
 	"github.com/nsgo-dev/nsgo/ui"
 )
 
@@ -21,8 +22,6 @@ func (s *Session) migrationCard(cx *core.Scope) core.Node {
 	}
 
 	children := []core.Node{
-		core.Text{Content: locales.SettingsMigrationTitle(cx),
-			Style: core.Style{FontSize: 14, FontWeight: ui.Semibold}},
 		core.Text{Content: status, Style: core.Style{FontSize: 12},
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 		dataPath(cx, locales.SettingsMigrationCurrentLabel(cx), cx.DataDir()),
@@ -47,9 +46,6 @@ func (s *Session) migrationCard(cx *core.Scope) core.Node {
 		core.Text{Content: locales.SettingsMigrationBackups(cx), Style: core.Style{FontSize: 11},
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
 	)
-	return core.View{
-		Style:     core.Style{Gap: 10, Padding: core.All(16), AlignSelf: core.AlignStretch},
-		StyleFunc: cardSurface(cx),
-		Children:  children,
-	}
+	return settingsCard(cx, lucide.FolderInput,
+		locales.SettingsMigrationTitle, nil, children...)
 }

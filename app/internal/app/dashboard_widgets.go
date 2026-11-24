@@ -132,7 +132,7 @@ func (s *Session) latestPeriodActivities() []store.Activity {
 // dashboardWidgets is the monthly trend and recent ledger shown once the
 // current period has emissions. It is the same pair, and the same newness
 // rule, as the 1.x dashboard.
-func (s *Session) dashboardWidgets(cx *core.Scope, active *core.Signal[Screen]) core.Node {
+func (s *Session) dashboardWidgets(cx *core.Scope, nav *screenNav) core.Node {
 	activities := s.latestPeriodActivities()
 	if s.totals.TotalKg == 0 || len(activities) == 0 {
 		return core.View{}
@@ -142,7 +142,7 @@ func (s *Session) dashboardWidgets(cx *core.Scope, active *core.Signal[Screen]) 
 		year = s.periods[len(s.periods)-1].Year
 	}
 	monthly := s.monthlyTrendCard(cx, activities, year)
-	recent := s.recentActivitiesCard(cx, activities, active)
+	recent := s.recentActivitiesCard(cx, activities, nav)
 	if cx.Env().Window().Width < 900 {
 		return core.View{Style: core.Style{Gap: 12}, Children: []core.Node{monthly, recent}}
 	}
@@ -162,25 +162,28 @@ func (s *Session) dashboardWidgets(cx *core.Scope, active *core.Signal[Screen]) 
 // readinessHomeCard is the 1.x dashboard's entry point to the readiness
 // review. It is a link, not a live count: running the sweep writes an audit
 // event, so visiting the dashboard must not trigger it.
-func (s *Session) readinessHomeCard(cx *core.Scope, active *core.Signal[Screen]) core.Node {
+func (s *Session) readinessHomeCard(cx *core.Scope, nav *screenNav) core.Node {
 	if s.totals.TotalKg == 0 || len(s.periods) == 0 {
 		return core.View{}
 	}
 	return core.View{TestID: "dashboard-readiness", Children: []core.Node{
-		dataCard(cx,
-			dataHeaderRow(cx,
-				core.View{Style: core.Style{Gap: 3, FlexShrink: 1,
-					MinWidth: core.Pt(0)}, Children: []core.Node{
-					core.Text{Content: locales.ReadinessHomeCardTitle(cx),
-						Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}},
-					core.Text{Content: locales.ReadinessDescription(cx),
-						Style:     core.Style{FontSize: 12},
-						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-				}},
-				ui.Button{Text: locales.ReadinessHomeCardCta(cx), Variant: ui.ButtonSecondary,
-					OnPress: func() { active.Set(ScreenReports) },
-					TestID:  "dashboard-readiness-open"}),
-		),
+		core.View{Style: core.Style{Padding: core.Symmetric(12, 16), CornerRadius: 6,
+			BorderWidth: 1}, StyleFunc: func() core.Style {
+			return core.Style{BorderColor: ui.ColorsOf(cx).Line()}
+		}, Children: []core.Node{dataHeaderRow(cx,
+			core.View{Style: core.Style{Gap: 3, FlexShrink: 1,
+				MinWidth: core.Pt(0)}, Children: []core.Node{
+				core.Text{Content: locales.ReadinessHomeCardTitle(cx),
+					Style: core.Style{FontSize: 14, FontWeight: ui.Medium}},
+				core.Text{Content: locales.ReadinessDescription(cx),
+					Style:     core.Style{FontSize: 12},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+			}},
+			ui.Button{Text: locales.ReadinessHomeCardCta(cx) + " →",
+				Variant: ui.ButtonGhost, Size: ui.SizeSmall,
+				OnPress: func() { nav.Set(ScreenReports) },
+				TestID:  "dashboard-readiness-open"}),
+		}},
 	}}
 }
 
@@ -191,13 +194,16 @@ func (s *Session) monthlyTrendCard(cx *core.Scope, activities []store.Activity, 
 		maxTotal = max(maxTotal, bucket.total)
 	}
 
-	children := []core.Node{dataHeading(cx, locales.DashboardMonthlyTrend(cx),
-		locales.DashboardTrendNote(cx))}
+	card := func(children ...core.Node) core.Node {
+		return core.View{Style: core.Style{Gap: 12, Padding: core.All(20),
+			AlignSelf: core.AlignStretch}, StyleFunc: cardSurface(cx), Children: children}
+	}
+	children := []core.Node{dataHeading(cx, locales.DashboardMonthlyTrend(cx), "")}
 	if maxTotal == 0 {
 		children = append(children,
 			core.Text{Content: locales.DashboardNoDataForChart(cx), Style: core.Style{FontSize: 12},
 				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2})
-		return core.View{TestID: "dashboard-monthly-trend", Children: []core.Node{dataCard(cx, children...)}}
+		return core.View{TestID: "dashboard-monthly-trend", Children: []core.Node{card(children...)}}
 	}
 
 	bars := make([]core.Node, 0, len(buckets))
@@ -227,11 +233,11 @@ func (s *Session) monthlyTrendCard(cx *core.Scope, activities []store.Activity, 
 		Style:    core.Style{Direction: core.Row, AlignItems: core.AlignEnd, Gap: 3},
 		Children: bars,
 	})
-	return core.View{TestID: "dashboard-monthly-trend", Children: []core.Node{dataCard(cx, children...)}}
+	return core.View{TestID: "dashboard-monthly-trend", Children: []core.Node{card(children...)}}
 }
 
 func (s *Session) recentActivitiesCard(cx *core.Scope, activities []store.Activity,
-	active *core.Signal[Screen]) core.Node {
+	nav *screenNav) core.Node {
 	recent := recentActivities(activities)
 	children := []core.Node{
 		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
@@ -240,15 +246,20 @@ func (s *Session) recentActivitiesCard(cx *core.Scope, activities []store.Activi
 				core.Text{Content: locales.DashboardRecentActivities(cx),
 					Style: core.Style{FontSize: 14, FontWeight: ui.Semibold}},
 			}},
-			ui.Button{Text: locales.DashboardWidgetViewAll(cx), Variant: ui.ButtonGhost, Size: ui.SizeSmall,
-				OnPress: func() { active.Set(ScreenActivities) }, TestID: "dashboard-recent-view-all"},
+			ui.Button{Text: locales.DashboardWidgetViewAll(cx) + " →",
+				Variant: ui.ButtonGhost, Size: ui.SizeSmall,
+				OnPress: func() { nav.Set(ScreenActivities) }, TestID: "dashboard-recent-view-all"},
 		}},
+	}
+	card := func(children ...core.Node) core.Node {
+		return core.View{Style: core.Style{Gap: 12, Padding: core.All(20),
+			AlignSelf: core.AlignStretch}, StyleFunc: cardSurface(cx), Children: children}
 	}
 	if len(recent) == 0 {
 		children = append(children,
 			core.Text{Content: locales.DashboardRecentEmpty(cx), Style: core.Style{FontSize: 12},
 				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
-		return core.View{TestID: "dashboard-recent", Children: []core.Node{dataCard(cx, children...)}}
+		return core.View{TestID: "dashboard-recent", Children: []core.Node{card(children...)}}
 	}
 
 	rows := make([]core.Node, 0, len(recent))
@@ -274,7 +285,7 @@ func (s *Session) recentActivitiesCard(cx *core.Scope, activities []store.Activi
 		})
 	}
 	children = append(children, core.View{Style: core.Style{Gap: 0}, Children: rows})
-	return core.View{TestID: "dashboard-recent", Children: []core.Node{dataCard(cx, children...)}}
+	return core.View{TestID: "dashboard-recent", Children: []core.Node{card(children...)}}
 }
 
 // activityEndDate is the dashboard's date: 1.x shows occurred_at_end there,

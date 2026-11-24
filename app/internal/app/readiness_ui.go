@@ -17,7 +17,7 @@ import (
 // deliberately manual: it writes a `readiness.reviewed` audit event, and an
 // event per page visit would turn the audit log into navigation history.
 func (s *Session) readinessSection(cx *core.Scope, period *core.Signal[string],
-	active *core.Signal[Screen]) (core.Node, func()) {
+	nav *screenNav) (core.Node, func()) {
 	report := core.NewSignal[*readiness.Report](cx, nil)
 	busy := core.NewSignal(cx, false)
 	status := core.NewSignal(cx, "")
@@ -123,15 +123,15 @@ func (s *Session) readinessSection(cx *core.Scope, period *core.Signal[string],
 	open := func(finding readiness.Finding) {
 		switch finding.Entity.Type {
 		case "activity_data":
-			active.Set(ScreenActivities)
+			nav.Set(ScreenActivities)
 		case "emission_source":
-			active.Set(ScreenSources)
+			nav.Set(ScreenSources)
 		case "question":
-			active.Set(ScreenQuestionnaires)
+			nav.Set(ScreenQuestionnaires)
 		case "questionnaire":
-			active.Set(ScreenSupplierDisclosures)
+			nav.Set(ScreenSupplierDisclosures)
 		case "organization":
-			active.Set(ScreenSettings)
+			nav.Set(ScreenSettings)
 		}
 	}
 

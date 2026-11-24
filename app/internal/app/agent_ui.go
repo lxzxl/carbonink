@@ -2,6 +2,8 @@ package app
 
 import (
 	"os"
+	"strconv"
+	"strings"
 
 	"app.carbonink.desktop/internal/agentskill"
 	"app.carbonink.desktop/internal/mcpconfig"
@@ -50,13 +52,17 @@ func mcpClientLabel(cx *core.Scope, client mcpconfig.Client) string {
 	}
 }
 
-// agentIntegrationCard installs the Agent Skill and writes MCP entries into
-// the host config files the user already has.
+// agentIntegrationCard is 1.x's MCP settings page: the Agent Skill card, the
+// master toggle, the server entry, and the detected-client list. The Skill
+// card owns the install/update/remove actions; the client rows own their
+// configure/remove actions.
 func (s *Session) agentIntegrationCard(cx *core.Scope) core.Node {
 	status := core.NewSignal(cx, "")
 	failed := core.NewSignal(cx, false)
 	busy := core.NewSignal(cx, false)
 	rev := core.NewSignal(cx, 0)
+	master := core.NewSignal(cx, true)
+	piOpen := core.NewSignal(cx, false)
 
 	run := func(message string, work func(home, configDir string) error) {
 		if busy.Get() {
@@ -71,6 +77,7 @@ func (s *Session) agentIntegrationCard(cx *core.Scope) core.Node {
 			s.scope.Post(func() {
 				busy.Set(false)
 				rev.Set(rev.Get() + 1)
+				s.bumpMCP()
 				if err != nil {
 					failed.Set(true)
 					status.Set(locales.SettingsAgentFailed(cx, err.Error()))
@@ -83,160 +90,300 @@ func (s *Session) agentIntegrationCard(cx *core.Scope) core.Node {
 
 	hold := func() {
 		_ = rev.Get()
-	}
-	card := func(children ...core.Node) core.Node {
-		return core.View{
-			Style:     core.Style{Gap: 12, Padding: core.All(16), AlignSelf: core.AlignStretch},
-			StyleFunc: cardSurface(cx),
-			Children:  children,
-		}
+		_ = master.Get()
 	}
 
 	return core.Dynamic(func(cx *core.Scope) core.Node {
 		hold()
 		home, configDir := agentHome(), agentConfigDir()
+		entry := agentEntry()
 		skill := agentskill.Detect(home)
-		clients := mcpconfig.Detect(home, configDir, agentEntry())
+		clients := mcpconfig.Detect(home, configDir, entry)
+		enabled := master.Get()
 
-		skillLabel := locales.SettingsAgentSkillMissing(cx)
-		if skill.Installed {
-			skillLabel = locales.SettingsAgentSkillInstalled(cx)
-		}
-		if skill.NeedsUpdate {
-			skillLabel = locales.SettingsAgentSkillUpdate(cx)
-		}
-		skillAction := locales.SettingsAgentInstall(cx)
-		if skill.Installed {
-			skillAction = locales.SettingsAgentUpdate(cx)
-		}
-		skillVariant := ui.BadgeNeutral
-		if skill.NeedsUpdate {
-			skillVariant = ui.BadgeWarn
-		} else if skill.Installed {
-			skillVariant = ui.BadgeAccent
-		}
 		skillButtons := []core.Node{
-			ui.Button{Text: skillAction, Variant: ui.ButtonSecondary, OnPress: func() {
-				run(locales.SettingsAgentSkillDone(cx), func(home, _ string) error {
-					if _, err := agentskill.Install(home); err != nil {
-						return err
-					}
-					return nil
-				})
-			}, Busy: busy.Get, TestID: "agent-skill-install"},
-		}
-		if skill.Installed {
-			skillButtons = append(skillButtons,
-				ui.Button{Text: locales.SettingsAgentRemove(cx), Variant: ui.ButtonSecondary,
-					OnPress: func() {
-						run(locales.SettingsAgentSkillRemoved(cx), func(home, _ string) error {
-							if _, err := agentskill.Remove(home); err != nil {
-								return err
-							}
-							return nil
+			ui.Button{Text: locales.SettingsSkillActionInstall(cx),
+				Variant: ui.ButtonPrimary,
+				OnPress: func() {
+					run(locales.SettingsSkillInstalled(cx, strconv.Itoa(len(skill.DetectedHosts))),
+						func(home, _ string) error {
+							_, err := agentskill.Install(home)
+							return err
 						})
-					}, Busy: busy.Get, TestID: "agent-skill-remove"})
+				}, Busy: busy.Get, TestID: "agent-skill-install"},
 		}
-
-		row := func(name, label, detail string, variant ui.BadgeVariant, buttons []core.Node) core.Node {
-			heading := []core.Node{
-				core.Text{Content: name, Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}},
+		skillText := locales.SettingsSkillStatusNotInstalled(cx)
+		skillDetail := locales.SettingsSkillWillInstallTo(cx, skillHostList(cx, skill.DetectedHosts))
+		if skill.Installed {
+			skillText = locales.SettingsSkillStatusInstalled(cx, strconv.Itoa(len(skill.LinkedHosts)))
+			skillDetail = skill.CanonicalPath
+			skillButtons = []core.Node{}
+			if skill.NeedsUpdate {
+				skillText = locales.SettingsSkillStatusOutdated(cx)
+				skillButtons = append(skillButtons, ui.Button{
+					Text: locales.SettingsSkillActionUpdate(cx), Variant: ui.ButtonPrimary,
+					OnPress: func() {
+						run(locales.SettingsSkillUpdated(cx), func(home, _ string) error {
+							_, err := agentskill.Install(home)
+							return err
+						})
+					}, Busy: busy.Get, TestID: "agent-skill-install"})
 			}
-			if label != "" {
-				heading = append(heading, ui.Badge{Text: label, Variant: variant})
-			}
-			children := []core.Node{
+			skillButtons = append(skillButtons, ui.Button{
+				Text: locales.SettingsSkillActionRemove(cx), Variant: ui.ButtonOutline,
+				OnPress: func() {
+					run(locales.SettingsSkillRemoved(cx), func(home, _ string) error {
+						_, err := agentskill.Remove(home)
+						return err
+					})
+				}, Busy: busy.Get, TestID: "agent-skill-remove"})
+		}
+		skillBody := []core.Node{
+			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignStart,
+				Wrap: core.Wrap, Gap: 12}, Children: []core.Node{
 				core.View{Style: core.Style{Gap: 2, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
 					Children: []core.Node{
-						core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
-							Wrap: core.Wrap, Gap: 6}, Children: heading},
+						core.Text{Content: skillText, Style: core.Style{FontSize: 14,
+							FontWeight: ui.Medium}, MaxLines: 2},
+						core.Text{Content: skillDetail,
+							Style: core.Style{FontSize: 12, FontFamily: core.FontMonospace,
+								FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 1,
+							StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+					}},
+				core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+					Wrap: core.Wrap, Gap: 8}, Children: skillButtons},
+			}},
+		}
+		if skill.Installed && len(skill.LinkedHosts) > 0 {
+			hostLines := make([]core.Node, 0, len(skill.LinkedHosts))
+			for _, host := range skill.LinkedHosts {
+				hostLines = append(hostLines, core.Text{Content: "• " + skillHostLabel(cx, host),
+					Style:     core.Style{FontSize: 12},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1})
+			}
+			skillBody = append(skillBody, core.View{Style: core.Style{Gap: 2}, Children: hostLines})
+		}
+
+		stepOne := core.View{Style: core.Style{Gap: 12}, Children: []core.Node{
+			core.View{Style: core.Style{Gap: 4}, Children: []core.Node{
+				core.Text{Content: locales.SettingsSkillStepTitle(cx),
+					Style: core.Style{FontSize: 14, FontWeight: ui.Medium}},
+				core.Text{Content: locales.SettingsSkillStepHelp(cx),
+					Style:     core.Style{FontSize: 12},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
+			}},
+			core.View{Style: core.Style{Gap: 8, Padding: core.All(12),
+				AlignSelf: core.AlignStretch}, StyleFunc: cardSurface(cx), Children: skillBody},
+		}}
+
+		serverCard := core.View{
+			Style: core.Style{Gap: 3, Padding: core.All(12), AlignSelf: core.AlignStretch,
+				CornerRadius: 6, BorderWidth: 1},
+			StyleFunc: func() core.Style {
+				colors := ui.ColorsOf(cx)
+				return core.Style{Background: colors.Inset(), BorderColor: colors.Border()}
+			},
+			Children: []core.Node{
+				core.Text{Content: locales.SettingsMcpBinaryLabel(cx),
+					Style:     core.Style{FontSize: 11, FontWeight: ui.Medium},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+				core.Text{Content: entry.Command, Style: core.Style{FontSize: 12,
+					FontFamily: core.FontMonospace, FlexShrink: 1, MinWidth: core.Pt(0)},
+					MaxLines: 1},
+				core.Text{Content: locales.SettingsMcpScriptLabel(cx),
+					Style:     core.Style{FontSize: 11, FontWeight: ui.Medium, Padding: core.Edges{Top: 6}},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+				core.Text{Content: strings.Join(entry.Args, " "),
+					Style: core.Style{FontSize: 12, FontFamily: core.FontMonospace,
+						FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 1},
+			},
+		}
+
+		clientRow := func(name, detail string, action core.Node) core.View {
+			return core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+				Wrap: core.Wrap, Gap: 12, Padding: core.Symmetric(12, 16)},
+				Children: []core.Node{
+					core.View{Style: core.Style{Gap: 2, FlexGrow: 1, FlexShrink: 1,
+						MinWidth: core.Pt(0)}, Children: []core.Node{
+						core.Text{Content: name, Style: core.Style{FontSize: 14,
+							FontWeight: ui.Medium}, MaxLines: 1},
 						core.Text{Content: detail, Style: core.Style{FontSize: 12},
 							StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2},
 					}},
-			}
-			if len(buttons) > 0 {
-				children = append(children, core.View{Style: core.Style{Direction: core.Row,
-					AlignItems: core.AlignCenter, Wrap: core.Wrap, Gap: 6}, Children: buttons})
-			}
-			return core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
-				Wrap: core.Wrap, Gap: 8}, Children: children}
+					action,
+				}}
 		}
-
-		rows := []core.Node{row(locales.SettingsAgentSkill(cx), skillLabel,
-			locales.SettingsSkillStepHelp(cx), skillVariant, skillButtons)}
-
-		for _, client := range clients {
+		rows := make([]core.Node, 0, len(clients)+1)
+		for i, client := range clients {
 			client := client
-			label := locales.SettingsAgentNotInstalled(cx)
-			variant := ui.BadgeNeutral
-			if client.Installed {
-				switch {
-				case client.Configured && client.NeedsUpdate:
-					label = locales.SettingsAgentSkillUpdate(cx)
-					variant = ui.BadgeWarn
-				case client.Configured:
-					label = locales.SettingsAgentConfigured(cx)
-					variant = ui.BadgeAccent
-				default:
-					label = locales.SettingsAgentNotConfigured(cx)
+			detail := mcpStatusText(cx, client)
+			var action core.Node
+			switch {
+			case !client.Installed:
+				action = ui.Button{Text: locales.SettingsMcpActionUnavailable(cx),
+					Variant: ui.ButtonOutline, Disabled: func() bool { return true },
+					TestID: "agent-unavailable-" + string(client.Client)}
+			case client.Configured && client.NeedsUpdate:
+				action = core.View{Style: core.Style{Direction: core.Row, Gap: 6},
+					Children: []core.Node{
+						ui.Button{Text: locales.SettingsMcpActionReconfigure(cx),
+							Disabled: func() bool { return !enabled || busy.Get() },
+							OnPress:  func() { configureClient(cx, run, client) },
+							TestID:   "agent-config-" + string(client.Client)},
+						ui.Button{Text: locales.SettingsMcpActionRemove(cx),
+							Variant:  ui.ButtonOutline,
+							Disabled: func() bool { return !enabled || busy.Get() },
+							OnPress:  func() { removeClient(cx, run, client) },
+							TestID:   "agent-remove-" + string(client.Client)},
+					}}
+			case client.Configured:
+				action = ui.Button{Text: locales.SettingsMcpActionRemove(cx),
+					Variant:  ui.ButtonOutline,
+					Disabled: func() bool { return !enabled || busy.Get() },
+					OnPress:  func() { removeClient(cx, run, client) },
+					TestID:   "agent-remove-" + string(client.Client)}
+			default:
+				action = ui.Button{Text: locales.SettingsMcpActionConfigure(cx),
+					Disabled: func() bool { return !enabled || busy.Get() },
+					OnPress:  func() { configureClient(cx, run, client) },
+					TestID:   "agent-config-" + string(client.Client)}
+			}
+			row := clientRow(mcpClientLabel(cx, client.Client), detail, action)
+			if i < len(clients)-1 {
+				row.Style.Borders = core.Edges{Bottom: 1}
+				row.StyleFunc = func() core.Style {
+					return core.Style{BorderColor: ui.ColorsOf(cx).Line()}
 				}
 			}
-			buttons := []core.Node{}
-			if client.Installed {
-				configureLabel := locales.SettingsAgentConfigure(cx)
-				if client.Configured {
-					configureLabel = locales.SettingsAgentUpdate(cx)
-				}
-				buttons = append(buttons, ui.Button{Text: configureLabel, Variant: ui.ButtonSecondary,
-					OnPress: func() {
-						run(locales.SettingsAgentClientConfigured(cx,
-							mcpClientLabel(cx, client.Client)), func(home, configDir string) error {
-							path := mcpconfig.Path(home, configDir, client.Client)
-							if _, err := mcpconfig.Configure(path, agentEntry()); err != nil {
-								return err
-							}
-							return nil
-						})
-					}, Busy: busy.Get, TestID: "agent-config-" + string(client.Client)})
-				if client.Configured {
-					buttons = append(buttons, ui.Button{Text: locales.SettingsAgentRemove(cx),
-						Variant: ui.ButtonSecondary, OnPress: func() {
-							run(locales.SettingsAgentClientRemoved(cx,
-								mcpClientLabel(cx, client.Client)), func(home, configDir string) error {
-								path := mcpconfig.Path(home, configDir, client.Client)
-								if _, err := mcpconfig.Remove(path); err != nil {
-									return err
-								}
-								return nil
-							})
-						}, Busy: busy.Get, TestID: "agent-remove-" + string(client.Client)})
-				}
-			}
-			rows = append(rows, row(mcpClientLabel(cx, client.Client), label, "", variant, buttons))
+			rows = append(rows, row)
 		}
+		rows = append(rows, clientRow(locales.SettingsMcpClientPi(cx), "",
+			ui.Button{Text: locales.SettingsMcpActionViewPiGuide(cx), Variant: ui.ButtonOutline,
+				OnPress: func() { piOpen.Set(true) }, TestID: "mcp-pi-guide-open"}))
 
-		return card(
-			core.Text{Content: locales.SettingsAgentTitle(cx),
-				Style: core.Style{FontSize: 14, FontWeight: ui.Semibold}},
-			core.Text{Content: locales.SettingsAgentHint(cx), Style: core.Style{FontSize: 12},
-				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-			core.View{Style: core.Style{Gap: 14}, Children: rows},
-			core.Text{Content: locales.SettingsAgentPiHint(cx), Style: core.Style{FontSize: 11},
-				StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
-			core.Text{Content: locales.SettingsAgentRestartHint(cx), Style: core.Style{FontSize: 11},
-				StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
-			core.Show{When: func() bool { return status.Get() != "" },
-				Then: func(cx *core.Scope) core.Node {
-					return core.Text{ContentFunc: func() string { return status.Get() },
-						Style: core.Style{FontSize: 12},
-						StyleFunc: func() core.Style {
-							if failed.Get() {
-								return ui.Colored(ui.ColorsOf(cx).Danger)()
-							}
-							return core.Style{Color: accentInk(cx)()}
-						},
-						TestID: "agent-status"}
+		stepTwo := core.View{Style: core.Style{Gap: 16, Padding: core.Edges{Top: 24},
+			Borders: core.Edges{Top: 1}, AlignSelf: core.AlignStretch},
+			StyleFunc: func() core.Style {
+				return core.Style{BorderColor: ui.ColorsOf(cx).Line()}
+			},
+			Children: []core.Node{
+				core.View{Style: core.Style{Gap: 4}, Children: []core.Node{
+					core.Text{Content: locales.SettingsMcpStepTitle(cx),
+						Style: core.Style{FontSize: 14, FontWeight: ui.Medium}},
+					core.Text{Content: locales.SettingsMcpStepHelp(cx),
+						Style:     core.Style{FontSize: 12},
+						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
 				}},
-		)
+				core.View{Style: core.Style{Gap: 6}, Children: []core.Node{
+					core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+						Gap: 10}, Children: []core.Node{
+						ui.Switch{Checked: master.Get, OnChange: master.Set,
+							Label: locales.SettingsMcpMasterToggle(cx), TestID: "mcp-master-toggle"},
+						core.Text{Content: locales.SettingsMcpMasterToggle(cx),
+							Style: core.Style{FontSize: 13}},
+					}},
+					core.Text{Content: locales.SettingsMcpMasterToggleHelp(cx),
+						Style:     core.Style{FontSize: 12},
+						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
+				}},
+				serverCard,
+				core.View{Style: core.Style{AlignSelf: core.AlignStretch},
+					StyleFunc: cardSurface(cx), Children: rows},
+			}}
+
+		children := []core.Node{stepOne, stepTwo}
+		children = append(children, core.Show{When: func() bool { return status.Get() != "" },
+			Then: func(cx *core.Scope) core.Node {
+				return core.Text{ContentFunc: func() string { return status.Get() },
+					Style: core.Style{FontSize: 12},
+					StyleFunc: func() core.Style {
+						if failed.Get() {
+							return ui.Colored(ui.ColorsOf(cx).Danger)()
+						}
+						return core.Style{Color: accentInk(cx)()}
+					},
+					TestID: "agent-status"}
+			}})
+		children = append(children, piGuideDialog(cx, piOpen))
+
+		return core.View{Style: core.Style{Gap: 24}, Children: children}
 	})
+}
+
+// configureClient writes the app's MCP entry into one host's config.
+func configureClient(cx *core.Scope, run func(string, func(string, string) error),
+	client mcpconfig.Status) {
+	run(locales.SettingsMcpConfigured(cx, mcpClientLabel(cx, client.Client)),
+		func(home, configDir string) error {
+			_, err := mcpconfig.Configure(mcpconfig.Path(home, configDir, client.Client), agentEntry())
+			return err
+		})
+}
+
+// removeClient deletes the app's MCP entry from one host's config.
+func removeClient(cx *core.Scope, run func(string, func(string, string) error),
+	client mcpconfig.Status) {
+	run(locales.SettingsMcpRemoved(cx, mcpClientLabel(cx, client.Client)),
+		func(home, configDir string) error {
+			_, err := mcpconfig.Remove(mcpconfig.Path(home, configDir, client.Client))
+			return err
+		})
+}
+
+func mcpStatusText(cx *core.Scope, status mcpconfig.Status) string {
+	switch {
+	case !status.Installed:
+		return locales.SettingsMcpStatusNotInstalled(cx)
+	case status.Configured && status.NeedsUpdate:
+		return locales.SettingsMcpStatusNeedsReconfigure(cx)
+	case status.Configured:
+		return locales.SettingsMcpStatusConfigured(cx)
+	default:
+		return locales.SettingsMcpStatusNotConfigured(cx)
+	}
+}
+
+func skillHostList(cx *core.Scope, hosts []string) string {
+	if len(hosts) == 0 {
+		return locales.SettingsSkillNoHosts(cx)
+	}
+	labels := make([]string, 0, len(hosts))
+	for _, host := range hosts {
+		labels = append(labels, skillHostLabel(cx, host))
+	}
+	return strings.Join(labels, ", ")
+}
+
+func skillHostLabel(cx *core.Scope, host string) string {
+	switch host {
+	case "claudeCode":
+		return locales.SettingsSkillHostClaudeCode(cx)
+	case "pi":
+		return locales.SettingsSkillHostPi(cx)
+	case "codex":
+		return locales.SettingsSkillHostCodex(cx)
+	default:
+		return host
+	}
+}
+
+// piGuideDialog is 1.x's Pi setup guide: Pi has no native mcpServers file, so
+// the bridge extension is the supported path.
+func piGuideDialog(cx *core.Scope, open *core.Signal[bool]) core.Node {
+	code := core.View{Style: core.Style{Padding: core.All(8), AlignSelf: core.AlignStart},
+		StyleFunc: func() core.Style {
+			return core.Style{CornerRadius: 4, Background: ui.ColorsOf(cx).Inset()}
+		}, Children: []core.Node{
+			core.Text{Content: "pi install mavam/pi-mcporter",
+				Style:     core.Style{FontSize: 12, FontFamily: core.FontMonospace},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+		}}
+	return dataDialog(cx, open, locales.SettingsMcpPiGuideTitle(cx), []core.Node{
+		core.Text{Content: locales.SettingsMcpPiGuideIntro(cx),
+			Style:     core.Style{FontSize: 13},
+			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
+		core.Text{Content: locales.SettingsMcpPiGuideStep1(cx), Style: core.Style{FontSize: 13}},
+		code,
+		core.Text{Content: locales.SettingsMcpPiGuideStep2(cx), Style: core.Style{FontSize: 13}},
+	}, nil, "mcp-pi-guide")
 }

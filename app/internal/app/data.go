@@ -34,6 +34,16 @@ func dataCard(cx *core.Scope, children ...core.Node) core.Node {
 	}
 }
 
+// dataCardFlat groups settings content the way 1.x did: controls sit
+// directly on the page, separated by headings and space rather than a card
+// border. Screens that read as a dashboard still use dataCard.
+func dataCardFlat(cx *core.Scope, children ...core.Node) core.Node {
+	return core.View{
+		Style:    core.Style{Gap: 16, AlignSelf: core.AlignStretch},
+		Children: children,
+	}
+}
+
 func dataHeading(cx *core.Scope, title string, detail string) core.Node {
 	children := []core.Node{core.Text{Content: title, Style: core.Style{FontSize: 14, FontWeight: ui.Semibold}}}
 	if detail != "" {
@@ -329,7 +339,7 @@ func sourceCategoryFields(cx *core.Scope, testID string, scope *core.Signal[int]
 				if custom.Get() {
 					value = sourceCategoryCustom
 				}
-				return ui.Select[string]{
+				return appSelect[string]{
 					Options:     sourceCategoryOptions(cx, scope.Get(), categoryCode.Get()),
 					Value:       func() string { return value },
 					Placeholder: locales.SourcesFormCategoryPlaceholder(cx),
@@ -414,156 +424,59 @@ func dataYearPeriod(periods []store.ReportingPeriod) *store.ReportingPeriod {
 // dashboardScreen is the workspace overview and the entry point for the
 // organization, site, period, source, and activity setup flows.
 func (s *Session) dashboardScreen(cx *core.Scope, dataRev *core.Signal[int],
-	active *core.Signal[Screen]) core.Node {
+	nav *screenNav) core.Node {
 	if s.organization == nil {
 		return s.onboardingScreen(cx, dataRev)
 	}
-	return core.Scroll{
-		Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
-		Children: []core.Node{core.View{
-			Style: core.Style{Padding: core.All(16), Gap: 12, MaxWidth: core.Pt(980), AlignSelf: core.AlignStretch},
-			Children: []core.Node{
-				core.Dynamic(func(cx *core.Scope) core.Node {
-					_ = dataRev.Get()
-					return s.dashboardBody(cx, dataRev, active)
-				}),
-			},
-		}},
-	}
+	return appPage(core.Dynamic(func(cx *core.Scope) core.Node {
+		_ = dataRev.Get()
+		return s.dashboardBody(cx, dataRev, nav)
+	}))
 }
 
 func (s *Session) dashboardBody(cx *core.Scope, dataRev *core.Signal[int],
-	active *core.Signal[Screen]) core.Node {
-	org := s.organization
-	summary := s.summary
-	orgName := dataOrgName(org)
-	orgDetail := ""
-	if org != nil {
-		orgDetail = org.CountryCode + " · " + dataBoundaryLabel(cx, org.BoundaryKind)
-		if org.Industry != "" {
-			orgDetail = org.Industry + " · " + orgDetail
-		}
-	}
-	stat := func(label string, value int) core.Node {
-		return core.View{Style: core.Style{FlexGrow: 1, FlexBasis: core.Pt(130), Gap: 2}, Children: []core.Node{
-			core.Text{Content: strconv.Itoa(value), Style: core.Style{FontSize: 22, FontWeight: ui.Bold}},
-			core.Text{Content: label, Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-		}}
-	}
+	nav *screenNav) core.Node {
+	unit := locales.UnitKgCo2e(cx)
 	co2e := func(testID, label string, value float64) core.Node {
-		return core.View{TestID: testID, Style: core.Style{FlexGrow: 1, FlexBasis: core.Pt(150), Gap: 2},
+		return core.View{TestID: testID,
+			Style: core.Style{FlexGrow: 1, FlexBasis: core.Pt(0), MinWidth: core.Pt(150),
+				Padding: core.All(20), CornerRadius: 8, BorderWidth: 1},
+			StyleFunc: func() core.Style {
+				return core.Style{Background: ui.ColorsOf(cx).Surface(),
+					BorderColor: ui.ColorsOf(cx).Line()}
+			},
 			Children: []core.Node{
-				core.Text{Content: commaFloat(value), Style: core.Style{FontSize: 22, FontWeight: ui.Bold}},
-				core.Text{Content: label, Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+				core.Text{Content: label, Style: core.Style{FontSize: 12, FontWeight: ui.Medium,
+					TextTransform: core.TextTransformUppercase, LetterSpacingEm: 0.025},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+				core.Text{Content: commaFloat(value),
+					Style: core.Style{FontSize: 24, FontWeight: ui.Semibold,
+						Margin: core.Edges{Top: 8}}},
+				core.Text{Content: unit, Style: core.Style{FontSize: 12,
+					Margin: core.Edges{Top: 2}},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 			}}
 	}
-	totalsPeriod := ""
-	if len(s.periods) > 0 {
-		totalsPeriod = strconv.Itoa(s.periods[len(s.periods)-1].Year) + " · kgCO2e"
-	}
 
-	siteRows := []core.Node{}
-	for _, site := range s.sites {
-		siteRows = append(siteRows, core.View{
-			Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8,
-				Padding: core.Symmetric(6, 0), Borders: core.Edges{Bottom: 1}},
-			StyleFunc: func() core.Style { return core.Style{BorderColor: ui.ColorsOf(cx).Line()} },
-			Children: []core.Node{
-				ui.Icon(lucide.Building, 14, ui.ColorsOf(cx).Muted),
-				core.Text{Content: dataSiteName(site), Style: core.Style{FontSize: 13,
-					FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 1},
-				core.Text{Content: site.CountryCode, Style: core.Style{FontSize: 12},
-					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-				core.Text{Content: dataActiveLabel(cx, site.IsActive), Style: core.Style{FontSize: 11},
-					StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
-			},
-		})
-	}
-	if len(siteRows) == 0 {
-		siteRows = append(siteRows, core.Text{Content: locales.DataNoSites(cx), Style: core.Style{FontSize: 12},
-			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
-	}
-	periodRows := []core.Node{}
-	for _, period := range s.periods {
-		periodRows = append(periodRows, core.View{
-			Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8,
-				Padding: core.Symmetric(6, 0), Borders: core.Edges{Bottom: 1}},
-			StyleFunc: func() core.Style { return core.Style{BorderColor: ui.ColorsOf(cx).Line()} },
-			Children: []core.Node{
-				ui.Icon(lucide.Calendar, 14, ui.ColorsOf(cx).Muted),
-				core.Text{Content: strconv.Itoa(period.Year), Style: core.Style{FontSize: 13}},
-				core.Text{Content: period.Granularity, Style: core.Style{FontSize: 12},
-					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-				core.View{Style: core.Style{FlexGrow: 1}},
-				core.Text{Content: dataActiveLabel(cx, period.IsActive), Style: core.Style{FontSize: 11},
-					StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
-			},
-		})
-	}
-	if len(periodRows) == 0 {
-		periodRows = append(periodRows, core.Text{Content: locales.DataNoPeriods(cx), Style: core.Style{FontSize: 12},
-			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
-	}
-
-	return core.View{Style: core.Style{Gap: 12}, Children: []core.Node{
-		dataCard(cx,
-			dataHeading(cx, locales.DashboardInventoryTitle(cx), totalsPeriod),
-			core.View{TestID: "dashboard-totals", Style: core.Style{Direction: core.Row, Wrap: core.Wrap, Gap: 16},
-				Children: []core.Node{
-					co2e("dashboard-total", locales.DashboardTotalCo2e(cx), s.totals.TotalKg),
-					co2e("dashboard-scope1", locales.DashboardScope1(cx), s.totals.Scope1Kg),
-					co2e("dashboard-scope2", locales.DashboardScope2(cx), s.totals.Scope2Kg),
-					co2e("dashboard-scope3", locales.DashboardScope3(cx), s.totals.Scope3Kg),
-				}},
-		),
-		s.gettingStartedCard(cx, active),
-		s.dashboardWidgets(cx, active),
-		s.readinessHomeCard(cx, active),
-		dataCard(cx,
-			dataHeaderRow(cx, core.View{
-				Style: core.Style{Gap: 3},
-				Children: []core.Node{
-					core.Text{Content: locales.DataOrgCard(cx), Style: core.Style{FontSize: 12, FontWeight: ui.Semibold},
-						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-					core.Text{Content: orgName, Style: core.Style{FontSize: 20, FontWeight: ui.Bold,
-						FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 1},
-					core.Text{Content: orgDetail, Style: core.Style{FontSize: 12,
-						FlexShrink: 1, MinWidth: core.Pt(0)},
-						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-				}},
-				s.organizationDialog(cx, dataRev),
-			),
-		),
-		dataCard(cx,
-			core.View{Style: core.Style{Direction: core.Row, Wrap: core.Wrap, Gap: 16}, Children: []core.Node{
-				stat(locales.DataSites(cx), summary.Sites),
-				stat(locales.DataPeriods(cx), summary.Periods),
-				stat(locales.DataSources(cx), summary.Sources),
-				stat(locales.DataActivities(cx), summary.Activities),
-			}},
-		),
-		dataCard(cx,
-			dataHeaderRow(cx, dataHeading(cx, locales.DataSites(cx), ""), s.siteDialog(cx, dataRev)),
-			core.View{Style: core.Style{Gap: 0}, Children: siteRows},
-		),
-		dataCard(cx,
-			dataHeaderRow(cx, dataHeading(cx, locales.DataPeriods(cx), ""), s.periodDialog(cx, dataRev)),
-			core.View{Style: core.Style{Gap: 0}, Children: periodRows},
-		),
-		dataCard(cx,
-			dataHeading(cx, locales.DataOrgReady(cx), ""),
-			core.View{Style: core.Style{Direction: core.Row, Wrap: core.Wrap, Gap: 8}, Children: []core.Node{
-				s.sourceDialog(cx, nil, dataRev, "dashboard-add-source"),
-				s.activityDialog(cx, dataRev),
-			}},
-		),
+	return core.View{Style: core.Style{Gap: 24}, Children: []core.Node{
+		pageHeading(cx, locales.DashboardInventoryTitle),
+		core.View{TestID: "dashboard-totals", Style: core.Style{Direction: core.Row,
+			Wrap: core.Wrap, AlignItems: core.AlignStretch, Gap: 16}, Children: []core.Node{
+			co2e("dashboard-total", locales.DashboardTotalCo2e(cx), s.totals.TotalKg),
+			co2e("dashboard-scope1", locales.DashboardScope1(cx), s.totals.Scope1Kg),
+			co2e("dashboard-scope2", locales.DashboardScope2(cx), s.totals.Scope2Kg),
+			co2e("dashboard-scope3", locales.DashboardScope3(cx), s.totals.Scope3Kg),
+		}},
+		s.gettingStartedCard(cx, nav),
+		s.dashboardWidgets(cx, nav),
+		s.readinessHomeCard(cx, nav),
 	}}
 }
 
 // gettingStartedCard is the zero-state path from an empty inventory to a
 // report. It mirrors the dependency chain — source, activity, report — and
 // reads live state, so the only button is the next unfinished step.
-func (s *Session) gettingStartedCard(cx *core.Scope, active *core.Signal[Screen]) core.Node {
+func (s *Session) gettingStartedCard(cx *core.Scope, nav *screenNav) core.Node {
 	if s.totals.TotalKg != 0 {
 		return core.View{}
 	}
@@ -598,47 +511,96 @@ func (s *Session) gettingStartedCard(cx *core.Scope, active *core.Signal[Screen]
 	for i := range steps {
 		i := i
 		step := steps[i]
-		marker := core.Text{Content: strconv.Itoa(i + 1),
-			Style:     core.Style{FontSize: 12, Width: core.Pt(18), FontWeight: ui.Semibold},
-			StyleFunc: ui.Colored(colors.Muted)}
-		title := core.Text{Content: step.title(cx), Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}}
+		var marker core.Node
 		if step.done {
-			marker = core.Text{Content: "✓", Style: core.Style{FontSize: 13, Width: core.Pt(18)},
-				StyleFunc: ui.Colored(colors.Accent)}
-			title = core.Text{Content: step.title(cx), Style: core.Style{FontSize: 13},
-				StyleFunc: ui.Colored(colors.Muted)}
+			marker = core.View{Style: core.Style{Width: core.Pt(20), Height: core.Pt(20),
+				CornerRadius: 10, AlignItems: core.AlignCenter,
+				JustifyContent: core.JustifyCenter, FlexShrink: 0},
+				StyleFunc: func() core.Style {
+					return core.Style{Background: ui.Alpha(colors.Accent(), 0.10)}
+				},
+				Children: []core.Node{ui.Icon(lucide.Check, 12, colors.Accent)}}
+		} else if i == current {
+			marker = core.View{Style: core.Style{Width: core.Pt(20), Height: core.Pt(20),
+				CornerRadius: 10, AlignItems: core.AlignCenter,
+				JustifyContent: core.JustifyCenter, FlexShrink: 0},
+				StyleFunc: func() core.Style {
+					return core.Style{Background: colors.Accent()}
+				},
+				Children: []core.Node{core.Text{Content: strconv.Itoa(i + 1),
+					Style: core.Style{FontSize: 11, FontWeight: ui.Semibold},
+					StyleFunc: func() core.Style {
+						return core.Style{Color: colors.OnAccent()}
+					}}}}
+		} else {
+			marker = core.View{Style: core.Style{Width: core.Pt(20), Height: core.Pt(20),
+				CornerRadius: 10, AlignItems: core.AlignCenter,
+				JustifyContent: core.JustifyCenter, FlexShrink: 0, BorderWidth: 1},
+				StyleFunc: func() core.Style {
+					return core.Style{BorderColor: colors.Border()}
+				},
+				Children: []core.Node{core.Text{Content: strconv.Itoa(i + 1),
+					Style:     core.Style{FontSize: 11, FontWeight: ui.Medium},
+					StyleFunc: ui.Colored(colors.Muted)}}}
 		}
+		titleStyle := core.Style{FontSize: 14, FontWeight: ui.Medium}
+		if step.done {
+			titleStyle = core.Style{FontSize: 14}
+		}
+		title := core.Text{Content: step.title(cx), Style: titleStyle, StyleFunc: func() core.Style {
+			if step.done {
+				return ui.Colored(colors.Muted)()
+			}
+			return core.Style{}
+		}}
 		text := []core.Node{title}
 		if i == current {
 			text = append(text,
 				core.Text{Content: step.body(cx), Style: core.Style{FontSize: 12},
-					StyleFunc: ui.Colored(colors.Muted), MaxLines: 3},
-				core.View{Style: core.Style{Direction: core.Row}, Children: []core.Node{
-					ui.Button{Text: step.cta(cx), OnPress: func() {
-						switch step.key {
-						case "sources":
-							s.pendingSourceCatalog = true
-						case "activities":
-							s.pendingNewActivity = true
-						}
-						active.Set(step.screen)
-					},
-						TestID: "dashboard-start-" + step.key},
-				}})
+					StyleFunc: ui.Colored(colors.Muted), MaxLines: 3})
+		}
+		rowChildren := []core.Node{marker, core.View{Style: core.Style{Gap: 6,
+			FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)}, Children: text}}
+		if i == current {
+			rowChildren = append(rowChildren,
+				ui.Button{Text: step.cta(cx), Size: ui.SizeSmall, OnPress: func() {
+					switch step.key {
+					case "sources":
+						s.pendingSourceCatalog = true
+					case "activities":
+						s.pendingNewActivity = true
+					}
+					nav.Set(step.screen)
+				}, TestID: "dashboard-start-" + step.key,
+					Style: core.Style{FlexShrink: 0}})
+		}
+		borders := core.Edges{}
+		if i < len(steps)-1 {
+			borders.Bottom = 1
 		}
 		rows = append(rows, core.View{
-			Style: core.Style{Direction: core.Row, Gap: 10, Padding: core.Symmetric(9, 0),
-				Borders: core.Edges{Bottom: 1}},
+			Style: core.Style{Direction: core.Row, AlignItems: core.AlignStart, Gap: 12,
+				Padding: core.Symmetric(12, 0),
+				Borders: borders},
 			StyleFunc: func() core.Style { return core.Style{BorderColor: colors.Line()} },
-			Children: []core.Node{marker, core.View{Style: core.Style{Gap: 4, FlexGrow: 1},
-				Children: text}},
+			Children:  rowChildren,
 		})
 	}
 
-	return dataCard(cx,
-		dataHeading(cx, locales.DashboardStartTitle(cx), locales.DashboardStartSubtitle(cx)),
-		core.View{Style: core.Style{Gap: 0}, Children: rows},
-	)
+	return core.View{Style: core.Style{Padding: core.All(24), Gap: 0,
+		CornerRadius: 8, BorderWidth: 1, AlignSelf: core.AlignStretch},
+		StyleFunc: func() core.Style {
+			return core.Style{BorderColor: colors.Line()}
+		},
+		Children: []core.Node{
+			core.Text{Content: locales.DashboardStartTitle(cx),
+				Style: core.Style{FontSize: 14, FontWeight: ui.Semibold}},
+			core.Text{Content: locales.DashboardStartSubtitle(cx),
+				Style:     core.Style{FontSize: 14, Margin: core.Edges{Top: 4}},
+				StyleFunc: ui.Colored(colors.Muted)},
+			core.View{Style: core.Style{Gap: 0, Margin: core.Edges{Top: 16}},
+				Children: rows},
+		}}
 }
 
 func dataActiveLabel(cx *core.Scope, active bool) string {
@@ -728,7 +690,7 @@ func (s *Session) onboardingScreen(cx *core.Scope, dataRev *core.Signal[int]) co
 						dataField(cx, locales.OnboardingStepCompanyCountry(cx),
 							ui.Input{Value: country.Get, OnChange: country.Set, TestID: "onboarding-org-country"}, submit)),
 					dataField(cx, locales.OnboardingStepBoundaryTitle(cx),
-						ui.Select[string]{Options: dataBoundaryOptions(cx), Value: boundary.Get, OnChange: boundary.Set,
+						appSelect[string]{Options: dataBoundaryOptions(cx), Value: boundary.Get, OnChange: boundary.Set,
 							Label: locales.OnboardingStepBoundaryTitle(cx), TestID: "onboarding-boundary",
 							Style: core.Style{Width: core.Pct(100)}})),
 				dataFormSection(cx, "02", locales.OnboardingStepSiteTitle(cx),
@@ -817,7 +779,7 @@ func (s *Session) organizationDialog(cx *core.Scope, dataRev *core.Signal[int]) 
 			dataField(cx, locales.OnboardingStepCompanyCountry(cx),
 				ui.Input{Value: country.Get, OnChange: country.Set, TestID: "organization-country"}, save),
 			dataField(cx, locales.OnboardingStepBoundaryTitle(cx),
-				ui.Select[string]{Options: dataBoundaryOptions(cx), Value: boundary.Get, OnChange: boundary.Set,
+				appSelect[string]{Options: dataBoundaryOptions(cx), Value: boundary.Get, OnChange: boundary.Set,
 					Label: locales.OnboardingStepBoundaryTitle(cx), TestID: "organization-boundary",
 					Style: core.Style{Width: core.Pct(100)}}),
 			dataError(cx, status),
@@ -938,20 +900,17 @@ func (s *Session) sourcesScreen(cx *core.Scope, dataRev *core.Signal[int]) core.
 	search := core.NewSignal(cx, "")
 	scope := core.NewSignal(cx, 0)
 	category := core.NewSignal(cx, "")
-	return core.Scroll{
-		Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
-		Children: []core.Node{core.View{
-			Style: core.Style{Padding: core.All(16), Gap: 12, MaxWidth: core.Pt(980), AlignSelf: core.AlignStretch},
-			Children: []core.Node{core.Dynamic(func(cx *core.Scope) core.Node {
-				_ = dataRev.Get()
-				return s.sourcesBody(cx, dataRev, search, scope, category)
-			}), s.efLibraryBody(cx, dataRev)},
-		}},
-	}
+	editDrawer, showEdit := s.sourceEditDrawer(cx, dataRev)
+	body := core.Dynamic(func(cx *core.Scope) core.Node {
+		_ = dataRev.Get()
+		return s.sourcesBody(cx, dataRev, search, scope, category, showEdit)
+	})
+	return appFixedPage(body, editDrawer)
 }
 
 func (s *Session) sourcesBody(cx *core.Scope, dataRev *core.Signal[int],
-	search *core.Signal[string], scope *core.Signal[int], category *core.Signal[string]) core.Node {
+	search *core.Signal[string], scope *core.Signal[int], category *core.Signal[string],
+	showEdit func(string)) core.Node {
 	lang := i18n.Language(cx)
 	categoryKey := func(src store.EmissionSource) string {
 		if src.GHGProtocolPath != "" {
@@ -1038,11 +997,12 @@ func (s *Session) sourcesBody(cx *core.Scope, dataRev *core.Signal[int],
 	for i := range visible {
 		src := visible[i]
 		stats := locales.SourcesStatsUnused(cx)
+		unused := src.ActivityCount == 0
 		if src.ActivityCount > 0 {
 			stats = countPhrase(src.ActivityCount,
 				func() string { return locales.SourcesStatsActivityCountOne(cx, strconv.Itoa(src.ActivityCount)) },
 				func() string { return locales.SourcesStatsActivityCount(cx, strconv.Itoa(src.ActivityCount)) }) + " · " +
-				locales.SourcesStatsTotal(cx, commaFloat(src.TotalCO2eKg))
+				locales.SourcesStatsTotal(cx, co2eWithUnit(src.TotalCO2eKg))
 			if src.LastActivityAt != "" {
 				last := src.LastActivityAt
 				if len(last) >= 10 {
@@ -1052,26 +1012,62 @@ func (s *Session) sourcesBody(cx *core.Scope, dataRev *core.Signal[int],
 			}
 		}
 		categoryLabel := categoryName(categoryKey(src))
-		meta := src.SiteName
-		for _, part := range []string{categoryLabel, stats} {
-			if part != "" {
-				meta += " · " + part
+		pathLabel := ""
+		if src.GHGProtocolPath != "" {
+			if _, standard := categories.ByCode(src.GHGProtocolPath); !standard {
+				stripped := src.GHGProtocolPath
+				if dot := strings.Index(stripped, "."); dot >= 0 {
+					stripped = stripped[dot+1:]
+				}
+				if !strings.EqualFold(strings.ReplaceAll(stripped, " ", "_"),
+					strings.ReplaceAll(src.Category, " ", "_")) {
+					pathLabel = src.GHGProtocolPath
+				}
 			}
 		}
-		nameRow := []core.Node{
-			core.Text{Content: src.Name, Style: core.Style{FontSize: 13, FontWeight: ui.Semibold,
-				FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 1},
-			ui.Badge{Text: dataScopeLabel(cx, src.Scope), Variant: ui.BadgeNeutral},
+		nameLine := []core.Node{
+			core.Text{Content: src.Name, Style: core.Style{FontSize: 16,
+				FontWeight: ui.Medium, FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 1},
 		}
 		if !src.IsActive {
-			nameRow = append(nameRow, ui.Badge{Text: locales.SourcesInactiveChip(cx),
+			nameLine = append(nameLine, ui.Badge{Text: locales.SourcesInactiveChip(cx),
 				Variant: ui.BadgeNeutral})
+		}
+		scopeShort := func(scope int) string {
+			switch scope {
+			case 1:
+				return locales.SourcesCatalogScope1Short(cx)
+			case 2:
+				return locales.SourcesCatalogScope2Short(cx)
+			default:
+				return locales.SourcesCatalogScope3Short(cx)
+			}
+		}
+		mutedMeta := func(text string) core.Node {
+			return core.Text{Content: text, Style: core.Style{FontSize: 12,
+				FlexShrink: 1, MinWidth: core.Pt(0)},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1}
+		}
+		metaLine := []core.Node{
+			ui.Badge{Text: scopeShort(src.Scope), Variant: ui.BadgeNeutral},
+			mutedMeta("·"),
+			mutedMeta(categoryLabel),
+		}
+		if pathLabel != "" {
+			metaLine = append(metaLine, mutedMeta("·"), mutedMeta(pathLabel))
+		}
+		statsStyle := core.FontStyleNormal
+		if unused {
+			statsStyle = core.FontStyleItalic
 		}
 		texts := []core.Node{
 			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 6},
-				Children: nameRow},
-			core.Text{Content: meta,
-				Style:     core.Style{FontSize: 11, FlexShrink: 1, MinWidth: core.Pt(0)},
+				Children: nameLine},
+			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+				Wrap: core.Wrap, Gap: 8}, Children: metaLine},
+			core.Text{Content: stats,
+				Style: core.Style{FontSize: 12, FlexShrink: 1, MinWidth: core.Pt(0),
+					FontStyle: statsStyle},
 				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2},
 		}
 		if preset, ok := presets.ByID(src.TemplateOrigin); ok {
@@ -1079,25 +1075,33 @@ func (s *Session) sourcesBody(cx *core.Scope, dataRev *core.Signal[int],
 			texts = append(texts, core.Text{Content: locales.SourcesFromCatalog(cx, origin),
 				Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint), MaxLines: 1})
 		}
+		id := src.ID
+		active := src.IsActive
 		rows = append(rows, core.View{
-			TestID: "source-row-" + src.ID,
-			Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 10,
-				Padding: core.Symmetric(9, 0), Borders: core.Edges{Bottom: 1}},
-			StyleFunc: func() core.Style { return core.Style{BorderColor: ui.ColorsOf(cx).Line()} },
+			TestID: "source-row-" + id,
+			Role:   core.RoleButton,
+			OnPress: func(core.PressEvent) {
+				showEdit(id)
+			},
+			Style: core.Style{Direction: core.Row, AlignItems: core.AlignStart, Gap: 12,
+				Padding: core.Symmetric(12, 16), Borders: core.Edges{Bottom: 1}},
+			StyleFunc: func() core.Style {
+				colors := ui.ColorsOf(cx)
+				style := core.Style{BorderColor: colors.Line(),
+					Hover:        &core.Style{Background: colors.Hover()},
+					FocusVisible: ui.FocusRing(cx, -2)}
+				if !active {
+					style.Opacity = core.Alpha(0.6)
+				}
+				return style
+			},
 			Children: []core.Node{
-				ui.Icon(lucide.Factory, 15, ui.ColorsOf(cx).Muted),
-				core.View{Style: core.Style{Gap: 2, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
-					Children: texts},
-				s.sourceDialog(cx, &visible[i], dataRev, "source-edit-"+src.ID),
+				core.View{Style: core.Style{Gap: 4, FlexGrow: 1, FlexShrink: 1,
+					MinWidth: core.Pt(0)}, Children: texts},
 			},
 		})
 	}
 
-	n := len(s.sources)
-	heading := core.Text{Content: countPhrase(n,
-		func() string { return locales.DataSourcesCountOne(cx, strconv.Itoa(n)) },
-		func() string { return locales.DataSourcesCount(cx, strconv.Itoa(n)) }),
-		Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}}
 	var actions []core.Node
 	pendingCatalog := s.pendingSourceCatalog
 	s.pendingSourceCatalog = false
@@ -1105,12 +1109,11 @@ func (s *Session) sourcesBody(cx *core.Scope, dataRev *core.Signal[int],
 		actions = append(actions, core.Text{Content: locales.SourcesCatalogNoSite(cx), Style: core.Style{FontSize: 12},
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)})
 	} else {
-		catalog, showCatalog := s.sourceCatalogDialogWithShow(cx, dataRev)
-		if pendingCatalog {
-			s.scope.Post(showCatalog)
+		if len(s.sources) > 0 {
+			catalog, _ := s.sourceCatalogDialogWithShow(cx, dataRev, pendingCatalog)
+			actions = append(actions, catalog)
+			actions = append(actions, s.sourceAddDialog(cx, dataRev, "source-add"))
 		}
-		actions = append(actions, catalog)
-		actions = append(actions, s.sourceDialog(cx, nil, dataRev, "source-add"))
 	}
 
 	scopeLabel := func(value int) string {
@@ -1137,195 +1140,305 @@ func (s *Session) sourcesBody(cx *core.Scope, dataRev *core.Signal[int],
 				}},
 		})
 	}
-	categoryOptions := []ui.Option[string]{
-		{Value: "", Label: locales.SourcesCatalogCategoryAll(cx), TestID: "sources-category-all"},
+	chip := func(value string, label string, count int, testID string) core.Node {
+		selected := func() bool { return category.Get() == value }
+		return core.View{TestID: testID, Role: core.RoleButton,
+			OnPress: func(core.PressEvent) {
+				if selected() && value != "" {
+					category.Set("")
+					return
+				}
+				category.Set(value)
+			},
+			Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 6,
+				Padding: core.Symmetric(2, 10), CornerRadius: 999,
+				BorderWidth: 1, FlexShrink: 0},
+			StyleFunc: func() core.Style {
+				if selected() {
+					return core.Style{Background: selectionTint(cx),
+						BorderColor: ui.Alpha(ui.ColorsOf(cx).Text(), 0.30)}
+				}
+				return core.Style{Background: ui.ColorsOf(cx).Background(),
+					BorderColor: ui.ColorsOf(cx).Border()}
+			},
+			Children: []core.Node{
+				core.Text{Content: label, Style: core.Style{FontSize: 12}, MaxLines: 1},
+				core.Text{Content: strconv.Itoa(count), Style: core.Style{FontSize: 11},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+			}}
 	}
+	chips := []core.Node{chip("", locales.SourcesCatalogCategoryAll(cx), len(scoped),
+		"sources-category-all")}
 	for _, key := range categoryOrder {
-		categoryOptions = append(categoryOptions, ui.Option[string]{
-			Value: key, Label: categoryLabels[key] + " (" + strconv.Itoa(categoryCounts[key]) + ")",
-			TestID: "sources-category-" + key,
-		})
+		chips = append(chips, chip(key, categoryLabels[key], categoryCounts[key],
+			"sources-category-"+key))
 	}
 
-	filterNode := core.View{Style: core.Style{Gap: 8}, Children: []core.Node{
-		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Wrap: core.Wrap, Gap: 8},
-			Children: []core.Node{
-				core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(180)},
-					Children: []core.Node{
-						ui.Input{Value: search.Get, Placeholder: locales.SourcesSearchPlaceholder(cx),
-							OnChange: search.Set, TestID: "sources-search", Role: core.RoleSearchField,
-							LabelFunc: func() string { return locales.SourcesSearchPlaceholder(cx) }},
-					}},
-				ui.Select[string]{Options: categoryOptions, Value: category.Get, OnChange: category.Set,
-					Label: locales.SourcesFormCategory(cx), TestID: "sources-category-filter", Searchable: true,
-					SearchPlaceholder: locales.SourcesFormCategorySearch(cx),
-					Empty:             locales.SourcesFormCategoryEmpty(cx),
-					Style:             core.Style{Width: core.Pt(220)}},
-				core.Show{When: filtersActive, Then: func(*core.Scope) core.Node {
-					return ui.Button{Text: locales.SourcesFilterClear(cx), Variant: ui.ButtonGhost,
-						OnPress: clearFilters, TestID: "sources-filter-clear"}
-				}},
-			}},
-		ui.Tabs[int]{Options: scopeOptions, Value: scope.Get, Size: ui.SizeSmall,
-			Label: locales.SourcesFormScope(cx), OnChange: func(value int) {
-				category.Set("")
-				scope.Set(value)
-			}, TestID: "sources-scope-filter"},
+	filterNode := core.View{Style: core.Style{Gap: 12}, Children: []core.Node{
+		searchField(cx, search.Get, locales.SourcesSearchPlaceholder(cx), search.Set,
+			"sources-search"),
+		segmentedControl(cx, func() []segment {
+			segments := make([]segment, 0, len(scopeOptions))
+			for _, option := range scopeOptions {
+				option := option
+				segments = append(segments, segment{Value: option.Value,
+					Label:  func(cx *core.Scope) string { return option.Label },
+					Count:  func() int { return scopeCounts[option.Value] },
+					TestID: option.TestID})
+			}
+			return segments
+		}(), scope.Get, func(value int) {
+			category.Set("")
+			scope.Set(value)
+		}, true),
+		core.View{Style: core.Style{Direction: core.Row, Wrap: core.Wrap, Gap: 6},
+			Children: chips},
+		core.Show{When: filtersActive, Then: func(*core.Scope) core.Node {
+			return ui.Button{Text: locales.SourcesFilterClear(cx), Variant: ui.ButtonGhost,
+				OnPress: clearFilters, TestID: "sources-filter-clear"}
+		}},
 	}}
 
-	children := []core.Node{
-		dataHeaderRow(cx, heading, actions...),
+	if len(s.sources) == 0 {
+		catalog, _ := s.sourceCatalogDialogWithShow(cx, dataRev, pendingCatalog)
+		add := s.sourceAddDialog(cx, dataRev, "source-add")
+		empty := core.View{
+			Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0),
+				BorderWidth: 1, BorderStyle: core.BorderDashed, CornerRadius: 8,
+				Padding: core.All(32), Gap: 12,
+				AlignItems: core.AlignCenter, JustifyContent: core.JustifyCenter},
+			StyleFunc: func() core.Style {
+				return core.Style{BorderColor: ui.ColorsOf(cx).Border()}
+			},
+			Children: []core.Node{
+				ui.Icon(lucide.SlidersHorizontal, 44, ui.ColorsOf(cx).Faint),
+				core.Text{Content: locales.SourcesEmptyTitle(cx),
+					Style: core.Style{FontSize: 15, FontWeight: ui.Semibold}},
+				core.Text{Content: locales.SourcesEmptyBody(cx),
+					Style: core.Style{FontSize: 13, MaxWidth: core.Pt(520),
+						TextAlign: core.TextAlignCenter},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
+				core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+					Gap: 8}, Children: []core.Node{catalog, add}},
+			},
+		}
+		return appFixedPage(pageHeading(cx, locales.NavSources), empty)
 	}
-	switch {
-	case len(s.sources) == 0:
-		children = append(children, dataEmptyState(cx, locales.SourcesEmptyTitle(cx),
-			locales.SourcesEmptyBody(cx)))
-	case len(visible) == 0:
-		children = append(children, filterNode, core.View{Style: core.Style{Padding: core.All(24), Gap: 8,
-			AlignItems: core.AlignCenter}, Children: []core.Node{
-			core.Text{Content: locales.SourcesFilterEmpty(cx), Style: core.Style{FontSize: 13},
-				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2},
-			ui.Button{Text: locales.SourcesFilterClear(cx), Variant: ui.ButtonGhost,
-				OnPress: clearFilters, TestID: "sources-filter-empty-clear"},
-		}})
-	default:
-		children = append(children, filterNode, core.View{Style: core.Style{Gap: 0}, Children: rows})
+	list := core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0),
+		CornerRadius: 8, BorderWidth: 1, Overflow: core.Hidden},
+		StyleFunc: func() core.Style {
+			return core.Style{Background: ui.ColorsOf(cx).Surface(),
+				BorderColor: ui.ColorsOf(cx).Border()}
+		},
+		Children: []core.Node{core.Scroll{
+			Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
+			Children: func() []core.Node {
+				if len(visible) == 0 {
+					return []core.Node{core.View{Style: core.Style{Padding: core.All(24), Gap: 8,
+						AlignItems: core.AlignCenter}, Children: []core.Node{
+						core.Text{Content: locales.SourcesFilterEmpty(cx), Style: core.Style{FontSize: 13},
+							StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2},
+						ui.Button{Text: locales.SourcesFilterClear(cx), Variant: ui.ButtonGhost,
+							OnPress: clearFilters, TestID: "sources-filter-empty-clear"},
+					}}}
+				}
+				return rows
+			}(),
+		}},
 	}
-	return dataCard(cx, children...)
+	return appFixedPage(pageHeading(cx, locales.NavSources, actions...), filterNode, list)
 }
 
-// sourceDialog returns an add/edit trigger and its dialog. A nil src creates a
-// source; a non-nil src edits it in place.
-func (s *Session) sourceDialog(cx *core.Scope, src *store.EmissionSource, dataRev *core.Signal[int], testID string) core.Node {
-	open := core.NewSignal(cx, false)
-	name := core.NewSignal(cx, "")
-	siteID := core.NewSignal(cx, "")
-	scope := core.NewSignal(cx, 1)
-	categoryCode := core.NewSignal(cx, "")
-	customCategory := core.NewSignal(cx, false)
-	category := core.NewSignal(cx, "")
-	path := core.NewSignal(cx, "")
-	active := core.NewSignal(cx, true)
-	status := core.NewSignal(cx, "")
-	busy := core.NewSignal(cx, false)
-	editingID := core.NewSignal(cx, "")
-	show := func() {
-		editingID.Set("")
-		name.Set("")
-		scope.Set(1)
-		categoryCode.Set("")
-		customCategory.Set(false)
-		category.Set("")
-		path.Set("")
-		active.Set(true)
-		if len(s.sites) > 0 {
-			siteID.Set(s.sites[0].ID)
-		} else {
-			siteID.Set("")
-		}
-		if src != nil {
-			editingID.Set(src.ID)
-			name.Set(src.Name)
-			siteID.Set(src.SiteID)
-			scope.Set(src.Scope)
-			category.Set(src.Category)
-			path.Set(src.GHGProtocolPath)
-			if _, ok := categories.ByCode(src.GHGProtocolPath); ok {
-				categoryCode.Set(src.GHGProtocolPath)
-			} else if src.GHGProtocolPath != "" || src.Category != "" {
-				customCategory.Set(true)
-			}
-			active.Set(src.IsActive)
-		}
-		status.Set("")
-		open.Set(true)
+// sourceForm holds the add/edit source draft. One instance backs the add
+// drawer; one backs the single edit drawer that every row opens, as 1.x did.
+type sourceForm struct {
+	open           *core.Signal[bool]
+	name           *core.Signal[string]
+	siteID         *core.Signal[string]
+	scope          *core.Signal[int]
+	categoryCode   *core.Signal[string]
+	customCategory *core.Signal[bool]
+	category       *core.Signal[string]
+	path           *core.Signal[string]
+	active         *core.Signal[bool]
+	status         *core.Signal[string]
+	busy           *core.Signal[bool]
+	editingID      *core.Signal[string]
+}
+
+func newSourceForm(cx *core.Scope) *sourceForm {
+	return &sourceForm{
+		open:           core.NewSignal(cx, false),
+		name:           core.NewSignal(cx, ""),
+		siteID:         core.NewSignal(cx, ""),
+		scope:          core.NewSignal(cx, 1),
+		categoryCode:   core.NewSignal(cx, ""),
+		customCategory: core.NewSignal(cx, false),
+		category:       core.NewSignal(cx, ""),
+		path:           core.NewSignal(cx, ""),
+		active:         core.NewSignal(cx, true),
+		status:         core.NewSignal(cx, ""),
+		busy:           core.NewSignal(cx, false),
+		editingID:      core.NewSignal(cx, ""),
 	}
-	save := func() {
-		if busy.Get() {
-			return
-		}
-		if siteID.Get() == "" {
-			status.Set(locales.SourcesCatalogNoSite(cx))
-			return
-		}
-		sourceCategory, sourcePath := sourceCategoryValues(categoryCode, category, path, customCategory)
-		busy.Set(true)
-		var err error
-		if editingID.Get() == "" {
-			var created *store.EmissionSource
-			created, err = s.db.CreateSource(context.Background(), store.SourceInput{
-				SiteID: siteID.Get(), Name: name.Get(), Scope: scope.Get(), Category: sourceCategory,
-				GHGProtocolPath: sourcePath,
-			})
-			if err == nil {
-				s.recordSourceCreate(created, dataRev)
-			}
-		} else {
-			before := store.EmissionSource{}
-			if src != nil {
-				before = *src
-			}
-			err = s.db.UpdateSource(context.Background(), editingID.Get(), store.SourcePatch{
-				Name: name.Get(), Scope: scope.Get(), Category: sourceCategory,
-				GHGProtocolPath: sourcePath, IsActive: active.Get(),
-			})
-			if err == nil {
-				after := before
-				after.Name = name.Get()
-				after.Scope = scope.Get()
-				after.Category = sourceCategory
-				after.GHGProtocolPath = sourcePath
-				after.IsActive = active.Get()
-				s.recordSourceUpdate(before, after, dataRev)
-			}
-		}
-		busy.Set(false)
-		if err != nil {
-			status.Set(err.Error())
-			return
-		}
-		open.Set(false)
-		_ = dataRefresh(s, dataRev)
+}
+
+func (f *sourceForm) reset(s *Session, src *store.EmissionSource) {
+	f.editingID.Set("")
+	f.name.Set("")
+	f.scope.Set(1)
+	f.categoryCode.Set("")
+	f.customCategory.Set(false)
+	f.category.Set("")
+	f.path.Set("")
+	f.active.Set(true)
+	f.siteID.Set("")
+	if len(s.sites) > 0 {
+		f.siteID.Set(s.sites[0].ID)
 	}
+	if src != nil {
+		f.editingID.Set(src.ID)
+		f.name.Set(src.Name)
+		f.siteID.Set(src.SiteID)
+		f.scope.Set(src.Scope)
+		f.category.Set(src.Category)
+		f.path.Set(src.GHGProtocolPath)
+		if _, ok := categories.ByCode(src.GHGProtocolPath); ok {
+			f.categoryCode.Set(src.GHGProtocolPath)
+		} else if src.GHGProtocolPath != "" || src.Category != "" {
+			f.customCategory.Set(true)
+		}
+		f.active.Set(src.IsActive)
+	}
+	f.status.Set("")
+}
+
+func (f *sourceForm) showNew(s *Session) {
+	f.reset(s, nil)
+	f.open.Set(true)
+}
+
+func (f *sourceForm) showEdit(s *Session, id string) {
+	src := s.sourceByID(id)
+	if src == nil {
+		return
+	}
+	f.reset(s, src)
+	f.open.Set(true)
+}
+
+func (f *sourceForm) save(cx *core.Scope, s *Session, dataRev *core.Signal[int]) {
+	if f.busy.Get() {
+		return
+	}
+	if f.siteID.Get() == "" {
+		f.status.Set(locales.SourcesCatalogNoSite(cx))
+		return
+	}
+	sourceCategory, sourcePath := sourceCategoryValues(f.categoryCode, f.category, f.path,
+		f.customCategory)
+	f.busy.Set(true)
+	var err error
+	if f.editingID.Get() == "" {
+		var created *store.EmissionSource
+		created, err = s.db.CreateSource(context.Background(), store.SourceInput{
+			SiteID: f.siteID.Get(), Name: f.name.Get(), Scope: f.scope.Get(),
+			Category: sourceCategory, GHGProtocolPath: sourcePath,
+		})
+		if err == nil {
+			s.recordSourceCreate(created, dataRev)
+		}
+	} else {
+		before := store.EmissionSource{}
+		if current := s.sourceByID(f.editingID.Get()); current != nil {
+			before = *current
+		}
+		err = s.db.UpdateSource(context.Background(), f.editingID.Get(), store.SourcePatch{
+			Name: f.name.Get(), Scope: f.scope.Get(), Category: sourceCategory,
+			GHGProtocolPath: sourcePath, IsActive: f.active.Get(),
+		})
+		if err == nil {
+			after := before
+			after.Name = f.name.Get()
+			after.Scope = f.scope.Get()
+			after.Category = sourceCategory
+			after.GHGProtocolPath = sourcePath
+			after.IsActive = f.active.Get()
+			s.recordSourceUpdate(before, after, dataRev)
+		}
+	}
+	f.busy.Set(false)
+	if err != nil {
+		f.status.Set(err.Error())
+		return
+	}
+	f.open.Set(false)
+	_ = dataRefresh(s, dataRev)
+}
+
+func (f *sourceForm) body(cx *core.Scope, s *Session, testID string,
+	save func()) []core.Node {
 	siteOptions := make([]ui.Option[string], 0, len(s.sites))
 	for _, site := range s.sites {
 		siteOptions = append(siteOptions, ui.Option[string]{Value: site.ID, Label: dataSiteName(site)})
 	}
-	label := locales.DataAddSource
-	title := locales.DataNewSource
-	if src != nil {
-		label = locales.DataEditSource
-		title = locales.DataEditSource
+	return []core.Node{
+		dataField(cx, locales.SourcesFormName(cx),
+			ui.Input{Value: f.name.Get, OnChange: f.name.Set, TestID: testID + "-name"}, save),
+		dataField(cx, locales.SourcesFormSite(cx),
+			appSelect[string]{Options: siteOptions, Value: f.siteID.Get, OnChange: f.siteID.Set,
+				Label: locales.SourcesFormSite(cx), TestID: testID + "-site",
+				Style: core.Style{Width: core.Pct(100)}}),
+		dataField(cx, locales.SourcesFormScope(cx),
+			appSelect[int]{Options: dataScopeOptions(cx), Value: f.scope.Get,
+				OnChange: f.scope.Set, Label: locales.SourcesFormScope(cx),
+				TestID: testID + "-scope", Style: core.Style{Width: core.Pct(100)}}),
+		sourceCategoryFields(cx, testID, f.scope, f.categoryCode, f.category, f.path,
+			f.customCategory),
+		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+			Gap: 8}, Children: []core.Node{
+			ui.Switch{Checked: f.active.Get, OnChange: f.active.Set,
+				Label: locales.SourceEditActiveLabel(cx), TestID: testID + "-active"},
+			core.Text{Content: locales.SourceEditActiveLabel(cx),
+				Style: core.Style{FontSize: 13}},
+		}},
+		dataError(cx, f.status),
 	}
-	variant := ui.ButtonSecondary
-	if src == nil {
-		variant = ui.ButtonPrimary
+}
+
+func (f *sourceForm) footer(cx *core.Scope, testID string, save func()) []core.Node {
+	return []core.Node{
+		dataCancelButton(cx, f.open, testID+"-cancel"),
+		ui.Button{Text: locales.DataSave(cx), Busy: f.busy.Get, OnPress: save,
+			TestID: testID + "-save"},
 	}
+}
+
+// sourceAddDialog pairs the header's Add source trigger with 1.x's 480 pt
+// right-side drawer.
+func (s *Session) sourceAddDialog(cx *core.Scope, dataRev *core.Signal[int],
+	testID string) core.Node {
+	form := newSourceForm(cx)
+	save := func() { form.save(cx, s, dataRev) }
 	return core.View{Children: []core.Node{
-		ui.Button{Text: label(cx), Variant: variant, OnPress: show, TestID: testID},
-		dataDialog(cx, open, title(cx), []core.Node{
-			dataField(cx, locales.SourcesFormName(cx),
-				ui.Input{Value: name.Get, OnChange: name.Set, TestID: testID + "-name"}, save),
-			dataField(cx, locales.SourcesFormSite(cx),
-				ui.Select[string]{Options: siteOptions, Value: siteID.Get, OnChange: siteID.Set,
-					Label: locales.SourcesFormSite(cx), TestID: testID + "-site",
-					Style: core.Style{Width: core.Pct(100)}}),
-			dataField(cx, locales.SourcesFormScope(cx),
-				ui.Select[int]{Options: dataScopeOptions(cx), Value: scope.Get, OnChange: scope.Set,
-					Label: locales.SourcesFormScope(cx), TestID: testID + "-scope",
-					Style: core.Style{Width: core.Pct(100)}}),
-			sourceCategoryFields(cx, testID, scope, categoryCode, category, path, customCategory),
-			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8}, Children: []core.Node{
-				ui.Switch{Checked: active.Get, OnChange: active.Set, Label: locales.SourceEditActiveLabel(cx),
-					TestID: testID + "-active"},
-				core.Text{Content: locales.SourceEditActiveLabel(cx), Style: core.Style{FontSize: 13}},
-			}},
-			dataError(cx, status),
-		}, []core.Node{
-			dataCancelButton(cx, open, testID+"-cancel"),
-			ui.Button{Text: locales.DataSave(cx), Busy: busy.Get, OnPress: save, TestID: testID + "-save"},
-		}, testID+"-dialog", save),
+		ui.Button{Text: locales.DataAddSource(cx), Variant: ui.ButtonPrimary,
+			OnPress: func() { form.showNew(s) }, TestID: testID},
+		sideDrawer(cx, form.open, locales.DataNewSource(cx), 480,
+			form.body(cx, s, testID, save), form.footer(cx, testID, save),
+			testID+"-dialog", locales.DataCancel(cx)),
 	}}
+}
+
+// sourceEditDrawer is the one 420 pt editor every /sources row opens.
+func (s *Session) sourceEditDrawer(cx *core.Scope,
+	dataRev *core.Signal[int]) (core.Node, func(string)) {
+	form := newSourceForm(cx)
+	save := func() { form.save(cx, s, dataRev) }
+	return sideDrawer(cx, form.open, locales.DataEditSource(cx), 420,
+			form.body(cx, s, "source-edit", save), form.footer(cx, "source-edit", save),
+			"source-edit-dialog", locales.DataCancel(cx)), func(id string) {
+			form.showEdit(s, id)
+		}
 }
 
 // activityDialog returns the activity form trigger and dialog. It loads EF
@@ -1356,18 +1469,14 @@ func (s *Session) editActivityDialog(cx *core.Scope, selectedID *core.Signal[str
 	return node
 }
 
-// editableActivityDialog also returns the form's open function, so a list row
-// can select itself and open the same editor without duplicating the dialog.
+// editableActivityDialog also returns the form's open function, so the list's
+// selection actions can open the same editor without duplicating the dialog.
 func (s *Session) editableActivityDialog(cx *core.Scope, selectedID *core.Signal[string],
 	dataRev *core.Signal[int]) (core.Node, func()) {
 	form := s.newActivityForm(cx, dataRev, func() *store.Activity {
 		return s.activityByID(selectedID.Get())
 	}, nil, locales.DataEditActivity, locales.DataSave, "activity-edit", nil, false)
-	return core.View{Children: []core.Node{
-		ui.Button{Text: locales.DataEditActivity(cx), Variant: ui.ButtonSecondary, OnPress: form.show,
-			Disabled: func() bool { return selectedID.Get() == "" }, TestID: "activity-edit"},
-		form.dialog,
-	}}, form.show
+	return form.dialog, form.show
 }
 
 // activityPrefill is a one-shot seed for a new activity, used when confirming
@@ -1829,6 +1938,7 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 		dropFailed := core.NewSignal(cx, false)
 		dropBusy := core.NewSignal(cx, false)
 		dropHover := core.NewSignal(cx, false)
+		dropDone := core.NewSignal(cx, "")
 		runFile := func(file core.File) {
 			if dropBusy.Get() {
 				return
@@ -1845,6 +1955,7 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 				return
 			}
 			dropBusy.Set(true)
+			dropDone.Set("")
 			dropFailed.Set(false)
 			dropStatus.Set(locales.ActivitiesDropWorking(cx))
 			go func() {
@@ -1874,7 +1985,8 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 					dropped = seed
 					applySeed(seed)
 					dropFailed.Set(false)
-					dropStatus.Set(locales.ActivitiesDropDone(cx, document.Filename))
+					dropStatus.Set("")
+					dropDone.Set(document.Filename)
 				})
 			}()
 		}
@@ -1895,32 +2007,8 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 				runFile(files[0])
 			})
 		}
-		dropzone = core.View{
-			TestID: "activity-dropzone",
-			OnFileDrop: func(uris []string) {
-				if len(uris) == 0 {
-					return
-				}
-				file, err := core.FileFromURL(uris[0])
-				if err != nil {
-					dropFailed.Set(true)
-					dropStatus.Set(err.Error())
-					return
-				}
-				runFile(file)
-			},
-			OnFileDragEnter: func() { dropHover.Set(true) },
-			OnFileDragLeave: func() { dropHover.Set(false) },
-			Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 10,
-				Padding: core.All(12), CornerRadius: 8, BorderWidth: 1, BorderStyle: core.BorderDashed},
-			StyleFunc: func() core.Style {
-				colors := ui.ColorsOf(cx)
-				style := core.Style{Background: colors.Inset(), BorderColor: colors.Border()}
-				if dropHover.Get() {
-					style.BorderColor = colors.Accent()
-				}
-				return style
-			},
+		idle := core.View{
+			Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 10},
 			Children: []core.Node{
 				ui.Icon(lucide.CloudUpload, 16, ui.ColorsOf(cx).Muted),
 				core.View{Style: core.Style{Gap: 2, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
@@ -1943,10 +2031,66 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 					Style: core.Style{FlexShrink: 0}},
 			},
 		}
+		done := core.View{
+			Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8},
+			Children: []core.Node{
+				ui.Icon(lucide.FileText, 16, ui.ColorsOf(cx).Accent),
+				core.Text{ContentFunc: func() string { return dropDone.Get() },
+					Style: core.Style{FontSize: 13, FlexGrow: 1, FlexShrink: 1,
+						MinWidth: core.Pt(0)}, MaxLines: 1},
+				core.Text{ContentFunc: func() string { return "· " + locales.ActivityDocRecognized(cx) },
+					Style:     core.Style{FontSize: 11, FlexShrink: 0},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Accent)},
+				ui.Button{Text: locales.ActivityDocReupload(cx), Icon: lucide.RotateCcw,
+					Variant: ui.ButtonGhost, Size: ui.SizeSmall, TestID: "activity-drop-reset",
+					OnPress: func() { dropDone.Set("") }, Style: core.Style{FlexShrink: 0}},
+			},
+		}
+		dropzone = core.View{
+			TestID: "activity-dropzone",
+			OnFileDrop: func(uris []string) {
+				if len(uris) == 0 {
+					return
+				}
+				file, err := core.FileFromURL(uris[0])
+				if err != nil {
+					dropFailed.Set(true)
+					dropStatus.Set(err.Error())
+					return
+				}
+				runFile(file)
+			},
+			OnFileDragEnter: func() { dropHover.Set(true) },
+			OnFileDragLeave: func() { dropHover.Set(false) },
+			Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 10,
+				CornerRadius: 8, BorderWidth: 1},
+			StyleFunc: func() core.Style {
+				colors := ui.ColorsOf(cx)
+				if dropDone.Get() != "" {
+					return core.Style{Padding: core.Symmetric(8, 12),
+						Background:  ui.Alpha(colors.Accent(), 0.05),
+						BorderColor: ui.Alpha(colors.Accent(), 0.30)}
+				}
+				style := core.Style{Padding: core.All(12), BorderStyle: core.BorderDashed,
+					Background: colors.Inset(), BorderColor: colors.Border()}
+				if dropHover.Get() {
+					style.BorderColor = colors.Accent()
+				}
+				return style
+			},
+			Children: []core.Node{
+				core.Dynamic(func(cx *core.Scope) core.Node {
+					if dropDone.Get() != "" {
+						return done
+					}
+					return idle
+				}),
+			},
+		}
 	}
 
 	form := &activityForm{open: open, show: show, applySeed: applySeed}
-	form.dialog = dataDialog(cx, open, title(cx), []core.Node{
+	body := []core.Node{
 		dropzone,
 		dataField(cx, locales.ActivitiesFormSource(cx),
 			wideSelect{Options: sourceWideOptions, Value: sourceID.Get,
@@ -2028,10 +2172,13 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 		core.Text{Content: locales.ActivitiesFormFuelHint(cx), Style: core.Style{FontSize: 11},
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 		dataError(cx, status),
-	}, []core.Node{
+	}
+	footer := []core.Node{
 		dataCancelButton(cx, open, prefix+"-cancel"),
 		ui.Button{Text: saveLabel(cx), Busy: busy.Get, OnPress: save, TestID: prefix + "-save"},
-	}, prefix+"-dialog", save)
+	}
+	form.dialog = sideDrawer(cx, open, title(cx), 720, body, footer,
+		prefix+"-dialog", locales.DataCancel(cx))
 	return form
 }
 
@@ -2182,25 +2329,21 @@ func (s *Session) auditScreen(cx *core.Scope, dataRev *core.Signal[int],
 	limit := core.NewSignal(cx, 100)
 	status := core.NewSignal(cx, "")
 	oldestFirst := core.NewSignal(cx, false)
+	selected := core.NewSignal(cx, "")
 	rawRev := core.NewSignal(cx, 0)
 	rawOpen := map[string]bool{}
-	return core.Scroll{
-		Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
-		Children: []core.Node{core.View{
-			Style: core.Style{Padding: core.All(16), Gap: 12, MaxWidth: core.Pt(980), AlignSelf: core.AlignStretch},
-			Children: []core.Node{core.Dynamic(func(cx *core.Scope) core.Node {
-				_ = dataRev.Get()
-				_ = rawRev.Get()
-				return s.auditBody(cx, kind, since, until, limit, status, oldestFirst,
-					rawOpen, rawRev, openActivity)
-			})},
-		}},
-	}
+	return core.Dynamic(func(cx *core.Scope) core.Node {
+		_ = dataRev.Get()
+		_ = rawRev.Get()
+		return s.auditBody(cx, kind, since, until, limit, status, oldestFirst,
+			selected, rawOpen, rawRev, openActivity)
+	})
 }
 
 func (s *Session) auditBody(cx *core.Scope, kind *core.Signal[string], since *core.Signal[string],
 	until *core.Signal[string], limit *core.Signal[int], status *core.Signal[string],
-	oldestFirst *core.Signal[bool], rawOpen map[string]bool, rawRev *core.Signal[int],
+	oldestFirst *core.Signal[bool], selected *core.Signal[string],
+	rawOpen map[string]bool, rawRev *core.Signal[int],
 	openActivity func(string)) core.Node {
 	page := limit.Get()
 	datesOK := auditDatesOK(since.Get(), until.Get())
@@ -2222,22 +2365,37 @@ func (s *Session) auditBody(cx *core.Scope, kind *core.Signal[string], since *co
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)})
 	}
 	for _, event := range events {
-		children := []core.Node{s.auditEventBody(cx, event, rawOpen, rawRev, openActivity)}
+		event := event
+		isSelected := func() bool { return selected.Get() == event.ID }
 		rows = append(rows, core.View{
-			Style: core.Style{Gap: 4, Padding: core.Symmetric(9, 0),
+			TestID: "audit-row-" + event.ID,
+			Role:   core.RoleButton,
+			OnPress: func(core.PressEvent) {
+				selected.Set(event.ID)
+			},
+			Style: core.Style{Gap: 2, Padding: core.Symmetric(10, 16),
 				Borders: core.Edges{Bottom: 1}},
-			StyleFunc: func() core.Style { return core.Style{BorderColor: ui.ColorsOf(cx).Line()} },
-			Children:  children,
+			StyleFunc: func() core.Style {
+				style := core.Style{BorderColor: ui.ColorsOf(cx).Line()}
+				if isSelected() {
+					style.Background = selectionTint(cx)
+				}
+				return style
+			},
+			Children: []core.Node{
+				core.Text{Content: dataAuditKind(cx, event.Kind),
+					Style: core.Style{FontSize: 14, FontWeight: ui.Semibold}, MaxLines: 1},
+				core.Text{Content: event.OccurredAt, Style: core.Style{FontSize: 12},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+			},
 		})
 	}
 	if len(events) == 0 && err == nil && datesOK {
 		rows = append(rows, dataEmptyState(cx, locales.AuditEmptyStateHeading(cx),
 			locales.AuditEmptyStateBody(cx)))
 	}
-	kindOptions := []ui.Option[string]{{Value: "", Label: locales.AuditFilterAllKinds(cx)}}
-	for _, value := range []string{"activity_data.created", "activity_data.updated",
-		"activity_rebind_ef", "activity_data.deleted", "evidence.attached", "evidence.removed"} {
-		kindOptions = append(kindOptions, ui.Option[string]{Value: value, Label: dataAuditKind(cx, value)})
+	if selected.Get() == "" && len(events) > 0 {
+		selected.Set(events[0].ID)
 	}
 	resetFilters := func() {
 		kind.Set("")
@@ -2275,57 +2433,120 @@ func (s *Session) auditBody(cx *core.Scope, kind *core.Signal[string], since *co
 				}
 			})
 	}
-	filters := core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignEnd, Gap: 8,
-		Wrap: core.Wrap}, Children: []core.Node{
-		core.View{Style: core.Style{Width: core.Pt(200)}, Children: []core.Node{
-			dataField(cx, locales.AuditFilterEventKindLabel(cx),
-				ui.Select[string]{Options: kindOptions, Value: kind.Get,
-					OnChange: func(v string) { kind.Set(v); limit.Set(100) },
-					Label:    locales.AuditFilterEventKindLabel(cx), TestID: "audit-kind"}),
-		}},
-		core.View{Style: core.Style{Width: core.Pt(130)}, Children: []core.Node{
-			dataField(cx, locales.AuditFilterSinceLabel(cx),
-				ui.Input{Value: since.Get, OnChange: func(v string) { since.Set(v); limit.Set(100) },
-					Placeholder: "YYYY-MM-DD", TestID: "audit-since"}),
-		}},
-		core.View{Style: core.Style{Width: core.Pt(130)}, Children: []core.Node{
-			dataField(cx, locales.AuditFilterUntilLabel(cx),
-				ui.Input{Value: until.Get, OnChange: func(v string) { until.Set(v); limit.Set(100) },
-					Placeholder: "YYYY-MM-DD", TestID: "audit-until"}),
-		}},
-		core.Show{When: func() bool { return !oldestFirst.Get() },
-			Then: func(cx *core.Scope) core.Node {
-				return ui.Button{Text: locales.AuditSortRecent(cx), Variant: ui.ButtonSecondary,
-					OnPress: func() { oldestFirst.Set(true) }, TestID: "audit-sort"}
-			},
-			Else: func(cx *core.Scope) core.Node {
-				return ui.Button{Text: locales.AuditSortOldest(cx), Variant: ui.ButtonSecondary,
-					OnPress: func() { oldestFirst.Set(false) }, TestID: "audit-sort"}
-			}},
-		ui.Button{Text: locales.AuditFilterResetButton(cx), Variant: ui.ButtonSecondary,
-			OnPress: resetFilters, TestID: "audit-reset"},
-		ui.Button{Text: locales.AuditExportCsvButton(cx), Variant: ui.ButtonSecondary,
-			OnPress: export, TestID: "audit-export"},
-	}}
-	children := []core.Node{
-		filters,
+	sortOptions := []ui.Option[bool]{
+		{Value: false, Label: locales.AuditSortRecent(cx)},
+		{Value: true, Label: locales.AuditSortOldest(cx)},
 	}
+	dateField := func(label string, value *core.Signal[string], testID string) core.Node {
+		return core.View{Style: core.Style{FlexGrow: 1, FlexBasis: core.Pt(0),
+			MinWidth: core.Pt(0), Gap: 4}, Children: []core.Node{
+			core.Text{Content: label, Style: core.Style{FontSize: 12, FontWeight: ui.Medium}},
+			ui.Input{Value: value.Get, OnChange: func(v string) { value.Set(v); limit.Set(100) },
+				Placeholder: "YYYY-MM-DD", TestID: testID,
+				Style: core.Style{Height: core.Pt(28),
+					Padding: core.Symmetric(0, 8)}},
+		}}
+	}
+	rebindActive := func() bool { return kind.Get() == "activity_rebind_ef" }
+	rebindChip := core.View{
+		TestID: "audit-kind", Role: core.RoleButton,
+		OnPress: func(core.PressEvent) {
+			if rebindActive() {
+				kind.Set("")
+			} else {
+				kind.Set("activity_rebind_ef")
+			}
+			limit.Set(100)
+		},
+		Style: core.Style{Padding: core.Symmetric(2, 10), CornerRadius: 999,
+			BorderWidth: 1, AlignSelf: core.AlignStart},
+		StyleFunc: func() core.Style {
+			if rebindActive() {
+				return core.Style{Background: ui.Alpha(ui.ColorsOf(cx).Accent(), 0.15),
+					BorderColor: ui.Alpha(ui.ColorsOf(cx).Accent(), 0.4)}
+			}
+			return core.Style{Background: ui.ColorsOf(cx).Background(),
+				BorderColor: ui.ColorsOf(cx).Border()}
+		},
+		Children: []core.Node{core.Text{Content: dataAuditKind(cx, "activity_rebind_ef"),
+			Style: core.Style{FontSize: 12, FontWeight: ui.Medium},
+			StyleFunc: func() core.Style {
+				if rebindActive() {
+					return core.Style{Color: ui.ColorsOf(cx).Accent()}
+				}
+				return core.Style{}
+			}}},
+	}
+	filters := core.View{Style: core.Style{Gap: 10}, Children: []core.Node{
+		core.View{Style: core.Style{Gap: 6}, Children: []core.Node{
+			core.Text{Content: locales.AuditFilterEventKindLabel(cx),
+				Style: core.Style{FontSize: 12, FontWeight: ui.Medium}},
+			rebindChip,
+		}},
+		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignEnd,
+			Gap: 8}, Children: []core.Node{
+			dateField(locales.AuditFilterSinceLabel(cx), since, "audit-since"),
+			dateField(locales.AuditFilterUntilLabel(cx), until, "audit-until"),
+		}},
+		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 12},
+			Children: []core.Node{
+				sortMenu(cx, sortOptions, oldestFirst.Get, oldestFirst.Set, "audit-sort"),
+				core.View{Style: core.Style{FlexGrow: 1}},
+				ui.Button{Text: locales.AuditExportCsvButton(cx), Icon: lucide.Download,
+					Variant: ui.ButtonGhost, Size: ui.SizeSmall, OnPress: export,
+					TestID: "audit-export"},
+				ui.Button{Text: locales.AuditFilterResetButton(cx), Variant: ui.ButtonGhost,
+					Size: ui.SizeSmall, OnPress: resetFilters, TestID: "audit-reset"},
+			}},
+	}}
+	left := []core.Node{filters}
 	if !datesOK {
-		children = append(children, core.Text{Content: locales.AuditFilterInvalidDate(cx),
+		left = append(left, core.Text{Content: locales.AuditFilterInvalidDate(cx),
 			Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)})
 	} else if status.Get() != "" {
-		children = append(children, core.Text{Content: status.Get(), Style: core.Style{FontSize: 12},
+		left = append(left, core.Text{Content: status.Get(), Style: core.Style{FontSize: 12},
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
 	}
-	children = append(children, core.View{Style: core.Style{Gap: 0}, Children: rows})
+	left = append(left, core.View{Style: core.Style{Gap: 0}, Children: rows})
 	if datesOK && len(events) == page && page < 10_000 {
-		children = append(children, ui.Button{Text: locales.AuditLoadOlderButton(cx),
+		left = append(left, ui.Button{Text: locales.AuditLoadOlderButton(cx),
 			Variant: ui.ButtonSecondary, TestID: "audit-older",
 			OnPress: func() { limit.Set(page + 100) }})
 	}
-	return dataCard(cx,
-		children...,
-	)
+	detail := core.Node(core.View{Style: core.Style{FlexGrow: 1, MinHeight: core.Pt(0)},
+		Children: []core.Node{detailEmpty(cx, locales.AuditSelectEvent)}})
+	for _, event := range events {
+		if event.ID != selected.Get() {
+			continue
+		}
+		detail = core.Scroll{
+			Style: core.Style{FlexGrow: 1, MinHeight: core.Pt(0)},
+			Children: []core.Node{core.View{
+				Style: core.Style{Padding: core.All(24), Gap: 12,
+					Width: core.Pct(100), MaxWidth: core.Pt(980)},
+				Children: []core.Node{
+					core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+						Gap: 8}, Children: []core.Node{
+						ui.Badge{Text: dataAuditKind(cx, event.Kind), Variant: ui.BadgeNeutral},
+						core.View{Style: core.Style{FlexGrow: 1}},
+						core.Text{Content: event.OccurredAt, Style: core.Style{FontSize: 12},
+							StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+					}},
+					s.auditEventBody(cx, event, rawOpen, rawRev, openActivity),
+				},
+			}},
+		}
+	}
+	list := core.View{Style: core.Style{FlexGrow: 1, MinHeight: core.Pt(0)},
+		Children: []core.Node{
+			listPaneHeader(cx, locales.AuditNav, locales.AuditSubheading),
+			core.Scroll{Style: core.Style{FlexGrow: 1, MinHeight: core.Pt(0)},
+				Children: []core.Node{core.View{
+					Style:    core.Style{Padding: core.Symmetric(12, 16), Gap: 10},
+					Children: left}},
+			},
+		}}
+	return splitPage(cx, 36, list, detail)
 }
 
 func auditDatesOK(since, until string) bool {

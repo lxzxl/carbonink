@@ -18,7 +18,7 @@ func TestSettingsOrganizationProfile(t *testing.T) {
 	t.Setenv("CARBONINK_TEST_DB", dbPath)
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}))
-	ui.Press("id:nav:settings")
+	openSettings(ui, "org")
 	ui.WaitFor("id:org-profile-zh", 5*time.Second)
 
 	ctx := context.Background()
@@ -83,7 +83,7 @@ func TestSettingsImportOutlierRatio(t *testing.T) {
 	t.Setenv("CARBONINK_TEST_DB", dbPath)
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}))
-	ui.Press("id:nav:settings")
+	openSettings(ui, "org")
 	ui.WaitFor("id:import-outlier-ratio", 5*time.Second)
 
 	ctx := context.Background()

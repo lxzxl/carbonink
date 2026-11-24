@@ -16,7 +16,8 @@ func TestWorkspacesManageClientDatabases(t *testing.T) {
 	t.Setenv("CARBONINK_NO_LEGACY_IMPORT", "1")
 	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
 		nsgotest.Environment(core.Environment{Locale: "en-US"}))
-	ui.Press("id:nav:settings")
+	completeOnboarding(ui, "默认公司", "默认站点")
+	openSettings(ui, "workspaces")
 	ui.WaitFor("id:workspace-create-input", 5*time.Second)
 	ui.WaitFor("id:workspace-row-0", 2*time.Second)
 	ui.WaitFor("id:workspace-row-0 >> text:默认账套", 2*time.Second)
