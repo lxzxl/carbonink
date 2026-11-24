@@ -351,6 +351,8 @@ func providerGuidance(cx *core.Scope, provider string) string {
 		return locales.SettingsProviderGuidanceMoonshot(cx)
 	case "anthropic":
 		return locales.SettingsProviderGuidanceAnthropic(cx)
+	case "gemini":
+		return locales.SettingsProviderGuidanceGemini(cx)
 	case "custom":
 		return locales.SettingsProviderGuidanceCustom(cx)
 	default:

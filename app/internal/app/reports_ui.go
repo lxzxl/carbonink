@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	"app.carbonink.desktop/internal/deliverable"
+	"app.carbonink.desktop/internal/extraction"
+	"app.carbonink.desktop/internal/llm"
 	"app.carbonink.desktop/internal/readiness"
 	"app.carbonink.desktop/internal/report"
 	"app.carbonink.desktop/locales"
@@ -26,6 +28,7 @@ type reportsState struct {
 	kind       *core.Signal[string]
 	language   *core.Signal[string]
 	busy       *core.Signal[bool]
+	cancel     context.CancelFunc
 	status     *core.Signal[string]
 	failed     *core.Signal[bool]
 	exportBusy *core.Signal[bool]
@@ -59,6 +62,10 @@ func (s *Session) reportsScreen(cx *core.Scope, dataRev *core.Signal[int],
 	// Switching the period or kind retires the preview: it belonged to the
 	// previous selection, and exporting it under the new one would mislead.
 	invalidate := func() {
+		if state.cancel != nil {
+			state.cancel()
+			state.cancel = nil
+		}
 		resetReadiness()
 		if state.generated.Get() == nil {
 			return
@@ -67,6 +74,12 @@ func (s *Session) reportsScreen(cx *core.Scope, dataRev *core.Signal[int],
 		state.failed.Set(false)
 		state.status.Set("")
 		state.rev.Set(state.rev.Get() + 1)
+	}
+
+	cancelGenerate := func() {
+		if state.cancel != nil {
+			state.cancel()
+		}
 	}
 
 	generate := func() {
@@ -87,6 +100,8 @@ func (s *Session) reportsScreen(cx *core.Scope, dataRev *core.Signal[int],
 		}
 		kind := state.kind.Get()
 		language := state.language.Get()
+		genCtx, cancelFn := context.WithCancel(context.Background())
+		state.cancel = cancelFn
 		state.busy.Set(true)
 		state.failed.Set(false)
 		state.status.Set(locales.ReportsProgressAssembling(cx))
@@ -97,11 +112,22 @@ func (s *Session) reportsScreen(cx *core.Scope, dataRev *core.Signal[int],
 					Name: provider.Name, Model: provider.Model,
 					BaseURL: provider.BaseURL, APIKey: provider.APIKey,
 				},
+				NewClient: func(p report.Provider) llm.Extractor {
+					return newExtractor(extraction.Provider{
+						Name: p.Name, Model: p.Model, BaseURL: p.BaseURL, APIKey: p.APIKey,
+					})
+				},
 			}
-			generated, err := service.Generate(context.Background(), periodID, language, kind)
+			generated, err := service.Generate(genCtx, periodID, language, kind)
 			s.scope.Post(func() {
+				state.cancel = nil
 				state.busy.Set(false)
 				if err != nil {
+					if errors.Is(err, context.Canceled) {
+						state.failed.Set(false)
+						state.status.Set(locales.ReportsGenerateCanceled(cx))
+						return
+					}
 					s.log.Warn("report generation failed", "period", periodID, "kind", kind, "err", err)
 					state.failed.Set(true)
 					state.status.Set(reportErrorText(cx, err))
@@ -337,7 +363,16 @@ func (s *Session) reportsScreen(cx *core.Scope, dataRev *core.Signal[int],
 					Style: core.Style{Width: core.Pct(100)}},
 			}},
 		),
-		core.View{Style: core.Style{Direction: core.Row, JustifyContent: core.JustifyEnd}, Children: []core.Node{
+		core.View{Style: core.Style{Direction: core.Row, JustifyContent: core.JustifyEnd, Gap: 8}, Children: []core.Node{
+			core.Show{When: state.busy.Get,
+				Then: func(cx *core.Scope) core.Node {
+					return ui.Button{
+						Text:    locales.ReportsCancelButton(cx),
+						Variant: ui.ButtonOutline,
+						OnPress: cancelGenerate,
+						TestID:  "reports-cancel",
+					}
+				}},
 			core.Dynamic(func(cx *core.Scope) core.Node {
 				variant := ui.ButtonPrimary
 				if state.generated.Get() != nil {
@@ -385,24 +420,44 @@ func (s *Session) reportsScreen(cx *core.Scope, dataRev *core.Signal[int],
 				}}
 		}
 		sections := []core.Node{}
-		add := func(title, body string) {
+		add := func(id, title, initial string, assign func(string)) {
+			draft := core.NewSignal(cx, initial)
 			sections = append(sections, dataCard(cx,
 				core.Text{Content: title, Style: core.Style{FontSize: typeSectionTitle, FontWeight: ui.Semibold}},
-				core.Text{Content: body, Style: core.Style{FontSize: typeBody}}))
+				ui.Input{
+					Value:     draft.Get,
+					OnChange:  func(next string) { draft.Set(next); assign(next) },
+					Multiline: true,
+					Label:     title,
+					TestID:    "reports-narrative-" + id,
+					Style:     core.Style{MinHeight: core.Pt(104)},
+				}))
 		}
 		if generated.ISO != nil {
-			add(locales.ReportsSectionBoundary(cx), generated.ISO.BoundaryDescription)
-			add(locales.ReportsSectionReporting(cx), generated.ISO.ReportingBoundary)
-			add(locales.ReportsSectionMethod(cx), generated.ISO.MethodologyDescription)
-			add(locales.ReportsSectionInventory(cx), generated.ISO.EmissionsSummary)
-			add(locales.ReportsSectionChanges(cx), generated.ISO.SignificantChanges)
-			add(locales.ReportsSectionObservations(cx), generated.ISO.NotableObservations)
+			iso := generated.ISO
+			add("boundary", locales.ReportsSectionBoundary(cx), iso.BoundaryDescription,
+				func(v string) { iso.BoundaryDescription = v })
+			add("reporting", locales.ReportsSectionReporting(cx), iso.ReportingBoundary,
+				func(v string) { iso.ReportingBoundary = v })
+			add("method", locales.ReportsSectionMethod(cx), iso.MethodologyDescription,
+				func(v string) { iso.MethodologyDescription = v })
+			add("inventory", locales.ReportsSectionInventory(cx), iso.EmissionsSummary,
+				func(v string) { iso.EmissionsSummary = v })
+			add("changes", locales.ReportsSectionChanges(cx), iso.SignificantChanges,
+				func(v string) { iso.SignificantChanges = v })
+			add("observations", locales.ReportsSectionObservations(cx), iso.NotableObservations,
+				func(v string) { iso.NotableObservations = v })
 		}
 		if generated.TCFD != nil {
-			add(locales.ReportsPillarGovernance(cx), generated.TCFD.Governance)
-			add(locales.ReportsPillarStrategy(cx), generated.TCFD.Strategy)
-			add(locales.ReportsPillarRisk(cx), generated.TCFD.RiskManagement)
-			add(locales.ReportsPillarMetrics(cx), generated.TCFD.MetricsTargets)
+			tcfd := generated.TCFD
+			add("governance", locales.ReportsPillarGovernance(cx), tcfd.Governance,
+				func(v string) { tcfd.Governance = v })
+			add("strategy", locales.ReportsPillarStrategy(cx), tcfd.Strategy,
+				func(v string) { tcfd.Strategy = v })
+			add("risk", locales.ReportsPillarRisk(cx), tcfd.RiskManagement,
+				func(v string) { tcfd.RiskManagement = v })
+			add("metrics", locales.ReportsPillarMetrics(cx), tcfd.MetricsTargets,
+				func(v string) { tcfd.MetricsTargets = v })
 		}
 		return core.View{Style: core.Style{Gap: 12}, Children: []core.Node{
 			guide.node(s, func() bool { return true }),

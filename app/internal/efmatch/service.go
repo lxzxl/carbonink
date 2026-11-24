@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"app.carbonink.desktop/internal/extraction"
 	"app.carbonink.desktop/internal/llm"
@@ -37,6 +38,7 @@ type Service struct {
 	Provider extraction.Provider
 	// Language picks the reasoning language ("en" or "zh-CN").
 	Language string
+	Cache    *llm.FileCache
 
 	// NewClient is a test seam; nil uses the production adapter.
 	NewClient func(extraction.Provider) llm.Extractor
@@ -93,20 +95,42 @@ func (s *Service) rank(ctx context.Context, source store.EmissionSource, hint st
 	if !s.Provider.Configured() {
 		return result, nil
 	}
+	cacheKey := llm.BuildCacheKey("ef-match", s.Provider.Name, s.Provider.Model, "v1",
+		efCandidateFingerprint(ranked), "", map[string]any{
+			"hint": hint,
+			"lang": s.reasoningLanguage(),
+		})
+	var raw json.RawMessage
+	if s.Cache != nil && s.Cache.Get(cacheKey, &raw) && len(raw) > 0 {
+		result.Recommended = mapRecommendations(raw, ranked)
+		return result, nil
+	}
 	client := s.NewClient
 	if client == nil {
 		client = func(p extraction.Provider) llm.Extractor {
 			return &llm.Client{BaseURL: p.BaseURL, APIKey: p.APIKey, Model: p.Model}
 		}
 	}
-	raw, err := client(s.Provider).Extract(ctx, recommendationSystemPrompt,
+	raw, err = client(s.Provider).Extract(ctx, recommendationSystemPrompt,
 		buildPrompt(ranked), recommendationTool)
 	if err != nil {
 		// The 1.x matcher never fails the UI: FTS order stays usable.
 		return result, nil
 	}
+	if s.Cache != nil {
+		_ = s.Cache.Set(cacheKey, raw, 30*24*time.Hour)
+	}
 	result.Recommended = mapRecommendations(raw, ranked)
 	return result, nil
+}
+
+func efCandidateFingerprint(factors []store.EmissionFactor) string {
+	keys := make([]string, len(factors))
+	for i, f := range factors {
+		keys[i] = f.FactorCode + "@" + strconv.Itoa(f.Year) + "@" + f.Source + "@" +
+			f.Geography + "@" + f.DatasetVersion
+	}
+	return llm.SHA256Hex([]byte(strings.Join(keys, "\n")))[:16]
 }
 
 func (s *Service) reasoningLanguage() string {

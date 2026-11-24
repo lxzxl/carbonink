@@ -1042,6 +1042,7 @@ reportsExportPdfButton: Export PDF
 reportsExportSuccess: Exported {kind} → {path}
 reportsExportXlsxButton: Export Excel appendix
 reportsGenerateButton: Generate report
+reportsGenerateCanceled: Report generation canceled.
 reportsGenerateFailed: 'Generation failed: {message}'
 reportsGeneratedAt: Generated {date}
 reportsKindIso: ISO 14064-1 inventory report
@@ -1304,6 +1305,7 @@ settingsProviderGuidanceAccount: Get an account
 settingsProviderGuidanceAnthropic: Global endpoint; expect higher latency from China. Strong long-form writing.
 settingsProviderGuidanceCustom: Any OpenAI-compatible endpoint. Models are typed by hand.
 settingsProviderGuidanceDeepseek: Low latency from China. Strong Chinese. Pay-per-token, low cost.
+settingsProviderGuidanceGemini: Global endpoint via Google AI Studio; expect higher latency from China.
 settingsProviderGuidanceMoonshot: China-hosted Kimi models with good Chinese support.
 settingsProviderGuidanceOpenai: Global endpoint; expect higher latency from China.
 settingsProviderModelLabel: Model

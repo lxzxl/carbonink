@@ -14,6 +14,7 @@ import (
 
 	"app.carbonink.desktop/internal/agentbridge"
 	"app.carbonink.desktop/internal/backup"
+	"app.carbonink.desktop/internal/llm"
 	"app.carbonink.desktop/internal/mcpconfig"
 	"app.carbonink.desktop/internal/platform"
 	"app.carbonink.desktop/internal/prefs"
@@ -74,6 +75,7 @@ type Session struct {
 	bridge           *agentbridge.Server
 	prefsPath        string
 	settings         prefs.Settings
+	llmCache         *llm.FileCache
 	log              *platform.Logger
 	undo             *undo.Manager
 	undoStatus       *core.Signal[string]
@@ -150,7 +152,8 @@ func (s *Session) rootView(cx *core.Scope) core.Node {
 func open(cx *core.Scope, log *platform.Logger) (*Session, error) {
 	ctx := context.Background()
 	s := &Session{log: log, dataDir: cx.DataDir(), scope: cx, batch: newBatchExtraction(cx),
-		undo: undo.New(100)}
+		llmCache: llm.NewFileCache(filepath.Join(cx.DataDir(), "llm-cache")),
+		undo:     undo.New(100)}
 	s.prefsPath = prefs.Path(cx.DataDir())
 	if settings, err := prefs.Load(s.prefsPath); err == nil {
 		s.settings = settings

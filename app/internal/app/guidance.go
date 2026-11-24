@@ -16,9 +16,7 @@ type tourStep struct {
 	body  func(*core.Scope) string
 }
 
-// tours holds the 1.x guidance copy, grouped by the screen it explains. The
-// report bundle step is left out: 2.0 exports PDF and Excel but does not yet
-// write the ZIP deliverable, and a tour must not describe a missing control.
+// tours holds the 1.x guidance copy, grouped by the screen it explains.
 var tours = map[string][]tourStep{
 	"questionnaires": {
 		{locales.GuidanceQuestionnairesNewTitle, locales.GuidanceQuestionnairesNewBody},
@@ -42,6 +40,7 @@ var tours = map[string][]tourStep{
 	"report-export": {
 		{locales.GuidanceReportScopeTitle, locales.GuidanceReportScopeBody},
 		{locales.GuidanceReportExportTitle, locales.GuidanceReportExportBody},
+		{locales.GuidanceReportDeliverableTitle, locales.GuidanceReportDeliverableBody},
 	},
 }
 

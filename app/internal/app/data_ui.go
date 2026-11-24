@@ -44,6 +44,9 @@ func (s *Session) dataCard(cx *core.Scope) core.Node {
 			report(err.Error(), true)
 			return
 		}
+		fileSt := s.llmCache.Stats()
+		st.ExtractionRawCount += fileSt.Count
+		st.ExtractionRawBytes += fileSt.Bytes
 		stats.Set(&st)
 	}
 	refreshStats()
@@ -122,9 +125,14 @@ func (s *Session) dataCard(cx *core.Scope) core.Node {
 			report(err.Error(), true)
 			return
 		}
+		fileRows, fileFreed, fileErr := s.llmCache.Clear()
+		if fileErr != nil {
+			report(fileErr.Error(), true)
+			return
+		}
 		refreshStats()
 		report(locales.SettingsDataCacheClearSuccess(cx,
-			strconv.FormatInt(rows, 10), documentSize(freed)), false)
+			strconv.FormatInt(rows+fileRows, 10), documentSize(freed+fileFreed)), false)
 	}
 
 	openBackups := func() {

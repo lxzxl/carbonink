@@ -1340,6 +1340,7 @@ const (
 	textReportsExportPdfButton
 	textReportsExportXlsxButton
 	textReportsGenerateButton
+	textReportsGenerateCanceled
 	textReportsKindIso
 	textReportsKindLabel
 	textReportsKindTcfd
@@ -1580,6 +1581,7 @@ const (
 	textSettingsProviderGuidanceAnthropic
 	textSettingsProviderGuidanceCustom
 	textSettingsProviderGuidanceDeepseek
+	textSettingsProviderGuidanceGemini
 	textSettingsProviderGuidanceMoonshot
 	textSettingsProviderGuidanceOpenai
 	textSettingsProviderModelLabel
@@ -2734,6 +2736,7 @@ var keyOfText = [numTexts]string{
 	"reportsExportPdfButton",
 	"reportsExportXlsxButton",
 	"reportsGenerateButton",
+	"reportsGenerateCanceled",
 	"reportsKindIso",
 	"reportsKindLabel",
 	"reportsKindTcfd",
@@ -2974,6 +2977,7 @@ var keyOfText = [numTexts]string{
 	"settingsProviderGuidanceAnthropic",
 	"settingsProviderGuidanceCustom",
 	"settingsProviderGuidanceDeepseek",
+	"settingsProviderGuidanceGemini",
 	"settingsProviderGuidanceMoonshot",
 	"settingsProviderGuidanceOpenai",
 	"settingsProviderModelLabel",
@@ -4126,6 +4130,7 @@ var textsEn = i18n.NewTexts(""+
 	"Export PDF"+
 	"Export Excel appendix"+
 	"Generate report"+
+	"Report generation canceled."+
 	"ISO 14064-1 inventory report"+
 	"Report type"+
 	"TCFD climate disclosure (four pillars)"+
@@ -4366,6 +4371,7 @@ var textsEn = i18n.NewTexts(""+
 	"Global endpoint; expect higher latency from China. Strong long-form writing."+
 	"Any OpenAI-compatible endpoint. Models are typed by hand."+
 	"Low latency from China. Strong Chinese. Pay-per-token, low cost."+
+	"Global endpoint via Google AI Studio; expect higher latency from China."+
 	"China-hosted Kimi models with good Chinese support."+
 	"Global endpoint; expect higher latency from China."+
 	"Model"+
@@ -5515,6 +5521,7 @@ var textsEn = i18n.NewTexts(""+
 		10,
 		21,
 		15,
+		27,
 		28,
 		11,
 		38,
@@ -5755,6 +5762,7 @@ var textsEn = i18n.NewTexts(""+
 		76,
 		57,
 		64,
+		71,
 		51,
 		50,
 		5,
@@ -6907,6 +6915,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"导出 PDF"+
 	"导出 Excel 附录"+
 	"生成报告"+
+	"已取消生成报告。"+
 	"ISO 14064-1 盘查报告"+
 	"报告类型"+
 	"TCFD 气候披露（四支柱）"+
@@ -7147,6 +7156,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"全球节点，从中国访问延迟较高；长文写作强。"+
 	"任意 OpenAI 兼容端点，模型 ID 手动填写。"+
 	"国内低延迟，中文强，按 token 计费，成本低。"+
+	"通过 Google AI Studio 访问全球节点，从中国访问延迟较高。"+
 	"国内托管的 Kimi 模型，中文支持好。"+
 	"全球节点，从中国访问延迟较高。"+
 	"模型"+
@@ -8297,6 +8307,7 @@ var textsZhCN = i18n.NewTexts(""+
 		19,
 		12,
 		24,
+		24,
 		12,
 		32,
 		6,
@@ -8536,6 +8547,7 @@ var textsZhCN = i18n.NewTexts(""+
 		63,
 		54,
 		61,
+		75,
 		48,
 		45,
 		6,
@@ -19896,6 +19908,13 @@ func ReportsGenerateButton(cx *core.Scope) string { return For(cx).ReportsGenera
 // ReportsGenerateButton is the package's ReportsGenerateButton in the language of msgs.
 func (msgs Messages) ReportsGenerateButton() string { return msgs.text(textReportsGenerateButton) }
 
+// ReportsGenerateCanceled says "Report generation canceled."
+// in the language the app shows under cx.
+func ReportsGenerateCanceled(cx *core.Scope) string { return For(cx).ReportsGenerateCanceled() }
+
+// ReportsGenerateCanceled is the package's ReportsGenerateCanceled in the language of msgs.
+func (msgs Messages) ReportsGenerateCanceled() string { return msgs.text(textReportsGenerateCanceled) }
+
 // ReportsGenerateFailed says "Generation failed: {message}"
 // in the language the app shows under cx.
 func ReportsGenerateFailed(cx *core.Scope, message string) string {
@@ -22336,6 +22355,17 @@ func SettingsProviderGuidanceDeepseek(cx *core.Scope) string {
 // SettingsProviderGuidanceDeepseek is the package's SettingsProviderGuidanceDeepseek in the language of msgs.
 func (msgs Messages) SettingsProviderGuidanceDeepseek() string {
 	return msgs.text(textSettingsProviderGuidanceDeepseek)
+}
+
+// SettingsProviderGuidanceGemini says "Global endpoint via Google AI Studio; expect higher latency from China."
+// in the language the app shows under cx.
+func SettingsProviderGuidanceGemini(cx *core.Scope) string {
+	return For(cx).SettingsProviderGuidanceGemini()
+}
+
+// SettingsProviderGuidanceGemini is the package's SettingsProviderGuidanceGemini in the language of msgs.
+func (msgs Messages) SettingsProviderGuidanceGemini() string {
+	return msgs.text(textSettingsProviderGuidanceGemini)
 }
 
 // SettingsProviderGuidanceMoonshot says "China-hosted Kimi models with good Chinese support."

@@ -106,6 +106,14 @@ func TestGenerateAndExportReportThroughUI(t *testing.T) {
 	ui.WaitFor("id:guidance-report-export", 3*time.Second)
 	ui.Press("id:guidance-report-export-next")
 	ui.WaitFor("text:Export PDF and Excel", 2*time.Second)
+	ui.Press("id:guidance-report-export-next")
+	ui.WaitFor("text:Deliverable bundle", 2*time.Second)
+	ui.Press("id:guidance-report-export-done")
+
+	// Inline narrative edit must flow into the exported PDF.
+	const editedBoundary = "Edited boundary narrative before export."
+	ui.Clear("id:reports-narrative-boundary")
+	ui.Type("id:reports-narrative-boundary", editedBoundary)
 
 	ui.Press("id:reports-export-both")
 	ui.WaitFor("text:Exported Excel → "+xlsxPath, 10*time.Second)
@@ -161,7 +169,7 @@ func TestGenerateAndExportReportThroughUI(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{boundary, "测试组织", "Scope 2 (kg CO2e)", "120.00"} {
+	for _, want := range []string{editedBoundary, "测试组织", "Scope 2 (kg CO2e)", "120.00"} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("PDF text is missing %q:\n%s", want, text)
 		}
@@ -209,4 +217,36 @@ func readZipEntry(t *testing.T, file *zip.File) string {
 		t.Fatal(err)
 	}
 	return string(data)
+}
+
+func TestCancelReportGeneration(t *testing.T) {
+	t.Setenv("CARBONINK_TEST_DB", fixtureDB(t))
+	started := make(chan struct{})
+	release := make(chan struct{})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		close(started)
+		select {
+		case <-r.Context().Done():
+		case <-release:
+		}
+	}))
+	defer func() {
+		close(release)
+		srv.Close()
+	}()
+
+	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
+		nsgotest.Environment(core.Environment{Locale: "en-US"}),
+		nsgotest.Secrets(map[string]string{llmSecretAccount: "test-key"}))
+	configureLLMEndpoint(t, ui, srv.URL)
+
+	ui.Press("id:nav:reports")
+	ui.WaitFor("id:reports-period-period", 3*time.Second)
+	ui.Press("id:reports-period-period")
+	ui.WaitFor("id:reports-generate", 3*time.Second)
+	ui.Press("id:reports-generate")
+	<-started
+	ui.WaitFor("id:reports-cancel", 3*time.Second)
+	ui.Press("id:reports-cancel")
+	ui.WaitFor("text:Report generation canceled.", 3*time.Second)
 }

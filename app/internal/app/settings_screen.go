@@ -216,13 +216,18 @@ func (s *Session) settingsGeneralSection(cx *core.Scope) core.Node {
 		busy.Set(true)
 		ctx := context.Background()
 		rows, freed, err := s.db.ClearExtractionRawCache(ctx)
+		fileCount, fileBytes, fileErr := s.llmCache.Clear()
 		busy.Set(false)
 		if err != nil {
 			status.Set(err.Error())
 			return
 		}
-		status.Set(locales.SettingsAiCacheCleared(cx, strconv.FormatInt(rows, 10)))
-		_ = freed
+		if fileErr != nil {
+			status.Set(fileErr.Error())
+			return
+		}
+		status.Set(locales.SettingsAiCacheCleared(cx, strconv.FormatInt(rows+fileCount, 10)))
+		_ = freed + fileBytes
 	}
 
 	block := func(label, hint func(*core.Scope) string, control core.Node) core.Node {

@@ -52,6 +52,7 @@ type Service struct {
 	Store    *store.Store
 	DataDir  string
 	Provider Provider
+	Cache    *llm.FileCache
 
 	// The fields below are test seams; nil uses the production defaults.
 	ReadFile  func(string) ([]byte, error)

@@ -101,8 +101,8 @@ func (s *Session) readinessSection(cx *core.Scope, period *core.Signal[string],
 		failed.Set(false)
 		status.Set(locales.ReadinessReviewingAgent(cx))
 		go func() {
-			findings, err := readiness.Review(context.Background(), s.db, periodID,
-				newAgentRunner(provider))
+			findings, err := readiness.ReviewCached(context.Background(), s.db, periodID,
+				newAgentRunner(provider), s.llmCache, provider.Name, provider.Model)
 			s.scope.Post(func() {
 				agentBusy.Set(false)
 				if err != nil {

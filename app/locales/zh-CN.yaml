@@ -1041,6 +1041,7 @@ reportsExportPdfButton: 导出 PDF
 reportsExportSuccess: 已导出 {kind} → {path}
 reportsExportXlsxButton: 导出 Excel 附录
 reportsGenerateButton: 生成报告
+reportsGenerateCanceled: 已取消生成报告。
 reportsGenerateFailed: '生成失败: {message}'
 reportsGeneratedAt: 生成于 {date}
 reportsKindIso: ISO 14064-1 盘查报告
@@ -1303,6 +1304,7 @@ settingsProviderGuidanceAccount: 去官网注册
 settingsProviderGuidanceAnthropic: 全球节点，从中国访问延迟较高；长文写作强。
 settingsProviderGuidanceCustom: 任意 OpenAI 兼容端点，模型 ID 手动填写。
 settingsProviderGuidanceDeepseek: 国内低延迟，中文强，按 token 计费，成本低。
+settingsProviderGuidanceGemini: 通过 Google AI Studio 访问全球节点，从中国访问延迟较高。
 settingsProviderGuidanceMoonshot: 国内托管的 Kimi 模型，中文支持好。
 settingsProviderGuidanceOpenai: 全球节点，从中国访问延迟较高。
 settingsProviderModelLabel: 模型

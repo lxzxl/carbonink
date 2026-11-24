@@ -110,6 +110,13 @@ type agentSource struct {
 // checklist above remains the product.
 func Review(ctx context.Context, db *store.Store, periodID string,
 	runner llm.AgentRunner) ([]Finding, error) {
+	return ReviewCached(ctx, db, periodID, runner, nil, "", "")
+}
+
+// ReviewCached runs Review with an optional FileCache keyed by the active
+// provider, model, and inventory structural fingerprint.
+func ReviewCached(ctx context.Context, db *store.Store, periodID string,
+	runner llm.AgentRunner, cache *llm.FileCache, providerName, model string) ([]Finding, error) {
 	if runner == nil {
 		return nil, nil
 	}
@@ -130,6 +137,21 @@ func Review(ctx context.Context, db *store.Store, periodID string,
 	known := make(map[string]struct{}, len(sources))
 	for _, source := range sources {
 		known[source.ID] = struct{}{}
+	}
+	var cacheKey string
+	if cache != nil {
+		invPayload, _ := json.Marshal(map[string]any{
+			"org":     agentProfile(ctx, db, current.OrganizationID),
+			"sources": sources,
+			"summary": agentActivitySummary(ctx, db, current.ID, current.OrganizationID),
+		})
+		invHash := llm.SHA256Hex(invPayload)
+		cacheKey = llm.BuildCacheKey("readiness", providerName, model, "v1",
+			"", invHash, current.ID)
+		var cached []Finding
+		if cache.Get(cacheKey, &cached) {
+			return cached, nil
+		}
 	}
 
 	started := time.Now()
@@ -182,6 +204,9 @@ func Review(ctx context.Context, db *store.Store, periodID string,
 			Entity: Entity{Type: "period", ID: current.ID},
 			Facts:  map[string]any{"observation": observation},
 		})
+	}
+	if cache != nil && cacheKey != "" {
+		_ = cache.Set(cacheKey, findings, 7*24*time.Hour)
 	}
 	return findings, nil
 }

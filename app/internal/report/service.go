@@ -120,10 +120,15 @@ func (s *Service) client() llm.Extractor {
 	if s.NewClient != nil {
 		return s.NewClient(s.Provider)
 	}
-	if s.Provider.Name == "anthropic" {
+	switch s.Provider.Name {
+	case "anthropic":
 		return &llm.AnthropicClient{BaseURL: s.Provider.BaseURL, APIKey: s.Provider.APIKey,
 			Model: s.Provider.Model}
+	case "gemini":
+		return &llm.GeminiClient{BaseURL: s.Provider.BaseURL, APIKey: s.Provider.APIKey,
+			Model: s.Provider.Model}
+	default:
+		return &llm.Client{BaseURL: s.Provider.BaseURL, APIKey: s.Provider.APIKey,
+			Model: s.Provider.Model}
 	}
-	return &llm.Client{BaseURL: s.Provider.BaseURL, APIKey: s.Provider.APIKey,
-		Model: s.Provider.Model}
 }

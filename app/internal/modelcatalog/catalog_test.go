@@ -9,7 +9,7 @@ import (
 )
 
 func TestCuratedDefaults(t *testing.T) {
-	for _, provider := range []string{"openai", "deepseek", "moonshot", "anthropic"} {
+	for _, provider := range []string{"openai", "deepseek", "moonshot", "anthropic", "gemini"} {
 		if Default(provider) == "" || len(Curated(provider)) == 0 {
 			t.Fatalf("%s has no catalog", provider)
 		}
@@ -60,6 +60,32 @@ func TestFetchAnthropic(t *testing.T) {
 		t.Fatalf("headers = %q / %q", key, version)
 	}
 	if len(models) != 1 || models[0].Name != "Claude Test" {
+		t.Fatalf("models = %+v", models)
+	}
+}
+
+func TestFetchGemini(t *testing.T) {
+	var key string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		key = r.Header.Get("x-goog-api-key")
+		if r.URL.Path != "/v1beta/models" {
+			t.Errorf("path = %s", r.URL.Path)
+		}
+		_, _ = w.Write([]byte(`{"models":[` +
+			`{"name":"models/embedding-001","supportedGenerationMethods":["embedContent"]},` +
+			`{"name":"models/gemini-2.5-flash","displayName":"Gemini 2.5 Flash","supportedGenerationMethods":["generateContent"]}` +
+			`]}`))
+	}))
+	defer srv.Close()
+
+	models, err := Fetch(context.Background(), "gemini", srv.URL+"/v1beta", "gem-secret")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if key != "gem-secret" {
+		t.Fatalf("x-goog-api-key = %q", key)
+	}
+	if len(models) != 1 || models[0].ID != "gemini-2.5-flash" || models[0].Name != "Gemini 2.5 Flash" {
 		t.Fatalf("models = %+v", models)
 	}
 }

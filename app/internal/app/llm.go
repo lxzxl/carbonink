@@ -18,13 +18,14 @@ type llmPreset struct {
 	Model   string
 }
 
-// llmPresets are the provider endpoints the app can speak to. Anthropic uses
-// its own adapter; the rest share the OpenAI-compatible client.
+// llmPresets are the provider endpoints the app can speak to. Anthropic and
+// Gemini use their native adapters; the rest share the OpenAI-compatible client.
 var llmPresets = []llmPreset{
 	{ID: "openai", Label: "OpenAI", BaseURL: "https://api.openai.com/v1", Model: "gpt-4o-mini"},
 	{ID: "deepseek", Label: "DeepSeek", BaseURL: "https://api.deepseek.com/v1", Model: "deepseek-chat"},
 	{ID: "moonshot", Label: "Moonshot", BaseURL: "https://api.moonshot.cn/v1", Model: "moonshot-v1-8k"},
 	{ID: "anthropic", Label: "Anthropic", BaseURL: "https://api.anthropic.com", Model: "claude-sonnet-4-5"},
+	{ID: "gemini", Label: "Google Gemini", BaseURL: "https://generativelanguage.googleapis.com/v1beta", Model: "gemini-2.5-flash"},
 }
 
 func (s *Session) llmProvider(cx *core.Scope) extraction.Provider {
@@ -43,18 +44,28 @@ func (s *Session) llmProvider(cx *core.Scope) extraction.Provider {
 }
 
 func newExtractor(provider extraction.Provider) llm.Extractor {
-	if provider.Name == "anthropic" {
+	switch provider.Name {
+	case "anthropic":
 		return &llm.AnthropicClient{BaseURL: provider.BaseURL, APIKey: provider.APIKey,
 			Model: provider.Model}
+	case "gemini":
+		return &llm.GeminiClient{BaseURL: provider.BaseURL, APIKey: provider.APIKey,
+			Model: provider.Model}
+	default:
+		return &llm.Client{BaseURL: provider.BaseURL, APIKey: provider.APIKey, Model: provider.Model}
 	}
-	return &llm.Client{BaseURL: provider.BaseURL, APIKey: provider.APIKey, Model: provider.Model}
 }
 
 // newAgentRunner picks the multi-turn adapter for the configured provider.
 func newAgentRunner(provider extraction.Provider) llm.AgentRunner {
-	if provider.Name == "anthropic" {
+	switch provider.Name {
+	case "anthropic":
 		return &llm.AnthropicClient{BaseURL: provider.BaseURL, APIKey: provider.APIKey,
 			Model: provider.Model}
+	case "gemini":
+		return &llm.GeminiClient{BaseURL: provider.BaseURL, APIKey: provider.APIKey,
+			Model: provider.Model}
+	default:
+		return &llm.Client{BaseURL: provider.BaseURL, APIKey: provider.APIKey, Model: provider.Model}
 	}
-	return &llm.Client{BaseURL: provider.BaseURL, APIKey: provider.APIKey, Model: provider.Model}
 }

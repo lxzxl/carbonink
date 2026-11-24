@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"app.carbonink.desktop/internal/docview"
 	"app.carbonink.desktop/internal/llm"
@@ -120,8 +121,19 @@ func (s *Service) Classify(ctx context.Context, documentID string) (string, erro
 		Schema:      classifySchema,
 	}
 	var raw json.RawMessage
+	var cacheKey string
 	if len([]rune(strings.TrimSpace(text))) >= MinTextRunes {
-		raw, err = client(s.Provider).Extract(ctx, classifySystemPrompt, classifyPrompt(text), tool)
+		cacheKey = llm.BuildCacheKey("classify", s.Provider.Name, s.Provider.Model, "v1",
+			"", "", llm.SHA256Hex([]byte(text)))
+		var cached classification
+		if s.Cache != nil && s.Cache.Get(cacheKey, &cached) {
+			if encoded, mErr := json.Marshal(cached); mErr == nil {
+				raw = encoded
+			}
+		}
+		if len(raw) == 0 {
+			raw, err = client(s.Provider).Extract(ctx, classifySystemPrompt, classifyPrompt(text), tool)
+		}
 	} else {
 		pagesFn := s.PDFPages
 		if pagesFn == nil {
@@ -136,12 +148,24 @@ func (s *Service) Classify(ctx context.Context, documentID string) (string, erro
 		if len(pages) == 0 {
 			return "", ErrNoTextLayer
 		}
+		pageHashes := make([]string, len(pages))
 		images := make([]llm.ImagePart, len(pages))
 		for i, page := range pages {
 			images[i] = llm.ImagePart{MIMEType: "image/png", Data: page}
+			pageHashes[i] = llm.SHA256Hex(page)
 		}
-		raw, err = client(s.Provider).ExtractVision(ctx, classifySystemPrompt,
-			classifyPrompt(""), images, tool)
+		cacheKey = llm.BuildCacheKey("classify", s.Provider.Name, s.Provider.Model, "v1",
+			"", "", pageHashes)
+		var cached classification
+		if s.Cache != nil && s.Cache.Get(cacheKey, &cached) {
+			if encoded, mErr := json.Marshal(cached); mErr == nil {
+				raw = encoded
+			}
+		}
+		if len(raw) == 0 {
+			raw, err = client(s.Provider).ExtractVision(ctx, classifySystemPrompt,
+				classifyPrompt(""), images, tool)
+		}
 	}
 	if err != nil {
 		return "", err
@@ -149,6 +173,9 @@ func (s *Service) Classify(ctx context.Context, documentID string) (string, erro
 	var result classification
 	if err := json.Unmarshal(raw, &result); err != nil {
 		return "", fmt.Errorf("%w: %v", ErrUnclassified, err)
+	}
+	if s.Cache != nil && cacheKey != "" {
+		_ = s.Cache.Set(cacheKey, result, 30*24*time.Hour)
 	}
 	if result.Confidence < ClassifyConfidenceThreshold || result.DocType == "unknown" {
 		return "", ErrUnclassified

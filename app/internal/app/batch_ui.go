@@ -97,7 +97,7 @@ func (s *Session) startBatch(cx *core.Scope, docs []batchDoc) {
 	go func() {
 		defer cancel()
 		service := &extraction.Service{Store: s.db, DataDir: s.dataDir, Provider: provider,
-			NewClient: newExtractor}
+			Cache: s.llmCache, NewClient: newExtractor}
 		var next atomic.Int32
 		worker := func() {
 			for {
@@ -235,7 +235,7 @@ func (s *Session) batchCard(cx *core.Scope) core.Node {
 			core.View{Style: core.Style{Gap: 2, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
 				Children: []core.Node{
 					core.Text{Content: locales.DocumentsBatchHint(cx, count),
-						Style: core.Style{FontSize: typeCaption, FontVariant: core.FontTabularNums},
+						Style:    core.Style{FontSize: typeCaption, FontVariant: core.FontTabularNums},
 						MaxLines: 2},
 				}},
 			ui.Button{Text: locales.DocumentsBatchButton(cx, count), Variant: ui.ButtonSecondary,

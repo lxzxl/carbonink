@@ -50,6 +50,12 @@ func Curated(provider string) []Model {
 			{ID: "claude-opus-4-1", Name: "Claude Opus 4.1", ContextWindow: 200000},
 			{ID: "claude-haiku-4-5", Name: "Claude Haiku 4.5", ContextWindow: 200000},
 		}
+	case "gemini":
+		return []Model{
+			{ID: "gemini-2.5-flash", Name: "Gemini 2.5 Flash", ContextWindow: 1048576},
+			{ID: "gemini-2.5-pro", Name: "Gemini 2.5 Pro", Reasoning: true, ContextWindow: 1048576},
+			{ID: "gemini-2.0-flash", Name: "Gemini 2.0 Flash", ContextWindow: 1048576},
+		}
 	}
 	return nil
 }
@@ -83,6 +89,12 @@ func Fetch(ctx context.Context, provider, baseURL, apiKey string) ([]Model, erro
 		}
 		request.Header.Set("x-api-key", apiKey)
 		request.Header.Set("anthropic-version", "2023-06-01")
+	case "gemini":
+		request, err = http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/models?pageSize=100", nil)
+		if err != nil {
+			return nil, err
+		}
+		request.Header.Set("x-goog-api-key", apiKey)
 	default:
 		request, err = http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/models", nil)
 		if err != nil {
@@ -103,6 +115,9 @@ func Fetch(ctx context.Context, provider, baseURL, apiKey string) ([]Model, erro
 		return nil, fmt.Errorf("model list returned HTTP %d: %s",
 			response.StatusCode, truncate(string(body), 300))
 	}
+	if provider == "gemini" {
+		return parseGeminiModels(body)
+	}
 	var parsed struct {
 		Data []struct {
 			ID          string `json:"id"`
@@ -116,6 +131,45 @@ func Fetch(ctx context.Context, provider, baseURL, apiKey string) ([]Model, erro
 	seen := map[string]bool{}
 	for _, row := range parsed.Data {
 		id := strings.TrimSpace(row.ID)
+		if id == "" || seen[id] {
+			continue
+		}
+		seen[id] = true
+		name := strings.TrimSpace(row.DisplayName)
+		if name == "" {
+			name = id
+		}
+		models = append(models, Model{ID: id, Name: name})
+	}
+	sort.Slice(models, func(i, j int) bool { return models[i].ID < models[j].ID })
+	return models, nil
+}
+
+func parseGeminiModels(body []byte) ([]Model, error) {
+	var parsed struct {
+		Models []struct {
+			Name                       string   `json:"name"`
+			DisplayName                string   `json:"displayName"`
+			SupportedGenerationMethods []string `json:"supportedGenerationMethods"`
+		} `json:"models"`
+	}
+	if err := json.Unmarshal(body, &parsed); err != nil {
+		return nil, fmt.Errorf("decode gemini model list: %w", err)
+	}
+	models := make([]Model, 0, len(parsed.Models))
+	seen := map[string]bool{}
+	for _, row := range parsed.Models {
+		supportsGenerate := false
+		for _, method := range row.SupportedGenerationMethods {
+			if method == "generateContent" {
+				supportsGenerate = true
+				break
+			}
+		}
+		if !supportsGenerate {
+			continue
+		}
+		id := strings.TrimPrefix(strings.TrimSpace(row.Name), "models/")
 		if id == "" || seen[id] {
 			continue
 		}

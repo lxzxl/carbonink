@@ -810,7 +810,7 @@ func (s *Session) importRecommendGroups(cx *core.Scope, w *importWizard) {
 		w.recBusy[group.Key] = true
 		go func() {
 			service := &efmatch.Service{Store: s.db, Provider: provider, Language: language,
-				NewClient: newExtractor}
+				Cache: s.llmCache, NewClient: newExtractor}
 			result, err := service.RecommendText(context.Background(), group.Description,
 				group.Unit, source)
 			s.scope.Post(func() {

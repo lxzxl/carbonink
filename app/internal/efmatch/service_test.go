@@ -165,3 +165,65 @@ func TestRecommendDegradesToFTSOnModelFailure(t *testing.T) {
 		t.Fatalf("recommended = %+v", result.Recommended)
 	}
 }
+
+func TestRecommendTextUsesFileCache(t *testing.T) {
+	ctx := context.Background()
+	s := matchStore(t)
+	candidates, err := s.ListEmissionFactors(ctx, store.EFFilter{Scope: 1, Category: "fuel.mobile"})
+	if err != nil || len(candidates) == 0 {
+		t.Fatalf("candidates = %d, err = %v", len(candidates), err)
+	}
+	diesel := candidates[0]
+	reply, _ := json.Marshal(map[string]any{
+		"recommendations": []map[string]any{{
+			"factor_code":     diesel.FactorCode,
+			"year":            diesel.Year,
+			"source":          diesel.Source,
+			"geography":       diesel.Geography,
+			"dataset_version": diesel.DatasetVersion,
+			"reasoning":       "Matches diesel fuel.",
+		}},
+	})
+	calls := 0
+	service := &Service{
+		Store: s,
+		Provider: extraction.Provider{
+			Name: "openai", Model: "test", BaseURL: "http://example.invalid",
+		},
+		Cache: llm.NewFileCache(t.TempDir()),
+		NewClient: func(extraction.Provider) llm.Extractor {
+			return &countingExtractor{reply: reply, calls: &calls}
+		},
+	}
+	first, err := service.RecommendText(ctx, "diesel", "L", sourceWithScope(1, "fuel.mobile"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := service.RecommendText(ctx, "diesel", "L", sourceWithScope(1, "fuel.mobile"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if calls != 1 {
+		t.Fatalf("model calls = %d, want 1 (second call cached)", calls)
+	}
+	if len(first.Recommended) != 1 || len(second.Recommended) != 1 ||
+		second.Recommended[0].EF.FactorCode != diesel.FactorCode {
+		t.Fatalf("cached result = %+v", second.Recommended)
+	}
+}
+
+type countingExtractor struct {
+	reply json.RawMessage
+	calls *int
+}
+
+func (c *countingExtractor) Extract(context.Context, string, string, llm.Tool) (json.RawMessage, error) {
+	*c.calls++
+	return c.reply, nil
+}
+
+func (c *countingExtractor) ExtractVision(context.Context, string, string, []llm.ImagePart,
+	llm.Tool) (json.RawMessage, error) {
+	*c.calls++
+	return c.reply, nil
+}

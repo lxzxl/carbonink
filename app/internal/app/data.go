@@ -1717,7 +1717,7 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 		language := i18n.Language(cx)
 		go func() {
 			service := &efmatch.Service{Store: s.db, Provider: provider, Language: language,
-				NewClient: newExtractor}
+				Cache: s.llmCache, NewClient: newExtractor}
 			result, err := service.Recommend(context.Background(), seed.ExtractionID, *source)
 			s.scope.Post(func() {
 				if recKey.Get() != key {
@@ -2046,7 +2046,7 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 				var row *store.Extraction
 				if err == nil {
 					service := &extraction.Service{Store: s.db, DataDir: s.dataDir,
-						Provider: provider, NewClient: newExtractor}
+						Provider: provider, Cache: s.llmCache, NewClient: newExtractor}
 					row, _, err = service.ClassifyAndRun(context.Background(), document.ID)
 				}
 				s.scope.Post(func() {
@@ -2581,11 +2581,11 @@ func (s *Session) auditBody(cx *core.Scope, kind *core.Signal[string], since *co
 	var banners []core.Node
 	if !datesOK {
 		banners = append(banners, core.Text{Content: locales.AuditFilterInvalidDate(cx),
-			Style: core.Style{FontSize: typeCaption, Padding: core.Symmetric(6, 16)},
+			Style:     core.Style{FontSize: typeCaption, Padding: core.Symmetric(6, 16)},
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)})
 	} else if status.Get() != "" {
 		banners = append(banners, core.Text{Content: status.Get(),
-			Style: core.Style{FontSize: typeCaption, Padding: core.Symmetric(6, 16)},
+			Style:     core.Style{FontSize: typeCaption, Padding: core.Symmetric(6, 16)},
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
 	}
 	scrollItems := make([]core.Node, 0, len(rows)+1)
@@ -2615,7 +2615,7 @@ func (s *Session) auditBody(cx *core.Scope, kind *core.Signal[string], since *co
 						ui.Badge{Text: dataAuditKind(cx, event.Kind), Variant: ui.BadgeNeutral},
 						core.View{Style: core.Style{FlexGrow: 1}},
 						core.Text{Content: auditTimestamp(event.OccurredAt),
-							Style: core.Style{FontSize: typeCaption, FontVariant: core.FontTabularNums},
+							Style:     core.Style{FontSize: typeCaption, FontVariant: core.FontTabularNums},
 							StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 					}},
 					s.auditEventBody(cx, event, rawOpen, rawRev, openActivity),
