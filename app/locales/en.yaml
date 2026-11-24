@@ -244,6 +244,7 @@ commandExportActivities: Export activities as CSV
 commandFiles: Files
 commandGoTo: Go to
 commandHints: ↑↓ Navigate · ↵ Select · Esc Close
+commandPaletteTrigger: Search…
 commandRevealData: Reveal data directory
 commandRevealWorkspace: Reveal workspace database
 commandSearch: Search commands
@@ -845,6 +846,7 @@ onboardingStepAiSubtitle: Document extraction and questionnaire auto-answer rely
 onboardingStepAiTitle: AI provider
 onboardingStepBoundaryBody: Per GHG Protocol Corporate Standard. Choose how you account for organizational boundaries.
 onboardingStepBoundaryEquityShare: Equity Share — emissions allocated by ownership share of joint ventures.
+onboardingStepBoundaryFinancialControl: Financial Control — emissions from operations over which you have financial control.
 onboardingStepBoundaryOperationalControl: Operational Control — emissions from facilities you operate, regardless of ownership.
 onboardingStepBoundarySubtitle: Per GHG Protocol — how do you account for emissions from facilities you don't fully own?
 onboardingStepBoundaryTitle: Organizational boundary
@@ -926,6 +928,7 @@ questionnairesListCountOne: '{count} questionnaire'
 questionnairesNewButton: New disclosure filing
 questionnairesQuestionCount: '{count} questions'
 questionnairesSearchPlaceholder: Search customer name
+questionnairesSelectDetail: Select a disclosure filing to inspect and answer its questions.
 questionnairesSortCustomer: Customer A→Z
 questionnairesSortDue: Due date
 questionnairesSortOldest: Oldest first
@@ -1516,6 +1519,7 @@ supplierDisclosuresReviewTierTwo: Tier 2 — allocated emissions
 supplierDisclosuresReviewTitle: Review supplier reply
 supplierDisclosuresReviewWarnings: '{count} parse warning(s)'
 supplierDisclosuresSearchPlaceholder: Search supplier name…
+supplierDisclosuresSelectDetail: Select a supplier disclosure to inspect responses and status.
 supplierDisclosuresStatusAll: All statuses
 supplierDisclosuresStatusDraft: Draft
 supplierDisclosuresStatusFilter: Status

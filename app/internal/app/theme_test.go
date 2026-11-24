@@ -28,7 +28,28 @@ func TestCarbonInkThemeUses1xEmerald(t *testing.T) {
 	if got, want := theme.Dark.Colors["primary-foreground"], core.RGB(0x13120c); got != want {
 		t.Fatalf("dark primary foreground = %v, want %v", got, want)
 	}
-	if got, want := theme.Light.Colors["accentInk"], core.RGB(0x008c4f); got != want {
+	if got, want := theme.Light.Colors["accentInk"], core.RGB(0x007a45); got != want {
 		t.Fatalf("accent ink = %v, want %v", got, want)
+	}
+	if got, want := theme.Light.Background, core.RGB(0xffffff); got != want {
+		t.Fatalf("light background = %v, want %v", got, want)
+	}
+	if got, want := theme.Light.Text, core.RGB(foreground); got != want {
+		t.Fatalf("light text = %v, want %v", got, want)
+	}
+	if got, want := theme.Light.Border, core.RGB(border); got != want {
+		t.Fatalf("light border = %v, want %v", got, want)
+	}
+	if got, want := theme.Light.Colors["info"], core.RGB(primary); got != want {
+		t.Fatalf("light info = %v, want %v", got, want)
+	}
+	if got, want := theme.Dark.Colors["info"], core.RGB(primaryDark); got != want {
+		t.Fatalf("dark info = %v, want %v", got, want)
+	}
+	if got, want := theme.Dark.Colors["raised"], core.RGB(raisedDark); got != want {
+		t.Fatalf("dark raised = %v, want %v", got, want)
+	}
+	if got, want := theme.Dark.Colors["inset"], core.RGB(sidebarDark); got != want {
+		t.Fatalf("dark inset = %v, want %v", got, want)
 	}
 }

@@ -43,8 +43,8 @@ func (s *Session) migrationCard(cx *core.Scope) core.Node {
 	}
 	children = append(children,
 		core.View{Style: core.Style{Direction: core.Row, Gap: 6}, Children: buttons},
-		core.Text{Content: locales.SettingsMigrationBackups(cx), Style: core.Style{FontSize: 11},
-			StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
+		core.Text{Content: locales.SettingsMigrationBackups(cx), Style: core.Style{FontSize: typeMicro},
+			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 	)
 	return settingsCard(cx, lucide.FolderInput,
 		locales.SettingsMigrationTitle, nil, children...)

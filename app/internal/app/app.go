@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"time"
 
@@ -87,6 +88,9 @@ type Session struct {
 	// pendingSupplierDisclosure opens an inbound disclosure when an activity
 	// row's provenance link sends the user to the supplier-disclosures screen.
 	pendingSupplierDisclosure string
+	// pendingSettingsSection jumps directly to a Settings rail section when
+	// opening Settings (for example after choosing "configure AI" in onboarding).
+	pendingSettingsSection string
 	// onboarded flips once the setup wizard finishes, so the root swaps to
 	// the shell without watching every data refresh.
 	onboarded *core.Signal[bool]
@@ -333,7 +337,9 @@ var navGroups = []struct {
 
 func (s *Session) view(cx *core.Scope) core.Node {
 	start := ScreenActivities
-	if s.justOnboarded {
+	if s.pendingSettingsSection != "" {
+		start = ScreenSettings
+	} else if s.justOnboarded {
 		start = ScreenDashboard
 		s.justOnboarded = false
 	}
@@ -372,7 +378,7 @@ func (s *Session) view(cx *core.Scope) core.Node {
 			subtitle = func() string { return name }
 		}
 	}
-	items := []core.Node{brandHeader(cx, subtitle)}
+	items := make([]core.Node, 0, len(navGroups)*6+4)
 	for _, group := range navGroups {
 		items = append(items, navSection(cx, group.Title))
 		for _, id := range group.Items {
@@ -387,15 +393,59 @@ func (s *Session) view(cx *core.Scope) core.Node {
 	}
 	if s.imported {
 		items = append(items, core.Text{ContentFunc: func() string { return locales.ImportedLegacy(cx) },
-			Style:     core.Style{FontSize: 11, Padding: core.Symmetric(4, 12)},
-			StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)})
+			Style:     core.Style{FontSize: typeMicro, Padding: core.Symmetric(6, 10)},
+			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
 	}
 	items = append(items, core.Show{When: func() bool { return undoStatus.Get() != "" },
 		Then: func(cx *core.Scope) core.Node {
 			return core.Text{ContentFunc: func() string { return undoStatus.Get() },
-				Style:     core.Style{FontSize: 11, Padding: core.All(10)},
+				Style:     core.Style{FontSize: typeMicro, Padding: core.All(10)},
 				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2}
 		}})
+
+	shortcutHint := "Ctrl+K"
+	if runtime.GOOS == "darwin" {
+		shortcutHint = "⌘K"
+	}
+	commandTrigger := core.View{
+		TestID: "topbar-command",
+		Role:   core.RoleButton,
+		Label:  locales.CommandSearch(cx),
+		OnPress: func(core.PressEvent) {
+			paletteOpen.Set(true)
+		},
+		Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8,
+			Height: core.Pt(ui.ButtonHeight), Padding: core.Edges{Left: 10, Right: 6},
+			CornerRadius: radiusItem, BorderWidth: 1, FlexShrink: 0},
+		StyleFunc: func() core.Style {
+			colors := ui.ColorsOf(cx)
+			return core.Style{
+				Background:   colors.Surface(),
+				BorderColor:  colors.FieldBorder(),
+				Hover:        &core.Style{Background: colors.Hover()},
+				FocusVisible: ui.FocusRing(cx, -2),
+			}
+		},
+		Children: []core.Node{
+			ui.Icon(lucide.Search, 13, ui.ColorsOf(cx).Muted),
+			core.Text{ContentFunc: func() string { return locales.CommandPaletteTrigger(cx) },
+				Style:     core.Style{FontSize: typeCaption},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
+			core.View{
+				Style: core.Style{Padding: core.Symmetric(1, 5), CornerRadius: radiusMark,
+					BorderWidth: 1},
+				StyleFunc: func() core.Style {
+					colors := ui.ColorsOf(cx)
+					return core.Style{Background: colors.Inset(), BorderColor: colors.Border()}
+				},
+				Children: []core.Node{
+					core.Text{Content: shortcutHint,
+						Style:     core.Style{FontSize: typeMicro, FontWeight: ui.Medium, FontVariant: core.FontTabularNums},
+						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
+				},
+			},
+		},
+	}
 
 	content := []core.Node{
 		core.Show{When: func() bool { return nav.Get() == ScreenActivities },
@@ -433,32 +483,58 @@ func (s *Session) view(cx *core.Scope) core.Node {
 	}
 
 	return ui.SidebarShell{
-		Variant:      ui.SidebarShellInset,
+		Variant:      ui.SidebarShellPlain,
 		Open:         open.Get,
 		DefaultWidth: 256,
 		Fixed:        true,
-		Sidebar:      []core.Node{core.View{Style: core.Style{Gap: 2, Padding: core.Symmetric(4, 8)}, Children: items}},
+		Sidebar: []core.Node{
+			core.View{Style: core.Style{Padding: core.Symmetric(4, 8)},
+				Children: []core.Node{brandHeader(cx, subtitle)}},
+			core.Scroll{
+				Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
+				Children: []core.Node{
+					core.View{Style: core.Style{Gap: 2, Padding: core.Edges{Left: 8, Right: 8, Bottom: 8}},
+						Children: items},
+				},
+			},
+		},
 		SidebarFooter: []core.Node{
-			navButton(cx, byID(ScreenSettings), 0,
-				func() bool { return nav.Get() == ScreenSettings },
-				func() { nav.Set(ScreenSettings) }, s.mcpStatusDot(cx)),
+			core.View{
+				Style: core.Style{FlexGrow: 1, Padding: core.Edges{Top: 8},
+					Borders: core.Edges{Top: 1}},
+				StyleFunc: func() core.Style {
+					return core.Style{BorderColor: ui.ColorsOf(cx).Line()}
+				},
+				Children: []core.Node{
+					navButton(cx, byID(ScreenSettings), 0,
+						func() bool { return nav.Get() == ScreenSettings },
+						func() { nav.Set(ScreenSettings) }, s.mcpStatusDot(cx)),
+				},
+			},
 		},
 		Header: []core.Node{
-			ui.Button{Variant: ui.ButtonOutline, Icon: lucide.PanelLeft, Side: 28, IconSize: 14,
+			ui.Button{Variant: ui.ButtonGhost, Icon: lucide.PanelLeft, Side: 28, IconSize: 15,
 				Label: locales.SidebarToggle(cx), TestID: "sidebar-toggle",
 				OnPress: func() { open.Set(!open.Get()) }},
-			core.View{Style: core.Style{Width: core.Pt(1), Height: core.Pt(20), FlexShrink: 0},
-				StyleFunc: ui.Filled(ui.ColorsOf(cx).Border)},
-			ui.Button{Variant: ui.ButtonGhost, Icon: lucide.ArrowLeft, Side: 28, IconSize: 16,
+			core.View{Style: core.Style{Width: core.Pt(1), Height: core.Pt(18), FlexShrink: 0},
+				StyleFunc: ui.Filled(ui.ColorsOf(cx).Line)},
+			ui.Button{Variant: ui.ButtonGhost, Icon: lucide.ArrowLeft, Side: 28, IconSize: 15,
 				Label: locales.TopbarBack(cx), TestID: "nav-back",
 				Disabled: func() bool { return !nav.CanBack() }, OnPress: nav.Back},
-			ui.Button{Variant: ui.ButtonGhost, Icon: lucide.ArrowRight, Side: 28, IconSize: 16,
+			ui.Button{Variant: ui.ButtonGhost, Icon: lucide.ArrowRight, Side: 28, IconSize: 15,
 				Label: locales.TopbarForward(cx), TestID: "nav-forward",
 				Disabled: func() bool { return !nav.CanForward() }, OnPress: nav.Forward},
 		},
+		Actions: []core.Node{commandTrigger},
 		Content: []core.Node{
-			core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
-				Children: content},
+			core.View{
+				Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0),
+					Borders: core.Edges{Top: 1}},
+				StyleFunc: func() core.Style {
+					return core.Style{BorderColor: ui.ColorsOf(cx).Line()}
+				},
+				Children: content,
+			},
 		},
 		TestID: "shell",
 	}
@@ -469,9 +545,23 @@ func (s *Session) view(cx *core.Scope) core.Node {
 func navButton(cx *core.Scope, sc screenInfo, badge int, selected func() bool, onPress func(),
 	trailing ...core.Node) core.Node {
 	children := []core.Node{
-		ui.Icon(sc.Icon, 16, ui.ColorsOf(cx).Muted),
-		core.Text{ContentFunc: func() string { return sc.Title(cx) },
-			Style: core.Style{FontSize: 13, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 1},
+		ui.Icon(sc.Icon, 16, func() core.Color {
+			if selected() {
+				return ui.ColorsOf(cx).Text()
+			}
+			return ui.ColorsOf(cx).Muted()
+		}),
+		core.Text{
+			ContentFunc: func() string { return sc.Title(cx) },
+			Style:       core.Style{FontSize: typeBody, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
+			StyleFunc: func() core.Style {
+				if selected() {
+					return core.Style{FontWeight: ui.Medium, Color: ui.ColorsOf(cx).Text()}
+				}
+				return core.Style{FontWeight: core.FontWeightNormal, Color: ui.ColorsOf(cx).Muted()}
+			},
+			MaxLines: 1,
+		},
 	}
 	if badge > 0 {
 		children = append(children, ui.Badge{Text: strconv.Itoa(badge), Variant: ui.BadgeDanger})
@@ -484,23 +574,25 @@ func navButton(cx *core.Scope, sc screenInfo, badge int, selected func() bool, o
 			onPress()
 		},
 		Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8,
-			Height: core.Pt(30), Padding: core.Symmetric(0, 8), CornerRadius: 6},
+			Height: core.Pt(30), Padding: core.Symmetric(0, 8), CornerRadius: radiusItem},
 		StyleFunc: func() core.Style {
-			if selected() {
-				return core.Style{Background: selectionTint(cx)}
+			colors := ui.ColorsOf(cx)
+			style := core.Style{
+				FocusVisible: ui.FocusRing(cx, -2),
+				Hover:        &core.Style{Background: ui.Alpha(colors.Text(), 0.04)},
 			}
-			return core.Style{}
+			if selected() {
+				style.Background = selectionTint(cx)
+			}
+			return style
 		},
-		Children: []core.Node{
-			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
-				Gap: 8, FlexGrow: 1}, Children: children},
-		},
+		Children: children,
 	}
 }
 
 func navSection(cx *core.Scope, title func(*core.Scope) string) core.Node {
 	return core.Text{ContentFunc: func() string { return title(cx) },
-		Style:     core.Style{FontSize: 11, FontWeight: ui.Semibold, Padding: core.Edges{Left: 8, Top: 12, Bottom: 4}},
+		Style:     core.Style{FontSize: typeMicro, FontWeight: ui.Semibold, Padding: core.Edges{Left: 8, Top: 12, Bottom: 4}},
 		StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)}
 }
 
@@ -512,14 +604,14 @@ func brandHeader(cx *core.Scope, subtitle func() string) core.Node {
 			Padding: core.Edges{Left: 8, Right: 8, Top: 6, Bottom: 12}},
 		Children: []core.Node{
 			core.View{Style: core.Style{Width: core.Pt(28), Height: core.Pt(28),
-				CornerRadius: 6, AlignItems: core.AlignCenter, JustifyContent: core.JustifyCenter},
+				CornerRadius: radiusItem, AlignItems: core.AlignCenter, JustifyContent: core.JustifyCenter},
 				StyleFunc: ui.Filled(accentTint(cx)),
 				Children:  []core.Node{ui.Icon(lucide.Leaf, 16, ui.ColorsOf(cx).Accent)}},
 			core.View{Style: core.Style{Gap: 1, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
 				Children: []core.Node{
 					core.Text{ContentFunc: func() string { return locales.AppName(cx) },
-						Style: core.Style{FontSize: 15, FontWeight: ui.Semibold}, MaxLines: 1},
-					core.Text{ContentFunc: subtitle, Style: core.Style{FontSize: 12},
+						Style: core.Style{FontSize: typeSectionTitle, FontWeight: ui.Semibold}, MaxLines: 1},
+					core.Text{ContentFunc: subtitle, Style: core.Style{FontSize: typeCaption},
 						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
 				}},
 		},
@@ -589,18 +681,21 @@ func (s *Session) mcpStatusDot(cx *core.Scope) core.Node {
 			}
 		}
 		label := locales.SidebarMcpLabelPending(cx)
-		color := ui.ColorsOf(cx).Warn()
 		if configured {
 			label = locales.SidebarMcpLabelAvailable(cx)
-			color = ui.ColorsOf(cx).Accent()
 		}
 		return core.View{
 			TestID: "sidebar-mcp-status",
 			Role:   core.RoleStatus,
 			Label:  label,
 			Style: core.Style{Width: core.Pt(8), Height: core.Pt(8),
-				CornerRadius: 4, FlexShrink: 0},
-			StyleFunc: func() core.Style { return core.Style{Background: color} },
+				CornerRadius: radiusMark, FlexShrink: 0},
+			StyleFunc: func() core.Style {
+				if configured {
+					return core.Style{Background: ui.ColorsOf(cx).Accent()}
+				}
+				return core.Style{Background: ui.ColorsOf(cx).Warn()}
+			},
 		}
 	})
 }

@@ -197,9 +197,9 @@ func activitySourceBlock(cx *core.Scope, source lineage.SourceNode) core.Node {
 	case lineage.SourceDocument:
 		return lineageBlock(cx, "lineage-source-document",
 			locales.LineageSourceDocument(cx),
-			core.Text{Content: source.Filename, Style: core.Style{FontSize: 13}},
-			core.Text{Content: source.ExtractionID, Style: core.Style{FontSize: 11, FontFamily: "monospace"},
-				StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)})
+			core.Text{Content: source.Filename, Style: core.Style{FontSize: typeBody}},
+			core.Text{Content: source.ExtractionID, Style: core.Style{FontSize: typeMicro, FontFamily: core.FontMonospace},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
 	case lineage.SourceInbound:
 		details := []core.Node{
 			core.Text{Content: firstNonEmpty(source.SupplierName, source.QuestionnaireID),
@@ -233,37 +233,39 @@ func lineageEFBlock(cx *core.Scope, ef *lineage.PinnedEF) core.Node {
 	}
 	return lineageBlock(cx, "lineage-pinned-ef", locales.LineageNodeEf(cx),
 		core.Text{Content: ef.FactorCode,
-			Style: core.Style{FontSize: 12, FontFamily: "monospace"}},
+			Style: core.Style{FontSize: typeCaption, FontFamily: core.FontMonospace}},
 		core.Text{Content: ef.Source + " · " + strconv.Itoa(ef.Year) + " · " + ef.Geography +
-			" · " + ef.DatasetVersion, Style: core.Style{FontSize: 11},
+			" · " + ef.DatasetVersion, Style: core.Style{FontSize: typeMicro},
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 		core.Text{Content: strconv.FormatFloat(ef.CO2eKgPerUnit, 'f', 6, 64) +
-			" kg/" + ef.InputUnit, Style: core.Style{FontSize: 11}},
+			" kg/" + ef.InputUnit, Style: core.Style{FontSize: typeMicro, FontVariant: core.FontTabularNums}},
 		core.Text{Content: locales.LineageEfPinnedAt(cx, date),
-			Style:     core.Style{FontSize: 11},
-			StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)})
+			Style:     core.Style{FontSize: typeMicro},
+			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
 }
 
 func lineageDownstreamBlock(cx *core.Scope, chain *lineage.ActivityLineage) core.Node {
 	if len(chain.Answers) == 0 && len(chain.Snapshots) == 0 {
 		return lineageBlock(cx, "lineage-downstream", locales.LineageNodeDownstream(cx),
-			core.Text{Content: locales.LineageNoDownstream(cx), Style: core.Style{FontSize: 12},
+			core.Text{Content: locales.LineageNoDownstream(cx), Style: core.Style{FontSize: typeCaption},
 				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
 	}
 	children := make([]core.Node, 0, len(chain.Answers)+len(chain.Snapshots)+2)
 	if len(chain.Answers) > 0 {
 		children = append(children, core.Text{Content: locales.LineageNodeAnswers(cx),
-			Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)})
+			Style: core.Style{FontSize: typeMicro, FontWeight: ui.Semibold},
+			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
 		for _, answer := range chain.Answers {
 			children = append(children, core.View{
 				TestID: "lineage-answer-" + answer.AnswerID,
 				Children: []core.Node{core.Text{Content: answer.QuestionText,
-					Style: core.Style{FontSize: 12}, MaxLines: 2}}})
+					Style: core.Style{FontSize: typeCaption}, MaxLines: 2}}})
 		}
 	}
 	if len(chain.Snapshots) > 0 {
 		children = append(children, core.Text{Content: locales.LineageNodeSnapshots(cx),
-			Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)})
+			Style: core.Style{FontSize: typeMicro, FontWeight: ui.Semibold},
+			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
 		for _, snapshot := range chain.Snapshots {
 			date := snapshot.FrozenAt
 			if len(date) > 10 {

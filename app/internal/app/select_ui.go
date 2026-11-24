@@ -227,7 +227,7 @@ func (s appSelect[T]) Render(cx *core.Scope) core.Node {
 			Width:        core.Pt(popupW),
 			MinWidth:     core.Pt(0),
 			Padding:      core.All(4),
-			CornerRadius: ui.RadiusControl + 2,
+			CornerRadius: radiusMenu,
 			BorderWidth:  1,
 			Color:        colors.Text(),
 		})
@@ -404,6 +404,7 @@ type wideSelect struct {
 	SearchPlaceholder string
 	PopupWidth        core.Points
 	Width             core.Points
+	Height            core.Points
 }
 
 func (s wideSelect) Render(cx *core.Scope) core.Node {
@@ -435,9 +436,13 @@ func (s wideSelect) Render(cx *core.Scope) core.Node {
 		}
 		return s.Placeholder
 	}
-	width := s.Width
-	if width <= 0 {
-		width = 440
+	rootStyle := core.Style{Width: core.Pct(100)}
+	if s.Width > 0 {
+		rootStyle = core.Style{Width: core.Pt(s.Width), AlignSelf: core.AlignStart}
+	}
+	height := s.Height
+	if height <= 0 {
+		height = ui.ButtonHeight
 	}
 	popupWidth := s.PopupWidth
 	if popupWidth <= 0 {
@@ -445,18 +450,26 @@ func (s wideSelect) Render(cx *core.Scope) core.Node {
 	}
 	field := core.View{
 		Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 6,
-			Height: core.Pt(32), Padding: core.Edges{Left: 10, Right: 8},
-			CornerRadius: 6, BorderWidth: 1},
+			Height: core.Pt(height), Padding: core.Edges{Left: 10, Right: 8},
+			CornerRadius: ui.RadiusControl, BorderCurve: core.BorderCurveContinuous,
+			BorderWidth: 1},
 		StyleFunc: func() core.Style {
 			border := colors.FieldBorder()
 			if open.Get() {
 				border = colors.Accent()
 			}
-			return core.Style{Background: colors.Surface(), BorderColor: border}
+			return core.Style{
+				Background:  colors.Surface(),
+				BorderColor: border,
+				GroupStyle: &core.GroupStyle{
+					Hover:  &core.Style{Background: colors.Hover()},
+					Active: &core.Style{Background: colors.Pressed()},
+				},
+			}
 		},
 		Children: []core.Node{
 			core.Text{ContentFunc: title, MaxLines: 1,
-				Style: core.Style{FontSize: 13, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
+				Style: core.Style{FontSize: typeBody, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
 				StyleFunc: func() core.Style {
 					if !hasValue() {
 						return core.Style{Color: colors.Faint()}
@@ -489,7 +502,7 @@ func (s wideSelect) Render(cx *core.Scope) core.Node {
 		AlignItems:   core.AlignCenter,
 		Gap:          8,
 		Padding:      core.Edges{Top: 7, Bottom: 7, Left: 10, Right: 18},
-		CornerRadius: 6,
+		CornerRadius: radiusItem,
 	}
 	b := base.Select{
 		Ref:   anchor,
@@ -509,8 +522,8 @@ func (s wideSelect) Render(cx *core.Scope) core.Node {
 		Presentation: base.PresentPopup,
 		Offset:       4,
 		Margin:       8,
-		RootStyle:    core.Style{Width: core.Pt(width), AlignSelf: core.AlignStart},
-		Style:        core.Style{FlexGrow: 1},
+		RootStyle:    rootStyle,
+		Style:        core.Style{Group: "button", FlexGrow: 1, CornerRadius: ui.RadiusControl},
 		StyleFunc:    func() core.Style { return core.Style{FocusVisible: ui.FocusRing(cx, 2)} },
 		Trigger:      field,
 		OnLayout: func(bounds core.Bounds) {
@@ -521,7 +534,7 @@ func (s wideSelect) Render(cx *core.Scope) core.Node {
 			}
 		},
 		PopupStyleFunc: func() core.Style {
-			w := max(width, triggerW.Get())
+			w := max(s.Width, triggerW.Get())
 			if bounds, ok := anchor.ContentBounds(); ok && bounds.Size.Width > w {
 				w = bounds.Size.Width
 			}
@@ -536,7 +549,7 @@ func (s wideSelect) Render(cx *core.Scope) core.Node {
 				Width:        core.Pt(desired),
 				MinWidth:     core.Pt(0),
 				Padding:      core.All(4),
-				CornerRadius: ui.RadiusControl + 2,
+				CornerRadius: radiusMenu,
 				BorderWidth:  1,
 				Color:        colors.Text(),
 			})

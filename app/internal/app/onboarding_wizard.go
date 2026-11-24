@@ -125,13 +125,17 @@ func (s *Session) onboardingRoot(cx *core.Scope) core.Node {
 			JustifyContent: core.JustifySpaceBetween, Gap: 12},
 		Children: []core.Node{
 			onboardingProgress(cx, w.step.Get),
-			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
-				Padding: core.All(2), CornerRadius: 6, BorderWidth: 1,
-				Background:  ui.ColorsOf(cx).Surface(),
-				BorderColor: ui.ColorsOf(cx).Border()}, Children: []core.Node{
-				onboardingLocaleButton(cx, "zh-CN", locales.SettingsGeneralLanguageZh, setLocale),
-				onboardingLocaleButton(cx, "en", locales.SettingsGeneralLanguageEn, setLocale),
-			}},
+			core.View{
+				Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+					Padding: core.All(2), CornerRadius: radiusItem, BorderWidth: 1},
+				StyleFunc: func() core.Style {
+					colors := ui.ColorsOf(cx)
+					return core.Style{Background: colors.Surface(), BorderColor: colors.Border()}
+				},
+				Children: []core.Node{
+					onboardingLocaleButton(cx, "zh-CN", locales.SettingsGeneralLanguageZh, setLocale),
+					onboardingLocaleButton(cx, "en", locales.SettingsGeneralLanguageEn, setLocale),
+				}},
 		},
 	}
 
@@ -202,9 +206,8 @@ func (s *Session) onboardingRoot(cx *core.Scope) core.Node {
 	}
 
 	card := core.View{
-		Style: core.Style{BorderWidth: 1, CornerRadius: 8,
-			Background:  ui.ColorsOf(cx).Surface(),
-			BorderColor: ui.ColorsOf(cx).Border()},
+		Style:     core.Style{BorderWidth: 1, CornerRadius: radiusCard},
+		StyleFunc: cardSurface(cx),
 		Children: []core.Node{
 			core.Dynamic(func(cx *core.Scope) core.Node {
 				_ = i18n.Language(cx)
@@ -216,12 +219,11 @@ func (s *Session) onboardingRoot(cx *core.Scope) core.Node {
 					Children: []core.Node{
 						core.Text{Content: locales.OnboardingEyebrow(cx,
 							strconv.Itoa(step), strconv.Itoa(onboardingSteps)),
-							Style: core.Style{FontSize: 12, FontWeight: ui.Medium,
-								LetterSpacingEm: 0.05, TextTransform: core.TextTransformUppercase},
-							StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-						core.Text{Content: title, Style: core.Style{FontSize: 24,
+							Style:     core.Style{FontSize: typeCaption, FontWeight: ui.Medium},
+							StyleFunc: ui.Colored(accentInk(cx))},
+						core.Text{Content: title, Style: core.Style{FontSize: typePageTitle,
 							FontWeight: ui.Semibold, LetterSpacingEm: -0.01}},
-						core.Text{Content: subtitle, Style: core.Style{FontSize: 14,
+						core.Text{Content: subtitle, Style: core.Style{FontSize: typeBody,
 							LineHeightEm: 1.5}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted),
 							MaxLines: 3},
 					}}
@@ -234,8 +236,10 @@ func (s *Session) onboardingRoot(cx *core.Scope) core.Node {
 			core.View{
 				Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
 					JustifyContent: core.JustifySpaceBetween, Gap: 12,
-					Padding: core.Symmetric(16, 32), Borders: core.Edges{Top: 1},
-					BorderColor: ui.ColorsOf(cx).Border()},
+					Padding: core.Symmetric(16, 32), Borders: core.Edges{Top: 1}},
+				StyleFunc: func() core.Style {
+					return core.Style{BorderColor: ui.ColorsOf(cx).Line()}
+				},
 				Children: []core.Node{
 					core.Dynamic(func(cx *core.Scope) core.Node {
 						if w.step.Get() == 1 {
@@ -267,21 +271,29 @@ func (s *Session) onboardingRoot(cx *core.Scope) core.Node {
 
 	return core.View{
 		TestID: "onboarding",
-		Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0),
-			AlignItems: core.AlignCenter, JustifyContent: core.JustifyCenter,
-			Padding: core.All(24), Background: ui.ColorsOf(cx).Background()},
-		Children: []core.Node{core.View{
-			Style: core.Style{Width: core.Pct(100), MaxWidth: core.Pt(576), Gap: 24},
-			Children: []core.Node{
-				chrome,
-				card,
-				core.Show{When: func() bool { return w.status.Get() != "" },
-					Then: func(cx *core.Scope) core.Node {
-						return core.Text{ContentFunc: func() string { return w.status.Get() },
-							Style:     core.Style{FontSize: 12, TextAlign: core.TextAlignCenter},
-							StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger), MaxLines: 3}
-					}},
-			},
+		Style:  core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
+		StyleFunc: func() core.Style {
+			return core.Style{Background: ui.ColorsOf(cx).Background()}
+		},
+		Children: []core.Node{core.Scroll{
+			Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
+			Children: []core.Node{core.View{
+				Style: core.Style{FlexGrow: 1, AlignItems: core.AlignCenter,
+					JustifyContent: core.JustifyCenter, Padding: core.All(24)},
+				Children: []core.Node{core.View{
+					Style: core.Style{Width: core.Pct(100), MaxWidth: core.Pt(576), Gap: 24},
+					Children: []core.Node{
+						chrome,
+						card,
+						core.Show{When: func() bool { return w.status.Get() != "" },
+							Then: func(cx *core.Scope) core.Node {
+								return core.Text{ContentFunc: func() string { return w.status.Get() },
+									Style:     core.Style{FontSize: typeCaption, TextAlign: core.TextAlignCenter},
+									StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger), MaxLines: 3}
+							}},
+					},
+				}},
+			}},
 		}},
 	}
 }
@@ -570,23 +582,40 @@ func (w *onboardingWizard) siteBody(cx *core.Scope) core.Node {
 
 func (w *onboardingWizard) aiBody(cx *core.Scope, finish func()) core.Node {
 	action := func(label string, primary bool, testID string, onPress func()) core.Node {
-		style := core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
-			Width: core.Pct(100), Height: core.Pt(44), Padding: core.Symmetric(0, 16),
-			CornerRadius: 8, BorderWidth: 1}
-		textStyle := core.Style{FontSize: 14, FontWeight: ui.Medium}
-		if primary {
-			style.Background = ui.ColorsOf(cx).Accent()
-			style.BorderColor = ui.ColorsOf(cx).Accent()
-			textStyle.Color = ui.ColorsOf(cx).OnAccent()
-		} else {
-			style.Background = ui.ColorsOf(cx).Surface()
-			style.BorderColor = ui.ColorsOf(cx).Border()
-		}
-		return core.View{TestID: testID, Role: core.RoleButton,
+		return core.View{
+			TestID:   testID,
+			Role:     core.RoleButton,
 			Disabled: w.busy.Get,
 			OnPress:  func(core.PressEvent) { onPress() },
-			Style:    style,
-			Children: []core.Node{core.Text{Content: label, Style: textStyle, MaxLines: 2}}}
+			Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+				Width: core.Pct(100), Height: core.Pt(44), Padding: core.Symmetric(0, 16),
+				CornerRadius: radiusCard, BorderWidth: 1},
+			StyleFunc: func() core.Style {
+				colors := ui.ColorsOf(cx)
+				st := core.Style{FocusVisible: ui.FocusRing(cx, 2)}
+				if primary {
+					st.Background = colors.Accent()
+					st.BorderColor = colors.Accent()
+					st.Hover = &core.Style{Background: cx.Palette().AccentHover}
+					return st
+				}
+				st.Background = colors.Surface()
+				st.BorderColor = colors.Border()
+				st.Hover = &core.Style{Background: colors.Hover()}
+				return st
+			},
+			Children: []core.Node{core.Text{
+				Content:  label,
+				Style:    core.Style{FontSize: typeBody, FontWeight: ui.Medium},
+				MaxLines: 2,
+				StyleFunc: func() core.Style {
+					if primary {
+						return core.Style{Color: ui.ColorsOf(cx).OnAccent()}
+					}
+					return core.Style{Color: ui.ColorsOf(cx).Text()}
+				},
+			}},
+		}
 	}
 	return core.View{Style: core.Style{Gap: 12}, Children: []core.Node{
 		action(locales.OnboardingStepAiByot(cx), true, "onboarding-byot", finish),

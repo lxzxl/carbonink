@@ -645,6 +645,7 @@ const (
 	textCommandFiles
 	textCommandGoTo
 	textCommandHints
+	textCommandPaletteTrigger
 	textCommandRevealData
 	textCommandRevealWorkspace
 	textCommandSearch
@@ -1183,6 +1184,7 @@ const (
 	textOnboardingStepAiTitle
 	textOnboardingStepBoundaryBody
 	textOnboardingStepBoundaryEquityShare
+	textOnboardingStepBoundaryFinancialControl
 	textOnboardingStepBoundaryOperationalControl
 	textOnboardingStepBoundarySubtitle
 	textOnboardingStepBoundaryTitle
@@ -1256,6 +1258,7 @@ const (
 	textQuestionnairesFinalizeButton
 	textQuestionnairesNewButton
 	textQuestionnairesSearchPlaceholder
+	textQuestionnairesSelectDetail
 	textQuestionnairesSortCustomer
 	textQuestionnairesSortDue
 	textQuestionnairesSortOldest
@@ -1756,6 +1759,7 @@ const (
 	textSupplierDisclosuresReviewTierTwo
 	textSupplierDisclosuresReviewTitle
 	textSupplierDisclosuresSearchPlaceholder
+	textSupplierDisclosuresSelectDetail
 	textSupplierDisclosuresStatusAll
 	textSupplierDisclosuresStatusDraft
 	textSupplierDisclosuresStatusFilter
@@ -2025,6 +2029,7 @@ var keyOfText = [numTexts]string{
 	"commandFiles",
 	"commandGoTo",
 	"commandHints",
+	"commandPaletteTrigger",
 	"commandRevealData",
 	"commandRevealWorkspace",
 	"commandSearch",
@@ -2563,6 +2568,7 @@ var keyOfText = [numTexts]string{
 	"onboardingStepAiTitle",
 	"onboardingStepBoundaryBody",
 	"onboardingStepBoundaryEquityShare",
+	"onboardingStepBoundaryFinancialControl",
 	"onboardingStepBoundaryOperationalControl",
 	"onboardingStepBoundarySubtitle",
 	"onboardingStepBoundaryTitle",
@@ -2636,6 +2642,7 @@ var keyOfText = [numTexts]string{
 	"questionnairesFinalizeButton",
 	"questionnairesNewButton",
 	"questionnairesSearchPlaceholder",
+	"questionnairesSelectDetail",
 	"questionnairesSortCustomer",
 	"questionnairesSortDue",
 	"questionnairesSortOldest",
@@ -3136,6 +3143,7 @@ var keyOfText = [numTexts]string{
 	"supplierDisclosuresReviewTierTwo",
 	"supplierDisclosuresReviewTitle",
 	"supplierDisclosuresSearchPlaceholder",
+	"supplierDisclosuresSelectDetail",
 	"supplierDisclosuresStatusAll",
 	"supplierDisclosuresStatusDraft",
 	"supplierDisclosuresStatusFilter",
@@ -3403,6 +3411,7 @@ var textsEn = i18n.NewTexts(""+
 	"Files"+
 	"Go to"+
 	"↑↓ Navigate · ↵ Select · Esc Close"+
+	"Search…"+
 	"Reveal data directory"+
 	"Reveal workspace database"+
 	"Search commands"+
@@ -3941,6 +3950,7 @@ var textsEn = i18n.NewTexts(""+
 	"AI provider"+
 	"Per GHG Protocol Corporate Standard. Choose how you account for organizational boundaries."+
 	"Equity Share — emissions allocated by ownership share of joint ventures."+
+	"Financial Control — emissions from operations over which you have financial control."+
 	"Operational Control — emissions from facilities you operate, regardless of ownership."+
 	"Per GHG Protocol — how do you account for emissions from facilities you don't fully own?"+
 	"Organizational boundary"+
@@ -4014,6 +4024,7 @@ var textsEn = i18n.NewTexts(""+
 	"Finalize answers"+
 	"New disclosure filing"+
 	"Search customer name"+
+	"Select a disclosure filing to inspect and answer its questions."+
 	"Customer A→Z"+
 	"Due date"+
 	"Oldest first"+
@@ -4514,6 +4525,7 @@ var textsEn = i18n.NewTexts(""+
 	"Tier 2 — allocated emissions"+
 	"Review supplier reply"+
 	"Search supplier name…"+
+	"Select a supplier disclosure to inspect responses and status."+
 	"All statuses"+
 	"Draft"+
 	"Status"+
@@ -4778,6 +4790,7 @@ var textsEn = i18n.NewTexts(""+
 		5,
 		5,
 		42,
+		9,
 		21,
 		25,
 		15,
@@ -5316,6 +5329,7 @@ var textsEn = i18n.NewTexts(""+
 		11,
 		90,
 		74,
+		86,
 		87,
 		90,
 		23,
@@ -5389,6 +5403,7 @@ var textsEn = i18n.NewTexts(""+
 		16,
 		21,
 		20,
+		63,
 		14,
 		8,
 		12,
@@ -5889,6 +5904,7 @@ var textsEn = i18n.NewTexts(""+
 		30,
 		21,
 		23,
+		61,
 		12,
 		5,
 		6,
@@ -6156,6 +6172,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"文件"+
 	"前往"+
 	"↑↓ 移动 · ↵ 选择 · Esc 关闭"+
+	"搜索…"+
 	"打开数据目录"+
 	"打开账套数据库"+
 	"搜索命令"+
@@ -6694,6 +6711,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"AI 提供方"+
 	"依据 GHG Protocol Corporate Standard，选择组织边界核算方式。"+
 	"股权比例 — 按对合资公司持股比例分配排放。"+
+	"财务控制 — 核算你拥有财务控制权的运营设施排放。"+
 	"经营控制 — 算自己运营的设施排放，无论是否持股。多数小厂适用。"+
 	"依据 GHG Protocol — 你如何核算\"非完全所有\"设施的排放？"+
 	"组织边界"+
@@ -6767,6 +6785,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"确认全部答案"+
 	"新建披露填报"+
 	"搜索客户名称"+
+	"选择一份披露填报以查看并作答问题。"+
 	"客户 A→Z"+
 	"截止日期"+
 	"最早创建"+
@@ -7267,6 +7286,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"Tier 2 — 分配排放"+
 	"审核供应商填报"+
 	"搜索供应商名称…"+
+	"选择一份供应商披露以查看回复与状态。"+
 	"全部状态"+
 	"草稿"+
 	"状态"+
@@ -7531,6 +7551,7 @@ var textsZhCN = i18n.NewTexts(""+
 		6,
 		6,
 		41,
+		9,
 		18,
 		21,
 		12,
@@ -8069,6 +8090,7 @@ var textsZhCN = i18n.NewTexts(""+
 		12,
 		74,
 		62,
+		71,
 		92,
 		74,
 		12,
@@ -8142,6 +8164,7 @@ var textsZhCN = i18n.NewTexts(""+
 		18,
 		18,
 		18,
+		51,
 		12,
 		12,
 		12,
@@ -8642,6 +8665,7 @@ var textsZhCN = i18n.NewTexts(""+
 		23,
 		21,
 		24,
+		54,
 		12,
 		6,
 		6,
@@ -11675,6 +11699,13 @@ func CommandHints(cx *core.Scope) string { return For(cx).CommandHints() }
 
 // CommandHints is the package's CommandHints in the language of msgs.
 func (msgs Messages) CommandHints() string { return msgs.text(textCommandHints) }
+
+// CommandPaletteTrigger says "Search…"
+// in the language the app shows under cx.
+func CommandPaletteTrigger(cx *core.Scope) string { return For(cx).CommandPaletteTrigger() }
+
+// CommandPaletteTrigger is the package's CommandPaletteTrigger in the language of msgs.
+func (msgs Messages) CommandPaletteTrigger() string { return msgs.text(textCommandPaletteTrigger) }
 
 // CommandRevealData says "Reveal data directory"
 // in the language the app shows under cx.
@@ -17446,6 +17477,17 @@ func (msgs Messages) OnboardingStepBoundaryEquityShare() string {
 	return msgs.text(textOnboardingStepBoundaryEquityShare)
 }
 
+// OnboardingStepBoundaryFinancialControl says "Financial Control — emissions from operations over which you have financial control."
+// in the language the app shows under cx.
+func OnboardingStepBoundaryFinancialControl(cx *core.Scope) string {
+	return For(cx).OnboardingStepBoundaryFinancialControl()
+}
+
+// OnboardingStepBoundaryFinancialControl is the package's OnboardingStepBoundaryFinancialControl in the language of msgs.
+func (msgs Messages) OnboardingStepBoundaryFinancialControl() string {
+	return msgs.text(textOnboardingStepBoundaryFinancialControl)
+}
+
 // OnboardingStepBoundaryOperationalControl says "Operational Control — emissions from facilities you operate, regardless of ownership."
 // in the language the app shows under cx.
 func OnboardingStepBoundaryOperationalControl(cx *core.Scope) string {
@@ -18345,6 +18387,15 @@ func QuestionnairesSearchPlaceholder(cx *core.Scope) string {
 // QuestionnairesSearchPlaceholder is the package's QuestionnairesSearchPlaceholder in the language of msgs.
 func (msgs Messages) QuestionnairesSearchPlaceholder() string {
 	return msgs.text(textQuestionnairesSearchPlaceholder)
+}
+
+// QuestionnairesSelectDetail says "Select a disclosure filing to inspect and answer its questions."
+// in the language the app shows under cx.
+func QuestionnairesSelectDetail(cx *core.Scope) string { return For(cx).QuestionnairesSelectDetail() }
+
+// QuestionnairesSelectDetail is the package's QuestionnairesSelectDetail in the language of msgs.
+func (msgs Messages) QuestionnairesSelectDetail() string {
+	return msgs.text(textQuestionnairesSelectDetail)
 }
 
 // QuestionnairesSortCustomer says "Customer A→Z"
@@ -24637,6 +24688,17 @@ func SupplierDisclosuresSearchPlaceholder(cx *core.Scope) string {
 // SupplierDisclosuresSearchPlaceholder is the package's SupplierDisclosuresSearchPlaceholder in the language of msgs.
 func (msgs Messages) SupplierDisclosuresSearchPlaceholder() string {
 	return msgs.text(textSupplierDisclosuresSearchPlaceholder)
+}
+
+// SupplierDisclosuresSelectDetail says "Select a supplier disclosure to inspect responses and status."
+// in the language the app shows under cx.
+func SupplierDisclosuresSelectDetail(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresSelectDetail()
+}
+
+// SupplierDisclosuresSelectDetail is the package's SupplierDisclosuresSelectDetail in the language of msgs.
+func (msgs Messages) SupplierDisclosuresSelectDetail() string {
+	return msgs.text(textSupplierDisclosuresSelectDetail)
 }
 
 // SupplierDisclosuresStatusAll says "All statuses"

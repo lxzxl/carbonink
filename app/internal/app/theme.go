@@ -12,7 +12,7 @@ const (
 	primary        = 0x008c4f // light primary
 	primaryHover   = 0x1a9861 // primary at 90% over white
 	primaryPressed = 0x0d9258 // primary at 95% over white
-	primaryInk     = 0x008c4f // accent as text and links
+	primaryInk     = 0x007a45 // darker emerald text/links for >=4.5:1 WCAG AA contrast on white
 	primaryTint    = 0xe5eee8 // accent at 6% over white
 
 	primaryDark        = 0x00af67
@@ -20,23 +20,42 @@ const (
 	primaryDarkPressed = 0x089659
 	primaryDarkTint    = 0x26312b
 
-	foreground     = 0x13120c
-	foregroundDark = 0xf0eee9
-	muted          = 0x65635c
-	mutedDark      = 0x918f87
-	faint          = 0xa8a6a0
-	faintDark      = 0x918f87
-	border         = 0xe7e7e7
-	borderDark     = 0x2b2922
-	surfaceDark    = 0x1c1b14
-	pageDark       = 0x13120c
-	sidebar        = 0xfafafa
-	fieldBorder    = 0xdfded8
-	secondary      = 0xf3f2ec
-	secondaryText  = 0x1c1b14
-	mutedSurface   = 0xf0eee9
-	danger         = 0xcc272e
-	dangerDark     = 0xf94144
+	foreground      = 0x13120c
+	foregroundDark  = 0xf0eee9
+	muted           = 0x65635c
+	mutedDark       = 0x918f87
+	faint           = 0xa8a6a0
+	faintDark       = 0x918f87
+	border          = 0xe7e7e7
+	borderDark      = 0x2b2922
+	sidebarDark     = 0x171610
+	surfaceDark     = 0x1c1b14
+	raisedDark      = 0x25241c
+	pageDark        = 0x13120c
+	sidebar         = 0xfafafa
+	fieldBorder     = 0xdfded8
+	fieldBorderDark = 0x35332a
+	secondary       = 0xf3f2ec
+	secondaryText   = 0x1c1b14
+	mutedSurface    = 0xf0eee9
+	danger          = 0xcc272e
+	dangerDark      = 0xf94144
+)
+
+// Shared 6-step typography scale and 5-step radius scale for the 2.0 app.
+const (
+	typeKPI          core.Points = 24
+	typePageTitle    core.Points = 20
+	typeSectionTitle core.Points = 15
+	typeBody         core.Points = 13
+	typeCaption      core.Points = 12
+	typeMicro        core.Points = 11
+
+	radiusMark   core.Points = 4
+	radiusItem   core.Points = 6
+	radiusCard   core.Points = 8
+	radiusMenu   core.Points = 12
+	radiusDialog core.Points = 16
 )
 
 // accentInk is the accent as text and links: darker than a fill so body
@@ -69,14 +88,26 @@ func cardSurface(cx *core.Scope) func() core.Style {
 // carboninkTheme is 1.x's palette in NSGo's theme shape.
 func carboninkTheme() *core.Theme {
 	t := core.DefaultTheme()
-	t.Radius = 8
+	t.Radius = radiusCard
 
+	t.Light.Background = core.RGB(0xffffff)
+	t.Light.Surface = core.RGB(0xffffff)
+	t.Light.SurfaceHover = core.RGBA(foreground, 0.05)
+	t.Light.SurfacePressed = core.RGBA(foreground, 0.10)
+	t.Light.Border = core.RGB(border)
+	t.Light.Text = core.RGB(foreground)
 	t.Light.TextMuted = core.RGB(muted)
+	t.Light.Scrollbar = core.RGBA(foreground, 0.25)
 	t.Light.SetColor("faint", core.RGB(faint))
 	t.Light.SetColor("field", core.RGB(0xffffff))
 	t.Light.SetColor("fieldBorder", core.RGB(fieldBorder))
 	t.Light.SetColor("inset", core.RGB(sidebar))
+	t.Light.SetColor("raised", core.RGB(0xffffff))
 	t.Light.SetColor("line", core.RGBA(foreground, 0.07))
+	t.Light.SetColor("light", core.RGB(foreground))
+	t.Light.SetColor("onLight", core.RGB(0xffffff))
+	// Override NSGo's cyan Info token so FocusRing stays on-brand (no sky-blue).
+	t.Light.SetColor("info", core.RGB(primary))
 
 	t.Light.Accent = core.RGB(primary)
 	t.Light.AccentHover = core.RGB(primaryHover)
@@ -125,11 +156,18 @@ func carboninkTheme() *core.Theme {
 	t.Dark.Border = core.RGB(borderDark)
 	t.Dark.Text = core.RGB(foregroundDark)
 	t.Dark.TextMuted = core.RGB(mutedDark)
+	t.Dark.Scrollbar = core.RGBA(foregroundDark, 0.28)
 	t.Dark.SetColor("faint", core.RGB(faintDark))
 	t.Dark.SetColor("field", core.RGB(surfaceDark))
-	t.Dark.SetColor("fieldBorder", core.RGB(borderDark))
-	t.Dark.SetColor("inset", core.RGB(pageDark))
+	t.Dark.SetColor("fieldBorder", core.RGB(fieldBorderDark))
+	t.Dark.SetColor("inset", core.RGB(sidebarDark))
+	t.Dark.SetColor("raised", core.RGB(raisedDark))
 	t.Dark.SetColor("line", core.RGBA(foregroundDark, 0.10))
+	t.Dark.SetColor("track", core.RGBA(foregroundDark, 0.24))
+	t.Dark.SetColor("knob", core.RGB(foregroundDark))
+	t.Dark.SetColor("light", core.RGB(foregroundDark))
+	t.Dark.SetColor("onLight", core.RGB(pageDark))
+	t.Dark.SetColor("info", core.RGB(primaryDark))
 
 	t.Dark.Accent = core.RGB(primaryDark)
 	t.Dark.AccentHover = core.RGB(primaryDarkHover)

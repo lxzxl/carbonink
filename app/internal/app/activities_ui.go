@@ -522,17 +522,20 @@ func (s *Session) activitiesScreen(cx *core.Scope, dataRev *core.Signal[int],
 		},
 		Empty:         listEmpty,
 		EstimatedSize: 96,
-		Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0),
-			CornerRadius: 8, BorderWidth: 1, BorderColor: ui.ColorsOf(cx).Border(),
-			Background: ui.ColorsOf(cx).Surface()},
-		ListStyle: core.Style{Padding: core.All(0)},
+		Style:         core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
+		ListStyle:     core.Style{Padding: core.All(0)},
 		RowStyle: core.Style{Padding: core.Symmetric(12, 16), AlignItems: core.AlignStart,
 			CornerRadius: 0},
 		RowStyleFunc: func() core.Style {
 			return core.Style{Borders: core.Edges{Bottom: 1}, BorderColor: ui.ColorsOf(cx).Line()}
 		},
 	}
-	return appFixedPage(append(append(top, list), overlays...)...)
+	listFrame := core.View{
+		Style:     core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0), Overflow: core.Hidden},
+		StyleFunc: cardSurface(cx),
+		Children:  []core.Node{list},
+	}
+	return appFixedPage(append(append(top, listFrame), overlays...)...)
 }
 
 func dataActivityDate(activity store.Activity) string {

@@ -852,8 +852,10 @@ func supplierQuestionRow(cx *core.Scope, index int, q store.Question) core.Node 
 	}
 	finalized := q.AnswerFinalizedAt != ""
 	return core.View{TestID: "supplier-disclosures-question-" + strconv.Itoa(index),
-		Style: core.Style{Gap: 2, Padding: core.Symmetric(8, 6), CornerRadius: 6,
-			Background: ui.ColorsOf(cx).Surface()},
+		Style: core.Style{Gap: 2, Padding: core.Symmetric(8, 6), CornerRadius: radiusItem},
+		StyleFunc: func() core.Style {
+			return core.Style{Background: ui.ColorsOf(cx).Surface()}
+		},
 		Children: []core.Node{
 			core.Text{Content: meta, Style: core.Style{FontSize: 11},
 				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
@@ -1100,8 +1102,10 @@ func supplierReviewRow(cx *core.Scope, index int, answer inbound.PreviewAnswer,
 	}
 	return core.View{TestID: "supplier-disclosures-review-row-" + strconv.Itoa(index),
 		Style: core.Style{Direction: core.Row, Gap: 8, AlignItems: core.AlignCenter,
-			Padding: core.Symmetric(6, 6), CornerRadius: 6,
-			Background: ui.ColorsOf(cx).Surface()},
+			Padding: core.Symmetric(6, 6), CornerRadius: radiusItem},
+		StyleFunc: func() core.Style {
+			return core.Style{Background: ui.ColorsOf(cx).Surface()}
+		},
 		Children: []core.Node{
 			ui.Checkbox{Checked: func() bool { return accepted[answer.QuestionID] },
 				OnChange: onToggle, TestID: "supplier-disclosures-review-accept-" + answer.Position},

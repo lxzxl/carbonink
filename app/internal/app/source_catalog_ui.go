@@ -170,7 +170,7 @@ func (s *Session) sourceCatalogDialogWithShow(cx *core.Scope,
 		ui.Button{Text: locales.SourcesCatalogButton(cx), Icon: lucide.Layers,
 			Variant: ui.ButtonOutline,
 			OnPress: show, TestID: "source-catalog"},
-		sideDrawer(cx, c.open, locales.SourcesCatalogTitle(cx), 640, []core.Node{
+		sideDrawer(cx, c.open, locales.SourcesCatalogTitle(cx), 680, []core.Node{
 			search,
 			dataColumns(cx, 8,
 				dataField(cx, locales.SourcesFormScope(cx),
@@ -265,15 +265,15 @@ func catalogList(cx *core.Scope, c *sourceCatalog) core.Node {
 				Children: []core.Node{
 					core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 6},
 						Children: []core.Node{
-							core.Text{Content: primary, Style: core.Style{FontSize: 13, FontWeight: ui.Semibold},
+							core.Text{Content: primary, Style: core.Style{FontSize: typeBody, FontWeight: ui.Semibold},
 								MaxLines: 1},
-							core.Text{Content: secondary, Style: core.Style{FontSize: 11},
-								StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint), MaxLines: 1},
+							core.Text{Content: secondary, Style: core.Style{FontSize: typeMicro},
+								StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
 						}},
-					core.Text{Content: meta, Style: core.Style{FontSize: 11},
+					core.Text{Content: meta, Style: core.Style{FontSize: typeMicro},
 						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
-					core.Text{Content: provenance, Style: core.Style{FontSize: 11},
-						StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint), MaxLines: 1},
+					core.Text{Content: provenance, Style: core.Style{FontSize: typeMicro},
+						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 1},
 				}},
 		}
 		if already {

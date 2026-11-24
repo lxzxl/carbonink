@@ -48,10 +48,10 @@ func appFixedPage(children ...core.Node) core.Node {
 	}
 }
 
-// pageHeading is the 1.x route title: 24 pt semibold, actions flush right.
+// pageHeading is the route title: 20 pt semibold, actions flush right.
 func pageHeading(cx *core.Scope, title func(*core.Scope) string, actions ...core.Node) core.Node {
 	children := []core.Node{core.Text{ContentFunc: func() string { return title(cx) },
-		Style: core.Style{FontSize: 24, FontWeight: ui.Semibold, FlexGrow: 1,
+		Style: core.Style{FontSize: typePageTitle, FontWeight: ui.Semibold, FlexGrow: 1,
 			FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 1}}
 	if len(actions) > 0 {
 		children = append(children, core.View{
@@ -77,7 +77,7 @@ func pageHeadingWithDetail(cx *core.Scope, title, detail func(*core.Scope) strin
 	return core.View{Style: core.Style{Gap: 4}, Children: []core.Node{
 		head,
 		core.Text{ContentFunc: func() string { return detail(cx) },
-			Style:     core.Style{FontSize: 13, FlexShrink: 1, MinWidth: core.Pt(0)},
+			Style:     core.Style{FontSize: typeBody, FlexShrink: 1, MinWidth: core.Pt(0)},
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
 	}}
 }
@@ -104,10 +104,10 @@ func splitPage(cx *core.Scope, width float32, list, detail core.Node) core.Node 
 func listPaneHeader(cx *core.Scope, title, detail func(*core.Scope) string,
 	actions ...core.Node) core.Node {
 	head := []core.Node{core.Text{ContentFunc: func() string { return title(cx) },
-		Style: core.Style{FontSize: 15, FontWeight: ui.Semibold}, MaxLines: 1}}
+		Style: core.Style{FontSize: typeSectionTitle, FontWeight: ui.Semibold}, MaxLines: 1}}
 	if detail != nil {
 		head = append(head, core.Text{ContentFunc: func() string { return detail(cx) },
-			Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted),
+			Style: core.Style{FontSize: typeCaption}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted),
 			MaxLines: 2})
 	}
 	row := []core.Node{core.View{Style: core.Style{Gap: 2, FlexGrow: 1, FlexShrink: 1,
@@ -130,7 +130,7 @@ func detailEmpty(cx *core.Scope, text func(*core.Scope) string) core.Node {
 	return core.View{Style: core.Style{FlexGrow: 1, AlignItems: core.AlignCenter,
 		JustifyContent: core.JustifyCenter, Padding: core.All(32)},
 		Children: []core.Node{core.Text{ContentFunc: func() string { return text(cx) },
-			Style:     core.Style{FontSize: 13, TextAlign: core.TextAlignCenter},
+			Style:     core.Style{FontSize: typeBody, TextAlign: core.TextAlignCenter},
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2}}}
 }
 
@@ -143,7 +143,7 @@ func detailEmptyIcon(cx *core.Scope, icon func() *core.SVG,
 		Children: []core.Node{
 			ui.Icon(icon, 44, ui.ColorsOf(cx).Faint),
 			core.Text{ContentFunc: func() string { return text(cx) },
-				Style:     core.Style{FontSize: 14, TextAlign: core.TextAlignCenter},
+				Style:     core.Style{FontSize: typeBody, TextAlign: core.TextAlignCenter},
 				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2},
 		}}
 }
@@ -152,8 +152,9 @@ func detailEmptyIcon(cx *core.Scope, icon func() *core.SVG,
 // header, a scrolling body, and an optional action bar along the bottom.
 func detailPaneShell(cx *core.Scope, testID, title string, actions, body, footer []core.Node) core.Node {
 	header := []core.Node{
-		core.Text{Content: title, Style: core.Style{FontSize: 18, FontWeight: ui.Semibold,
-			FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 2},
+		core.Text{Content: title, Style: core.Style{FontSize: typeSectionTitle,
+			FontWeight: ui.Semibold, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
+			MaxLines: 2},
 	}
 	header = append(header, actions...)
 	children := []core.Node{
@@ -163,8 +164,9 @@ func detailPaneShell(cx *core.Scope, testID, title string, actions, body, footer
 			return core.Style{BorderColor: ui.ColorsOf(cx).Line()}
 		}, Children: header},
 		core.Scroll{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
-			Children: []core.Node{core.View{Style: core.Style{Padding: core.Symmetric(20, 24),
-				Gap: 16}, Children: body}}},
+			Children: []core.Node{core.View{Style: core.Style{Width: core.Pct(100),
+				MaxWidth: core.Pt(880), Padding: core.Symmetric(20, 24), Gap: 16},
+				Children: body}}},
 	}
 	if len(footer) > 0 {
 		children = append(children, core.View{
@@ -212,8 +214,8 @@ func segmentedControl(cx *core.Scope, options []segment, value func() int,
 			kids = append(kids, countBadge(cx, option.Count, value() == option.Value))
 		}
 		style := core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
-			JustifyContent: core.JustifyCenter, Gap: 4, Height: core.Pt(26),
-			Padding: core.Symmetric(0, 8), CornerRadius: 6}
+			JustifyContent: core.JustifyCenter, Gap: 4, Height: core.Pt(ui.ButtonHeight),
+			Padding: core.Symmetric(0, 10), CornerRadius: radiusItem}
 		if fill {
 			style.FlexGrow = 1
 			style.FlexBasis = core.Pt(0)
@@ -226,11 +228,14 @@ func segmentedControl(cx *core.Scope, options []segment, value func() int,
 			},
 			Style: style,
 			StyleFunc: func() core.Style {
+				colors := ui.ColorsOf(cx)
+				st := core.Style{FocusVisible: ui.FocusRing(cx, -2)}
 				if value() == option.Value {
-					return core.Style{Background: ui.Alpha(ui.ColorsOf(cx).Text(), 0.12)}
+					st.Background = ui.Alpha(colors.Text(), 0.12)
+					return st
 				}
-				return core.Style{Hover: &core.Style{
-					Background: ui.Alpha(ui.ColorsOf(cx).Text(), 0.05)}}
+				st.Hover = &core.Style{Background: ui.Alpha(colors.Text(), 0.05)}
+				return st
 			},
 			Children: kids,
 		})
@@ -248,7 +253,7 @@ func countBadge(cx *core.Scope, count func() int, active bool) core.Node {
 	return core.View{
 		Style: core.Style{Height: core.Pt(18), MinWidth: core.Pt(18),
 			AlignItems: core.AlignCenter, JustifyContent: core.JustifyCenter,
-			Padding: core.Symmetric(0, 4), CornerRadius: 4},
+			Padding: core.Symmetric(0, 4), CornerRadius: radiusMark},
 		StyleFunc: func() core.Style {
 			colors := ui.ColorsOf(cx)
 			if active {
@@ -258,12 +263,13 @@ func countBadge(cx *core.Scope, count func() int, active bool) core.Node {
 		},
 		Children: []core.Node{core.Text{ContentFunc: func() string {
 			return strconv.Itoa(count())
-		}, Style: core.Style{FontSize: 10, FontWeight: ui.Semibold}, MaxLines: 1,
+		}, Style: core.Style{FontSize: typeMicro, FontWeight: ui.Semibold,
+			FontVariant: core.FontTabularNums}, MaxLines: 1,
 			StyleFunc: func() core.Style {
 				if active {
 					return core.Style{}
 				}
-				return core.Style{Color: ui.Alpha(ui.ColorsOf(cx).Muted(), 0.8)}
+				return core.Style{Color: ui.ColorsOf(cx).Muted()}
 			}}},
 	}
 }
@@ -278,9 +284,9 @@ func filterChip(cx *core.Scope, dense bool, testID, label string, count func() i
 	if len(labelColor) > 0 {
 		color = labelColor[0]
 	}
-	fontSize, padX, padY := core.Points(12), core.Points(8), core.Points(4)
+	fontSize, padX, padY := typeCaption, core.Points(8), core.Points(4)
 	if dense {
-		fontSize, padX, padY = 11, 6, 2
+		fontSize, padX, padY = typeMicro, 6, 2
 	}
 	return core.View{
 		TestID: testID,
@@ -289,13 +295,16 @@ func filterChip(cx *core.Scope, dense bool, testID, label string, count func() i
 			onPress()
 		},
 		Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 4,
-			Padding: core.Symmetric(padY, padX), CornerRadius: 6, FlexShrink: 0},
+			Padding: core.Symmetric(padY, padX), CornerRadius: radiusItem, FlexShrink: 0},
 		StyleFunc: func() core.Style {
+			colors := ui.ColorsOf(cx)
+			st := core.Style{FocusVisible: ui.FocusRing(cx, -2)}
 			if selected() {
-				return core.Style{Background: ui.Alpha(ui.ColorsOf(cx).Text(), 0.12)}
+				st.Background = ui.Alpha(colors.Text(), 0.12)
+				return st
 			}
-			return core.Style{Hover: &core.Style{
-				Background: ui.Alpha(ui.ColorsOf(cx).Text(), 0.05)}}
+			st.Hover = &core.Style{Background: ui.Alpha(colors.Text(), 0.05)}
+			return st
 		},
 		Children: []core.Node{
 			core.Text{Content: label, Style: core.Style{FontSize: fontSize,
@@ -347,11 +356,13 @@ func sortMenu[T comparable](cx *core.Scope, options []ui.Option[T],
 	}
 	face := core.View{
 		Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 6,
-			Height: core.Pt(28), Padding: core.Symmetric(0, 8), CornerRadius: 6},
+			Height: core.Pt(ui.ButtonHeight), Padding: core.Symmetric(0, 8),
+			CornerRadius: radiusItem},
 		StyleFunc: func() core.Style {
 			return core.Style{BorderWidth: 1, BorderColor: colors.Border(),
-				Background: colors.Background(),
-				Hover:      &core.Style{Background: ui.Alpha(colors.Text(), 0.05)}}
+				Background:   colors.Background(),
+				Hover:        &core.Style{Background: ui.Alpha(colors.Text(), 0.05)},
+				FocusVisible: ui.FocusRing(cx, -2)}
 		},
 		Children: []core.Node{
 			ui.Icon(lucide.ArrowUpDown, 12, colors.Muted),
@@ -389,37 +400,80 @@ func sortMenu[T comparable](cx *core.Scope, options []ui.Option[T],
 func settingsSectionHeading(cx *core.Scope, title, detail func(*core.Scope) string) core.Node {
 	return core.View{Style: core.Style{Gap: 4}, Children: []core.Node{
 		core.Text{ContentFunc: func() string { return title(cx) },
-			Style: core.Style{FontSize: 20, FontWeight: ui.Semibold}},
+			Style: core.Style{FontSize: typePageTitle, FontWeight: ui.Semibold}},
 		core.Text{ContentFunc: func() string { return detail(cx) },
-			Style:     core.Style{FontSize: 13},
+			Style:     core.Style{FontSize: typeBody},
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3},
 	}}
 }
 
-// settingsCard is 1.x's settings group: an inset card holding an icon-titled
-// heading, a short explanation, and the group's controls. Settings whose 1.x
-// layout was a plain block (General, AI, AMap) stay flat; the Data, EF library
-// and migration groups use this shape.
+// hairline draws a 1 pt internal divider colored with Line().
+func hairline(cx *core.Scope) core.Node {
+	return core.View{
+		Style:     core.Style{Height: core.Pt(1), FlexShrink: 0, AlignSelf: core.AlignStretch},
+		StyleFunc: ui.Filled(ui.ColorsOf(cx).Line),
+	}
+}
+
+// settingsColumns lays out fields side by side inside Settings (which also hosts
+// the app sidebar and 200 pt settings rail), stacking below 1120 pt.
+func settingsColumns(cx *core.Scope, gap core.Points, children ...core.Node) core.Node {
+	columns := make([]core.Node, 0, len(children))
+	for _, child := range children {
+		columns = append(columns, core.View{
+			StyleFunc: func() core.Style {
+				if cx.Env().Window().Width < 1120 {
+					return core.Style{}
+				}
+				return core.Style{FlexGrow: 1, FlexShrink: 1, FlexBasis: core.Pt(0), MinWidth: core.Pt(0)}
+			},
+			Children: []core.Node{child},
+		})
+	}
+	return core.View{
+		StyleFunc: func() core.Style {
+			if cx.Env().Window().Width < 1120 {
+				return core.Style{Gap: gap}
+			}
+			return core.Style{Direction: core.Row, Gap: gap}
+		},
+		Children: columns,
+	}
+}
+
+// settingsCard is the standard Settings group container: an icon-titled header,
+// optional explanation, and controls inside a 1 pt bordered card.
 func settingsCard(cx *core.Scope, icon func() *core.SVG,
 	title, detail func(*core.Scope) string, children ...core.Node) core.Node {
+	return settingsCardWithActions(cx, icon, title, detail, nil, children...)
+}
+
+// settingsCardWithActions renders a settingsCard whose header also carries
+// trailing action buttons that wrap cleanly on narrow windows via dataHeaderRow.
+func settingsCardWithActions(cx *core.Scope, icon func() *core.SVG,
+	title, detail func(*core.Scope) string, actions []core.Node, children ...core.Node) core.Node {
 	head := []core.Node{
 		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
 			Gap: 8}, Children: []core.Node{
 			ui.Icon(icon, 16, ui.ColorsOf(cx).Text),
 			core.Text{ContentFunc: func() string { return title(cx) },
-				Style: core.Style{FontSize: 14, FontWeight: ui.Semibold, FlexShrink: 1,
-					MinWidth: core.Pt(0)}, MaxLines: 2},
+				Style: core.Style{FontSize: typeSectionTitle, FontWeight: ui.Semibold,
+					FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 2},
 		}},
 	}
 	if detail != nil {
 		head = append(head, core.Text{ContentFunc: func() string { return detail(cx) },
-			Style:     core.Style{FontSize: 12},
+			Style:     core.Style{FontSize: typeCaption},
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 4})
 	}
-	body := []core.Node{core.View{Style: core.Style{Gap: 6}, Children: head}}
+	header := core.Node(core.View{Style: core.Style{Gap: 6}, Children: head})
+	if len(actions) > 0 {
+		header = dataHeaderRow(cx, header, actions...)
+	}
+	body := []core.Node{header}
 	body = append(body, children...)
 	return core.View{
-		Style:     core.Style{Gap: 12, Padding: core.All(16), AlignSelf: core.AlignStretch},
+		Style:     core.Style{Gap: 14, Padding: core.All(16), AlignSelf: core.AlignStretch},
 		StyleFunc: cardSurface(cx),
 		Children:  body,
 	}
@@ -434,23 +488,23 @@ func settingsDangerCard(cx *core.Scope, icon func() *core.SVG,
 			Gap: 8}, Children: []core.Node{
 			ui.Icon(icon, 16, ui.ColorsOf(cx).Danger),
 			core.Text{ContentFunc: func() string { return title(cx) },
-				Style: core.Style{FontSize: 14, FontWeight: ui.Semibold, FlexShrink: 1,
-					MinWidth: core.Pt(0)},
+				Style: core.Style{FontSize: typeSectionTitle, FontWeight: ui.Semibold,
+					FlexShrink: 1, MinWidth: core.Pt(0)},
 				StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger), MaxLines: 2},
 		}},
 	}
 	if detail != nil {
 		head = append(head, core.Text{ContentFunc: func() string { return detail(cx) },
-			Style:     core.Style{FontSize: 12},
+			Style:     core.Style{FontSize: typeCaption},
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 4})
 	}
 	body := []core.Node{core.View{Style: core.Style{Gap: 6}, Children: head}}
 	body = append(body, children...)
 	return core.View{
-		Style: core.Style{Gap: 12, Padding: core.All(16), AlignSelf: core.AlignStretch},
+		Style: core.Style{Gap: 14, Padding: core.All(16), AlignSelf: core.AlignStretch},
 		StyleFunc: func() core.Style {
 			colors := ui.ColorsOf(cx)
-			return core.Style{CornerRadius: 8, BorderWidth: 1,
+			return core.Style{CornerRadius: radiusCard, BorderWidth: 1,
 				Background:  ui.Alpha(colors.Danger(), 0.05),
 				BorderColor: ui.Alpha(colors.Danger(), 0.4)}
 		},

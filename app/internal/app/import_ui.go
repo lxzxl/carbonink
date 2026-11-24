@@ -179,7 +179,7 @@ func (s *Session) activityImportDialogPartsWithShow(cx *core.Scope,
 	title := locales.ActivityImportTitle(cx)
 	trigger := ui.Button{Text: locales.ActivityImportButton(cx), Icon: lucide.FileSpreadsheet,
 		Variant: ui.ButtonOutline, OnPress: show, TestID: "activity-import"}
-	dialog := sideDrawer(cx, open, title, 720, []core.Node{
+	dialog := sideDrawer(cx, open, title, 680, []core.Node{
 		core.Dynamic(func(cx *core.Scope) core.Node {
 			_ = w.rev.Get()
 			return s.importBody(cx, w, pick)
@@ -211,11 +211,11 @@ func (s *Session) importPickBody(cx *core.Scope, w *importWizard, pick func()) c
 		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8}, Children: []core.Node{
 			ui.Button{Text: locales.ActivityImportPickButton(cx), Variant: ui.ButtonSecondary,
 				OnPress: pick, TestID: "activity-import-pick"},
-			core.Text{Content: locales.ActivityImportPickHint(cx), Style: core.Style{FontSize: 12},
-				StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
+			core.Text{Content: locales.ActivityImportPickHint(cx), Style: core.Style{FontSize: typeCaption},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 		}},
-		core.Text{Content: locales.ActivityImportEvidenceHint(cx), Style: core.Style{FontSize: 11},
-			StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
+		core.Text{Content: locales.ActivityImportEvidenceHint(cx), Style: core.Style{FontSize: typeMicro},
+			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 	}
 	if w.grid == nil {
 		if w.status.Get() != "" {
@@ -257,8 +257,8 @@ func (s *Session) importPickBody(cx *core.Scope, w *importWizard, pick func()) c
 				Placeholder: locales.ActivityImportPeriodPlaceholder(cx),
 				Label:       locales.ActivityImportPeriodLabel(cx), TestID: "activity-import-period",
 				Style: core.Style{Width: core.Pct(100)}}),
-		core.Text{Content: locales.ActivityImportPeriodHint(cx), Style: core.Style{FontSize: 11},
-			StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
+		core.Text{Content: locales.ActivityImportPeriodHint(cx), Style: core.Style{FontSize: typeMicro},
+			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 		s.importMappingCard(cx, w),
 		importSourcesCard(cx, s, w),
 		importIssuesCard(cx, w),

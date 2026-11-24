@@ -258,10 +258,12 @@ func (s *Session) aiProviderCard(cx *core.Scope) core.Node {
 				if keySaved.Get() && !editingKey.Get() {
 					return core.View{TestID: "settings-llm-key-saved",
 						Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
-							JustifyContent: core.JustifySpaceBetween, Height: core.Pt(36),
-							Padding: core.Symmetric(0, 12), CornerRadius: 8, BorderWidth: 1,
-							BorderColor: ui.ColorsOf(cx).Border(),
-							Background:  ui.ColorsOf(cx).Surface()},
+							JustifyContent: core.JustifySpaceBetween, Height: core.Pt(ui.ButtonHeight),
+							Padding: core.Symmetric(0, 10), CornerRadius: ui.RadiusControl, BorderWidth: 1},
+						StyleFunc: func() core.Style {
+							colors := ui.ColorsOf(cx)
+							return core.Style{BorderColor: colors.FieldBorder(), Background: colors.Inset()}
+						},
 						Children: []core.Node{
 							core.Text{ContentFunc: func() string { return savedMask.Get() },
 								Style:     core.Style{FontSize: 13, FontFamily: core.FontMonospace},

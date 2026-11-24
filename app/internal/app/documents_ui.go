@@ -1181,7 +1181,7 @@ func (s *Session) documentDetailBody(cx *core.Scope, detail *documentDetail) cor
 	default:
 		textChildren = append(textChildren,
 			core.Text{Content: truncateRunes(detail.text, 20000),
-				Style: core.Style{FontSize: 11, FontFamily: "monospace"}},
+				Style: core.Style{FontSize: typeMicro, FontFamily: core.FontMonospace}},
 			ui.Button{Text: locales.DocumentsDetailCopy(cx), Variant: ui.ButtonSecondary,
 				OnPress: func() {
 					cx.SetClipboard(detail.text)
@@ -1236,15 +1236,15 @@ func (s *Session) documentDetailBody(cx *core.Scope, detail *documentDetail) cor
 }
 
 func documentDetailField(cx *core.Scope, label string, value string, monospace bool) core.Node {
-	style := core.Style{FontSize: 12}
+	style := core.Style{FontSize: typeCaption, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0),
+		TextAlign: core.TextAlignEnd}
 	if monospace {
-		style.FontFamily = "monospace"
-		style.FontSize = 11
+		style.FontFamily = core.FontMonospace
+		style.FontSize = typeMicro
 	}
-	return core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8}, Children: []core.Node{
-		core.Text{Content: label, Style: core.Style{FontSize: 11}, MaxLines: 1,
+	return core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 12}, Children: []core.Node{
+		core.Text{Content: label, Style: core.Style{FontSize: typeMicro, Width: core.Pt(112), FlexShrink: 0}, MaxLines: 1,
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-		core.View{Style: core.Style{FlexGrow: 1}},
 		core.Text{Content: value, Style: style, MaxLines: 2},
 	}}
 }

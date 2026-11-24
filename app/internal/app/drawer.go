@@ -23,8 +23,9 @@ func sideDrawer(cx *core.Scope, open *core.Signal[bool], title string, width cor
 			Padding: core.Symmetric(14, 16), Borders: core.Edges{Bottom: 1}},
 		StyleFunc: func() core.Style { return core.Style{BorderColor: colors.Line()} },
 		Children: []core.Node{
-			core.Text{Content: title, Style: core.Style{FontSize: 15, FontWeight: ui.Semibold,
-				FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)}, MaxLines: 1},
+			core.Text{Content: title, Style: core.Style{FontSize: typeSectionTitle,
+				FontWeight: ui.Semibold, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
+				MaxLines: 1},
 			ui.IconButton{Icon: lucide.X, Label: closeLabel, Size: 28,
 				OnPress: func() { open.Set(false) }, TestID: testID + "-close"},
 		},
@@ -51,10 +52,11 @@ func sideDrawer(cx *core.Scope, open *core.Signal[bool], title string, width cor
 		Side:          core.PlaceRight,
 		Label:         title,
 		TestID:        testID,
-		BackdropStyle: core.Style{Background: ui.Black(0.32)},
+		BackdropStyle: core.Style{Background: ui.Black(0.28)},
 		PopupStyleFunc: func() core.Style {
-			return core.Style{Width: core.Pt(width), Background: colors.Surface(),
-				Borders: core.Edges{Left: 1}, BorderColor: colors.Line()}
+			return core.Style{Width: core.Pt(width), MaxWidth: core.Pct(92),
+				Background: colors.Surface(), Borders: core.Edges{Left: 1},
+				BorderColor: colors.Border(), Shadows: ui.FinOf(cx).Menu().Shadows}
 		},
 		Children: children,
 	}

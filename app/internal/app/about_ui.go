@@ -129,9 +129,12 @@ func (s *Session) aboutCard(cx *core.Scope) core.Node {
 			lucide.FolderOpen, "settings-about-open-data", openData),
 		action(locales.SettingsAboutOpenLogDir, locales.SettingsAboutOpenLogDirHint,
 			lucide.FileText, "settings-about-open-logs", openLogs),
-		core.View{Style: core.Style{Gap: 8, Padding: core.Edges{Top: 8},
-			Borders:     core.Edges{Top: 1},
-			BorderColor: ui.ColorsOf(cx).Line()}, Children: []core.Node{
+		core.View{
+			Style: core.Style{Gap: 8, Padding: core.Edges{Top: 8}, Borders: core.Edges{Top: 1}},
+			StyleFunc: func() core.Style {
+				return core.Style{BorderColor: ui.ColorsOf(cx).Line()}
+			},
+			Children: []core.Node{
 			row("settings-about-support", label(locales.SettingsAboutSupportLabel),
 				link(locales.SettingsAboutSupportEmail, "settings-about-support-link",
 					openLink("mailto:"+locales.SettingsAboutSupportEmail(cx),

@@ -446,8 +446,8 @@ func (s *Session) efImportBody(cx *core.Scope, w *efWizard, pick, submit func())
 				OnPress: pick, TestID: "ef-import-pick"},
 			ui.Button{Text: locales.EfLibraryTemplateButton(cx), Variant: ui.ButtonSecondary,
 				OnPress: func() { s.efTemplate(cx, w) }, TestID: "ef-template"},
-			core.Text{Content: locales.EfImportPickHint(cx), Style: core.Style{FontSize: 11},
-				StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint), MaxLines: 2},
+			core.Text{Content: locales.EfImportPickHint(cx), Style: core.Style{FontSize: typeMicro},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 2},
 		}},
 	}
 	if w.hasFile {
@@ -534,7 +534,7 @@ func efIssuesCard(cx *core.Scope, w *efWizard) core.Node {
 	}
 	if remaining := w.valid.ErrorCount + w.valid.WarningCount - len(rows); remaining > 0 {
 		rows = append(rows, core.Text{Content: locales.EfImportMoreIssues(cx, strconv.Itoa(remaining)),
-			Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)})
+			Style: core.Style{FontSize: typeMicro}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
 	}
 	return dataCard(cx, dataHeading(cx, locales.EfImportErrorsHeading(cx),
 		locales.EfImportWarningsHeading(cx)), core.View{Style: core.Style{Gap: 3}, Children: rows})

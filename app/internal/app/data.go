@@ -45,9 +45,9 @@ func dataCardFlat(cx *core.Scope, children ...core.Node) core.Node {
 }
 
 func dataHeading(cx *core.Scope, title string, detail string) core.Node {
-	children := []core.Node{core.Text{Content: title, Style: core.Style{FontSize: 14, FontWeight: ui.Semibold}}}
+	children := []core.Node{core.Text{Content: title, Style: core.Style{FontSize: typeSectionTitle, FontWeight: ui.Semibold}}}
 	if detail != "" {
-		children = append(children, core.Text{Content: detail, Style: core.Style{FontSize: 12},
+		children = append(children, core.Text{Content: detail, Style: core.Style{FontSize: typeCaption},
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
 	}
 	return core.View{Style: core.Style{Gap: 2, FlexShrink: 1, MinWidth: core.Pt(0)}, Children: children}
@@ -190,8 +190,11 @@ func dataDialogSized(cx *core.Scope, open *core.Signal[bool], title string, chil
 		// The popup is capped to the window. Keeping the form in its own
 		// scroll view lets the title and footer stay put while it scrolls.
 		Children: []core.Node{core.Scroll{
-			Style:    core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
-			Children: children,
+			Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
+			Children: []core.Node{core.View{
+				Style:    core.Style{Gap: 12, Padding: core.Edges{Right: 2}},
+				Children: children,
+			}},
 		}},
 		Footer:    footer,
 		OnConfirm: confirm,
@@ -203,17 +206,17 @@ func dataDialogSized(cx *core.Scope, open *core.Signal[bool], title string, chil
 // dataPath shows a filesystem path as a code block, so the eye can tell it
 // apart from the prose that explains it.
 func dataPath(cx *core.Scope, label, value string) core.Node {
-	return core.View{Style: core.Style{Gap: 3}, Children: []core.Node{
-		core.Text{Content: label, Style: core.Style{FontSize: 11, FontWeight: ui.Semibold},
+	return core.View{Style: core.Style{Gap: 4}, Children: []core.Node{
+		core.Text{Content: label, Style: core.Style{FontSize: typeMicro, FontWeight: ui.Semibold},
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 		core.View{
-			Style: core.Style{Padding: core.Symmetric(6, 8), CornerRadius: 6, BorderWidth: 1},
+			Style: core.Style{Padding: core.Symmetric(6, 10), CornerRadius: radiusItem, BorderWidth: 1},
 			StyleFunc: func() core.Style {
 				return core.Style{Background: ui.ColorsOf(cx).Inset(),
 					BorderColor: ui.ColorsOf(cx).Line()}
 			},
 			Children: []core.Node{core.Text{Content: value,
-				Style:     core.Style{FontSize: 11, FontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"},
+				Style:     core.Style{FontSize: typeCaption, FontFamily: core.FontMonospace},
 				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)}},
 		},
 	}}
@@ -222,20 +225,24 @@ func dataPath(cx *core.Scope, label, value string) core.Node {
 // dataFormSection groups related onboarding fields under a numbered heading.
 func dataFormSection(cx *core.Scope, step, title, body string, children ...core.Node) core.Node {
 	heading := []core.Node{
-		core.Text{Content: step, Style: core.Style{FontSize: 10, FontWeight: ui.Bold,
-			FontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"},
-			StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
-		core.Text{Content: title, Style: core.Style{FontSize: 13, FontWeight: ui.Semibold}},
+		core.Text{Content: step, Style: core.Style{FontSize: typeMicro, FontWeight: ui.Bold,
+			FontFamily: core.FontMonospace},
+			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+		core.Text{Content: title, Style: core.Style{FontSize: typeBody, FontWeight: ui.Semibold}},
 	}
 	head := []core.Node{core.View{Style: core.Style{Direction: core.Row,
 		AlignItems: core.AlignCenter, Gap: 8}, Children: heading}}
 	if body != "" {
-		head = append(head, core.Text{Content: body, Style: core.Style{FontSize: 12},
+		head = append(head, core.Text{Content: body, Style: core.Style{FontSize: typeCaption},
 			StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3})
 	}
-	return core.View{Style: core.Style{Gap: 10, Padding: core.Edges{Top: 12},
-		Borders: core.Edges{Top: 1}, BorderColor: ui.ColorsOf(cx).Line()},
-		Children: append(head, children...)}
+	return core.View{
+		Style: core.Style{Gap: 10, Padding: core.Edges{Top: 12}, Borders: core.Edges{Top: 1}},
+		StyleFunc: func() core.Style {
+			return core.Style{BorderColor: ui.ColorsOf(cx).Line()}
+		},
+		Children: append(head, children...),
+	}
 }
 
 func dataRefresh(s *Session, rev *core.Signal[int]) error {
@@ -668,11 +675,11 @@ func (s *Session) onboardingScreen(cx *core.Scope, dataRev *core.Signal[int]) co
 			Style: core.Style{Padding: core.All(16), Gap: 12, Width: core.Pct(100),
 				MaxWidth: core.Pt(680), AlignSelf: core.AlignCenter},
 			Children: []core.Node{dataCard(cx,
-				core.Text{Content: locales.DataOnboardingTitle(cx), Style: core.Style{FontSize: 20, FontWeight: ui.Bold}},
-				core.Text{Content: locales.DataOnboardingBody(cx), Style: core.Style{FontSize: 13},
+				core.Text{Content: locales.DataOnboardingTitle(cx), Style: core.Style{FontSize: typePageTitle, FontWeight: ui.Bold}},
+				core.Text{Content: locales.DataOnboardingBody(cx), Style: core.Style{FontSize: typeBody},
 					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-				core.Text{Content: locales.OnboardingRequiredNote(cx), Style: core.Style{FontSize: 11},
-					StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
+				core.Text{Content: locales.OnboardingRequiredNote(cx), Style: core.Style{FontSize: typeMicro},
+					StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 				dataFormSection(cx, "01", locales.OnboardingStepCompanyTitle(cx),
 					locales.OnboardingStepCompanySubtitle(cx),
 					dataColumns(cx, 10,
@@ -680,8 +687,8 @@ func (s *Session) onboardingScreen(cx *core.Scope, dataRev *core.Signal[int]) co
 							ui.Input{Value: nameZH.Get, OnChange: nameZH.Set, TestID: "onboarding-org-zh"}, submit),
 						dataField(cx, locales.OnboardingStepCompanyNameEn(cx),
 							ui.Input{Value: nameEN.Get, OnChange: nameEN.Set, TestID: "onboarding-org-en"}, submit)),
-					core.Text{Content: locales.OnboardingNameHint(cx), Style: core.Style{FontSize: 11},
-						StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
+					core.Text{Content: locales.OnboardingNameHint(cx), Style: core.Style{FontSize: typeMicro},
+						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 					dataColumns(cx, 10,
 						dataField(cx, locales.OnboardingStepCompanyIndustry(cx),
 							ui.Input{Value: industry.Get, OnChange: industry.Set,
@@ -700,8 +707,8 @@ func (s *Session) onboardingScreen(cx *core.Scope, dataRev *core.Signal[int]) co
 							ui.Input{Value: siteZH.Get, OnChange: siteZH.Set, TestID: "onboarding-site-zh"}, submit),
 						dataField(cx, locales.OnboardingStepSiteNameEn(cx),
 							ui.Input{Value: siteEN.Get, OnChange: siteEN.Set, TestID: "onboarding-site-en"}, submit)),
-					core.Text{Content: locales.OnboardingNameHint(cx), Style: core.Style{FontSize: 11},
-						StyleFunc: ui.Colored(ui.ColorsOf(cx).Faint)},
+					core.Text{Content: locales.OnboardingNameHint(cx), Style: core.Style{FontSize: typeMicro},
+						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 					dataColumns(cx, 10,
 						dataField(cx, locales.OnboardingStepSiteAddress(cx),
 							ui.Input{Value: siteAddress.Get, OnChange: siteAddress.Set, TestID: "onboarding-site-address"}, submit),
@@ -1429,12 +1436,12 @@ func (s *Session) sourceAddDialog(cx *core.Scope, dataRev *core.Signal[int],
 	}}
 }
 
-// sourceEditDrawer is the one 420 pt editor every /sources row opens.
+// sourceEditDrawer is the one 480 pt editor every /sources row opens.
 func (s *Session) sourceEditDrawer(cx *core.Scope,
 	dataRev *core.Signal[int]) (core.Node, func(string)) {
 	form := newSourceForm(cx)
 	save := func() { form.save(cx, s, dataRev) }
-	return sideDrawer(cx, form.open, locales.DataEditSource(cx), 420,
+	return sideDrawer(cx, form.open, locales.DataEditSource(cx), 480,
 			form.body(cx, s, "source-edit", save), form.footer(cx, "source-edit", save),
 			"source-edit-dialog", locales.DataCancel(cx)), func(id string) {
 			form.showEdit(s, id)
@@ -2177,7 +2184,7 @@ func (s *Session) newActivityForm(cx *core.Scope, dataRev *core.Signal[int],
 		dataCancelButton(cx, open, prefix+"-cancel"),
 		ui.Button{Text: saveLabel(cx), Busy: busy.Get, OnPress: save, TestID: prefix + "-save"},
 	}
-	form.dialog = sideDrawer(cx, open, title(cx), 720, body, footer,
+	form.dialog = sideDrawer(cx, open, title(cx), 480, body, footer,
 		prefix+"-dialog", locales.DataCancel(cx))
 	return form
 }

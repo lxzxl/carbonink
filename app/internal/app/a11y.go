@@ -27,6 +27,17 @@ func dataClickableRow(cx *core.Scope, testID string, onPress func(), children ..
 // wash while selected reports true.
 func dataClickableRowSelected(cx *core.Scope, testID string, onPress func(),
 	selected func() bool, children ...core.Node) core.View {
+	return dataClickableRowBordered(cx, testID, onPress, selected, true, children...)
+}
+
+// dataClickableRowBordered renders an interactive list row with hover wash,
+// focus ring, selection tint, and an optional bottom hairline divider.
+func dataClickableRowBordered(cx *core.Scope, testID string, onPress func(),
+	selected func() bool, bottomBorder bool, children ...core.Node) core.View {
+	var borders core.Edges
+	if bottomBorder {
+		borders = core.Edges{Bottom: 1}
+	}
 	return core.View{
 		TestID: testID,
 		Role:   core.RoleButton,
@@ -34,7 +45,7 @@ func dataClickableRowSelected(cx *core.Scope, testID string, onPress func(),
 			onPress()
 		},
 		Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 12,
-			Padding: core.Symmetric(10, 16), CornerRadius: 6, Borders: core.Edges{Bottom: 1}},
+			Padding: core.Symmetric(10, 16), CornerRadius: radiusItem, Borders: borders},
 		StyleFunc: func() core.Style {
 			colors := ui.ColorsOf(cx)
 			style := core.Style{
