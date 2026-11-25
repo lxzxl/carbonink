@@ -313,9 +313,23 @@ func TestSupplierDisclosureCustomTemplateEditor(t *testing.T) {
 	ui.Type("id:supplier-template-label-en", "Packaging Custom Disclosure")
 	ui.Clear("id:supplier-template-label-zh")
 	ui.Type("id:supplier-template-label-zh", "包装定制披露")
+	labelBefore := ui.WaitFor("id:supplier-template-label-en", 3*time.Second)
+	labelNodeID := labelBefore.ID
+	labelText := labelBefore.Text
 	ui.Press("id:supplier-template-q-add")
 	ui.WaitFor("id:supplier-template-question-10", 3*time.Second)
+	labelAfter := ui.WaitFor("id:supplier-template-label-en", 3*time.Second)
+	if labelAfter.ID != labelNodeID {
+		t.Fatalf("label-en node re-mounted across add-question: node ID %v -> %v", labelNodeID, labelAfter.ID)
+	}
+	if labelAfter.Text != labelText {
+		t.Fatalf("label-en changed across add-question: got %q, want %q", labelAfter.Text, labelText)
+	}
 	ui.Type("id:supplier-template-q-en-10", "Packaging recycled content (%)")
+	ui.Press("id:supplier-template-q-add")
+	ui.WaitFor("id:supplier-template-question-11", 3*time.Second)
+	ui.Press("id:supplier-template-q-remove-11")
+	ui.WaitForGone("id:supplier-template-question-11", 3*time.Second)
 	ui.Press("id:supplier-template-save")
 
 	ui.WaitFor("text:Packaging Custom Disclosure", 5*time.Second)

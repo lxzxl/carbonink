@@ -163,6 +163,7 @@ func (s *Session) agentIntegrationCard(cx *core.Scope) core.Node {
 					},
 					Label:  locales.SettingsSkillLaunchHost(cx),
 					TestID: "agent-launch-host",
+					Style:  core.Style{Width: core.Pt(148)},
 				})
 			}
 			skillButtons = append(skillButtons, ui.Button{
@@ -196,7 +197,7 @@ func (s *Session) agentIntegrationCard(cx *core.Scope) core.Node {
 				}, Busy: busy.Get, TestID: "agent-skill-remove"})
 		}
 		skillBody := []core.Node{
-			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignStart,
+			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
 				Wrap: core.Wrap, Gap: 12}, Children: []core.Node{
 				core.View{Style: core.Style{Gap: 2, FlexGrow: 1, FlexShrink: 1, MinWidth: core.Pt(0)},
 					Children: []core.Node{
@@ -463,7 +464,7 @@ func (s *Session) agentFirstRunDialog(cx *core.Scope, open *core.Signal[bool],
 				Then: func(cx *core.Scope) core.Node {
 					return core.Text{ContentFunc: errText.Get,
 						Style:     core.Style{FontSize: typeCaption},
-						StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger)}
+						StyleFunc: ui.Colored(ui.ColorsOf(cx).Danger), MaxLines: 3}
 				}},
 		}
 		footer := []core.Node{

@@ -1265,10 +1265,11 @@ func (d *questionnaireDetail) agentTraceDrawer(cx *core.Scope) core.Node {
 			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
 				Gap: 8, Wrap: core.Wrap}, Children: []core.Node{
 				core.Text{Content: locales.AnswerAgentTraceTitle(cx),
-					Style: core.Style{FontSize: typeBody, FontWeight: ui.Semibold}},
+					Style: core.Style{FontSize: typeSectionTitle, FontWeight: ui.Semibold}},
 				ui.Badge{Text: modeLabel, Variant: badgeVariant},
-				core.Text{Content: meta, Style: core.Style{FontSize: typeMicro,
-					FontVariant: core.FontTabularNums}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+				core.Text{Content: meta, Style: core.Style{FontSize: typeCaption,
+					FontVariant: core.FontTabularNums}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted),
+					MaxLines: 1},
 				core.View{Style: core.Style{FlexGrow: 1}},
 				ui.Button{Text: locales.AnswerAgentTraceClose(cx), Variant: ui.ButtonGhost,
 					Size: ui.SizeSmall, OnPress: func() { d.traceOpen.Set(false) },
@@ -1277,8 +1278,10 @@ func (d *questionnaireDetail) agentTraceDrawer(cx *core.Scope) core.Node {
 		}
 		if summary := strings.TrimSpace(d.selectedSummary.Get()); summary != "" {
 			children = append(children, core.Text{
-				Content: locales.AnswerAgentTraceRationale(cx, summary),
-				Style:   core.Style{FontSize: typeCaption}, MaxLines: 3,
+				Content:   locales.AnswerAgentTraceRationale(cx, summary),
+				Style:     core.Style{FontSize: typeCaption},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted),
+				MaxLines:  3,
 			})
 		}
 		if len(trace.Steps) == 0 {
@@ -1286,6 +1289,7 @@ func (d *questionnaireDetail) agentTraceDrawer(cx *core.Scope) core.Node {
 				Content:   locales.AnswerAgentTraceNoSteps(cx),
 				Style:     core.Style{FontSize: typeCaption},
 				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted),
+				MaxLines:  2,
 			})
 		} else {
 			stepNodes := make([]core.Node, 0, len(trace.Steps))
@@ -1298,8 +1302,9 @@ func (d *questionnaireDetail) agentTraceDrawer(cx *core.Scope) core.Node {
 				if step.DurationMs > 0 {
 					headerChildren = append(headerChildren, core.Text{
 						Content: strconv.FormatInt(step.DurationMs, 10) + " ms",
-						Style: core.Style{FontSize: typeMicro, FontVariant: core.FontTabularNums},
+						Style: core.Style{FontSize: typeCaption, FontVariant: core.FontTabularNums},
 						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted),
+						MaxLines: 1,
 					})
 				}
 				if step.Error {
@@ -1313,12 +1318,14 @@ func (d *questionnaireDetail) agentTraceDrawer(cx *core.Scope) core.Node {
 				}
 				if step.Args != "" {
 					rows = append(rows, core.Text{Content: step.Args,
-						Style:     core.Style{FontSize: typeMicro, FontFamily: core.FontMonospace},
+						Style: core.Style{FontSize: typeCaption, FontFamily: core.FontMonospace,
+							FlexShrink: 1, MinWidth: core.Pt(0)},
 						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3})
 				}
 				if step.Result != "" {
 					rows = append(rows, core.Text{Content: step.Result,
-						Style: core.Style{FontSize: typeMicro, FontFamily: core.FontMonospace},
+						Style: core.Style{FontSize: typeCaption, FontFamily: core.FontMonospace,
+							FlexShrink: 1, MinWidth: core.Pt(0)},
 						MaxLines: 4})
 				}
 				stepNodes = append(stepNodes, core.View{
@@ -1332,7 +1339,11 @@ func (d *questionnaireDetail) agentTraceDrawer(cx *core.Scope) core.Node {
 					Children: rows,
 				})
 			}
-			children = append(children, core.View{Style: core.Style{Gap: 6}, Children: stepNodes})
+			children = append(children, core.Scroll{
+				Style: core.Style{MaxHeight: core.Pt(260), MinHeight: core.Pt(0)},
+				Children: []core.Node{core.View{Style: core.Style{Gap: 6, Padding: core.Edges{Right: 4}},
+					Children: stepNodes}},
+			})
 		}
 		return core.View{
 			TestID:   "answer-agent-trace-drawer",
