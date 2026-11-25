@@ -170,6 +170,21 @@ activityImportSummaryWarnings: '{count} 条警告'
 activityImportTitle: 批量导入活动数据
 activityImportUnmapped: — 未映射 —
 activityImportWarningsHeading: 警告（不阻断导入）
+agentFirstRunBody: 检测到 {hosts}。一键安装便携 Agent Skill 并配置 MCP，即可让外部 Agent 只读查询本地碳盘查台账或辅助填写问卷。
+agentFirstRunDismiss: 暂不
+agentFirstRunInstall: 一键安装 Skill 并配置 MCP
+agentFirstRunSettings: 前往 AI Agent 设置
+agentFirstRunTitle: 将碳墨接入你的 AI Agent
+answerAgentTraceButton: 思考过程
+answerAgentTraceClose: 收起
+answerAgentTraceError: 错误
+answerAgentTraceMeta: '{turns} 轮 · {ms} ms · {stop}'
+answerAgentTraceModeAgent: 多轮 Agent
+answerAgentTraceModeSingleShot: 单发兜底
+answerAgentTraceNoSteps: 本次生成未调用中间工具。
+answerAgentTraceRationale: 来源说明：{summary}
+answerAgentTraceTitle: Agent 思考过程
+answerAgentTraceTurnTool: 第 {turn} 轮 · {tool}
 answerDraft: 草稿
 answerExportButton: 导出 Excel
 answerExportDone: 已写入 {written} 条答案（其中 {drafts} 条草稿）。
@@ -1355,8 +1370,14 @@ settingsSkillActionUpdate: 更新
 settingsSkillInstallFailed: Skill 操作失败
 settingsSkillInstalled: 已安装 Skill — 同步到 {count} 个 host。请重启 AI agent 让 skill 生效。
 settingsSkillHostClaudeCode: Claude Code（~/.claude/skills/）
+settingsSkillHostClaudeDesktop: Claude Desktop（Claude/skills/）
 settingsSkillHostCodex: Codex（~/.codex/skills/）
+settingsSkillHostCursor: Cursor（~/.cursor/skills/）
 settingsSkillHostPi: Pi（~/.pi/agent/skills/）
+settingsSkillLaunchButton: 打开 Agent 会话（预加载 Skill）
+settingsSkillLaunchHost: 启动宿主
+settingsSkillLaunchUnavailable: 未检测到可直接启动的宿主程序，请手动执行：{cmd}
+settingsSkillLaunched: 已打开 {host} 会话并预加载 carbonink-mcp Skill。
 settingsSkillLoading: 检测中…
 settingsSkillNoHosts: 未检测到 agent host（仅 ~/.agents/skills/）
 settingsSkillRemoved: Skill 已移除。

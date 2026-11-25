@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
+	"time"
 )
 
 // ErrAgentMaxTurns means the model never called the finish tool inside its
@@ -23,11 +25,46 @@ type AgentTool struct {
 	Run         func(ctx context.Context, args json.RawMessage) (any, error)
 }
 
+// AgentStep records one tool invocation during an agent run.
+type AgentStep struct {
+	Turn       int    `json:"turn"`
+	Tool       string `json:"tool"`
+	Args       string `json:"args,omitempty"`
+	Result     string `json:"result,omitempty"`
+	Error      bool   `json:"error,omitempty"`
+	DurationMs int64  `json:"duration_ms,omitempty"`
+}
+
 // AgentRun is the outcome of one agent conversation.
 type AgentRun struct {
 	Output    json.RawMessage
 	Turns     int
 	ToolCalls []string
+	Steps     []AgentStep
+}
+
+func recordAgentStep(run *AgentRun, turn int, tool, args, result string, isError bool, elapsed time.Duration) {
+	run.ToolCalls = append(run.ToolCalls, tool)
+	run.Steps = append(run.Steps, AgentStep{
+		Turn:       turn,
+		Tool:       tool,
+		Args:       truncateTraceText(args, 400),
+		Result:     truncateTraceText(result, 400),
+		Error:      isError,
+		DurationMs: elapsed.Milliseconds(),
+	})
+}
+
+func truncateTraceText(s string, maxRunes int) string {
+	s = strings.TrimSpace(s)
+	if s == "" || maxRunes <= 0 {
+		return ""
+	}
+	runes := []rune(s)
+	if len(runes) <= maxRunes {
+		return s
+	}
+	return string(runes[:maxRunes]) + "…"
 }
 
 // AgentRunner is the multi-turn tool loop both adapters implement. The model

@@ -27,13 +27,48 @@ const (
 	marker  = "managed by CarbonInk"
 )
 
-var hosts = []struct {
-	ID  string
-	Dir string
-}{
-	{"claudeCode", ".claude/skills"},
-	{"pi", ".pi/agent/skills"},
-	{"codex", ".codex/skills"},
+type hostSpec struct {
+	ID         string
+	DetectDir  func(home, configDir string) string
+	InstallDir func(home, configDir string) string
+}
+
+var hosts = []hostSpec{
+	{
+		ID:         "claudeCode",
+		DetectDir:  func(home, _ string) string { return filepath.Join(home, ".claude", "skills") },
+		InstallDir: func(home, _ string) string { return filepath.Join(home, ".claude", "skills") },
+	},
+	{
+		ID:         "pi",
+		DetectDir:  func(home, _ string) string { return filepath.Join(home, ".pi", "agent", "skills") },
+		InstallDir: func(home, _ string) string { return filepath.Join(home, ".pi", "agent", "skills") },
+	},
+	{
+		ID:         "codex",
+		DetectDir:  func(home, _ string) string { return filepath.Join(home, ".codex", "skills") },
+		InstallDir: func(home, _ string) string { return filepath.Join(home, ".codex", "skills") },
+	},
+	{
+		ID:         "cursor",
+		DetectDir:  func(home, _ string) string { return filepath.Join(home, ".cursor") },
+		InstallDir: func(home, _ string) string { return filepath.Join(home, ".cursor", "skills") },
+	},
+	{
+		ID: "claudeDesktop",
+		DetectDir: func(_, configDir string) string {
+			if strings.TrimSpace(configDir) == "" {
+				return ""
+			}
+			return filepath.Join(configDir, "Claude")
+		},
+		InstallDir: func(_, configDir string) string {
+			if strings.TrimSpace(configDir) == "" {
+				return ""
+			}
+			return filepath.Join(configDir, "Claude", "skills")
+		},
+	},
 }
 
 // Status is what the settings screen shows without changing anything.
@@ -55,15 +90,20 @@ type Result struct {
 
 // Detect inspects the home directory for an existing install.
 func Detect(home string) Status {
+	return DetectWithConfig(home, "")
+}
+
+// DetectWithConfig inspects both home and configDir (used for Claude Desktop).
+func DetectWithConfig(home, configDir string) Status {
 	status := Status{CanonicalPath: canonicalDir(home)}
-	status.DetectedHosts = detectedHosts(home)
+	status.DetectedHosts = detectedHosts(home, configDir)
 	existing, err := os.ReadFile(canonicalFile(home))
 	if err != nil {
 		return status
 	}
 	status.Installed = true
 	status.NeedsUpdate = sum(existing) != sum(bundled)
-	status.LinkedHosts = linkedHosts(home)
+	status.LinkedHosts = linkedHosts(home, configDir)
 	return status
 }
 
@@ -71,6 +111,12 @@ func Detect(home string) Status {
 // copy is missing or CarbonInk-managed. A user's own file at a host path is
 // left alone.
 func Install(home string) (Result, error) {
+	return InstallWithConfig(home, "")
+}
+
+// InstallWithConfig writes the canonical copy and refreshes detected hosts
+// across home and configDir (including Cursor and Claude Desktop).
+func InstallWithConfig(home, configDir string) (Result, error) {
 	result := Result{CanonicalPath: canonicalDir(home)}
 	canonical := canonicalFile(home)
 	if existing, err := os.ReadFile(canonical); err == nil && sum(existing) != sum(bundled) {
@@ -87,11 +133,12 @@ func Install(home string) (Result, error) {
 	}
 
 	for _, host := range hosts {
-		parent := filepath.Join(home, filepath.FromSlash(host.Dir))
-		if !exists(parent) {
+		detectDir := host.DetectDir(home, configDir)
+		installDir := host.InstallDir(home, configDir)
+		if detectDir == "" || installDir == "" || !exists(detectDir) {
 			continue
 		}
-		link := filepath.Join(parent, dirName, "SKILL.md")
+		link := filepath.Join(installDir, dirName, "SKILL.md")
 		if existing, err := os.ReadFile(link); err == nil && !isManaged(existing) {
 			// The user (or another tool) owns this copy; never overwrite it.
 			continue
@@ -108,6 +155,11 @@ func Install(home string) (Result, error) {
 
 // Remove deletes the copies CarbonInk wrote and backs up the canonical file.
 func Remove(home string) (Result, error) {
+	return RemoveWithConfig(home, "")
+}
+
+// RemoveWithConfig deletes CarbonInk-managed copies across home and configDir.
+func RemoveWithConfig(home, configDir string) (Result, error) {
 	result := Result{CanonicalPath: canonicalDir(home)}
 	canonical := canonicalFile(home)
 	if existing, err := os.ReadFile(canonical); err == nil && isManaged(existing) {
@@ -117,7 +169,11 @@ func Remove(home string) (Result, error) {
 		}
 	}
 	for _, host := range hosts {
-		link := filepath.Join(home, filepath.FromSlash(host.Dir), dirName, "SKILL.md")
+		installDir := host.InstallDir(home, configDir)
+		if installDir == "" {
+			continue
+		}
+		link := filepath.Join(installDir, dirName, "SKILL.md")
 		existing, err := os.ReadFile(link)
 		if err != nil || !isManaged(existing) {
 			continue
@@ -142,21 +198,26 @@ func canonicalFile(home string) string {
 	return filepath.Join(canonicalDir(home), "SKILL.md")
 }
 
-func detectedHosts(home string) []string {
+func detectedHosts(home, configDir string) []string {
 	var out []string
 	for _, host := range hosts {
-		if exists(filepath.Join(home, filepath.FromSlash(host.Dir))) {
+		dir := host.DetectDir(home, configDir)
+		if dir != "" && exists(dir) {
 			out = append(out, host.ID)
 		}
 	}
 	return out
 }
 
-func linkedHosts(home string) []string {
+func linkedHosts(home, configDir string) []string {
 	want := sum(bundled)
 	var out []string
 	for _, host := range hosts {
-		data, err := os.ReadFile(filepath.Join(home, filepath.FromSlash(host.Dir), dirName, "SKILL.md"))
+		installDir := host.InstallDir(home, configDir)
+		if installDir == "" {
+			continue
+		}
+		data, err := os.ReadFile(filepath.Join(installDir, dirName, "SKILL.md"))
 		if err == nil && sum(data) == want {
 			out = append(out, host.ID)
 		}

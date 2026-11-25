@@ -18,6 +18,10 @@ func TestGenerateUsesAgentAndPersistsAnswer(t *testing.T) {
 		Output:    json.RawMessage(`{"value":"120000","unit":"kWh","source_summary":"from act-1"}`),
 		Turns:     2,
 		ToolCalls: []string{"list_activities", "sum_co2e"},
+		Steps: []llm.AgentStep{
+			{Turn: 1, Tool: "list_activities", Args: `{"year":2025}`, Result: `{"count":1}`},
+			{Turn: 2, Tool: "sum_co2e", Args: `{"scope":2}`, Result: `{"total_kg":50}`},
+		},
 	}}
 	service := &Service{Store: s, Provider: testProvider(), NewRunner: fixedRunner(runner)}
 	answer, err := service.Generate(ctx, fixture.electricity.ID)
@@ -30,6 +34,13 @@ func TestGenerateUsesAgentAndPersistsAnswer(t *testing.T) {
 	}
 	if !strings.Contains(answer.SourceSummary, "from act-1") {
 		t.Fatalf("summary = %q", answer.SourceSummary)
+	}
+	var savedTrace AgentTrace
+	if err := json.Unmarshal([]byte(answer.AgentTrace), &savedTrace); err != nil {
+		t.Fatalf("agent trace json = %q, err = %v", answer.AgentTrace, err)
+	}
+	if savedTrace.Mode != "agent" || savedTrace.Turns != 2 || len(savedTrace.Steps) != 2 {
+		t.Fatalf("saved trace = %+v", savedTrace)
 	}
 	if runner.calls != 1 {
 		t.Fatalf("runner calls = %d", runner.calls)

@@ -79,6 +79,7 @@ type Question struct {
 	AnswerSourceActivityID  string
 	AnswerSourceProfileKey  string
 	AnswerSourceNarrativeID string
+	AnswerAgentTrace        string
 }
 
 // Answered reports whether the question has an answer row.
@@ -97,6 +98,7 @@ type Answer struct {
 	SourceActivityDataID   string
 	SourceCompanyProfileID string
 	SourceNarrativeBankID  string
+	AgentTrace             string
 }
 
 // QuestionInput is one question staged for a questionnaire import.
@@ -135,6 +137,7 @@ type SaveAnswerInput struct {
 	Unit          string
 	SourceKind    string
 	SourceSummary string
+	AgentTrace    string
 	Finalize      bool
 }
 
@@ -530,7 +533,8 @@ const questionSelect = `SELECT q.id, q.questionnaire_id, q.question_signature,
 			coalesce(a.source_calculation_snapshot_id, ''),
 			coalesce(a.source_activity_data_id, ''),
 			coalesce(a.source_company_profile_key, ''),
-			coalesce(a.source_narrative_bank_id, '')
+			coalesce(a.source_narrative_bank_id, ''),
+			coalesce(a.agent_trace, '')
 		FROM question q
 		LEFT JOIN answer a ON a.question_id = q.id`
 
@@ -577,7 +581,7 @@ func scanQuestion(row rowScanner) (Question, error) {
 		&q.AnswerID, &q.AnswerValue, &q.AnswerUnit, &q.AnswerSourceKind,
 		&q.AnswerSourceSummary, &q.AnswerFinalizedAt,
 		&q.AnswerSourceSnapshotID, &q.AnswerSourceActivityID, &q.AnswerSourceProfileKey,
-		&q.AnswerSourceNarrativeID)
+		&q.AnswerSourceNarrativeID, &q.AnswerAgentTrace)
 	q.Required = required != 0
 	q.AnswerSourceSummary = decodeSummary(q.AnswerSourceSummary)
 	return q, err
@@ -672,14 +676,15 @@ func (s *Store) ListAnswers(ctx context.Context, questionnaireID string) ([]Answ
 const answerSelect = `SELECT a.id, a.question_id, a.value, coalesce(a.unit, ''),
 		a.source_kind, coalesce(a.source_summary, ''), coalesce(a.finalized_at, ''),
 		coalesce(a.source_calculation_snapshot_id, ''), coalesce(a.source_activity_data_id, ''),
-		coalesce(a.source_company_profile_key, ''), coalesce(a.source_narrative_bank_id, '')
+		coalesce(a.source_company_profile_key, ''), coalesce(a.source_narrative_bank_id, ''),
+		coalesce(a.agent_trace, '')
 	FROM answer a`
 
 func scanAnswer(row rowScanner) (Answer, error) {
 	var a Answer
 	err := row.Scan(&a.ID, &a.QuestionID, &a.Value, &a.Unit, &a.SourceKind, &a.SourceSummary,
 		&a.FinalizedAt, &a.SourceCalculationID, &a.SourceActivityDataID,
-		&a.SourceCompanyProfileID, &a.SourceNarrativeBankID)
+		&a.SourceCompanyProfileID, &a.SourceNarrativeBankID, &a.AgentTrace)
 	a.SourceSummary = decodeSummary(a.SourceSummary)
 	return a, err
 }
@@ -722,11 +727,12 @@ func (s *Store) SaveAnswer(ctx context.Context, in SaveAnswerInput) (*Answer, er
 			}
 			summary = string(encoded)
 		}
+		trace := validJSONOrEmpty(in.AgentTrace)
 		if _, err := s.db.ExecContext(ctx, `INSERT INTO answer
-			(id, question_id, value, unit, source_kind, source_summary, finalized_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?)`,
+			(id, question_id, value, unit, source_kind, source_summary, agent_trace, finalized_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 			newID(), questionID, in.Value, nullIfEmpty(in.Unit), sourceKind, summary,
-			finalized); err != nil {
+			trace, finalized); err != nil {
 			return nil, err
 		}
 	} else {
@@ -737,10 +743,14 @@ func (s *Store) SaveAnswer(ctx context.Context, in SaveAnswerInput) (*Answer, er
 		case existing.FinalizedAt != "":
 			finalized = existing.FinalizedAt
 		}
+		trace := validJSONOrEmpty(in.AgentTrace)
+		if trace == nil && existing.AgentTrace != "" {
+			trace = validJSONOrEmpty(existing.AgentTrace)
+		}
 		if _, err := s.db.ExecContext(ctx, `UPDATE answer
-			SET value = ?, unit = ?, source_kind = ?, finalized_at = ?
+			SET value = ?, unit = ?, source_kind = ?, agent_trace = ?, finalized_at = ?
 			WHERE question_id = ?`,
-			in.Value, nullIfEmpty(in.Unit), sourceKind, finalized, questionID); err != nil {
+			in.Value, nullIfEmpty(in.Unit), sourceKind, trace, finalized, questionID); err != nil {
 			return nil, err
 		}
 	}

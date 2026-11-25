@@ -61,6 +61,10 @@ func TestOpenAIAgentRunsToolsThenFinishes(t *testing.T) {
 	if len(run.ToolCalls) != 1 || run.ToolCalls[0] != "list_activities" {
 		t.Fatalf("tool calls = %v", run.ToolCalls)
 	}
+	if len(run.Steps) != 1 || run.Steps[0].Tool != "list_activities" || run.Steps[0].Turn != 1 ||
+		!strings.Contains(run.Steps[0].Args, "2025") || !strings.Contains(run.Steps[0].Result, `"count":1`) {
+		t.Fatalf("steps = %+v", run.Steps)
+	}
 	if !strings.Contains(string(run.Output), "120000") {
 		t.Fatalf("output = %s", run.Output)
 	}

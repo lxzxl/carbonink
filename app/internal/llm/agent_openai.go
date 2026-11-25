@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type agentRequest struct {
@@ -65,7 +66,7 @@ func (c *Client) RunAgent(ctx context.Context, system, user string, tools []Agen
 			}
 		}
 		if len(message.ToolCalls) == 0 {
-			return nil, ErrAgentStalled
+			return run, ErrAgentStalled
 		}
 		for i := range message.ToolCalls {
 			if message.ToolCalls[i].ID == "" {
@@ -78,13 +79,15 @@ func (c *Client) RunAgent(ctx context.Context, system, user string, tools []Agen
 		messages = append(messages, chatMessage{Role: "assistant",
 			Content: message.Content, ToolCalls: message.ToolCalls})
 		for _, call := range message.ToolCalls {
-			content, _ := executeAgentTool(ctx, tools, call.Function.Name, call.Function.Arguments)
-			run.ToolCalls = append(run.ToolCalls, call.Function.Name)
+			started := time.Now()
+			content, isError := executeAgentTool(ctx, tools, call.Function.Name, call.Function.Arguments)
+			recordAgentStep(run, run.Turns, call.Function.Name, call.Function.Arguments,
+				content, isError, time.Since(started))
 			messages = append(messages, chatMessage{Role: "tool", Content: content,
 				ToolCallID: call.ID})
 		}
 	}
-	return nil, ErrAgentMaxTurns
+	return run, ErrAgentMaxTurns
 }
 
 func (c *Client) agentCall(ctx context.Context, messages []chatMessage,

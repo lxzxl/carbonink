@@ -171,6 +171,21 @@ activityImportSummaryWarnings: '{count} warnings'
 activityImportTitle: Batch import activity data
 activityImportUnmapped: — Not mapped —
 activityImportWarningsHeading: Warnings (won't block)
+agentFirstRunBody: 'Detected {hosts}. Install the portable CarbonInk Agent Skill and configure MCP so your agent can query your local inventory read-only or draft questionnaire answers.'
+agentFirstRunDismiss: Not now
+agentFirstRunInstall: Install Skill & Configure MCP
+agentFirstRunSettings: Open AI Agent Settings
+agentFirstRunTitle: Connect CarbonInk to your AI agent
+answerAgentTraceButton: Thinking process
+answerAgentTraceClose: Close
+answerAgentTraceError: Error
+answerAgentTraceMeta: '{turns} turn(s) · {ms} ms · {stop}'
+answerAgentTraceModeAgent: Agent loop
+answerAgentTraceModeSingleShot: Single-shot fallback
+answerAgentTraceNoSteps: No intermediate tool calls were needed.
+answerAgentTraceRationale: 'Source rationale: {summary}'
+answerAgentTraceTitle: Agent thinking process
+answerAgentTraceTurnTool: Turn {turn} · {tool}
 answerDraft: Draft
 answerExportButton: Export to Excel
 answerExportDone: '{written} answers written ({drafts} drafts).'
@@ -1356,8 +1371,14 @@ settingsSkillActionUpdate: Update
 settingsSkillInstallFailed: Skill operation failed
 settingsSkillInstalled: Installed Skill — synced to {count} host(s). Restart your AI agent to use it.
 settingsSkillHostClaudeCode: Claude Code (~/.claude/skills/)
+settingsSkillHostClaudeDesktop: Claude Desktop (Claude/skills/)
 settingsSkillHostCodex: Codex (~/.codex/skills/)
+settingsSkillHostCursor: Cursor (~/.cursor/skills/)
 settingsSkillHostPi: Pi (~/.pi/agent/skills/)
+settingsSkillLaunchButton: Launch agent session
+settingsSkillLaunchHost: Launch host
+settingsSkillLaunchUnavailable: 'No launcher found on PATH. Run manually: {cmd}'
+settingsSkillLaunched: Launched {host} session with carbonink-mcp skill.
 settingsSkillLoading: Detecting…
 settingsSkillNoHosts: no agent hosts detected (only ~/.agents/skills/)
 settingsSkillRemoved: Skill removed.

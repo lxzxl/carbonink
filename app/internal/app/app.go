@@ -351,6 +351,7 @@ func (s *Session) view(cx *core.Scope) core.Node {
 	s.watchMCP(cx)
 	open := core.NewSignal(cx, true)
 	paletteOpen := core.NewSignal(cx, false)
+	agentPromptOpen := core.NewSignal(cx, s.shouldShowAgentFirstRunPrompt())
 	undoStatus := core.NewSignal(cx, "")
 	s.undoStatus = undoStatus
 	dataRev := s.dataRev
@@ -483,6 +484,7 @@ func (s *Session) view(cx *core.Scope) core.Node {
 		},
 			Then: func(cx *core.Scope) core.Node { return placeholder(cx) }},
 		s.commandDialog(cx, paletteOpen, nav),
+		s.agentFirstRunDialog(cx, agentPromptOpen, nav),
 	}
 
 	return ui.SidebarShell{

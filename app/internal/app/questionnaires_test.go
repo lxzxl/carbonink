@@ -105,6 +105,12 @@ func TestImportQuestionnaireAndEditAnswers(t *testing.T) {
 	if agentCalls.Load() != 2 {
 		t.Fatalf("agent calls = %d, want 2", agentCalls.Load())
 	}
+	ui.WaitFor("id:answer-agent-trace", 3*time.Second)
+	ui.Press("id:answer-agent-trace")
+	ui.WaitFor("id:answer-agent-trace-drawer", 3*time.Second)
+	ui.WaitFor("id:answer-agent-trace-step-0", 3*time.Second)
+	ui.Press("id:answer-agent-trace-close")
+	ui.WaitForGone("id:answer-agent-trace-drawer", 3*time.Second)
 	ui.Press("id:questionnaires-answer-finalize")
 	ui.WaitFor("text:Answer saved", 5*time.Second)
 	ui.WaitFor("text:1 of 2 answered", 3*time.Second)

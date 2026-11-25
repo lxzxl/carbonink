@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"os"
@@ -61,6 +62,9 @@ type questionnaireDetail struct {
 	selectedTitle     *core.Signal[string]
 	selectedFinalized *core.Signal[bool]
 	selectedAnswered  *core.Signal[bool]
+	selectedTrace     *core.Signal[string]
+	selectedSummary   *core.Signal[string]
+	traceOpen         *core.Signal[bool]
 	value             *core.Signal[string]
 	unit              *core.Signal[string]
 	pdfOpen           *core.Signal[bool]
@@ -309,6 +313,9 @@ func newQuestionnaireDetail(cx *core.Scope, db *store.Store) *questionnaireDetai
 		selectedTitle:     core.NewSignal(cx, ""),
 		selectedFinalized: core.NewSignal(cx, false),
 		selectedAnswered:  core.NewSignal(cx, false),
+		selectedTrace:     core.NewSignal(cx, ""),
+		selectedSummary:   core.NewSignal(cx, ""),
+		traceOpen:         core.NewSignal(cx, false),
 		value:             core.NewSignal(cx, ""),
 		unit:              core.NewSignal(cx, ""),
 		pdfOpen:           core.NewSignal(cx, false),
@@ -535,6 +542,9 @@ func (d *questionnaireDetail) show(cx *core.Scope, q store.Questionnaire) {
 	d.value.Set("")
 	d.unit.Set("")
 	d.selectedFinalized.Set(false)
+	d.selectedTrace.Set("")
+	d.selectedSummary.Set("")
+	d.traceOpen.Set(false)
 	if err := d.load(); err != nil {
 		d.failed.Set(true)
 		d.message.Set(err.Error())
@@ -564,6 +574,11 @@ func (d *questionnaireDetail) selectQuestion(index int) {
 	d.unit.Set(firstNonEmpty(q.AnswerUnit, q.ExpectedUnit))
 	d.selectedFinalized.Set(q.AnswerFinalizedAt != "")
 	d.selectedAnswered.Set(q.Answered())
+	d.selectedTrace.Set(q.AnswerAgentTrace)
+	d.selectedSummary.Set(q.AnswerSourceSummary)
+	if q.AnswerAgentTrace == "" {
+		d.traceOpen.Set(false)
+	}
 	d.message.Set("")
 	d.failed.Set(false)
 }
@@ -583,6 +598,8 @@ func (d *questionnaireDetail) syncSelected() {
 		d.selectedAnswerID.Set(q.AnswerID)
 		d.selectedFinalized.Set(q.AnswerFinalizedAt != "")
 		d.selectedAnswered.Set(q.Answered())
+		d.selectedTrace.Set(q.AnswerAgentTrace)
+		d.selectedSummary.Set(q.AnswerSourceSummary)
 		return
 	}
 }
@@ -1158,6 +1175,13 @@ func (d *questionnaireDetail) dialog(cx *core.Scope, s *Session,
 						d.lineage.show(cx, s, "answer", d.selectedAnswerID.Get())
 					}, TestID: "answer-lineage"})
 			}
+			if d.selectedTrace.Get() != "" {
+				actions = append(actions, ui.Button{Text: locales.AnswerAgentTraceButton(cx),
+					Icon:    lucide.Sparkles,
+					Variant: ui.ButtonOutline,
+					OnPress: func() { d.traceOpen.Set(!d.traceOpen.Get()) },
+					TestID:  "answer-agent-trace"})
+			}
 			editor = append(editor, core.View{Style: core.Style{Direction: core.Row, Wrap: core.Wrap, Gap: 8},
 				Children: actions})
 		}
@@ -1191,6 +1215,7 @@ func (d *questionnaireDetail) dialog(cx *core.Scope, s *Session,
 			core.View{Style: core.Style{Gap: 0, Overflow: core.Hidden},
 				StyleFunc: cardSurface(cx), Children: list},
 			dataCard(cx, editor...),
+			d.agentTraceDrawer(cx),
 			d.lineage.drawer(cx, s),
 		}
 		if d.guide != nil {
@@ -1217,6 +1242,103 @@ func (d *questionnaireDetail) dialog(cx *core.Scope, s *Session,
 			header, body, footer)
 	}
 	return core.Dynamic(dialog)
+}
+
+func (d *questionnaireDetail) agentTraceDrawer(cx *core.Scope) core.Node {
+	return core.Dynamic(func(cx *core.Scope) core.Node {
+		if !d.traceOpen.Get() || d.selectedTrace.Get() == "" {
+			return core.View{}
+		}
+		var trace answer.AgentTrace
+		if err := json.Unmarshal([]byte(d.selectedTrace.Get()), &trace); err != nil {
+			return core.View{}
+		}
+		modeLabel := locales.AnswerAgentTraceModeAgent(cx)
+		badgeVariant := ui.BadgeAccent
+		if trace.IsFallback || trace.Mode == "single_shot" {
+			modeLabel = locales.AnswerAgentTraceModeSingleShot(cx)
+			badgeVariant = ui.BadgeWarn
+		}
+		meta := locales.AnswerAgentTraceMeta(cx, strconv.Itoa(trace.Turns),
+			strconv.FormatInt(trace.DurationMs, 10), trace.StopReason)
+		children := []core.Node{
+			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+				Gap: 8, Wrap: core.Wrap}, Children: []core.Node{
+				core.Text{Content: locales.AnswerAgentTraceTitle(cx),
+					Style: core.Style{FontSize: typeBody, FontWeight: ui.Semibold}},
+				ui.Badge{Text: modeLabel, Variant: badgeVariant},
+				core.Text{Content: meta, Style: core.Style{FontSize: typeMicro,
+					FontVariant: core.FontTabularNums}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
+				core.View{Style: core.Style{FlexGrow: 1}},
+				ui.Button{Text: locales.AnswerAgentTraceClose(cx), Variant: ui.ButtonGhost,
+					Size: ui.SizeSmall, OnPress: func() { d.traceOpen.Set(false) },
+					TestID: "answer-agent-trace-close"},
+			}},
+		}
+		if summary := strings.TrimSpace(d.selectedSummary.Get()); summary != "" {
+			children = append(children, core.Text{
+				Content: locales.AnswerAgentTraceRationale(cx, summary),
+				Style:   core.Style{FontSize: typeCaption}, MaxLines: 3,
+			})
+		}
+		if len(trace.Steps) == 0 {
+			children = append(children, core.Text{
+				Content:   locales.AnswerAgentTraceNoSteps(cx),
+				Style:     core.Style{FontSize: typeCaption},
+				StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted),
+			})
+		} else {
+			stepNodes := make([]core.Node, 0, len(trace.Steps))
+			for i, step := range trace.Steps {
+				step := step
+				headerChildren := []core.Node{
+					ui.Badge{Text: locales.AnswerAgentTraceTurnTool(cx,
+						strconv.Itoa(step.Turn), step.Tool), Variant: ui.BadgeNeutral},
+				}
+				if step.DurationMs > 0 {
+					headerChildren = append(headerChildren, core.Text{
+						Content: strconv.FormatInt(step.DurationMs, 10) + " ms",
+						Style: core.Style{FontSize: typeMicro, FontVariant: core.FontTabularNums},
+						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted),
+					})
+				}
+				if step.Error {
+					headerChildren = append(headerChildren, ui.Badge{
+						Text: locales.AnswerAgentTraceError(cx), Variant: ui.BadgeDanger,
+					})
+				}
+				rows := []core.Node{
+					core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+						Gap: 6, Wrap: core.Wrap}, Children: headerChildren},
+				}
+				if step.Args != "" {
+					rows = append(rows, core.Text{Content: step.Args,
+						Style:     core.Style{FontSize: typeMicro, FontFamily: core.FontMonospace},
+						StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted), MaxLines: 3})
+				}
+				if step.Result != "" {
+					rows = append(rows, core.Text{Content: step.Result,
+						Style: core.Style{FontSize: typeMicro, FontFamily: core.FontMonospace},
+						MaxLines: 4})
+				}
+				stepNodes = append(stepNodes, core.View{
+					TestID: "answer-agent-trace-step-" + strconv.Itoa(i),
+					Style: core.Style{Padding: core.All(10), CornerRadius: radiusItem,
+						BorderWidth: 1, Gap: 4},
+					StyleFunc: func() core.Style {
+						colors := ui.ColorsOf(cx)
+						return core.Style{Background: colors.Inset(), BorderColor: colors.Line()}
+					},
+					Children: rows,
+				})
+			}
+			children = append(children, core.View{Style: core.Style{Gap: 6}, Children: stepNodes})
+		}
+		return core.View{
+			TestID:   "answer-agent-trace-drawer",
+			Children: []core.Node{dataCard(cx, children...)},
+		}
+	})
 }
 
 func questionnaireKindLabel(cx *core.Scope, kind string) string {

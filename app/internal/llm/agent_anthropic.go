@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 )
 
 // RunAgent drives the Anthropic Messages tool loop without streaming.
@@ -53,9 +54,11 @@ func (c *AnthropicClient) RunAgent(ctx context.Context, system, user string, too
 				}
 				assistant = append(assistant, map[string]any{"type": "tool_use",
 					"id": block.ID, "name": block.Name, "input": input})
+				started := time.Now()
 				content, isError := executeAgentTool(ctx, tools, block.Name,
 					string(block.Input))
-				run.ToolCalls = append(run.ToolCalls, block.Name)
+				recordAgentStep(run, run.Turns, block.Name, string(block.Input),
+					content, isError, time.Since(started))
 				result := map[string]any{"type": "tool_result", "tool_use_id": block.ID,
 					"content": content}
 				if isError {
@@ -65,12 +68,12 @@ func (c *AnthropicClient) RunAgent(ctx context.Context, system, user string, too
 			}
 		}
 		if len(results) == 0 {
-			return nil, ErrAgentStalled
+			return run, ErrAgentStalled
 		}
 		messages = append(messages, anthropicMessage{Role: "assistant", Content: assistant})
 		messages = append(messages, anthropicMessage{Role: "user", Content: results})
 	}
-	return nil, ErrAgentMaxTurns
+	return run, ErrAgentMaxTurns
 }
 
 func (c *AnthropicClient) agentMessage(ctx context.Context, system string,

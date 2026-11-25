@@ -30,6 +30,9 @@ type Settings struct {
 	// GuidanceDisabled turns the in-app tours off; false (the zero value)
 	// keeps the default on.
 	GuidanceDisabled bool `json:"guidanceDisabled,omitempty"`
+	// AgentPromptSeen records that the first-run MCP/Skill setup popup has
+	// been acted on or dismissed.
+	AgentPromptSeen bool `json:"agentPromptSeen,omitempty"`
 	// Window is the last main-window frame, nil before the first quit.
 	Window *Window `json:"window,omitempty"`
 }

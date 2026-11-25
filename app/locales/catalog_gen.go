@@ -60,6 +60,10 @@ var Parameters = map[string][]string{
 	"ActivityImportSummaryErrors":               {"count"},
 	"ActivityImportSummaryValid":                {"count"},
 	"ActivityImportSummaryWarnings":             {"count"},
+	"AgentFirstRunBody":                         {"hosts"},
+	"AnswerAgentTraceMeta":                      {"turns", "ms", "stop"},
+	"AnswerAgentTraceRationale":                 {"summary"},
+	"AnswerAgentTraceTurnTool":                  {"turn", "tool"},
 	"AnswerExportDone":                          {"written", "drafts"},
 	"AnswerGenerateAllDone":                     {"ok", "failed"},
 	"AuditExportCsvSuccess":                     {"rows"},
@@ -189,6 +193,8 @@ var Parameters = map[string][]string{
 	"SettingsModelFetchFailed":                  {"message"},
 	"SettingsProviderUnknownWarning":            {"provider"},
 	"SettingsSkillInstalled":                    {"count"},
+	"SettingsSkillLaunchUnavailable":            {"cmd"},
+	"SettingsSkillLaunched":                     {"host"},
 	"SettingsSkillStatusInstalled":              {"count"},
 	"SettingsSkillWillInstallTo":                {"hosts"},
 	"SourcesCatalogBatchAdd":                    {"count"},
@@ -260,6 +266,10 @@ type Translation struct {
 	ActivityImportSummaryErrors               func(count string) string
 	ActivityImportSummaryValid                func(count string) string
 	ActivityImportSummaryWarnings             func(count string) string
+	AgentFirstRunBody                         func(hosts string) string
+	AnswerAgentTraceMeta                      func(turns string, ms string, stop string) string
+	AnswerAgentTraceRationale                 func(summary string) string
+	AnswerAgentTraceTurnTool                  func(turn string, tool string) string
 	AnswerExportDone                          func(written string, drafts string) string
 	AnswerGenerateAllDone                     func(ok string, failed string) string
 	AuditExportCsvSuccess                     func(rows string) string
@@ -389,6 +399,8 @@ type Translation struct {
 	SettingsModelFetchFailed                  func(message string) string
 	SettingsProviderUnknownWarning            func(provider string) string
 	SettingsSkillInstalled                    func(count string) string
+	SettingsSkillLaunchUnavailable            func(cmd string) string
+	SettingsSkillLaunched                     func(host string) string
 	SettingsSkillStatusInstalled              func(count string) string
 	SettingsSkillWillInstallTo                func(hosts string) string
 	SourcesCatalogBatchAdd                    func(count string) string
@@ -586,6 +598,17 @@ const (
 	textActivityImportTitle
 	textActivityImportUnmapped
 	textActivityImportWarningsHeading
+	textAgentFirstRunDismiss
+	textAgentFirstRunInstall
+	textAgentFirstRunSettings
+	textAgentFirstRunTitle
+	textAnswerAgentTraceButton
+	textAnswerAgentTraceClose
+	textAnswerAgentTraceError
+	textAnswerAgentTraceModeAgent
+	textAnswerAgentTraceModeSingleShot
+	textAnswerAgentTraceNoSteps
+	textAnswerAgentTraceTitle
 	textAnswerDraft
 	textAnswerExportButton
 	textAnswerExportFailed
@@ -1636,8 +1659,12 @@ const (
 	textSettingsSkillActionUpdate
 	textSettingsSkillInstallFailed
 	textSettingsSkillHostClaudeCode
+	textSettingsSkillHostClaudeDesktop
 	textSettingsSkillHostCodex
+	textSettingsSkillHostCursor
 	textSettingsSkillHostPi
+	textSettingsSkillLaunchButton
+	textSettingsSkillLaunchHost
 	textSettingsSkillLoading
 	textSettingsSkillNoHosts
 	textSettingsSkillRemoved
@@ -1987,6 +2014,17 @@ var keyOfText = [numTexts]string{
 	"activityImportTitle",
 	"activityImportUnmapped",
 	"activityImportWarningsHeading",
+	"agentFirstRunDismiss",
+	"agentFirstRunInstall",
+	"agentFirstRunSettings",
+	"agentFirstRunTitle",
+	"answerAgentTraceButton",
+	"answerAgentTraceClose",
+	"answerAgentTraceError",
+	"answerAgentTraceModeAgent",
+	"answerAgentTraceModeSingleShot",
+	"answerAgentTraceNoSteps",
+	"answerAgentTraceTitle",
 	"answerDraft",
 	"answerExportButton",
 	"answerExportFailed",
@@ -3037,8 +3075,12 @@ var keyOfText = [numTexts]string{
 	"settingsSkillActionUpdate",
 	"settingsSkillInstallFailed",
 	"settingsSkillHostClaudeCode",
+	"settingsSkillHostClaudeDesktop",
 	"settingsSkillHostCodex",
+	"settingsSkillHostCursor",
 	"settingsSkillHostPi",
+	"settingsSkillLaunchButton",
+	"settingsSkillLaunchHost",
 	"settingsSkillLoading",
 	"settingsSkillNoHosts",
 	"settingsSkillRemoved",
@@ -3386,6 +3428,17 @@ var textsEn = i18n.NewTexts(""+
 	"Batch import activity data"+
 	"— Not mapped —"+
 	"Warnings (won't block)"+
+	"Not now"+
+	"Install Skill & Configure MCP"+
+	"Open AI Agent Settings"+
+	"Connect CarbonInk to your AI agent"+
+	"Thinking process"+
+	"Close"+
+	"Error"+
+	"Agent loop"+
+	"Single-shot fallback"+
+	"No intermediate tool calls were needed."+
+	"Agent thinking process"+
 	"Draft"+
 	"Export to Excel"+
 	"Could not export the workbook"+
@@ -4436,8 +4489,12 @@ var textsEn = i18n.NewTexts(""+
 	"Update"+
 	"Skill operation failed"+
 	"Claude Code (~/.claude/skills/)"+
+	"Claude Desktop (Claude/skills/)"+
 	"Codex (~/.codex/skills/)"+
+	"Cursor (~/.cursor/skills/)"+
 	"Pi (~/.pi/agent/skills/)"+
+	"Launch agent session"+
+	"Launch host"+
 	"Detecting…"+
 	"no agent hosts detected (only ~/.agents/skills/)"+
 	"Skill removed."+
@@ -4781,6 +4838,17 @@ var textsEn = i18n.NewTexts(""+
 		18,
 		26,
 		18,
+		22,
+		7,
+		29,
+		22,
+		34,
+		16,
+		5,
+		5,
+		10,
+		20,
+		39,
 		22,
 		5,
 		15,
@@ -5832,8 +5900,12 @@ var textsEn = i18n.NewTexts(""+
 		6,
 		22,
 		31,
+		31,
 		24,
+		26,
 		24,
+		20,
+		11,
 		12,
 		48,
 		14,
@@ -6181,6 +6253,17 @@ var textsZhCN = i18n.NewTexts(""+
 	"批量导入活动数据"+
 	"— 未映射 —"+
 	"警告（不阻断导入）"+
+	"暂不"+
+	"一键安装 Skill 并配置 MCP"+
+	"前往 AI Agent 设置"+
+	"将碳墨接入你的 AI Agent"+
+	"思考过程"+
+	"收起"+
+	"错误"+
+	"多轮 Agent"+
+	"单发兜底"+
+	"本次生成未调用中间工具。"+
+	"Agent 思考过程"+
 	"草稿"+
 	"导出 Excel"+
 	"导出 Excel 失败"+
@@ -7231,8 +7314,12 @@ var textsZhCN = i18n.NewTexts(""+
 	"更新"+
 	"Skill 操作失败"+
 	"Claude Code（~/.claude/skills/）"+
+	"Claude Desktop（Claude/skills/）"+
 	"Codex（~/.codex/skills/）"+
+	"Cursor（~/.cursor/skills/）"+
 	"Pi（~/.pi/agent/skills/）"+
+	"打开 Agent 会话（预加载 Skill）"+
+	"启动宿主"+
 	"检测中…"+
 	"未检测到 agent host（仅 ~/.agents/skills/）"+
 	"Skill 已移除。"+
@@ -7577,6 +7664,17 @@ var textsZhCN = i18n.NewTexts(""+
 		24,
 		17,
 		27,
+		6,
+		32,
+		22,
+		30,
+		12,
+		6,
+		6,
+		12,
+		12,
+		36,
+		18,
 		6,
 		12,
 		19,
@@ -8627,8 +8725,12 @@ var textsZhCN = i18n.NewTexts(""+
 		6,
 		18,
 		34,
+		34,
 		27,
+		29,
 		27,
+		40,
+		12,
 		12,
 		50,
 		18,
@@ -8933,6 +9035,18 @@ func Supply(lang string, t Translation) {
 	}
 	if t.ActivityImportSummaryWarnings != nil {
 		s.ActivityImportSummaryWarnings = t.ActivityImportSummaryWarnings
+	}
+	if t.AgentFirstRunBody != nil {
+		s.AgentFirstRunBody = t.AgentFirstRunBody
+	}
+	if t.AnswerAgentTraceMeta != nil {
+		s.AnswerAgentTraceMeta = t.AnswerAgentTraceMeta
+	}
+	if t.AnswerAgentTraceRationale != nil {
+		s.AnswerAgentTraceRationale = t.AnswerAgentTraceRationale
+	}
+	if t.AnswerAgentTraceTurnTool != nil {
+		s.AnswerAgentTraceTurnTool = t.AnswerAgentTraceTurnTool
 	}
 	if t.AnswerExportDone != nil {
 		s.AnswerExportDone = t.AnswerExportDone
@@ -9320,6 +9434,12 @@ func Supply(lang string, t Translation) {
 	}
 	if t.SettingsSkillInstalled != nil {
 		s.SettingsSkillInstalled = t.SettingsSkillInstalled
+	}
+	if t.SettingsSkillLaunchUnavailable != nil {
+		s.SettingsSkillLaunchUnavailable = t.SettingsSkillLaunchUnavailable
+	}
+	if t.SettingsSkillLaunched != nil {
+		s.SettingsSkillLaunched = t.SettingsSkillLaunched
 	}
 	if t.SettingsSkillStatusInstalled != nil {
 		s.SettingsSkillStatusInstalled = t.SettingsSkillStatusInstalled
@@ -11175,6 +11295,183 @@ func ActivityImportWarningsHeading(cx *core.Scope) string {
 // ActivityImportWarningsHeading is the package's ActivityImportWarningsHeading in the language of msgs.
 func (msgs Messages) ActivityImportWarningsHeading() string {
 	return msgs.text(textActivityImportWarningsHeading)
+}
+
+// AgentFirstRunBody says "Detected {hosts}. Install the portable CarbonInk Agent Skill and configure MCP so your agent can query your local inventory read-only or draft questionnaire answers."
+// in the language the app shows under cx.
+func AgentFirstRunBody(cx *core.Scope, hosts string) string { return For(cx).AgentFirstRunBody(hosts) }
+
+// AgentFirstRunBody is the package's AgentFirstRunBody in the language of msgs.
+func (msgs Messages) AgentFirstRunBody(hosts string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.AgentFirstRunBody(hosts))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].AgentFirstRunBody; f != nil {
+			return f(hosts)
+		}
+		switch lang {
+		case "", "en":
+			return "Detected " + msgs.arg(hosts) + ". Install the portable CarbonInk Agent Skill and configure MCP so your agent can query your local inventory read-only or draft questionnaire answers."
+		case "zh-CN":
+			return "检测到 " + hosts + "。一键安装便携 Agent Skill 并配置 MCP，即可让外部 Agent 只读查询本地碳盘查台账或辅助填写问卷。"
+		}
+	}
+}
+
+// AgentFirstRunDismiss says "Not now"
+// in the language the app shows under cx.
+func AgentFirstRunDismiss(cx *core.Scope) string { return For(cx).AgentFirstRunDismiss() }
+
+// AgentFirstRunDismiss is the package's AgentFirstRunDismiss in the language of msgs.
+func (msgs Messages) AgentFirstRunDismiss() string { return msgs.text(textAgentFirstRunDismiss) }
+
+// AgentFirstRunInstall says "Install Skill & Configure MCP"
+// in the language the app shows under cx.
+func AgentFirstRunInstall(cx *core.Scope) string { return For(cx).AgentFirstRunInstall() }
+
+// AgentFirstRunInstall is the package's AgentFirstRunInstall in the language of msgs.
+func (msgs Messages) AgentFirstRunInstall() string { return msgs.text(textAgentFirstRunInstall) }
+
+// AgentFirstRunSettings says "Open AI Agent Settings"
+// in the language the app shows under cx.
+func AgentFirstRunSettings(cx *core.Scope) string { return For(cx).AgentFirstRunSettings() }
+
+// AgentFirstRunSettings is the package's AgentFirstRunSettings in the language of msgs.
+func (msgs Messages) AgentFirstRunSettings() string { return msgs.text(textAgentFirstRunSettings) }
+
+// AgentFirstRunTitle says "Connect CarbonInk to your AI agent"
+// in the language the app shows under cx.
+func AgentFirstRunTitle(cx *core.Scope) string { return For(cx).AgentFirstRunTitle() }
+
+// AgentFirstRunTitle is the package's AgentFirstRunTitle in the language of msgs.
+func (msgs Messages) AgentFirstRunTitle() string { return msgs.text(textAgentFirstRunTitle) }
+
+// AnswerAgentTraceButton says "Thinking process"
+// in the language the app shows under cx.
+func AnswerAgentTraceButton(cx *core.Scope) string { return For(cx).AnswerAgentTraceButton() }
+
+// AnswerAgentTraceButton is the package's AnswerAgentTraceButton in the language of msgs.
+func (msgs Messages) AnswerAgentTraceButton() string { return msgs.text(textAnswerAgentTraceButton) }
+
+// AnswerAgentTraceClose says "Close"
+// in the language the app shows under cx.
+func AnswerAgentTraceClose(cx *core.Scope) string { return For(cx).AnswerAgentTraceClose() }
+
+// AnswerAgentTraceClose is the package's AnswerAgentTraceClose in the language of msgs.
+func (msgs Messages) AnswerAgentTraceClose() string { return msgs.text(textAnswerAgentTraceClose) }
+
+// AnswerAgentTraceError says "Error"
+// in the language the app shows under cx.
+func AnswerAgentTraceError(cx *core.Scope) string { return For(cx).AnswerAgentTraceError() }
+
+// AnswerAgentTraceError is the package's AnswerAgentTraceError in the language of msgs.
+func (msgs Messages) AnswerAgentTraceError() string { return msgs.text(textAnswerAgentTraceError) }
+
+// AnswerAgentTraceMeta says "{turns} turn(s) · {ms} ms · {stop}"
+// in the language the app shows under cx.
+func AnswerAgentTraceMeta(cx *core.Scope, turns string, ms string, stop string) string {
+	return For(cx).AnswerAgentTraceMeta(turns, ms, stop)
+}
+
+// AnswerAgentTraceMeta is the package's AnswerAgentTraceMeta in the language of msgs.
+func (msgs Messages) AnswerAgentTraceMeta(turns string, ms string, stop string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.AnswerAgentTraceMeta(turns, ms, stop))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].AnswerAgentTraceMeta; f != nil {
+			return f(turns, ms, stop)
+		}
+		switch lang {
+		case "", "en":
+			return msgs.arg(turns) + " turn(s) · " + msgs.arg(ms) + " ms · " + msgs.arg(stop)
+		case "zh-CN":
+			return turns + " 轮 · " + ms + " ms · " + stop
+		}
+	}
+}
+
+// AnswerAgentTraceModeAgent says "Agent loop"
+// in the language the app shows under cx.
+func AnswerAgentTraceModeAgent(cx *core.Scope) string { return For(cx).AnswerAgentTraceModeAgent() }
+
+// AnswerAgentTraceModeAgent is the package's AnswerAgentTraceModeAgent in the language of msgs.
+func (msgs Messages) AnswerAgentTraceModeAgent() string {
+	return msgs.text(textAnswerAgentTraceModeAgent)
+}
+
+// AnswerAgentTraceModeSingleShot says "Single-shot fallback"
+// in the language the app shows under cx.
+func AnswerAgentTraceModeSingleShot(cx *core.Scope) string {
+	return For(cx).AnswerAgentTraceModeSingleShot()
+}
+
+// AnswerAgentTraceModeSingleShot is the package's AnswerAgentTraceModeSingleShot in the language of msgs.
+func (msgs Messages) AnswerAgentTraceModeSingleShot() string {
+	return msgs.text(textAnswerAgentTraceModeSingleShot)
+}
+
+// AnswerAgentTraceNoSteps says "No intermediate tool calls were needed."
+// in the language the app shows under cx.
+func AnswerAgentTraceNoSteps(cx *core.Scope) string { return For(cx).AnswerAgentTraceNoSteps() }
+
+// AnswerAgentTraceNoSteps is the package's AnswerAgentTraceNoSteps in the language of msgs.
+func (msgs Messages) AnswerAgentTraceNoSteps() string { return msgs.text(textAnswerAgentTraceNoSteps) }
+
+// AnswerAgentTraceRationale says "Source rationale: {summary}"
+// in the language the app shows under cx.
+func AnswerAgentTraceRationale(cx *core.Scope, summary string) string {
+	return For(cx).AnswerAgentTraceRationale(summary)
+}
+
+// AnswerAgentTraceRationale is the package's AnswerAgentTraceRationale in the language of msgs.
+func (msgs Messages) AnswerAgentTraceRationale(summary string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.AnswerAgentTraceRationale(summary))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].AnswerAgentTraceRationale; f != nil {
+			return f(summary)
+		}
+		switch lang {
+		case "", "en":
+			return "Source rationale: " + msgs.arg(summary)
+		case "zh-CN":
+			return "来源说明：" + summary
+		}
+	}
+}
+
+// AnswerAgentTraceTitle says "Agent thinking process"
+// in the language the app shows under cx.
+func AnswerAgentTraceTitle(cx *core.Scope) string { return For(cx).AnswerAgentTraceTitle() }
+
+// AnswerAgentTraceTitle is the package's AnswerAgentTraceTitle in the language of msgs.
+func (msgs Messages) AnswerAgentTraceTitle() string { return msgs.text(textAnswerAgentTraceTitle) }
+
+// AnswerAgentTraceTurnTool says "Turn {turn} · {tool}"
+// in the language the app shows under cx.
+func AnswerAgentTraceTurnTool(cx *core.Scope, turn string, tool string) string {
+	return For(cx).AnswerAgentTraceTurnTool(turn, tool)
+}
+
+// AnswerAgentTraceTurnTool is the package's AnswerAgentTraceTurnTool in the language of msgs.
+func (msgs Messages) AnswerAgentTraceTurnTool(turn string, tool string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.AnswerAgentTraceTurnTool(turn, tool))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].AnswerAgentTraceTurnTool; f != nil {
+			return f(turn, tool)
+		}
+		switch lang {
+		case "", "en":
+			return "Turn " + msgs.arg(turn) + " · " + msgs.arg(tool)
+		case "zh-CN":
+			return "第 " + turn + " 轮 · " + tool
+		}
+	}
 }
 
 // AnswerDraft says "Draft"
@@ -22897,6 +23194,17 @@ func (msgs Messages) SettingsSkillHostClaudeCode() string {
 	return msgs.text(textSettingsSkillHostClaudeCode)
 }
 
+// SettingsSkillHostClaudeDesktop says "Claude Desktop (Claude/skills/)"
+// in the language the app shows under cx.
+func SettingsSkillHostClaudeDesktop(cx *core.Scope) string {
+	return For(cx).SettingsSkillHostClaudeDesktop()
+}
+
+// SettingsSkillHostClaudeDesktop is the package's SettingsSkillHostClaudeDesktop in the language of msgs.
+func (msgs Messages) SettingsSkillHostClaudeDesktop() string {
+	return msgs.text(textSettingsSkillHostClaudeDesktop)
+}
+
 // SettingsSkillHostCodex says "Codex (~/.codex/skills/)"
 // in the language the app shows under cx.
 func SettingsSkillHostCodex(cx *core.Scope) string { return For(cx).SettingsSkillHostCodex() }
@@ -22904,12 +23212,83 @@ func SettingsSkillHostCodex(cx *core.Scope) string { return For(cx).SettingsSkil
 // SettingsSkillHostCodex is the package's SettingsSkillHostCodex in the language of msgs.
 func (msgs Messages) SettingsSkillHostCodex() string { return msgs.text(textSettingsSkillHostCodex) }
 
+// SettingsSkillHostCursor says "Cursor (~/.cursor/skills/)"
+// in the language the app shows under cx.
+func SettingsSkillHostCursor(cx *core.Scope) string { return For(cx).SettingsSkillHostCursor() }
+
+// SettingsSkillHostCursor is the package's SettingsSkillHostCursor in the language of msgs.
+func (msgs Messages) SettingsSkillHostCursor() string { return msgs.text(textSettingsSkillHostCursor) }
+
 // SettingsSkillHostPi says "Pi (~/.pi/agent/skills/)"
 // in the language the app shows under cx.
 func SettingsSkillHostPi(cx *core.Scope) string { return For(cx).SettingsSkillHostPi() }
 
 // SettingsSkillHostPi is the package's SettingsSkillHostPi in the language of msgs.
 func (msgs Messages) SettingsSkillHostPi() string { return msgs.text(textSettingsSkillHostPi) }
+
+// SettingsSkillLaunchButton says "Launch agent session"
+// in the language the app shows under cx.
+func SettingsSkillLaunchButton(cx *core.Scope) string { return For(cx).SettingsSkillLaunchButton() }
+
+// SettingsSkillLaunchButton is the package's SettingsSkillLaunchButton in the language of msgs.
+func (msgs Messages) SettingsSkillLaunchButton() string {
+	return msgs.text(textSettingsSkillLaunchButton)
+}
+
+// SettingsSkillLaunchHost says "Launch host"
+// in the language the app shows under cx.
+func SettingsSkillLaunchHost(cx *core.Scope) string { return For(cx).SettingsSkillLaunchHost() }
+
+// SettingsSkillLaunchHost is the package's SettingsSkillLaunchHost in the language of msgs.
+func (msgs Messages) SettingsSkillLaunchHost() string { return msgs.text(textSettingsSkillLaunchHost) }
+
+// SettingsSkillLaunchUnavailable says "No launcher found on PATH. Run manually: {cmd}"
+// in the language the app shows under cx.
+func SettingsSkillLaunchUnavailable(cx *core.Scope, cmd string) string {
+	return For(cx).SettingsSkillLaunchUnavailable(cmd)
+}
+
+// SettingsSkillLaunchUnavailable is the package's SettingsSkillLaunchUnavailable in the language of msgs.
+func (msgs Messages) SettingsSkillLaunchUnavailable(cmd string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SettingsSkillLaunchUnavailable(cmd))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SettingsSkillLaunchUnavailable; f != nil {
+			return f(cmd)
+		}
+		switch lang {
+		case "", "en":
+			return "No launcher found on PATH. Run manually: " + msgs.arg(cmd)
+		case "zh-CN":
+			return "未检测到可直接启动的宿主程序，请手动执行：" + cmd
+		}
+	}
+}
+
+// SettingsSkillLaunched says "Launched {host} session with carbonink-mcp skill."
+// in the language the app shows under cx.
+func SettingsSkillLaunched(cx *core.Scope, host string) string {
+	return For(cx).SettingsSkillLaunched(host)
+}
+
+// SettingsSkillLaunched is the package's SettingsSkillLaunched in the language of msgs.
+func (msgs Messages) SettingsSkillLaunched(host string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SettingsSkillLaunched(host))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SettingsSkillLaunched; f != nil {
+			return f(host)
+		}
+		switch lang {
+		case "", "en":
+			return "Launched " + msgs.arg(host) + " session with carbonink-mcp skill."
+		case "zh-CN":
+			return "已打开 " + host + " 会话并预加载 carbonink-mcp Skill。"
+		}
+	}
+}
 
 // SettingsSkillLoading says "Detecting…"
 // in the language the app shows under cx.

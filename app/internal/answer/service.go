@@ -118,7 +118,8 @@ func (s *Service) Generate(ctx context.Context, questionID string) (*store.Answe
 	if err != nil {
 		return nil, err
 	}
-	s.recordAudit(ctx, questionID, isFallback, trace, time.Since(started))
+	elapsed := time.Since(started)
+	s.recordAudit(ctx, questionID, isFallback, trace, elapsed)
 
 	if strings.TrimSpace(output.Value) == "" {
 		return nil, &NoDataError{Reason: output.SourceSummary}
@@ -134,6 +135,7 @@ func (s *Service) Generate(ctx context.Context, questionID string) (*store.Answe
 	return s.Store.SaveAnswer(ctx, store.SaveAnswerInput{
 		QuestionID: questionID, Value: output.Value, Unit: unit,
 		SourceKind: "ai_suggested", SourceSummary: summary,
+		AgentTrace: encodeAgentTrace(isFallback, trace, elapsed),
 	})
 }
 
@@ -165,10 +167,41 @@ func (s *Service) GenerateAll(ctx context.Context, questionnaireID string) ([]Ge
 	return results, nil
 }
 
+// AgentTrace is the structured execution summary persisted on an answer row
+// so the review drawer can render the agent's tool-call chain.
+type AgentTrace struct {
+	Mode       string          `json:"mode"`
+	StopReason string          `json:"stop_reason"`
+	IsFallback bool            `json:"is_fallback"`
+	Turns      int             `json:"turns"`
+	DurationMs int64           `json:"duration_ms"`
+	Steps      []llm.AgentStep `json:"steps,omitempty"`
+}
+
 type draftTrace struct {
 	Turns     int
 	ToolCalls []string
+	Steps     []llm.AgentStep
 	Stop      string
+}
+
+func encodeAgentTrace(isFallback bool, trace draftTrace, elapsed time.Duration) string {
+	mode := "agent"
+	if isFallback {
+		mode = "single_shot"
+	}
+	encoded, err := json.Marshal(AgentTrace{
+		Mode:       mode,
+		StopReason: trace.Stop,
+		IsFallback: isFallback,
+		Turns:      trace.Turns,
+		DurationMs: elapsed.Milliseconds(),
+		Steps:      trace.Steps,
+	})
+	if err != nil {
+		return ""
+	}
+	return string(encoded)
 }
 
 func (s *Service) draft(ctx context.Context, q QuestionContext, inventory InventoryContext,
@@ -193,19 +226,21 @@ func (s *Service) draft(ctx context.Context, q QuestionContext, inventory Invent
 				return AnswerOutput{}, false, draftTrace{}, err
 			}
 			return output, false, draftTrace{Turns: run.Turns, ToolCalls: run.ToolCalls,
-				Stop: "completed"}, nil
+				Steps: run.Steps, Stop: "completed"}, nil
 		case errors.Is(err, llm.ErrAgentMaxTurns):
 			output, err = s.singleShot(ctx, q, inventory)
 			if err != nil {
 				return AnswerOutput{}, false, draftTrace{}, err
 			}
-			return output, true, draftTrace{Turns: runTurns(run), Stop: "max_turns"}, nil
+			return output, true, draftTrace{Turns: runTurns(run), ToolCalls: runToolCalls(run),
+				Steps: runSteps(run), Stop: "max_turns"}, nil
 		case errors.Is(err, llm.ErrAgentStalled):
 			output, err = s.singleShot(ctx, q, inventory)
 			if err != nil {
 				return AnswerOutput{}, false, draftTrace{}, err
 			}
-			return output, true, draftTrace{Turns: runTurns(run), Stop: "stalled"}, nil
+			return output, true, draftTrace{Turns: runTurns(run), ToolCalls: runToolCalls(run),
+				Steps: runSteps(run), Stop: "stalled"}, nil
 		default:
 			return AnswerOutput{}, false, draftTrace{}, err
 		}
@@ -222,6 +257,20 @@ func runTurns(run *llm.AgentRun) int {
 		return 0
 	}
 	return run.Turns
+}
+
+func runToolCalls(run *llm.AgentRun) []string {
+	if run == nil {
+		return nil
+	}
+	return run.ToolCalls
+}
+
+func runSteps(run *llm.AgentRun) []llm.AgentStep {
+	if run == nil {
+		return nil
+	}
+	return run.Steps
 }
 
 func (s *Service) singleShot(ctx context.Context, q QuestionContext,

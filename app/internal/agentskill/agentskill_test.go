@@ -94,3 +94,45 @@ func TestInstallLeavesForeignCopyAlone(t *testing.T) {
 		t.Fatalf("foreign copy = %q, err = %v", data, err)
 	}
 }
+
+func TestInstallSupportsCursorAndClaudeDesktop(t *testing.T) {
+	home := t.TempDir()
+	configDir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(home, ".cursor"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(configDir, "Claude"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	status := DetectWithConfig(home, configDir)
+	if len(status.DetectedHosts) != 2 {
+		t.Fatalf("detected = %v", status.DetectedHosts)
+	}
+	res, err := InstallWithConfig(home, configDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res.LinkedHosts) != 2 {
+		t.Fatalf("linked = %v", res.LinkedHosts)
+	}
+	if _, err := os.Stat(filepath.Join(home, ".cursor", "skills", "carbonink-mcp", "SKILL.md")); err != nil {
+		t.Fatalf("cursor skill missing: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(configDir, "Claude", "skills", "carbonink-mcp", "SKILL.md")); err != nil {
+		t.Fatalf("claude desktop skill missing: %v", err)
+	}
+
+	status = DetectWithConfig(home, configDir)
+	if !status.Installed || len(status.LinkedHosts) != 2 {
+		t.Fatalf("status after install = %+v", status)
+	}
+
+	removed, err := RemoveWithConfig(home, configDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(removed.Removed) != 3 {
+		t.Fatalf("removed = %v", removed.Removed)
+	}
+}

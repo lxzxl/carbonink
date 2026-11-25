@@ -230,8 +230,10 @@ func (c *GeminiClient) RunAgent(ctx context.Context, system, user string, tools 
 				run.Output = args
 				return run, nil
 			}
+			started := time.Now()
 			resultJSON, isError := executeAgentTool(ctx, tools, fc.Name, string(fc.Args))
-			run.ToolCalls = append(run.ToolCalls, fc.Name)
+			recordAgentStep(run, run.Turns, fc.Name, string(fc.Args),
+				resultJSON, isError, time.Since(started))
 			var decoded any
 			if err := json.Unmarshal([]byte(resultJSON), &decoded); err != nil {
 				decoded = resultJSON
@@ -248,7 +250,7 @@ func (c *GeminiClient) RunAgent(ctx context.Context, system, user string, tools 
 			})
 		}
 		if len(responses) == 0 {
-			return nil, ErrAgentStalled
+			return run, ErrAgentStalled
 		}
 		contents = append(contents, modelContent)
 		contents = append(contents, geminiContent{
@@ -256,7 +258,7 @@ func (c *GeminiClient) RunAgent(ctx context.Context, system, user string, tools 
 			Parts: responses,
 		})
 	}
-	return nil, ErrAgentMaxTurns
+	return run, ErrAgentMaxTurns
 }
 
 func (c *GeminiClient) generateContent(ctx context.Context, system string,
