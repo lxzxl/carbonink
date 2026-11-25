@@ -25,15 +25,17 @@ const (
 // invalidates reuse matches across questionnaires.
 const SignatureVersion = "v1"
 
-// Customer is one counterparty. Suppliers reuse the same table with
-// Role="supplier"; every method here is role-scoped.
-type Customer struct {
+// Counterparty is an external organization (customer, supplier, or both).
+type Counterparty struct {
 	ID    string
 	Name  string
 	Notes string
 	Role  string
 	Email string
 }
+
+// Customer aliases Counterparty for callers scoped to the customer role.
+type Customer = Counterparty
 
 // Questionnaire is one customer workbook, outbound (customer-facing) or
 // inbound (supplier disclosure).
@@ -158,7 +160,7 @@ func getOrCreateCustomer(ctx context.Context, q queryer, name string) (*Customer
 		return nil, errors.New("customer name is required")
 	}
 	row := q.QueryRowContext(ctx, `SELECT id, name, coalesce(notes, ''), role, coalesce(email, '')
-		FROM customer WHERE name = ? AND role = 'customer' LIMIT 1`, name)
+		FROM counterparty WHERE name = ? AND role IN ('customer', 'both') LIMIT 1`, name)
 	var c Customer
 	err := row.Scan(&c.ID, &c.Name, &c.Notes, &c.Role, &c.Email)
 	if err == nil {
@@ -168,26 +170,56 @@ func getOrCreateCustomer(ctx context.Context, q queryer, name string) (*Customer
 		return nil, err
 	}
 	c = Customer{ID: newID(), Name: name, Role: "customer"}
-	if _, err := q.ExecContext(ctx, `INSERT INTO customer (id, name, notes, role)
+	if _, err := q.ExecContext(ctx, `INSERT INTO counterparty (id, name, notes, role)
 		VALUES (?, ?, NULL, 'customer')`, c.ID, c.Name); err != nil {
 		return nil, err
 	}
 	return &c, nil
 }
 
-// ListCustomers returns customer-role rows ordered by name.
+// ListCustomers returns customer-role rows (including role='both') ordered by name.
 func (s *Store) ListCustomers(ctx context.Context) ([]Customer, error) {
 	return listCustomersByRole(ctx, s.db, "customer")
 }
 
-// ListSuppliers returns supplier-role rows ordered by name.
+// ListSuppliers returns supplier-role rows (including role='both') ordered by name.
 func (s *Store) ListSuppliers(ctx context.Context) ([]Customer, error) {
 	return listCustomersByRole(ctx, s.db, "supplier")
 }
 
+// ListCounterparties returns counterparties optionally filtered by role
+// ('customer', 'supplier', 'both', or "" for all).
+func (s *Store) ListCounterparties(ctx context.Context, role string) ([]Counterparty, error) {
+	if role == "" {
+		rows, err := s.db.QueryContext(ctx, `SELECT id, name, coalesce(notes, ''), role, coalesce(email, '')
+			FROM counterparty ORDER BY name, id`)
+		if err != nil {
+			return nil, err
+		}
+		defer rows.Close()
+		var out []Counterparty
+		for rows.Next() {
+			var c Counterparty
+			if err := rows.Scan(&c.ID, &c.Name, &c.Notes, &c.Role, &c.Email); err != nil {
+				return nil, err
+			}
+			out = append(out, c)
+		}
+		return out, rows.Err()
+	}
+	return listCustomersByRole(ctx, s.db, role)
+}
+
 func listCustomersByRole(ctx context.Context, q queryer, role string) ([]Customer, error) {
-	rows, err := q.QueryContext(ctx, `SELECT id, name, coalesce(notes, ''), role, coalesce(email, '')
-		FROM customer WHERE role = ? ORDER BY name, id`, role)
+	var rows *sql.Rows
+	var err error
+	if role == "both" {
+		rows, err = q.QueryContext(ctx, `SELECT id, name, coalesce(notes, ''), role, coalesce(email, '')
+			FROM counterparty WHERE role = 'both' ORDER BY name, id`)
+	} else {
+		rows, err = q.QueryContext(ctx, `SELECT id, name, coalesce(notes, ''), role, coalesce(email, '')
+			FROM counterparty WHERE role IN (?, 'both') ORDER BY name, id`, role)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -203,21 +235,43 @@ func listCustomersByRole(ctx context.Context, q queryer, role string) ([]Custome
 	return out, rows.Err()
 }
 
-// CustomerByID reads one customer-role row.
+// CounterpartyByID reads one counterparty regardless of role.
+func (s *Store) CounterpartyByID(ctx context.Context, id string) (*Counterparty, error) {
+	var c Counterparty
+	err := s.db.QueryRowContext(ctx, `SELECT id, name, coalesce(notes, ''), role, coalesce(email, '')
+		FROM counterparty WHERE id = ?`, id).
+		Scan(&c.ID, &c.Name, &c.Notes, &c.Role, &c.Email)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
+
+// CustomerByID reads one customer-role (or both-role) row.
 func (s *Store) CustomerByID(ctx context.Context, id string) (*Customer, error) {
 	return customerByRole(ctx, s.db, id, "customer")
 }
 
-// SupplierByID reads one supplier-role row.
+// SupplierByID reads one supplier-role (or both-role) row.
 func (s *Store) SupplierByID(ctx context.Context, id string) (*Customer, error) {
 	return customerByRole(ctx, s.db, id, "supplier")
 }
 
 func customerByRole(ctx context.Context, q queryer, id, role string) (*Customer, error) {
 	var c Customer
-	err := q.QueryRowContext(ctx, `SELECT id, name, coalesce(notes, ''), role, coalesce(email, '')
-		FROM customer WHERE id = ? AND role = ?`, id, role).
-		Scan(&c.ID, &c.Name, &c.Notes, &c.Role, &c.Email)
+	var err error
+	if role == "both" {
+		err = q.QueryRowContext(ctx, `SELECT id, name, coalesce(notes, ''), role, coalesce(email, '')
+			FROM counterparty WHERE id = ? AND role = 'both'`, id).
+			Scan(&c.ID, &c.Name, &c.Notes, &c.Role, &c.Email)
+	} else {
+		err = q.QueryRowContext(ctx, `SELECT id, name, coalesce(notes, ''), role, coalesce(email, '')
+			FROM counterparty WHERE id = ? AND role IN (?, 'both')`, id, role).
+			Scan(&c.ID, &c.Name, &c.Notes, &c.Role, &c.Email)
+	}
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -242,14 +296,31 @@ func (s *Store) CreateSupplier(ctx context.Context, name, notes, email string) (
 	if c.Email != "" {
 		emailArg = c.Email
 	}
-	if _, err := s.db.ExecContext(ctx, `INSERT INTO customer (id, name, notes, role, email)
+	if _, err := s.db.ExecContext(ctx, `INSERT INTO counterparty (id, name, notes, role, email)
 		VALUES (?, ?, ?, 'supplier', ?)`, c.ID, c.Name, notesArg, emailArg); err != nil {
 		return nil, err
 	}
 	return &c, nil
 }
 
-// SetSupplierEmail sets or clears a supplier's email. A customer-role id is a
+// SetCounterpartyRole updates a counterparty's role ('customer', 'supplier', 'both').
+func (s *Store) SetCounterpartyRole(ctx context.Context, id, role string) (*Counterparty, error) {
+	switch role {
+	case "customer", "supplier", "both":
+	default:
+		return nil, fmt.Errorf("invalid counterparty role %q", role)
+	}
+	res, err := s.db.ExecContext(ctx, `UPDATE counterparty SET role = ? WHERE id = ?`, role, id)
+	if err != nil {
+		return nil, err
+	}
+	if changed, err := res.RowsAffected(); err == nil && changed == 0 {
+		return nil, nil
+	}
+	return s.CounterpartyByID(ctx, id)
+}
+
+// SetSupplierEmail sets or clears a supplier's email. A customer-only id is a
 // miss, returned as (nil, nil).
 func (s *Store) SetSupplierEmail(ctx context.Context, id, email string) (*Customer, error) {
 	normalized := normalizeEmail(email)
@@ -257,7 +328,7 @@ func (s *Store) SetSupplierEmail(ctx context.Context, id, email string) (*Custom
 	if normalized != "" {
 		arg = normalized
 	}
-	res, err := s.db.ExecContext(ctx, `UPDATE customer SET email = ? WHERE id = ? AND role = 'supplier'`,
+	res, err := s.db.ExecContext(ctx, `UPDATE counterparty SET email = ? WHERE id = ? AND role IN ('supplier', 'both')`,
 		arg, id)
 	if err != nil {
 		return nil, err
@@ -329,7 +400,7 @@ func (s *Store) CreateQuestionnaire(ctx context.Context, in QuestionnaireInput) 
 
 	id := newID()
 	if _, err := tx.ExecContext(ctx, `INSERT INTO questionnaire
-		(id, customer_id, document_id, template_kind, reporting_year, status, direction, due_date, created_at)
+		(id, counterparty_id, document_id, template_kind, reporting_year, status, direction, due_date, created_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		id, customerID, in.DocumentID, nullIfEmpty(in.TemplateKind), in.ReportingYear, status,
 		direction, nullIfEmpty(in.DueDate), now()); err != nil {
@@ -372,7 +443,7 @@ func (s *Store) CreateQuestionnaire(ctx context.Context, in QuestionnaireInput) 
 			FROM answer a
 			JOIN question pq ON pq.id = a.question_id
 			JOIN questionnaire pqn ON pqn.id = pq.questionnaire_id
-			WHERE pqn.customer_id = ?
+			WHERE pqn.counterparty_id = ?
 			  AND pq.question_signature = ?
 			  AND pqn.id != ?
 			  AND a.finalized_at IS NOT NULL
@@ -432,14 +503,14 @@ func (s *Store) QuestionnaireByID(ctx context.Context, id string) (*Questionnair
 	return &q, nil
 }
 
-const questionnaireSelect = `SELECT q.id, q.customer_id, c.name, coalesce(q.document_id, ''),
+const questionnaireSelect = `SELECT q.id, q.counterparty_id, c.name, coalesce(q.document_id, ''),
 		coalesce(q.template_kind, ''), q.reporting_year, q.status, q.direction,
 		coalesce(q.due_date, ''), q.created_at,
 		(SELECT COUNT(*) FROM question WHERE questionnaire_id = q.id),
 		(SELECT COUNT(*) FROM answer a JOIN question qu ON qu.id = a.question_id
 			WHERE qu.questionnaire_id = q.id)
 	FROM questionnaire q
-	JOIN customer c ON c.id = q.customer_id`
+	JOIN counterparty c ON c.id = q.counterparty_id`
 
 func scanQuestionnaire(row rowScanner) (Questionnaire, error) {
 	var q Questionnaire

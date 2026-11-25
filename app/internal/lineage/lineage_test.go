@@ -122,12 +122,12 @@ func TestActivityLineageDocumentAndInboundSources(t *testing.T) {
 		t.Fatalf("document source = %+v", got.Source)
 	}
 
-	if _, err := f.store.DB().ExecContext(f.ctx, `INSERT INTO customer (id, name, role)
+	if _, err := f.store.DB().ExecContext(f.ctx, `INSERT INTO counterparty (id, name, role)
 		VALUES ('supplier-1', 'Acme Metals', 'supplier')`); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := f.store.DB().ExecContext(f.ctx, `INSERT INTO questionnaire
-		(id, customer_id, document_id, reporting_year, status, direction, created_at)
+		(id, counterparty_id, document_id, reporting_year, status, direction, created_at)
 		VALUES ('qn-in', 'supplier-1', NULL, 2025, 'received', 'inbound',
 		'2025-01-15T00:00:00Z')`); err != nil {
 		t.Fatal(err)
@@ -164,9 +164,9 @@ func TestActivityLineageConsumersAndEvidence(t *testing.T) {
 			t.Fatalf("%s: %v", query, err)
 		}
 	}
-	exec(`INSERT INTO customer (id, name, role) VALUES ('customer-1', 'ACME Ltd', 'customer')`)
+	exec(`INSERT INTO counterparty (id, name, role) VALUES ('customer-1', 'ACME Ltd', 'customer')`)
 	exec(`INSERT INTO questionnaire
-		(id, customer_id, document_id, reporting_year, status, direction, created_at)
+		(id, counterparty_id, document_id, reporting_year, status, direction, created_at)
 		VALUES ('qn-1', 'customer-1', NULL, 2025, 'answering', 'outbound', ?)`, ts)
 	exec(`INSERT INTO question
 		(id, questionnaire_id, question_signature, signature_version, normalized_text,

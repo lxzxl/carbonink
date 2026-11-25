@@ -173,9 +173,9 @@ func fixtureStore(t *testing.T) *store.Store {
 	exec(`INSERT INTO pinned_emission_factor (factor_code, year, source, geography, dataset_version,
 		scope, input_unit, co2e_kg_per_unit, gwp_basis, pinned_at, pinned_from)
 		VALUES ('ef', 2024, 'MEE', 'CN', '2024', 2, 'kWh', 0.5, 'AR6', ?, 'seed')`, ts)
-	exec(`INSERT INTO customer (id, name, role)
+	exec(`INSERT INTO counterparty (id, name, role)
 		VALUES ('customer', 'Acme', 'customer')`)
-	exec(`INSERT INTO questionnaire (id, customer_id, reporting_year, status, direction, created_at)
+	exec(`INSERT INTO questionnaire (id, counterparty_id, reporting_year, status, direction, created_at)
 		VALUES ('questionnaire', 'customer', 2025, 'answering', 'outbound', ?)`, ts)
 	exec(`INSERT INTO question (id, questionnaire_id, question_signature, signature_version,
 		normalized_text, raw_text, question_kind, position, required)

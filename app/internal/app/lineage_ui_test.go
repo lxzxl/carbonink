@@ -80,9 +80,9 @@ func TestAnswerLineagePanel(t *testing.T) {
 			t.Fatalf("%s: %v", query, err)
 		}
 	}
-	exec(`INSERT INTO customer (id, name, role) VALUES ('cust', 'ACME Ltd', 'customer')`)
+	exec(`INSERT INTO counterparty (id, name, role) VALUES ('cust', 'ACME Ltd', 'customer')`)
 	exec(`INSERT INTO questionnaire
-		(id, customer_id, document_id, reporting_year, status, direction, created_at)
+		(id, counterparty_id, document_id, reporting_year, status, direction, created_at)
 		VALUES ('qn', 'cust', NULL, 2025, 'answering', 'outbound', ?)`, ts)
 	exec(`INSERT INTO question
 		(id, questionnaire_id, question_signature, signature_version, normalized_text,

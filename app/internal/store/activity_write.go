@@ -63,7 +63,7 @@ const activitySelect = `SELECT a.id, a.site_id,
 		a.computed_co2e_kg, a.computed_at, coalesce(a.fuel_code, ''), coalesce(a.notes, ''),
 		coalesce(a.inbound_question_id, ''), coalesce(a.inbound_tier, 0), es.scope,
 		coalesce(a.extraction_id, ''), coalesce(ex.document_id, ''), coalesce(doc.filename, ''),
-		coalesce(iq.questionnaire_id, ''), coalesce(customer.name, ''),
+		coalesce(iq.questionnaire_id, ''), coalesce(counterparty.name, ''),
 		EXISTS(
 			SELECT 1 FROM evidence_attachment ea
 			JOIN document ledger ON ledger.id = ea.document_id
@@ -76,7 +76,7 @@ const activitySelect = `SELECT a.id, a.site_id,
 	LEFT JOIN document doc ON doc.id = ex.document_id
 	LEFT JOIN question iq ON iq.id = a.inbound_question_id
 	LEFT JOIN questionnaire iqn ON iqn.id = iq.questionnaire_id
-	LEFT JOIN customer ON customer.id = iqn.customer_id`
+	LEFT JOIN counterparty ON counterparty.id = iqn.counterparty_id`
 
 // CreateActivity writes a validated ledger row and its audit event.
 func (s *Store) CreateActivity(ctx context.Context, in ActivityInput) (*Activity, error) {

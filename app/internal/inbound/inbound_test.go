@@ -13,28 +13,36 @@ import (
 )
 
 func TestTemplateIntegrity(t *testing.T) {
-	if len(Cat1.Questions) != 7 {
-		t.Fatalf("questions = %d", len(Cat1.Questions))
+	if len(Templates()) != 4 {
+		t.Fatalf("templates = %d", len(Templates()))
 	}
-	positions := map[string]bool{}
-	for _, q := range Cat1.Questions {
-		if positions[q.Position] {
-			t.Fatalf("duplicate position %q", q.Position)
+	for _, tmpl := range Templates() {
+		if len(tmpl.Questions) != 10 {
+			t.Fatalf("%s questions = %d", tmpl.Kind, len(tmpl.Questions))
 		}
-		positions[q.Position] = true
-		sheet, address := splitRef(q.CellRef)
-		if sheet == "" || address == "" {
-			t.Fatalf("%s has a bad cell ref %q", q.Position, q.CellRef)
+		if tmpl.GHGProtocolPath == "" || tmpl.LabelEN == "" || tmpl.LabelZH == "" {
+			t.Fatalf("%s missing metadata", tmpl.Kind)
 		}
-		if _, _, ok := parseAddress(address); !ok {
-			t.Fatalf("%s address %q does not parse", q.Position, address)
-		}
-		if q.RawZH == "" || q.RawEN == "" {
-			t.Fatalf("%s lacks bilingual copy", q.Position)
+		positions := map[string]bool{}
+		for _, q := range tmpl.Questions {
+			if positions[q.Position] {
+				t.Fatalf("%s duplicate position %q", tmpl.Kind, q.Position)
+			}
+			positions[q.Position] = true
+			sheet, address := splitRef(q.CellRef)
+			if sheet == "" || address == "" {
+				t.Fatalf("%s %s has a bad cell ref %q", tmpl.Kind, q.Position, q.CellRef)
+			}
+			if _, _, ok := parseAddress(address); !ok {
+				t.Fatalf("%s %s address %q does not parse", tmpl.Kind, q.Position, address)
+			}
+			if q.RawZH == "" || q.RawEN == "" {
+				t.Fatalf("%s %s lacks bilingual copy", tmpl.Kind, q.Position)
+			}
 		}
 	}
 	if got := signature(Cat1.Version, "tier1.1"); got !=
-		"inbound:cat1_supplier_disclosure:1.0:tier1.1" {
+		"inbound:cat1_supplier_disclosure:2.0:tier1.1" {
 		t.Fatalf("signature = %q", got)
 	}
 }
@@ -319,6 +327,197 @@ func TestInboundSoftNoOpWhenNoTierFilled(t *testing.T) {
 	}
 	if q, _ := s.QuestionnaireByID(ctx, id); q.Status != store.QuestionnaireReceived {
 		t.Fatalf("status = %q", q.Status)
+	}
+}
+
+func TestInboundMultiTemplateAndTierThree(t *testing.T) {
+	s, ctx := openStore(t)
+	onboard(t, s, ctx)
+	supplier, err := s.CreateSupplier(ctx, "Swift Logistics", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := &Service{Store: s}
+	id, count, err := service.CreateDraft(ctx, CreateRequest{
+		SupplierID:    supplier.ID,
+		TemplateKind:  TemplateCat4,
+		ReportingYear: 2025,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != len(Cat4.Questions) {
+		t.Fatalf("count = %d", count)
+	}
+	blank, _, err := service.ExportBlank(ctx, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	filled := fillCells(t, blank, map[string]string{
+		"metadata!B5": "Swift Logistics Ltd.",
+		"tier3!B5":    "Heavy diesel truck",
+		"tier3!B7":    "5000",
+		"tier3!B9":    "tkm",
+	})
+	preview, err := service.ImportFilled(ctx, id, filled)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if preview.TemplateKind != TemplateCat4 || preview.Plan.Tier != 3 ||
+		!preview.Tier3.Available || len(preview.Tier3.Candidates) == 0 {
+		t.Fatalf("preview = %+v", preview)
+	}
+	if preview.Plan.TotalCO2eKg <= 0 {
+		t.Fatalf("expected positive CO2e estimate, got %v", preview.Plan.TotalCO2eKg)
+	}
+	var chosen store.EmissionFactor
+	for _, cand := range preview.Tier3.Candidates {
+		if cand.Compatible && cand.EF.FactorCode == "freight.road.heavy_diesel_truck" {
+			chosen = cand.EF
+			break
+		}
+	}
+	if chosen.FactorCode == "" {
+		t.Fatalf("heavy_diesel_truck not in ranked candidates: %+v", preview.Tier3.Candidates)
+	}
+	accepted := make([]string, 0, len(preview.Answers))
+	for _, a := range preview.Answers {
+		accepted = append(accepted, a.QuestionID)
+	}
+	result, err := service.Ingest(ctx, IngestRequest{
+		QuestionnaireID: id,
+		Accepted:        accepted,
+		Tier3EF: &store.EmissionFactorKey{
+			FactorCode: chosen.FactorCode, Year: chosen.Year,
+			Source: chosen.Source, Geography: chosen.Geography,
+			DatasetVersion: chosen.DatasetVersion,
+		},
+	})
+	if err != nil || !result.Ingested || len(result.ActivityIDs) != 1 {
+		t.Fatalf("tier3 ingest = %+v, %v", result, err)
+	}
+	activities, err := s.Activities(ctx, 10)
+	if err != nil || len(activities) != 1 {
+		t.Fatalf("activities = %+v, %v", activities, err)
+	}
+	a := activities[0]
+	if a.InboundTier != 3 || a.EFFactorCode != "freight.road.heavy_diesel_truck" ||
+		a.Amount != 5000 || a.Unit != "tkm" || a.CO2eKg != 390 {
+		t.Fatalf("tier3 activity = %+v", a)
+	}
+}
+
+func TestInboundTierOneQuantityInference(t *testing.T) {
+	s, ctx := openStore(t)
+	_, site, period, err := s.CompleteOnboarding(ctx, store.OnboardingInput{
+		Organization: store.OrganizationInput{
+			NameZH: "测试组织", NameEN: "Test Org", Industry: "manufacturing",
+			CountryCode: "cn", BoundaryKind: "operational_control",
+		},
+		Site: store.SiteInput{NameZH: "上海工厂", NameEN: "Shanghai Plant",
+			Address: "Pudong", CountryCode: "cn"},
+		Year: 2025,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	srcAcme, err := s.CreateSource(ctx, store.SourceInput{
+		SiteID: site.ID, Name: "Acme Steel purchases",
+		Scope: 3, Category: "purchase", GHGProtocolPath: "scope3.cat1_purchased_goods",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	srcOther, err := s.CreateSource(ctx, store.SourceInput{
+		SiteID: site.ID, Name: "Other Steel purchases",
+		Scope: 3, Category: "purchase", GHGProtocolPath: "scope3.cat1_purchased_goods",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	efKey := store.EmissionFactorKey{
+		FactorCode: "purchase.material.steel_primary", Year: 2024,
+		Source: "EcoInvent", Geography: "GLOBAL", DatasetVersion: "3.10",
+	}
+	if _, err := s.CreateActivity(ctx, store.ActivityInput{
+		EmissionSourceID: srcAcme.ID, ReportingPeriodID: period.ID,
+		OccurredAtStart: "2025-02-01", OccurredAtEnd: "2025-02-28",
+		Amount: 2, Unit: "t", EF: efKey,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.CreateActivity(ctx, store.ActivityInput{
+		EmissionSourceID: srcOther.ID, ReportingPeriodID: period.ID,
+		OccurredAtStart: "2025-03-01", OccurredAtEnd: "2025-03-31",
+		Amount: 500, Unit: "kg", EF: efKey,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	supplier, err := s.CreateSupplier(ctx, "Acme Steel", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := &Service{Store: s}
+	id, _, err := service.CreateDraft(ctx, CreateRequest{
+		SupplierID: supplier.ID, TemplateKind: TemplateCat1, ReportingYear: 2025,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	blank, _, err := service.ExportBlank(ctx, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	filled := fillCells(t, blank, map[string]string{
+		"metadata!B5": "Acme Steel Co.",
+		"tier1!B5":    "1.5",
+	})
+	preview, err := service.ImportFilled(ctx, id, filled)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if preview.QuantityInference.MatchedRows != 1 || preview.QuantityInference.MatchedAmount != 2000 ||
+		preview.QuantityInference.CategoryRows != 1 || preview.QuantityInference.CategoryAmount != 500 ||
+		preview.QuantityInference.Unit != "kg" {
+		t.Fatalf("inference = %+v", preview.QuantityInference)
+	}
+}
+
+func TestParseLegacyCat1VersionAccepted(t *testing.T) {
+	data, err := RenderBlank(RenderOptions{
+		Template: Cat1, QuestionnaireID: "qn-legacy", PeriodYear: 2025, OrgName: "Org",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	book, err := excelize.OpenReader(bytes.NewReader(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := book.SetCellValue(sentinelSheet, "B2", LegacyTemplateVersion); err != nil {
+		t.Fatal(err)
+	}
+	if err := book.SetCellValue("tier2", "B5", "5000"); err != nil {
+		t.Fatal(err)
+	}
+	if err := book.SetCellValue("tier2", "B7", "economic"); err != nil {
+		t.Fatal(err)
+	}
+	if err := book.SetCellValue("tier2", "B9", "1250"); err != nil {
+		t.Fatal(err)
+	}
+	buf, err := book.WriteToBuffer()
+	_ = book.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := ParseFilled(buf.Bytes(), Cat1, "qn-legacy", 2025)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(parsed.Warnings) != 0 {
+		t.Fatalf("warnings = %+v", parsed.Warnings)
 	}
 }
 

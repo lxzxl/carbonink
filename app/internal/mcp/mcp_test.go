@@ -267,8 +267,8 @@ func fixtureDB(t *testing.T) string {
 		computed_co2e_kg, computed_at, created_at, updated_at)
 		VALUES ('act', 'site', 'src', 'period', ?, ?, 240.0, 'kWh',
 		'ef', 2024, 'MEE', 'CN', '2024', 120.0, ?, ?, ?)`, ts, ts, ts, ts, ts)
-	exec(`INSERT INTO customer (id, name, role) VALUES ('customer', 'Acme', 'customer')`)
-	exec(`INSERT INTO questionnaire (id, customer_id, reporting_year, status, direction, created_at)
+	exec(`INSERT INTO counterparty (id, name, role) VALUES ('customer', 'Acme', 'customer')`)
+	exec(`INSERT INTO questionnaire (id, counterparty_id, reporting_year, status, direction, created_at)
 		VALUES ('questionnaire', 'customer', 2025, 'answering', 'outbound', ?)`, ts)
 	exec(`INSERT INTO question (id, questionnaire_id, question_signature, signature_version,
 		normalized_text, raw_text, question_kind, position, required)

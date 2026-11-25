@@ -44,6 +44,18 @@ func TestCustomersAndSuppliersAreRoleScoped(t *testing.T) {
 		updated != nil {
 		t.Fatalf("customer email update = %+v, %v", updated, err)
 	}
+	both, err := s.SetCounterpartyRole(ctx, supplier.ID, "both")
+	if err != nil || both == nil || both.Role != "both" {
+		t.Fatalf("set role both = %+v, %v", both, err)
+	}
+	customers, err = s.ListCustomers(ctx)
+	if err != nil || len(customers) != 2 {
+		t.Fatalf("customers with both = %+v, %v", customers, err)
+	}
+	suppliers, err = s.ListSuppliers(ctx)
+	if err != nil || len(suppliers) != 1 || suppliers[0].ID != supplier.ID {
+		t.Fatalf("suppliers with both = %+v, %v", suppliers, err)
+	}
 }
 
 func TestQuestionnaireReuseFinalizeAndUnfinalize(t *testing.T) {

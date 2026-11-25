@@ -94,8 +94,8 @@ func TestGenerateErrors(t *testing.T) {
 	}
 
 	if _, err := s.DB().ExecContext(ctx, `INSERT INTO questionnaire
-		(id, customer_id, document_id, reporting_year, status, direction, created_at)
-		SELECT 'inbound', customer_id, document_id, 2025, 'received', 'inbound',
+		(id, counterparty_id, document_id, reporting_year, status, direction, created_at)
+		SELECT 'inbound', counterparty_id, document_id, 2025, 'received', 'inbound',
 			'2026-01-01T00:00:00Z' FROM questionnaire WHERE id = ?`, fixture.questionnaireID); err != nil {
 		t.Fatal(err)
 	}

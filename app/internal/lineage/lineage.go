@@ -156,7 +156,7 @@ func Answer(ctx context.Context, db *store.Store, id string) (*AnswerLineage, er
 			qn.id, qn.direction, qn.reporting_year, c.name
 		FROM question q
 		JOIN questionnaire qn ON qn.id = q.questionnaire_id
-		LEFT JOIN customer c ON c.id = qn.customer_id
+		LEFT JOIN counterparty c ON c.id = qn.counterparty_id
 		WHERE q.id = ?`, answer.QuestionID).
 		Scan(&out.QuestionText, &out.Questionnaire.ID, &direction,
 			&out.Questionnaire.ReportingYear, &customerName)
@@ -203,7 +203,7 @@ func sourceNode(ctx context.Context, db *store.Store, activity store.Activity) (
 		err := db.DB().QueryRowContext(ctx, `SELECT q.id, q.questionnaire_id, c.name
 			FROM question q
 			JOIN questionnaire qn ON qn.id = q.questionnaire_id
-			LEFT JOIN customer c ON c.id = qn.customer_id
+			LEFT JOIN counterparty c ON c.id = qn.counterparty_id
 			WHERE q.id = ?`, activity.InboundQuestionID).
 			Scan(&node.QuestionID, &node.QuestionnaireID, &supplier)
 		if err == nil {

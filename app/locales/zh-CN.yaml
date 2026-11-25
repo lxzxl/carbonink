@@ -1490,7 +1490,7 @@ supplierDisclosuresDetailTier: Tier {tier}
 supplierDisclosuresDetailTitle: 供应商披露
 supplierDisclosuresDetailUnanswered: （未答）
 supplierDisclosuresDue: 截止 {date}
-supplierDisclosuresEmpty: 尚无供应商披露。点击右上「+ 新建披露」开始向上游供应商收集 Scope 3 Cat 1 数据。
+supplierDisclosuresEmpty: 尚无供应商披露。点击右上「+ 新建披露」开始向上游供应商收集 Scope 3 数据。
 supplierDisclosuresEmptyBody: 向供应商发出问卷，再跟踪回收情况；回收的答案可以直接转成活动数据。
 supplierDisclosuresFileTooLarge: 文件过大。
 supplierDisclosuresImportNotTemplate: 该工作簿不是 CarbonInk 披露模板。
@@ -1508,17 +1508,24 @@ supplierDisclosuresRemindSignoff: — {org}
 supplierDisclosuresRemindSubject: 供应商披露催办 — {year}
 supplierDisclosuresReviewAcceptAll: 接受已填项
 supplierDisclosuresReviewCancel: 取消
+supplierDisclosuresReviewEF: 排放因子（Tier 3）
+supplierDisclosuresReviewEFNone: 未找到单位兼容的排放因子
+supplierDisclosuresReviewEFRequired: 请为 Tier 3 选择单位兼容的排放因子。
 supplierDisclosuresReviewHint: 请核对数值后入库。未勾选的行只保留在披露中。
+supplierDisclosuresReviewInferredCategory: 应用同类别总计：{amount} {unit}（{rows} 条记录）
+supplierDisclosuresReviewInferredMatched: 已从 {rows} 条匹配活动记录自动推断（{amount} {unit}）。
 supplierDisclosuresReviewIngest: 入库
 supplierDisclosuresReviewIngesting: 正在写入清单…
 supplierDisclosuresReviewPlan: '{rows} 行清单 · {total}'
 supplierDisclosuresReviewQuantity: 采购数量（kg）
 supplierDisclosuresReviewQuantityHint: Tier 1 必填
 supplierDisclosuresReviewQuantityInvalid: 请输入有效数量。
-supplierDisclosuresReviewQuantityRequired: Tier 1 需要填写采购数量（kg）。
+supplierDisclosuresReviewQuantityRequired: Tier 1 需要填写采购/活动数量。
+supplierDisclosuresReviewQuantityUnit: 数量（{unit}）
 supplierDisclosuresReviewTier: 入库层级
-supplierDisclosuresReviewTierAuto: 自动（优先 Tier 1）
+supplierDisclosuresReviewTierAuto: 自动（优先 Tier 1 > 2 > 3）
 supplierDisclosuresReviewTierOne: Tier 1 — 产品碳足迹
+supplierDisclosuresReviewTierThree: Tier 3 — 活动数据
 supplierDisclosuresReviewTierTwo: Tier 2 — 分配排放
 supplierDisclosuresReviewTitle: 审核供应商填报
 supplierDisclosuresReviewWarnings: '{count} 条解析提示'
@@ -1541,6 +1548,7 @@ supplierDisclosuresWizardRequired: 请选择供应商或填写名称，并至少
 supplierDisclosuresWizardSubmit: 创建草稿
 supplierDisclosuresWizardSupplier: 供应商
 supplierDisclosuresWizardSupplierNone: 选择供应商
+supplierDisclosuresWizardTemplate: 披露模板
 supplierDisclosuresWizardTitle: 新建供应商披露
 supplierDisclosuresWizardYear: 报告年度
 supplierEmailOptionalLabel: 供应商邮箱（可选，用于催办）

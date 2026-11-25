@@ -77,7 +77,7 @@ func (s *Store) CreateInboundDraft(ctx context.Context, in InboundDraftInput) (s
 
 	id := newID()
 	if _, err := tx.ExecContext(ctx, `INSERT INTO questionnaire
-		(id, customer_id, document_id, template_kind, reporting_year, status, direction, due_date, created_at)
+		(id, counterparty_id, document_id, template_kind, reporting_year, status, direction, due_date, created_at)
 		VALUES (?, ?, NULL, ?, ?, ?, 'inbound', NULL, ?)`,
 		id, supplier.ID, in.TemplateKind, in.ReportingYear, QuestionnaireDraft, now()); err != nil {
 		return "", err
@@ -202,14 +202,22 @@ func (s *Store) ImportInboundAnswers(ctx context.Context, questionnaireID string
 }
 
 // InboundActivityInput materializes one accepted disclosure into the
-// inventory. AmountCO2eKg is already the reported CO2e: the sentinel factor
-// converts 1:1.
+// inventory. For Tier 1/2, AmountCO2eKg is the reported CO2e and the sentinel
+// factor converts 1:1. For Tier 3, EF + Amount + Unit are converted via
+// ConvertAmount and pinned directly.
 type InboundActivityInput struct {
 	QuestionnaireID     string
 	AcceptedQuestionIDs []string
 	InboundQuestionID   string
 	InboundTier         int
 	AmountCO2eKg        float64
+	EF                  *EmissionFactorKey
+	Amount              float64
+	Unit                string
+	Scope               int
+	Category            string
+	GHGProtocolPath     string
+	SourceSuffix        string
 	Notes               string
 	AuditPayload        map[string]any
 }
@@ -218,6 +226,7 @@ type InboundActivityInput struct {
 type InboundIngestResult struct {
 	ActivityID       string
 	EmissionSourceID string
+	CO2eKg           float64
 }
 
 // IngestInbound writes the activity row, finalizes the accepted answers,
@@ -225,7 +234,20 @@ type InboundIngestResult struct {
 // transaction.
 func (s *Store) IngestInbound(ctx context.Context, in InboundActivityInput) (InboundIngestResult, error) {
 	var out InboundIngestResult
-	if in.AmountCO2eKg <= 0 {
+	if in.InboundTier == 3 {
+		if in.EF == nil {
+			return out, errors.New("tier 3 ingest requires an emission factor")
+		}
+		if err := validateEFKey(*in.EF); err != nil {
+			return out, err
+		}
+		if !validFinite(in.Amount) || in.Amount <= 0 {
+			return out, errors.New("reported activity amount must be positive")
+		}
+		if strings.TrimSpace(in.Unit) == "" {
+			return out, errors.New("reported activity unit is required")
+		}
+	} else if !validFinite(in.AmountCO2eKg) || in.AmountCO2eKg <= 0 {
 		return out, errors.New("reported emissions must be positive")
 	}
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -278,18 +300,75 @@ func (s *Store) IngestInbound(ctx context.Context, in InboundActivityInput) (Inb
 		return out, err
 	}
 
-	stamp := now()
-	ef, err := findOrCreateInboundFactor(ctx, tx, supplier.ID, qn.ReportingYear, stamp)
-	if err != nil {
-		return out, err
+	scope := in.Scope
+	if scope == 0 {
+		scope = 3
 	}
-	sourceName := fmt.Sprintf("%s — purchased goods (%d)", supplier.Name, qn.ReportingYear)
-	sourceID, err := findOrCreateInboundSource(ctx, tx, siteID, sourceName)
+	category := strings.TrimSpace(in.Category)
+	if category == "" {
+		category = "purchased_goods"
+	}
+	ghgPath := strings.TrimSpace(in.GHGProtocolPath)
+	if ghgPath == "" {
+		ghgPath = "scope3.cat1_purchased_goods"
+	}
+	suffix := strings.TrimSpace(in.SourceSuffix)
+	if suffix == "" {
+		suffix = "purchased goods"
+	}
+
+	stamp := now()
+	var (
+		ef             inboundFactor
+		storedAmount   float64
+		storedUnit     string
+		computedCO2eKg float64
+	)
+	if in.InboundTier == 3 {
+		chosen, err := emissionFactorByKey(ctx, tx, *in.EF)
+		if err != nil {
+			return out, err
+		}
+		if chosen == nil {
+			return out, fmt.Errorf("emission factor not found: %s/%d/%s/%s/%s",
+				in.EF.FactorCode, in.EF.Year, in.EF.Source, in.EF.Geography, in.EF.DatasetVersion)
+		}
+		if err := pinEmissionFactor(ctx, tx, chosen); err != nil {
+			return out, err
+		}
+		converted, err := convertAmount(ctx, tx, in.Amount, strings.TrimSpace(in.Unit), chosen.InputUnit, "")
+		if err != nil {
+			return out, err
+		}
+		ef = inboundFactor{
+			factorCode:     chosen.FactorCode,
+			year:           chosen.Year,
+			source:         chosen.Source,
+			geography:      chosen.Geography,
+			datasetVersion: chosen.DatasetVersion,
+		}
+		storedAmount = in.Amount
+		storedUnit = strings.TrimSpace(in.Unit)
+		computedCO2eKg = EmissionCO2eKg(converted, *chosen)
+	} else {
+		ef, err = findOrCreateInboundFactor(ctx, tx, supplier.ID, qn.ReportingYear, stamp,
+			scope, category, ghgPath)
+		if err != nil {
+			return out, err
+		}
+		storedAmount = in.AmountCO2eKg
+		storedUnit = "kgCO2e"
+		computedCO2eKg = in.AmountCO2eKg
+	}
+
+	sourceName := fmt.Sprintf("%s — %s (%d)", supplier.Name, suffix, qn.ReportingYear)
+	sourceID, err := findOrCreateInboundSource(ctx, tx, siteID, sourceName, scope, category, ghgPath)
 	if err != nil {
 		return out, err
 	}
 	out.EmissionSourceID = sourceID
 	out.ActivityID = newID()
+	out.CO2eKg = computedCO2eKg
 	start := fmt.Sprintf("%d-01-01T00:00:00Z", qn.ReportingYear)
 	end := fmt.Sprintf("%d-12-31T23:59:59Z", qn.ReportingYear)
 	if _, err := tx.ExecContext(ctx, `INSERT INTO activity_data (
@@ -299,10 +378,10 @@ func (s *Store) IngestInbound(ctx context.Context, in InboundActivityInput) (Inb
 			computed_co2e_kg, computed_at,
 			extraction_id, notes, created_at, updated_at,
 			inbound_question_id, inbound_tier)
-		VALUES (?, ?, ?, ?, ?, ?, ?, 'kgCO2e', ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?)`,
-		out.ActivityID, siteID, sourceID, periodID, start, end, in.AmountCO2eKg,
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?)`,
+		out.ActivityID, siteID, sourceID, periodID, start, end, storedAmount, storedUnit,
 		ef.factorCode, ef.year, ef.source, ef.geography, ef.datasetVersion,
-		in.AmountCO2eKg, stamp, nullIfEmpty(in.Notes), stamp, stamp,
+		computedCO2eKg, stamp, nullIfEmpty(in.Notes), stamp, stamp,
 		nullIfEmpty(in.InboundQuestionID), nullIfZero(in.InboundTier)); err != nil {
 		return out, err
 	}
@@ -325,7 +404,7 @@ func (s *Store) IngestInbound(ctx context.Context, in InboundActivityInput) (Inb
 	payload["tier_selected"] = in.InboundTier
 	payload["activity_data_ids"] = []string{out.ActivityID}
 	payload["emission_source_id"] = out.EmissionSourceID
-	payload["total_co2e_kg"] = in.AmountCO2eKg
+	payload["total_co2e_kg"] = computedCO2eKg
 	if err := writeAudit(ctx, tx, "inbound_questionnaire.ingested", stamp, payload); err != nil {
 		return out, err
 	}
@@ -344,9 +423,13 @@ type inboundFactor struct {
 }
 
 func findOrCreateInboundFactor(ctx context.Context, q queryer, supplierID string, year int,
-	stamp string) (inboundFactor, error) {
+	stamp string, scope int, category, ghgPath string) (inboundFactor, error) {
+	factorCode := fmt.Sprintf("supplier_direct.%s.%d", supplierID, year)
+	if ghgPath != "" && ghgPath != "scope3.cat1_purchased_goods" {
+		factorCode = fmt.Sprintf("supplier_direct.%s.%s.%d", supplierID, category, year)
+	}
 	ef := inboundFactor{
-		factorCode:     fmt.Sprintf("supplier_direct.%s.%d", supplierID, year),
+		factorCode:     factorCode,
 		year:           year,
 		source:         "inbound_questionnaire",
 		geography:      "SUPPLIER",
@@ -367,17 +450,19 @@ func findOrCreateInboundFactor(ctx context.Context, q queryer, supplierID string
 			scope, category, ghg_protocol_path, input_unit, co2e_kg_per_unit,
 			gwp_basis, name_zh, name_en, description_zh, description_en,
 			pinned_at, pinned_from)
-		VALUES (?, ?, ?, ?, ?, 3, 'purchased_goods', 'scope3.cat1_purchased_goods',
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?,
 			'kgCO2e', 1.0, 'AR6',
 			'供应商直报排放', 'Supplier-reported direct emissions',
 			'供应商问卷直接报送的 kgCO2e；amount 已是 CO2e。',
 			'Supplier-reported direct emissions in kgCO2e; amount IS the CO2e value.',
 			?, 'inbound_questionnaire')`,
-		ef.factorCode, ef.year, ef.source, ef.geography, ef.datasetVersion, stamp)
+		ef.factorCode, ef.year, ef.source, ef.geography, ef.datasetVersion,
+		scope, category, ghgPath, stamp)
 	return ef, err
 }
 
-func findOrCreateInboundSource(ctx context.Context, q queryer, siteID, name string) (string, error) {
+func findOrCreateInboundSource(ctx context.Context, q queryer, siteID, name string,
+	scope int, category, ghgPath string) (string, error) {
 	var id string
 	err := q.QueryRowContext(ctx, `SELECT id FROM emission_source WHERE site_id = ? AND name = ?`,
 		siteID, name).Scan(&id)
@@ -391,8 +476,8 @@ func findOrCreateInboundSource(ctx context.Context, q queryer, siteID, name stri
 	_, err = q.ExecContext(ctx, `INSERT INTO emission_source
 		(id, site_id, name, scope, category, ghg_protocol_path, default_ef_query,
 		 template_origin, is_active)
-		VALUES (?, ?, ?, 3, 'purchased_goods', 'scope3.cat1_purchased_goods', NULL,
-			'inbound_questionnaire', 1)`, id, siteID, name)
+		VALUES (?, ?, ?, ?, ?, ?, NULL,
+			'inbound_questionnaire', 1)`, id, siteID, name, scope, category, ghgPath)
 	return id, err
 }
 
@@ -481,7 +566,7 @@ type OverdueDisclosure struct {
 // today (a local YYYY-MM-DD date), soonest first.
 func (s *Store) OverdueInbound(ctx context.Context, today string) ([]OverdueDisclosure, error) {
 	rows, err := s.db.QueryContext(ctx, `SELECT q.id, c.name, q.due_date
-		FROM questionnaire q JOIN customer c ON c.id = q.customer_id
+		FROM questionnaire q JOIN counterparty c ON c.id = q.counterparty_id
 		WHERE q.direction = 'inbound' AND q.status = 'sent'
 		  AND q.due_date IS NOT NULL AND q.due_date < ?
 		ORDER BY q.due_date, c.name`, today)
@@ -547,6 +632,63 @@ func (s *Store) SetSetting(ctx context.Context, key, value string) error {
 func (s *Store) DeleteSetting(ctx context.Context, key string) error {
 	_, err := s.db.ExecContext(ctx, `DELETE FROM setting WHERE key = ?`, key)
 	return err
+}
+
+// QuantityInference summarizes existing ledger quantities usable as the
+// denominator for a Tier 1 per-unit footprint.
+type QuantityInference struct {
+	Unit           string
+	MatchedAmount  float64
+	MatchedRows    int
+	CategoryAmount float64
+	CategoryRows   int
+}
+
+// InferInboundQuantity sums non-inbound ledger quantities in the given year
+// and GHG Protocol category that convert cleanly to targetUnit. Rows whose
+// source name, notes, or extraction JSON mention supplierName go into
+// MatchedAmount/MatchedRows; other convertible rows go into CategoryAmount.
+func (s *Store) InferInboundQuantity(ctx context.Context, supplierName, ghgProtocolPath, targetUnit string, year int) (QuantityInference, error) {
+	out := QuantityInference{Unit: strings.TrimSpace(targetUnit)}
+	if out.Unit == "" || strings.TrimSpace(ghgProtocolPath) == "" || year == 0 {
+		return out, nil
+	}
+	rows, err := s.db.QueryContext(ctx, `SELECT a.amount, a.unit, es.name,
+			coalesce(a.notes, ''), coalesce(ex.parsed_json, '')
+		FROM activity_data a
+		JOIN reporting_period rp ON rp.id = a.reporting_period_id
+		JOIN emission_source es ON es.id = a.emission_source_id
+		LEFT JOIN extraction ex ON ex.id = a.extraction_id
+		WHERE rp.year = ?
+		  AND a.inbound_question_id IS NULL
+		  AND es.ghg_protocol_path = ?`, year, ghgProtocolPath)
+	if err != nil {
+		return out, err
+	}
+	defer rows.Close()
+
+	needle := strings.ToLower(strings.TrimSpace(supplierName))
+	for rows.Next() {
+		var amount float64
+		var unit, sourceName, notes, parsedJSON string
+		if err := rows.Scan(&amount, &unit, &sourceName, &notes, &parsedJSON); err != nil {
+			return out, err
+		}
+		converted, err := convertUnit(ctx, s.db, amount, unit, out.Unit)
+		if err != nil || !validFinite(converted) || converted <= 0 {
+			continue
+		}
+		if needle != "" && (strings.Contains(strings.ToLower(sourceName), needle) ||
+			strings.Contains(strings.ToLower(notes), needle) ||
+			strings.Contains(strings.ToLower(parsedJSON), needle)) {
+			out.MatchedAmount += converted
+			out.MatchedRows++
+		} else {
+			out.CategoryAmount += converted
+			out.CategoryRows++
+		}
+	}
+	return out, rows.Err()
 }
 
 // QuestionByPosition reads one question by its template position.

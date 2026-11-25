@@ -1491,7 +1491,7 @@ supplierDisclosuresDetailTier: Tier {tier}
 supplierDisclosuresDetailTitle: Supplier disclosure
 supplierDisclosuresDetailUnanswered: (Unanswered)
 supplierDisclosuresDue: Due {date}
-supplierDisclosuresEmpty: No supplier disclosures yet. Click "+ New disclosure" (top right) to start collecting Scope 3 Cat 1 data from upstream suppliers.
+supplierDisclosuresEmpty: No supplier disclosures yet. Click "+ New disclosure" (top right) to start collecting Scope 3 data from upstream suppliers.
 supplierDisclosuresEmptyBody: Send a supplier a questionnaire, then track what comes back. Inbound answers can become ledger rows.
 supplierDisclosuresFileTooLarge: File is too large.
 supplierDisclosuresImportNotTemplate: This workbook is not a CarbonInk disclosure template.
@@ -1509,17 +1509,24 @@ supplierDisclosuresRemindSignoff: — {org}
 supplierDisclosuresRemindSubject: Supplier disclosure reminder — {year}
 supplierDisclosuresReviewAcceptAll: Accept filled
 supplierDisclosuresReviewCancel: Cancel
+supplierDisclosuresReviewEF: Emission factor (Tier 3)
+supplierDisclosuresReviewEFNone: No compatible emission factor found
+supplierDisclosuresReviewEFRequired: Choose a compatible emission factor for Tier 3.
 supplierDisclosuresReviewHint: Check the values, then ingest the accepted rows. Unchecked rows stay in the disclosure only.
+supplierDisclosuresReviewInferredCategory: 'Use category total: {amount} {unit} ({rows} rows)'
+supplierDisclosuresReviewInferredMatched: Pre-filled from {rows} matching activity row(s) ({amount} {unit}).
 supplierDisclosuresReviewIngest: Ingest into inventory
 supplierDisclosuresReviewIngesting: Writing inventory rows...
 supplierDisclosuresReviewPlan: '{rows} inventory row(s) · {total}'
 supplierDisclosuresReviewQuantity: Purchased quantity (kg)
 supplierDisclosuresReviewQuantityHint: Required for Tier 1
 supplierDisclosuresReviewQuantityInvalid: Enter a valid quantity.
-supplierDisclosuresReviewQuantityRequired: Tier 1 needs the purchased quantity in kg.
+supplierDisclosuresReviewQuantityRequired: Tier 1 needs the purchased quantity.
+supplierDisclosuresReviewQuantityUnit: Quantity ({unit})
 supplierDisclosuresReviewTier: Tier to ingest
-supplierDisclosuresReviewTierAuto: Auto (Tier 1 first)
+supplierDisclosuresReviewTierAuto: Auto (Tier 1 > 2 > 3)
 supplierDisclosuresReviewTierOne: Tier 1 — product PCF
+supplierDisclosuresReviewTierThree: Tier 3 — activity data
 supplierDisclosuresReviewTierTwo: Tier 2 — allocated emissions
 supplierDisclosuresReviewTitle: Review supplier reply
 supplierDisclosuresReviewWarnings: '{count} parse warning(s)'
@@ -1542,6 +1549,7 @@ supplierDisclosuresWizardRequired: Choose a supplier or enter a name, and includ
 supplierDisclosuresWizardSubmit: Create draft
 supplierDisclosuresWizardSupplier: Supplier
 supplierDisclosuresWizardSupplierNone: Select a supplier
+supplierDisclosuresWizardTemplate: Template
 supplierDisclosuresWizardTitle: New supplier disclosure
 supplierDisclosuresWizardYear: Reporting year
 supplierEmailOptionalLabel: Supplier email (optional, used for reminders)

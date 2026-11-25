@@ -21,15 +21,15 @@ func TestMigrateFresh(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if applied != 23 {
-		t.Fatalf("applied %d migrations, want 23", applied)
+	if applied != 24 {
+		t.Fatalf("applied %d migrations, want 24", applied)
 	}
 	version, err := s.SchemaVersion(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if version != 23 {
-		t.Fatalf("schema version = %d, want 23", version)
+	if version != 24 {
+		t.Fatalf("schema version = %d, want 24", version)
 	}
 	if again, err := s.Migrate(ctx); err != nil || again != 0 {
 		t.Fatalf("second Migrate = %d, %v; want 0, nil", again, err)
@@ -70,8 +70,9 @@ func TestMigrateFresh(t *testing.T) {
 	}
 }
 
-// TestMigrationsMatchElectron fails when the embedded copy drifts from the
-// 1.x schema before Electron is removed.
+// TestMigrationsMatchElectron fails when the embedded 1.x baseline prefix
+// drifts from the Electron schema before Electron is removed; v2.1+
+// migrations (024+) extend app/ without modifying desktop/.
 func TestMigrationsMatchElectron(t *testing.T) {
 	legacy := filepath.Join("..", "..", "..", "desktop", "src", "main", "db", "migrations")
 	entries, err := os.ReadDir(legacy)
@@ -85,7 +86,7 @@ func TestMigrationsMatchElectron(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(entries) != len(embedded) {
+	if len(embedded) < len(entries) {
 		t.Fatalf("Electron has %d migrations, embedded has %d", len(entries), len(embedded))
 	}
 	for i, e := range entries {

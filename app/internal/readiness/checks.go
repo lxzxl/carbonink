@@ -81,7 +81,7 @@ func c5QuestionWithoutAnswer(ctx context.Context, q queryer, p period, _ Options
 			COALESCE(q.raw_text, q.normalized_text), c.name
 		FROM question q
 		JOIN questionnaire qn ON qn.id = q.questionnaire_id
-		JOIN customer c ON c.id = qn.customer_id
+		JOIN counterparty c ON c.id = qn.counterparty_id
 		LEFT JOIN answer a ON a.question_id = q.id
 		WHERE qn.reporting_year = ? AND qn.direction = 'outbound' AND a.id IS NULL
 		ORDER BY qn.id, q.position`, p.Year)
@@ -521,7 +521,7 @@ func d3OverdueSupplierDisclosure(ctx context.Context, q queryer, p period, opts 
 	today := opts.Now.Format("2006-01-02")
 	rows, err := q.QueryContext(ctx, `SELECT qn.id, qn.due_date, c.name
 		FROM questionnaire qn
-		JOIN customer c ON c.id = qn.customer_id
+		JOIN counterparty c ON c.id = qn.counterparty_id
 		WHERE qn.direction = 'inbound' AND qn.status = 'sent'
 		  AND qn.reporting_year = ? AND qn.due_date IS NOT NULL AND qn.due_date < ?
 		ORDER BY qn.due_date`, p.Year, today)

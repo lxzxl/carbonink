@@ -230,8 +230,8 @@ func TestRunCoversEveryDeterministicRule(t *testing.T) {
 	auditCreated(t, db, "act-t4")
 
 	// C5: outbound question with no answer.
-	exec(`INSERT INTO customer (id, name) VALUES ('cust', '客户甲')`)
-	exec(`INSERT INTO questionnaire (id, customer_id, reporting_year, status, direction,
+	exec(`INSERT INTO counterparty (id, name) VALUES ('cust', '客户甲')`)
+	exec(`INSERT INTO questionnaire (id, counterparty_id, reporting_year, status, direction,
 			created_at) VALUES ('q-out', 'cust', 2025, 'exported', 'outbound', ?)`, testTS)
 	exec(`INSERT INTO question (id, questionnaire_id, question_signature, signature_version,
 			normalized_text, raw_text, question_kind, position)
@@ -253,7 +253,7 @@ func TestRunCoversEveryDeterministicRule(t *testing.T) {
 			'CN', '2024', 0.5, 'AR6', 999, 2)`)
 
 	// D3: inbound disclosure marked sent and past due.
-	exec(`INSERT INTO questionnaire (id, customer_id, reporting_year, status, direction,
+	exec(`INSERT INTO questionnaire (id, counterparty_id, reporting_year, status, direction,
 			due_date, created_at) VALUES ('q-in', 'cust', 2025, 'sent', 'inbound', ?, ?)`,
 		"2026-11-20", testTS)
 

@@ -43,195 +43,198 @@ func For(cx *core.Scope) Messages {
 // its method, for the TSX declarations of the messages
 // (tsx.RegisterMessages).
 var Parameters = map[string][]string{
-	"ActivitiesCount":                         {"count"},
-	"ActivitiesCountOne":                      {"count"},
-	"ActivitiesDropDone":                      {"filename"},
-	"ActivitiesFromDocument":                  {"filename"},
-	"ActivityImportColumnN":                   {"n"},
-	"ActivityImportGroupRowsTotal":            {"count", "total", "unit"},
-	"ActivityImportMoreIssues":                {"count"},
-	"ActivityImportResultImported":            {"count"},
-	"ActivityImportResultSkippedGroups":       {"count"},
-	"ActivityImportResultSkippedSources":      {"count"},
-	"ActivityImportResultSkippedValidation":   {"count"},
-	"ActivityImportRowCount":                  {"count"},
-	"ActivityImportRowLabel":                  {"row"},
-	"ActivityImportSourceRows":                {"count"},
-	"ActivityImportSummaryErrors":             {"count"},
-	"ActivityImportSummaryValid":              {"count"},
-	"ActivityImportSummaryWarnings":           {"count"},
-	"AnswerExportDone":                        {"written", "drafts"},
-	"AnswerGenerateAllDone":                   {"ok", "failed"},
-	"AuditExportCsvSuccess":                   {"rows"},
-	"AuditRebindDelta":                        {"old_co2e", "new_co2e", "delta_signed", "pct_signed"},
-	"AuditRebindSummary":                      {"activity_id_short", "old_ef", "new_ef"},
-	"AuditUnknownEventKind":                   {"kind"},
-	"DataActivitiesCount":                     {"count"},
-	"DataPeriodsCount":                        {"count"},
-	"DataSitesCount":                          {"count"},
-	"DataSourcesCount":                        {"count"},
-	"DataSourcesCountOne":                     {"count"},
-	"DocumentsBatchButton":                    {"count"},
-	"DocumentsBatchCanceledToast":             {"done", "total"},
-	"DocumentsBatchHint":                      {"count"},
-	"DocumentsBatchProgress":                  {"done", "total"},
-	"DocumentsBatchSummaryToast":              {"ok", "failed"},
-	"DocumentsCount":                          {"count"},
-	"DocumentsDetailEvidenceCount":            {"count"},
-	"DocumentsDetailPages":                    {"count"},
-	"DocumentsPreviewPage":                    {"page", "total"},
-	"DocumentsReviewUploadedOn":               {"date"},
-	"DocumentsShowingLatest":                  {"shown", "total"},
-	"DocumentsUploadSummary":                  {"ok", "failed"},
-	"EfImportColumnN":                         {"n"},
-	"EfImportMoreIssues":                      {"count"},
-	"EfImportReplaceBody":                     {"name"},
-	"EfImportRowCount":                        {"count"},
-	"EfImportRowLabel":                        {"row"},
-	"EfImportSuccess":                         {"count"},
-	"EfImportSuccessSkipped":                  {"count"},
-	"EfImportSummaryErrors":                   {"count"},
-	"EfImportSummaryValid":                    {"count"},
-	"EfImportSummaryWarnings":                 {"count"},
-	"EfLibraryBrowseCount":                    {"shown", "total"},
-	"EfLibraryBrowsePerUnit":                  {"value", "unit"},
-	"EfLibraryBrowseScope":                    {"scope"},
-	"EfLibraryDeleteConfirm":                  {"name"},
-	"EfLibraryDeleteSuccess":                  {"count"},
-	"EfLibraryRowMeta":                        {"version", "count", "date"},
-	"GuidanceProgress":                        {"current", "total"},
-	"InboundAcceptAria":                       {"position"},
-	"InboundAnswerNote":                       {"note"},
-	"InboundAnswerRaw":                        {"value"},
-	"InboundCreatedToast":                     {"count"},
-	"InboundDeleteDialogDesc":                 {"name"},
-	"InboundDeleteSuccessWithActivities":      {"count"},
-	"InboundDueOn":                            {"date"},
-	"InboundExportSuccess":                    {"path", "bytes"},
-	"InboundImportParsed":                     {"count"},
-	"InboundIngestActivityCount":              {"count"},
-	"InboundIngestSuccess":                    {"id"},
-	"InboundOverdueDays":                      {"days"},
-	"InboundQuestionCount":                    {"count"},
-	"InboundRemindMailDueLine":                {"due"},
-	"InboundRemindMailGreeting":               {"supplier"},
-	"InboundRemindMailOverdueLine":            {"due", "days"},
-	"InboundRemindMailSentLine":               {"year"},
-	"InboundRemindMailSignoff":                {"org"},
-	"InboundRemindMailSubject":                {"year", "supplier"},
-	"InboundTableNote":                        {"note"},
-	"InboundTier1Outcome":                     {"pcf"},
-	"InboundTier2Outcome":                     {"co2e"},
-	"InboundWarningCount":                     {"count"},
-	"LineageEfPinnedAt":                       {"date"},
-	"LineageSnapshotRevision":                 {"revision", "date"},
-	"LineageSourceTier":                       {"tier"},
-	"OnboardingEyebrow":                       {"current", "total"},
-	"QuestionnaireExportPdfFailed":            {"message"},
-	"QuestionnaireExportPdfSuccess":           {"path"},
-	"QuestionnairesAnswerProgress":            {"answered", "count"},
-	"QuestionnairesDetailInventoryEmptyTitle": {"year"},
-	"QuestionnairesDueDate":                   {"date"},
-	"QuestionnairesListCount":                 {"count"},
-	"QuestionnairesListCountOne":              {"count"},
-	"QuestionnairesQuestionCount":             {"count"},
-	"QuestionnairesWizardFileChosen":          {"filename"},
-	"QuestionnairesWizardSuccess":             {"count"},
-	"QuestionnairesWizardSuccessWithReused":   {"count", "reused"},
-	"ReadinessAllClearBody":                   {"count"},
-	"ReadinessCheckC1Detail":                  {"source_name", "scope", "year"},
-	"ReadinessCheckC3Detail":                  {"source_name", "occurred", "period"},
-	"ReadinessCheckC5Detail":                  {"customer_name", "question_text"},
-	"ReadinessCheckC6Detail":                  {"observation"},
-	"ReadinessCheckD2DetailDeleted":           {"source_name", "frozen_co2e_kg"},
-	"ReadinessCheckD2DetailEdited":            {"source_name", "frozen_co2e_kg", "live_co2e_kg"},
-	"ReadinessCheckD3Detail":                  {"supplier_name", "due_date"},
-	"ReadinessCheckN1Detail":                  {"source_name", "amount", "unit", "ef_input_unit"},
-	"ReadinessCheckN2Detail":                  {"source_name", "amount", "unit", "detail", "ratio"},
-	"ReadinessCheckN3Detail":                  {"source_name", "amount", "unit", "occurred"},
-	"ReadinessCheckN5Detail":                  {"year", "bases"},
-	"ReadinessCheckN6Detail":                  {"observation"},
-	"ReadinessCheckT1Detail":                  {"unevidenced_count", "total_count", "co2e_share_pct"},
-	"ReadinessCheckT2Detail":                  {"source_name", "created_at"},
-	"ReadinessCheckT3Detail":                  {"source_name", "factor_code", "ef_year", "reporting_year"},
-	"ReadinessCheckT4Detail":                  {"source_name", "factor_code", "ef_source"},
-	"ReadinessCounts":                         {"blocker", "warning", "info"},
-	"ReadinessDismissedNote":                  {"count"},
-	"ReadinessLastChecked":                    {"time_"},
-	"RebindDelta":                             {"delta_signed", "pct_signed"},
-	"RebindErrorToast":                        {"message"},
-	"RebindOverrideAmountLabel":               {"unit"},
-	"RebindOverrideAmountPlaceholder":         {"unit"},
-	"RebindSuccessToast":                      {"co2e", "pct_signed"},
-	"RebindUnitConversion":                    {"from_amt", "from_unit", "to_amt", "to_unit"},
-	"RebindUnitCrossFamily":                   {"from", "to"},
-	"ReportsDeliverableSuccess":               {"path", "count"},
-	"ReportsDeliverableSuccessMissing":        {"path", "missing", "count"},
-	"ReportsExportFailed":                     {"message"},
-	"ReportsExportSuccess":                    {"kind", "path"},
-	"ReportsGenerateFailed":                   {"message"},
-	"ReportsGeneratedAt":                      {"date"},
-	"RoutingErrorAirportUnknown":              {"iata"},
-	"RoutingLookupDoneAmap":                   {"km"},
-	"RoutingLookupDoneHaversine":              {"km"},
-	"SettingsAgentClientConfigured":           {"client"},
-	"SettingsAgentClientRemoved":              {"client"},
-	"SettingsAgentFailed":                     {"message"},
-	"SettingsAiCacheCleared":                  {"count"},
-	"SettingsCurrent":                         {"value"},
-	"SettingsDataCacheClearSuccess":           {"rows", "size"},
-	"SettingsDataCacheExtractionSummary":      {"count", "size"},
-	"SettingsMcpConfigured":                   {"client"},
-	"SettingsMcpRemoved":                      {"client"},
-	"SettingsMigrationCurrentPath":            {"path"},
-	"SettingsMigrationLegacyPath":             {"path"},
-	"SettingsModelCustomOption":               {"id"},
-	"SettingsModelFetchFailed":                {"message"},
-	"SettingsProviderUnknownWarning":          {"provider"},
-	"SettingsSkillInstalled":                  {"count"},
-	"SettingsSkillStatusInstalled":            {"count"},
-	"SettingsSkillWillInstallTo":              {"hosts"},
-	"SourcesCatalogBatchAdd":                  {"count"},
-	"SourcesCatalogBatchAddSuccess":           {"count"},
-	"SourcesCatalogCount":                     {"shown", "total"},
-	"SourcesCatalogSelectAll":                 {"count"},
-	"SourcesCatalogSelectedCount":             {"count"},
-	"SourcesFormCategoryCustom":               {"query"},
-	"SourcesFromCatalog":                      {"origin"},
-	"SourcesStatsActivityCount":               {"count"},
-	"SourcesStatsActivityCountOne":            {"count"},
-	"SourcesStatsLast":                        {"date"},
-	"SourcesStatsTotal":                       {"value"},
-	"SupplierDisclosuresCount":                {"count"},
-	"SupplierDisclosuresCountOne":             {"count"},
-	"SupplierDisclosuresDetailExportFailed":   {"message"},
-	"SupplierDisclosuresDetailExportSuccess":  {"path"},
-	"SupplierDisclosuresDetailImportFailed":   {"message"},
-	"SupplierDisclosuresDetailImportSuccess":  {"count"},
-	"SupplierDisclosuresDetailIngestFailed":   {"message"},
-	"SupplierDisclosuresDetailIngestSuccess":  {"total"},
-	"SupplierDisclosuresDetailTier":           {"tier"},
-	"SupplierDisclosuresDue":                  {"date"},
-	"SupplierDisclosuresNotifyMany":           {"count"},
-	"SupplierDisclosuresNotifyOne":            {"name"},
-	"SupplierDisclosuresRemindBody":           {"year"},
-	"SupplierDisclosuresRemindGreeting":       {"supplier"},
-	"SupplierDisclosuresRemindOverdue":        {"due"},
-	"SupplierDisclosuresRemindSignoff":        {"org"},
-	"SupplierDisclosuresRemindSubject":        {"year"},
-	"SupplierDisclosuresReviewPlan":           {"rows", "total"},
-	"SupplierDisclosuresReviewWarnings":       {"count"},
-	"SupplierDisclosuresWizardCreated":        {"count"},
-	"UpdaterCapabilityStore":                  {"store"},
-	"UpdaterCurrentVersion":                   {"version"},
-	"UpdaterStatusAvailable":                  {"version"},
-	"UpdaterStatusAvailableManual":            {"version"},
-	"UpdaterStatusDownloaded":                 {"version"},
-	"UpdaterStatusDownloading":                {"percent"},
-	"UpdaterStatusError":                      {"message"},
-	"WorkspaceCreatedAt":                      {"date"},
-	"WorkspaceDeleteConfirm":                  {"name"},
-	"WorkspaceSwitchConfirm":                  {"name"},
+	"ActivitiesCount":                           {"count"},
+	"ActivitiesCountOne":                        {"count"},
+	"ActivitiesDropDone":                        {"filename"},
+	"ActivitiesFromDocument":                    {"filename"},
+	"ActivityImportColumnN":                     {"n"},
+	"ActivityImportGroupRowsTotal":              {"count", "total", "unit"},
+	"ActivityImportMoreIssues":                  {"count"},
+	"ActivityImportResultImported":              {"count"},
+	"ActivityImportResultSkippedGroups":         {"count"},
+	"ActivityImportResultSkippedSources":        {"count"},
+	"ActivityImportResultSkippedValidation":     {"count"},
+	"ActivityImportRowCount":                    {"count"},
+	"ActivityImportRowLabel":                    {"row"},
+	"ActivityImportSourceRows":                  {"count"},
+	"ActivityImportSummaryErrors":               {"count"},
+	"ActivityImportSummaryValid":                {"count"},
+	"ActivityImportSummaryWarnings":             {"count"},
+	"AnswerExportDone":                          {"written", "drafts"},
+	"AnswerGenerateAllDone":                     {"ok", "failed"},
+	"AuditExportCsvSuccess":                     {"rows"},
+	"AuditRebindDelta":                          {"old_co2e", "new_co2e", "delta_signed", "pct_signed"},
+	"AuditRebindSummary":                        {"activity_id_short", "old_ef", "new_ef"},
+	"AuditUnknownEventKind":                     {"kind"},
+	"DataActivitiesCount":                       {"count"},
+	"DataPeriodsCount":                          {"count"},
+	"DataSitesCount":                            {"count"},
+	"DataSourcesCount":                          {"count"},
+	"DataSourcesCountOne":                       {"count"},
+	"DocumentsBatchButton":                      {"count"},
+	"DocumentsBatchCanceledToast":               {"done", "total"},
+	"DocumentsBatchHint":                        {"count"},
+	"DocumentsBatchProgress":                    {"done", "total"},
+	"DocumentsBatchSummaryToast":                {"ok", "failed"},
+	"DocumentsCount":                            {"count"},
+	"DocumentsDetailEvidenceCount":              {"count"},
+	"DocumentsDetailPages":                      {"count"},
+	"DocumentsPreviewPage":                      {"page", "total"},
+	"DocumentsReviewUploadedOn":                 {"date"},
+	"DocumentsShowingLatest":                    {"shown", "total"},
+	"DocumentsUploadSummary":                    {"ok", "failed"},
+	"EfImportColumnN":                           {"n"},
+	"EfImportMoreIssues":                        {"count"},
+	"EfImportReplaceBody":                       {"name"},
+	"EfImportRowCount":                          {"count"},
+	"EfImportRowLabel":                          {"row"},
+	"EfImportSuccess":                           {"count"},
+	"EfImportSuccessSkipped":                    {"count"},
+	"EfImportSummaryErrors":                     {"count"},
+	"EfImportSummaryValid":                      {"count"},
+	"EfImportSummaryWarnings":                   {"count"},
+	"EfLibraryBrowseCount":                      {"shown", "total"},
+	"EfLibraryBrowsePerUnit":                    {"value", "unit"},
+	"EfLibraryBrowseScope":                      {"scope"},
+	"EfLibraryDeleteConfirm":                    {"name"},
+	"EfLibraryDeleteSuccess":                    {"count"},
+	"EfLibraryRowMeta":                          {"version", "count", "date"},
+	"GuidanceProgress":                          {"current", "total"},
+	"InboundAcceptAria":                         {"position"},
+	"InboundAnswerNote":                         {"note"},
+	"InboundAnswerRaw":                          {"value"},
+	"InboundCreatedToast":                       {"count"},
+	"InboundDeleteDialogDesc":                   {"name"},
+	"InboundDeleteSuccessWithActivities":        {"count"},
+	"InboundDueOn":                              {"date"},
+	"InboundExportSuccess":                      {"path", "bytes"},
+	"InboundImportParsed":                       {"count"},
+	"InboundIngestActivityCount":                {"count"},
+	"InboundIngestSuccess":                      {"id"},
+	"InboundOverdueDays":                        {"days"},
+	"InboundQuestionCount":                      {"count"},
+	"InboundRemindMailDueLine":                  {"due"},
+	"InboundRemindMailGreeting":                 {"supplier"},
+	"InboundRemindMailOverdueLine":              {"due", "days"},
+	"InboundRemindMailSentLine":                 {"year"},
+	"InboundRemindMailSignoff":                  {"org"},
+	"InboundRemindMailSubject":                  {"year", "supplier"},
+	"InboundTableNote":                          {"note"},
+	"InboundTier1Outcome":                       {"pcf"},
+	"InboundTier2Outcome":                       {"co2e"},
+	"InboundWarningCount":                       {"count"},
+	"LineageEfPinnedAt":                         {"date"},
+	"LineageSnapshotRevision":                   {"revision", "date"},
+	"LineageSourceTier":                         {"tier"},
+	"OnboardingEyebrow":                         {"current", "total"},
+	"QuestionnaireExportPdfFailed":              {"message"},
+	"QuestionnaireExportPdfSuccess":             {"path"},
+	"QuestionnairesAnswerProgress":              {"answered", "count"},
+	"QuestionnairesDetailInventoryEmptyTitle":   {"year"},
+	"QuestionnairesDueDate":                     {"date"},
+	"QuestionnairesListCount":                   {"count"},
+	"QuestionnairesListCountOne":                {"count"},
+	"QuestionnairesQuestionCount":               {"count"},
+	"QuestionnairesWizardFileChosen":            {"filename"},
+	"QuestionnairesWizardSuccess":               {"count"},
+	"QuestionnairesWizardSuccessWithReused":     {"count", "reused"},
+	"ReadinessAllClearBody":                     {"count"},
+	"ReadinessCheckC1Detail":                    {"source_name", "scope", "year"},
+	"ReadinessCheckC3Detail":                    {"source_name", "occurred", "period"},
+	"ReadinessCheckC5Detail":                    {"customer_name", "question_text"},
+	"ReadinessCheckC6Detail":                    {"observation"},
+	"ReadinessCheckD2DetailDeleted":             {"source_name", "frozen_co2e_kg"},
+	"ReadinessCheckD2DetailEdited":              {"source_name", "frozen_co2e_kg", "live_co2e_kg"},
+	"ReadinessCheckD3Detail":                    {"supplier_name", "due_date"},
+	"ReadinessCheckN1Detail":                    {"source_name", "amount", "unit", "ef_input_unit"},
+	"ReadinessCheckN2Detail":                    {"source_name", "amount", "unit", "detail", "ratio"},
+	"ReadinessCheckN3Detail":                    {"source_name", "amount", "unit", "occurred"},
+	"ReadinessCheckN5Detail":                    {"year", "bases"},
+	"ReadinessCheckN6Detail":                    {"observation"},
+	"ReadinessCheckT1Detail":                    {"unevidenced_count", "total_count", "co2e_share_pct"},
+	"ReadinessCheckT2Detail":                    {"source_name", "created_at"},
+	"ReadinessCheckT3Detail":                    {"source_name", "factor_code", "ef_year", "reporting_year"},
+	"ReadinessCheckT4Detail":                    {"source_name", "factor_code", "ef_source"},
+	"ReadinessCounts":                           {"blocker", "warning", "info"},
+	"ReadinessDismissedNote":                    {"count"},
+	"ReadinessLastChecked":                      {"time_"},
+	"RebindDelta":                               {"delta_signed", "pct_signed"},
+	"RebindErrorToast":                          {"message"},
+	"RebindOverrideAmountLabel":                 {"unit"},
+	"RebindOverrideAmountPlaceholder":           {"unit"},
+	"RebindSuccessToast":                        {"co2e", "pct_signed"},
+	"RebindUnitConversion":                      {"from_amt", "from_unit", "to_amt", "to_unit"},
+	"RebindUnitCrossFamily":                     {"from", "to"},
+	"ReportsDeliverableSuccess":                 {"path", "count"},
+	"ReportsDeliverableSuccessMissing":          {"path", "missing", "count"},
+	"ReportsExportFailed":                       {"message"},
+	"ReportsExportSuccess":                      {"kind", "path"},
+	"ReportsGenerateFailed":                     {"message"},
+	"ReportsGeneratedAt":                        {"date"},
+	"RoutingErrorAirportUnknown":                {"iata"},
+	"RoutingLookupDoneAmap":                     {"km"},
+	"RoutingLookupDoneHaversine":                {"km"},
+	"SettingsAgentClientConfigured":             {"client"},
+	"SettingsAgentClientRemoved":                {"client"},
+	"SettingsAgentFailed":                       {"message"},
+	"SettingsAiCacheCleared":                    {"count"},
+	"SettingsCurrent":                           {"value"},
+	"SettingsDataCacheClearSuccess":             {"rows", "size"},
+	"SettingsDataCacheExtractionSummary":        {"count", "size"},
+	"SettingsMcpConfigured":                     {"client"},
+	"SettingsMcpRemoved":                        {"client"},
+	"SettingsMigrationCurrentPath":              {"path"},
+	"SettingsMigrationLegacyPath":               {"path"},
+	"SettingsModelCustomOption":                 {"id"},
+	"SettingsModelFetchFailed":                  {"message"},
+	"SettingsProviderUnknownWarning":            {"provider"},
+	"SettingsSkillInstalled":                    {"count"},
+	"SettingsSkillStatusInstalled":              {"count"},
+	"SettingsSkillWillInstallTo":                {"hosts"},
+	"SourcesCatalogBatchAdd":                    {"count"},
+	"SourcesCatalogBatchAddSuccess":             {"count"},
+	"SourcesCatalogCount":                       {"shown", "total"},
+	"SourcesCatalogSelectAll":                   {"count"},
+	"SourcesCatalogSelectedCount":               {"count"},
+	"SourcesFormCategoryCustom":                 {"query"},
+	"SourcesFromCatalog":                        {"origin"},
+	"SourcesStatsActivityCount":                 {"count"},
+	"SourcesStatsActivityCountOne":              {"count"},
+	"SourcesStatsLast":                          {"date"},
+	"SourcesStatsTotal":                         {"value"},
+	"SupplierDisclosuresCount":                  {"count"},
+	"SupplierDisclosuresCountOne":               {"count"},
+	"SupplierDisclosuresDetailExportFailed":     {"message"},
+	"SupplierDisclosuresDetailExportSuccess":    {"path"},
+	"SupplierDisclosuresDetailImportFailed":     {"message"},
+	"SupplierDisclosuresDetailImportSuccess":    {"count"},
+	"SupplierDisclosuresDetailIngestFailed":     {"message"},
+	"SupplierDisclosuresDetailIngestSuccess":    {"total"},
+	"SupplierDisclosuresDetailTier":             {"tier"},
+	"SupplierDisclosuresDue":                    {"date"},
+	"SupplierDisclosuresNotifyMany":             {"count"},
+	"SupplierDisclosuresNotifyOne":              {"name"},
+	"SupplierDisclosuresRemindBody":             {"year"},
+	"SupplierDisclosuresRemindGreeting":         {"supplier"},
+	"SupplierDisclosuresRemindOverdue":          {"due"},
+	"SupplierDisclosuresRemindSignoff":          {"org"},
+	"SupplierDisclosuresRemindSubject":          {"year"},
+	"SupplierDisclosuresReviewInferredCategory": {"amount", "unit", "rows"},
+	"SupplierDisclosuresReviewInferredMatched":  {"rows", "amount", "unit"},
+	"SupplierDisclosuresReviewPlan":             {"rows", "total"},
+	"SupplierDisclosuresReviewQuantityUnit":     {"unit"},
+	"SupplierDisclosuresReviewWarnings":         {"count"},
+	"SupplierDisclosuresWizardCreated":          {"count"},
+	"UpdaterCapabilityStore":                    {"store"},
+	"UpdaterCurrentVersion":                     {"version"},
+	"UpdaterStatusAvailable":                    {"version"},
+	"UpdaterStatusAvailableManual":              {"version"},
+	"UpdaterStatusDownloaded":                   {"version"},
+	"UpdaterStatusDownloading":                  {"percent"},
+	"UpdaterStatusError":                        {"message"},
+	"WorkspaceCreatedAt":                        {"date"},
+	"WorkspaceDeleteConfirm":                    {"name"},
+	"WorkspaceSwitchConfirm":                    {"name"},
 }
 
 // Translation is a language's messages another package supplies:
@@ -239,196 +242,199 @@ var Parameters = map[string][]string{
 // of the others; a key or a field left out leaves the message to the
 // catalog.
 type Translation struct {
-	Texts                                   map[string]string
-	ActivitiesCount                         func(count int) string
-	ActivitiesCountOne                      func(count int) string
-	ActivitiesDropDone                      func(filename string) string
-	ActivitiesFromDocument                  func(filename string) string
-	ActivityImportColumnN                   func(n string) string
-	ActivityImportGroupRowsTotal            func(count string, total string, unit string) string
-	ActivityImportMoreIssues                func(count string) string
-	ActivityImportResultImported            func(count string) string
-	ActivityImportResultSkippedGroups       func(count string) string
-	ActivityImportResultSkippedSources      func(count string) string
-	ActivityImportResultSkippedValidation   func(count string) string
-	ActivityImportRowCount                  func(count string) string
-	ActivityImportRowLabel                  func(row string) string
-	ActivityImportSourceRows                func(count string) string
-	ActivityImportSummaryErrors             func(count string) string
-	ActivityImportSummaryValid              func(count string) string
-	ActivityImportSummaryWarnings           func(count string) string
-	AnswerExportDone                        func(written string, drafts string) string
-	AnswerGenerateAllDone                   func(ok string, failed string) string
-	AuditExportCsvSuccess                   func(rows string) string
-	AuditRebindDelta                        func(old_co2e string, new_co2e string, delta_signed string, pct_signed string) string
-	AuditRebindSummary                      func(activity_id_short string, old_ef string, new_ef string) string
-	AuditUnknownEventKind                   func(kind string) string
-	DataActivitiesCount                     func(count string) string
-	DataPeriodsCount                        func(count string) string
-	DataSitesCount                          func(count string) string
-	DataSourcesCount                        func(count string) string
-	DataSourcesCountOne                     func(count string) string
-	DocumentsBatchButton                    func(count string) string
-	DocumentsBatchCanceledToast             func(done string, total string) string
-	DocumentsBatchHint                      func(count string) string
-	DocumentsBatchProgress                  func(done string, total string) string
-	DocumentsBatchSummaryToast              func(ok string, failed string) string
-	DocumentsCount                          func(count string) string
-	DocumentsDetailEvidenceCount            func(count string) string
-	DocumentsDetailPages                    func(count string) string
-	DocumentsPreviewPage                    func(page string, total string) string
-	DocumentsReviewUploadedOn               func(date string) string
-	DocumentsShowingLatest                  func(shown string, total string) string
-	DocumentsUploadSummary                  func(ok string, failed string) string
-	EfImportColumnN                         func(n string) string
-	EfImportMoreIssues                      func(count string) string
-	EfImportReplaceBody                     func(name string) string
-	EfImportRowCount                        func(count string) string
-	EfImportRowLabel                        func(row string) string
-	EfImportSuccess                         func(count string) string
-	EfImportSuccessSkipped                  func(count string) string
-	EfImportSummaryErrors                   func(count string) string
-	EfImportSummaryValid                    func(count string) string
-	EfImportSummaryWarnings                 func(count string) string
-	EfLibraryBrowseCount                    func(shown string, total string) string
-	EfLibraryBrowsePerUnit                  func(value string, unit string) string
-	EfLibraryBrowseScope                    func(scope string) string
-	EfLibraryDeleteConfirm                  func(name string) string
-	EfLibraryDeleteSuccess                  func(count string) string
-	EfLibraryRowMeta                        func(version string, count string, date string) string
-	GuidanceProgress                        func(current string, total string) string
-	InboundAcceptAria                       func(position string) string
-	InboundAnswerNote                       func(note string) string
-	InboundAnswerRaw                        func(value string) string
-	InboundCreatedToast                     func(count string) string
-	InboundDeleteDialogDesc                 func(name string) string
-	InboundDeleteSuccessWithActivities      func(count string) string
-	InboundDueOn                            func(date string) string
-	InboundExportSuccess                    func(path string, bytes string) string
-	InboundImportParsed                     func(count string) string
-	InboundIngestActivityCount              func(count string) string
-	InboundIngestSuccess                    func(id string) string
-	InboundOverdueDays                      func(days string) string
-	InboundQuestionCount                    func(count string) string
-	InboundRemindMailDueLine                func(due string) string
-	InboundRemindMailGreeting               func(supplier string) string
-	InboundRemindMailOverdueLine            func(due string, days string) string
-	InboundRemindMailSentLine               func(year string) string
-	InboundRemindMailSignoff                func(org string) string
-	InboundRemindMailSubject                func(year string, supplier string) string
-	InboundTableNote                        func(note string) string
-	InboundTier1Outcome                     func(pcf string) string
-	InboundTier2Outcome                     func(co2e string) string
-	InboundWarningCount                     func(count string) string
-	LineageEfPinnedAt                       func(date string) string
-	LineageSnapshotRevision                 func(revision string, date string) string
-	LineageSourceTier                       func(tier string) string
-	OnboardingEyebrow                       func(current string, total string) string
-	QuestionnaireExportPdfFailed            func(message string) string
-	QuestionnaireExportPdfSuccess           func(path string) string
-	QuestionnairesAnswerProgress            func(answered string, count string) string
-	QuestionnairesDetailInventoryEmptyTitle func(year string) string
-	QuestionnairesDueDate                   func(date string) string
-	QuestionnairesListCount                 func(count string) string
-	QuestionnairesListCountOne              func(count string) string
-	QuestionnairesQuestionCount             func(count string) string
-	QuestionnairesWizardFileChosen          func(filename string) string
-	QuestionnairesWizardSuccess             func(count string) string
-	QuestionnairesWizardSuccessWithReused   func(count string, reused string) string
-	ReadinessAllClearBody                   func(count string) string
-	ReadinessCheckC1Detail                  func(source_name string, scope string, year string) string
-	ReadinessCheckC3Detail                  func(source_name string, occurred string, period string) string
-	ReadinessCheckC5Detail                  func(customer_name string, question_text string) string
-	ReadinessCheckC6Detail                  func(observation string) string
-	ReadinessCheckD2DetailDeleted           func(source_name string, frozen_co2e_kg string) string
-	ReadinessCheckD2DetailEdited            func(source_name string, frozen_co2e_kg string, live_co2e_kg string) string
-	ReadinessCheckD3Detail                  func(supplier_name string, due_date string) string
-	ReadinessCheckN1Detail                  func(source_name string, amount string, unit string, ef_input_unit string) string
-	ReadinessCheckN2Detail                  func(source_name string, amount string, unit string, detail string, ratio string) string
-	ReadinessCheckN3Detail                  func(source_name string, amount string, unit string, occurred string) string
-	ReadinessCheckN5Detail                  func(year string, bases string) string
-	ReadinessCheckN6Detail                  func(observation string) string
-	ReadinessCheckT1Detail                  func(unevidenced_count string, total_count string, co2e_share_pct string) string
-	ReadinessCheckT2Detail                  func(source_name string, created_at string) string
-	ReadinessCheckT3Detail                  func(source_name string, factor_code string, ef_year string, reporting_year string) string
-	ReadinessCheckT4Detail                  func(source_name string, factor_code string, ef_source string) string
-	ReadinessCounts                         func(blocker string, warning string, info string) string
-	ReadinessDismissedNote                  func(count string) string
-	ReadinessLastChecked                    func(time_ string) string
-	RebindDelta                             func(delta_signed string, pct_signed string) string
-	RebindErrorToast                        func(message string) string
-	RebindOverrideAmountLabel               func(unit string) string
-	RebindOverrideAmountPlaceholder         func(unit string) string
-	RebindSuccessToast                      func(co2e string, pct_signed string) string
-	RebindUnitConversion                    func(from_amt string, from_unit string, to_amt string, to_unit string) string
-	RebindUnitCrossFamily                   func(from string, to string) string
-	ReportsDeliverableSuccess               func(path string, count string) string
-	ReportsDeliverableSuccessMissing        func(path string, missing string, count string) string
-	ReportsExportFailed                     func(message string) string
-	ReportsExportSuccess                    func(kind string, path string) string
-	ReportsGenerateFailed                   func(message string) string
-	ReportsGeneratedAt                      func(date string) string
-	RoutingErrorAirportUnknown              func(iata string) string
-	RoutingLookupDoneAmap                   func(km string) string
-	RoutingLookupDoneHaversine              func(km string) string
-	SettingsAgentClientConfigured           func(client string) string
-	SettingsAgentClientRemoved              func(client string) string
-	SettingsAgentFailed                     func(message string) string
-	SettingsAiCacheCleared                  func(count string) string
-	SettingsCurrent                         func(value string) string
-	SettingsDataCacheClearSuccess           func(rows string, size string) string
-	SettingsDataCacheExtractionSummary      func(count string, size string) string
-	SettingsMcpConfigured                   func(client string) string
-	SettingsMcpRemoved                      func(client string) string
-	SettingsMigrationCurrentPath            func(path string) string
-	SettingsMigrationLegacyPath             func(path string) string
-	SettingsModelCustomOption               func(id string) string
-	SettingsModelFetchFailed                func(message string) string
-	SettingsProviderUnknownWarning          func(provider string) string
-	SettingsSkillInstalled                  func(count string) string
-	SettingsSkillStatusInstalled            func(count string) string
-	SettingsSkillWillInstallTo              func(hosts string) string
-	SourcesCatalogBatchAdd                  func(count string) string
-	SourcesCatalogBatchAddSuccess           func(count string) string
-	SourcesCatalogCount                     func(shown string, total string) string
-	SourcesCatalogSelectAll                 func(count string) string
-	SourcesCatalogSelectedCount             func(count string) string
-	SourcesFormCategoryCustom               func(query string) string
-	SourcesFromCatalog                      func(origin string) string
-	SourcesStatsActivityCount               func(count string) string
-	SourcesStatsActivityCountOne            func(count string) string
-	SourcesStatsLast                        func(date string) string
-	SourcesStatsTotal                       func(value string) string
-	SupplierDisclosuresCount                func(count string) string
-	SupplierDisclosuresCountOne             func(count string) string
-	SupplierDisclosuresDetailExportFailed   func(message string) string
-	SupplierDisclosuresDetailExportSuccess  func(path string) string
-	SupplierDisclosuresDetailImportFailed   func(message string) string
-	SupplierDisclosuresDetailImportSuccess  func(count string) string
-	SupplierDisclosuresDetailIngestFailed   func(message string) string
-	SupplierDisclosuresDetailIngestSuccess  func(total string) string
-	SupplierDisclosuresDetailTier           func(tier string) string
-	SupplierDisclosuresDue                  func(date string) string
-	SupplierDisclosuresNotifyMany           func(count string) string
-	SupplierDisclosuresNotifyOne            func(name string) string
-	SupplierDisclosuresRemindBody           func(year string) string
-	SupplierDisclosuresRemindGreeting       func(supplier string) string
-	SupplierDisclosuresRemindOverdue        func(due string) string
-	SupplierDisclosuresRemindSignoff        func(org string) string
-	SupplierDisclosuresRemindSubject        func(year string) string
-	SupplierDisclosuresReviewPlan           func(rows string, total string) string
-	SupplierDisclosuresReviewWarnings       func(count string) string
-	SupplierDisclosuresWizardCreated        func(count string) string
-	UpdaterCapabilityStore                  func(store string) string
-	UpdaterCurrentVersion                   func(version string) string
-	UpdaterStatusAvailable                  func(version string) string
-	UpdaterStatusAvailableManual            func(version string) string
-	UpdaterStatusDownloaded                 func(version string) string
-	UpdaterStatusDownloading                func(percent string) string
-	UpdaterStatusError                      func(message string) string
-	WorkspaceCreatedAt                      func(date string) string
-	WorkspaceDeleteConfirm                  func(name string) string
-	WorkspaceSwitchConfirm                  func(name string) string
+	Texts                                     map[string]string
+	ActivitiesCount                           func(count int) string
+	ActivitiesCountOne                        func(count int) string
+	ActivitiesDropDone                        func(filename string) string
+	ActivitiesFromDocument                    func(filename string) string
+	ActivityImportColumnN                     func(n string) string
+	ActivityImportGroupRowsTotal              func(count string, total string, unit string) string
+	ActivityImportMoreIssues                  func(count string) string
+	ActivityImportResultImported              func(count string) string
+	ActivityImportResultSkippedGroups         func(count string) string
+	ActivityImportResultSkippedSources        func(count string) string
+	ActivityImportResultSkippedValidation     func(count string) string
+	ActivityImportRowCount                    func(count string) string
+	ActivityImportRowLabel                    func(row string) string
+	ActivityImportSourceRows                  func(count string) string
+	ActivityImportSummaryErrors               func(count string) string
+	ActivityImportSummaryValid                func(count string) string
+	ActivityImportSummaryWarnings             func(count string) string
+	AnswerExportDone                          func(written string, drafts string) string
+	AnswerGenerateAllDone                     func(ok string, failed string) string
+	AuditExportCsvSuccess                     func(rows string) string
+	AuditRebindDelta                          func(old_co2e string, new_co2e string, delta_signed string, pct_signed string) string
+	AuditRebindSummary                        func(activity_id_short string, old_ef string, new_ef string) string
+	AuditUnknownEventKind                     func(kind string) string
+	DataActivitiesCount                       func(count string) string
+	DataPeriodsCount                          func(count string) string
+	DataSitesCount                            func(count string) string
+	DataSourcesCount                          func(count string) string
+	DataSourcesCountOne                       func(count string) string
+	DocumentsBatchButton                      func(count string) string
+	DocumentsBatchCanceledToast               func(done string, total string) string
+	DocumentsBatchHint                        func(count string) string
+	DocumentsBatchProgress                    func(done string, total string) string
+	DocumentsBatchSummaryToast                func(ok string, failed string) string
+	DocumentsCount                            func(count string) string
+	DocumentsDetailEvidenceCount              func(count string) string
+	DocumentsDetailPages                      func(count string) string
+	DocumentsPreviewPage                      func(page string, total string) string
+	DocumentsReviewUploadedOn                 func(date string) string
+	DocumentsShowingLatest                    func(shown string, total string) string
+	DocumentsUploadSummary                    func(ok string, failed string) string
+	EfImportColumnN                           func(n string) string
+	EfImportMoreIssues                        func(count string) string
+	EfImportReplaceBody                       func(name string) string
+	EfImportRowCount                          func(count string) string
+	EfImportRowLabel                          func(row string) string
+	EfImportSuccess                           func(count string) string
+	EfImportSuccessSkipped                    func(count string) string
+	EfImportSummaryErrors                     func(count string) string
+	EfImportSummaryValid                      func(count string) string
+	EfImportSummaryWarnings                   func(count string) string
+	EfLibraryBrowseCount                      func(shown string, total string) string
+	EfLibraryBrowsePerUnit                    func(value string, unit string) string
+	EfLibraryBrowseScope                      func(scope string) string
+	EfLibraryDeleteConfirm                    func(name string) string
+	EfLibraryDeleteSuccess                    func(count string) string
+	EfLibraryRowMeta                          func(version string, count string, date string) string
+	GuidanceProgress                          func(current string, total string) string
+	InboundAcceptAria                         func(position string) string
+	InboundAnswerNote                         func(note string) string
+	InboundAnswerRaw                          func(value string) string
+	InboundCreatedToast                       func(count string) string
+	InboundDeleteDialogDesc                   func(name string) string
+	InboundDeleteSuccessWithActivities        func(count string) string
+	InboundDueOn                              func(date string) string
+	InboundExportSuccess                      func(path string, bytes string) string
+	InboundImportParsed                       func(count string) string
+	InboundIngestActivityCount                func(count string) string
+	InboundIngestSuccess                      func(id string) string
+	InboundOverdueDays                        func(days string) string
+	InboundQuestionCount                      func(count string) string
+	InboundRemindMailDueLine                  func(due string) string
+	InboundRemindMailGreeting                 func(supplier string) string
+	InboundRemindMailOverdueLine              func(due string, days string) string
+	InboundRemindMailSentLine                 func(year string) string
+	InboundRemindMailSignoff                  func(org string) string
+	InboundRemindMailSubject                  func(year string, supplier string) string
+	InboundTableNote                          func(note string) string
+	InboundTier1Outcome                       func(pcf string) string
+	InboundTier2Outcome                       func(co2e string) string
+	InboundWarningCount                       func(count string) string
+	LineageEfPinnedAt                         func(date string) string
+	LineageSnapshotRevision                   func(revision string, date string) string
+	LineageSourceTier                         func(tier string) string
+	OnboardingEyebrow                         func(current string, total string) string
+	QuestionnaireExportPdfFailed              func(message string) string
+	QuestionnaireExportPdfSuccess             func(path string) string
+	QuestionnairesAnswerProgress              func(answered string, count string) string
+	QuestionnairesDetailInventoryEmptyTitle   func(year string) string
+	QuestionnairesDueDate                     func(date string) string
+	QuestionnairesListCount                   func(count string) string
+	QuestionnairesListCountOne                func(count string) string
+	QuestionnairesQuestionCount               func(count string) string
+	QuestionnairesWizardFileChosen            func(filename string) string
+	QuestionnairesWizardSuccess               func(count string) string
+	QuestionnairesWizardSuccessWithReused     func(count string, reused string) string
+	ReadinessAllClearBody                     func(count string) string
+	ReadinessCheckC1Detail                    func(source_name string, scope string, year string) string
+	ReadinessCheckC3Detail                    func(source_name string, occurred string, period string) string
+	ReadinessCheckC5Detail                    func(customer_name string, question_text string) string
+	ReadinessCheckC6Detail                    func(observation string) string
+	ReadinessCheckD2DetailDeleted             func(source_name string, frozen_co2e_kg string) string
+	ReadinessCheckD2DetailEdited              func(source_name string, frozen_co2e_kg string, live_co2e_kg string) string
+	ReadinessCheckD3Detail                    func(supplier_name string, due_date string) string
+	ReadinessCheckN1Detail                    func(source_name string, amount string, unit string, ef_input_unit string) string
+	ReadinessCheckN2Detail                    func(source_name string, amount string, unit string, detail string, ratio string) string
+	ReadinessCheckN3Detail                    func(source_name string, amount string, unit string, occurred string) string
+	ReadinessCheckN5Detail                    func(year string, bases string) string
+	ReadinessCheckN6Detail                    func(observation string) string
+	ReadinessCheckT1Detail                    func(unevidenced_count string, total_count string, co2e_share_pct string) string
+	ReadinessCheckT2Detail                    func(source_name string, created_at string) string
+	ReadinessCheckT3Detail                    func(source_name string, factor_code string, ef_year string, reporting_year string) string
+	ReadinessCheckT4Detail                    func(source_name string, factor_code string, ef_source string) string
+	ReadinessCounts                           func(blocker string, warning string, info string) string
+	ReadinessDismissedNote                    func(count string) string
+	ReadinessLastChecked                      func(time_ string) string
+	RebindDelta                               func(delta_signed string, pct_signed string) string
+	RebindErrorToast                          func(message string) string
+	RebindOverrideAmountLabel                 func(unit string) string
+	RebindOverrideAmountPlaceholder           func(unit string) string
+	RebindSuccessToast                        func(co2e string, pct_signed string) string
+	RebindUnitConversion                      func(from_amt string, from_unit string, to_amt string, to_unit string) string
+	RebindUnitCrossFamily                     func(from string, to string) string
+	ReportsDeliverableSuccess                 func(path string, count string) string
+	ReportsDeliverableSuccessMissing          func(path string, missing string, count string) string
+	ReportsExportFailed                       func(message string) string
+	ReportsExportSuccess                      func(kind string, path string) string
+	ReportsGenerateFailed                     func(message string) string
+	ReportsGeneratedAt                        func(date string) string
+	RoutingErrorAirportUnknown                func(iata string) string
+	RoutingLookupDoneAmap                     func(km string) string
+	RoutingLookupDoneHaversine                func(km string) string
+	SettingsAgentClientConfigured             func(client string) string
+	SettingsAgentClientRemoved                func(client string) string
+	SettingsAgentFailed                       func(message string) string
+	SettingsAiCacheCleared                    func(count string) string
+	SettingsCurrent                           func(value string) string
+	SettingsDataCacheClearSuccess             func(rows string, size string) string
+	SettingsDataCacheExtractionSummary        func(count string, size string) string
+	SettingsMcpConfigured                     func(client string) string
+	SettingsMcpRemoved                        func(client string) string
+	SettingsMigrationCurrentPath              func(path string) string
+	SettingsMigrationLegacyPath               func(path string) string
+	SettingsModelCustomOption                 func(id string) string
+	SettingsModelFetchFailed                  func(message string) string
+	SettingsProviderUnknownWarning            func(provider string) string
+	SettingsSkillInstalled                    func(count string) string
+	SettingsSkillStatusInstalled              func(count string) string
+	SettingsSkillWillInstallTo                func(hosts string) string
+	SourcesCatalogBatchAdd                    func(count string) string
+	SourcesCatalogBatchAddSuccess             func(count string) string
+	SourcesCatalogCount                       func(shown string, total string) string
+	SourcesCatalogSelectAll                   func(count string) string
+	SourcesCatalogSelectedCount               func(count string) string
+	SourcesFormCategoryCustom                 func(query string) string
+	SourcesFromCatalog                        func(origin string) string
+	SourcesStatsActivityCount                 func(count string) string
+	SourcesStatsActivityCountOne              func(count string) string
+	SourcesStatsLast                          func(date string) string
+	SourcesStatsTotal                         func(value string) string
+	SupplierDisclosuresCount                  func(count string) string
+	SupplierDisclosuresCountOne               func(count string) string
+	SupplierDisclosuresDetailExportFailed     func(message string) string
+	SupplierDisclosuresDetailExportSuccess    func(path string) string
+	SupplierDisclosuresDetailImportFailed     func(message string) string
+	SupplierDisclosuresDetailImportSuccess    func(count string) string
+	SupplierDisclosuresDetailIngestFailed     func(message string) string
+	SupplierDisclosuresDetailIngestSuccess    func(total string) string
+	SupplierDisclosuresDetailTier             func(tier string) string
+	SupplierDisclosuresDue                    func(date string) string
+	SupplierDisclosuresNotifyMany             func(count string) string
+	SupplierDisclosuresNotifyOne              func(name string) string
+	SupplierDisclosuresRemindBody             func(year string) string
+	SupplierDisclosuresRemindGreeting         func(supplier string) string
+	SupplierDisclosuresRemindOverdue          func(due string) string
+	SupplierDisclosuresRemindSignoff          func(org string) string
+	SupplierDisclosuresRemindSubject          func(year string) string
+	SupplierDisclosuresReviewInferredCategory func(amount string, unit string, rows string) string
+	SupplierDisclosuresReviewInferredMatched  func(rows string, amount string, unit string) string
+	SupplierDisclosuresReviewPlan             func(rows string, total string) string
+	SupplierDisclosuresReviewQuantityUnit     func(unit string) string
+	SupplierDisclosuresReviewWarnings         func(count string) string
+	SupplierDisclosuresWizardCreated          func(count string) string
+	UpdaterCapabilityStore                    func(store string) string
+	UpdaterCurrentVersion                     func(version string) string
+	UpdaterStatusAvailable                    func(version string) string
+	UpdaterStatusAvailableManual              func(version string) string
+	UpdaterStatusDownloaded                   func(version string) string
+	UpdaterStatusDownloading                  func(percent string) string
+	UpdaterStatusError                        func(message string) string
+	WorkspaceCreatedAt                        func(date string) string
+	WorkspaceDeleteConfirm                    func(name string) string
+	WorkspaceSwitchConfirm                    func(name string) string
 }
 
 var supplied = map[string]Translation{}
@@ -1753,6 +1759,9 @@ const (
 	textSupplierDisclosuresOverdue
 	textSupplierDisclosuresReviewAcceptAll
 	textSupplierDisclosuresReviewCancel
+	textSupplierDisclosuresReviewEF
+	textSupplierDisclosuresReviewEFNone
+	textSupplierDisclosuresReviewEFRequired
 	textSupplierDisclosuresReviewHint
 	textSupplierDisclosuresReviewIngest
 	textSupplierDisclosuresReviewIngesting
@@ -1763,6 +1772,7 @@ const (
 	textSupplierDisclosuresReviewTier
 	textSupplierDisclosuresReviewTierAuto
 	textSupplierDisclosuresReviewTierOne
+	textSupplierDisclosuresReviewTierThree
 	textSupplierDisclosuresReviewTierTwo
 	textSupplierDisclosuresReviewTitle
 	textSupplierDisclosuresSearchPlaceholder
@@ -1783,6 +1793,7 @@ const (
 	textSupplierDisclosuresWizardSubmit
 	textSupplierDisclosuresWizardSupplier
 	textSupplierDisclosuresWizardSupplierNone
+	textSupplierDisclosuresWizardTemplate
 	textSupplierDisclosuresWizardTitle
 	textSupplierDisclosuresWizardYear
 	textSupplierEmailOptionalLabel
@@ -3149,6 +3160,9 @@ var keyOfText = [numTexts]string{
 	"supplierDisclosuresOverdue",
 	"supplierDisclosuresReviewAcceptAll",
 	"supplierDisclosuresReviewCancel",
+	"supplierDisclosuresReviewEF",
+	"supplierDisclosuresReviewEFNone",
+	"supplierDisclosuresReviewEFRequired",
 	"supplierDisclosuresReviewHint",
 	"supplierDisclosuresReviewIngest",
 	"supplierDisclosuresReviewIngesting",
@@ -3159,6 +3173,7 @@ var keyOfText = [numTexts]string{
 	"supplierDisclosuresReviewTier",
 	"supplierDisclosuresReviewTierAuto",
 	"supplierDisclosuresReviewTierOne",
+	"supplierDisclosuresReviewTierThree",
 	"supplierDisclosuresReviewTierTwo",
 	"supplierDisclosuresReviewTitle",
 	"supplierDisclosuresSearchPlaceholder",
@@ -3179,6 +3194,7 @@ var keyOfText = [numTexts]string{
 	"supplierDisclosuresWizardSubmit",
 	"supplierDisclosuresWizardSupplier",
 	"supplierDisclosuresWizardSupplierNone",
+	"supplierDisclosuresWizardTemplate",
 	"supplierDisclosuresWizardTitle",
 	"supplierDisclosuresWizardYear",
 	"supplierEmailOptionalLabel",
@@ -4532,7 +4548,7 @@ var textsEn = i18n.NewTexts(""+
 	"Review import"+
 	"Supplier disclosure"+
 	"(Unanswered)"+
-	"No supplier disclosures yet. Click \"+ New disclosure\" (top right) to start collecting Scope 3 Cat 1 data from upstream suppliers."+
+	"No supplier disclosures yet. Click \"+ New disclosure\" (top right) to start collecting Scope 3 data from upstream suppliers."+
 	"Send a supplier a questionnaire, then track what comes back. Inbound answers can become ledger rows."+
 	"File is too large."+
 	"This workbook is not a CarbonInk disclosure template."+
@@ -4543,16 +4559,20 @@ var textsEn = i18n.NewTexts(""+
 	"Overdue"+
 	"Accept filled"+
 	"Cancel"+
+	"Emission factor (Tier 3)"+
+	"No compatible emission factor found"+
+	"Choose a compatible emission factor for Tier 3."+
 	"Check the values, then ingest the accepted rows. Unchecked rows stay in the disclosure only."+
 	"Ingest into inventory"+
 	"Writing inventory rows..."+
 	"Purchased quantity (kg)"+
 	"Required for Tier 1"+
 	"Enter a valid quantity."+
-	"Tier 1 needs the purchased quantity in kg."+
+	"Tier 1 needs the purchased quantity."+
 	"Tier to ingest"+
-	"Auto (Tier 1 first)"+
+	"Auto (Tier 1 > 2 > 3)"+
 	"Tier 1 — product PCF"+
+	"Tier 3 — activity data"+
 	"Tier 2 — allocated emissions"+
 	"Review supplier reply"+
 	"Search supplier name…"+
@@ -4573,6 +4593,7 @@ var textsEn = i18n.NewTexts(""+
 	"Create draft"+
 	"Supplier"+
 	"Select a supplier"+
+	"Template"+
 	"New supplier disclosure"+
 	"Reporting year"+
 	"Supplier email (optional, used for reminders)"+
@@ -5923,7 +5944,7 @@ var textsEn = i18n.NewTexts(""+
 		13,
 		19,
 		12,
-		129,
+		123,
 		100,
 		18,
 		53,
@@ -5934,16 +5955,20 @@ var textsEn = i18n.NewTexts(""+
 		7,
 		13,
 		6,
+		24,
+		35,
+		47,
 		92,
 		21,
 		25,
 		23,
 		19,
 		23,
-		42,
+		36,
 		14,
-		19,
+		21,
 		22,
+		24,
 		30,
 		21,
 		23,
@@ -5964,6 +5989,7 @@ var textsEn = i18n.NewTexts(""+
 		12,
 		8,
 		17,
+		8,
 		23,
 		14,
 		45,
@@ -7317,7 +7343,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"审核导入"+
 	"供应商披露"+
 	"（未答）"+
-	"尚无供应商披露。点击右上「+ 新建披露」开始向上游供应商收集 Scope 3 Cat 1 数据。"+
+	"尚无供应商披露。点击右上「+ 新建披露」开始向上游供应商收集 Scope 3 数据。"+
 	"向供应商发出问卷，再跟踪回收情况；回收的答案可以直接转成活动数据。"+
 	"文件过大。"+
 	"该工作簿不是 CarbonInk 披露模板。"+
@@ -7328,16 +7354,20 @@ var textsZhCN = i18n.NewTexts(""+
 	"已逾期"+
 	"接受已填项"+
 	"取消"+
+	"排放因子（Tier 3）"+
+	"未找到单位兼容的排放因子"+
+	"请为 Tier 3 选择单位兼容的排放因子。"+
 	"请核对数值后入库。未勾选的行只保留在披露中。"+
 	"入库"+
 	"正在写入清单…"+
 	"采购数量（kg）"+
 	"Tier 1 必填"+
 	"请输入有效数量。"+
-	"Tier 1 需要填写采购数量（kg）。"+
+	"Tier 1 需要填写采购/活动数量。"+
 	"入库层级"+
-	"自动（优先 Tier 1）"+
+	"自动（优先 Tier 1 > 2 > 3）"+
 	"Tier 1 — 产品碳足迹"+
+	"Tier 3 — 活动数据"+
 	"Tier 2 — 分配排放"+
 	"审核供应商填报"+
 	"搜索供应商名称…"+
@@ -7358,6 +7388,7 @@ var textsZhCN = i18n.NewTexts(""+
 	"创建草稿"+
 	"供应商"+
 	"选择供应商"+
+	"披露模板"+
 	"新建供应商披露"+
 	"报告年度"+
 	"供应商邮箱（可选，用于催办）"+
@@ -8708,7 +8739,7 @@ var textsZhCN = i18n.NewTexts(""+
 		12,
 		15,
 		12,
-		110,
+		104,
 		99,
 		15,
 		44,
@@ -8719,16 +8750,20 @@ var textsZhCN = i18n.NewTexts(""+
 		9,
 		15,
 		6,
+		24,
+		36,
+		50,
 		66,
 		6,
 		21,
 		20,
 		13,
 		24,
-		42,
+		41,
 		12,
-		25,
+		33,
 		26,
+		23,
 		23,
 		21,
 		24,
@@ -8749,6 +8784,7 @@ var textsZhCN = i18n.NewTexts(""+
 		12,
 		9,
 		15,
+		12,
 		21,
 		12,
 		42,
@@ -9375,8 +9411,17 @@ func Supply(lang string, t Translation) {
 	if t.SupplierDisclosuresRemindSubject != nil {
 		s.SupplierDisclosuresRemindSubject = t.SupplierDisclosuresRemindSubject
 	}
+	if t.SupplierDisclosuresReviewInferredCategory != nil {
+		s.SupplierDisclosuresReviewInferredCategory = t.SupplierDisclosuresReviewInferredCategory
+	}
+	if t.SupplierDisclosuresReviewInferredMatched != nil {
+		s.SupplierDisclosuresReviewInferredMatched = t.SupplierDisclosuresReviewInferredMatched
+	}
 	if t.SupplierDisclosuresReviewPlan != nil {
 		s.SupplierDisclosuresReviewPlan = t.SupplierDisclosuresReviewPlan
+	}
+	if t.SupplierDisclosuresReviewQuantityUnit != nil {
+		s.SupplierDisclosuresReviewQuantityUnit = t.SupplierDisclosuresReviewQuantityUnit
 	}
 	if t.SupplierDisclosuresReviewWarnings != nil {
 		s.SupplierDisclosuresReviewWarnings = t.SupplierDisclosuresReviewWarnings
@@ -24338,7 +24383,7 @@ func (msgs Messages) SupplierDisclosuresDue(date string) string {
 	}
 }
 
-// SupplierDisclosuresEmpty says "No supplier disclosures yet. Click \"+ New disclosure\" (top right) to start collecting Scope 3 Cat 1 data from upstream suppliers."
+// SupplierDisclosuresEmpty says "No supplier disclosures yet. Click \"+ New disclosure\" (top right) to start collecting Scope 3 data from upstream suppliers."
 // in the language the app shows under cx.
 func SupplierDisclosuresEmpty(cx *core.Scope) string { return For(cx).SupplierDisclosuresEmpty() }
 
@@ -24623,6 +24668,37 @@ func (msgs Messages) SupplierDisclosuresReviewCancel() string {
 	return msgs.text(textSupplierDisclosuresReviewCancel)
 }
 
+// SupplierDisclosuresReviewEF says "Emission factor (Tier 3)"
+// in the language the app shows under cx.
+func SupplierDisclosuresReviewEF(cx *core.Scope) string { return For(cx).SupplierDisclosuresReviewEF() }
+
+// SupplierDisclosuresReviewEF is the package's SupplierDisclosuresReviewEF in the language of msgs.
+func (msgs Messages) SupplierDisclosuresReviewEF() string {
+	return msgs.text(textSupplierDisclosuresReviewEF)
+}
+
+// SupplierDisclosuresReviewEFNone says "No compatible emission factor found"
+// in the language the app shows under cx.
+func SupplierDisclosuresReviewEFNone(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresReviewEFNone()
+}
+
+// SupplierDisclosuresReviewEFNone is the package's SupplierDisclosuresReviewEFNone in the language of msgs.
+func (msgs Messages) SupplierDisclosuresReviewEFNone() string {
+	return msgs.text(textSupplierDisclosuresReviewEFNone)
+}
+
+// SupplierDisclosuresReviewEFRequired says "Choose a compatible emission factor for Tier 3."
+// in the language the app shows under cx.
+func SupplierDisclosuresReviewEFRequired(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresReviewEFRequired()
+}
+
+// SupplierDisclosuresReviewEFRequired is the package's SupplierDisclosuresReviewEFRequired in the language of msgs.
+func (msgs Messages) SupplierDisclosuresReviewEFRequired() string {
+	return msgs.text(textSupplierDisclosuresReviewEFRequired)
+}
+
 // SupplierDisclosuresReviewHint says "Check the values, then ingest the accepted rows. Unchecked rows stay in the disclosure only."
 // in the language the app shows under cx.
 func SupplierDisclosuresReviewHint(cx *core.Scope) string {
@@ -24632,6 +24708,54 @@ func SupplierDisclosuresReviewHint(cx *core.Scope) string {
 // SupplierDisclosuresReviewHint is the package's SupplierDisclosuresReviewHint in the language of msgs.
 func (msgs Messages) SupplierDisclosuresReviewHint() string {
 	return msgs.text(textSupplierDisclosuresReviewHint)
+}
+
+// SupplierDisclosuresReviewInferredCategory says "Use category total: {amount} {unit} ({rows} rows)"
+// in the language the app shows under cx.
+func SupplierDisclosuresReviewInferredCategory(cx *core.Scope, amount string, unit string, rows string) string {
+	return For(cx).SupplierDisclosuresReviewInferredCategory(amount, unit, rows)
+}
+
+// SupplierDisclosuresReviewInferredCategory is the package's SupplierDisclosuresReviewInferredCategory in the language of msgs.
+func (msgs Messages) SupplierDisclosuresReviewInferredCategory(amount string, unit string, rows string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SupplierDisclosuresReviewInferredCategory(amount, unit, rows))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SupplierDisclosuresReviewInferredCategory; f != nil {
+			return f(amount, unit, rows)
+		}
+		switch lang {
+		case "", "en":
+			return "Use category total: " + msgs.arg(amount) + " " + msgs.arg(unit) + " (" + msgs.arg(rows) + " rows)"
+		case "zh-CN":
+			return "应用同类别总计：" + amount + " " + unit + "（" + rows + " 条记录）"
+		}
+	}
+}
+
+// SupplierDisclosuresReviewInferredMatched says "Pre-filled from {rows} matching activity row(s) ({amount} {unit})."
+// in the language the app shows under cx.
+func SupplierDisclosuresReviewInferredMatched(cx *core.Scope, rows string, amount string, unit string) string {
+	return For(cx).SupplierDisclosuresReviewInferredMatched(rows, amount, unit)
+}
+
+// SupplierDisclosuresReviewInferredMatched is the package's SupplierDisclosuresReviewInferredMatched in the language of msgs.
+func (msgs Messages) SupplierDisclosuresReviewInferredMatched(rows string, amount string, unit string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SupplierDisclosuresReviewInferredMatched(rows, amount, unit))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SupplierDisclosuresReviewInferredMatched; f != nil {
+			return f(rows, amount, unit)
+		}
+		switch lang {
+		case "", "en":
+			return "Pre-filled from " + msgs.arg(rows) + " matching activity row(s) (" + msgs.arg(amount) + " " + msgs.arg(unit) + ")."
+		case "zh-CN":
+			return "已从 " + rows + " 条匹配活动记录自动推断（" + amount + " " + unit + "）。"
+		}
+	}
 }
 
 // SupplierDisclosuresReviewIngest says "Ingest into inventory"
@@ -24713,7 +24837,7 @@ func (msgs Messages) SupplierDisclosuresReviewQuantityInvalid() string {
 	return msgs.text(textSupplierDisclosuresReviewQuantityInvalid)
 }
 
-// SupplierDisclosuresReviewQuantityRequired says "Tier 1 needs the purchased quantity in kg."
+// SupplierDisclosuresReviewQuantityRequired says "Tier 1 needs the purchased quantity."
 // in the language the app shows under cx.
 func SupplierDisclosuresReviewQuantityRequired(cx *core.Scope) string {
 	return For(cx).SupplierDisclosuresReviewQuantityRequired()
@@ -24722,6 +24846,30 @@ func SupplierDisclosuresReviewQuantityRequired(cx *core.Scope) string {
 // SupplierDisclosuresReviewQuantityRequired is the package's SupplierDisclosuresReviewQuantityRequired in the language of msgs.
 func (msgs Messages) SupplierDisclosuresReviewQuantityRequired() string {
 	return msgs.text(textSupplierDisclosuresReviewQuantityRequired)
+}
+
+// SupplierDisclosuresReviewQuantityUnit says "Quantity ({unit})"
+// in the language the app shows under cx.
+func SupplierDisclosuresReviewQuantityUnit(cx *core.Scope, unit string) string {
+	return For(cx).SupplierDisclosuresReviewQuantityUnit(unit)
+}
+
+// SupplierDisclosuresReviewQuantityUnit is the package's SupplierDisclosuresReviewQuantityUnit in the language of msgs.
+func (msgs Messages) SupplierDisclosuresReviewQuantityUnit(unit string) string {
+	if i18n.IsPseudo(msgs.lang) {
+		return i18n.Pseudo(msgs.lang, Messages{lang: Source, mark: true}.SupplierDisclosuresReviewQuantityUnit(unit))
+	}
+	for lang := msgs.lang; ; lang = i18n.Parent(lang) {
+		if f := supplied[lang].SupplierDisclosuresReviewQuantityUnit; f != nil {
+			return f(unit)
+		}
+		switch lang {
+		case "", "en":
+			return "Quantity (" + msgs.arg(unit) + ")"
+		case "zh-CN":
+			return "数量（" + unit + "）"
+		}
+	}
 }
 
 // SupplierDisclosuresReviewTier says "Tier to ingest"
@@ -24735,7 +24883,7 @@ func (msgs Messages) SupplierDisclosuresReviewTier() string {
 	return msgs.text(textSupplierDisclosuresReviewTier)
 }
 
-// SupplierDisclosuresReviewTierAuto says "Auto (Tier 1 first)"
+// SupplierDisclosuresReviewTierAuto says "Auto (Tier 1 > 2 > 3)"
 // in the language the app shows under cx.
 func SupplierDisclosuresReviewTierAuto(cx *core.Scope) string {
 	return For(cx).SupplierDisclosuresReviewTierAuto()
@@ -24755,6 +24903,17 @@ func SupplierDisclosuresReviewTierOne(cx *core.Scope) string {
 // SupplierDisclosuresReviewTierOne is the package's SupplierDisclosuresReviewTierOne in the language of msgs.
 func (msgs Messages) SupplierDisclosuresReviewTierOne() string {
 	return msgs.text(textSupplierDisclosuresReviewTierOne)
+}
+
+// SupplierDisclosuresReviewTierThree says "Tier 3 — activity data"
+// in the language the app shows under cx.
+func SupplierDisclosuresReviewTierThree(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresReviewTierThree()
+}
+
+// SupplierDisclosuresReviewTierThree is the package's SupplierDisclosuresReviewTierThree in the language of msgs.
+func (msgs Messages) SupplierDisclosuresReviewTierThree() string {
+	return msgs.text(textSupplierDisclosuresReviewTierThree)
 }
 
 // SupplierDisclosuresReviewTierTwo says "Tier 2 — allocated emissions"
@@ -25021,6 +25180,17 @@ func SupplierDisclosuresWizardSupplierNone(cx *core.Scope) string {
 // SupplierDisclosuresWizardSupplierNone is the package's SupplierDisclosuresWizardSupplierNone in the language of msgs.
 func (msgs Messages) SupplierDisclosuresWizardSupplierNone() string {
 	return msgs.text(textSupplierDisclosuresWizardSupplierNone)
+}
+
+// SupplierDisclosuresWizardTemplate says "Template"
+// in the language the app shows under cx.
+func SupplierDisclosuresWizardTemplate(cx *core.Scope) string {
+	return For(cx).SupplierDisclosuresWizardTemplate()
+}
+
+// SupplierDisclosuresWizardTemplate is the package's SupplierDisclosuresWizardTemplate in the language of msgs.
+func (msgs Messages) SupplierDisclosuresWizardTemplate() string {
+	return msgs.text(textSupplierDisclosuresWizardTemplate)
 }
 
 // SupplierDisclosuresWizardTitle says "New supplier disclosure"

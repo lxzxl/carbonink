@@ -34,20 +34,17 @@ type supplierFilters struct {
 	order  *core.Signal[string]
 }
 
-type supplierCheck struct {
-	position string
-	on       *core.Signal[bool]
-}
-
 // supplierWizard is the new-disclosure form: pick an existing supplier or
-// name a new one, choose the year, and include a subset of the template.
+// name a new one, choose the template and year, and include a subset of the
+// template.
 type supplierWizard struct {
 	open     *core.Signal[bool]
 	supplier *core.Signal[string]
 	name     *core.Signal[string]
 	email    *core.Signal[string]
+	template *core.Signal[string]
 	year     *core.Signal[string]
-	checks   []supplierCheck
+	checks   map[string]*core.Signal[bool]
 	status   *core.Signal[string]
 	failed   *core.Signal[bool]
 	busy     *core.Signal[bool]
@@ -56,16 +53,17 @@ type supplierWizard struct {
 // supplierDetail is one disclosure: its read-only answers, the export/import
 // actions, and the review state of a supplier reply.
 type supplierDetail struct {
-	open     *core.Signal[bool]
-	rev      *core.Signal[int]
-	supplier *core.Signal[string]
-	year     *core.Signal[int]
-	status   *core.Signal[string]
-	due      *core.Signal[string]
-	email    *core.Signal[string]
-	message  *core.Signal[string]
-	failed   *core.Signal[bool]
-	busy     *core.Signal[bool]
+	open         *core.Signal[bool]
+	rev          *core.Signal[int]
+	supplier     *core.Signal[string]
+	templateKind *core.Signal[string]
+	year         *core.Signal[int]
+	status       *core.Signal[string]
+	due          *core.Signal[string]
+	email        *core.Signal[string]
+	message      *core.Signal[string]
+	failed       *core.Signal[bool]
+	busy         *core.Signal[bool]
 
 	reviewOpen    *core.Signal[bool]
 	reviewRev     *core.Signal[int]
@@ -74,6 +72,7 @@ type supplierDetail struct {
 	reviewFailed  *core.Signal[bool]
 	tierOverride  *core.Signal[string]
 	tier1Quantity *core.Signal[string]
+	tier3EFKey    *core.Signal[string]
 	deleteOpen    *core.Signal[bool]
 	remindOpen    *core.Signal[bool]
 
@@ -81,10 +80,13 @@ type supplierDetail struct {
 	db        *store.Store
 	questions []store.Question
 
-	reviewAnswers  []inbound.PreviewAnswer
-	reviewWarnings []inbound.Warning
-	reviewPlan     inbound.IngestPlan
-	accepted       map[string]bool
+	reviewAnswers   []inbound.PreviewAnswer
+	reviewWarnings  []inbound.Warning
+	reviewPlan      inbound.IngestPlan
+	reviewInference store.QuantityInference
+	reviewTier3     inbound.Tier3Preview
+	reviewTier1Unit string
+	accepted        map[string]bool
 }
 
 func (s *Session) supplierDisclosuresScreen(cx *core.Scope, dataRev *core.Signal[int]) core.Node {
@@ -369,7 +371,9 @@ func newSupplierWizard(cx *core.Scope, s *Session) *supplierWizard {
 		supplier: core.NewSignal(cx, ""),
 		name:     core.NewSignal(cx, ""),
 		email:    core.NewSignal(cx, ""),
+		template: core.NewSignal(cx, inbound.TemplateCat1),
 		year:     core.NewSignal(cx, ""),
+		checks:   map[string]*core.Signal[bool]{},
 		status:   core.NewSignal(cx, ""),
 		failed:   core.NewSignal(cx, false),
 		busy:     core.NewSignal(cx, false),
@@ -379,10 +383,12 @@ func newSupplierWizard(cx *core.Scope, s *Session) *supplierWizard {
 	} else {
 		w.year.Set(strconv.Itoa(time.Now().UTC().Year()))
 	}
-	for _, q := range inbound.Cat1.Questions {
-		w.checks = append(w.checks, supplierCheck{
-			position: q.Position, on: core.NewSignal(cx, true),
-		})
+	for _, tmpl := range inbound.Templates() {
+		for _, q := range tmpl.Questions {
+			if _, ok := w.checks[q.Position]; !ok {
+				w.checks[q.Position] = core.NewSignal(cx, true)
+			}
+		}
 	}
 	return w
 }
@@ -393,6 +399,7 @@ func (w *supplierWizard) show() {
 	w.busy.Set(false)
 	w.name.Set("")
 	w.email.Set("")
+	w.template.Set(inbound.TemplateCat1)
 	w.open.Set(true)
 }
 
@@ -408,6 +415,12 @@ func (w *supplierWizard) dialog(cx *core.Scope, s *Session, dataRev *core.Signal
 		yearOptions = append(yearOptions, ui.Option[string]{
 			Value: strconv.Itoa(period.Year), Label: strconv.Itoa(period.Year)})
 	}
+	templateOptions := make([]ui.Option[string], 0, len(inbound.Templates()))
+	for _, tmpl := range inbound.Templates() {
+		templateOptions = append(templateOptions, ui.Option[string]{
+			Value: tmpl.Kind, Label: supplierTemplateLabel(cx.Env().Locale(), tmpl),
+		})
+	}
 
 	submit := func() {
 		if w.busy.Get() {
@@ -419,10 +432,14 @@ func (w *supplierWizard) dialog(cx *core.Scope, s *Session, dataRev *core.Signal
 			w.status.Set(locales.SupplierDisclosuresWizardRequired(cx))
 			return
 		}
-		positions := make([]string, 0, len(w.checks))
-		for _, check := range w.checks {
-			if check.on.Get() {
-				positions = append(positions, check.position)
+		tmpl, ok := inbound.TemplateByKind(w.template.Get())
+		if !ok {
+			tmpl = inbound.Cat1
+		}
+		positions := make([]string, 0, len(tmpl.Questions))
+		for _, q := range tmpl.Questions {
+			if sig := w.checks[q.Position]; sig != nil && sig.Get() {
+				positions = append(positions, q.Position)
 			}
 		}
 		supplierID := w.supplier.Get()
@@ -433,6 +450,7 @@ func (w *supplierWizard) dialog(cx *core.Scope, s *Session, dataRev *core.Signal
 			return
 		}
 		email := strings.TrimSpace(w.email.Get())
+		templateKind := tmpl.Kind
 		w.busy.Set(true)
 		w.failed.Set(false)
 		w.status.Set("")
@@ -457,7 +475,8 @@ func (w *supplierWizard) dialog(cx *core.Scope, s *Session, dataRev *core.Signal
 			}
 			service := &inbound.Service{Store: s.db}
 			_, count, err := service.CreateDraft(ctx, inbound.CreateRequest{
-				SupplierID: id, ReportingYear: year, Positions: positions,
+				SupplierID: id, TemplateKind: templateKind,
+				ReportingYear: year, Positions: positions,
 			})
 			s.scope.Post(func() {
 				w.busy.Set(false)
@@ -479,17 +498,28 @@ func (w *supplierWizard) dialog(cx *core.Scope, s *Session, dataRev *core.Signal
 		}()
 	}
 
-	checkRows := make([]core.Node, 0, len(w.checks))
-	for index, check := range w.checks {
-		index, check := index, check
-		tq := inbound.Cat1.Questions[index]
-		checkRows = append(checkRows, ui.Checkbox{
-			Text:     supplierQuestionLabel(cx, tq, w.year.Get()),
-			Checked:  check.on.Get,
-			OnChange: func(on bool) { check.on.Set(on) },
-			TestID:   "supplier-disclosures-wizard-check-" + tq.Position,
-		})
-	}
+	questionsList := core.Dynamic(func(cx *core.Scope) core.Node {
+		tmpl, ok := inbound.TemplateByKind(w.template.Get())
+		if !ok {
+			tmpl = inbound.Cat1
+		}
+		year := w.year.Get()
+		checkRows := make([]core.Node, 0, len(tmpl.Questions))
+		for _, tq := range tmpl.Questions {
+			tq := tq
+			sig := w.checks[tq.Position]
+			checkRows = append(checkRows, ui.Checkbox{
+				Text:     supplierQuestionLabel(cx, tq, year),
+				Checked:  sig.Get,
+				OnChange: func(on bool) { sig.Set(on) },
+				TestID:   "supplier-disclosures-wizard-check-" + tq.Position,
+			})
+		}
+		return core.Scroll{
+			Style:    core.Style{MaxHeight: core.Pt(240)},
+			Children: []core.Node{core.View{Style: core.Style{Gap: 4}, Children: checkRows}},
+		}
+	})
 
 	body := []core.Node{
 		dataField(cx, locales.SupplierDisclosuresWizardSupplier(cx),
@@ -513,10 +543,16 @@ func (w *supplierWizard) dialog(cx *core.Scope, s *Session, dataRev *core.Signal
 			dataField(cx, locales.SupplierDisclosuresWizardEmail(cx),
 				ui.Input{Value: w.email.Get, Placeholder: "buyer@example.com",
 					OnChange: w.email.Set, TestID: "supplier-disclosures-wizard-email"}, submit)),
-		dataField(cx, locales.SupplierDisclosuresWizardYear(cx),
-			supplierYearInput(cx, w, yearOptions), submit),
-		dataField(cx, locales.SupplierDisclosuresWizardQuestions(cx),
-			core.View{Style: core.Style{Gap: 4}, Children: checkRows}),
+		dataColumns(cx, 8,
+			dataField(cx, locales.SupplierDisclosuresWizardTemplate(cx),
+				appSelect[string]{Options: templateOptions, Value: w.template.Get,
+					OnChange: w.template.Set,
+					Label:    locales.SupplierDisclosuresWizardTemplate(cx),
+					TestID:   "supplier-disclosures-wizard-template",
+					Style:    core.Style{Width: core.Pct(100)}}),
+			dataField(cx, locales.SupplierDisclosuresWizardYear(cx),
+				supplierYearInput(cx, w, yearOptions), submit)),
+		dataField(cx, locales.SupplierDisclosuresWizardQuestions(cx), questionsList),
 		core.Show{When: func() bool { return w.status.Get() != "" },
 			Then: func(cx *core.Scope) core.Node {
 				return core.Text{ContentFunc: func() string { return w.status.Get() },
@@ -534,7 +570,7 @@ func (w *supplierWizard) dialog(cx *core.Scope, s *Session, dataRev *core.Signal
 			Busy: w.busy.Get, TestID: "supplier-disclosures-wizard-submit"},
 	}
 	return dataDialogSized(cx, w.open, locales.SupplierDisclosuresWizardTitle(cx), body, footer,
-		"supplier-disclosures-wizard-dialog", 640, submit)
+		"supplier-disclosures-wizard-dialog", 660, submit)
 }
 
 func supplierYearInput(cx *core.Scope, w *supplierWizard,
@@ -571,11 +607,22 @@ func supplierQuestionText(locale string, q inbound.Question, year string) string
 	return text
 }
 
+func supplierTemplateLabel(locale string, t inbound.Template) string {
+	if strings.HasPrefix(strings.ToLower(locale), "zh") && t.LabelZH != "" {
+		return t.LabelZH
+	}
+	if t.LabelEN != "" {
+		return t.LabelEN
+	}
+	return t.Kind
+}
+
 func newSupplierDetail(cx *core.Scope, db *store.Store) *supplierDetail {
 	return &supplierDetail{
 		open:          core.NewSignal(cx, false),
 		rev:           core.NewSignal(cx, 0),
 		supplier:      core.NewSignal(cx, ""),
+		templateKind:  core.NewSignal(cx, inbound.TemplateCat1),
 		year:          core.NewSignal(cx, 0),
 		status:        core.NewSignal(cx, ""),
 		due:           core.NewSignal(cx, ""),
@@ -590,6 +637,7 @@ func newSupplierDetail(cx *core.Scope, db *store.Store) *supplierDetail {
 		reviewFailed:  core.NewSignal(cx, false),
 		tierOverride:  core.NewSignal(cx, ""),
 		tier1Quantity: core.NewSignal(cx, ""),
+		tier3EFKey:    core.NewSignal(cx, ""),
 		deleteOpen:    core.NewSignal(cx, false),
 		remindOpen:    core.NewSignal(cx, false),
 		accepted:      map[string]bool{},
@@ -639,6 +687,11 @@ func (d *supplierDetail) load(cx *core.Scope, s *Session) {
 	}
 	d.questions = questions
 	d.supplier.Set(q.CustomerName)
+	kind := q.TemplateKind
+	if kind == "" {
+		kind = inbound.TemplateCat1
+	}
+	d.templateKind.Set(kind)
 	d.year.Set(q.ReportingYear)
 	d.status.Set(q.Status)
 	d.due.Set(q.DueDate)
@@ -895,16 +948,66 @@ func supplierQuestionRow(cx *core.Scope, index int, bottomBorder bool, q store.Q
 		}}
 }
 
+func encodeEFKey(ef store.EmissionFactor) string {
+	return ef.FactorCode + "\x1f" + strconv.Itoa(ef.Year) + "\x1f" + ef.Source + "\x1f" +
+		ef.Geography + "\x1f" + ef.DatasetVersion
+}
+
+func (d *supplierDetail) selectedTier3Candidate() (inbound.Tier3Candidate, bool) {
+	selected := d.tier3EFKey.Get()
+	for _, cand := range d.reviewTier3.Candidates {
+		if cand.Compatible && encodeEFKey(cand.EF) == selected {
+			return cand, true
+		}
+	}
+	for _, cand := range d.reviewTier3.Candidates {
+		if cand.Compatible {
+			return cand, true
+		}
+	}
+	return inbound.Tier3Candidate{}, false
+}
+
+func (d *supplierDetail) selectedTier3EF() *store.EmissionFactorKey {
+	cand, ok := d.selectedTier3Candidate()
+	if !ok {
+		return nil
+	}
+	return &store.EmissionFactorKey{
+		FactorCode: cand.EF.FactorCode, Year: cand.EF.Year,
+		Source: cand.EF.Source, Geography: cand.EF.Geography,
+		DatasetVersion: cand.EF.DatasetVersion,
+	}
+}
+
 func (d *supplierDetail) setPreview(cx *core.Scope, preview inbound.Preview) {
 	d.reviewAnswers = preview.Answers
 	d.reviewWarnings = preview.Warnings
 	d.reviewPlan = preview.Plan
+	d.reviewInference = preview.QuantityInference
+	d.reviewTier3 = preview.Tier3
+	d.reviewTier1Unit = preview.Tier1Unit
+	if d.reviewTier1Unit == "" {
+		d.reviewTier1Unit = "kg"
+	}
 	d.accepted = make(map[string]bool, len(preview.Answers))
 	for _, answer := range preview.Answers {
 		d.accepted[answer.QuestionID] = !answer.IsBlank
 	}
 	d.tierOverride.Set("")
-	d.tier1Quantity.Set("")
+	if preview.QuantityInference.MatchedRows > 0 && preview.QuantityInference.MatchedAmount > 0 {
+		d.tier1Quantity.Set(strconv.FormatFloat(preview.QuantityInference.MatchedAmount, 'f', -1, 64))
+	} else {
+		d.tier1Quantity.Set("")
+	}
+	defaultEF := ""
+	for _, cand := range preview.Tier3.Candidates {
+		if cand.Compatible {
+			defaultEF = encodeEFKey(cand.EF)
+			break
+		}
+	}
+	d.tier3EFKey.Set(defaultEF)
 	d.reviewMessage.Set("")
 	d.reviewFailed.Set(false)
 	d.reviewRev.Set(d.reviewRev.Get() + 1)
@@ -935,9 +1038,12 @@ func (d *supplierDetail) reviewDialog(cx *core.Scope, s *Session,
 			override = 1
 		case "2":
 			override = 2
+		case "3":
+			override = 3
 		}
 		id := d.id
 		_, estimated := d.estimatedPlan()
+		tier3EF := d.selectedTier3EF()
 		d.reviewBusy.Set(true)
 		d.reviewFailed.Set(false)
 		d.reviewMessage.Set(locales.SupplierDisclosuresReviewIngesting(cx))
@@ -945,7 +1051,7 @@ func (d *supplierDetail) reviewDialog(cx *core.Scope, s *Session,
 			service := &inbound.Service{Store: s.db}
 			result, err := service.Ingest(context.Background(), inbound.IngestRequest{
 				QuestionnaireID: id, Accepted: accepted, Tier1Quantity: quantity,
-				TierOverride: override,
+				TierOverride: override, Tier3EF: tier3EF,
 			})
 			s.scope.Post(func() {
 				d.reviewBusy.Set(false)
@@ -960,10 +1066,14 @@ func (d *supplierDetail) reviewDialog(cx *core.Scope, s *Session,
 					d.reviewMessage.Set(locales.SupplierDisclosuresDetailIngestNoData(cx))
 					return
 				}
+				total := estimated
+				if result.CO2eKg > 0 {
+					total = result.CO2eKg
+				}
 				d.reviewOpen.Set(false)
 				d.failed.Set(false)
 				d.message.Set(locales.SupplierDisclosuresDetailIngestSuccess(cx,
-					formatCO2e(estimated)))
+					formatCO2e(total)))
 				d.load(cx, s)
 				_ = dataRefresh(s, dataRev)
 			})
@@ -974,18 +1084,24 @@ func (d *supplierDetail) reviewDialog(cx *core.Scope, s *Session,
 		{Value: "", Label: locales.SupplierDisclosuresReviewTierAuto(cx)},
 		{Value: "1", Label: locales.SupplierDisclosuresReviewTierOne(cx)},
 		{Value: "2", Label: locales.SupplierDisclosuresReviewTierTwo(cx)},
+		{Value: "3", Label: locales.SupplierDisclosuresReviewTierThree(cx)},
 	}
 	body := []core.Node{
 		core.Text{Content: locales.SupplierDisclosuresReviewHint(cx),
 			Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
-		core.View{Style: core.Style{Direction: core.Row, Wrap: core.Wrap, Gap: 8,
-			AlignItems: core.AlignEnd},
-			Children: []core.Node{
+		core.Dynamic(func(cx *core.Scope) core.Node {
+			_ = d.reviewRev.Get()
+			unit := d.reviewTier1Unit
+			if unit == "" {
+				unit = "kg"
+			}
+			qtyLabel := locales.SupplierDisclosuresReviewQuantityUnit(cx, unit)
+			controls := []core.Node{
 				dataField(cx, locales.SupplierDisclosuresReviewTier(cx),
 					appSelect[string]{Options: tierOptions, Value: d.tierOverride.Get,
 						OnChange: d.tierOverride.Set, Label: locales.SupplierDisclosuresReviewTier(cx),
 						TestID: "supplier-disclosures-review-tier"}),
-				dataField(cx, locales.SupplierDisclosuresReviewQuantity(cx),
+				dataField(cx, qtyLabel,
 					ui.Input{Value: d.tier1Quantity.Get,
 						Placeholder: locales.SupplierDisclosuresReviewQuantityHint(cx),
 						OnChange:    d.tier1Quantity.Set,
@@ -997,26 +1113,89 @@ func (d *supplierDetail) reviewDialog(cx *core.Scope, s *Session,
 						}
 						d.reviewRev.Set(d.reviewRev.Get() + 1)
 					}, TestID: "supplier-disclosures-review-accept-all"},
-			}},
+			}
+			nodes := []core.Node{
+				core.View{Style: core.Style{Direction: core.Row, Wrap: core.Wrap, Gap: 8,
+					AlignItems: core.AlignEnd}, Children: controls},
+			}
+			if d.reviewInference.MatchedRows > 0 {
+				nodes = append(nodes, core.Text{
+					Content: locales.SupplierDisclosuresReviewInferredMatched(cx,
+						strconv.Itoa(d.reviewInference.MatchedRows),
+						strconv.FormatFloat(d.reviewInference.MatchedAmount, 'f', -1, 64),
+						d.reviewInference.Unit),
+					Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Accent),
+				})
+			} else if d.reviewInference.CategoryRows > 0 {
+				amountText := strconv.FormatFloat(d.reviewInference.CategoryAmount, 'f', -1, 64)
+				nodes = append(nodes, ui.Button{
+					Text: locales.SupplierDisclosuresReviewInferredCategory(cx,
+						amountText, d.reviewInference.Unit, strconv.Itoa(d.reviewInference.CategoryRows)),
+					Variant: ui.ButtonGhost, Size: ui.SizeSmall,
+					OnPress: func() { d.tier1Quantity.Set(amountText) },
+					TestID:  "supplier-disclosures-review-apply-inferred",
+				})
+			}
+			if d.reviewTier3.Available {
+				efOptions := make([]ui.Option[string], 0, len(d.reviewTier3.Candidates))
+				for _, cand := range d.reviewTier3.Candidates {
+					if !cand.Compatible {
+						continue
+					}
+					name := cand.EF.NameEN
+					if strings.HasPrefix(strings.ToLower(cx.Env().Locale()), "zh") && cand.EF.NameZH != "" {
+						name = cand.EF.NameZH
+					}
+					if name == "" {
+						name = cand.EF.FactorCode
+					}
+					label := name + " · " + strconv.FormatFloat(cand.EF.CO2eKgPerUnit, 'f', -1, 64) +
+						" kgCO2e/" + cand.EF.InputUnit + " → " + formatCO2e(cand.CO2eKg)
+					efOptions = append(efOptions, ui.Option[string]{
+						Value: encodeEFKey(cand.EF), Label: label,
+					})
+				}
+				if len(efOptions) > 0 {
+					nodes = append(nodes, dataField(cx, locales.SupplierDisclosuresReviewEF(cx),
+						appSelect[string]{Options: efOptions, Value: d.tier3EFKey.Get,
+							OnChange: d.tier3EFKey.Set,
+							Label:    locales.SupplierDisclosuresReviewEF(cx),
+							TestID:   "supplier-disclosures-review-tier3-ef",
+							Style:    core.Style{Width: core.Pct(100)}}))
+				} else {
+					nodes = append(nodes, core.Text{
+						Content:   locales.SupplierDisclosuresReviewEFNone(cx),
+						Style:     core.Style{FontSize: 12},
+						StyleFunc: ui.Colored(ui.ColorsOf(cx).Warn),
+					})
+				}
+			}
+			return core.View{Style: core.Style{Gap: 6}, Children: nodes}
+		}),
 		core.Dynamic(func(cx *core.Scope) core.Node {
 			_ = d.reviewRev.Get()
+			tmpl, ok := inbound.TemplateByKind(d.templateKind.Get())
+			if !ok {
+				tmpl = inbound.Cat1
+			}
 			nodes := make([]core.Node, 0, len(d.reviewAnswers))
 			for index, answer := range d.reviewAnswers {
 				answer := answer
-				nodes = append(nodes, supplierReviewRow(cx, index, answer, d.accepted,
+				nodes = append(nodes, supplierReviewRow(cx, index, tmpl, answer, d.accepted,
 					func(on bool) {
 						d.accepted[answer.QuestionID] = on
 						d.reviewRev.Set(d.reviewRev.Get() + 1)
 					}, strconv.Itoa(d.year.Get())))
 			}
 			return core.Scroll{Style: core.Style{FlexGrow: 1, FlexShrink: 1,
-				MinHeight: core.Pt(0), MaxHeight: core.Pt(340)},
+				MinHeight: core.Pt(0), MaxHeight: core.Pt(320)},
 				Children: []core.Node{core.View{Style: core.Style{Gap: 4}, Children: nodes}}}
 		}),
 		core.Text{ContentFunc: func() string {
 			_ = d.reviewRev.Get()
 			_ = d.tierOverride.Get()
 			_ = d.tier1Quantity.Get()
+			_ = d.tier3EFKey.Get()
 			rows, total := d.estimatedPlan()
 			return locales.SupplierDisclosuresReviewPlan(cx, strconv.Itoa(rows),
 				formatCO2e(total))
@@ -1051,7 +1230,7 @@ func (d *supplierDetail) reviewDialog(cx *core.Scope, s *Session,
 }
 
 // estimatedPlan materializes the rows and total the current selection would
-// ingest, so the review summary follows the checkboxes and quantity.
+// ingest, so the review summary follows the checkboxes, quantity, and Tier 3 EF.
 func (d *supplierDetail) estimatedPlan() (int, float64) {
 	byPosition := make(map[string]inbound.PreviewAnswer, len(d.reviewAnswers))
 	for _, answer := range d.reviewAnswers {
@@ -1066,6 +1245,10 @@ func (d *supplierDetail) estimatedPlan() (int, float64) {
 	case "2":
 		if d.tierTwoReady(byPosition) {
 			tier = 2
+		}
+	case "3":
+		if d.tierThreeReady(byPosition) {
+			tier = 3
 		}
 	}
 	switch tier {
@@ -1085,6 +1268,15 @@ func (d *supplierDetail) estimatedPlan() (int, float64) {
 			return 0, 0
 		}
 		return 1, answer.Number
+	case 3:
+		if !d.tierThreeReady(byPosition) {
+			return 0, 0
+		}
+		cand, ok := d.selectedTier3Candidate()
+		if !ok {
+			return 0, 0
+		}
+		return 1, cand.CO2eKg
 	}
 	return 0, 0
 }
@@ -1108,7 +1300,16 @@ func (d *supplierDetail) tierTwoReady(byPosition map[string]inbound.PreviewAnswe
 	return true
 }
 
-func supplierReviewRow(cx *core.Scope, index int, answer inbound.PreviewAnswer,
+func (d *supplierDetail) tierThreeReady(byPosition map[string]inbound.PreviewAnswer) bool {
+	answer, ok := byPosition["tier3.2"]
+	if !ok || !d.accepted[answer.QuestionID] || !answer.IsNumeric || answer.Number <= 0 {
+		return false
+	}
+	_, hasEF := d.selectedTier3Candidate()
+	return hasEF
+}
+
+func supplierReviewRow(cx *core.Scope, index int, tmpl inbound.Template, answer inbound.PreviewAnswer,
 	accepted map[string]bool, onToggle func(bool), year string) core.Node {
 	value := answer.Raw
 	if answer.IsNumeric {
@@ -1121,7 +1322,7 @@ func supplierReviewRow(cx *core.Scope, index int, answer inbound.PreviewAnswer,
 		value += " · " + answer.Note
 	}
 	text := answer.Position
-	if q, ok := inbound.Cat1.QuestionByPosition(answer.Position); ok {
+	if q, ok := tmpl.QuestionByPosition(answer.Position); ok {
 		text = supplierQuestionLabel(cx, q, year)
 	}
 	return core.View{TestID: "supplier-disclosures-review-row-" + strconv.Itoa(index),
@@ -1268,8 +1469,11 @@ func importErrorText(cx *core.Scope, err error) string {
 }
 
 func ingestErrorText(cx *core.Scope, err error) string {
-	if errors.Is(err, inbound.ErrQuantityRequired) {
+	switch {
+	case errors.Is(err, inbound.ErrQuantityRequired):
 		return locales.SupplierDisclosuresReviewQuantityRequired(cx)
+	case errors.Is(err, inbound.ErrTier3EFRequired):
+		return locales.SupplierDisclosuresReviewEFRequired(cx)
 	}
 	return err.Error()
 }

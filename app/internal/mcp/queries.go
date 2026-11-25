@@ -117,7 +117,7 @@ func listQuestionnaires(ctx context.Context, db *sql.DB) (any, error) {
 		       q.status,
 		       (SELECT COUNT(*) FROM question WHERE questionnaire_id = q.id) AS question_count
 		  FROM questionnaire q
-		  JOIN customer c ON c.id = q.customer_id
+		  JOIN counterparty c ON c.id = q.counterparty_id
 		 ORDER BY q.created_at DESC`)
 }
 
@@ -129,9 +129,9 @@ func getQuestionnaire(ctx context.Context, db *sql.DB, id string) (any, error) {
 	if questionnaire == nil {
 		return nil, nil
 	}
-	customerID, _ := questionnaire["customer_id"].(string)
+	counterpartyID, _ := questionnaire["counterparty_id"].(string)
 	documentID, _ := questionnaire["document_id"].(string)
-	customer, err := readOne(ctx, db, `SELECT * FROM customer WHERE id = ?`, customerID)
+	customer, err := readOne(ctx, db, `SELECT * FROM counterparty WHERE id = ?`, counterpartyID)
 	if err != nil {
 		return nil, err
 	}
