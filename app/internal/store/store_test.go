@@ -21,15 +21,15 @@ func TestMigrateFresh(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if applied != 25 {
-		t.Fatalf("applied %d migrations, want 25", applied)
+	if applied != 26 {
+		t.Fatalf("applied %d migrations, want 26", applied)
 	}
 	version, err := s.SchemaVersion(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if version != 25 {
-		t.Fatalf("schema version = %d, want 25", version)
+	if version != 26 {
+		t.Fatalf("schema version = %d, want 26", version)
 	}
 	if again, err := s.Migrate(ctx); err != nil || again != 0 {
 		t.Fatalf("second Migrate = %d, %v; want 0, nil", again, err)

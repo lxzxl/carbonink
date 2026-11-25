@@ -62,8 +62,9 @@ type Session struct {
 	activities     []store.Activity
 	documents      []store.Document
 	documentTotal  int
-	questionnaires []store.Questionnaire
-	suppliers      []store.Customer
+	questionnaires  []store.Questionnaire
+	suppliers       []store.Customer
+	customTemplates []store.InboundTemplate
 	// extractionStatus is keyed by document id; documents without a row
 	// have no extraction yet.
 	extractionStatus map[string]store.ExtractionDocumentStatus
@@ -267,6 +268,11 @@ func (s *Session) reload(ctx context.Context) error {
 		return err
 	}
 	s.suppliers = suppliers
+	customTemplates, err := s.db.ListInboundTemplates(ctx)
+	if err != nil {
+		return err
+	}
+	s.customTemplates = customTemplates
 	statuses, err := s.db.ExtractionStatusByDocument(ctx)
 	if err != nil {
 		return err

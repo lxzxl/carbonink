@@ -155,8 +155,15 @@ func renderQuestionSheet(f *excelize.File, sheet string, questions []Question, w
 			return err
 		}
 	}
+	maxRow := 40
+	for _, q := range questions {
+		_, address := splitRef(q.CellRef)
+		if row, _, ok := parseAddress(address); ok && row+2 > maxRow {
+			maxRow = row + 2
+		}
+	}
 	for _, column := range []string{"A", notesColumn} {
-		if err := f.SetCellStyle(sheet, column+"1", column+"40", wrap); err != nil {
+		if err := f.SetCellStyle(sheet, column+"1", column+strconv.Itoa(maxRow), wrap); err != nil {
 			return err
 		}
 	}

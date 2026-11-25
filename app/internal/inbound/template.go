@@ -3,6 +3,12 @@
 // selection that turns a reply into an inventory row.
 package inbound
 
+import (
+	"strings"
+
+	"app.carbonink.desktop/internal/store"
+)
+
 // Built-in inbound disclosure template kinds. TemplateKind aliases
 // TemplateCat1 for 1.x callers.
 const (
@@ -41,8 +47,10 @@ type Question struct {
 	CellRef      string
 }
 
-// Template is one disclosure form and its fixed question set.
+// Template is one disclosure form and its question set.
 type Template struct {
+	ID              string
+	Custom          bool
 	Kind            string
 	Version         string
 	Scope           int
@@ -55,6 +63,43 @@ type Template struct {
 	Tier1Unit       string
 	DefaultUnit     string
 	Questions       []Question
+}
+
+// FromStoreTemplate converts a persisted user-authored template into an
+// inbound Template ready for workbook rendering, parsing, and ingestion.
+func FromStoreTemplate(st store.InboundTemplate) Template {
+	qs := make([]Question, 0, len(st.Questions))
+	for _, q := range st.Questions {
+		qs = append(qs, Question{
+			Position:     q.Position,
+			Tier:         q.Tier,
+			Kind:         q.Kind,
+			RawZH:        q.RawZH,
+			RawEN:        q.RawEN,
+			ExpectedUnit: q.ExpectedUnit,
+			CellRef:      q.CellRef,
+		})
+	}
+	suffix := strings.ReplaceAll(strings.TrimSpace(st.Category), "_", " ")
+	if suffix == "" {
+		suffix = "purchased goods"
+	}
+	return Template{
+		ID:              st.ID,
+		Custom:          true,
+		Kind:            st.Kind,
+		Version:         TemplateVersion,
+		Scope:           st.Scope,
+		Category:        st.Category,
+		GHGProtocolPath: st.GHGProtocolPath,
+		EFCategory:      st.EFCategory,
+		LabelZH:         st.LabelZH,
+		LabelEN:         st.LabelEN,
+		SourceSuffixEN:  suffix,
+		Tier1Unit:       st.Tier1Unit,
+		DefaultUnit:     st.DefaultUnit,
+		Questions:       qs,
+	}
 }
 
 func metaQuestions() []Question {

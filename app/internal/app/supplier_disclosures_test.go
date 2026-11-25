@@ -294,3 +294,40 @@ func TestSupplierDisclosureMultiTemplateTier3AndInference(t *testing.T) {
 		t.Fatalf("expected tier3 and inferred tier1 rows, got %+v", activities)
 	}
 }
+
+func TestSupplierDisclosureCustomTemplateEditor(t *testing.T) {
+	dbPath := fixtureDB(t)
+	t.Setenv("CARBONINK_TEST_DB", dbPath)
+
+	ui := nsgotest.Start(t, Root, nsgotest.Size(1280, 820),
+		nsgotest.Environment(core.Environment{Locale: "en-US"}))
+
+	ui.Press("id:nav:supplier-disclosures")
+	ui.WaitFor("id:supplier-disclosures-templates", 5*time.Second)
+	ui.Press("id:supplier-disclosures-templates")
+	ui.WaitFor("id:supplier-templates-dialog", 3*time.Second)
+
+	ui.Press("id:supplier-templates-duplicate-cat1_supplier_disclosure")
+	ui.WaitFor("id:supplier-template-save", 3*time.Second)
+	ui.Clear("id:supplier-template-label-en")
+	ui.Type("id:supplier-template-label-en", "Packaging Custom Disclosure")
+	ui.Clear("id:supplier-template-label-zh")
+	ui.Type("id:supplier-template-label-zh", "包装定制披露")
+	ui.Press("id:supplier-template-q-add")
+	ui.WaitFor("id:supplier-template-question-10", 3*time.Second)
+	ui.Type("id:supplier-template-q-en-10", "Packaging recycled content (%)")
+	ui.Press("id:supplier-template-save")
+
+	ui.WaitFor("text:Packaging Custom Disclosure", 5*time.Second)
+	ui.Press("id:supplier-templates-close")
+	ui.WaitForGone("id:supplier-templates-dialog", 3*time.Second)
+
+	ui.Press("id:supplier-disclosures-new")
+	ui.WaitFor("id:supplier-disclosures-wizard-dialog", 3*time.Second)
+	ui.Type("id:supplier-disclosures-wizard-name", "Box Supplier")
+	ui.Press("id:supplier-disclosures-wizard-template")
+	ui.WaitFor("id:supplier-disclosures-wizard-template-4", 3*time.Second)
+	ui.Press("id:supplier-disclosures-wizard-template-4")
+	ui.Press("id:supplier-disclosures-wizard-submit")
+	ui.WaitFor("text:Draft created with 11 questions.", 10*time.Second)
+}

@@ -99,6 +99,7 @@ func (s *Session) supplierDisclosuresScreen(cx *core.Scope, dataRev *core.Signal
 	screenFailed := core.NewSignal(cx, false)
 	wizard := newSupplierWizard(cx, s)
 	detail := newSupplierDetail(cx, s.db)
+	templatesEditor := newSupplierTemplatesEditor(cx)
 	if id := s.pendingSupplierDisclosure; id != "" {
 		s.pendingSupplierDisclosure = ""
 		for _, q := range s.questionnaires {
@@ -283,6 +284,9 @@ func (s *Session) supplierDisclosuresScreen(cx *core.Scope, dataRev *core.Signal
 	left := core.View{Style: core.Style{FlexGrow: 1, FlexShrink: 1, MinHeight: core.Pt(0)},
 		Children: []core.Node{
 			listPaneHeader(cx, locales.NavSupplierDisclosures, nil,
+				ui.Button{Text: locales.SupplierTemplatesButton(cx), Icon: lucide.SlidersHorizontal,
+					Variant: ui.ButtonGhost, Size: ui.SizeSmall, OnPress: templatesEditor.show,
+					TestID: "supplier-disclosures-templates"},
 				ui.Button{Text: locales.SupplierDisclosuresNewButton(cx), Icon: lucide.Plus,
 					Variant: ui.ButtonOutline, Size: ui.SizeSmall, OnPress: wizard.show,
 					TestID: "supplier-disclosures-new"}),
@@ -312,6 +316,7 @@ func (s *Session) supplierDisclosuresScreen(cx *core.Scope, dataRev *core.Signal
 			detail.reviewDialog(cx, s, dataRev),
 			detail.deleteDialog(cx, s, dataRev),
 			detail.remindDialog(cx, s, dataRev),
+			templatesEditor.dialog(cx, s, dataRev),
 		}}
 }
 
@@ -403,174 +408,184 @@ func (w *supplierWizard) show() {
 	w.open.Set(true)
 }
 
+func (w *supplierWizard) checkSignal(cx *core.Scope, position string) *core.Signal[bool] {
+	if sig, ok := w.checks[position]; ok {
+		return sig
+	}
+	sig := core.NewSignal(cx, true)
+	w.checks[position] = sig
+	return sig
+}
+
 func (w *supplierWizard) dialog(cx *core.Scope, s *Session, dataRev *core.Signal[int],
 	onDone func(int), onFailed func(string)) core.Node {
-	supplierOptions := []ui.Option[string]{{Value: "", Label: locales.SupplierDisclosuresWizardSupplierNone(cx)}}
-	for _, supplier := range s.suppliers {
-		supplierOptions = append(supplierOptions,
-			ui.Option[string]{Value: supplier.ID, Label: supplier.Name})
-	}
-	yearOptions := make([]ui.Option[string], 0, len(s.periods))
-	for _, period := range s.periods {
-		yearOptions = append(yearOptions, ui.Option[string]{
-			Value: strconv.Itoa(period.Year), Label: strconv.Itoa(period.Year)})
-	}
-	templateOptions := make([]ui.Option[string], 0, len(inbound.Templates()))
-	for _, tmpl := range inbound.Templates() {
-		templateOptions = append(templateOptions, ui.Option[string]{
-			Value: tmpl.Kind, Label: supplierTemplateLabel(cx.Env().Locale(), tmpl),
-		})
-	}
+	return core.Dynamic(func(cx *core.Scope) core.Node {
+		if !w.open.Get() {
+			return core.View{}
+		}
+		_ = dataRev.Get()
+		templates := s.allInboundTemplates()
+		supplierOptions := []ui.Option[string]{{Value: "", Label: locales.SupplierDisclosuresWizardSupplierNone(cx)}}
+		for _, supplier := range s.suppliers {
+			supplierOptions = append(supplierOptions,
+				ui.Option[string]{Value: supplier.ID, Label: supplier.Name})
+		}
+		yearOptions := make([]ui.Option[string], 0, len(s.periods))
+		for _, period := range s.periods {
+			yearOptions = append(yearOptions, ui.Option[string]{
+				Value: strconv.Itoa(period.Year), Label: strconv.Itoa(period.Year)})
+		}
+		templateOptions := make([]ui.Option[string], 0, len(templates))
+		for _, tmpl := range templates {
+			templateOptions = append(templateOptions, ui.Option[string]{
+				Value: tmpl.Kind, Label: supplierTemplateLabel(cx.Env().Locale(), tmpl),
+			})
+		}
 
-	submit := func() {
-		if w.busy.Get() {
-			return
-		}
-		year, err := strconv.Atoi(strings.TrimSpace(w.year.Get()))
-		if err != nil {
-			w.failed.Set(true)
-			w.status.Set(locales.SupplierDisclosuresWizardRequired(cx))
-			return
-		}
-		tmpl, ok := inbound.TemplateByKind(w.template.Get())
-		if !ok {
-			tmpl = inbound.Cat1
-		}
-		positions := make([]string, 0, len(tmpl.Questions))
-		for _, q := range tmpl.Questions {
-			if sig := w.checks[q.Position]; sig != nil && sig.Get() {
-				positions = append(positions, q.Position)
+		submit := func() {
+			if w.busy.Get() {
+				return
 			}
-		}
-		supplierID := w.supplier.Get()
-		name := strings.TrimSpace(w.name.Get())
-		if (supplierID == "" && name == "") || len(positions) == 0 {
-			w.failed.Set(true)
-			w.status.Set(locales.SupplierDisclosuresWizardRequired(cx))
-			return
-		}
-		email := strings.TrimSpace(w.email.Get())
-		templateKind := tmpl.Kind
-		w.busy.Set(true)
-		w.failed.Set(false)
-		w.status.Set("")
-		go func() {
-			ctx := context.Background()
-			id := supplierID
-			if name != "" {
-				created, err := s.db.CreateSupplier(ctx, name, "", email)
-				if err != nil {
-					s.scope.Post(func() {
-						w.busy.Set(false)
+			year, err := strconv.Atoi(strings.TrimSpace(w.year.Get()))
+			if err != nil {
+				w.failed.Set(true)
+				w.status.Set(locales.SupplierDisclosuresWizardRequired(cx))
+				return
+			}
+			tmpl := s.inboundTemplateByKind(w.template.Get())
+			positions := make([]string, 0, len(tmpl.Questions))
+			for _, q := range tmpl.Questions {
+				if w.checkSignal(cx, q.Position).Get() {
+					positions = append(positions, q.Position)
+				}
+			}
+			supplierID := w.supplier.Get()
+			name := strings.TrimSpace(w.name.Get())
+			if (supplierID == "" && name == "") || len(positions) == 0 {
+				w.failed.Set(true)
+				w.status.Set(locales.SupplierDisclosuresWizardRequired(cx))
+				return
+			}
+			email := strings.TrimSpace(w.email.Get())
+			templateKind := tmpl.Kind
+			w.busy.Set(true)
+			w.failed.Set(false)
+			w.status.Set("")
+			go func() {
+				ctx := context.Background()
+				id := supplierID
+				if name != "" {
+					created, err := s.db.CreateSupplier(ctx, name, "", email)
+					if err != nil {
+						s.scope.Post(func() {
+							w.busy.Set(false)
+							w.failed.Set(true)
+							w.status.Set(locales.SupplierDisclosuresWizardFailed(cx) + ": " + err.Error())
+						})
+						return
+					}
+					id = created.ID
+				} else if email != "" {
+					if _, err := s.db.SetSupplierEmail(ctx, id, email); err != nil {
+						s.log.Warn("set supplier email failed", "supplier", id, "err", err)
+					}
+				}
+				service := &inbound.Service{Store: s.db}
+				_, count, err := service.CreateDraft(ctx, inbound.CreateRequest{
+					SupplierID: id, TemplateKind: templateKind,
+					ReportingYear: year, Positions: positions,
+				})
+				s.scope.Post(func() {
+					w.busy.Set(false)
+					if err != nil {
+						s.log.Warn("create inbound draft failed", "supplier", id, "err", err)
 						w.failed.Set(true)
 						w.status.Set(locales.SupplierDisclosuresWizardFailed(cx) + ": " + err.Error())
-					})
-					return
-				}
-				id = created.ID
-			} else if email != "" {
-				if _, err := s.db.SetSupplierEmail(ctx, id, email); err != nil {
-					s.log.Warn("set supplier email failed", "supplier", id, "err", err)
-				}
-			}
-			service := &inbound.Service{Store: s.db}
-			_, count, err := service.CreateDraft(ctx, inbound.CreateRequest{
-				SupplierID: id, TemplateKind: templateKind,
-				ReportingYear: year, Positions: positions,
-			})
-			s.scope.Post(func() {
-				w.busy.Set(false)
-				if err != nil {
-					s.log.Warn("create inbound draft failed", "supplier", id, "err", err)
-					w.failed.Set(true)
-					w.status.Set(locales.SupplierDisclosuresWizardFailed(cx) + ": " + err.Error())
-					return
-				}
-				if err := dataRefresh(s, dataRev); err != nil {
-					w.failed.Set(true)
-					w.status.Set(err.Error())
-					return
-				}
-				s.requestNotificationPermission(cx)
-				w.open.Set(false)
-				onDone(count)
-			})
-		}()
-	}
-
-	questionsList := core.Dynamic(func(cx *core.Scope) core.Node {
-		tmpl, ok := inbound.TemplateByKind(w.template.Get())
-		if !ok {
-			tmpl = inbound.Cat1
-		}
-		year := w.year.Get()
-		checkRows := make([]core.Node, 0, len(tmpl.Questions))
-		for _, tq := range tmpl.Questions {
-			tq := tq
-			sig := w.checks[tq.Position]
-			checkRows = append(checkRows, ui.Checkbox{
-				Text:     supplierQuestionLabel(cx, tq, year),
-				Checked:  sig.Get,
-				OnChange: func(on bool) { sig.Set(on) },
-				TestID:   "supplier-disclosures-wizard-check-" + tq.Position,
-			})
-		}
-		return core.Scroll{
-			Style:    core.Style{MaxHeight: core.Pt(240)},
-			Children: []core.Node{core.View{Style: core.Style{Gap: 4}, Children: checkRows}},
-		}
-	})
-
-	body := []core.Node{
-		dataField(cx, locales.SupplierDisclosuresWizardSupplier(cx),
-			appSelect[string]{Options: supplierOptions, Value: w.supplier.Get,
-				OnChange: func(v string) {
-					w.supplier.Set(v)
-					for _, supplier := range s.suppliers {
-						if supplier.ID == v {
-							w.email.Set(supplier.Email)
-						}
+						return
 					}
-				},
-				Label:  locales.SupplierDisclosuresWizardSupplier(cx),
-				TestID: "supplier-disclosures-wizard-supplier",
-				Style:  core.Style{Width: core.Pct(100)}}),
-		dataColumns(cx, 8,
-			dataField(cx, locales.SupplierDisclosuresWizardNewSupplier(cx),
-				ui.Input{Value: w.name.Get,
-					Placeholder: locales.SupplierDisclosuresWizardNewSupplierPlaceholder(cx),
-					OnChange:    w.name.Set, TestID: "supplier-disclosures-wizard-name"}, submit),
-			dataField(cx, locales.SupplierDisclosuresWizardEmail(cx),
-				ui.Input{Value: w.email.Get, Placeholder: "buyer@example.com",
-					OnChange: w.email.Set, TestID: "supplier-disclosures-wizard-email"}, submit)),
-		dataColumns(cx, 8,
-			dataField(cx, locales.SupplierDisclosuresWizardTemplate(cx),
-				appSelect[string]{Options: templateOptions, Value: w.template.Get,
-					OnChange: w.template.Set,
-					Label:    locales.SupplierDisclosuresWizardTemplate(cx),
-					TestID:   "supplier-disclosures-wizard-template",
-					Style:    core.Style{Width: core.Pct(100)}}),
-			dataField(cx, locales.SupplierDisclosuresWizardYear(cx),
-				supplierYearInput(cx, w, yearOptions), submit)),
-		dataField(cx, locales.SupplierDisclosuresWizardQuestions(cx), questionsList),
-		core.Show{When: func() bool { return w.status.Get() != "" },
-			Then: func(cx *core.Scope) core.Node {
-				return core.Text{ContentFunc: func() string { return w.status.Get() },
-					Style: core.Style{FontSize: 12}, StyleFunc: func() core.Style {
-						if w.failed.Get() {
-							return ui.Colored(ui.ColorsOf(cx).Danger)()
+					if err := dataRefresh(s, dataRev); err != nil {
+						w.failed.Set(true)
+						w.status.Set(err.Error())
+						return
+					}
+					s.requestNotificationPermission(cx)
+					w.open.Set(false)
+					onDone(count)
+				})
+			}()
+		}
+
+		questionsList := core.Dynamic(func(cx *core.Scope) core.Node {
+			tmpl := s.inboundTemplateByKind(w.template.Get())
+			year := w.year.Get()
+			checkRows := make([]core.Node, 0, len(tmpl.Questions))
+			for _, tq := range tmpl.Questions {
+				tq := tq
+				sig := w.checkSignal(cx, tq.Position)
+				checkRows = append(checkRows, ui.Checkbox{
+					Text:     supplierQuestionLabel(cx, tq, year),
+					Checked:  sig.Get,
+					OnChange: func(on bool) { sig.Set(on) },
+					TestID:   "supplier-disclosures-wizard-check-" + tq.Position,
+				})
+			}
+			return core.Scroll{
+				Style:    core.Style{MaxHeight: core.Pt(240)},
+				Children: []core.Node{core.View{Style: core.Style{Gap: 4}, Children: checkRows}},
+			}
+		})
+
+		body := []core.Node{
+			dataField(cx, locales.SupplierDisclosuresWizardSupplier(cx),
+				appSelect[string]{Options: supplierOptions, Value: w.supplier.Get,
+					OnChange: func(v string) {
+						w.supplier.Set(v)
+						for _, supplier := range s.suppliers {
+							if supplier.ID == v {
+								w.email.Set(supplier.Email)
+							}
 						}
-						return ui.Colored(ui.ColorsOf(cx).Muted)()
-					}}
-			}},
-	}
-	footer := []core.Node{
-		dataCancelButton(cx, w.open, "supplier-disclosures-wizard-cancel"),
-		ui.Button{Text: locales.SupplierDisclosuresWizardSubmit(cx), OnPress: submit,
-			Busy: w.busy.Get, TestID: "supplier-disclosures-wizard-submit"},
-	}
-	return dataDialogSized(cx, w.open, locales.SupplierDisclosuresWizardTitle(cx), body, footer,
-		"supplier-disclosures-wizard-dialog", 660, submit)
+					},
+					Label:  locales.SupplierDisclosuresWizardSupplier(cx),
+					TestID: "supplier-disclosures-wizard-supplier",
+					Style:  core.Style{Width: core.Pct(100)}}),
+			dataColumns(cx, 8,
+				dataField(cx, locales.SupplierDisclosuresWizardNewSupplier(cx),
+					ui.Input{Value: w.name.Get,
+						Placeholder: locales.SupplierDisclosuresWizardNewSupplierPlaceholder(cx),
+						OnChange:    w.name.Set, TestID: "supplier-disclosures-wizard-name"}, submit),
+				dataField(cx, locales.SupplierDisclosuresWizardEmail(cx),
+					ui.Input{Value: w.email.Get, Placeholder: "buyer@example.com",
+						OnChange: w.email.Set, TestID: "supplier-disclosures-wizard-email"}, submit)),
+			dataColumns(cx, 8,
+				dataField(cx, locales.SupplierDisclosuresWizardTemplate(cx),
+					appSelect[string]{Options: templateOptions, Value: w.template.Get,
+						OnChange: w.template.Set,
+						Label:    locales.SupplierDisclosuresWizardTemplate(cx),
+						TestID:   "supplier-disclosures-wizard-template",
+						Style:    core.Style{Width: core.Pct(100)}}),
+				dataField(cx, locales.SupplierDisclosuresWizardYear(cx),
+					supplierYearInput(cx, w, yearOptions), submit)),
+			dataField(cx, locales.SupplierDisclosuresWizardQuestions(cx), questionsList),
+			core.Show{When: func() bool { return w.status.Get() != "" },
+				Then: func(cx *core.Scope) core.Node {
+					return core.Text{ContentFunc: func() string { return w.status.Get() },
+						Style: core.Style{FontSize: 12}, StyleFunc: func() core.Style {
+							if w.failed.Get() {
+								return ui.Colored(ui.ColorsOf(cx).Danger)()
+							}
+							return ui.Colored(ui.ColorsOf(cx).Muted)()
+						}}
+				}},
+		}
+		footer := []core.Node{
+			dataCancelButton(cx, w.open, "supplier-disclosures-wizard-cancel"),
+			ui.Button{Text: locales.SupplierDisclosuresWizardSubmit(cx), OnPress: submit,
+				Busy: w.busy.Get, TestID: "supplier-disclosures-wizard-submit"},
+		}
+		return dataDialogSized(cx, w.open, locales.SupplierDisclosuresWizardTitle(cx), body, footer,
+			"supplier-disclosures-wizard-dialog", 660, submit)
+	})
 }
 
 func supplierYearInput(cx *core.Scope, w *supplierWizard,
@@ -1174,10 +1189,7 @@ func (d *supplierDetail) reviewDialog(cx *core.Scope, s *Session,
 		}),
 		core.Dynamic(func(cx *core.Scope) core.Node {
 			_ = d.reviewRev.Get()
-			tmpl, ok := inbound.TemplateByKind(d.templateKind.Get())
-			if !ok {
-				tmpl = inbound.Cat1
-			}
+			tmpl := s.inboundTemplateByKind(d.templateKind.Get())
 			nodes := make([]core.Node, 0, len(d.reviewAnswers))
 			for index, answer := range d.reviewAnswers {
 				answer := answer

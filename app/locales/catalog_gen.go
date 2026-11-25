@@ -1824,6 +1824,38 @@ const (
 	textSupplierDisclosuresWizardTitle
 	textSupplierDisclosuresWizardYear
 	textSupplierEmailOptionalLabel
+	textSupplierTemplateBack
+	textSupplierTemplateCategory
+	textSupplierTemplateDeleted
+	textSupplierTemplateEditorEditTitle
+	textSupplierTemplateEditorNewTitle
+	textSupplierTemplateLabelEN
+	textSupplierTemplateLabelZH
+	textSupplierTemplateQuestionAdd
+	textSupplierTemplateQuestionEN
+	textSupplierTemplateQuestionKind
+	textSupplierTemplateQuestionRemove
+	textSupplierTemplateQuestionTier
+	textSupplierTemplateQuestionUnit
+	textSupplierTemplateQuestionZH
+	textSupplierTemplateQuestions
+	textSupplierTemplateSave
+	textSupplierTemplateSaved
+	textSupplierTemplateTierMeta
+	textSupplierTemplateTierOne
+	textSupplierTemplateTierThree
+	textSupplierTemplateTierTwo
+	textSupplierTemplatesBuiltInBadge
+	textSupplierTemplatesBuiltInHeading
+	textSupplierTemplatesButton
+	textSupplierTemplatesClose
+	textSupplierTemplatesCustomEmpty
+	textSupplierTemplatesCustomHeading
+	textSupplierTemplatesDelete
+	textSupplierTemplatesDuplicate
+	textSupplierTemplatesEdit
+	textSupplierTemplatesNew
+	textSupplierTemplatesTitle
 	textTopbarBack
 	textTopbarDetail
 	textTopbarForward
@@ -3240,6 +3272,38 @@ var keyOfText = [numTexts]string{
 	"supplierDisclosuresWizardTitle",
 	"supplierDisclosuresWizardYear",
 	"supplierEmailOptionalLabel",
+	"supplierTemplateBack",
+	"supplierTemplateCategory",
+	"supplierTemplateDeleted",
+	"supplierTemplateEditorEditTitle",
+	"supplierTemplateEditorNewTitle",
+	"supplierTemplateLabelEN",
+	"supplierTemplateLabelZH",
+	"supplierTemplateQuestionAdd",
+	"supplierTemplateQuestionEN",
+	"supplierTemplateQuestionKind",
+	"supplierTemplateQuestionRemove",
+	"supplierTemplateQuestionTier",
+	"supplierTemplateQuestionUnit",
+	"supplierTemplateQuestionZH",
+	"supplierTemplateQuestions",
+	"supplierTemplateSave",
+	"supplierTemplateSaved",
+	"supplierTemplateTierMeta",
+	"supplierTemplateTierOne",
+	"supplierTemplateTierThree",
+	"supplierTemplateTierTwo",
+	"supplierTemplatesBuiltInBadge",
+	"supplierTemplatesBuiltInHeading",
+	"supplierTemplatesButton",
+	"supplierTemplatesClose",
+	"supplierTemplatesCustomEmpty",
+	"supplierTemplatesCustomHeading",
+	"supplierTemplatesDelete",
+	"supplierTemplatesDuplicate",
+	"supplierTemplatesEdit",
+	"supplierTemplatesNew",
+	"supplierTemplatesTitle",
 	"topbarBack",
 	"topbarDetail",
 	"topbarForward",
@@ -4654,6 +4718,38 @@ var textsEn = i18n.NewTexts(""+
 	"New supplier disclosure"+
 	"Reporting year"+
 	"Supplier email (optional, used for reminders)"+
+	"Back"+
+	"Scope 3 category"+
+	"Template deleted."+
+	"Edit custom template"+
+	"New custom template"+
+	"Name (English)"+
+	"Name (Chinese)"+
+	"Add question"+
+	"Question prompt (English)"+
+	"Kind"+
+	"Remove"+
+	"Tier"+
+	"Expected unit (optional)"+
+	"Question prompt (Chinese)"+
+	"Questions"+
+	"Save template"+
+	"Template saved."+
+	"Metadata"+
+	"Tier 1 (PCF)"+
+	"Tier 3 (Activity)"+
+	"Tier 2 (Allocated)"+
+	"Built-in"+
+	"Built-in templates"+
+	"Templates"+
+	"Close"+
+	"No custom templates yet. Duplicate a built-in template or create one from scratch."+
+	"Custom templates"+
+	"Delete"+
+	"Duplicate"+
+	"Edit"+
+	"New template"+
+	"Supplier disclosure templates"+
 	"Go back"+
 	"Detail"+
 	"Go forward"+
@@ -6065,6 +6161,38 @@ var textsEn = i18n.NewTexts(""+
 		23,
 		14,
 		45,
+		4,
+		16,
+		17,
+		20,
+		19,
+		14,
+		14,
+		12,
+		25,
+		4,
+		6,
+		4,
+		24,
+		25,
+		9,
+		13,
+		15,
+		8,
+		12,
+		17,
+		18,
+		8,
+		18,
+		9,
+		5,
+		82,
+		16,
+		6,
+		9,
+		4,
+		12,
+		29,
 		7,
 		6,
 		10,
@@ -7479,6 +7607,38 @@ var textsZhCN = i18n.NewTexts(""+
 	"新建供应商披露"+
 	"报告年度"+
 	"供应商邮箱（可选，用于催办）"+
+	"返回"+
+	"Scope 3 类别"+
+	"模板已删除。"+
+	"编辑自定义模板"+
+	"新建自定义模板"+
+	"模板名称（英文）"+
+	"模板名称（中文）"+
+	"添加题目"+
+	"题目描述（英文）"+
+	"题型"+
+	"移除"+
+	"层级"+
+	"期望单位（可选）"+
+	"题目描述（中文）"+
+	"题目列表"+
+	"保存模板"+
+	"模板已保存。"+
+	"基础信息"+
+	"Tier 1（单位碳足迹）"+
+	"Tier 3（活动数据）"+
+	"Tier 2（分配排放）"+
+	"内置"+
+	"内置模板"+
+	"管理模板"+
+	"关闭"+
+	"尚无自定义模板。可复制内置模板修改，或新建空白模板。"+
+	"自定义模板"+
+	"删除"+
+	"复制并自定义"+
+	"编辑"+
+	"新建模板"+
+	"供应商披露模板"+
 	"后退"+
 	"详情"+
 	"前进"+
@@ -8890,6 +9050,38 @@ var textsZhCN = i18n.NewTexts(""+
 		21,
 		12,
 		42,
+		6,
+		14,
+		18,
+		21,
+		21,
+		24,
+		24,
+		12,
+		24,
+		6,
+		6,
+		6,
+		24,
+		24,
+		12,
+		12,
+		18,
+		12,
+		27,
+		24,
+		24,
+		6,
+		12,
+		12,
+		6,
+		78,
+		15,
+		6,
+		18,
+		6,
+		12,
+		21,
 		6,
 		6,
 		6,
@@ -25602,6 +25794,286 @@ func SupplierEmailOptionalLabel(cx *core.Scope) string { return For(cx).Supplier
 func (msgs Messages) SupplierEmailOptionalLabel() string {
 	return msgs.text(textSupplierEmailOptionalLabel)
 }
+
+// SupplierTemplateBack says "Back"
+// in the language the app shows under cx.
+func SupplierTemplateBack(cx *core.Scope) string { return For(cx).SupplierTemplateBack() }
+
+// SupplierTemplateBack is the package's SupplierTemplateBack in the language of msgs.
+func (msgs Messages) SupplierTemplateBack() string { return msgs.text(textSupplierTemplateBack) }
+
+// SupplierTemplateCategory says "Scope 3 category"
+// in the language the app shows under cx.
+func SupplierTemplateCategory(cx *core.Scope) string { return For(cx).SupplierTemplateCategory() }
+
+// SupplierTemplateCategory is the package's SupplierTemplateCategory in the language of msgs.
+func (msgs Messages) SupplierTemplateCategory() string {
+	return msgs.text(textSupplierTemplateCategory)
+}
+
+// SupplierTemplateDeleted says "Template deleted."
+// in the language the app shows under cx.
+func SupplierTemplateDeleted(cx *core.Scope) string { return For(cx).SupplierTemplateDeleted() }
+
+// SupplierTemplateDeleted is the package's SupplierTemplateDeleted in the language of msgs.
+func (msgs Messages) SupplierTemplateDeleted() string { return msgs.text(textSupplierTemplateDeleted) }
+
+// SupplierTemplateEditorEditTitle says "Edit custom template"
+// in the language the app shows under cx.
+func SupplierTemplateEditorEditTitle(cx *core.Scope) string {
+	return For(cx).SupplierTemplateEditorEditTitle()
+}
+
+// SupplierTemplateEditorEditTitle is the package's SupplierTemplateEditorEditTitle in the language of msgs.
+func (msgs Messages) SupplierTemplateEditorEditTitle() string {
+	return msgs.text(textSupplierTemplateEditorEditTitle)
+}
+
+// SupplierTemplateEditorNewTitle says "New custom template"
+// in the language the app shows under cx.
+func SupplierTemplateEditorNewTitle(cx *core.Scope) string {
+	return For(cx).SupplierTemplateEditorNewTitle()
+}
+
+// SupplierTemplateEditorNewTitle is the package's SupplierTemplateEditorNewTitle in the language of msgs.
+func (msgs Messages) SupplierTemplateEditorNewTitle() string {
+	return msgs.text(textSupplierTemplateEditorNewTitle)
+}
+
+// SupplierTemplateLabelEN says "Name (English)"
+// in the language the app shows under cx.
+func SupplierTemplateLabelEN(cx *core.Scope) string { return For(cx).SupplierTemplateLabelEN() }
+
+// SupplierTemplateLabelEN is the package's SupplierTemplateLabelEN in the language of msgs.
+func (msgs Messages) SupplierTemplateLabelEN() string { return msgs.text(textSupplierTemplateLabelEN) }
+
+// SupplierTemplateLabelZH says "Name (Chinese)"
+// in the language the app shows under cx.
+func SupplierTemplateLabelZH(cx *core.Scope) string { return For(cx).SupplierTemplateLabelZH() }
+
+// SupplierTemplateLabelZH is the package's SupplierTemplateLabelZH in the language of msgs.
+func (msgs Messages) SupplierTemplateLabelZH() string { return msgs.text(textSupplierTemplateLabelZH) }
+
+// SupplierTemplateQuestionAdd says "Add question"
+// in the language the app shows under cx.
+func SupplierTemplateQuestionAdd(cx *core.Scope) string { return For(cx).SupplierTemplateQuestionAdd() }
+
+// SupplierTemplateQuestionAdd is the package's SupplierTemplateQuestionAdd in the language of msgs.
+func (msgs Messages) SupplierTemplateQuestionAdd() string {
+	return msgs.text(textSupplierTemplateQuestionAdd)
+}
+
+// SupplierTemplateQuestionEN says "Question prompt (English)"
+// in the language the app shows under cx.
+func SupplierTemplateQuestionEN(cx *core.Scope) string { return For(cx).SupplierTemplateQuestionEN() }
+
+// SupplierTemplateQuestionEN is the package's SupplierTemplateQuestionEN in the language of msgs.
+func (msgs Messages) SupplierTemplateQuestionEN() string {
+	return msgs.text(textSupplierTemplateQuestionEN)
+}
+
+// SupplierTemplateQuestionKind says "Kind"
+// in the language the app shows under cx.
+func SupplierTemplateQuestionKind(cx *core.Scope) string {
+	return For(cx).SupplierTemplateQuestionKind()
+}
+
+// SupplierTemplateQuestionKind is the package's SupplierTemplateQuestionKind in the language of msgs.
+func (msgs Messages) SupplierTemplateQuestionKind() string {
+	return msgs.text(textSupplierTemplateQuestionKind)
+}
+
+// SupplierTemplateQuestionRemove says "Remove"
+// in the language the app shows under cx.
+func SupplierTemplateQuestionRemove(cx *core.Scope) string {
+	return For(cx).SupplierTemplateQuestionRemove()
+}
+
+// SupplierTemplateQuestionRemove is the package's SupplierTemplateQuestionRemove in the language of msgs.
+func (msgs Messages) SupplierTemplateQuestionRemove() string {
+	return msgs.text(textSupplierTemplateQuestionRemove)
+}
+
+// SupplierTemplateQuestionTier says "Tier"
+// in the language the app shows under cx.
+func SupplierTemplateQuestionTier(cx *core.Scope) string {
+	return For(cx).SupplierTemplateQuestionTier()
+}
+
+// SupplierTemplateQuestionTier is the package's SupplierTemplateQuestionTier in the language of msgs.
+func (msgs Messages) SupplierTemplateQuestionTier() string {
+	return msgs.text(textSupplierTemplateQuestionTier)
+}
+
+// SupplierTemplateQuestionUnit says "Expected unit (optional)"
+// in the language the app shows under cx.
+func SupplierTemplateQuestionUnit(cx *core.Scope) string {
+	return For(cx).SupplierTemplateQuestionUnit()
+}
+
+// SupplierTemplateQuestionUnit is the package's SupplierTemplateQuestionUnit in the language of msgs.
+func (msgs Messages) SupplierTemplateQuestionUnit() string {
+	return msgs.text(textSupplierTemplateQuestionUnit)
+}
+
+// SupplierTemplateQuestionZH says "Question prompt (Chinese)"
+// in the language the app shows under cx.
+func SupplierTemplateQuestionZH(cx *core.Scope) string { return For(cx).SupplierTemplateQuestionZH() }
+
+// SupplierTemplateQuestionZH is the package's SupplierTemplateQuestionZH in the language of msgs.
+func (msgs Messages) SupplierTemplateQuestionZH() string {
+	return msgs.text(textSupplierTemplateQuestionZH)
+}
+
+// SupplierTemplateQuestions says "Questions"
+// in the language the app shows under cx.
+func SupplierTemplateQuestions(cx *core.Scope) string { return For(cx).SupplierTemplateQuestions() }
+
+// SupplierTemplateQuestions is the package's SupplierTemplateQuestions in the language of msgs.
+func (msgs Messages) SupplierTemplateQuestions() string {
+	return msgs.text(textSupplierTemplateQuestions)
+}
+
+// SupplierTemplateSave says "Save template"
+// in the language the app shows under cx.
+func SupplierTemplateSave(cx *core.Scope) string { return For(cx).SupplierTemplateSave() }
+
+// SupplierTemplateSave is the package's SupplierTemplateSave in the language of msgs.
+func (msgs Messages) SupplierTemplateSave() string { return msgs.text(textSupplierTemplateSave) }
+
+// SupplierTemplateSaved says "Template saved."
+// in the language the app shows under cx.
+func SupplierTemplateSaved(cx *core.Scope) string { return For(cx).SupplierTemplateSaved() }
+
+// SupplierTemplateSaved is the package's SupplierTemplateSaved in the language of msgs.
+func (msgs Messages) SupplierTemplateSaved() string { return msgs.text(textSupplierTemplateSaved) }
+
+// SupplierTemplateTierMeta says "Metadata"
+// in the language the app shows under cx.
+func SupplierTemplateTierMeta(cx *core.Scope) string { return For(cx).SupplierTemplateTierMeta() }
+
+// SupplierTemplateTierMeta is the package's SupplierTemplateTierMeta in the language of msgs.
+func (msgs Messages) SupplierTemplateTierMeta() string {
+	return msgs.text(textSupplierTemplateTierMeta)
+}
+
+// SupplierTemplateTierOne says "Tier 1 (PCF)"
+// in the language the app shows under cx.
+func SupplierTemplateTierOne(cx *core.Scope) string { return For(cx).SupplierTemplateTierOne() }
+
+// SupplierTemplateTierOne is the package's SupplierTemplateTierOne in the language of msgs.
+func (msgs Messages) SupplierTemplateTierOne() string { return msgs.text(textSupplierTemplateTierOne) }
+
+// SupplierTemplateTierThree says "Tier 3 (Activity)"
+// in the language the app shows under cx.
+func SupplierTemplateTierThree(cx *core.Scope) string { return For(cx).SupplierTemplateTierThree() }
+
+// SupplierTemplateTierThree is the package's SupplierTemplateTierThree in the language of msgs.
+func (msgs Messages) SupplierTemplateTierThree() string {
+	return msgs.text(textSupplierTemplateTierThree)
+}
+
+// SupplierTemplateTierTwo says "Tier 2 (Allocated)"
+// in the language the app shows under cx.
+func SupplierTemplateTierTwo(cx *core.Scope) string { return For(cx).SupplierTemplateTierTwo() }
+
+// SupplierTemplateTierTwo is the package's SupplierTemplateTierTwo in the language of msgs.
+func (msgs Messages) SupplierTemplateTierTwo() string { return msgs.text(textSupplierTemplateTierTwo) }
+
+// SupplierTemplatesBuiltInBadge says "Built-in"
+// in the language the app shows under cx.
+func SupplierTemplatesBuiltInBadge(cx *core.Scope) string {
+	return For(cx).SupplierTemplatesBuiltInBadge()
+}
+
+// SupplierTemplatesBuiltInBadge is the package's SupplierTemplatesBuiltInBadge in the language of msgs.
+func (msgs Messages) SupplierTemplatesBuiltInBadge() string {
+	return msgs.text(textSupplierTemplatesBuiltInBadge)
+}
+
+// SupplierTemplatesBuiltInHeading says "Built-in templates"
+// in the language the app shows under cx.
+func SupplierTemplatesBuiltInHeading(cx *core.Scope) string {
+	return For(cx).SupplierTemplatesBuiltInHeading()
+}
+
+// SupplierTemplatesBuiltInHeading is the package's SupplierTemplatesBuiltInHeading in the language of msgs.
+func (msgs Messages) SupplierTemplatesBuiltInHeading() string {
+	return msgs.text(textSupplierTemplatesBuiltInHeading)
+}
+
+// SupplierTemplatesButton says "Templates"
+// in the language the app shows under cx.
+func SupplierTemplatesButton(cx *core.Scope) string { return For(cx).SupplierTemplatesButton() }
+
+// SupplierTemplatesButton is the package's SupplierTemplatesButton in the language of msgs.
+func (msgs Messages) SupplierTemplatesButton() string { return msgs.text(textSupplierTemplatesButton) }
+
+// SupplierTemplatesClose says "Close"
+// in the language the app shows under cx.
+func SupplierTemplatesClose(cx *core.Scope) string { return For(cx).SupplierTemplatesClose() }
+
+// SupplierTemplatesClose is the package's SupplierTemplatesClose in the language of msgs.
+func (msgs Messages) SupplierTemplatesClose() string { return msgs.text(textSupplierTemplatesClose) }
+
+// SupplierTemplatesCustomEmpty says "No custom templates yet. Duplicate a built-in template or create one from scratch."
+// in the language the app shows under cx.
+func SupplierTemplatesCustomEmpty(cx *core.Scope) string {
+	return For(cx).SupplierTemplatesCustomEmpty()
+}
+
+// SupplierTemplatesCustomEmpty is the package's SupplierTemplatesCustomEmpty in the language of msgs.
+func (msgs Messages) SupplierTemplatesCustomEmpty() string {
+	return msgs.text(textSupplierTemplatesCustomEmpty)
+}
+
+// SupplierTemplatesCustomHeading says "Custom templates"
+// in the language the app shows under cx.
+func SupplierTemplatesCustomHeading(cx *core.Scope) string {
+	return For(cx).SupplierTemplatesCustomHeading()
+}
+
+// SupplierTemplatesCustomHeading is the package's SupplierTemplatesCustomHeading in the language of msgs.
+func (msgs Messages) SupplierTemplatesCustomHeading() string {
+	return msgs.text(textSupplierTemplatesCustomHeading)
+}
+
+// SupplierTemplatesDelete says "Delete"
+// in the language the app shows under cx.
+func SupplierTemplatesDelete(cx *core.Scope) string { return For(cx).SupplierTemplatesDelete() }
+
+// SupplierTemplatesDelete is the package's SupplierTemplatesDelete in the language of msgs.
+func (msgs Messages) SupplierTemplatesDelete() string { return msgs.text(textSupplierTemplatesDelete) }
+
+// SupplierTemplatesDuplicate says "Duplicate"
+// in the language the app shows under cx.
+func SupplierTemplatesDuplicate(cx *core.Scope) string { return For(cx).SupplierTemplatesDuplicate() }
+
+// SupplierTemplatesDuplicate is the package's SupplierTemplatesDuplicate in the language of msgs.
+func (msgs Messages) SupplierTemplatesDuplicate() string {
+	return msgs.text(textSupplierTemplatesDuplicate)
+}
+
+// SupplierTemplatesEdit says "Edit"
+// in the language the app shows under cx.
+func SupplierTemplatesEdit(cx *core.Scope) string { return For(cx).SupplierTemplatesEdit() }
+
+// SupplierTemplatesEdit is the package's SupplierTemplatesEdit in the language of msgs.
+func (msgs Messages) SupplierTemplatesEdit() string { return msgs.text(textSupplierTemplatesEdit) }
+
+// SupplierTemplatesNew says "New template"
+// in the language the app shows under cx.
+func SupplierTemplatesNew(cx *core.Scope) string { return For(cx).SupplierTemplatesNew() }
+
+// SupplierTemplatesNew is the package's SupplierTemplatesNew in the language of msgs.
+func (msgs Messages) SupplierTemplatesNew() string { return msgs.text(textSupplierTemplatesNew) }
+
+// SupplierTemplatesTitle says "Supplier disclosure templates"
+// in the language the app shows under cx.
+func SupplierTemplatesTitle(cx *core.Scope) string { return For(cx).SupplierTemplatesTitle() }
+
+// SupplierTemplatesTitle is the package's SupplierTemplatesTitle in the language of msgs.
+func (msgs Messages) SupplierTemplatesTitle() string { return msgs.text(textSupplierTemplatesTitle) }
 
 // TopbarBack says "Go back"
 // in the language the app shows under cx.

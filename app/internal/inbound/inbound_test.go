@@ -521,6 +521,63 @@ func TestParseLegacyCat1VersionAccepted(t *testing.T) {
 	}
 }
 
+func TestCustomInboundTemplateRoundTripAndIngest(t *testing.T) {
+	s, ctx := openStore(t)
+	onboard(t, s, ctx)
+	saved, err := s.SaveInboundTemplate(ctx, store.InboundTemplateInput{
+		LabelEN:         "Custom Steel PCF",
+		LabelZH:         "自定义钢材碳足迹",
+		Category:        "purchased_goods",
+		GHGProtocolPath: "scope3.cat1_purchased_goods",
+		EFCategory:      "purchase",
+		Tier1Unit:       "kg",
+		DefaultUnit:     "kg",
+		Questions: []store.InboundTemplateQuestion{
+			{Tier: 0, Kind: "narrative", RawEN: "Legal name", RawZH: "法定名称"},
+			{Tier: 1, Kind: "numerical", RawEN: "Steel PCF (kgCO2e/kg)", RawZH: "钢材 PCF", ExpectedUnit: "kgCO2e/kg"},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	supplier, err := s.CreateSupplier(ctx, "Custom Steel Co", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := &Service{Store: s}
+	templates, err := service.Templates(ctx)
+	if err != nil || len(templates) != 5 {
+		t.Fatalf("templates = %d, %v", len(templates), err)
+	}
+	id, count, err := service.CreateDraft(ctx, CreateRequest{
+		SupplierID: supplier.ID, TemplateKind: saved.Kind, ReportingYear: 2025,
+	})
+	if err != nil || count != 2 {
+		t.Fatalf("draft = %q, %d, %v", id, count, err)
+	}
+	blank, _, err := service.ExportBlank(ctx, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	filled := fillCells(t, blank, map[string]string{
+		"metadata!B5": "Custom Steel Co",
+		"tier1!B5":    "1.8",
+	})
+	preview, err := service.ImportFilled(ctx, id, filled)
+	if err != nil || preview.Plan.Tier != 1 {
+		t.Fatalf("preview = %+v, %v", preview, err)
+	}
+	qty := 500.0
+	res, err := service.Ingest(ctx, IngestRequest{
+		QuestionnaireID: id,
+		Accepted:        []string{preview.Answers[1].QuestionID},
+		Tier1Quantity:   &qty,
+	})
+	if err != nil || !res.Ingested || res.CO2eKg != 900 {
+		t.Fatalf("ingest = %+v, %v", res, err)
+	}
+}
+
 func fillCells(t *testing.T, data []byte, cells map[string]string) []byte {
 	t.Helper()
 	book, err := excelize.OpenReader(bytes.NewReader(data))

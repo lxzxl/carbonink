@@ -24,6 +24,23 @@ type CreateRequest struct {
 	Positions     []string
 }
 
+// Templates returns all built-in templates followed by user-authored custom
+// templates stored in the workspace.
+func (s *Service) Templates(ctx context.Context) ([]Template, error) {
+	out := Templates()
+	if s.Store == nil {
+		return out, nil
+	}
+	custom, err := s.Store.ListInboundTemplates(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, item := range custom {
+		out = append(out, FromStoreTemplate(item))
+	}
+	return out, nil
+}
+
 // CreateDraft writes the draft and returns its id and question count.
 func (s *Service) CreateDraft(ctx context.Context, in CreateRequest) (string, int, error) {
 	if s.Store == nil {
@@ -40,7 +57,10 @@ func (s *Service) CreateDraft(ctx context.Context, in CreateRequest) (string, in
 	if kind == "" {
 		kind = TemplateCat1
 	}
-	t, ok := TemplateByKind(kind)
+	t, ok, err := s.resolveTemplate(ctx, kind)
+	if err != nil {
+		return "", 0, err
+	}
 	if !ok {
 		return "", 0, fmt.Errorf("inbound: unknown template %q", kind)
 	}
@@ -80,7 +100,10 @@ func (s *Service) ExportBlank(ctx context.Context, questionnaireID string) ([]by
 	if q.Status != store.QuestionnaireDraft && q.Status != store.QuestionnaireSent {
 		return nil, "", fmt.Errorf("inbound: questionnaire is %q, not draft or sent", q.Status)
 	}
-	t, ok := resolveTemplate(q.TemplateKind)
+	t, ok, err := s.resolveTemplateForQuestionnaire(ctx, q)
+	if err != nil {
+		return nil, "", err
+	}
 	if !ok {
 		return nil, "", fmt.Errorf("inbound: unknown template %q", q.TemplateKind)
 	}
@@ -137,7 +160,10 @@ func (s *Service) ImportFilled(ctx context.Context, questionnaireID string, data
 	if q.Status != store.QuestionnaireSent && q.Status != store.QuestionnaireReceived {
 		return Preview{}, fmt.Errorf("inbound: questionnaire is %q, not sent or received", q.Status)
 	}
-	t, ok := resolveTemplate(q.TemplateKind)
+	t, ok, err := s.resolveTemplateForQuestionnaire(ctx, q)
+	if err != nil {
+		return Preview{}, err
+	}
 	if !ok {
 		return Preview{}, fmt.Errorf("inbound: unknown template %q", q.TemplateKind)
 	}
@@ -206,7 +232,10 @@ func (s *Service) Preview(ctx context.Context, questionnaireID string) (Preview,
 	if q.Status != store.QuestionnaireReceived {
 		return Preview{}, fmt.Errorf("inbound: questionnaire is %q, not received", q.Status)
 	}
-	t, ok := resolveTemplate(q.TemplateKind)
+	t, ok, err := s.resolveTemplateForQuestionnaire(ctx, q)
+	if err != nil {
+		return Preview{}, err
+	}
 	if !ok {
 		return Preview{}, fmt.Errorf("inbound: unknown template %q", q.TemplateKind)
 	}
@@ -451,7 +480,10 @@ func (s *Service) Ingest(ctx context.Context, in IngestRequest) (IngestResult, e
 	if q.Status != store.QuestionnaireReceived {
 		return IngestResult{}, fmt.Errorf("inbound: questionnaire is %q, not received", q.Status)
 	}
-	t, ok := resolveTemplate(q.TemplateKind)
+	t, ok, err := s.resolveTemplateForQuestionnaire(ctx, q)
+	if err != nil {
+		return IngestResult{}, err
+	}
 	if !ok {
 		return IngestResult{}, fmt.Errorf("inbound: unknown template %q", q.TemplateKind)
 	}
@@ -700,11 +732,67 @@ func decideTier(t Template, questions map[string]store.Question, override int) i
 	return tiers[0]
 }
 
-func resolveTemplate(kind string) (Template, bool) {
+func (s *Service) resolveTemplate(ctx context.Context, kind string) (Template, bool, error) {
 	if strings.TrimSpace(kind) == "" {
-		return Cat1, true
+		return Cat1, true, nil
 	}
-	return TemplateByKind(kind)
+	if t, ok := TemplateByKind(kind); ok {
+		return t, true, nil
+	}
+	if s.Store != nil {
+		custom, err := s.Store.InboundTemplateByKind(ctx, kind)
+		if err != nil {
+			return Template{}, false, err
+		}
+		if custom != nil {
+			return FromStoreTemplate(*custom), true, nil
+		}
+	}
+	return Template{}, false, nil
+}
+
+func (s *Service) resolveTemplateForQuestionnaire(ctx context.Context, q *store.Questionnaire) (Template, bool, error) {
+	t, ok, err := s.resolveTemplate(ctx, q.TemplateKind)
+	if err != nil || ok {
+		return t, ok, err
+	}
+	// If a custom template was deleted after a draft was created, reconstruct
+	// its sheet layout deterministically from the questionnaire's own rows.
+	if strings.HasPrefix(q.TemplateKind, "custom:") && s.Store != nil {
+		rows, err := s.Store.ListQuestions(ctx, q.ID)
+		if err != nil {
+			return Template{}, false, err
+		}
+		if len(rows) > 0 {
+			counts := map[int]int{}
+			qs := make([]Question, 0, len(rows))
+			for _, r := range rows {
+				counts[r.Tier]++
+				sheet := "metadata"
+				switch r.Tier {
+				case 1:
+					sheet = "tier1"
+				case 2:
+					sheet = "tier2"
+				case 3:
+					sheet = "tier3"
+				}
+				cellRef := fmt.Sprintf("%s!B%d", sheet, 5+(counts[r.Tier]-1)*2)
+				qs = append(qs, Question{
+					Position: r.Position, Tier: r.Tier, Kind: r.QuestionKind,
+					RawZH: r.RawText, RawEN: r.RawText, ExpectedUnit: r.ExpectedUnit,
+					CellRef: cellRef,
+				})
+			}
+			return Template{
+				Custom: true, Kind: q.TemplateKind, Version: TemplateVersion,
+				Scope: 3, Category: "purchased_goods", GHGProtocolPath: "scope3.cat1_purchased_goods",
+				EFCategory: "purchase", SourceSuffixEN: "purchased goods",
+				Tier1Unit: "kg", DefaultUnit: "kg", Questions: qs,
+			}, true, nil
+		}
+	}
+	return Template{}, false, nil
 }
 
 func resolveTier3Unit(t Template, answers map[string]ParsedAnswer) string {
@@ -713,6 +801,9 @@ func resolveTier3Unit(t Template, answers map[string]ParsedAnswer) string {
 	}
 	if u := strings.TrimSpace(answers["tier3.2"].UnitSuffix); u != "" {
 		return u
+	}
+	if q, ok := t.QuestionByPosition("tier3.2"); ok && strings.TrimSpace(q.ExpectedUnit) != "" {
+		return strings.TrimSpace(q.ExpectedUnit)
 	}
 	return t.DefaultUnit
 }
@@ -723,6 +814,9 @@ func resolveTier3UnitFromStore(t Template, questions map[string]store.Question) 
 	}
 	if row, ok := questions["tier3.2"]; ok && strings.TrimSpace(row.AnswerUnit) != "" {
 		return strings.TrimSpace(row.AnswerUnit)
+	}
+	if q, ok := t.QuestionByPosition("tier3.2"); ok && strings.TrimSpace(q.ExpectedUnit) != "" {
+		return strings.TrimSpace(q.ExpectedUnit)
 	}
 	return t.DefaultUnit
 }

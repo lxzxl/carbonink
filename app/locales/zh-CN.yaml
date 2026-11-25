@@ -1573,6 +1573,38 @@ supplierDisclosuresWizardTemplate: 披露模板
 supplierDisclosuresWizardTitle: 新建供应商披露
 supplierDisclosuresWizardYear: 报告年度
 supplierEmailOptionalLabel: 供应商邮箱（可选，用于催办）
+supplierTemplateBack: 返回
+supplierTemplateCategory: Scope 3 类别
+supplierTemplateDeleted: 模板已删除。
+supplierTemplateEditorEditTitle: 编辑自定义模板
+supplierTemplateEditorNewTitle: 新建自定义模板
+supplierTemplateLabelEN: 模板名称（英文）
+supplierTemplateLabelZH: 模板名称（中文）
+supplierTemplateQuestionAdd: 添加题目
+supplierTemplateQuestionEN: 题目描述（英文）
+supplierTemplateQuestionKind: 题型
+supplierTemplateQuestionRemove: 移除
+supplierTemplateQuestionTier: 层级
+supplierTemplateQuestionUnit: 期望单位（可选）
+supplierTemplateQuestionZH: 题目描述（中文）
+supplierTemplateQuestions: 题目列表
+supplierTemplateSave: 保存模板
+supplierTemplateSaved: 模板已保存。
+supplierTemplateTierMeta: 基础信息
+supplierTemplateTierOne: Tier 1（单位碳足迹）
+supplierTemplateTierThree: Tier 3（活动数据）
+supplierTemplateTierTwo: Tier 2（分配排放）
+supplierTemplatesBuiltInBadge: 内置
+supplierTemplatesBuiltInHeading: 内置模板
+supplierTemplatesButton: 管理模板
+supplierTemplatesClose: 关闭
+supplierTemplatesCustomEmpty: 尚无自定义模板。可复制内置模板修改，或新建空白模板。
+supplierTemplatesCustomHeading: 自定义模板
+supplierTemplatesDelete: 删除
+supplierTemplatesDuplicate: 复制并自定义
+supplierTemplatesEdit: 编辑
+supplierTemplatesNew: 新建模板
+supplierTemplatesTitle: 供应商披露模板
 topbarBack: 后退
 topbarDetail: 详情
 topbarForward: 前进

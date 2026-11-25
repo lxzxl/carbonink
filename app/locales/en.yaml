@@ -1574,6 +1574,38 @@ supplierDisclosuresWizardTemplate: Template
 supplierDisclosuresWizardTitle: New supplier disclosure
 supplierDisclosuresWizardYear: Reporting year
 supplierEmailOptionalLabel: Supplier email (optional, used for reminders)
+supplierTemplateBack: Back
+supplierTemplateCategory: Scope 3 category
+supplierTemplateDeleted: Template deleted.
+supplierTemplateEditorEditTitle: Edit custom template
+supplierTemplateEditorNewTitle: New custom template
+supplierTemplateLabelEN: Name (English)
+supplierTemplateLabelZH: Name (Chinese)
+supplierTemplateQuestionAdd: Add question
+supplierTemplateQuestionEN: Question prompt (English)
+supplierTemplateQuestionKind: Kind
+supplierTemplateQuestionRemove: Remove
+supplierTemplateQuestionTier: Tier
+supplierTemplateQuestionUnit: Expected unit (optional)
+supplierTemplateQuestionZH: Question prompt (Chinese)
+supplierTemplateQuestions: Questions
+supplierTemplateSave: Save template
+supplierTemplateSaved: Template saved.
+supplierTemplateTierMeta: Metadata
+supplierTemplateTierOne: Tier 1 (PCF)
+supplierTemplateTierThree: Tier 3 (Activity)
+supplierTemplateTierTwo: Tier 2 (Allocated)
+supplierTemplatesBuiltInBadge: Built-in
+supplierTemplatesBuiltInHeading: Built-in templates
+supplierTemplatesButton: Templates
+supplierTemplatesClose: Close
+supplierTemplatesCustomEmpty: No custom templates yet. Duplicate a built-in template or create one from scratch.
+supplierTemplatesCustomHeading: Custom templates
+supplierTemplatesDelete: Delete
+supplierTemplatesDuplicate: Duplicate
+supplierTemplatesEdit: Edit
+supplierTemplatesNew: New template
+supplierTemplatesTitle: Supplier disclosure templates
 topbarBack: Go back
 topbarDetail: Detail
 topbarForward: Go forward

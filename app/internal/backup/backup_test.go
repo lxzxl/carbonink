@@ -52,7 +52,7 @@ func TestRunAndRetention(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer backup.Close()
-	if version, err := backup.SchemaVersion(ctx); err != nil || version != 25 {
+	if version, err := backup.SchemaVersion(ctx); err != nil || version != 26 {
 		t.Fatalf("backup schema = %d, %v", version, err)
 	}
 	info, err := os.Stat(filepath.Join(dir, names[len(names)-1]))
