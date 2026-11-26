@@ -4,16 +4,15 @@ export const prerender = true;
 import Base from '../layouts/Base.astro';
 import DownloadButtons from '../components/DownloadButtons.astro';
 import LogoMark from '../components/LogoMark.astro';
-// Read the version from the desktop app's own manifest at build time —
-// never hardcode it here (this line said "v0.4.1" through three releases).
-// The release flow bumps desktop/package.json on main before tagging, and
-// the site redeploys on every main push, so the built page tracks
-// releases with no manual edit. The download buttons are independent of
-// this label: they resolve the latest GitHub release asset at request
-// time (lib/latest-download.ts).
-import desktopPkg from '../../../../desktop/package.json';
+// Read the version from the desktop app's own manifest (app/nsgo.yaml) at
+// build time — never hardcode it here. The release flow bumps app/nsgo.yaml
+// on main before tagging, and the site redeploys on every main push, so the
+// built page tracks releases with no manual edit. The download buttons are
+// independent of this label: they resolve the latest GitHub release asset at
+// request time (lib/latest-download.ts).
+import { APP_VERSION } from '../lib/app-version';
 
-const version = `v${desktopPkg.version}`;
+const version = `v${APP_VERSION}`;
 ---
 <Base
   title="Download CarbonInk — free carbon accounting for macOS & Windows"

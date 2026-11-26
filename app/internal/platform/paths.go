@@ -17,9 +17,9 @@ func DataDir(id string) string {
 	return filepath.Join(base, id)
 }
 
-// LegacyDir returns the Electron data directory when it still holds a
-// workspace registry, else "". CARBONINK_LEGACY_DIR overrides the search;
-// CARBONINK_NO_LEGACY_IMPORT disables it (tests).
+// LegacyDir returns an earlier data directory (2.0-beta or 1.x Electron) when
+// it still holds a workspace registry, else "". CARBONINK_LEGACY_DIR overrides
+// the search; CARBONINK_NO_LEGACY_IMPORT disables it (tests).
 func LegacyDir() string {
 	if os.Getenv("CARBONINK_NO_LEGACY_IMPORT") != "" {
 		return ""
@@ -34,11 +34,10 @@ func LegacyDir() string {
 	return legacyDirIn(base)
 }
 
-// legacyDirIn checks the product names Electron has used. app.getPath
-// ("userData") uses the productName, which has been both "carbonink" and
-// "CarbonInk" across releases.
+// legacyDirIn checks the 2.0-beta directory first, then the product names
+// Electron 1.x used ("carbonink" and "CarbonInk").
 func legacyDirIn(base string) string {
-	for _, name := range []string{"carbonink", "CarbonInk"} {
+	for _, name := range []string{"app.carbonink.desktop.beta", "carbonink", "CarbonInk"} {
 		dir := filepath.Join(base, name)
 		if _, err := os.Stat(filepath.Join(dir, "workspaces.json")); err == nil {
 			return dir

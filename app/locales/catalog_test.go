@@ -7,8 +7,8 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
-// TestCatalogParity keeps en and zh-CN at the same key set. The converter
-// checks the JSON side; this checks the committed YAML.
+// TestCatalogParity keeps en and zh-CN at the same key set across the
+// committed YAML catalogs.
 func TestCatalogParity(t *testing.T) {
 	en := read(t, "en.yaml")
 	zh := read(t, "zh-CN.yaml")
@@ -26,7 +26,7 @@ func TestCatalogParity(t *testing.T) {
 		}
 	}
 	if len(en) < 1200 {
-		t.Fatalf("en has %d messages, want the full 1.x catalog", len(en))
+		t.Fatalf("en has %d messages, want the full catalog", len(en))
 	}
 }
 

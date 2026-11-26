@@ -4,13 +4,12 @@ export const prerender = true;
 import Base from '../../layouts/Base.astro';
 import DownloadButtons from '../../components/DownloadButtons.astro';
 import LogoMark from '../../components/LogoMark.astro';
-// 版本号构建时读 desktop/package.json，禁止写死——这行曾经连着三个版本
-// 停在 "v0.4.1"。发布流程先在 main 上 bump 版本再打 tag，站点每次 main
-// push 自动重建，页面版本因此与发布同步。下载按钮与此标签无关：它们在
-// 请求时实时解析 GitHub 最新 release 资产（lib/latest-download.ts）。
-import desktopPkg from '../../../../../desktop/package.json';
+// 版本号构建时读 app/nsgo.yaml，禁止写死。发布流程先在 main 上 bump 版本再打
+// tag，站点每次 main push 自动重建，页面版本因此与发布同步。下载按钮与此标签
+// 无关：它们在请求时实时解析 GitHub 最新 release 资产（lib/latest-download.ts）。
+import { APP_VERSION } from '../../lib/app-version';
 
-const version = `v${desktopPkg.version}`;
+const version = `v${APP_VERSION}`;
 ---
 <Base
   title="下载碳墨 — macOS / Windows 免费碳核算软件"

@@ -75,12 +75,11 @@ marketing pages are the indexable surface.
   A brand-new domain takes ~1–7 days to index; faster once it accrues backlinks
   (HN / GitHub README / newsletters).
 
-## Brand palette — same identity as the desktop app
+## Brand palette — marketing site identity
 
-The cloud site's color tokens (`cloud/web/src/styles/global.css`) are aligned
-with the desktop X2 icon design. **Source of truth** is
-`desktop/scripts/icon-designs.mjs::PALETTE` — when the desktop identity moves,
-this file moves with it.
+The cloud site's color tokens (`cloud/web/src/styles/global.css`) use the
+X2 stacked-rows mark and moss-green palette (`global.css`, `LogoMark.astro`,
+and `favicon.svg` are the source of truth for the marketing site):
 
 | Token | Hex | Role |
 |---|---|---|

@@ -11,62 +11,51 @@ read on demand.
 - **English is the written language of this repo.** Docs (everything under
   `docs/**`, including local-only specs/plans/research), code comments, and git
   commit messages MUST be English. Conversation with the user may be Chinese.
-  Product-facing strings are exempt — those go through paraglide with en +
-  zh-CN parity (see the i18n rule below). Note the inconsistency: artifacts
-  predating 2026-08-13 (existing specs, `docs/ROADMAP.md`, older commit
-  subjects) are largely Chinese — they are not the model to copy.
+  Product-facing strings go through `app/locales/{en,zh-CN}.yaml` with en +
+  zh-CN parity (see the i18n rule below).
 - **Git: commit freely without asking; push only when explicitly allowed.**
   Never force-push, never run destructive git. If on the default branch, branch
   first.
-- **Tests must not regress.** `pnpm desktop:test` is at **1408/1408** (2026-10-09,
-  verified green pre-v1.2.0). Don't land a commit that drops
-  the count.
+- **Tests and checks must stay green.** Before landing changes to `app/` or
+  `cloud/web/`, run:
+  `cd app && go tool nsgo check && go vet ./... && go test ./... && go tool nsgo test ./internal/app && go tool nsgo test .`
+  and `pnpm cloud:build:web`.
 - **No licensing.** CarbonInk is free & open-source (MIT) — there is no license
   gate, activation, account, or payment. Don't reintroduce one.
-- **Biome errors stay at ZERO.** The historic ~940-error debt was cleared
-  2026-07-22 (`pnpm exec biome check .` in desktop/ reports 0 errors; the
-  remaining ~170 warnings/infos — mostly noNonNullAssertion in tests — are
-  accepted style residue, don't churn them). New code MUST pass a scoped
-  `biome check <changed files>` with no NEW errors or warnings.
-- **i18n keys go in BOTH `messages/en.json` + `messages/zh-CN.json`** — same key
-  set, same commit. (Inbound v2.0's inline-Chinese debt was cleared 2026-07-23;
-  no surface is exempt anymore.)
+- **i18n keys go in BOTH `app/locales/en.yaml` + `app/locales/zh-CN.yaml`** —
+  same key set, same commit (checked by `app/locales/catalog_test.go`, bindings
+  regenerated via `go tool nsgo check`).
 - **`audit_event` payloads carry no prompt content** — only tool names, IDs,
   counts, decision flags. `organizationId` is injected server-side, never
   user-supplied.
-- **After any `electron-rebuild` (e.g. `pnpm build`), vitest breaks** with
-  `NODE_MODULE_VERSION 145 vs 137`. Fix: `pnpm --filter carbonink run rebuild:node`.
-  Environmental, never a regression.
-- **Electron is pinned at `^41.5.1`** — do not upgrade (better-sqlite3 v8 blocker).
 - **Workflow: brainstorm → spec → plan → implement.** Specs land in
   `docs/specs/`, plans in `docs/plans/` — both **local-only / gitignored** (the
   dev trail isn't tracked), one per feature.
 
 ## Where things live
 
-pnpm workspace; two apps share `docs/` + tooling:
-
 | Path | What |
 |---|---|
-| `desktop/` | Electron app (`carbonink`) — `src/{main,preload,renderer,shared}`, `tests/` (vitest) |
-| `app/` | NSGo desktop app (the v2 line) — Go UI in `internal/app`, business logic in `internal/*`, `locales/{en,zh-CN}.yaml` |
+| `app/` | CarbonInk 2.0 native desktop app (NSGo / Go) — UI in `internal/app`, domain & storage in `internal/*`, `locales/{en,zh-CN}.yaml` |
 | `cloud/web/` | Astro **static marketing site** (`/`, `/download`, `/privacy`, `/guides/*` + `/zh/` mirrors; guides ship as en+zh pairs), Workers + Static Assets |
+| `docs/` | Tracked conventions (`docs/conventions/`) and local-only design trail |
 
 ```bash
-pnpm test                 # all packages          pnpm desktop:test / desktop:typecheck
-pnpm --filter carbonink dev                       # electron-vite dev --watch (renderer HMR + main/preload hot-restart)
-pnpm --filter @carbonink-cloud/web build
-cd app && go test ./... && go tool nsgo test .    # NSGo app tests
+pnpm app:dev              # cd app && go tool nsgo dev . (hot-reloading native window)
+pnpm app:check            # cd app && go tool nsgo check
+pnpm app:test             # cd app && go test ./... && go tool nsgo test .
+pnpm app:build            # cd app && go tool nsgo build -target macos_arm64
+pnpm cloud:build:web      # pnpm --filter @carbonink-cloud/web build
 ```
 
 ## Detailed conventions → `docs/conventions/`
 
 | Topic | Doc |
 |---|---|
-| Monorepo layout, scripts, native deps, brand, Electron pin | [repo-layout.md](docs/conventions/repo-layout.md) |
+| Monorepo layout, scripts, brand | [repo-layout.md](docs/conventions/repo-layout.md) |
 | Cloud (Workers everywhere, single-domain routing, gotchas) | [cloud-deploy.md](docs/conventions/cloud-deploy.md) |
-| UI patterns (scroll containment, list rows, button hierarchy) | [ui-patterns.md](docs/conventions/ui-patterns.md) |
-| Testing + i18n discipline (full detail + ABI rebuild) | [testing-and-i18n.md](docs/conventions/testing-and-i18n.md) |
+| Design system & native UI conventions | [DESIGN.md](DESIGN.md) / [app/DESIGN.md](app/DESIGN.md) |
+| Testing + i18n discipline | [testing-and-i18n.md](docs/conventions/testing-and-i18n.md) |
 
 Brand palette + "don't reintroduce sky-blue" rule: [cloud/AGENTS.md](cloud/AGENTS.md).
 

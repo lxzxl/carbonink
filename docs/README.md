@@ -8,10 +8,11 @@ What lives in git under `docs/`:
 
 ## Conventions (read these for "how we build here")
 
-- [repo-layout.md](conventions/repo-layout.md) — monorepo, scripts, native deps, brand, Electron pin
+- [repo-layout.md](conventions/repo-layout.md) — monorepo layout, scripts, brand
 - [cloud-deploy.md](conventions/cloud-deploy.md) — static marketing site on Workers, single-domain routing
-- [ui-patterns.md](conventions/ui-patterns.md) — scroll containment, list rows, button hierarchy
-- [testing-and-i18n.md](conventions/testing-and-i18n.md) — vitest baseline, biome debt, ABI rebuild, i18n key sync
+- [testing-and-i18n.md](conventions/testing-and-i18n.md) — Go / `nsgotest` suites, `cloud:build:web`, i18n YAML catalog parity, audit-event hygiene
+
+For desktop UI design tokens and native layout rules, see [`DESIGN.md`](../DESIGN.md) and [`app/DESIGN.md`](../app/DESIGN.md).
 
 ## Per-feature design docs are local-only
 

@@ -1,138 +1,126 @@
-name: Release Electron
+name: Release
 
-# Unsigned, open-source Electron release pipeline.
+# CarbonInk desktop release pipeline (NSGo).
 #
-# Tag push (v1.*) → build mac (arm64 + x64 .dmg) + win (x64 .exe) installers
-# on CI runners → attach to a GitHub Release. Electron is frozen at 1.x;
-# release-nsgo.yml owns v2 and later. The marketing site's /download/*
-# endpoints resolve the latest release asset at request time (see
-# cloud/web/src/lib/latest-download.ts), so a fresh release is picked up with
-# no site rebuild.
-#
-# NOT code-signed: the licensing + Apple/Azure signing + R2 infra was removed in
-# the open-source pivot, and those secrets are gone. macOS shows "unidentified
-# developer" (right-click → Open); Windows SmartScreen shows "More info → Run
-# anyway". The download page documents this. electron-builder ad-hoc signs the
-# mac .app (no `identity`), and build/sign-windows.js self-skips when Azure env
-# is absent — so both build cleanly unsigned.
+# One macOS runner builds every desktop installer: Go cross-compiles the
+# Windows executable, and NSIS compiles the setup program. The update key
+# signs the appcasts for Sparkle and WinSparkle. The release is uploaded as a
+# draft so Windows and first-run import QA finish before it goes live.
 
 on:
   push:
     tags:
-      - 'v1.*'
+      - 'v*'
 
 permissions:
   contents: write
 
-# Opt JS actions onto Node 24 now — checkout/setup-node/pnpm/gh-release ship on
-# the deprecated Node 20; GitHub forces Node 24 by 2026-06-16 regardless.
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
-  # Create the draft release FIRST so the two platform builds upload into it
-  # rather than racing to create the same tag's release (parallel "create if
-  # missing" calls collide → 422).
-  create-release:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Create draft release for tag
-        uses: softprops/action-gh-release@v2
-        with:
-          draft: true
-          generate_release_notes: true
-
-  build-mac:
-    needs: create-release
+  release:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+
+      - uses: actions/setup-go@v5
         with:
-          node-version: 24
-          cache: pnpm
+          go-version-file: app/go.mod
+          cache-dependency-path: app/go.sum
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Install NSIS
+        # The Windows installer is built on this Mac, as the NSGo docs
+        # prescribe; without makensis the build only leaves the .nsi script.
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+        run: brew install makensis
 
-      - name: Set version from tag
-        working-directory: desktop
-        # `pnpm pkg set` (not `pnpm version`) — the latter errors "Version not
-        # changed" when the tag matches the current package.json version, which
-        # is exactly the case for a v1.0.0 release of a 1.0.0 package.
+      - name: Import optional macOS signing certificate
+        if: ${{ secrets.NSGO_MAC_CERT_P12 != '' && secrets.NSGO_MAC_CERT_PASSWORD != '' }}
+        env:
+          NSGO_MAC_CERT_P12: ${{ secrets.NSGO_MAC_CERT_P12 }}
+          NSGO_MAC_CERT_PASSWORD: ${{ secrets.NSGO_MAC_CERT_PASSWORD }}
         run: |
-          VERSION=${GITHUB_REF_NAME#v}
-          pnpm pkg set "version=$VERSION"
+          KEYCHAIN_PATH="$RUNNER_TEMP/nsgo-signing.keychain-db"
+          CERT_PATH="$RUNNER_TEMP/mac-cert.p12"
+          KEYCHAIN_PASSWORD="$(uuidgen)"
+          echo "$NSGO_MAC_CERT_P12" | base64 --decode > "$CERT_PATH"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$NSGO_MAC_CERT_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d '"')
+          rm -f "$CERT_PATH"
 
-      - name: Build + package (unsigned — notarize off, ad-hoc sign)
-        working-directory: desktop
-        run: pnpm build && pnpm exec electron-builder --mac --publish never
-
-      # Launch-smoke the packaged .app before uploading. ELECTRON_RUN_AS_NODE
-      # exercises the same dyld load of Electron Framework as a real launch,
-      # headless — it catches signature/entitlement regressions like v1.0.0's
-      # "different Team IDs" crash (ad-hoc + hardened runtime without the
-      # disable-library-validation entitlement), which no vitest seam can
-      # reach. arm64 only: the runner is arm64 and the signing config is
-      # arch-independent, so one arch covers config-level regressions.
-      - name: Smoke-test packaged app launches
-        working-directory: desktop
+      - name: Build installers and appcasts
+        working-directory: app
+        env:
+          LANG: en_US.UTF-8
+          LC_ALL: en_US.UTF-8
+          NSGO_UPDATES_KEY: ${{ secrets.NSGO_UPDATES_KEY }}
+          NSGO_SIGN_IDENTITY: ${{ secrets.NSGO_SIGN_IDENTITY }}
+          NSGO_NOTARY_KEY: ${{ secrets.NSGO_NOTARY_KEY }}
+          NSGO_NOTARY_KEY_ID: ${{ secrets.NSGO_NOTARY_KEY_ID }}
+          NSGO_NOTARY_ISSUER: ${{ secrets.NSGO_NOTARY_ISSUER }}
+          NSGO_WIN_CERT_B64: ${{ secrets.NSGO_WIN_CERT_B64 }}
+          NSGO_CERTIFICATE_PASSWORD: ${{ secrets.NSGO_CERTIFICATE_PASSWORD }}
         run: |
-          ELECTRON_RUN_AS_NODE=1 "release/mac-arm64/CarbonInk.app/Contents/MacOS/CarbonInk" \
-            -e "console.log('smoke: Electron Framework loaded')"
+          if [ -z "$NSGO_UPDATES_KEY" ]; then
+            echo "::error::NSGO_UPDATES_KEY is not configured."
+            exit 1
+          fi
+          args=(
+            -target macos_arm64,macos_x64,windows_x64
+            -version "${GITHUB_REF_NAME#v}"
+            -channel direct
+          )
+          if [ -n "$NSGO_SIGN_IDENTITY" ]; then
+            args+=(-sign "$NSGO_SIGN_IDENTITY")
+          fi
+          if [ -n "$NSGO_WIN_CERT_B64" ]; then
+            echo "$NSGO_WIN_CERT_B64" | base64 --decode > "$RUNNER_TEMP/win-codesign.pfx"
+            args+=(-certificate "$RUNNER_TEMP/win-codesign.pfx")
+          fi
+          go tool nsgo build "${args[@]}"
+          rm -f "$RUNNER_TEMP/win-codesign.pfx"
 
-      - name: Upload installers + update manifest to GitHub Release
+      - name: Verify release assets and smoke-test app
+        working-directory: app
+        run: |
+          for f in \
+            dist/releases/carbonink-*-macos-arm64.dmg \
+            dist/releases/carbonink-*-macos-x64.dmg \
+            dist/releases/carbonink-*-windows-x64-setup.exe \
+            dist/releases/appcast-macos_arm64.xml \
+            dist/releases/appcast-macos_x64.xml \
+            dist/releases/appcast-windows_x64.xml; do
+            if [ ! -f "$f" ]; then
+              echo "::error::missing release asset: $f"
+              exit 1
+            fi
+          done
+          for feed in dist/releases/appcast-*.xml; do
+            if ! grep -q '<enclosure ' "$feed" || ! grep -q 'edSignature=' "$feed"; then
+              echo "::error::invalid or unsigned appcast: $feed"
+              exit 1
+            fi
+          done
+          app_bin="$(find dist -path '*-macos_arm64/CarbonInk.app/Contents/MacOS/CarbonInk' | head -n 1)"
+          if [ -z "$app_bin" ]; then
+            echo "::error::missing macOS arm64 app binary"
+            exit 1
+          fi
+          "$app_bin" --mcp < /dev/null
+
+      - name: Upload draft release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            desktop/release/*.dmg
-            desktop/release/*.dmg.blockmap
-            desktop/release/stable-mac.yml
           draft: true
-
-  build-win:
-    needs: create-release
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Set version from tag
-        working-directory: desktop
-        shell: pwsh
-        # `pnpm pkg set` (not `pnpm version`) — see the mac job: avoids the
-        # "Version not changed" error when tag == current package.json version.
-        run: |
-          $version = $env:GITHUB_REF_NAME -replace '^v', ''
-          pnpm pkg set "version=$version"
-
-      - name: Build + package (unsigned — Azure sign hook self-skips with no creds)
-        working-directory: desktop
-        run: pnpm build && pnpm exec electron-builder --win --publish never
-
-      - name: Upload installers + update manifest to GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            desktop/release/*.exe
-            desktop/release/*.exe.blockmap
-            desktop/release/stable.yml
-          draft: true
-
-  publish-release:
-    needs: [build-mac, build-win]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          draft: false
           generate_release_notes: true
+          files: |
+            app/dist/releases/*.dmg
+            app/dist/releases/*-setup.exe
+            app/dist/releases/*.sha256
+            app/dist/releases/appcast-*.xml

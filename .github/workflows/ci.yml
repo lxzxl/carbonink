@@ -2,27 +2,11 @@ name: CI
 
 # Pre-merge validation gate. Runs on every PR and every push to main.
 #
-# What runs (single Linux runner, sequential, ~3–5 min total):
-#   1. desktop:typecheck   — tsc --noEmit
-#   2. desktop:test        — vitest run (baseline 662)
-#   3. cloud:build:web     — Astro build, catches missing imports / SSR
-#                            breakage / lint-time TS errors in the web
-#
-# What is NOT run:
-#   - biome `pnpm lint`. CLAUDE.md documents ~940 pre-existing biome
-#     errors deferred to v1.0.1. Running it here would fail every PR.
-#     New code should lint clean on a scoped `biome check <files>`
-#     manually before merging.
-#   - desktop:test:e2e. Playwright + Electron headless is heavy and not
-#     yet wired for CI; the unit tests cover business logic.
-#   - desktop electron-builder. The release pipeline (release.yml,
-#     tag-triggered) handles signed installer builds; we don't rebuild
-#     Electron on every PR.
-#
-# Ordering: tests BEFORE any `pnpm build` — better-sqlite3's native
-# binding flips between Node and Electron ABI when electron-rebuild
-# runs (CLAUDE.md § "Test discipline"), so test→build is the only
-# safe sequence.
+# Jobs:
+#   - validate     — Astro build for cloud/web (catches missing imports / SSR
+#                    breakage / build-time TS errors)
+#   - go-app       — go vet, pure-Go package tests, and Linux cross-compile
+#   - go-app-macos — go tool nsgo check, full Go tests, and headless UI tests
 #
 # cloud-deploy.yml hangs off this workflow via `workflow_run`: a
 # successful main-branch CI run triggers the cloud auto-deploy. PR
@@ -66,27 +50,6 @@ jobs:
         # honest if someone bumps package.json without regenerating
         # the lockfile.
         run: pnpm install --frozen-lockfile
-
-      - name: Compile paraglide messages (renderer i18n)
-        # `src/renderer/paraglide/*` is gitignored — `@inlang/paraglide-js`
-        # generates it. In local dev the electron-vite plugin
-        # (`paraglide()` in electron.vite.config.ts) emits it on `pnpm
-        # dev` / `pnpm build`. CI does neither — it goes straight to
-        # `tsc --noEmit`, which then fails on 60+ "Cannot find module
-        # '@renderer/paraglide/messages'" errors because the source
-        # tree was never emitted. Compile it explicitly here.
-        #
-        # Output persists for the test step too (same job, same
-        # workspace) — vitest also imports from @renderer/paraglide/*.
-        # Main-process code (`src/main/*`) does NOT import paraglide,
-        # so we only generate the renderer outdir.
-        run: pnpm --filter carbonink exec paraglide-js compile --project ./project.inlang --outdir ./src/renderer/paraglide
-
-      - name: Typecheck desktop
-        run: pnpm desktop:typecheck
-
-      - name: Test desktop (vitest)
-        run: pnpm desktop:test
 
       - name: Build cloud web (Astro)
         # Doubles as a smoke test for the SSR Worker entry — Astro

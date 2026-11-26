@@ -40,12 +40,11 @@
  * `text-muted-foreground`, `bg-muted`). Tailwind utility classes use
  * those tokens directly — `bg-primary`, `border-border`, etc.
  *
- * Primary = moss-500 (#6B8266) — the accent green from the desktop X2
+ * Primary = moss-500 (#6B8266) — the accent green from the X2
  * icon (graphite #15171A + cream #F4EFE3 + moss-green #6B8266). One
- * brand identity across desktop tray, website CTAs, focus rings, and
- * the cloud admin tools. The source of truth for these colors is
- * `desktop/scripts/icon-designs.mjs` (PALETTE constants); when that
- * changes, this file changes.
+ * brand identity across website CTAs, focus rings, and favicons;
+ * `cloud/web/src/styles/global.css` is the source of truth for these
+ * marketing-site tokens.
  *
  * The full moss-* ramp below feeds Tailwind v4's auto-generated
  * utility classes — `bg-moss-50`, `text-moss-600`, `border-moss-200`,

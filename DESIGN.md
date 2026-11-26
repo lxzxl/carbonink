@@ -1,84 +1,209 @@
 ---
 name: CarbonInk
-description: The desktop ledger for audit-grade greenhouse-gas inventories — calm density, native chrome, one green mark of verification.
+description: The ledger for audit-grade GHG inventories — flat white pages, one quiet accent, native macOS and Windows chrome.
 colors:
-  primary: "oklch(0.55 0.16 160)"
-  primary-foreground: "oklch(0.99 0.005 95)"
-  background: "oklch(1 0 0)"
-  foreground: "oklch(0.18 0.012 95)"
-  card: "oklch(1 0 0)"
-  sidebar: "oklch(0.985 0 0)"
-  secondary: "oklch(0.96 0.008 95)"
-  muted: "oklch(0.95 0.008 95)"
-  muted-foreground: "oklch(0.5 0.012 95)"
-  accent: "oklch(0.94 0.012 160)"
-  destructive: "oklch(0.55 0.2 25)"
-  border: "oklch(0.929 0 0)"
-  input: "oklch(0.9 0.008 95)"
-  ring: "oklch(0.55 0.16 160 / 0.5)"
+  accent: "#008c4f"
+  accent-hover: "#1a9861"
+  accent-pressed: "#0d9258"
+  accent-tint: "#e5eee8"
+  accent-mark: "#008c4f"
+  accent-ink: "#007a45"
+  info: "#008c4f"
+  page: "#ffffff"
+  surface: "#ffffff"
+  inset: "#fafafa"
+  sidebar: "#fafafa"
+  field: "#ffffff"
+  secondary: "#f3f2ec"
+  muted-surface: "#f0eee9"
+  text: "#13120c"
+  muted: "#65635c"
+  faint: "#a8a6a0"
+  border: "#e7e7e7"
+  field-border: "#dfded8"
+  line: "rgba(19, 18, 12, 0.07)"
+  danger: "#cc272e"
+  warning: "#b45309"
+  success: "#059669"
+  page-dark: "#13120c"
+  sidebar-dark: "#171610"
+  surface-dark: "#1c1b14"
+  raised-dark: "#25241c"
+  inset-dark: "#13120c"
+  field-dark: "#1c1b14"
+  border-dark: "#2b2922"
+  field-border-dark: "#35332a"
+  line-dark: "rgba(240, 238, 233, 0.10)"
+  text-dark: "#f0eee9"
+  muted-dark: "#918f87"
+  faint-dark: "#918f87"
+  danger-dark: "#f94144"
+  accent-dark: "#00af67"
+  info-dark: "#00af67"
 typography:
-  headline:
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI Variable Text', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei UI', sans-serif"
-    fontSize: "1.125rem"
+  kpi:
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', sans-serif"
+    fontSize: "24px"
     fontWeight: 600
-    lineHeight: 1.4
-    letterSpacing: "-0.01em"
+    lineHeight: 1.2
+  heading:
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', sans-serif"
+    fontSize: "20px"
+    fontWeight: 600
+    lineHeight: 1.3
   title:
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI Variable Text', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei UI', sans-serif"
-    fontSize: "0.9375rem"
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', sans-serif"
+    fontSize: "15px"
     fontWeight: 600
-    lineHeight: 1.4
+    lineHeight: 1.33
   body:
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI Variable Text', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei UI', sans-serif"
-    fontSize: "0.875rem"
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', sans-serif"
+    fontSize: "13px"
     fontWeight: 400
-    lineHeight: 1.5
+    lineHeight: 1.38
   label:
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI Variable Text', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei UI', sans-serif"
-    fontSize: "0.75rem"
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', sans-serif"
+    fontSize: "13px"
     fontWeight: 500
-    lineHeight: 1.4
-  mono:
-    fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace"
-    fontSize: "0.8125rem"
+    lineHeight: 1.38
+  caption:
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', sans-serif"
+    fontSize: "12px"
+    fontWeight: 400
+    lineHeight: 1.33
+  micro:
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', sans-serif"
+    fontSize: "11px"
+    fontWeight: 600
+    lineHeight: 1.45
+  code:
+    fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+    fontSize: "12px"
     fontWeight: 400
     lineHeight: 1.5
 rounded:
-  sm: "0.25rem"
-  md: "0.5rem"
+  mark: "4px"
+  item: "6px"
+  card: "8px"
+  menu: "12px"
+  dialog: "16px"
+  capsule: "9999px"
 spacing:
-  row-y: "0.75rem"
-  row-x: "1rem"
-  page: "1.5rem"
+  xxs: "2px"
+  xs: "4px"
+  sm: "8px"
+  md: "12px"
+  lg: "16px"
+  xl: "20px"
+  xxl: "24px"
+  page: "16px"
+components:
+  button-primary:
+    backgroundColor: "{colors.accent}"
+    textColor: "#fdfcf8"
+    typography: "{typography.body}"
+    rounded: "{rounded.item}"
+    padding: "0 12px"
+    height: "28px"
+  button-primary-hover:
+    backgroundColor: "{colors.accent-hover}"
+    textColor: "#fdfcf8"
+  button-secondary:
+    backgroundColor: "#f3f2ec"
+    textColor: "{colors.text}"
+    typography: "{typography.body}"
+    rounded: "{rounded.item}"
+    padding: "0 12px"
+    height: "28px"
+  button-secondary-hover:
+    backgroundColor: "#e9e7df"
+    textColor: "{colors.text}"
+  button-outline:
+    backgroundColor: "transparent"
+    textColor: "{colors.text}"
+    typography: "{typography.body}"
+    rounded: "{rounded.item}"
+    padding: "0 12px"
+    height: "28px"
+  input:
+    backgroundColor: "{colors.field}"
+    textColor: "{colors.text}"
+    typography: "{typography.body}"
+    rounded: "{rounded.item}"
+    padding: "0 10px"
+    height: "28px"
+  badge-neutral:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.text}"
+    rounded: "{rounded.menu}"
+    padding: "2px 8px"
+  card:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.text}"
+    rounded: "{rounded.card}"
+    padding: "16px"
+  nav-item:
+    backgroundColor: "transparent"
+    textColor: "{colors.text}"
+    typography: "{typography.body}"
+    rounded: "{rounded.item}"
+    padding: "0 8px"
+    height: "30px"
+  nav-item-selected:
+    backgroundColor: "rgba(19, 18, 12, 0.08)"
+    textColor: "{colors.text}"
+    rounded: "{rounded.item}"
+  command-item:
+    backgroundColor: "transparent"
+    textColor: "{colors.text}"
+    typography: "{typography.body}"
+    rounded: "{rounded.card}"
+    padding: "10px"
+  command-item-selected:
+    backgroundColor: "rgba(19, 18, 12, 0.08)"
+    textColor: "{colors.text}"
+    rounded: "{rounded.card}"
 ---
 
-# Design System: CarbonInk
+# Design System: CarbonInk (2.0 / NSGo)
 
-> Applies to the CarbonInk desktop product (`desktop/` 1.x tokens below; see [app/DESIGN.md](app/DESIGN.md) for the NSGo 2.0 token table and native layout rules, and [cloud/AGENTS.md](cloud/AGENTS.md) for the `carbonink.xyz` marketing palette).
+> Applies to the CarbonInk desktop product in `app/` (kept in sync with [app/DESIGN.md](app/DESIGN.md); see [cloud/AGENTS.md](cloud/AGENTS.md) for the `carbonink.xyz` marketing palette).
 
-## 1. Overview — "The Ledger"
+## Overview — "The Ledger"
 
-CarbonInk is an accountant's ledger made digital: pure-white surfaces, ink-dark figures, hairline rules, and a single green mark of verification. Density is a feature — hierarchy comes from type weight, scale, and whitespace rhythm, never from color floods, resting shadows, or decorative chrome. Marketing energy lives in `cloud/web/`, never in the app shell.
+CarbonInk 2.0 is a native macOS/Windows accountant's ledger built on NSGo: pure-white resting cards, ink-dark figures, 1 pt hairlines, and a single emerald accent spent only on primary action, selection, and focus. Hierarchy comes from type weight, a strict 6-step scale (`24 / 20 / 15 / 13 / 12 / 11 pt`), and whitespace rhythm — never color floods, gradients, glassmorphism, hero-metric blocks, or resting card shadows. Every color reads through `ui.ColorsOf(cx)` inside `StyleFunc` so light and dark themes stay paired live.
 
-## 2. Colors (OKLCH)
+## Colors & Named Rules
 
-- **Carbonink Green (`primary` `oklch(0.55 0.16 160)` / dark `oklch(0.65 0.18 160)`)**: Primary action, verified/active state, focus rings, brand wordmark.
-- **Neutrals**: **Page White** (`oklch(1 0 0)`), **Sidebar White** (`oklch(0.985 0 0)`), **Ledger Ink** (`oklch(0.18 0.012 95)`), **Muted Ink** (`oklch(0.5 0.012 95)` — WCAG AA floor on white), **Rule Line** (`oklch(0.929 0 0)`), **Surface Tints** (`secondary oklch(0.96 0.008 95)`, `muted oklch(0.95 0.008 95)`).
-- **Alarm Red (`destructive` `oklch(0.55 0.2 25)`)**: Destruction and hard errors only; usually paired as `destructive/10` behind text so it warns without screaming.
+- **Primary Emerald (`#008c4f` light / `#00af67` dark):** Filled primary buttons (warm white `#fdfcf8` text; hover `#1a9861`, pressed `#0d9258`, dark hover `#0bad6a`, dark pressed `#089659`, tint `#e5eee8` / `#26312b`), toggle on-track, and focus ring (`"info"` maps to emerald — zero sky-blue). Use **Accent Ink** (`#007a45`, `5.4:1` AA on white) for provenance links and accent text.
+- **Neutrals:** **Paper White** (`#ffffff`) for page and resting cards; **Ledger Inset / Sidebar** (`#fafafa`); **Field Well** (`#ffffff`, `1 pt` `FieldBorder` `#dfded8`); **Ink** (`#13120c`); **Quiet Ink** (`#65635c`, `5.9:1` AA) for all readable subtitles, timestamps, and metadata; **Whisper** (`#a8a6a0`, `2.4:1`) strictly for decorative icons, empty-state glyphs, and chevrons.
+- **Hairlines:** `Border()` (`#e7e7e7`) frames outer cards/wells; `Line()` (`rgba(19, 18, 12, 0.07)`) draws internal dividers and list-row separators (omit bottom border on the last row).
+- **Dark Ramp:** Page `#13120c`, sidebar `#171610`, surface `#1c1b14`, raised `#25241c`, border `#2b2922`, field border `#35332a`, line `rgba(240, 238, 233, 0.10)`, ink `#f0eee9`, quiet ink `#918f87`, danger `#f94144`.
+- **Semantic:** **Danger** (`#cc272e` / `#f94144`) for destructive confirmations; **Warning Amber** (`#b45309`) for caution/received states (prefer neutral/amber badges over `BadgeInfo`); **Success Pine** (`#059669`) for completed states.
+- **Rules:**
+  - **One Accent Rule:** One primary emerald button per screen/region; selected rows and nav items stay neutral (`selectionTint(cx)`).
+  - **Palette-Only Rule:** Never hardcode hex colors in static `Style` or evaluate `ui.ColorsOf(cx)` eagerly outside `StyleFunc`.
+  - **Emerald Rule:** Never replace emerald with sage, moss, or sky-blue.
 
-## 3. Named Rules
+## Typography
 
-- **The One Mark Rule:** Carbonink green covers ≤10% of any screen and never two co-equal greens at once. Reserve the filled green button for the single primary action per page; secondary actions are `outline` or `ghost`.
-- **The No-Fill-For-Cards Rule:** Cards and the page share one pure white (`oklch(1 0 0)`). Separation is a 1px Rule Line and ≤2% tonal steps, never a gray card fill.
-- **The Flat-By-Default Rule:** Resting cards, rows, and sections have no shadow. Shadow belongs only to genuinely floating layers (popovers, dialogs, command palette); sticky action bars use `border-t` + `bg-background/95 backdrop-blur`.
-- **The Sentence-Case Rule:** Section eyebrows and labels are sentence case (uppercase is reserved for short tags like `SCOPE 1`). Add `whitespace-nowrap` on button labels so CJK labels never wrap vertically.
+Use the OS system UI face (`SF Pro` / `Segoe UI` with system CJK fallbacks) and `core.FontMonospace` for EF codes, question positions, paths, and masked credentials.
 
-## 4. Typography & Layout
+- **6-Step Scale (`type*` constants):** KPI `24 pt` (600, `FontTabularNums`), Page Title `20 pt` (600), Section Title `15 pt` (600), Body / Label `13 pt` (400/500), Caption `12 pt` (400), Micro `11 pt` (500/600, sentence-case — never uppercase-transformed).
+- **Tabular Figures Rule:** Set `FontVariant: core.FontTabularNums` on KPIs, quantities, CO₂e roll-ups, dates, counts, version strings, and shortcuts.
 
-- **Fonts:** OS-native sans (`-apple-system` / `Segoe UI Variable Text`, followed by `PingFang SC` / `Microsoft YaHei UI` for CJK); `ui-monospace` for codes, IDs, and paths.
-- **Hierarchy:** Headline `1.125rem` (600), Title `0.9375rem` (600), Body `0.875rem` (400, 65–75ch max prose measure), Label `0.75rem` (500), Mono `0.8125rem` (400). Use `tabular-nums` for every numeric column and date.
-- **Components:**
-  - **Buttons:** `h-10` default, `h-8` small, `h-9 w-9` icon, `rounded-md`. Focus shifts border to `ring` (`focus-visible:border-ring`) — no outer 2–3px focus halo inside scrollable panes.
-  - **Inputs:** `h-10`, 1px border, I-beam cursor (chrome stays `cursor: default`; pointer cursor only on inline content links).
-  - **List Row (over `<table>`):** Prefer vertical `divide-y` list rows (`truncate` title + status/single action on right, scope/category chips + dot-separated meta below; >1 action collapses into a dropdown). Reserve `<table>` for column-aligned deliverables.
-- **Accessibility & Parity:** WCAG AA contrast floor (≥4.5:1 body, ≥3:1 large text), never encode meaning in color alone, honor `prefers-reduced-motion`, and verify every layout in both `zh-CN` and `en`.
+## Layout, Measure & Elevation
+
+- **Window & Shell:** Opens at `1400 × 900` (min `960 × 600`; tests at `1280 × 820`, narrow checks `640 × 820` / `960 × 600`). Uses `ui.SidebarShellPlain` with a `256 pt` fixed sidebar (`Fixed: true`, pinned header, scrolling nav, top-hairline footer), `1 pt` topbar bottom rule, unified `28 pt` Ghost controls (`Side: 28, IconSize: 15`), and right-aligned `⌘K`/`Ctrl+K` command trigger.
+- **Measures:** Content pages use `24 pt` padding (`16 pt` inside cards, `12–16 pt` gaps). Measure caps: Settings `672 pt` (beside `200 pt` rail), onboarding/wizards `560 pt`, `detailPaneShell` body `880 pt`, data pages `1280 pt`. Multi-column grids stack via `settingsColumns` (`< 1120 pt`) and `dataColumns` (`< 900 pt`).
+- **Headers:** `dataHeaderRow` drops trailing actions cleanly onto their own row when narrow; never duplicate titles in both a card header and its first inner child (**One Header Rule**).
+- **Flat by Default:** Resting cards have no shadow. Shadows (`ui.FinOf(cx).Menu().Shadows`) belong only to menus, popovers, command palette, dialogs, and right-aligned drawers (`480 pt` standard, `680 pt` dense, `92%` max width, `ui.Black(0.28)` scrim).
+
+## Shapes & Components
+
+- **Radius Scale:** `4 pt` (`radiusMark`, marks/badges/keycaps), `6 pt` (`radiusItem`, nav rows/chips/segmented frame/`wideSelect`/`ui.DatePicker`), `8 pt` (`radiusCard`, cards), `12 pt` (`radiusMenu`, dropdowns/popovers), `16 pt` (`radiusDialog`, dialogs), `9999 pt` (pill badges).
+- **Controls:** `28 pt` desktop height (`ui.ButtonHeight`), `12 pt` horizontal padding, `13 pt` text; `wideSelect` and `appDatePicker` fill container width (`Width: core.Pct(100)`). Focus shifts border to accent — no outer 2–3 pt halo.
+- **Settings:** `200 pt` left rail + `672 pt` scroll pane across 10 sections (`settingsCard` / `settingsDangerCard` separated by `16 pt`, internal dividers via `hairline(cx)`).
+- **Empty States & Onboarding:** Two-pane empty states center a `44 pt` `Faint()` icon above `13 pt` `Muted()` copy. Multi-part wizards number sections (`01`, `02`, `03` mono `10 pt`), mark required fields with `*` (`* Required` once at top), and explain bilingual alternative-name pairs clearly.
+- **Command Palette:** Bare `640 pt` dialog with `↑↓ Navigate · ↵ Select · Esc Close` footer; navigation first, then Actions, then Files.
+- **Bilingual Parity:** Check both `zh-CN` and `en` across narrow and wide windows; wrap long helper copy inside cards and render filesystem paths in boxed mono wells.

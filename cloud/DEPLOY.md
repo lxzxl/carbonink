@@ -76,8 +76,9 @@ wrangler uploads it and attaches `carbonink.xyz/*`.
 
 Two workflows in `.github/workflows/`:
 
-- **`ci.yml`** — PR + push-to-main gate: `desktop:typecheck`, `desktop:test`
-  (vitest), `cloud:build:web` (Astro build). ~3–5 min on one Linux runner.
+- **`ci.yml`** — PR + push-to-main gate: `validate` (`cloud:build:web` Astro
+  build), `go-app` (Linux vet + pure-Go tests + build), and `go-app-macos`
+  (`go tool nsgo check`, Go tests, and headless UI tests).
 - **`cloud-deploy.yml`** — `workflow_run`-gated on a green CI run on `main`.
   Builds + deploys **`cloud/web`** (`cd cloud/web && wrangler deploy`). Also
   exposes a manual `workflow_dispatch` button.

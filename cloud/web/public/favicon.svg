@@ -1,9 +1,7 @@
 <svg width="32" height="32" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Favicon matches the in-page LogoMark and the desktop app icon
-       (X2 "stacked data rows" design from
-       desktop/scripts/icon-designs.mjs::drawDirectionX2). Same coords
-       as LogoMark.astro so a single design source of truth governs
-       cross-tab, bookmark, in-page, and desktop identity. -->
+  <!-- Favicon matches the in-page LogoMark (X2 "stacked data rows" mark).
+       Same coords as LogoMark.astro so a single design source of truth
+       governs cross-tab, bookmark, and in-page identity. -->
   <rect width="1024" height="1024" rx="225" ry="225" fill="#15171A" />
   <line x1="240" y1="380" x2="760" y2="380" stroke="#F4EFE3" stroke-width="80" stroke-linecap="round" />
   <line x1="240" y1="512" x2="620" y2="512" stroke="#6B8266" stroke-width="80" stroke-linecap="round" />

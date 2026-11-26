@@ -3,65 +3,47 @@
 > Detailed reference for `AGENTS.md` → "Where things live". This file is linked,
 > not auto-loaded; read it when you need the full monorepo picture.
 
-This is a pnpm workspace. Two JS/TS apps plus the NSGo desktop app share
-tooling + docs:
+CarbonInk 2.0 is a Go/NSGo native desktop app (`app/`) alongside an Astro
+static marketing site (`cloud/web/`), sharing CI and docs in one repository:
 
 ```
 carbonink/
 ├── package.json              ← workspace root, monorepo scripts
-├── pnpm-workspace.yaml       ← lists desktop + cloud/web packages
-├── docs/                     ← shared (specs, plans, release notes, conventions)
-├── CLAUDE.md                 ← @AGENTS.md (the always-loaded conventions index)
-├── desktop/                  ← Electron app (the user-facing v1)
-│   ├── package.json          ← name: "carbonink"
-│   ├── src/                  ← main, preload, renderer, shared
-│   ├── tests/                ← vitest (1408 passing as of 2026-10-09)
-│   └── …                     ← electron-vite, electron-builder, paraglide
-├── app/                      ← NSGo desktop app (the v2 line)
+├── pnpm-workspace.yaml       ← lists cloud/web
+├── AGENTS.md                 ← always-loaded conventions index
+├── DESIGN.md / PRODUCT.md    ← CarbonInk 2.0 design system and product spec
+├── docs/                     ← shared (conventions tracked; specs/plans local-only)
+├── app/                      ← CarbonInk 2.0 native desktop app (NSGo / Go)
 │   ├── go.mod                ← module app.carbonink.desktop
+│   ├── nsgo.yaml             ← bundle id (app.carbonink.desktop), version, targets
 │   ├── internal/             ← app UI, store, extraction, report, readiness, …
-│   ├── locales/              ← en + zh-CN catalogs, generated catalog_gen.go
+│   ├── locales/              ← en.yaml + zh-CN.yaml catalogs, generated catalog_gen.go
 │   └── main.go               ← NSGo entry
 └── cloud/                    ← Cloudflare static marketing site
     └── web/                  ← @carbonink-cloud/web (Astro → Static Assets)
 ```
 
+> Note: The retired 1.x Electron codebase is archived on branch
+> `archive/v1-electron` and tag `v1.2.0`.
+
 **Top-level scripts** (run from repo root):
 
 ```bash
-pnpm desktop:test         # vitest tests in desktop/
-pnpm desktop:typecheck    # tsc --noEmit on desktop/
-pnpm test                 # all packages (workspace-concurrency=1)
-
-cd app && go test ./...   # NSGo unit + integration tests
-cd app && go tool nsgo test .   # NSGo UI suite
+pnpm app:dev              # cd app && go tool nsgo dev .
+pnpm app:check            # cd app && go tool nsgo check
+pnpm app:test             # cd app && go test ./... && go tool nsgo test .
+pnpm app:build            # cd app && go tool nsgo build -target macos_arm64
+pnpm cloud:build:web      # pnpm --filter @carbonink-cloud/web build
 ```
 
-**Per-package scripts** still work via filter:
+**Why monorepo**: desktop + the marketing site share tooling, CI, version
+metadata (`cloud/web` reads `app/nsgo.yaml` at build time), and docs in one
+place — a single PR can touch both atomically.
 
-```bash
-pnpm --filter carbonink dev          # electron-vite dev --watch (renderer HMR + main/preload hot-restart)
-pnpm --filter @carbonink-cloud/web build
-```
-
-**Why monorepo**: desktop + the marketing site share tooling, CI, and docs in
-one place — a single PR can touch both apps atomically.
-
-**`onlyBuiltDependencies`** lives in the top-level `package.json` (pnpm
-warns if it's at a sub-package). Includes `better-sqlite3`, `electron`,
-`esbuild`, `sharp`, `workerd`, `@napi-rs/canvas-*`. New native deps
-must be added here before pnpm will run their postinstall.
-
-**Brand identity is unified** across desktop + cloud — `--color-primary`
-in `cloud/web/src/styles/global.css` is bound to the X2 mark's moss-green
-accent (`#6B8266`), and the LogoMark/favicon are verbatim ports of the
-desktop icon. Source of truth is `desktop/scripts/icon-designs.mjs`.
-Full palette table + "don't reintroduce sky-blue" rule lives in
-`cloud/AGENTS.md` § "Brand palette".
-
-**Electron pinned at `^41.5.1`** — not the latest. We can't move to v42
-yet because `better-sqlite3` (latest 12.10.0) doesn't compile against
-Electron 42's V8 14.8 API. The upstream fix
-([better-sqlite3 PR #1475](https://github.com/WiseLibs/better-sqlite3/pull/1475))
-is maintainer-approved but unmerged. Full investigation + re-attempt
-checklist in `docs/research/2026-05-25-electron-42-upgrade-blocker.md`.
+**Brand identity**:
+- Desktop UI palette and tokens live in `DESIGN.md` / `app/DESIGN.md` (emerald
+  accent `#008c4f` light / `#00af67` dark).
+- Marketing site palette and X2 mark live in `cloud/web/src/styles/global.css`,
+  `cloud/web/src/components/LogoMark.astro`, and `cloud/web/public/favicon.svg`.
+  Full cloud palette table + "don't reintroduce sky-blue" rule lives in
+  `cloud/AGENTS.md` § "Brand palette".

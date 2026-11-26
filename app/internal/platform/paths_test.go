@@ -23,6 +23,18 @@ func TestLegacyDirIn(t *testing.T) {
 	if got := legacyDirIn(base); got != dir {
 		t.Fatalf("legacyDirIn = %q, want %q", got, dir)
 	}
+
+	// When a 2.0-beta data directory exists alongside 1.x, prefer the beta directory.
+	betaDir := filepath.Join(base, "app.carbonink.desktop.beta")
+	if err := os.MkdirAll(betaDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(betaDir, "workspaces.json"), []byte("{}"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if got := legacyDirIn(base); got != betaDir {
+		t.Fatalf("legacyDirIn with beta = %q, want %q", got, betaDir)
+	}
 }
 
 func TestLegacyDirOverride(t *testing.T) {

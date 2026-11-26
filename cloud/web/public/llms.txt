@@ -24,7 +24,7 @@ inventory content.
 - Source code (MIT): https://github.com/lxzxl/carbonink
 - Privacy: https://carbonink.xyz/privacy/
 - Agent skill (full MCP tool catalog + worked workflows):
-  https://github.com/lxzxl/carbonink/blob/main/desktop/agent-skill/SKILL.md
+  https://github.com/lxzxl/carbonink/blob/main/app/internal/agentskill/SKILL.md
 
 ## When to use CarbonInk
 

@@ -5,36 +5,40 @@
 
 ## i18n
 
-All user-facing strings go through paraglide messages (`messages/en.json`
-+ `messages/zh-CN.json`) in `desktop/`, or ICU YAML catalogs (`locales/en.yaml`
-+ `locales/zh-CN.yaml`) in `app/`. Both language files must keep the exact
-same key set — new features add keys to BOTH files in the same commit.
+All user-facing desktop strings go through NSGo ICU YAML catalogs
+(`app/locales/en.yaml` + `app/locales/zh-CN.yaml`). Both language files must
+keep the exact same key set — new features add keys to BOTH files in the same
+commit.
+
+- `app/locales/catalog_test.go` verifies key parity and non-empty English
+  messages.
+- `cd app && go tool nsgo check` regenerates `app/locales/catalog_gen.go` and
+  validates the module and targets.
 
 ## Test discipline
 
-- **vitest baseline:** **1408/1408** (verified green pre-v1.2.0, 2026-10-09).
-  Don't land a commit that drops the passing count.
-- **Biome lint debt: CLEARED (2026-07-22).** Desktop `biome check .` is at
-  **0 errors**. What survived the cleanup: ~170 warnings/infos, dominated by
-  `noNonNullAssertion` (88, mostly deliberate `!` in tests) plus small
-  style rules — accepted residue, not a queue. Keep errors at zero; don't
-  bulk-churn the warnings. The three real fixes worth knowing: hook-order
-  split in ActivityRebindCard, `role="link"` removed from BreadcrumbPage
-  (deviation from shadcn upstream, commented inline), redundant setter
-  deps dropped in sidebar.tsx.
-- **better-sqlite3 ABI flip:** after `pnpm build` (or any script that runs
-  `electron-rebuild`), vitest will fail with `NODE_MODULE_VERSION 145 vs 137`
-  because better-sqlite3's native binding flipped to Electron ABI. Restore
-  via the desktop package script:
-  ```bash
-  pnpm --filter carbonink run rebuild:node
-  ```
-  That runs `pnpm rebuild better-sqlite3` from the desktop workspace,
-  which finds the actual installed version (currently 12.10.0; the
-  earlier hand-rolled `rm node_modules/.pnpm/better-sqlite3@12.9.0/...`
-  recipe went stale after the dep bump). This is environmental,
-  never a regression. The inverse — `rebuild:native` — flips back to the
-  Electron ABI the app + Playwright e2e need.
+Before committing changes to `app/` or `cloud/web/`:
+
+```bash
+cd app
+go tool nsgo check
+go vet ./...
+go test ./...
+go tool nsgo test ./internal/app
+go tool nsgo test .
+```
+
+And for the marketing site:
+
+```bash
+pnpm cloud:build:web
+```
+
+- Tests never read the developer's local data directory: `app/main_test.go` sets
+  `CARBONINK_NO_LEGACY_IMPORT=1` and UI tests use `CARBONINK_TEST_DB` with
+  isolated temp fixtures.
+- Pure-Go packages are also verified on Linux (`go test` excluding `internal/app`,
+  `internal/spike`, and root `main`, plus `go build ./...`) in CI.
 
 ## Audit-event hygiene (security invariant)
 

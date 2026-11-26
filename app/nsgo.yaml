@@ -1,6 +1,6 @@
 name: CarbonInk
-id: app.carbonink.desktop.beta
-version: 2.0.0-beta.1
+id: app.carbonink.desktop
+version: 2.0.0
 copyright: "© 2026 CarbonInk"
 
 i18n: { dir: locales, source: en }
@@ -13,9 +13,8 @@ windows:
 
 updates:
   key: HkKgeSqjLiqKO1yf1OKt51JC8PXJiQKI2FoON04ImOs=
-  # Switch to direct when the 2.0 appcast is hosted. Until then, none keeps
-  # the beta from reading 1.x's Electron releases at the repo's latest release.
-  # CI release builds (.github/workflows/release-nsgo.yml) pass -channel direct.
+  # Keep update checks disabled in local dev/test builds;
+  # CI release builds (.github/workflows/release.yml) pass -channel direct.
   channel: none
 
 icon:

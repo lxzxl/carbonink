@@ -27,23 +27,19 @@ Grab the latest macOS / Windows build from the [releases page](https://github.co
 ```bash
 # CarbonInk 2.0 (NSGo native desktop app, app/)
 pnpm app:dev                     # hot-reloading native window
-pnpm app:test                    # headless UI tests (go tool nsgo test)
+pnpm app:check                   # regenerate locales, vet, and check targets
+pnpm app:test                    # Go + headless UI tests (go test && go tool nsgo test)
 pnpm app:build                   # macOS arm64 build
-
-# CarbonInk 1.x (Electron desktop app, desktop/)
-pnpm install
-pnpm --filter carbonink dev      # run the Electron app
-pnpm --filter carbonink test     # vitest
-pnpm --filter carbonink build    # production build (electron-builder)
 ```
 
-See [`AGENTS.md`](AGENTS.md) for repo conventions and [`docs/`](docs/) for conventions and local design docs.
+See [`AGENTS.md`](AGENTS.md) for repo conventions, [`app/README.md`](app/README.md) for desktop app details, and [`docs/`](docs/) for conventions and local design docs.
 
 ## Repo layout
 
 | Path | What |
 |---|---|
-| `app/` | NSGo native desktop app (CarbonInk 2.0, Go) |
-| `desktop/` | Electron desktop app (`carbonink` 1.x) |
+| `app/` | CarbonInk 2.0 native desktop app (NSGo, Go) |
 | `cloud/web/` | Astro static marketing site ([carbonink.xyz](https://carbonink.xyz)) |
 | `docs/` | Tracked conventions (`docs/conventions/`) and local-only design trail |
+
+> Note: CarbonInk 1.x (Electron) is archived at branch `archive/v1-electron` and tag `v1.2.0`.

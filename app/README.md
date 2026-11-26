@@ -41,8 +41,8 @@ Root shortcuts: `pnpm app:dev`, `pnpm app:test`, `pnpm app:build`.
 
 ## Workspace data & environment
 
-- **App ID:** `app.carbonink.desktop.beta` (coexists with 1.x). On first launch with no `workspaces.json`, copies the 1.x directory (`workspaces.json`, `*.sqlite*`, `auto-backups/`, `uploads/`) without modifying the source.
-- **Env vars:** `CARBONINK_LEGACY_DIR` overrides the 1.x import source; `CARBONINK_NO_LEGACY_IMPORT=1` disables legacy import (tests); `CARBONINK_TEST_DB` opens a single SQLite file directly.
-- **Logs & backups:** JSON logs in `cx.LogsDir()` (`~/Library/Logs/app.carbonink.desktop.beta` on macOS, rotated at 5 MB); up to 7 daily backups per workspace under `<data>/auto-backups/<workspace_id>/`.
+- **App ID:** `app.carbonink.desktop`. On first launch with no `workspaces.json`, copies an existing 2.0-beta (`app.carbonink.desktop.beta`) or 1.x (`carbonink` / `CarbonInk`) directory (`workspaces.json`, `*.sqlite*`, `auto-backups/`, `uploads/`) without modifying the source.
+- **Env vars:** `CARBONINK_LEGACY_DIR` overrides the migration import source; `CARBONINK_NO_LEGACY_IMPORT=1` disables legacy import (tests); `CARBONINK_TEST_DB` opens a single SQLite file directly.
+- **Logs & backups:** JSON logs in `cx.LogsDir()` (`~/Library/Logs/app.carbonink.desktop` on macOS, rotated at 5 MB); up to 7 daily backups per workspace under `<data>/auto-backups/<workspace_id>/`.
 - **Updates:** Public key is in `nsgo.yaml`; secret lives in `.nsgo/updates-key.txt` (gitignored, move to `NSGO_UPDATES_KEY` for releases).
 - **PDFium:** Runs via `wazero` (WASM) — no cgo, no Chromium, no Node.

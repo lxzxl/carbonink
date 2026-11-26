@@ -19,7 +19,7 @@ import (
 )
 
 // Version is the server version advertised on initialize.
-var Version = "2.0.0-beta.1"
+var Version = "2.0.0"
 
 const defaultProtocolVersion = "2024-11-05"
 

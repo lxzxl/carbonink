@@ -4,10 +4,10 @@
  * fresh release is picked up with zero rebuild.
  *
  * Why a worker redirect (not a static `releases/latest/download/<name>`
- * link): electron-builder artifact names embed the version
- * (`CarbonInk-1.2.3-arm64.dmg`), so there is no stable filename to link
- * to. We query the GitHub API for the latest release and 302 to the
- * matching asset's `browser_download_url`.
+ * link): release artifact names embed the version (e.g.
+ * `carbonink-2.0.0-macos-arm64.dmg`), so there is no stable filename to
+ * link to. We query the GitHub API for the latest release and 302 to
+ * the matching asset's `browser_download_url`.
  *
  * Rate limit: GitHub's unauthenticated API is 60 req/hr per IP, and a
  * Worker shares one egress IP across every visitor — a click storm would
@@ -22,10 +22,10 @@ const RELEASES_PAGE = `https://github.com/${REPO}/releases/latest`;
 const CACHE_TTL_S = 600; // 10 min
 
 // Match a release asset filename to a platform/arch key. Names come from
-// electron-builder: mac → `CarbonInk-<ver>-arm64.dmg` (Apple Silicon) and
-// `CarbonInk-<ver>.dmg` (Intel, no arch token); win → `CarbonInk Setup
-// <ver>.exe`. `.blockmap` siblings end in `.blockmap`, so the extension
-// test excludes them.
+// NSGo release builds: mac → `carbonink-<ver>-macos-arm64.dmg` (Apple
+// Silicon) and `carbonink-<ver>-macos-x64.dmg` (Intel); win →
+// `carbonink-<ver>-windows-x64-setup.exe`. `.sha256` / `.blockmap`
+// siblings do not end in `.dmg` or `.exe`, so the extension test excludes them.
 const MATCHERS: Record<string, (name: string) => boolean> = {
   'mac-arm64': (n) => n.endsWith('.dmg') && /arm64/i.test(n),
   'mac-x64': (n) => n.endsWith('.dmg') && !/arm64/i.test(n),

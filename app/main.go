@@ -1,5 +1,4 @@
-// Command carbonink is the NSGo desktop app. Phase 1 opens the active
-// workspace and shows its activity ledger; later phases fill in the rest.
+// Command carbonink is the CarbonInk 2.0 NSGo desktop app.
 package main
 
 import (
@@ -26,7 +25,7 @@ func main() {
 		nsgo.WindowSize(1400, 900),
 		nsgo.WindowConstraints(core.WindowConstraints{MinWidth: 960, MinHeight: 600}),
 	}
-	dataDir := platform.DataDir("app.carbonink.desktop.beta")
+	dataDir := platform.DataDir("app.carbonink.desktop")
 	if settings, err := prefs.Load(prefs.Path(dataDir)); err == nil {
 		if w := settings.Window; w != nil && w.Width >= 960 && w.Height >= 600 {
 			opts = append(opts, nsgo.WindowFrame(core.WindowFrame{
