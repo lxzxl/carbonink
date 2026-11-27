@@ -36,4 +36,4 @@ build:
   output: dist
   # true opens the output directory after building.
   open: false
-  targets: [macos_arm64, macos_x64, windows_x64, web]
+  targets: [macos_arm64, macos_x64, windows_x64]

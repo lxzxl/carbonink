@@ -27,7 +27,7 @@ Root shortcuts: `pnpm app:dev`, `pnpm app:test`, `pnpm app:build`.
 | --- | --- |
 | `main.go` | `nsgo.Run` entry point |
 | `internal/app` | Shell, navigation, screens, dialogs/drawers, command palette |
-| `internal/store` | SQLite open, 22 migrations, ledger, audit, and disclosure queries |
+| `internal/store` | SQLite open, 26 migrations, ledger, audit, and disclosure queries |
 | `internal/workspace` | `workspaces.json`, active workspace, one-time 1.x import |
 | `internal/extraction` | Document intake, AI extraction stages, vision fallback |
 | `internal/efmatch` | Emission factor search, ranking, and unit conversion |

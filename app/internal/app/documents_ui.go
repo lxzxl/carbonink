@@ -43,6 +43,7 @@ type documentDetail struct {
 	doc           *core.Signal[store.Document]
 	preview       *documentPreview
 	rev           *core.Signal[int]
+	textRev       *core.Signal[int]
 	status        *core.Signal[string]
 	failed        *core.Signal[bool]
 	busy          *core.Signal[bool]
@@ -83,6 +84,7 @@ func newDocumentDetail(cx *core.Scope, dataRev *core.Signal[int]) *documentDetai
 		open:       core.NewSignal(cx, false),
 		doc:        core.NewSignal(cx, store.Document{}),
 		rev:        core.NewSignal(cx, 0),
+		textRev:    core.NewSignal(cx, 0),
 		status:     core.NewSignal(cx, ""),
 		failed:     core.NewSignal(cx, false),
 		busy:       core.NewSignal(cx, false),
@@ -633,7 +635,7 @@ func (s *Session) loadDocumentText(cx *core.Scope, detail *documentDetail) {
 			} else {
 				detail.text, detail.pages = text, pages
 			}
-			detail.rev.Set(detail.rev.Get() + 1)
+			detail.textRev.Set(detail.textRev.Get() + 1)
 		})
 	}()
 }
@@ -1146,33 +1148,47 @@ func (s *Session) documentDetailBody(cx *core.Scope, detail *documentDetail) cor
 		}, Style: core.Style{FontSize: 11}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
 	}
 
-	textChildren := []core.Node{}
-	switch {
-	case document.MIMEType != "application/pdf":
-		textChildren = append(textChildren, core.Text{ContentFunc: func() string {
-			return locales.DocumentsDetailTextUnsupported(cx)
-		}, Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
-	case detail.busy.Get():
-		textChildren = append(textChildren, core.Text{ContentFunc: func() string {
-			return locales.DocumentsDetailTextLoading(cx)
-		}, Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
-	case strings.TrimSpace(detail.text) == "":
-		textChildren = append(textChildren, core.Text{ContentFunc: func() string {
-			return locales.DocumentsDetailTextEmpty(cx)
-		}, Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
-	default:
-		textChildren = append(textChildren,
-			core.Text{Content: truncateRunes(detail.text, 20000),
-				Style: core.Style{FontSize: typeMicro, FontFamily: core.FontMonospace}},
-			ui.Button{Text: locales.DocumentsDetailCopy(cx), Variant: ui.ButtonSecondary,
-				OnPress: func() {
-					cx.SetClipboard(detail.text)
-					detail.status.Set(locales.DocumentsDetailCopied(cx))
-					detail.failed.Set(false)
-					detail.rev.Set(detail.rev.Get() + 1)
-				}, TestID: "documents-detail-copy"},
+	extractedTextCard := core.Dynamic(func(cx *core.Scope) core.Node {
+		_ = detail.textRev.Get()
+		textChildren := []core.Node{}
+		switch {
+		case document.MIMEType != "application/pdf":
+			textChildren = append(textChildren, core.Text{ContentFunc: func() string {
+				return locales.DocumentsDetailTextUnsupported(cx)
+			}, Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
+		case detail.busy.Get():
+			textChildren = append(textChildren, core.Text{ContentFunc: func() string {
+				return locales.DocumentsDetailTextLoading(cx)
+			}, Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
+		case strings.TrimSpace(detail.text) == "":
+			textChildren = append(textChildren, core.Text{ContentFunc: func() string {
+				return locales.DocumentsDetailTextEmpty(cx)
+			}, Style: core.Style{FontSize: 12}, StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)})
+		default:
+			textChildren = append(textChildren,
+				core.Text{Content: truncateRunes(detail.text, 20000),
+					Style: core.Style{FontSize: typeMicro, FontFamily: core.FontMonospace}},
+				ui.Button{Text: locales.DocumentsDetailCopy(cx), Variant: ui.ButtonSecondary,
+					OnPress: func() {
+						cx.SetClipboard(detail.text)
+						detail.status.Set(locales.DocumentsDetailCopied(cx))
+						detail.failed.Set(false)
+					}, TestID: "documents-detail-copy"},
+			)
+		}
+		return dataCard(cx,
+			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8}, Children: []core.Node{
+				dataHeading(cx, locales.DocumentsDetailText(cx), ""),
+				core.View{Style: core.Style{FlexGrow: 1}},
+				core.Show{When: func() bool { return detail.pages > 0 },
+					Then: func(cx *core.Scope) core.Node {
+						return ui.Badge{Text: locales.DocumentsDetailPages(cx, strconv.Itoa(detail.pages)),
+							Variant: ui.BadgeNeutral}
+					}},
+			}},
+			core.View{Style: core.Style{Gap: 8}, Children: textChildren},
 		)
-	}
+	})
 
 	status := core.Show{When: func() bool { return detail.status.Get() != "" },
 		Then: func(cx *core.Scope) core.Node {
@@ -1199,18 +1215,7 @@ func (s *Session) documentDetailBody(cx *core.Scope, detail *documentDetail) cor
 				locales.DocumentsDetailEvidenceCount(cx, strconv.Itoa(detail.total))),
 			core.View{Style: core.Style{Gap: 0}, Children: evidenceRows},
 		),
-		dataCard(cx,
-			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 8}, Children: []core.Node{
-				dataHeading(cx, locales.DocumentsDetailText(cx), ""),
-				core.View{Style: core.Style{FlexGrow: 1}},
-				core.Show{When: func() bool { return detail.pages > 0 },
-					Then: func(cx *core.Scope) core.Node {
-						return ui.Badge{Text: locales.DocumentsDetailPages(cx, strconv.Itoa(detail.pages)),
-							Variant: ui.BadgeNeutral}
-					}},
-			}},
-			core.View{Style: core.Style{Gap: 8}, Children: textChildren},
-		),
+		extractedTextCard,
 	}}
 }
 
