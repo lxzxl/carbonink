@@ -35,7 +35,7 @@ rm -rf app/.nsgo/marketing-shots
 
 ## Sanity checks after replacing
 
-- Local: `pnpm --filter @carbonink-cloud/web dev` → inspect `http://localhost:4321/`
+- Local: `pnpm cloud:dev:web` → inspect `http://localhost:4321/`
   (English) and `http://localhost:4321/zh/` (Simplified Chinese).
 - Built: `pnpm cloud:build:web` → verify `dist/client/index.html` references
   `/screenshots/en/dashboard.png` and `dist/client/zh/index.html` references

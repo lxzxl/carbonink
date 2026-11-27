@@ -45,6 +45,8 @@ pnpm app:dev              # cd app && go tool nsgo dev . (hot-reloading native w
 pnpm app:check            # cd app && go tool nsgo check
 pnpm app:test             # cd app && go test ./... && go tool nsgo test .
 pnpm app:build            # cd app && go tool nsgo build -target macos_arm64
+pnpm cloud:dev:web        # pnpm --filter @carbonink-cloud/web dev
+pnpm cloud:preview:web    # pnpm --filter @carbonink-cloud/web preview
 pnpm cloud:build:web      # pnpm --filter @carbonink-cloud/web build
 ```
 

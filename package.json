@@ -13,6 +13,8 @@
     "app:test": "cd app && go test ./... && go tool nsgo test .",
     "app:build": "cd app && go tool nsgo build -target macos_arm64",
     "cloud:lint": "cd cloud && ../node_modules/.bin/biome check .",
+    "cloud:dev:web": "pnpm --filter @carbonink-cloud/web dev",
+    "cloud:preview:web": "pnpm --filter @carbonink-cloud/web preview",
     "cloud:build:web": "pnpm --filter @carbonink-cloud/web build",
     "lint": "pnpm cloud:lint"
   },

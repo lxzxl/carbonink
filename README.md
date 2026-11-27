@@ -47,6 +47,8 @@ pnpm app:test                    # Go + headless UI tests (go test && go tool ns
 pnpm app:build                   # macOS arm64 build
 
 # Marketing website (cloud/web/)
+pnpm cloud:dev:web               # live Astro dev server (http://localhost:4321/)
+pnpm cloud:preview:web           # preview built site locally
 pnpm cloud:build:web             # build static Astro site
 ```
 
