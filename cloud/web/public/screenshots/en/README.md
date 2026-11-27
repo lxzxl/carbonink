@@ -1,40 +1,42 @@
 # English-UI screenshots
 
-`cloud/web/src/components/Hero.astro` + `ScreenshotGallery.astro` pick
-from this directory when rendering at `lang="en"` (the `/en/*` route
-family). `Base.astro` also pulls `dashboard.png` from here for the
-OG/Twitter card preview when sharing `/en/` links.
+`cloud/web/src/components/Hero.astro` and `ScreenshotGallery.astro` read from
+this directory when rendering `lang="en"` (the apex `/` route family). `Base.astro`
+also uses `dashboard.png` from here for Open Graph / Twitter card previews when
+sharing English pages.
 
-Mirrors the directory above (`../`) exactly — same five filenames:
+This directory mirrors `../` (Simplified Chinese, used under `/zh/`) with the same
+seven `1400×900` screenshots:
 
+```text
+dashboard.png  sources.png  documents.png  questionnaires.png
+supplier-disclosures.png  activity-import.png  reports.png
 ```
-dashboard.png  documents.png  questionnaires.png  reports.png  sources.png
+
+## How to regenerate (CarbonInk 2.0)
+
+Screenshots are captured from the real CarbonInk 2.0 native macOS desktop app
+using `app/marketing_screenshots_test.go`, seeded with locale-native fixtures and
+a local mock LLM server (no network calls required):
+
+```bash
+cd app && go tool nsgo test -target macos -env CARBONINK_CAPTURE_SCREENSHOTS=1 -screenshots .nsgo/marketing-shots -run TestCaptureMarketingScreenshots .
 ```
 
-## Why these files initially look identical to the zh ones
+Because macOS Retina captures at `2800×1800`, resize to `1400×900` before
+copying into place:
 
-This directory was scaffolded with **copies of the zh screenshots** as
-placeholders, so the EN marketing page never 404s. They look "Chinese"
-because they are — initial placeholder content, NOT real English UI.
-
-The wiring is in place. Once real English-UI screenshots replace these
-files, the EN marketing page automatically picks them up — no code
-change needed.
-
-## How to regenerate
-
-The screenshots currently in this directory were captured from the 1.x
-Electron e2e tour (`archive/v1-electron` branch, `tour.spec.ts` with
-`TOUR_LOCALE=en`). Keep the five filenames below in sync when refreshing
-screenshots from CarbonInk 2.0 (`app/`):
-
-```
-dashboard.png  sources.png  documents.png  questionnaires.png  reports.png
+```bash
+sips -z 900 1400 app/.nsgo/marketing-shots/*/*.png
+cp app/.nsgo/marketing-shots/en/*.png cloud/web/public/screenshots/en/
+cp app/.nsgo/marketing-shots/zh/*.png cloud/web/public/screenshots/
+rm -rf app/.nsgo/marketing-shots
 ```
 
 ## Sanity checks after replacing
 
-- Local: `pnpm --filter @carbonink-cloud/web dev` → open
-  http://localhost:4321/en/ → hero + gallery should show English UI.
-- Built: `pnpm --filter @carbonink-cloud/web build` → grep
-  `dist/client/en/index.html` for `/screenshots/en/dashboard.png`.
+- Local: `pnpm --filter @carbonink-cloud/web dev` → inspect `http://localhost:4321/`
+  (English) and `http://localhost:4321/zh/` (Simplified Chinese).
+- Built: `pnpm cloud:build:web` → verify `dist/client/index.html` references
+  `/screenshots/en/dashboard.png` and `dist/client/zh/index.html` references
+  `/screenshots/dashboard.png`.

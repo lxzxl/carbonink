@@ -18,23 +18,26 @@
  * reserves the slot during load so CLS stays at zero on slow conns.
  */
 
+import { APP_VERSION } from '../lib/app-version';
+
 const { lang } = Astro.props as { lang: 'zh-CN' | 'en' };
 const isZh = lang === 'zh-CN';
+const version = `v${APP_VERSION}`;
 
 const tx = isZh
   ? {
-      badge: '本地运行 · 数据不上云',
+      badge: `${version} · 原生桌面端 · 数据不上云`,
       h1: '把碳核算搬到桌面端',
-      sub: '完全离线运行，数据不出内网。AI 帮你做数据工程，一键出 ISO 14064-1 报告。',
+      sub: '轻量原生应用（~16 MB），完全离线运行、数据不出内网。AI 帮你做单据与台账数据工程，一键出 ISO 14064-1 与 TCFD 报告。',
       cta1: '免费下载',
       cta2: 'GitHub 源码',
       windowTitle: '碳墨 — 2025 年度 GHG 盘查',
       screenshotAlt: '碳墨桌面端：2025 年度 GHG 盘查仪表盘截图',
     }
   : {
-      badge: 'Local-first · Your data stays on device',
+      badge: `${version} · Native desktop · Data stays on device`,
       h1: 'Carbon accounting on your desktop. No spreadsheets. No cloud.',
-      sub: 'Runs entirely on your machine. AI extracts emission data from your bills. One-click ISO 14064-1 inventory report.',
+      sub: 'Lightweight native app (~16 MB) that runs entirely on your machine. AI extracts data from bills and ledgers; one click exports ISO 14064-1 & TCFD reports.',
       cta1: 'Download free',
       cta2: 'View source',
       windowTitle: 'CarbonInk — 2025 Annual GHG Inventory',

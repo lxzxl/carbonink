@@ -31,7 +31,7 @@ const tx = isZh
     }
   : {
       brand: 'CarbonInk',
-      tagline: 'Local GHG accounting for factories',
+      tagline: 'Local-first GHG accounting for the desktop',
       links: [
         { label: 'Source', href: 'https://github.com/lxzxl/carbonink' },
         { label: 'Download', href: '/download/' },
@@ -69,6 +69,7 @@ const swapHref = isZh
     <div class="flex items-center gap-3">
       <a
         href={swapHref}
+        data-locale-target={isZh ? 'en' : 'zh-CN'}
         class="text-xs border border-border rounded px-2.5 py-1 text-muted-foreground hover:text-foreground transition-colors"
       >
         {tx.langLabel}

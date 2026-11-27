@@ -1,9 +1,8 @@
 ---
 /**
- * Differentiators — three moss-iconned cards covering local-first,
- * AI-as-data-engineer, and "calc + fill in one ledger". The three
- * concrete USPs that separate carbonbook from spreadsheet + cloud
- * SaaS alternatives.
+ * Differentiators — four moss-iconned cards in a 2×2 grid covering native
+ * local-first execution, AI data engineering + MCP, bidirectional
+ * disclosures, and audit-grade lineage + multi-client workspaces.
  */
 
 const { lang } = Astro.props as { lang: 'zh-CN' | 'en' };
@@ -14,18 +13,52 @@ const tx = isZh
       label: '核心优势',
       title: '为什么选碳墨',
       items: [
-        { icon: 'monitor', title: '完全离线', body: '数据不上云，不怕泄露。碳核算数据是企业核心资产。' },
-        { icon: 'bot', title: 'AI 做数据工程', body: '扫单据、导台账，批量出数字。告别手工录入和 Excel 拼凑。' },
-        { icon: 'book', title: '核算 + 填报一体', body: '同一个软件算完填客户问卷、收供应商披露；供应商零账户、零注册，回封邮件就行。' },
+        {
+          icon: 'monitor',
+          title: '轻量原生 · 完全离线',
+          body: '原生 macOS 与 Windows 应用（安装包约 15–18 MB，支持自动更新）。数据全部保存在本地 SQLite，无云端同步、无需账号，不怕泄露。',
+        },
+        {
+          icon: 'bot',
+          title: 'AI 做数据工程 + MCP',
+          body: '单据批量解析、整表台账导入按组匹配因子，自带 OpenAI / Anthropic / Google Gemini / DeepSeek / Moonshot API key。内置 MCP 服务与 Agent Skill，让 Claude、Cursor 直连本地清单。',
+        },
+        {
+          icon: 'book',
+          title: '核算 + 双向披露一体',
+          body: '自动回填客户披露问卷并展示 AI 推理调用链；支持向供应商收集 Scope 3（Cat 1 / 4 / 5 / 6 及自定义模板、Tier 1–3），供应商零账户零注册，xlsx 邮件往返即可。',
+        },
+        {
+          icon: 'shield',
+          title: '可核查溯源 · 顾问多账套',
+          body: '每条排放均可点击追溯原始单据与冻结排放因子快照；提供发布前就绪检查、白标封面 Logo、SHA-256 证据交付包，以及一客户一独立 SQLite 账套隔离。',
+        },
       ],
     }
   : {
       label: 'Why CarbonInk',
       title: 'Built different by design',
       items: [
-        { icon: 'monitor', title: 'Single-machine', body: 'Your data never leaves your computer. Carbon data is a core enterprise asset.' },
-        { icon: 'bot', title: 'AI as data engineer', body: 'Scan bills or import whole ledgers — emission figures in bulk. No manual entry, no spreadsheet patchwork.' },
-        { icon: 'book', title: 'Calc + fill in one ledger', body: 'Calculate, fill customer questionnaires, and collect supplier disclosures in one tool — suppliers just reply by email, no accounts.' },
+        {
+          icon: 'monitor',
+          title: 'Native desktop · Fully offline',
+          body: 'Native macOS & Windows app (~15–18 MB installers, built-in auto-updates). Everything stays in local SQLite on your device — zero cloud, zero accounts.',
+        },
+        {
+          icon: 'bot',
+          title: 'AI data engineering + MCP',
+          body: 'Batch-extract bills and import whole xlsx/csv ledgers with BYOK (OpenAI, Anthropic, Google Gemini, DeepSeek, Moonshot). Built-in MCP server & Agent Skill connect Claude and Cursor directly to your inventory.',
+        },
+        {
+          icon: 'book',
+          title: 'Outbound & inbound disclosures',
+          body: 'Auto-fill customer questionnaires with inspectable AI agent traces, and collect supplier Scope 3 data across Cat 1 / 4 / 5 / 6 or custom templates (Tier 1–3) via zero-account xlsx email round-trips.',
+        },
+        {
+          icon: 'shield',
+          title: 'Audit lineage & multi-client',
+          body: 'Every figure traces back to source documents and pinned EF snapshots — plus pre-export readiness checks, custom report logos, SHA-256 auditor deliverable ZIPs, and isolated SQLite workspaces per client.',
+        },
       ],
     };
 ---
@@ -33,7 +66,7 @@ const tx = isZh
   <div class="max-w-6xl mx-auto">
     <p class="text-xs font-medium text-primary uppercase tracking-widest mb-3">{tx.label}</p>
     <h2 class="text-2xl md:text-3xl font-semibold tracking-tight mb-10">{tx.title}</h2>
-    <div class="grid md:grid-cols-3 gap-6">
+    <div class="grid md:grid-cols-2 gap-6">
       {tx.items.map((item) => (
         <div class="bg-background border border-border rounded-lg p-6">
           {item.icon === 'monitor' && (
@@ -56,6 +89,12 @@ const tx = isZh
             <svg class="w-5 h-5 text-moss-500 mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
               <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+            </svg>
+          )}
+          {item.icon === 'shield' && (
+            <svg class="w-5 h-5 text-moss-500 mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              <polyline points="9 12 11 14 15 10" />
             </svg>
           )}
           <h3 class="font-semibold text-[15px] mb-2">{item.title}</h3>

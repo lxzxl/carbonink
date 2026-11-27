@@ -1,6 +1,7 @@
 ---
 import Footer from '../components/Footer.astro';
 import Nav from '../components/Nav.astro';
+import { APP_VERSION } from '../lib/app-version';
 import '../styles/global.css';
 
 const { title, lang = 'zh-CN', description } = Astro.props as {
@@ -10,8 +11,8 @@ const { title, lang = 'zh-CN', description } = Astro.props as {
 };
 
 const defaultDesc = lang === 'zh-CN'
-  ? '碳墨（CarbonInk）是免费开源的桌面碳核算 / 碳盘查软件，完全离线运行、数据不出内网。AI 解析票据单据，一键导出 ISO 14064-1 温室气体盘查报告。'
-  : 'Free, open-source carbon accounting software for macOS & Windows. Fully offline: AI extracts data from your bills, one click exports an ISO 14064-1 GHG report.';
+  ? '碳墨（CarbonInk）是免费开源的原生桌面碳核算 / 碳盘查软件，完全离线运行、数据不出内网。AI 解析票据与台账，一键导出 ISO 14064-1 盘查报告与 TCFD 披露。'
+  : 'Free, open-source native desktop carbon accounting software for macOS & Windows. Runs offline on local SQLite: AI extracts bills, batch-imports ledgers, and exports ISO 14064-1 & TCFD reports.';
 
 // Canonical URL + OG image URL — we use carbonink.xyz as the
 // public origin. The OG image reuses the hero's dashboard screenshot
@@ -61,11 +62,15 @@ const structuredData = {
   name: 'CarbonInk',
   alternateName: '碳墨',
   description: defaultDesc,
+  softwareVersion: APP_VERSION,
   url: 'https://carbonink.xyz',
+  downloadUrl: 'https://carbonink.xyz/download/',
   image: ogImage,
   applicationCategory: 'BusinessApplication',
   applicationSubCategory: 'GHG accounting',
   operatingSystem: 'macOS, Windows',
+  softwareRequirements: 'macOS 13+ or Windows 10/11 (64-bit)',
+  license: 'https://opensource.org/licenses/MIT',
   inLanguage: ['zh-CN', 'en'],
   offers: {
     '@type': 'Offer',
@@ -85,15 +90,14 @@ const structuredData = {
 // `publisher` inside SoftwareApplication. Google reads them
 // differently: the embedded one only links the app back to its
 // publisher; this top-level Organization entity is what builds the
-// Knowledge Panel (logo, contact, social links). Empty `sameAs`
-// for now; once social profiles exist (GitHub, X, LinkedIn, 知乎),
-// add them here and Google will start showing them in the panel.
+// Knowledge Panel (logo, contact, social profiles).
 const organizationData = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
   name: 'CarbonInk',
   alternateName: '碳墨',
   url: 'https://carbonink.xyz',
+  sameAs: ['https://github.com/lxzxl/carbonink'],
   logo: {
     '@type': 'ImageObject',
     url: 'https://carbonink.xyz/favicon.svg',

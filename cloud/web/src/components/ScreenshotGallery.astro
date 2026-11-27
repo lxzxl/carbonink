@@ -32,32 +32,32 @@ const tx = isZh
         {
           src: `${shotDir}/documents.png`,
           title: 'AI 识别单据',
-          body: '电费单、燃料发票、运输单据上传即解析。AI 抽数据，你只确认。',
+          body: '电费单、燃料发票、货运差旅单据支持单份与批量排队识别，扫描件自动走视觉模型；AI 抽数据，人工复核后入账。',
         },
         {
           src: `${shotDir}/questionnaires.png`,
-          title: '问卷自动填报',
-          body: '一份核算数据，自动回填客户的 CDP / TCFD 问卷。',
+          title: '问卷自动填报与推理过程',
+          body: '由本地盘查清单自动回填客户 CDP / ESG 问卷，可展开查看 AI 回答调用的工具链，定稿冻结后导出回填 xlsx 或 PDF。',
         },
         {
           src: `${shotDir}/sources.png`,
           title: '排放源 + 排放因子库',
-          body: 'IPCC / ECOINVENT 排放因子内置；可自建私有 EF 库。',
+          body: '内置 IPCC AR6 / DEFRA / US EPA / 中国生态环境部排放因子；支持导入和检索自有 .xlsx / .csv 排放因子库。',
         },
         {
           src: `${shotDir}/supplier-disclosures.png`,
           title: '供应商披露收集',
-          body: '向上游收 Scope 3 数据：xlsx 邮件往返、逾期红字提醒，供应商零账户零注册。',
+          body: '覆盖 Scope 3 Cat 1 / 4 / 5 / 6 与自定义模板，支持 Tier 1 采购量反推与 Tier 3 因子排序；xlsx 邮件往返、逾期红字提醒，供应商零账户零注册。',
         },
         {
           src: `${shotDir}/activity-import.png`,
           title: '台账批量导入',
-          body: 'xlsx / csv 整表导入，排放因子分组确认——几千行只拍板几十次，数字仍人工把关。',
+          body: 'xlsx / csv 整表导入，中英文表头自动映射、异常值检测、排放因子按组推荐与人工拍板——几千行只需几十次确认。',
         },
         {
           src: `${shotDir}/reports.png`,
           title: '盘查 + 披露报告',
-          body: 'ISO 14064-1 盘查报告与 TCFD 四支柱披露一键导出；附完整公式、引用与版本号。',
+          body: 'ISO 14064-1 盘查报告与 TCFD 四支柱披露一键导出 PDF + Excel，含就绪检查、白标封面 Logo 与 SHA-256 核查交付包。',
         },
       ],
     }
@@ -69,32 +69,32 @@ const tx = isZh
         {
           src: `${shotDir}/documents.png`,
           title: 'AI bill extraction',
-          body: 'Upload electricity bills, fuel invoices, freight records. AI extracts; you confirm.',
+          body: 'Extract utility bills, fuel receipts, freight, and travel docs singly or in a batch queue with vision fallback — AI proposes, you confirm.',
         },
         {
           src: `${shotDir}/questionnaires.png`,
           title: 'Fill customer questionnaires',
-          body: 'Inventory data auto-populates CDP / TCFD questionnaires for your customers.',
+          body: 'Auto-populate customer disclosures from your inventory with an inspectable Answer Agent trace drawer, finalized snapshots, and xlsx / PDF export.',
         },
         {
           src: `${shotDir}/sources.png`,
           title: 'Emission sources + EF library',
-          body: 'IPCC / ECOINVENT factors built-in; private EF library supported.',
+          body: 'Built-in IPCC AR6, DEFRA, US EPA eGRID, and China MEE factors; import and search your own custom .xlsx / .csv EF libraries.',
         },
         {
           src: `${shotDir}/supplier-disclosures.png`,
           title: 'Supplier disclosure collection',
-          body: 'Collect Scope 3 data upstream: xlsx email round-trip, overdue flags in red — zero supplier accounts.',
+          body: 'Scope 3 Cat 1 / 4 / 5 / 6 and custom templates supporting Tier 1–3 (quantity inference + EF ranking), overdue flags in red, and zero supplier accounts.',
         },
         {
           src: `${shotDir}/activity-import.png`,
           title: 'Batch ledger import',
-          body: 'Whole xlsx/csv ledgers in one pass; emission factors confirmed per group — thousands of rows, a few dozen human decisions.',
+          body: 'Import whole xlsx / csv ledgers with bilingual column mapping, anomaly checks, and group-level human-confirmed emission-factor matching.',
         },
         {
           src: `${shotDir}/reports.png`,
           title: 'Inventory & disclosure reports',
-          body: 'One-click ISO 14064-1 inventory and TCFD four-pillar disclosure export, with full calculations, citations, and version stamp.',
+          body: 'ISO 14064-1 and TCFD four-pillar reports with editable narratives, readiness checks, custom report logo, PDF + Excel, and SHA-256 auditor deliverable ZIPs.',
         },
       ],
     };

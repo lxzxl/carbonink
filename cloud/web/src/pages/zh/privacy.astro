@@ -12,7 +12,7 @@ import Base from '../../layouts/Base.astro';
     <div class="max-w-3xl mx-auto">
       <h1 class="text-3xl md:text-4xl font-semibold tracking-tight mb-2">隐私政策</h1>
       <p class="text-sm text-muted-foreground mb-10" style="font-family: var(--font-mono);">
-        生效日期：2026-07-03
+        生效日期：2026-11-27
       </p>
 
       <div class="space-y-8 text-[15px] leading-relaxed text-foreground">
@@ -28,14 +28,15 @@ import Base from '../../layouts/Base.astro';
           <h2 class="text-xl font-semibold mb-3">云端只知道什么</h2>
           <p class="text-muted-foreground">
             基本上什么都不知道。碳墨是免费开源软件——没有账户、没有激活、没有许可证服务器。你下载应用直接运行即可；
-            唯一的云端就是这个介绍站，加上你下载安装包的 GitHub Release。
+            涉及的网络请求仅限本介绍站、你下载安装包的 GitHub Release，以及可选的内置软件更新检查（仅从 GitHub Releases 拉取公开版本元数据，不发送任何盘查数据或设备标识）。
           </p>
         </section>
 
         <section>
           <h2 class="text-xl font-semibold mb-3">第三方</h2>
           <p class="text-muted-foreground">
-            没有支付、没有登录、不接触任何卡信息。本网站使用 Cloudflare Web Analytics 做聚合访问统计——
+            没有支付、没有登录、不接触任何卡信息。当你配置自己的 API Key（BYOK）使用 AI 单据解析、报告撰写或问卷作答时，
+            请求会从你的设备直连你指定的模型服务商接口（不经过碳墨任何中转服务器）。本网站使用 Cloudflare Web Analytics 做聚合访问统计——
             不设 Cookie、不做跨站跟踪或指纹识别、不记录任何可识别个人身份的信息。没有 Google
             Analytics、没有 Mixpanel、没有广告技术。桌面应用本身不发送任何统计数据。
           </p>

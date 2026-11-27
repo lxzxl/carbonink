@@ -13,18 +13,18 @@ const tx = isZh
       label: '工作流程',
       title: '三步完成碳盘查',
       steps: [
-        { num: '01', title: '上传单据', body: '上传电费单、燃料发票、运输单据（PDF / Excel / 图片均可）' },
-        { num: '02', title: 'AI 提取 + 匹配排放因子', body: 'AI 自动识别数据，关联 IPCC / ECOINVENT 排放因子' },
-        { num: '03', title: '导出报告', body: '一键生成符合 ISO 14064-1 的盘查报告（PDF + Excel）' },
+        { num: '01', title: '上传单据或导入台账', body: '上传电费单、燃料发票、货运差旅单据（PDF / 图片），或整表导入 Excel / CSV 活动台账。' },
+        { num: '02', title: 'AI 提取 + 确认排放因子', body: 'AI 自动识别数据，关联内置 IPCC / DEFRA / EPA / 生态环境部或自有排放因子，人工确认后冻结快照。' },
+        { num: '03', title: '导出报告与核查交付包', body: '一键生成 ISO 14064-1 盘查报告与 TCFD 气候披露（PDF + Excel + SHA-256 证据交付包）。' },
       ],
     }
   : {
       label: 'How it works',
       title: 'Three steps to a full inventory',
       steps: [
-        { num: '01', title: 'Upload bills', body: 'Upload utility bills, fuel invoices, logistics records — PDF, Excel, or images.' },
-        { num: '02', title: 'AI extracts + matches EFs', body: 'AI reads the data and matches to IPCC / ECOINVENT emission factors automatically.' },
-        { num: '03', title: 'Export report', body: 'One-click ISO 14064-1 inventory report in PDF and Excel.' },
+        { num: '01', title: 'Upload bills or ledgers', body: 'Drop utility bills, fuel invoices, and freight records (PDF / images), or import whole Excel / CSV activity ledgers.' },
+        { num: '02', title: 'AI extracts + pins EFs', body: 'AI reads the data and matches built-in IPCC / DEFRA / EPA / MEE or your custom EF libraries — human-confirmed and snapshot-pinned.' },
+        { num: '03', title: 'Export reports & audit bundle', body: 'One-click ISO 14064-1 inventory and TCFD climate reports (PDF, Excel, and SHA-256 auditor deliverable ZIP).' },
       ],
     };
 ---

@@ -214,6 +214,13 @@ func (s *Session) questionnairesScreen(cx *core.Scope, dataRev *core.Signal[int]
 		} else {
 			content = append(content, core.View{Style: core.Style{Gap: 0}, Children: nodes})
 		}
+		filterItems := make([]core.Node, 0, len(chips)+1)
+		filterItems = append(filterItems, chips...)
+		filterItems = append(filterItems, core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+			Gap: 8, AutoMargin: core.SideLeft}, Children: []core.Node{
+			sortMenu(cx, orderOptions, filters.order.Get, filters.order.Set,
+				"questionnaires-sort"),
+		}})
 		filtersNode := core.View{Style: core.Style{Padding: core.Symmetric(12, 16),
 			Gap: 8, Borders: core.Edges{Bottom: 1}}, StyleFunc: func() core.Style {
 			return core.Style{BorderColor: ui.ColorsOf(cx).Line()}
@@ -222,15 +229,7 @@ func (s *Session) questionnairesScreen(cx *core.Scope, dataRev *core.Signal[int]
 				locales.QuestionnairesSearchPlaceholder(cx),
 				filters.search.Set, "questionnaires-search"),
 			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
-				Wrap: core.Wrap, Gap: 4}, Children: []core.Node{
-				core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
-					Wrap: core.Wrap, Gap: 4}, Children: chips},
-				core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
-					Gap: 8, AutoMargin: core.SideLeft}, Children: []core.Node{
-					sortMenu(cx, orderOptions, filters.order.Get, filters.order.Set,
-						"questionnaires-sort"),
-				}},
-			}},
+				Wrap: core.Wrap, Gap: 4}, Children: filterItems},
 		}}
 		scroll := core.Scroll{Style: core.Style{FlexGrow: 1, FlexShrink: 1,
 			MinHeight: core.Pt(0)}, Children: []core.Node{core.View{

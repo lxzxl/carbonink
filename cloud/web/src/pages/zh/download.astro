@@ -27,6 +27,26 @@ const version = `v${APP_VERSION}`;
       </p>
 
       <DownloadButtons lang="zh-CN" />
+
+      <div class="border border-border rounded-lg p-5 bg-muted/30 text-left mt-8">
+        <h2 class="font-semibold text-sm text-foreground mb-2">从碳墨 1.x 升级到 2.0？</h2>
+        <ul class="text-xs text-muted-foreground space-y-1.5 leading-relaxed list-disc pl-4">
+          <li>1.x（Electron）无法直接在线升级至 2.0，请从上方下载并安装一次 2.0 安装包。</li>
+          <li>首次启动 2.0 时会自动以只读方式复制原有 1.x 账套、SQLite 数据库、上传文件与备份（不修改原目录）。</li>
+          <li>AI 服务商配置会自动保留，只需在 <strong>设置 → AI 服务</strong> 中重新输入一次 API 密钥即可。</li>
+        </ul>
+      </div>
+
+      <p class="mt-6 text-xs text-muted-foreground">
+        <a
+          href="https://github.com/lxzxl/carbonink/releases/latest"
+          target="_blank"
+          rel="noopener"
+          class="text-moss-600 hover:text-moss-700 font-medium transition-colors"
+        >
+          在 GitHub 查看版本更新日志与 SHA-256 校验和 →
+        </a>
+      </p>
     </div>
   </section>
 </Base>

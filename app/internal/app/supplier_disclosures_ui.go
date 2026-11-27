@@ -252,6 +252,13 @@ func (s *Session) supplierDisclosuresScreen(cx *core.Scope, dataRev *core.Signal
 		} else {
 			content = append(content, core.View{Style: core.Style{Gap: 0}, Children: nodes})
 		}
+		filterItems := make([]core.Node, 0, len(chips)+1)
+		filterItems = append(filterItems, chips...)
+		filterItems = append(filterItems, core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+			Gap: 8, AutoMargin: core.SideLeft}, Children: []core.Node{
+			sortMenu(cx, orderOptions, filters.order.Get, filters.order.Set,
+				"supplier-disclosures-sort"),
+		}})
 		filtersNode := core.View{Style: core.Style{Padding: core.Symmetric(12, 16),
 			Gap: 8, Borders: core.Edges{Bottom: 1}}, StyleFunc: func() core.Style {
 			return core.Style{BorderColor: ui.ColorsOf(cx).Line()}
@@ -260,15 +267,7 @@ func (s *Session) supplierDisclosuresScreen(cx *core.Scope, dataRev *core.Signal
 				locales.SupplierDisclosuresSearchPlaceholder(cx),
 				filters.search.Set, "supplier-disclosures-search"),
 			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
-				Wrap: core.Wrap, Gap: 4}, Children: []core.Node{
-				core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
-					Wrap: core.Wrap, Gap: 4}, Children: chips},
-				core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
-					Gap: 8, AutoMargin: core.SideLeft}, Children: []core.Node{
-					sortMenu(cx, orderOptions, filters.order.Get, filters.order.Set,
-						"supplier-disclosures-sort"),
-				}},
-			}},
+				Wrap: core.Wrap, Gap: 4}, Children: filterItems},
 		}}
 		scroll := core.Scroll{Style: core.Style{FlexGrow: 1, FlexShrink: 1,
 			MinHeight: core.Pt(0)}, Children: []core.Node{core.View{
@@ -902,9 +901,12 @@ func (d *supplierDetail) dialog(cx *core.Scope, s *Session, dataRev *core.Signal
 				}},
 			core.Dynamic(func(cx *core.Scope) core.Node {
 				_ = d.rev.Get()
+				kind := d.templateKind.Get()
+				year := d.year.Get()
 				nodes := make([]core.Node, 0, len(d.questions))
 				for index, question := range d.questions {
-					nodes = append(nodes, supplierQuestionRow(cx, index, index < len(d.questions)-1, question))
+					nodes = append(nodes, supplierQuestionRow(cx, index, index < len(d.questions)-1,
+						question, kind, year))
 				}
 				return core.View{Style: core.Style{Gap: 0, Overflow: core.Hidden},
 					StyleFunc: cardSurface(cx), Children: nodes}
@@ -923,10 +925,26 @@ func (d *supplierDetail) dialog(cx *core.Scope, s *Session, dataRev *core.Signal
 	})
 }
 
-func supplierQuestionRow(cx *core.Scope, index int, bottomBorder bool, q store.Question) core.Node {
-	text := q.RawText
+func supplierQuestionRow(cx *core.Scope, index int, bottomBorder bool,
+	q store.Question, templateKind string, year int) core.Node {
+	yearStr := ""
+	if year > 0 {
+		yearStr = strconv.Itoa(year)
+	}
+	text := ""
+	if t, ok := inbound.TemplateByKind(templateKind); ok {
+		if tq, ok := t.QuestionByPosition(q.Position); ok {
+			text = supplierQuestionText(cx.Env().Locale(), tq, yearStr)
+		}
+	}
 	if strings.TrimSpace(text) == "" {
-		text = q.NormalizedText
+		text = q.RawText
+		if strings.TrimSpace(text) == "" {
+			text = q.NormalizedText
+		}
+		if yearStr != "" {
+			text = strings.ReplaceAll(text, "{{period_year}}", yearStr)
+		}
 	}
 	answer := locales.SupplierDisclosuresDetailUnanswered(cx)
 	if q.Answered() {

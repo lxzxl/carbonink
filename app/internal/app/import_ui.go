@@ -3,6 +3,8 @@ package app
 import (
 	"context"
 	"io"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -135,45 +137,54 @@ func (s *Session) activityImportDialogPartsWithShow(cx *core.Scope,
 		reset()
 		open.Set(true)
 	}
+	applyFiles := func(files []core.File, err error) {
+		if err != nil || len(files) == 0 {
+			w.status.Set(locales.ActivityImportPickFailed(cx))
+			w.rev.Set(w.rev.Get() + 1)
+			return
+		}
+		file := files[0]
+		reader, err := file.Open()
+		if err != nil {
+			w.status.Set(locales.ActivityImportPickFailed(cx))
+			w.rev.Set(w.rev.Get() + 1)
+			return
+		}
+		defer reader.Close()
+		data, err := io.ReadAll(io.LimitReader(reader, activityimport.MaxFileBytes+1))
+		if err != nil || len(data) > activityimport.MaxFileBytes {
+			w.status.Set(locales.ActivityImportPickFailed(cx))
+			w.rev.Set(w.rev.Get() + 1)
+			return
+		}
+		grid, err := activityimport.ParseFile(data, file.Name)
+		if err != nil {
+			w.status.Set(locales.ActivityImportPickFailed(cx) + ": " + err.Error())
+			w.rev.Set(w.rev.Get() + 1)
+			return
+		}
+		w.grid = &grid
+		w.data = data
+		w.filename = file.Name
+		w.mapping = activityimport.AutoMap(grid.Headers)
+		w.valid = activityimport.Validate(grid.Rows, w.mapping, s.importPeriodBounds(w.periodID.Get()))
+		w.sourceIDs = s.importSourceSignals(cx, w.valid)
+		w.status.Set("")
+		w.rev.Set(w.rev.Get() + 1)
+	}
 	pick := func() {
+		// In native -target tests PickFiles opens an OS modal, so mirror the
+		// CARBONINK_TEST_DB convention with an explicit test fixture path.
+		if os.Getenv("CARBONINK_TEST_DB") != "" {
+			if testPath := os.Getenv("CARBONINK_TEST_IMPORT_FILE"); testPath != "" {
+				applyFiles([]core.File{{Name: filepath.Base(testPath), Path: testPath}}, nil)
+				return
+			}
+		}
 		cx.PickFiles(core.PickFilesOptions{
 			Types: []string{".csv", ".xlsx"}, Title: locales.ActivityImportTitle(cx),
 			Button: locales.ActivityImportPickButton(cx),
-		}, func(files []core.File, err error) {
-			if err != nil || len(files) == 0 {
-				w.status.Set(locales.ActivityImportPickFailed(cx))
-				w.rev.Set(w.rev.Get() + 1)
-				return
-			}
-			file := files[0]
-			reader, err := file.Open()
-			if err != nil {
-				w.status.Set(locales.ActivityImportPickFailed(cx))
-				w.rev.Set(w.rev.Get() + 1)
-				return
-			}
-			defer reader.Close()
-			data, err := io.ReadAll(io.LimitReader(reader, activityimport.MaxFileBytes+1))
-			if err != nil || len(data) > activityimport.MaxFileBytes {
-				w.status.Set(locales.ActivityImportPickFailed(cx))
-				w.rev.Set(w.rev.Get() + 1)
-				return
-			}
-			grid, err := activityimport.ParseFile(data, file.Name)
-			if err != nil {
-				w.status.Set(locales.ActivityImportPickFailed(cx) + ": " + err.Error())
-				w.rev.Set(w.rev.Get() + 1)
-				return
-			}
-			w.grid = &grid
-			w.data = data
-			w.filename = file.Name
-			w.mapping = activityimport.AutoMap(grid.Headers)
-			w.valid = activityimport.Validate(grid.Rows, w.mapping, s.importPeriodBounds(w.periodID.Get()))
-			w.sourceIDs = s.importSourceSignals(cx, w.valid)
-			w.status.Set("")
-			w.rev.Set(w.rev.Get() + 1)
-		})
+		}, applyFiles)
 	}
 
 	title := locales.ActivityImportTitle(cx)

@@ -466,11 +466,12 @@ func (s *Session) reportsScreen(cx *core.Scope, dataRev *core.Signal[int],
 					if cx.Env().Window().Width < 900 {
 						return core.Style{Gap: 10}
 					}
-					return core.Style{Direction: core.Row, AlignItems: core.AlignCenter, Gap: 12}
+					return core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+						Wrap: core.Wrap, Gap: 12}
 				},
 					Children: []core.Node{
 						core.View{Children: logoPreview(generated)},
-						core.View{Style: core.Style{Gap: 2, FlexGrow: 1}, Children: []core.Node{
+						core.View{Style: core.Style{Gap: 2, FlexGrow: 1, MinWidth: core.Pt(140)}, Children: []core.Node{
 							core.Text{Content: locales.ReportsPreviewHeading(cx),
 								Style: core.Style{FontSize: 14, FontWeight: ui.Semibold}},
 							core.Text{Content: locales.ReportsGeneratedAt(cx, generated.GeneratedAt),
@@ -478,7 +479,7 @@ func (s *Session) reportsScreen(cx *core.Scope, dataRev *core.Signal[int],
 								StyleFunc: ui.Colored(ui.ColorsOf(cx).Muted)},
 						}},
 						core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
-							Wrap: core.Wrap, Gap: 8}, Children: []core.Node{
+							Wrap: core.Wrap, Gap: 8, FlexShrink: 1, MinWidth: core.Pt(0)}, Children: []core.Node{
 							ui.Button{Text: locales.ReportsExportPdfButton(cx), Variant: ui.ButtonOutline,
 								OnPress: func() { export("pdf") }, Busy: state.exportBusy.Get,
 								TestID: "reports-export-pdf"},

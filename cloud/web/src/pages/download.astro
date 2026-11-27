@@ -30,6 +30,26 @@ const version = `v${APP_VERSION}`;
       </p>
 
       <DownloadButtons lang="en" />
+
+      <div class="border border-border rounded-lg p-5 bg-muted/30 text-left mt-8">
+        <h2 class="font-semibold text-sm text-foreground mb-2">Upgrading from CarbonInk 1.x?</h2>
+        <ul class="text-xs text-muted-foreground space-y-1.5 leading-relaxed list-disc pl-4">
+          <li>1.x (Electron) cannot auto-update into 2.0 in place — install the 2.0 build once above.</li>
+          <li>On first launch, 2.0 automatically copies your 1.x workspaces, SQLite databases, uploads, and backups read-only (leaving 1.x untouched).</li>
+          <li>Provider metadata carries over; re-enter your LLM API key once in <strong>Settings → AI provider</strong>.</li>
+        </ul>
+      </div>
+
+      <p class="mt-6 text-xs text-muted-foreground">
+        <a
+          href="https://github.com/lxzxl/carbonink/releases/latest"
+          target="_blank"
+          rel="noopener"
+          class="text-moss-600 hover:text-moss-700 font-medium transition-colors"
+        >
+          View release notes & SHA-256 checksums on GitHub →
+        </a>
+      </p>
     </div>
   </section>
 </Base>

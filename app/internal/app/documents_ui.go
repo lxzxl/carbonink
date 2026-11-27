@@ -316,16 +316,15 @@ func (s *Session) documentFilterRow(cx *core.Scope, filters *documentFilters) co
 				filters.status.Set("")
 			}})
 	}
+	filterItems := make([]core.Node, 0, len(chips)+1)
+	filterItems = append(filterItems, chips...)
+	filterItems = append(filterItems, core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
+		Gap: 8, AutoMargin: core.SideLeft}, Children: right})
 	return core.View{Style: core.Style{Gap: 8}, Children: []core.Node{
 		searchField(cx, filters.search.Get, locales.DocumentsSearchPlaceholder(cx),
 			filters.search.Set, "documents-search"),
 		core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
-			Wrap: core.Wrap, Gap: 4}, Children: []core.Node{
-			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
-				Wrap: core.Wrap, Gap: 4}, Children: chips},
-			core.View{Style: core.Style{Direction: core.Row, AlignItems: core.AlignCenter,
-				Gap: 8, AutoMargin: core.SideLeft}, Children: right},
-		}},
+			Wrap: core.Wrap, Gap: 4}, Children: filterItems},
 	}}
 }
 
