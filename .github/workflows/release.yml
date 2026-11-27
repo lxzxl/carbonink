@@ -37,11 +37,14 @@ jobs:
         run: brew install makensis
 
       - name: Import optional macOS signing certificate
-        if: ${{ secrets.NSGO_MAC_CERT_P12 != '' && secrets.NSGO_MAC_CERT_PASSWORD != '' }}
         env:
           NSGO_MAC_CERT_P12: ${{ secrets.NSGO_MAC_CERT_P12 }}
           NSGO_MAC_CERT_PASSWORD: ${{ secrets.NSGO_MAC_CERT_PASSWORD }}
         run: |
+          if [ -z "$NSGO_MAC_CERT_P12" ] || [ -z "$NSGO_MAC_CERT_PASSWORD" ]; then
+            echo "Skipping macOS signing certificate import (credentials not configured)."
+            exit 0
+          fi
           KEYCHAIN_PATH="$RUNNER_TEMP/nsgo-signing.keychain-db"
           CERT_PATH="$RUNNER_TEMP/mac-cert.p12"
           KEYCHAIN_PASSWORD="$(uuidgen)"
