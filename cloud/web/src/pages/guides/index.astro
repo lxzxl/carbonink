@@ -13,7 +13,7 @@ const fmtDate = (d: Date) =>
 ---
 <Base
   title="Guides — carbon accounting, ISO 14064-1 & GHG inventories | CarbonInk"
-  description="Practical, standards-accurate guides to carbon accounting: building an ISO 14064-1 GHG inventory, ISO 14064-1 vs the GHG Protocol, inventory vs verification, and more."
+  description="Practical, standards-accurate carbon accounting guides: ISO 14064-1 inventories, GHG Protocol vs ISO, Scope 3 supplier data, and verification."
   lang="en"
 >
   <section class="chamber-surface bg-chamber text-chamber-foreground py-12 sm:py-14 px-5 sm:px-6 border-b-2 border-border-strong">
@@ -37,9 +37,9 @@ const fmtDate = (d: Date) =>
               class="group block px-5 sm:px-6 py-5 hover:bg-surface transition-colors"
             >
               <div class="flex flex-wrap items-center justify-between gap-2 mb-1.5">
-                <p class="font-display font-bold text-base text-foreground group-hover:text-primary transition-colors">
+                <h2 class="font-display font-bold text-base text-foreground group-hover:text-primary transition-colors">
                   {g.data.title}
-                </p>
+                </h2>
                 <span class="font-mono-num text-[11px] text-muted-foreground shrink-0">
                   {fmtDate(g.data.pubDate)}
                 </span>
