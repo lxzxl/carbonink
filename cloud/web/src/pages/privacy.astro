@@ -8,36 +8,49 @@ import Base from '../layouts/Base.astro';
   description="CarbonInk is local-first: all inventory data stays in a SQLite database on your device. No accounts, no tracking — cookieless aggregate visit counts only. The full privacy policy."
   lang="en"
 >
-  <section class="py-20 px-5">
+  <section class="chamber-surface bg-chamber text-chamber-foreground py-12 sm:py-14 px-5 sm:px-6 border-b-2 border-border-strong">
     <div class="max-w-3xl mx-auto">
-      <h1 class="text-3xl md:text-4xl font-semibold tracking-tight mb-2">Privacy Policy</h1>
-      <p class="text-sm text-muted-foreground mb-10" style="font-family: var(--font-mono);">
+      <h1 class="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-2">
+        Privacy Policy
+      </h1>
+      <p class="font-mono-num text-xs text-emerald-bright">
         Effective 2026-11-27
       </p>
+    </div>
+  </section>
 
-      <div class="space-y-8 text-[15px] leading-relaxed text-foreground">
-        <section>
-          <h2 class="text-xl font-semibold mb-3">We don't collect your inventory data</h2>
-          <p class="text-muted-foreground">
+  <section class="py-12 sm:py-16 px-5 sm:px-6">
+    <div class="max-w-3xl mx-auto bg-card border border-border border-t-2 border-t-border-strong divide-y divide-border">
+      <section class="p-6 sm:p-7 grid sm:grid-cols-[150px_minmax(0,1fr)] gap-2 sm:gap-6 items-baseline">
+        <div class="order-last sm:order-none mt-2 sm:mt-0 font-mono-num text-[11px] font-semibold text-ochre">LOCAL STORAGE</div>
+        <div>
+          <h2 class="font-display text-xl font-bold mb-2.5 text-foreground">We don't collect your inventory data</h2>
+          <p class="text-[15px] text-muted-foreground leading-relaxed">
             CarbonInk is a local-first desktop application. All inventory data — activity data, emission factors,
             report contents, questionnaire answers, AI conversations — lives only in the SQLite database on your
             device. The cloud never receives this content. No copies, no backups.
           </p>
-        </section>
+        </div>
+      </section>
 
-        <section>
-          <h2 class="text-xl font-semibold mb-3">What the cloud knows</h2>
-          <p class="text-muted-foreground">
+      <section class="p-6 sm:p-7 grid sm:grid-cols-[150px_minmax(0,1fr)] gap-2 sm:gap-6 items-baseline">
+        <div class="order-last sm:order-none mt-2 sm:mt-0 font-mono-num text-[11px] font-semibold text-ochre">CLOUD &amp; UPDATES</div>
+        <div>
+          <h2 class="font-display text-xl font-bold mb-2.5 text-foreground">What the cloud knows</h2>
+          <p class="text-[15px] text-muted-foreground leading-relaxed">
             Essentially nothing. CarbonInk is free and open-source — there's no account, no activation,
             and no license server. You download the app and run it; the only cloud touches are this marketing
             site, the GitHub release you download from, and optional built-in software update checks that fetch
             public release feed metadata from GitHub Releases without sending any inventory data or device identifiers.
           </p>
-        </section>
+        </div>
+      </section>
 
-        <section>
-          <h2 class="text-xl font-semibold mb-3">Third parties</h2>
-          <p class="text-muted-foreground">
+      <section class="p-6 sm:p-7 grid sm:grid-cols-[150px_minmax(0,1fr)] gap-2 sm:gap-6 items-baseline">
+        <div class="order-last sm:order-none mt-2 sm:mt-0 font-mono-num text-[11px] font-semibold text-ochre">BYOK &amp; ANALYTICS</div>
+        <div>
+          <h2 class="font-display text-xl font-bold mb-2.5 text-foreground">Third parties</h2>
+          <p class="text-[15px] text-muted-foreground leading-relaxed">
             No payments, no sign-in, no card details. When you configure your own API key (BYOK) for AI document
             extraction, narrative drafting, or questionnaire answering, requests travel directly from your device to
             the LLM provider endpoint you selected (never proxied through CarbonInk servers). This website uses
@@ -45,23 +58,29 @@ import Base from '../layouts/Base.astro';
             fingerprinting, and records nothing that identifies you as a person. There is no Google Analytics, no
             Mixpanel, no ad tech. The desktop app itself sends no analytics at all.
           </p>
-        </section>
+        </div>
+      </section>
 
-        <section>
-          <h2 class="text-xl font-semibold mb-3">Your data</h2>
-          <p class="text-muted-foreground">
+      <section class="p-6 sm:p-7 grid sm:grid-cols-[150px_minmax(0,1fr)] gap-2 sm:gap-6 items-baseline">
+        <div class="order-last sm:order-none mt-2 sm:mt-0 font-mono-num text-[11px] font-semibold text-ochre">YOUR CONTROL</div>
+        <div>
+          <h2 class="font-display text-xl font-bold mb-2.5 text-foreground">Your data</h2>
+          <p class="text-[15px] text-muted-foreground leading-relaxed">
             Everything you enter lives in a local database on your own machine. It is never uploaded. To
             clear it, delete the app's data directory.
           </p>
-        </section>
+        </div>
+      </section>
 
-        <section>
-          <h2 class="text-xl font-semibold mb-3">Contact</h2>
-          <p class="text-muted-foreground">
-            Privacy questions: <a href="mailto:privacy@carbonink.xyz" class="text-primary hover:underline">privacy@carbonink.xyz</a>
+      <section class="p-6 sm:p-7 grid sm:grid-cols-[150px_minmax(0,1fr)] gap-2 sm:gap-6 items-baseline">
+        <div class="order-last sm:order-none mt-2 sm:mt-0 font-mono-num text-[11px] font-semibold text-ochre">CONTACT</div>
+        <div>
+          <h2 class="font-display text-xl font-bold mb-2.5 text-foreground">Contact</h2>
+          <p class="text-[15px] text-muted-foreground leading-relaxed">
+            Privacy questions: <a href="mailto:privacy@carbonink.xyz" class="font-semibold text-primary underline hover:text-chamber">privacy@carbonink.xyz</a>
           </p>
-        </section>
-      </div>
+        </div>
+      </section>
     </div>
   </section>
 </Base>

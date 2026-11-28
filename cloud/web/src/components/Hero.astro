@@ -1,118 +1,434 @@
 ---
-/**
- * Hero — top section of the marketing home.
- *
- * Headline + sub + 2 CTAs over a real desktop-app screenshot, framed
- * in a macOS-style window chrome. Replaces the Figma source's hand-
- * built mock dashboard (Scope 1/2/3 cards + fake data rows) with the
- * actual e2e screenshot — the user explicitly asked for real shots,
- * and the e2e harness produces a Chinese-locale dashboard that's
- * already pixel-clean.
- *
- * Window chrome (red/yellow/green dots + title strip) is preserved
- * so the screenshot reads as "macOS app", not "random product image".
- * On Windows the chrome is decorative — viewers recognize the
- * convention either way.
- *
- * Image: 1400 × 900 PNG from the e2e tour. `aspect-[1400/900]`
- * reserves the slot during load so CLS stays at zero on slow conns.
- */
-
 import { APP_VERSION } from '../lib/app-version';
 
 const { lang } = Astro.props as { lang: 'zh-CN' | 'en' };
 const isZh = lang === 'zh-CN';
+const prefix = isZh ? '/zh' : '';
+const shotDir = isZh ? '/screenshots' : '/screenshots/en';
 const version = `v${APP_VERSION}`;
 
 const tx = isZh
   ? {
-      badge: `${version} · 原生桌面端 · 数据不上云`,
-      h1: '把碳核算搬到桌面端',
-      sub: '轻量原生应用（~16 MB），完全离线运行、数据不出内网。AI 帮你做单据与台账数据工程，一键出 ISO 14064-1 与 TCFD 报告。',
-      cta1: '免费下载',
-      cta2: 'GitHub 源码',
-      windowTitle: '碳墨 — 2025 年度 GHG 盘查',
-      screenshotAlt: '碳墨桌面端：2025 年度 GHG 盘查仪表盘截图',
+      h1: '离线碳盘查工作台，每一克 CO₂e 均可溯源。',
+      sub: '面向 ESG 顾问与企业碳核算团队的轻量原生桌面工作台。AI 抽取账单与整表台账，人工逐组锁定排放因子快照，一键导出 ISO 14064-1 与 TCFD 报告。',
+      macCta: '下载 macOS 版 (.dmg)',
+      macSize: '15.5 MB',
+      winCta: 'Windows x64 (.exe)',
+      winSize: '17.1 MB',
+      dlMore: 'Intel Mac · 1.x 迁移与校验 →',
+      srcCta: 'GitHub 源码',
+      specs: [
+        { k: '版本与许可', v: `${version} · macOS 13+ & Windows 10/11 · MIT 开源` },
+        { k: '本地存储', v: '本机 SQLite 数据库 · 一客户一独立账套与每日备份' },
+        { k: '报告口径', v: 'ISO 14064-1:2018 · GHG Protocol · TCFD 四支柱' },
+        { k: '因子与 AI', v: '内置 IPCC AR6 / DEFRA / EPA / MEE · 自带 Key + 内置 MCP' },
+      ],
+      scopeMeta: [
+        { label: '范围一 · 44.13 t (4.6% 示例)', color: '#8c6223', pct: 4.6 },
+        { label: '范围二 · 844.83 t (89.0% 示例)', color: '#133325', pct: 89.0 },
+        { label: '范围三 · 60.58 t (6.4% 示例)', color: '#5a745e', pct: 6.4 },
+      ],
+      sampleTotal: '示例账簿（2025）· 949.53 tCO₂e',
+      railTitle: '可核查的端到端工作流',
+      activeLabel: '当前模块',
+      proofLabel: '关键凭证',
+      cloudLabel: '上传至云端',
+      cloudVal: '0 bytes',
+      captureMeta: 'macOS 原生实拍 · 1400×900',
+      screens: [
+        {
+          tab: '01 仪表盘总览',
+          stepNum: '01',
+          stepTitle: '盘查总览与就绪体检',
+          stepDesc: '按报告期查看范围 1/2/3 排放走势，并离线运行确定性就绪检查。',
+          caption: '排放清单仪表盘 — 2025 年度范围汇总与月度排放趋势',
+          src: `${shotDir}/dashboard.png`,
+          alt: '碳墨 2.0 桌面端：2025 年度 GHG 排放清单仪表盘截图',
+          mod: '仪表盘',
+          proof: '949,527.10 kg CO₂e',
+        },
+        {
+          tab: '02 AI 单据抽取',
+          stepNum: '02',
+          stepTitle: 'BYOK 单据抽取与人工复核',
+          stepDesc: '保留原件 SHA-256 哈希，AI 抽取字段后经人工核对确认入账。',
+          caption: '文档中心 — 电费发票 AI 识别结果与人工复核确认',
+          src: `${shotDir}/documents.png`,
+          alt: '碳墨 2.0 桌面端：AI 单据识别与人工核对界面截图',
+          mod: 'AI 单据识别',
+          proof: '142,800 kWh · 高置信度',
+        },
+        {
+          tab: '03 披露问卷回填',
+          stepNum: '03',
+          stepTitle: '带调用链溯源的问卷答复',
+          stepDesc: '基于本地台账自动回填客户问卷，支持展开查看 Agent 推理链条。',
+          caption: '披露填报 — 基于本地盘查数据生成答案并保留调用链溯源',
+          src: `${shotDir}/questionnaires.png`,
+          alt: '碳墨 2.0 桌面端：客户披露问卷回填与 Agent 推理链截图',
+          mod: '披露填报',
+          proof: '844.83 tCO₂e · 已定稿',
+        },
+        {
+          tab: '04 ISO 与 TCFD 报告',
+          stepNum: '04',
+          stepTitle: 'ISO 14064-1 / TCFD 与核查交付包',
+          stepDesc: '一键导出 PDF 报告、Excel 附表与含 SHA-256 清单的 ZIP 核查包。',
+          caption: '盘查报告 — ISO 14064-1 预览与 SHA-256 核查交付包导出',
+          src: `${shotDir}/reports.png`,
+          alt: '碳墨 2.0 桌面端：ISO 14064-1 报告预览与交付包导出截图',
+          mod: '报告交付包',
+          proof: 'PDF + XLSX + SHA-256 ZIP',
+        },
+      ],
     }
   : {
-      badge: `${version} · Native desktop · Data stays on device`,
-      h1: 'Carbon accounting on your desktop. No spreadsheets. No cloud.',
-      sub: 'Lightweight native app (~16 MB) that runs entirely on your machine. AI extracts data from bills and ledgers; one click exports ISO 14064-1 & TCFD reports.',
-      cta1: 'Download free',
-      cta2: 'View source',
-      windowTitle: 'CarbonInk — 2025 Annual GHG Inventory',
-      screenshotAlt: 'CarbonInk desktop app: 2025 annual GHG inventory dashboard screenshot',
+      h1: 'Audit-grade carbon accounting. Local SQLite. Zero cloud.',
+      sub: 'A lightweight native desktop workbench for ESG consultants and sustainability teams. AI extracts utility bills and ledgers; every calculation pins an immutable emission factor and exports ISO 14064-1 & TCFD reports.',
+      macCta: 'Download for macOS (.dmg)',
+      macSize: '15.5 MB',
+      winCta: 'Windows x64 (.exe)',
+      winSize: '17.1 MB',
+      dlMore: 'Intel Mac · 1.x upgrade & checksums →',
+      srcCta: 'View source',
+      specs: [
+        { k: 'Release', v: `${version} · macOS 13+ & Windows 10/11 · MIT Open Source` },
+        { k: 'Storage', v: 'Local SQLite · 1 isolated file per client + daily backups' },
+        { k: 'Standards', v: 'ISO 14064-1:2018 · GHG Protocol · TCFD four pillars' },
+        { k: 'Factors & AI', v: 'IPCC AR6 · DEFRA · EPA eGRID · China MEE · BYOK & MCP' },
+      ],
+      scopeMeta: [
+        { label: 'Scope 1 · 44.13 t (4.6% sample)', color: '#8c6223', pct: 4.6 },
+        { label: 'Scope 2 · 844.83 t (89.0% sample)', color: '#133325', pct: 89.0 },
+        { label: 'Scope 3 · 60.58 t (6.4% sample)', color: '#5a745e', pct: 6.4 },
+      ],
+      sampleTotal: 'Sample FY2025 ledger · 949.53 tCO₂e',
+      railTitle: 'Deterministic audit workflow',
+      activeLabel: 'Active screen',
+      proofLabel: 'Key proof',
+      cloudLabel: 'Uploaded to cloud',
+      cloudVal: '0 bytes',
+      captureMeta: 'macOS native capture · 1400×900',
+      screens: [
+        {
+          tab: '01 Dashboard',
+          stepNum: '01',
+          stepTitle: 'Inventory & readiness baseline',
+          stepDesc: 'Review Scope 1/2/3 totals and deterministic period readiness offline.',
+          caption: 'Inventory Dashboard — FY2025 scope totals & monthly emissions',
+          src: `${shotDir}/dashboard.png`,
+          alt: 'CarbonInk 2.0 native macOS dashboard showing FY2025 GHG totals and monthly trend',
+          mod: 'Dashboard',
+          proof: '949,527.10 kg CO₂e',
+        },
+        {
+          tab: '02 AI Extraction',
+          stepNum: '02',
+          stepTitle: 'BYOK bill & ledger extraction',
+          stepDesc: 'SHA-256 archived PDFs extracted for human verification before posting.',
+          caption: 'Documents — AI extraction staged for human review',
+          src: `${shotDir}/documents.png`,
+          alt: 'CarbonInk 2.0 native macOS AI document extraction review drawer',
+          mod: 'AI Extraction',
+          proof: '142,800 kWh · High confidence',
+        },
+        {
+          tab: '03 Questionnaires',
+          stepNum: '03',
+          stepTitle: 'Traceable customer questionnaires',
+          stepDesc: 'Auto-populate disclosure items with inspectable Answer Agent tool traces.',
+          caption: 'Disclosure filings — Answer Agent trace & finalized figures',
+          src: `${shotDir}/questionnaires.png`,
+          alt: 'CarbonInk 2.0 native macOS questionnaire response view with Answer Agent trace',
+          mod: 'Questionnaires',
+          proof: '844.83 tCO₂e · Finalized',
+        },
+        {
+          tab: '04 ISO & TCFD Reports',
+          stepNum: '04',
+          stepTitle: 'ISO 14064-1, TCFD & audit ZIP',
+          stepDesc: 'Export PDF reports, Excel appendix, and SHA-256 auditor deliverable bundle.',
+          caption: 'Inventory reports — ISO 14064-1 preview & deliverable ZIP',
+          src: `${shotDir}/reports.png`,
+          alt: 'CarbonInk 2.0 native macOS ISO 14064-1 report preview and ZIP deliverable export',
+          mod: 'ISO & TCFD Reports',
+          proof: 'PDF + XLSX + SHA-256 ZIP',
+        },
+      ],
     };
 
-const prefix = isZh ? '/zh' : '';
-
-// Screenshot paths are locale-aware. zh shots live at /screenshots/*;
-// en shots at /screenshots/en/* (mirrored layout). When the desktop
-// app's e2e tour runs in zh it writes here; an EN tour run drops into
-// /screenshots/en/. See cloud/web/public/screenshots/en/README.md for
-// how to regenerate EN shots.
-const shotDir = isZh ? '/screenshots' : '/screenshots/en';
+const first = tx.screens[0];
 ---
-<section class="pt-12 pb-20 px-5">
-  <div class="max-w-6xl mx-auto">
-    <div class="max-w-3xl mb-10">
-      <div class="inline-flex items-center gap-2 border border-moss-200 bg-moss-50 text-moss-700 text-xs font-medium px-3 py-1 rounded-full mb-7">
-        <span class="w-1.5 h-1.5 rounded-full bg-moss-500"></span>
-        {tx.badge}
-      </div>
-      <h1 class="text-[2.75rem] md:text-[3.5rem] font-semibold tracking-tight leading-[1.1] text-foreground mb-6">
-        {tx.h1}
-      </h1>
-      <p class="text-lg text-muted-foreground leading-relaxed mb-9 max-w-xl">{tx.sub}</p>
-      <div class="flex flex-wrap gap-3">
-        <a
-          href={`${prefix}/download/`}
-          class="inline-flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded font-medium text-sm hover:bg-moss-600 transition-colors"
-        >
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="7 10 12 15 17 10" />
-            <line x1="12" y1="15" x2="12" y2="3" />
-          </svg>
-          {tx.cta1}
-        </a>
-        <a
-          href="https://github.com/lxzxl/carbonink"
-          target="_blank"
-          rel="noopener"
-          class="inline-flex items-center gap-2 border border-border text-foreground px-5 py-2.5 rounded font-medium text-sm hover:bg-muted transition-colors"
-        >
-          {tx.cta2}
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-        </a>
-      </div>
-    </div>
+<section class="relative">
+  <div class="chamber-surface bg-chamber text-chamber-foreground pt-5 pb-10 sm:pt-9 sm:pb-16 lg:pt-12 lg:pb-24 px-5 sm:px-6 border-b-2 border-border-strong">
+    <div class="max-w-6xl mx-auto">
+      <div class="grid lg:grid-cols-12 gap-6 lg:gap-10 items-end">
+        <div class="min-w-0 lg:col-span-7">
+          <h1 class="font-display text-[1.6875rem] sm:text-[2.6rem] lg:text-[3.125rem] font-extrabold tracking-[-0.03em] leading-[1.08] text-white mb-2.5 sm:mb-5">
+            {tx.h1}
+          </h1>
+          <p class="text-[13px] sm:text-base text-chamber-muted leading-relaxed max-w-2xl mb-4 sm:mb-7">
+            {tx.sub}
+          </p>
 
-    {/* macOS-window-framed real app screenshot — replaces the Figma
-        source's hand-built mock. Aspect ratio matches the e2e
-        screenshot (1400 × 900) so the layout doesn't shift when the
-        image loads on slow networks. */}
-    <div class="relative rounded-lg border border-border bg-card overflow-hidden shadow-[0_8px_40px_rgba(0,0,0,0.08)]">
-      <div class="flex items-center gap-1.5 px-4 py-3 border-b border-border bg-muted/50">
-        <span class="w-3 h-3 rounded-full bg-red-400"></span>
-        <span class="w-3 h-3 rounded-full bg-yellow-400"></span>
-        <span class="w-3 h-3 rounded-full bg-green-400"></span>
-        <span class="mx-auto text-xs text-muted-foreground" style="font-family: var(--font-mono);">
-          {tx.windowTitle}
-        </span>
+          <div class="flex flex-wrap items-center gap-2.5 sm:gap-3">
+            <a
+              id="hero-download-mac"
+              href="/download/mac"
+              class="inline-flex items-center gap-3 bg-card text-chamber font-bold text-sm px-4 py-2.5 rounded-[2px] hover:bg-white transition-colors"
+            >
+              <span>{tx.macCta}</span>
+              <span class="font-mono-num text-xs font-medium text-moss-700 border-l border-border pl-2.5">
+                {tx.macSize}
+              </span>
+            </a>
+            <a
+              href="/download/win"
+              class="inline-flex items-center gap-3 border border-chamber-border bg-white/5 text-chamber-foreground font-semibold text-sm px-4 py-2.5 rounded-[2px] hover:bg-white/10 transition-colors"
+            >
+              <span>{tx.winCta}</span>
+              <span class="font-mono-num text-xs text-chamber-muted border-l border-chamber-border pl-2.5">
+                {tx.winSize}
+              </span>
+            </a>
+            <a
+              href="https://github.com/lxzxl/carbonink"
+              target="_blank"
+              rel="noopener"
+              class="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-bright hover:text-white px-2 py-2 transition-colors"
+            >
+              {tx.srcCta} →
+            </a>
+          </div>
+
+          <p class="mt-2.5 text-xs">
+            <a href={`${prefix}/download/`} class="text-chamber-muted hover:text-white underline transition-colors">
+              {tx.dlMore}
+            </a>
+          </p>
+        </div>
+
+        <div class="hidden lg:block min-w-0 lg:col-span-5 border-t-2 border-white/35 border-b border-chamber-border bg-black/20">
+          {tx.specs.map((row) => (
+            <div class="grid grid-cols-[98px_minmax(0,1fr)] gap-3 px-3.5 py-2.5 border-b border-chamber-border last:border-b-0 items-baseline">
+              <span class="font-mono-num text-[11px] font-medium text-emerald-bright">{row.k}</span>
+              <span class="text-[13px] text-chamber-foreground font-medium leading-snug">{row.v}</span>
+            </div>
+          ))}
+        </div>
       </div>
-      <img
-        src={`${shotDir}/dashboard.png`}
-        alt={tx.screenshotAlt}
-        width="1400"
-        height="900"
-        loading="eager"
-        fetchpriority="high"
-        decoding="async"
-        class="block w-full h-auto aspect-[1400/900]"
-      />
     </div>
   </div>
+
+  <div class="max-w-6xl mx-auto px-5 sm:px-6 -mt-6 sm:-mt-9 lg:-mt-12 relative z-10">
+    <div id="hero-workbench" class="bg-card border-2 border-border-strong rounded-none shadow-[0_14px_38px_rgba(17,22,20,0.08)]">
+      <div class="bg-surface border-b border-border px-3.5 py-2.5 sm:px-4 sm:py-3 flex flex-col gap-2 sm:gap-2.5">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 font-mono-num text-[11px] text-foreground">
+            {tx.scopeMeta.map((s) => (
+              <span class="inline-flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-[1px] shrink-0" style={`background:${s.color}`}></span>
+                <span>{s.label}</span>
+              </span>
+            ))}
+            <span class="text-muted-foreground">{tx.sampleTotal}</span>
+          </div>
+
+          <div
+            class="flex flex-wrap gap-1.5"
+            role="tablist"
+            aria-label={isZh ? '切换桌面端工作流界面' : 'Switch native desktop screen'}
+          >
+            {tx.screens.map((sc, idx) => (
+              <button
+                type="button"
+                role="tab"
+                data-wb-tab={idx}
+                aria-selected={idx === 0 ? 'true' : 'false'}
+                class:list={[
+                  'wb-tab font-mono-num text-[11px] font-medium px-2.5 py-1.5 border rounded-[2px] cursor-pointer transition-colors',
+                  idx === 0
+                    ? 'bg-border-strong text-white border-border-strong'
+                    : 'bg-card text-muted-foreground border-border hover:text-foreground hover:border-border-strong',
+                ]}
+              >
+                {sc.tab}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div
+          class="flex w-full h-1.5 bg-muted overflow-hidden gap-px"
+          title={tx.scopeMeta.map((s) => s.label).join(' · ')}
+        >
+          {tx.scopeMeta.map((s) => (
+            <span style={`width:${s.pct}%;background:${s.color}`}></span>
+          ))}
+        </div>
+      </div>
+
+      <div class="grid lg:grid-cols-12">
+        <div class="min-w-0 lg:col-span-8 bg-white lg:border-r border-border p-3.5 sm:p-4">
+          <div class="flex flex-wrap items-center justify-between gap-2 pb-2 mb-2.5 border-b border-border font-mono-num text-[11px] text-muted-foreground">
+            <span id="wb-caption" class="text-foreground font-medium">{first.caption}</span>
+            <span>{tx.captureMeta}</span>
+          </div>
+          <img
+            id="wb-img"
+            src={first.src}
+            alt={first.alt}
+            width="1400"
+            height="900"
+            loading="eager"
+            fetchpriority="high"
+            decoding="sync"
+            class="block w-full h-auto aspect-[1400/900] border border-border bg-white"
+          />
+        </div>
+
+        <aside class="min-w-0 lg:col-span-4 bg-surface p-3 sm:p-4 flex flex-col justify-between gap-4 border-t lg:border-t-0 border-border">
+          <div class="hidden lg:block">
+            <h2 class="font-display text-sm font-bold tracking-tight text-foreground pb-2 border-b-2 border-border-strong">
+              {tx.railTitle}
+            </h2>
+            <div class="flex flex-col gap-2 mt-3">
+              {tx.screens.map((sc, idx) => (
+                <button
+                  type="button"
+                  data-wb-step={idx}
+                  aria-pressed={idx === 0 ? 'true' : 'false'}
+                  class:list={[
+                    'wb-step text-left w-full p-2.5 border rounded-[2px] flex items-start gap-2.5 cursor-pointer transition-colors',
+                    idx === 0
+                      ? 'bg-card border-border-strong shadow-[0_1px_4px_rgba(17,22,20,0.06)]'
+                      : 'bg-surface border-border hover:bg-card hover:border-moss-300',
+                  ]}
+                >
+                  <span
+                    class:list={[
+                      'wb-step-num font-mono-num text-[11px] font-semibold mt-0.5 shrink-0',
+                      idx === 0 ? 'text-primary' : 'text-muted-foreground',
+                    ]}
+                  >
+                    {sc.stepNum}
+                  </span>
+                  <span class="min-w-0">
+                    <span class="block text-[13px] font-semibold text-foreground leading-snug">
+                      {sc.stepTitle}
+                    </span>
+                    <span class="block text-xs text-muted-foreground leading-relaxed mt-0.5">
+                      {sc.stepDesc}
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div class="border border-border-strong bg-card px-3 py-2.5 font-mono-num text-[11px]">
+            <div class="flex justify-between gap-2 py-1 border-b border-dashed border-border">
+              <span class="text-muted-foreground">{tx.activeLabel}</span>
+              <strong id="wb-mod" class="text-foreground font-semibold">{first.mod}</strong>
+            </div>
+            <div class="flex justify-between gap-2 py-1 border-b border-dashed border-border">
+              <span class="text-muted-foreground">{tx.proofLabel}</span>
+              <strong id="wb-proof" class="text-foreground font-semibold">{first.proof}</strong>
+            </div>
+            <div class="flex justify-between gap-2 py-1">
+              <span class="text-muted-foreground">{tx.cloudLabel}</span>
+              <strong class="text-primary font-semibold">{tx.cloudVal}</strong>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <div class="lg:hidden mt-4 border border-border border-t-2 border-t-border-strong bg-card">
+      {tx.specs.map((row) => (
+        <div class="grid grid-cols-[92px_minmax(0,1fr)] gap-3 px-3.5 py-2.5 border-b border-border last:border-b-0 items-baseline">
+          <span class="font-mono-num text-[11px] font-semibold text-primary">{row.k}</span>
+          <span class="text-xs text-foreground font-medium leading-snug">{row.v}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  <script
+    is:inline
+    define:vars={{
+      workbenchScreens: tx.screens.map((s) => ({
+        caption: s.caption,
+        src: s.src,
+        alt: s.alt,
+        mod: s.mod,
+        proof: s.proof,
+      })),
+    }}
+  >
+    (function () {
+      const root = document.getElementById('hero-workbench');
+      if (!root) return;
+      const tabs = Array.from(root.querySelectorAll('[data-wb-tab]'));
+      const steps = Array.from(root.querySelectorAll('[data-wb-step]'));
+      const img = document.getElementById('wb-img');
+      const cap = document.getElementById('wb-caption');
+      const mod = document.getElementById('wb-mod');
+      const proof = document.getElementById('wb-proof');
+      if (!img || !cap || !mod || !proof) return;
+
+      function activate(index) {
+        const s = workbenchScreens[index];
+        if (!s) return;
+        img.src = s.src;
+        img.alt = s.alt;
+        cap.textContent = s.caption;
+        mod.textContent = s.mod;
+        proof.textContent = s.proof;
+
+        tabs.forEach((btn, i) => {
+          const active = i === index;
+          btn.setAttribute('aria-selected', active ? 'true' : 'false');
+          btn.classList.toggle('bg-border-strong', active);
+          btn.classList.toggle('text-white', active);
+          btn.classList.toggle('border-border-strong', active);
+          btn.classList.toggle('bg-card', !active);
+          btn.classList.toggle('text-muted-foreground', !active);
+          btn.classList.toggle('border-border', !active);
+        });
+
+        steps.forEach((btn, i) => {
+          const active = i === index;
+          btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+          btn.classList.toggle('bg-card', active);
+          btn.classList.toggle('border-border-strong', active);
+          btn.classList.toggle('bg-surface', !active);
+          btn.classList.toggle('border-border', !active);
+          const num = btn.querySelector('.wb-step-num');
+          if (num) {
+            num.classList.toggle('text-primary', active);
+            num.classList.toggle('text-muted-foreground', !active);
+          }
+        });
+      }
+
+      tabs.forEach((btn) => {
+        btn.addEventListener('click', () => activate(Number(btn.dataset.wbTab)));
+        btn.addEventListener('keydown', (ev) => {
+          if (ev.key !== 'ArrowRight' && ev.key !== 'ArrowLeft') return;
+          ev.preventDefault();
+          const cur = Number(btn.dataset.wbTab);
+          const next = ev.key === 'ArrowRight'
+            ? (cur + 1) % tabs.length
+            : (cur - 1 + tabs.length) % tabs.length;
+          activate(next);
+          tabs[next].focus();
+        });
+      });
+
+      steps.forEach((btn) => {
+        btn.addEventListener('click', () => activate(Number(btn.dataset.wbStep)));
+      });
+    })();
+  </script>
 </section>

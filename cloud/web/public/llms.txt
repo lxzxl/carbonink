@@ -1,8 +1,8 @@
 # CarbonInk (碳墨)
 
 > Free, open-source (MIT) native desktop carbon accounting software for macOS 13+
-> and Windows 10/11 (64-bit) (~15–18 MB installers, built-in Sparkle/WinSparkle
-> auto-updates). Runs fully offline on a local SQLite database — activity data,
+> and Windows 10/11 (64-bit) (lightweight native installers with built-in
+> Sparkle/WinSparkle auto-updates). Runs fully offline on a local SQLite database — activity data,
 > emission factors, and reports never leave the user's machine. BYOK AI (OpenAI,
 > Anthropic, Google Gemini, DeepSeek, Moonshot, or OpenAI-compatible, with a
 > local LLM file cache) extracts utility bills and invoices (single documents or

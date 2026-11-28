@@ -1,12 +1,8 @@
 ---
 export const prerender = true;
 
-import Base from '../../layouts/Base.astro';
 import DownloadButtons from '../../components/DownloadButtons.astro';
-import LogoMark from '../../components/LogoMark.astro';
-// 版本号构建时读 app/nsgo.yaml，禁止写死。发布流程先在 main 上 bump 版本再打
-// tag，站点每次 main push 自动重建，页面版本因此与发布同步。下载按钮与此标签
-// 无关：它们在请求时实时解析 GitHub 最新 release 资产（lib/latest-download.ts）。
+import Base from '../../layouts/Base.astro';
 import { APP_VERSION } from '../../lib/app-version';
 
 const version = `v${APP_VERSION}`;
@@ -16,20 +12,26 @@ const version = `v${APP_VERSION}`;
   description="免费下载碳墨桌面端（macOS / Windows）。开源碳核算 / 碳盘查软件，完全离线运行，无需注册账号。"
   lang="zh-CN"
 >
-  <section class="py-28 px-5">
-    <div class="max-w-lg mx-auto text-center">
-      <div class="inline-flex justify-center">
-        <LogoMark size={44} />
-      </div>
-      <h1 class="text-3xl font-semibold tracking-tight mt-6 mb-2">下载碳墨</h1>
-      <p class="text-muted-foreground text-sm mb-10" style="font-family: var(--font-mono);">
-        当前版本 {version}（macOS / Windows 均支持自动更新）
+  <section class="chamber-surface bg-chamber text-chamber-foreground pt-12 pb-20 px-5 sm:px-6 border-b-2 border-border-strong">
+    <div class="max-w-2xl mx-auto">
+      <h1 class="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-3">
+        下载碳墨
+      </h1>
+      <p class="text-sm sm:text-base text-chamber-muted leading-relaxed">
+        轻量原生桌面端，内置 Sparkle（macOS）与 WinSparkle（Windows）自动更新。免登录、免激活，下载即用。
       </p>
+      <p class="font-mono-num text-xs text-emerald-bright mt-3">
+        {version} · MIT · macOS 13+ &amp; Windows 10/11
+      </p>
+    </div>
+  </section>
 
+  <section class="px-5 sm:px-6 -mt-10 pb-20">
+    <div class="max-w-2xl mx-auto bg-card border-2 border-border-strong rounded-none divide-y divide-border shadow-[0_14px_36px_rgba(17,22,20,0.07)]">
       <DownloadButtons lang="zh-CN" />
 
-      <div class="border border-border rounded-lg p-5 bg-muted/30 text-left mt-8">
-        <h2 class="font-semibold text-sm text-foreground mb-2">从碳墨 1.x 升级到 2.0？</h2>
+      <div class="px-6 sm:px-8 py-5 sm:py-6 text-left">
+        <h2 class="font-display font-bold text-sm text-foreground mb-2">从碳墨 1.x 升级到 2.0？</h2>
         <ul class="text-xs text-muted-foreground space-y-1.5 leading-relaxed list-disc pl-4">
           <li>1.x（Electron）无法直接在线升级至 2.0，请从上方下载并安装一次 2.0 安装包。</li>
           <li>首次启动 2.0 时会自动以只读方式复制原有 1.x 账套、SQLite 数据库、上传文件与备份（不修改原目录）。</li>
@@ -37,14 +39,15 @@ const version = `v${APP_VERSION}`;
         </ul>
       </div>
 
-      <p class="mt-6 text-xs text-muted-foreground">
+      <p class="px-6 sm:px-8 py-4 bg-surface text-xs text-muted-foreground flex flex-wrap items-center justify-between gap-2">
+        <span class="font-mono-num">含安装包 SHA-256 校验与发行说明</span>
         <a
           href="https://github.com/lxzxl/carbonink/releases/latest"
           target="_blank"
           rel="noopener"
-          class="text-moss-600 hover:text-moss-700 font-medium transition-colors"
+          class="font-semibold text-primary hover:text-chamber underline transition-colors"
         >
-          在 GitHub 查看版本更新日志与 SHA-256 校验和 →
+          在 GitHub 查看版本更新日志 →
         </a>
       </p>
     </div>

@@ -8,54 +8,73 @@ import Base from '../../layouts/Base.astro';
   description="碳墨是本地优先的桌面应用：全部盘查数据只存在你设备上的 SQLite 数据库中。无账号、无跟踪，网站仅保留无 Cookie 的聚合访问计数 —— 完整隐私政策。"
   lang="zh-CN"
 >
-  <section class="py-20 px-5">
+  <section class="chamber-surface bg-chamber text-chamber-foreground py-12 sm:py-14 px-5 sm:px-6 border-b-2 border-border-strong">
     <div class="max-w-3xl mx-auto">
-      <h1 class="text-3xl md:text-4xl font-semibold tracking-tight mb-2">隐私政策</h1>
-      <p class="text-sm text-muted-foreground mb-10" style="font-family: var(--font-mono);">
+      <h1 class="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-2">
+        隐私政策
+      </h1>
+      <p class="font-mono-num text-xs text-emerald-bright">
         生效日期：2026-11-27
       </p>
+    </div>
+  </section>
 
-      <div class="space-y-8 text-[15px] leading-relaxed text-foreground">
-        <section>
-          <h2 class="text-xl font-semibold mb-3">我们不收集你的核算数据</h2>
-          <p class="text-muted-foreground">
+  <section class="py-12 sm:py-16 px-5 sm:px-6">
+    <div class="max-w-3xl mx-auto bg-card border border-border border-t-2 border-t-border-strong divide-y divide-border">
+      <section class="p-6 sm:p-7 grid sm:grid-cols-[150px_minmax(0,1fr)] gap-2 sm:gap-6 items-baseline">
+        <div class="order-last sm:order-none mt-2 sm:mt-0 font-mono-num text-[11px] font-semibold text-ochre">LOCAL STORAGE</div>
+        <div>
+          <h2 class="font-display text-xl font-bold mb-2.5 text-foreground">我们不收集你的核算数据</h2>
+          <p class="text-[15px] text-muted-foreground leading-relaxed">
             碳墨是一个本地优先的桌面应用。所有核算数据（包括但不限于活动数据、排放因子、报告内容、问卷答案、AI 对话）只存在于你的设备本地 SQLite 数据库中。
             云端不接收这些内容，没有副本，没有备份。
           </p>
-        </section>
+        </div>
+      </section>
 
-        <section>
-          <h2 class="text-xl font-semibold mb-3">云端只知道什么</h2>
-          <p class="text-muted-foreground">
+      <section class="p-6 sm:p-7 grid sm:grid-cols-[150px_minmax(0,1fr)] gap-2 sm:gap-6 items-baseline">
+        <div class="order-last sm:order-none mt-2 sm:mt-0 font-mono-num text-[11px] font-semibold text-ochre">CLOUD &amp; UPDATES</div>
+        <div>
+          <h2 class="font-display text-xl font-bold mb-2.5 text-foreground">云端只知道什么</h2>
+          <p class="text-[15px] text-muted-foreground leading-relaxed">
             基本上什么都不知道。碳墨是免费开源软件——没有账户、没有激活、没有许可证服务器。你下载应用直接运行即可；
             涉及的网络请求仅限本介绍站、你下载安装包的 GitHub Release，以及可选的内置软件更新检查（仅从 GitHub Releases 拉取公开版本元数据，不发送任何盘查数据或设备标识）。
           </p>
-        </section>
+        </div>
+      </section>
 
-        <section>
-          <h2 class="text-xl font-semibold mb-3">第三方</h2>
-          <p class="text-muted-foreground">
+      <section class="p-6 sm:p-7 grid sm:grid-cols-[150px_minmax(0,1fr)] gap-2 sm:gap-6 items-baseline">
+        <div class="order-last sm:order-none mt-2 sm:mt-0 font-mono-num text-[11px] font-semibold text-ochre">BYOK &amp; ANALYTICS</div>
+        <div>
+          <h2 class="font-display text-xl font-bold mb-2.5 text-foreground">第三方</h2>
+          <p class="text-[15px] text-muted-foreground leading-relaxed">
             没有支付、没有登录、不接触任何卡信息。当你配置自己的 API Key（BYOK）使用 AI 单据解析、报告撰写或问卷作答时，
             请求会从你的设备直连你指定的模型服务商接口（不经过碳墨任何中转服务器）。本网站使用 Cloudflare Web Analytics 做聚合访问统计——
             不设 Cookie、不做跨站跟踪或指纹识别、不记录任何可识别个人身份的信息。没有 Google
             Analytics、没有 Mixpanel、没有广告技术。桌面应用本身不发送任何统计数据。
           </p>
-        </section>
+        </div>
+      </section>
 
-        <section>
-          <h2 class="text-xl font-semibold mb-3">你的数据</h2>
-          <p class="text-muted-foreground">
+      <section class="p-6 sm:p-7 grid sm:grid-cols-[150px_minmax(0,1fr)] gap-2 sm:gap-6 items-baseline">
+        <div class="order-last sm:order-none mt-2 sm:mt-0 font-mono-num text-[11px] font-semibold text-ochre">YOUR CONTROL</div>
+        <div>
+          <h2 class="font-display text-xl font-bold mb-2.5 text-foreground">你的数据</h2>
+          <p class="text-[15px] text-muted-foreground leading-relaxed">
             你录入的一切都保存在本机的本地数据库里，永不上传。需要清理时直接删除应用数据目录即可。
           </p>
-        </section>
+        </div>
+      </section>
 
-        <section>
-          <h2 class="text-xl font-semibold mb-3">联系</h2>
-          <p class="text-muted-foreground">
-            隐私问题请联系：<a href="mailto:privacy@carbonink.xyz" class="text-primary hover:underline">privacy@carbonink.xyz</a>
+      <section class="p-6 sm:p-7 grid sm:grid-cols-[150px_minmax(0,1fr)] gap-2 sm:gap-6 items-baseline">
+        <div class="order-last sm:order-none mt-2 sm:mt-0 font-mono-num text-[11px] font-semibold text-ochre">CONTACT</div>
+        <div>
+          <h2 class="font-display text-xl font-bold mb-2.5 text-foreground">联系</h2>
+          <p class="text-[15px] text-muted-foreground leading-relaxed">
+            隐私问题请联系：<a href="mailto:privacy@carbonink.xyz" class="font-semibold text-primary underline hover:text-chamber">privacy@carbonink.xyz</a>
           </p>
-        </section>
-      </div>
+        </div>
+      </section>
     </div>
   </section>
 </Base>

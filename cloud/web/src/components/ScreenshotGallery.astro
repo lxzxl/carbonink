@@ -1,128 +1,192 @@
 ---
-/**
- * ScreenshotGallery — 6-screenshot showcase between Differentiators
- * and Privacy. Not in the Figma source (Figma showed a single hero
- * mock and stopped); added per user request to display real product
- * screenshots in the marketing page.
- *
- * Layout: 2-col grid on md+ with each cell showing one feature
- * (documents → AI extraction; questionnaires → fill flow; sources →
- * EF catalog; reports → ISO 14064-1). Caption sits BELOW the image
- * so the visual stays uncluttered.
- *
- * Each image: real e2e screenshot at 1400 × 900 → loaded lazily
- * (below the fold) with explicit aspect-ratio to prevent CLS.
- */
-
 const { lang } = Astro.props as { lang: 'zh-CN' | 'en' };
 const isZh = lang === 'zh-CN';
-
-// Screenshot paths are locale-aware. zh shots live at /screenshots/*;
-// en shots at /screenshots/en/* (mirrored layout). See
-// cloud/web/public/screenshots/en/README.md for how to regenerate EN
-// shots from the desktop app's e2e tour.
 const shotDir = isZh ? '/screenshots' : '/screenshots/en';
 
 const tx = isZh
   ? {
-      label: '产品截图',
-      title: '看碳墨在干什么',
-      sub: '所有截图来自真实的桌面应用，不是渲染图。',
+      title: '实机界面与完整链路',
+      sub: '以下截图全部来自真实的 CarbonInk 2.0 macOS 原生应用，点击图版可放大检视细节。',
+      inspect: '放大查看 ↗',
+      close: '关闭预览',
       shots: [
         {
+          code: 'AI EXTRACTION',
           src: `${shotDir}/documents.png`,
-          title: 'AI 识别单据',
-          body: '电费单、燃料发票、货运差旅单据支持单份与批量排队识别，扫描件自动走视觉模型；AI 抽数据，人工复核后入账。',
+          title: '单据批量识别与人工复核',
+          body: '支持电费单、燃料发票、货运与差旅凭证排队解析（扫描件走视觉模型），保留 SHA-256 哈希，人工确认后再入账。',
         },
         {
+          code: 'ANSWER AGENT',
           src: `${shotDir}/questionnaires.png`,
-          title: '问卷自动填报与推理过程',
-          body: '由本地盘查清单自动回填客户 CDP / ESG 问卷，可展开查看 AI 回答调用的工具链，定稿冻结后导出回填 xlsx 或 PDF。',
+          title: '客户披露问卷回填与推理过程',
+          body: '由本地盘查清单回填客户问卷，支持查看 Agent 工具调用链，定稿冻结后导出回填 Excel 或 PDF。',
         },
         {
+          code: 'EMISSION FACTORS',
           src: `${shotDir}/sources.png`,
-          title: '排放源 + 排放因子库',
-          body: '内置 IPCC AR6 / DEFRA / US EPA / 中国生态环境部排放因子；支持导入和检索自有 .xlsx / .csv 排放因子库。',
+          title: '排放源与中英文排放因子库',
+          body: '内置 IPCC AR6、DEFRA、US EPA eGRID 与中国生态环境部因子，并支持导入及检索自有 .xlsx / .csv 因子库。',
         },
         {
+          code: 'SUPPLIER SCOPE 3',
           src: `${shotDir}/supplier-disclosures.png`,
-          title: '供应商披露收集',
-          body: '覆盖 Scope 3 Cat 1 / 4 / 5 / 6 与自定义模板，支持 Tier 1 采购量反推与 Tier 3 因子排序；xlsx 邮件往返、逾期红字提醒，供应商零账户零注册。',
+          title: '供应商 Scope 3 披露收集',
+          body: '覆盖 Cat 1 / 4 / 5 / 6 与自定义模板，支持 Tier 1 反推采购量与 Tier 3 因子匹配，逾期自动标红，供应商无需注册。',
         },
         {
+          code: 'BATCH LEDGER',
           src: `${shotDir}/activity-import.png`,
-          title: '台账批量导入',
-          body: 'xlsx / csv 整表导入，中英文表头自动映射、异常值检测、排放因子按组推荐与人工拍板——几千行只需几十次确认。',
+          title: 'Excel / CSV 台账按组确认入库',
+          body: '中英文表头自动映射、逐行异常检查，并按「描述 + 单位 + 排放源」分组匹配排放因子——大表只需少量人工拍板。',
         },
         {
+          code: 'AUDIT DELIVERABLE',
           src: `${shotDir}/reports.png`,
-          title: '盘查 + 披露报告',
-          body: 'ISO 14064-1 盘查报告与 TCFD 四支柱披露一键导出 PDF + Excel，含就绪检查、白标封面 Logo 与 SHA-256 核查交付包。',
+          title: 'ISO 14064-1 与 TCFD 报告导出',
+          body: '含发布前确定性体检、可编辑叙述正文、自定义封面 Logo，一键生成 PDF、Excel 附表与 SHA-256 交付包。',
         },
       ],
     }
   : {
-      label: 'Product screenshots',
-      title: 'See it in action',
-      sub: 'All screenshots are from the real desktop app, not renders.',
+      title: 'Inspect every screen in the workflow',
+      sub: 'Captured directly from CarbonInk 2.0 on macOS — click any plate to inspect full resolution.',
+      inspect: 'Inspect ↗',
+      close: 'Close',
       shots: [
         {
+          code: 'AI EXTRACTION',
           src: `${shotDir}/documents.png`,
-          title: 'AI bill extraction',
-          body: 'Extract utility bills, fuel receipts, freight, and travel docs singly or in a batch queue with vision fallback — AI proposes, you confirm.',
+          title: 'AI bill extraction & review',
+          body: 'Parse utility bills, fuel receipts, freight, and travel docs singly or queued with vision fallback — archived by SHA-256 digest before posting.',
         },
         {
+          code: 'ANSWER AGENT',
           src: `${shotDir}/questionnaires.png`,
-          title: 'Fill customer questionnaires',
-          body: 'Auto-populate customer disclosures from your inventory with an inspectable Answer Agent trace drawer, finalized snapshots, and xlsx / PDF export.',
+          title: 'Customer disclosure filings & trace',
+          body: 'Auto-populate outbound customer questionnaires from local inventory with inspectable Answer Agent tool calls and finalized snapshot exports.',
         },
         {
+          code: 'EMISSION FACTORS',
           src: `${shotDir}/sources.png`,
-          title: 'Emission sources + EF library',
-          body: 'Built-in IPCC AR6, DEFRA, US EPA eGRID, and China MEE factors; import and search your own custom .xlsx / .csv EF libraries.',
+          title: 'Emission sources & factor libraries',
+          body: 'Ships with IPCC AR6, DEFRA, US EPA eGRID, and China MEE factors; import and search custom .xlsx / .csv emission-factor tables.',
         },
         {
+          code: 'SUPPLIER SCOPE 3',
           src: `${shotDir}/supplier-disclosures.png`,
-          title: 'Supplier disclosure collection',
-          body: 'Scope 3 Cat 1 / 4 / 5 / 6 and custom templates supporting Tier 1–3 (quantity inference + EF ranking), overdue flags in red, and zero supplier accounts.',
+          title: 'Supplier Scope 3 collection',
+          body: 'Cat 1 / 4 / 5 / 6 and custom xlsx disclosure templates supporting Tier 1–3, overdue alerts, and zero supplier accounts.',
         },
         {
+          code: 'BATCH LEDGER',
           src: `${shotDir}/activity-import.png`,
-          title: 'Batch ledger import',
-          body: 'Import whole xlsx / csv ledgers with bilingual column mapping, anomaly checks, and group-level human-confirmed emission-factor matching.',
+          title: 'Group-matched batch ledger import',
+          body: 'Bilingual xlsx / csv column auto-mapping, outlier validation, and per-group human-confirmed emission factors.',
         },
         {
+          code: 'AUDIT DELIVERABLE',
           src: `${shotDir}/reports.png`,
-          title: 'Inventory & disclosure reports',
-          body: 'ISO 14064-1 and TCFD four-pillar reports with editable narratives, readiness checks, custom report logo, PDF + Excel, and SHA-256 auditor deliverable ZIPs.',
+          title: 'ISO 14064-1 & TCFD deliverable bundle',
+          body: 'Pre-export readiness checks, editable narratives, custom report logo, PDF + Excel appendix, and SHA-256 verified ZIP output.',
         },
       ],
     };
 ---
-<section class="py-20 px-5">
+<section class="py-16 sm:py-20 px-5 sm:px-6 bg-card border-y border-border">
   <div class="max-w-6xl mx-auto">
-    <p class="text-xs font-medium text-primary uppercase tracking-widest mb-3">{tx.label}</p>
-    <h2 class="text-2xl md:text-3xl font-semibold tracking-tight mb-2">{tx.title}</h2>
-    <p class="text-sm text-muted-foreground mb-10">{tx.sub}</p>
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-9">
+      <h2 class="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+        {tx.title}
+      </h2>
+      <p class="text-sm text-muted-foreground max-w-md">{tx.sub}</p>
+    </div>
 
     <div class="grid md:grid-cols-2 gap-6">
       {tx.shots.map((shot) => (
-        <figure class="border border-border rounded-lg overflow-hidden bg-card shadow-sm">
-          <img
-            src={shot.src}
-            alt={shot.title}
-            width="1400"
-            height="900"
-            loading="lazy"
-            decoding="async"
-            class="block w-full h-auto aspect-[1400/900] border-b border-border"
-          />
-          <figcaption class="p-5">
-            <p class="font-semibold text-sm text-foreground mb-1">{shot.title}</p>
-            <p class="text-xs text-muted-foreground leading-relaxed">{shot.body}</p>
+        <figure class="border border-border bg-surface rounded-[2px] flex flex-col">
+          <div class="flex items-center justify-between gap-3 px-3.5 py-2 border-b border-border bg-card">
+            <span class="font-mono-num text-[11px] font-medium text-primary">{shot.code}</span>
+            <button
+              type="button"
+              data-plate-src={shot.src}
+              data-plate-title={shot.title}
+              class="font-mono-num text-[11px] text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+            >
+              {tx.inspect}
+            </button>
+          </div>
+          <button
+            type="button"
+            data-plate-src={shot.src}
+            data-plate-title={shot.title}
+            class="block text-left bg-white border-b border-border cursor-pointer group focus-visible:outline-primary"
+            aria-label={`${shot.title} — ${tx.inspect}`}
+          >
+            <img
+              src={shot.src}
+              alt={shot.title}
+              width="1400"
+              height="900"
+              loading="eager"
+              decoding="sync"
+              class="block w-full h-auto aspect-[1400/900] transition-opacity group-hover:opacity-95"
+            />
+          </button>
+          <figcaption class="p-4 sm:p-5 flex-1">
+            <p class="font-display font-bold text-[15px] text-foreground mb-1">{shot.title}</p>
+            <p class="text-xs sm:text-[13px] text-muted-foreground leading-relaxed">{shot.body}</p>
           </figcaption>
         </figure>
       ))}
     </div>
   </div>
+
+  <dialog id="plate-lightbox" class="plate-dialog" aria-labelledby="plate-lightbox-title">
+    <div class="flex items-center justify-between gap-4 px-4 py-3 border-b border-border bg-surface">
+      <p id="plate-lightbox-title" class="font-display font-bold text-sm text-foreground"></p>
+      <button
+        id="plate-lightbox-close"
+        type="button"
+        class="font-mono-num text-xs border border-border-strong bg-card text-foreground px-3 py-1 rounded-[2px] hover:bg-muted cursor-pointer"
+      >
+        {tx.close}
+      </button>
+    </div>
+    <div id="plate-lightbox-stage" class="bg-white p-2 sm:p-3"></div>
+  </dialog>
+
+  <script is:inline>
+    (function () {
+      const dialog = document.getElementById('plate-lightbox');
+      const stage = document.getElementById('plate-lightbox-stage');
+      const title = document.getElementById('plate-lightbox-title');
+      const closeBtn = document.getElementById('plate-lightbox-close');
+      if (!dialog || !stage || !title || !closeBtn) return;
+
+      document.querySelectorAll('[data-plate-src]').forEach((trigger) => {
+        trigger.addEventListener('click', () => {
+          const src = trigger.getAttribute('data-plate-src');
+          const label = trigger.getAttribute('data-plate-title') || '';
+          if (!src) return;
+          const img = document.createElement('img');
+          img.src = src;
+          img.alt = label;
+          img.width = 1400;
+          img.height = 900;
+          img.className = 'block w-full h-auto max-h-[78vh] object-contain';
+          stage.replaceChildren(img);
+          title.textContent = label;
+          if (typeof dialog.showModal === 'function') {
+            dialog.showModal();
+          }
+        });
+      });
+
+      closeBtn.addEventListener('click', () => dialog.close());
+      dialog.addEventListener('click', (ev) => {
+        if (ev.target === dialog) dialog.close();
+      });
+    })();
+  </script>
 </section>

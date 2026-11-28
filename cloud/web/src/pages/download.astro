@@ -1,15 +1,8 @@
 ---
 export const prerender = true;
 
-import Base from '../layouts/Base.astro';
 import DownloadButtons from '../components/DownloadButtons.astro';
-import LogoMark from '../components/LogoMark.astro';
-// Read the version from the desktop app's own manifest (app/nsgo.yaml) at
-// build time — never hardcode it here. The release flow bumps app/nsgo.yaml
-// on main before tagging, and the site redeploys on every main push, so the
-// built page tracks releases with no manual edit. The download buttons are
-// independent of this label: they resolve the latest GitHub release asset at
-// request time (lib/latest-download.ts).
+import Base from '../layouts/Base.astro';
 import { APP_VERSION } from '../lib/app-version';
 
 const version = `v${APP_VERSION}`;
@@ -19,20 +12,26 @@ const version = `v${APP_VERSION}`;
   description="Download CarbonInk free for macOS and Windows. Open-source carbon accounting that runs fully offline — no account, no license key."
   lang="en"
 >
-  <section class="py-28 px-5">
-    <div class="max-w-lg mx-auto text-center">
-      <div class="inline-flex justify-center">
-        <LogoMark size={44} />
-      </div>
-      <h1 class="text-3xl font-semibold tracking-tight mt-6 mb-2">Download CarbonInk</h1>
-      <p class="text-muted-foreground text-sm mb-10" style="font-family: var(--font-mono);">
-        Version {version} · built-in auto-updates on macOS & Windows
+  <section class="chamber-surface bg-chamber text-chamber-foreground pt-12 pb-20 px-5 sm:px-6 border-b-2 border-border-strong">
+    <div class="max-w-2xl mx-auto">
+      <h1 class="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-3">
+        Download CarbonInk
+      </h1>
+      <p class="text-sm sm:text-base text-chamber-muted leading-relaxed">
+        Lightweight native desktop installers with built-in Sparkle (macOS) and WinSparkle (Windows) automatic updates. No account or activation key required.
       </p>
+      <p class="font-mono-num text-xs text-emerald-bright mt-3">
+        {version} · MIT · macOS 13+ &amp; Windows 10/11
+      </p>
+    </div>
+  </section>
 
+  <section class="px-5 sm:px-6 -mt-10 pb-20">
+    <div class="max-w-2xl mx-auto bg-card border-2 border-border-strong rounded-none divide-y divide-border shadow-[0_14px_36px_rgba(17,22,20,0.07)]">
       <DownloadButtons lang="en" />
 
-      <div class="border border-border rounded-lg p-5 bg-muted/30 text-left mt-8">
-        <h2 class="font-semibold text-sm text-foreground mb-2">Upgrading from CarbonInk 1.x?</h2>
+      <div class="px-6 sm:px-8 py-5 sm:py-6 text-left">
+        <h2 class="font-display font-bold text-sm text-foreground mb-2">Upgrading from CarbonInk 1.x?</h2>
         <ul class="text-xs text-muted-foreground space-y-1.5 leading-relaxed list-disc pl-4">
           <li>1.x (Electron) cannot auto-update into 2.0 in place — install the 2.0 build once above.</li>
           <li>On first launch, 2.0 automatically copies your 1.x workspaces, SQLite databases, uploads, and backups read-only (leaving 1.x untouched).</li>
@@ -40,14 +39,15 @@ const version = `v${APP_VERSION}`;
         </ul>
       </div>
 
-      <p class="mt-6 text-xs text-muted-foreground">
+      <p class="px-6 sm:px-8 py-4 bg-surface text-xs text-muted-foreground flex flex-wrap items-center justify-between gap-2">
+        <span class="font-mono-num">SHA-256 checksums &amp; Sparkle/WinSparkle appcasts</span>
         <a
           href="https://github.com/lxzxl/carbonink/releases/latest"
           target="_blank"
           rel="noopener"
-          class="text-moss-600 hover:text-moss-700 font-medium transition-colors"
+          class="font-semibold text-primary hover:text-chamber underline transition-colors"
         >
-          View release notes & SHA-256 checksums on GitHub →
+          View release notes on GitHub →
         </a>
       </p>
     </div>

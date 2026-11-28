@@ -1,46 +1,73 @@
 ---
-/**
- * HowItWorks — three numbered steps: upload → AI extract → export.
- * The connector line behind the step circles is a single absolute
- * `h-px bg-border` strip, hidden on mobile where the steps stack.
- */
-
 const { lang } = Astro.props as { lang: 'zh-CN' | 'en' };
 const isZh = lang === 'zh-CN';
 
 const tx = isZh
   ? {
-      label: '工作流程',
-      title: '三步完成碳盘查',
+      title: '三步完成可核查盘查',
       steps: [
-        { num: '01', title: '上传单据或导入台账', body: '上传电费单、燃料发票、货运差旅单据（PDF / 图片），或整表导入 Excel / CSV 活动台账。' },
-        { num: '02', title: 'AI 提取 + 确认排放因子', body: 'AI 自动识别数据，关联内置 IPCC / DEFRA / EPA / 生态环境部或自有排放因子，人工确认后冻结快照。' },
-        { num: '03', title: '导出报告与核查交付包', body: '一键生成 ISO 14064-1 盘查报告与 TCFD 气候披露（PDF + Excel + SHA-256 证据交付包）。' },
+        {
+          num: '01',
+          title: '投递单据或整表导入台账',
+          body: '拖入电费单、燃料发票、货运差旅凭证（PDF / 图片），或整表导入 Excel / CSV 活动台账。',
+          io: '输入：PDF · 图片 · XLSX · CSV',
+        },
+        {
+          num: '02',
+          title: 'AI 提取并冻结排放因子',
+          body: 'AI 抽取字段并匹配内置 IPCC / DEFRA / EPA / 生态环境部或自有因子库；经人工确认后写入不可变计算快照。',
+          io: '锁定：人工确认 + EF 快照 + 证据链',
+        },
+        {
+          num: '03',
+          title: '导出报告与 SHA-256 交付包',
+          body: '运行发布前就绪体检后，一键生成 ISO 14064-1 盘查报告与 TCFD 四支柱披露，打包为带哈希清单的离线交付物。',
+          io: '产出：PDF + Excel + SHA-256 ZIP',
+        },
       ],
     }
   : {
-      label: 'How it works',
-      title: 'Three steps to a full inventory',
+      title: 'Three steps to an audit-ready inventory',
       steps: [
-        { num: '01', title: 'Upload bills or ledgers', body: 'Drop utility bills, fuel invoices, and freight records (PDF / images), or import whole Excel / CSV activity ledgers.' },
-        { num: '02', title: 'AI extracts + pins EFs', body: 'AI reads the data and matches built-in IPCC / DEFRA / EPA / MEE or your custom EF libraries — human-confirmed and snapshot-pinned.' },
-        { num: '03', title: 'Export reports & audit bundle', body: 'One-click ISO 14064-1 inventory and TCFD climate reports (PDF, Excel, and SHA-256 auditor deliverable ZIP).' },
+        {
+          num: '01',
+          title: 'Drop bills or import whole ledgers',
+          body: 'Import utility bills, fuel receipts, and freight docs (PDF / images), or bulk-load existing Excel / CSV activity ledgers.',
+          io: 'Input: PDF · Images · XLSX · CSV',
+        },
+        {
+          num: '02',
+          title: 'AI extracts, human locks EFs',
+          body: 'AI parses records and ranks factors from IPCC, DEFRA, EPA eGRID, China MEE, or your custom library; confirmation freezes the snapshot.',
+          io: 'Lock: Pinned EF + Row lineage',
+        },
+        {
+          num: '03',
+          title: 'Export reports & SHA-256 bundle',
+          body: 'Run deterministic readiness checks and export editable ISO 14064-1 & TCFD reports (PDF + Excel) in a SHA-256 verified ZIP.',
+          io: 'Output: PDF + XLSX + SHA-256 ZIP',
+        },
       ],
     };
 ---
-<section class="py-20 px-5">
+<section class="py-16 sm:py-20 px-5 sm:px-6 bg-card border-y border-border">
   <div class="max-w-6xl mx-auto">
-    <p class="text-xs font-medium text-primary uppercase tracking-widest mb-3">{tx.label}</p>
-    <h2 class="text-2xl md:text-3xl font-semibold tracking-tight mb-12">{tx.title}</h2>
-    <div class="grid md:grid-cols-3 gap-8 relative">
-      <div class="hidden md:block absolute top-5 left-[16.67%] right-[16.67%] h-px bg-border"></div>
+    <h2 class="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground mb-10">
+      {tx.title}
+    </h2>
+    <div class="grid md:grid-cols-3 gap-6">
       {tx.steps.map((step) => (
-        <div class="relative">
-          <div class="w-10 h-10 rounded-full border-2 border-border bg-background flex items-center justify-center mb-5 relative z-10">
-            <span class="text-xs font-medium text-primary" style="font-family: var(--font-mono);">{step.num}</span>
+        <div class="border border-border border-t-2 border-t-border-strong bg-surface p-6 flex flex-col justify-between gap-6">
+          <div>
+            <div class="flex items-baseline gap-2.5 mb-2.5">
+              <span class="font-mono-num text-base font-semibold text-primary shrink-0">{step.num}</span>
+              <h3 class="font-display font-bold text-base tracking-tight text-foreground">{step.title}</h3>
+            </div>
+            <p class="text-sm text-muted-foreground leading-relaxed">{step.body}</p>
           </div>
-          <h3 class="font-semibold text-[15px] mb-2">{step.title}</h3>
-          <p class="text-sm text-muted-foreground">{step.body}</p>
+          <div class="font-mono-num text-xs text-foreground bg-card border border-border px-3 py-2">
+            {step.io}
+          </div>
         </div>
       ))}
     </div>

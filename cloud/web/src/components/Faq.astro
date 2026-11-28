@@ -1,136 +1,147 @@
 ---
-/**
- * Faq — homepage FAQ accordion + FAQPage JSON-LD.
- *
- * Questions mirror the highest-intent "what is / is it free / where's
- * my data" queries from the SEO keyword research. Native
- * <details>/<summary> (no JS) so the answers are in the initial HTML —
- * crawlers and AI engines read them without interaction. The JSON-LD
- * uses the same strings, plain-text only.
- */
 const { lang } = Astro.props as { lang: 'zh-CN' | 'en' };
 const isZh = lang === 'zh-CN';
 const prefix = isZh ? '/zh' : '';
 
 const tx = isZh
   ? {
-      label: '常见问题',
-      title: '关于碳墨',
+      title: '关于碳墨的常见问题',
       items: [
         {
+          tag: 'MIT 开源',
           q: '碳墨真的免费吗？',
           a: '真的。碳墨以 MIT 协议开源，没有账号、激活码、订阅或任何付费墙。下载即用，源代码公开在 GitHub。',
           more: { href: 'https://github.com/lxzxl/carbonink', label: '查看源码' },
         },
         {
+          tag: '碳盘查基础',
           q: '什么是碳核算（碳盘查）？',
           a: '按 ISO 14064-1 或 GHG Protocol 等标准，把企业一年的温室气体排放量化成一份可追溯、可核查的清单 —— 从电费单、燃料发票等原始凭证，到活动数据、排放因子，再到分类别的 CO₂e 排放量。',
           more: { href: `${prefix}/guides/ghg-inventory/`, label: '盘查七步指南' },
         },
         {
+          tag: '本地存储',
           q: '我的数据存在哪里？',
           a: '只存在你自己电脑上的 SQLite 数据库里。碳墨完全离线运行，没有云端同步、没有账号体系，活动数据、排放因子和报告内容永远不出你的内网。',
           more: { href: `${prefix}/privacy/`, label: '隐私政策' },
         },
         {
+          tag: '标准与交付物',
           q: '支持什么标准与交付物？',
           a: '既支持 ISO 14064-1:2018（类别 1–6）与 GHG Protocol 范围一 / 二 / 三映射，也支持生成 TCFD 四大支柱气候信息披露。报告可导出 PDF 与 Excel 附表，并打包为带 SHA-256 校验清单的核查交付包（ZIP）供离线验真。',
           more: { href: `${prefix}/guides/iso-14064-1-vs-ghg-protocol/`, label: '两个标准的区别' },
         },
         {
+          tag: 'AI 服务',
           q: '该用哪个 AI 服务？',
           a: '自带 Key（BYOK），支持 OpenAI、Anthropic、Google Gemini、DeepSeek、Moonshot（月之暗面）及任何 OpenAI 兼容接口，并内置本地文件解析缓存。中国大陆常用 DeepSeek 或 Moonshot（直连延迟低、中文稳）；境外可选 OpenAI、Anthropic 或 Gemini。所有模型均采用同一套本地因子锁库与计算口径。',
           more: { href: `${prefix}/download/`, label: '下载碳墨' },
         },
         {
+          tag: 'SCOPE 3',
           q: '怎么向供应商收 Scope 3 数据？对方要注册账户吗？',
           a: '不用注册任何东西。碳墨内置供应商披露流程：可按 Scope 3 类别 1（外购商品与服务）、类别 4（上游运输）、类别 5（废弃物）、类别 6（差旅）或自定义模板导出 xlsx 披露表发给供应商，支持 Tier 1（PCF 含数量推算）、Tier 2（分摊）与 Tier 3（活动数据，含全文检索匹配因子）填报；对方用 Excel / WPS 填完发回即可一键入库，逾期自动标红并支持一键催办。',
           more: { href: `${prefix}/guides/collect-supplier-emissions-data/`, label: '供应商数据收集实操指南' },
         },
         {
+          tag: '台账导入',
           q: '已有 Excel 台账，能整表搬进来吗？',
           a: '能。上传 xlsx / csv 活动数据台账：中英文表头自动映射列，逐行校验并识别异常，排放因子按「描述 + 单位 + 排放源」分组确认 —— 几千行也只需拍板几十次。还支持导入自定义 xlsx / csv 排放因子库；原件存档并保留逐行证据链，随时可溯源。',
           more: { href: `${prefix}/download/`, label: '下载碳墨' },
         },
         {
+          tag: '多客户账套',
           q: '顾问怎么同时管多个客户？',
           a: '用账套：一个客户一个独立的本地数据库文件，物理隔离、每日自动备份，也可单独打包交付。在设置里新建、重命名或一键切换；新账套直接进入引导流程，侧栏随时显示当前客户，没有客户数据混库的风险。',
           more: { href: `${prefix}/download/`, label: '下载碳墨' },
         },
         {
+          tag: 'MCP 集成',
           q: '能否在 Claude、Cursor 等 AI 编程助手里直接读写盘查数据？',
           a: '可以。碳墨内置 stdio MCP 服务（--mcp），在「设置 → MCP 服务」中可一键为 Claude Desktop、Claude Code、Cursor 和 Pi 配置服务与 carbonink-mcp 技能，还支持直接发起 Agent 会话。读取直连当前账套 SQLite；写入会经过桌面端执行因子锁定、单位换算与审计日志。',
           more: { href: 'https://github.com/lxzxl/carbonink/blob/main/app/internal/agentskill/SKILL.md', label: '查看 MCP 技能文档' },
         },
         {
+          tag: '1.x 升级',
           q: '从碳墨 1.x（Electron）怎么升级到 2.0？',
           a: '1.x 无法原地自动更新为 2.0，只需前往下载页重新安装一次 2.0 原生包。首次启动时，2.0 会自动以只读方式完整复制 1.x 的全部账套、SQLite 数据库、上传文件与备份，原 1.x 目录保持不动；已有服务商配置也会一并带入，只需在「设置 → AI 服务」重新填入一次 API Key。',
           more: { href: `${prefix}/download/`, label: '查看升级说明' },
         },
         {
+          tag: '平台支持',
           q: '支持哪些系统？',
-          a: 'macOS 13+（Apple Silicon 与 Intel）及 Windows 10/11（64 位）原生桌面端，安装包仅约 15–18 MB，内置自动更新、浅色/深色主题、⌘K / Ctrl+K 命令面板与中英双语界面。',
+          a: '轻量原生桌面应用，支持 macOS 13+（Apple Silicon 与 Intel）及 Windows 10/11（64 位），内置自动更新、浅色/深色主题、⌘K / Ctrl+K 命令面板与中英双语界面。',
           more: { href: `${prefix}/download/`, label: '前往下载' },
         },
       ],
     }
   : {
-      label: 'FAQ',
-      title: 'About CarbonInk',
+      title: 'Frequently asked questions',
       items: [
         {
+          tag: 'MIT FOSS',
           q: 'Is CarbonInk really free?',
           a: "Yes. CarbonInk is open-source under the MIT license — no account, no activation key, no subscription, no paywall. Download it and use it; the source code is public on GitHub.",
           more: { href: 'https://github.com/lxzxl/carbonink', label: 'View source' },
         },
         {
+          tag: 'BASICS',
           q: 'What is carbon accounting?',
           a: "Quantifying an organization's greenhouse-gas emissions for a year into a traceable, verifiable inventory under a standard like ISO 14064-1 or the GHG Protocol — from source documents (utility bills, fuel invoices) to activity data, emission factors, and CO₂e by category.",
           more: { href: `${prefix}/guides/ghg-inventory/`, label: 'The seven-step guide' },
         },
         {
+          tag: 'STORAGE',
           q: 'Where does my data live?',
           a: 'In a SQLite database on your own machine, and nowhere else. CarbonInk runs fully offline — no cloud sync, no accounts. Activity data, emission factors, and report contents never leave your network.',
           more: { href: `${prefix}/privacy/`, label: 'Privacy policy' },
         },
         {
+          tag: 'STANDARDS',
           q: 'Which standards and deliverables does it support?',
           a: 'CarbonInk supports ISO 14064-1:2018 (Categories 1–6) with a GHG Protocol Scope 1 / 2 / 3 mapping, plus TCFD four-pillar climate disclosures. Export editable PDF reports and Excel appendices, or package a SHA-256 verified ZIP deliverable bundle for offline auditor verification.',
           more: { href: `${prefix}/guides/iso-14064-1-vs-ghg-protocol/`, label: 'How the standards differ' },
         },
         {
+          tag: 'BYOK AI',
           q: 'Which AI provider should I use?',
           a: 'Bring your own key (BYOK) for OpenAI, Anthropic, Google Gemini, DeepSeek, Moonshot, or any OpenAI-compatible endpoint, backed by a local file-parsing cache. DeepSeek or Moonshot often provide lower direct latency inside mainland China, while OpenAI, Anthropic, and Gemini work well globally. All calculation formulas and pinned factors stay identical locally.',
           more: { href: `${prefix}/download/`, label: 'Download CarbonInk' },
         },
         {
+          tag: 'SCOPE 3',
           q: 'How do I collect Scope 3 data from suppliers? Do they need an account?',
           a: 'They register for nothing. Export xlsx disclosure templates for Scope 3 Category 1 (Purchased goods & services), Category 4 (Upstream transport), Category 5 (Waste), Category 6 (Business travel), or a custom template. Suppliers fill Tier 1 (PCF with quantity inference), Tier 2 (allocated), or Tier 3 (activity data with full-text emission factor matching) right in Excel or WPS; CarbonInk flags overdue requests and prepares one-click reminder emails.',
           more: { href: `${prefix}/guides/collect-supplier-emissions-data/`, label: 'The supplier data playbook' },
         },
         {
+          tag: 'LEDGER IMPORT',
           q: 'Can I import an existing Excel activity ledger?',
           a: 'Yes. Upload an xlsx or csv ledger: bilingual headers auto-map columns, every row is validated with anomaly checks, and emission factors are confirmed per (description, unit, source) group — thousands of rows take a few dozen decisions. You can also import custom xlsx/csv emission-factor libraries; original files stay archived with per-row evidence links.',
           more: { href: `${prefix}/download/`, label: 'Download CarbonInk' },
         },
         {
+          tag: 'WORKSPACES',
           q: 'How do consultants manage multiple clients?',
           a: 'Workspaces: one standalone local SQLite file per client — physically isolated, with daily per-workspace automatic backups and one-click export. Create, rename, and switch in Settings; a fresh workspace boots straight into onboarding, and the sidebar always shows which client you are in.',
           more: { href: `${prefix}/download/`, label: 'Download CarbonInk' },
         },
         {
+          tag: 'MCP SERVER',
           q: 'Can AI assistants like Claude Desktop or Cursor work with my inventory?',
           a: 'Yes. CarbonInk bundles a stdio MCP server (--mcp) and one-click carbonink-mcp skill setup in Settings → MCP server for Claude Desktop, Claude Code, Cursor, and Pi, complete with an agent session launcher. Reads inspect your active workspace SQLite database directly; writes route through the running desktop app for factor pinning, unit conversion, and audit logging.',
           more: { href: 'https://github.com/lxzxl/carbonink/blob/main/app/internal/agentskill/SKILL.md', label: 'Read the MCP skill guide' },
         },
         {
+          tag: 'UPGRADE 1.X',
           q: 'How do I upgrade from CarbonInk 1.x (Electron) to 2.0?',
           a: 'CarbonInk 1.x cannot auto-update into 2.0 in place — download and install 2.0 once. On first launch, 2.0 automatically copies your existing 1.x workspaces, SQLite databases, uploads, and backups read-only while leaving 1.x files untouched. Provider metadata transfers automatically; just re-enter your LLM API key once in Settings → AI provider.',
           more: { href: `${prefix}/download/`, label: 'Go to download & upgrade guide' },
         },
         {
+          tag: 'PLATFORMS',
           q: 'Which platforms are supported?',
-          a: 'Native macOS 13+ (Apple Silicon & Intel) and Windows 10/11 (64-bit) desktop apps with ~15–18 MB installers, built-in auto-updates, light and dark themes, a ⌘K / Ctrl+K command palette, and a bilingual English / Chinese interface.',
+          a: 'Lightweight native macOS 13+ (Apple Silicon & Intel) and Windows 10/11 (64-bit) desktop apps with built-in automatic updates, light and dark themes, a ⌘K / Ctrl+K command palette, and a bilingual English / Chinese interface.',
           more: { href: `${prefix}/download/`, label: 'Go to download' },
         },
       ],
@@ -146,15 +157,23 @@ const faqLd = {
   })),
 };
 ---
-<section class="py-20 px-5">
-  <div class="max-w-3xl mx-auto">
-    <p class="text-xs font-medium text-primary uppercase tracking-widest mb-3">{tx.label}</p>
-    <h2 class="text-2xl md:text-3xl font-semibold tracking-tight mb-10">{tx.title}</h2>
-    <div class="divide-y divide-border border border-border rounded-md">
-      {tx.items.map((item) => (
-        <details class="group">
-          <summary class="flex items-center justify-between gap-4 px-5 py-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden font-medium text-[15px]">
-            {item.q}
+<section class="py-16 sm:py-20 px-5 sm:px-6">
+  <div class="max-w-4xl mx-auto">
+    <h2 class="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground mb-8">
+      {tx.title}
+    </h2>
+    <div class="border border-border border-t-2 border-t-border-strong bg-card divide-y divide-border rounded-none">
+      {tx.items.map((item, idx) => (
+        <details class="group" open={idx === 0}>
+          <summary class="flex items-center justify-between gap-4 px-5 py-4 cursor-pointer list-none [&::-webkit-details-marker]:hidden hover:bg-surface/60 transition-colors">
+            <span class="flex flex-col md:flex-row md:items-baseline gap-1 md:gap-3">
+              <span class="order-1 md:order-2 font-display font-semibold text-[15px] text-foreground">
+                {item.q}
+              </span>
+              <span class="order-2 md:order-1 font-mono-num text-[11px] font-medium text-ochre shrink-0 md:w-24">
+                {item.tag}
+              </span>
+            </span>
             <svg
               class="w-4 h-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
               viewBox="0 0 24 24"
@@ -168,11 +187,11 @@ const faqLd = {
               <polyline points="6 9 12 15 18 9" />
             </svg>
           </summary>
-          <div class="px-5 pb-5 text-sm text-muted-foreground leading-relaxed">
-            <p class="mb-2">{item.a}</p>
+          <div class="px-5 pb-5 pt-1 md:pl-[7.75rem] text-sm text-muted-foreground leading-relaxed">
+            <p class="mb-2.5">{item.a}</p>
             <a
               href={item.more.href}
-              class="text-moss-600 hover:text-moss-700 font-medium transition-colors"
+              class="font-semibold text-primary hover:text-chamber underline transition-colors"
               {...(item.more.href.startsWith('http') ? { target: '_blank', rel: 'noopener' } : {})}
             >
               {item.more.label} →

@@ -1,46 +1,46 @@
 ---
+import { APP_VERSION } from '../lib/app-version';
 import LogoMark from './LogoMark.astro';
-
-/**
- * Site footer — mirrors the Figma redesign.
- *
- * Layout:
- *   [logo + brand + tagline]   [link nav row]    [lang swap + copyright]
- *
- * On mobile the three groups stack vertically. Links use the same
- * /en URL-prefix discipline as Nav so a lang swap from the footer
- * preserves the user's current page.
- */
 
 const { lang } = Astro.props as { lang: 'zh-CN' | 'en' };
 const isZh = lang === 'zh-CN';
+const prefix = isZh ? '/zh' : '';
+const version = `v${APP_VERSION}`;
 
 const tx = isZh
   ? {
+      ctaTitle: '无需账号，无需许可证，下载即可开始盘查',
+      ctaSub: `CarbonInk ${version} 以 MIT 协议开源，支持 macOS 与 Windows 自动更新；从 1.x 升级首次启动自动迁移原有账套。`,
+      ctaBtn: '前往下载',
+      sourceBtn: '查看源码',
       brand: '碳墨',
-      tagline: '把碳核算搬到桌面端',
+      tagline: '面向桌面端的本地碳核算工作台',
       links: [
-        { label: '源码', href: 'https://github.com/lxzxl/carbonink' },
-        { label: '下载', href: '/zh/download/' },
-        { label: '指南', href: '/zh/guides/' },
-        { label: '隐私政策', href: '/zh/privacy/' },
-        { label: '联系支持', href: 'mailto:support@carbonink.xyz' },
+        { label: '源码', href: 'https://github.com/lxzxl/carbonink', external: true },
+        { label: '下载', href: '/zh/download/', external: false },
+        { label: '指南', href: '/zh/guides/', external: false },
+        { label: '隐私政策', href: '/zh/privacy/', external: false },
+        { label: '联系支持', href: 'mailto:support@carbonink.xyz', external: false },
       ],
       langLabel: 'EN',
-      copy: '© 2026 CarbonInk',
+      copy: '© 2026 CarbonInk · MIT',
     }
   : {
+      ctaTitle: 'No accounts. No license keys. Ready for 1.x upgrades.',
+      ctaSub: `CarbonInk ${version} ships free under the MIT license with built-in updates on macOS & Windows and automatic read-only migration from 1.x.`,
+      ctaBtn: 'Download installers',
+      sourceBtn: 'View source',
       brand: 'CarbonInk',
       tagline: 'Local-first GHG accounting for the desktop',
       links: [
-        { label: 'Source', href: 'https://github.com/lxzxl/carbonink' },
-        { label: 'Download', href: '/download/' },
-        { label: 'Guides', href: '/guides/' },
-        { label: 'Privacy', href: '/privacy/' },
-        { label: 'Contact', href: 'mailto:support@carbonink.xyz' },
+        { label: 'Source', href: 'https://github.com/lxzxl/carbonink', external: true },
+        { label: 'Download', href: '/download/', external: false },
+        { label: 'Guides', href: '/guides/', external: false },
+        { label: 'Privacy', href: '/privacy/', external: false },
+        { label: 'Contact', href: 'mailto:support@carbonink.xyz', external: false },
       ],
       langLabel: '中文',
-      copy: '© 2026 CarbonInk',
+      copy: '© 2026 CarbonInk · MIT',
     };
 
 const path = Astro.url.pathname;
@@ -48,19 +48,52 @@ const swapHref = isZh
   ? path.startsWith('/zh/') ? path.slice(3) || '/' : path === '/zh' ? '/' : path
   : path === '/' ? '/zh/' : `/zh${path}`;
 ---
-<footer class="border-t border-border bg-muted/30 px-5 py-10">
-  <div class="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6">
+<footer class="chamber-surface border-t-2 border-border-strong bg-chamber text-chamber-foreground">
+  <div class="max-w-6xl mx-auto px-5 sm:px-6 pt-12 pb-10 border-b border-chamber-border">
+    <div class="grid lg:grid-cols-12 gap-6 items-center">
+      <div class="lg:col-span-7">
+        <h2 class="font-display text-xl sm:text-2xl font-bold tracking-tight text-chamber-foreground mb-2">
+          {tx.ctaTitle}
+        </h2>
+        <p class="text-sm text-chamber-muted max-w-2xl leading-relaxed">
+          {tx.ctaSub}
+        </p>
+      </div>
+      <div class="lg:col-span-5 flex flex-wrap lg:justify-end gap-3">
+        <a
+          href={`${prefix}/download/`}
+          class="inline-flex items-center gap-2 bg-card text-chamber font-bold text-sm px-5 py-2.5 rounded-[2px] hover:bg-white transition-colors"
+        >
+          {tx.ctaBtn}
+        </a>
+        <a
+          href="https://github.com/lxzxl/carbonink"
+          target="_blank"
+          rel="noopener"
+          class="inline-flex items-center gap-2 border border-chamber-border bg-white/5 text-chamber-foreground font-semibold text-sm px-4 py-2.5 rounded-[2px] hover:bg-white/10 transition-colors"
+        >
+          {tx.sourceBtn} →
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-6xl mx-auto px-5 sm:px-6 py-7 flex flex-col md:flex-row md:items-center justify-between gap-6">
     <div class="flex items-center gap-2.5">
       <LogoMark size={22} />
       <div>
-        <span class="font-semibold text-sm text-foreground">{tx.brand}</span>
-        <p class="text-xs text-muted-foreground mt-0.5">{tx.tagline}</p>
+        <span class="font-display font-bold text-sm text-chamber-foreground">{tx.brand}</span>
+        <p class="text-xs text-chamber-muted mt-0.5">{tx.tagline}</p>
       </div>
     </div>
 
-    <div class="flex flex-wrap gap-x-5 gap-y-2">
+    <div class="flex flex-wrap gap-x-6 gap-y-2">
       {tx.links.map((l) => (
-        <a href={l.href} class="text-xs text-muted-foreground hover:text-foreground transition-colors">
+        <a
+          href={l.href}
+          class="text-xs text-chamber-muted hover:text-chamber-foreground transition-colors"
+          {...(l.external ? { target: '_blank', rel: 'noopener' } : {})}
+        >
           {l.label}
         </a>
       ))}
@@ -70,11 +103,11 @@ const swapHref = isZh
       <a
         href={swapHref}
         data-locale-target={isZh ? 'en' : 'zh-CN'}
-        class="text-xs border border-border rounded px-2.5 py-1 text-muted-foreground hover:text-foreground transition-colors"
+        class="font-mono-num text-xs border border-chamber-border rounded-[2px] px-2.5 py-1 text-chamber-muted hover:text-chamber-foreground transition-colors"
       >
         {tx.langLabel}
       </a>
-      <span class="text-xs text-muted-foreground">{tx.copy}</span>
+      <span class="font-mono-num text-xs text-chamber-muted">{tx.copy}</span>
     </div>
   </div>
 </footer>

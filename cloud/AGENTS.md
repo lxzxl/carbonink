@@ -77,31 +77,25 @@ marketing pages are the indexable surface.
 
 ## Brand palette — marketing site identity
 
-The cloud site's color tokens (`cloud/web/src/styles/global.css`) use the
-X2 stacked-rows mark and moss-green palette (`global.css`, `LogoMark.astro`,
-and `favicon.svg` are the source of truth for the marketing site):
+The cloud site's color tokens (`cloud/web/src/styles/global.css`, documented
+in `cloud/web/DESIGN.md`) pair CarbonInk's X2 stacked-rows mark with the
+**ISO / Metrology Dossier** palette:
 
-| Token | Hex | Role |
+| Token | Value | Role |
 |---|---|---|
-| `--color-primary` / `moss-500` | `#6B8266` | CTA buttons, focus rings, badges, accent text |
-| `--color-primary-foreground` | `#ffffff` | Text on `bg-primary` (4.9:1 contrast on moss-500, WCAG AA-pass) |
-| moss ramp `50/100/200/300/600/700/800/900` | derived | Soft backgrounds, borders, hover states |
-| `--color-background` | `#ffffff` | Page background |
-| `--color-foreground` | `#0f172a` | Body text |
-| `--color-border` | `#e2e8f0` | Neutral chrome borders |
+| `--color-chamber` | `#133325` | Deep forest masthead, privacy interlude, footer, dark CTAs |
+| `--color-background` | `#e8ece8` | Mineral engineering paper page ground |
+| `--color-card` | `#f7f9f7` | Instrument-white panels, workbench deck, guide reading sheets |
+| `--color-surface` | `#eff2ef` | Table headers, secondary rail, step bays |
+| `--color-foreground` | `#111614` | Obsidian ink headings and body text on light ground |
+| `--color-primary` | `#17724a` | Oxidized emerald actions, links, and focus rings (light) |
+| `--color-emerald-bright` | `#6ce0a3` | Version chips, key labels, and focus rings inside `#133325` |
+| `--color-ochre` | `#8c6223` | Scope 1 segment & domain category identifiers on light ground |
+| `--color-border` / `-strong` | `#c5cdc8` / `#111614` | Hairline rules and `2px` architectural datum bars |
+| `--color-moss-50..900` | `#eff4ef` .. `#0e261c` | Derived moss utility ramp preserved for Tailwind classes |
 
-LogoMark + favicon use the X2 "stacked data rows" mark verbatim
+LogoMark + favicon keep the X2 "stacked data rows" mark verbatim
 (`graphite #15171A` squircle + `cream #F4EFE3` top/bottom bars + `moss-500
-#6B8266` middle bar). SVG coords are in 1024-design-space so they copy-paste
-directly from `drawDirectionX2`.
+#6B8266` middle bar).
 
-**Do not introduce `bg-sky-*` / `text-sky-*` / `border-sky-*` here.** The old
-Figma Make palette is fully retired. New chromatic accents go through the moss
-ramp; if a shade is missing, extend the ramp in `global.css` rather than
-reaching for a different Tailwind family. The `--color-brand-*` legacy aliases
-also point at moss; they're a soft-landing pad for stale references, not a
-second palette.
-
-Reminder: this brand is "old money green" — pharmacist's apothecary jar,
-antique library, Jaguar dashboard — NOT a recycling-symbol / SaaS-eco green.
-Resist the urge to bump saturation when adding shades.
+**Do not introduce `bg-sky-*` / `text-sky-*` / `border-sky-*` here.** New chromatic accents go through the chamber / primary emerald / ochre / moss tokens documented above and in `cloud/web/DESIGN.md`.
